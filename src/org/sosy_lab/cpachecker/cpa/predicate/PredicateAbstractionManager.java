@@ -607,7 +607,7 @@ public class PredicateAbstractionManager {
     // If this option is true, the transition predicates are already in precision and also path formula
     // and handled in computeAbstraction.
     if (!options.isAddTransitionPredicatesToPrecision()) {
-        satTransitionPredicates = getSatTransitionPredicates(pathFormula);
+        satTransitionPredicates = getSatTransitionPredicates(pathFormula, abstractionFormula);
     }
     AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula, satTransitionPredicates);
 
@@ -931,10 +931,11 @@ public class PredicateAbstractionManager {
     return region;
   }
 
-  public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula) {
+  public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula, AbstractionFormula pAbstractionFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     Map<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
+    BooleanFormula primaryFormula = bfmgr.and(pAbstractionFormula.asInstantiatedFormula(), pPathFormula.getFormula());
 
     if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
@@ -961,7 +962,12 @@ public class PredicateAbstractionManager {
           AbstractionPredicate transPred = transPredList.get(i);
 
           BooleanFormula transitionSymbAtom = transPred.getSymbolicAtom();
-          BooleanFormula conj = fmgr.makeAnd(pPathFormula.getFormula(), fmgr.instantiate(transitionSymbAtom, ssaMap));
+          BooleanFormula instantiatedTransitionPredicate = fmgr.instantiate(transitionSymbAtom, ssaMap);
+          if (bfmgr.isTrue(instantiatedTransitionPredicate)) {
+            satTransitionPredicateList.add(transPred);
+            break;
+          }
+          BooleanFormula conj = fmgr.makeAnd(primaryFormula, instantiatedTransitionPredicate);
 
           try {
             boolean isUnsat = solver.isUnsat(conj);

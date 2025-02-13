@@ -183,7 +183,7 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
 
       if (formulaManager.getOptions().isAddTransitionPredicatesToPrecision()
       && !formulaManager.getAmgr().getVarNameToTransitionPredicates().isEmpty()) {
-        List<AbstractionPredicate> satTransitionPredicates = formulaManager.getSatTransitionPredicates(pathFormula);
+        List<AbstractionPredicate> satTransitionPredicates = formulaManager.getSatTransitionPredicates(pathFormula, abstractionFormula);
         additionalPredicates = removeUnsatTransitionPredicates(additionalPredicates, satTransitionPredicates);
         pathFormula = addGeneratedTransitionPredicateToPathFormula(satTransitionPredicates, pathFormula);
       } else {
@@ -313,21 +313,16 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
           SSAMapBuilder builder = ssaMap.builder();
           if (varNameToMinIdx.get(varName) != null) {
             builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
-            ssaMap = builder.build();
-            resultPathFormula =
-                pathFormulaManager.makeAndWithInstantiatedFormula(
-                    resultPathFormula,
-                    fmgr.instantiate(predicateTerm, ssaMap),
-                    ssaMap);
           } else {
             builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
-            ssaMap = builder.build();
-            resultPathFormula =
-                pathFormulaManager.makeAndWithInstantiatedFormula(
-                    resultPathFormula,
-                    fmgr.instantiate(predicateTerm, ssaMap),
-                    ssaMap);
           }
+          ssaMap = builder.build();
+          BooleanFormula instantiatedPredicateTerm = fmgr.instantiate(predicateTerm, ssaMap);
+          resultPathFormula =
+              pathFormulaManager.makeAndWithInstantiatedFormula(
+                  resultPathFormula,
+                  instantiatedPredicateTerm,
+                  ssaMap);
           break;
         }
       }
