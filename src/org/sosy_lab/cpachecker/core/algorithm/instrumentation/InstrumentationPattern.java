@@ -163,9 +163,13 @@ public class InstrumentationPattern {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
 
-        if (operand.getExpressionType().getCanonicalType().toString().equals("signed int")) {
+        if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
+          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
+            return ImmutableList.of(
+                operand.toASTString(), condition, "TRANS_LONG_LONG_MAX", "TRANS_LONG_LONG_MIN");
+          }
           return ImmutableList.of(
-              ((CUnaryExpression) expression).getOperand().toASTString(), condition);
+              operand.toASTString(), condition, "TRANS_INT_MAX", "TRANS_INT_MIN");
         } else {
           return ImmutableList.of();
         }
@@ -189,8 +193,21 @@ public class InstrumentationPattern {
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
-        if (expression.getExpressionType().getCanonicalType().toString().matches("signed int")) {
-          return ImmutableList.of(operand1.toASTString(), operand2.toASTString(), condition);
+        if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
+          if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
+            return ImmutableList.of(
+                operand1.toASTString(),
+                operand2.toASTString(),
+                condition,
+                "TRANS_LONG_LONG_MAX",
+                "TRANS_LONG_LONG_MIN");
+          }
+          return ImmutableList.of(
+              operand1.toASTString(),
+              operand2.toASTString(),
+              condition,
+              "TRANS_INT_MAX",
+              "TRANS_INT_MIN");
         } else {
           return ImmutableList.of();
         }
