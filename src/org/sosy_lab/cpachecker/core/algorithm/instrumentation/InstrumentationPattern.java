@@ -189,8 +189,7 @@ public class InstrumentationPattern {
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
-
-        if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
+        if (expression.getExpressionType().getCanonicalType().toString().matches("signed int")) {
           return ImmutableList.of(operand1.toASTString(), operand2.toASTString(), condition);
         } else {
           return ImmutableList.of();
