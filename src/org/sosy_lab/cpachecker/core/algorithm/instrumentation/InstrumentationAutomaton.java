@@ -122,8 +122,8 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("true"),
             new InstrumentationOperation(
                 "int TRANS_INT_MAX = 2147483647; int TRANS_INT_MIN = -2147483648;"
-                    + " int TRANS_LONG_LONG_MIN = -9,223,372,036,854,775,807;"
-                    + " int TRANS_LONG_LONG_MAX = 9,223,372,036,854,775,807;"),
+                    + " long long TRANS_LONG_LONG_MIN = -9223372036854775807;"
+                    + " long long TRANS_LONG_LONG_MAX = 9223372036854775807;"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
