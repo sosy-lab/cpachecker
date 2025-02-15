@@ -300,7 +300,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return false;
     }
 
-    String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
+    String condition = pMatchedVariables.size() != 5 ? "true" : pMatchedVariables.get(2);
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
