@@ -943,7 +943,8 @@ public class PredicateAbstractionManager {
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
 
-        if (!varNameToTransPredsMap.containsKey(varName)) {
+        if (!varNameToTransPredsMap.containsKey(varName)
+        || !ssaMap.containsVariable(varName)) {
           continue;
         }
 
