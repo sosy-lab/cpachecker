@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -293,6 +294,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     } else {
       operand1 = ((CUnaryExpression) expression).getOperand();
       operand2 = ((CUnaryExpression) expression).getOperand();
+    }
+
+    if (operand1 instanceof CCastExpression) {
+      operand1 = ((CCastExpression) operand1).getOperand();
+    }
+    if (operand2 instanceof CCastExpression) {
+      operand2 = ((CCastExpression) operand2).getOperand();
     }
 
     if (!(operand1 instanceof CBinaryExpression || operand1 instanceof CUnaryExpression)
