@@ -309,14 +309,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
     node1.addLeavingEdge(
         new CStatementEdge(
-            "(" + operand1.toASTString() + ")",
+            operand1.toASTString(),
             new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
             pCFAEdge.getFileLocation(),
             node1,
             pCFAEdge.getSuccessor()));
     node2.addLeavingEdge(
         new CStatementEdge(
-            "(" + operand2.toASTString() + ")",
+            operand2.toASTString(),
             new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
             pCFAEdge.getFileLocation(),
             node2,

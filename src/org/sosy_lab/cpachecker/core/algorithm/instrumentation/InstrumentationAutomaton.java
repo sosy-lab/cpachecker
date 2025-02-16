@@ -131,9 +131,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("ADD"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0) && (x_instr_1 >"
-                    + " (x_instr_4 - x_instr_2))) || ((x_instr_2 < 0) && (x_instr_1 <"
-                    + " (x_instr_5 - x_instr_2))))); }"),
+                "if (x_instr_3) { __VERIFIER_assert(!((((x_instr_2) > 0) && ((x_instr_1) >"
+                    + " (x_instr_4 - (x_instr_2)))) || (((x_instr_2) < 0) && ((x_instr_1) <"
+                    + " (x_instr_5 - (x_instr_2)))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t3 =
@@ -141,9 +141,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("SUB"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2 > 0 && x_instr_1 < x_instr_5"
-                    + " + x_instr_2) || (x_instr_2 < 0 && x_instr_1 > x_instr_4 +"
-                    + " x_instr_2))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!((((x_instr_2) > 0 && (x_instr_1) < x_instr_5"
+                    + " + (x_instr_2)) || ((x_instr_2) < 0 && (x_instr_1) > x_instr_4 +"
+                    + " (x_instr_2)))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t4 =
@@ -151,12 +151,12 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MUL"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_1 > 0) && (x_instr_2 > 0) &&"
-                    + " (x_instr_1 > (x_instr_4 / x_instr_2)))|| ((x_instr_1 > 0) && (x_instr_2"
-                    + " <= 0) && (x_instr_2 < (x_instr_5 / x_instr_1)))|| ((x_instr_1 <= 0) &&"
-                    + " (x_instr_2 > 0) && (x_instr_1 < (x_instr_5 / x_instr_2)))|| ((x_instr_1"
-                    + " <= 0) && (x_instr_2 <= 0) && (x_instr_1 != 0 && (x_instr_2 < (x_instr_4"
-                    + " / x_instr_1)))))); }"),
+                "if (x_instr_3) { __VERIFIER_assert(!((((x_instr_1) > 0) && ((x_instr_2) > 0) &&"
+                    + " ((x_instr_1) > (x_instr_4 / (x_instr_2))))|| (((x_instr_1) > 0) && ((x_instr_2)"
+                    + " <= 0) && ((x_instr_2) < (x_instr_5 / (x_instr_1))))|| (((x_instr_1) <= 0) &&"
+                    + " ((x_instr_2) > 0) && ((x_instr_1) < (x_instr_5 / (x_instr_2))))|| (((x_instr_1)"
+                    + " <= 0) && ((x_instr_2) <= 0) && ((x_instr_1) != 0 && ((x_instr_2) < (x_instr_4"
+                    + " / (x_instr_1))))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
@@ -164,8 +164,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("DIV"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 =="
-                    + " x_instr_5) && (x_instr_2 == -1))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2) == 0) || (((x_instr_1) =="
+                    + " x_instr_5) && ((x_instr_2) == -1))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t6 =
@@ -173,8 +173,8 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("MOD"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_2 == 0) || ((x_instr_1 =="
-                    + " x_instr_5) && (x_instr_2 == -1))));}"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_2) == 0) || (((x_instr_1) =="
+                    + " x_instr_5) && ((x_instr_2) == -1))));}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
@@ -182,9 +182,9 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("SHIFT"),
             new InstrumentationOperation(
-                "if (x_instr_3) { __VERIFIER_assert(!((x_instr_1 < 0) || (x_instr_2 < 0) ||"
-                    + "(x_instr_2 >= x_instr_4) ||"
-                    + "(x_instr_1 > (x_instr_4 >> x_instr_2))))); }"),
+                "if (x_instr_3) { __VERIFIER_assert(!(((x_instr_1) < 0) || ((x_instr_2) < 0) ||"
+                    + "((x_instr_2) >= x_instr_4) ||"
+                    + "((x_instr_1) > (x_instr_4 >> (x_instr_2)))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t8 =
@@ -262,7 +262,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("NEG"),
             new InstrumentationOperation(
-                "if(x_instr_2) { __VERIFIER_assert(!(x_instr_1 == x_instr_4));}"),
+                "if((x_instr_2)) { __VERIFIER_assert(!((x_instr_1) == x_instr_4));}"),
             InstrumentationOrder.BEFORE,
             q2);
 
