@@ -152,11 +152,11 @@ public class InstrumentationAutomaton {
             new InstrumentationPattern("MUL"),
             new InstrumentationOperation(
                 "if (x_instr_3) { __VERIFIER_assert(!((((x_instr_1) > 0) && ((x_instr_2) > 0) &&"
-                    + " ((x_instr_1) > (x_instr_4 / (x_instr_2))))|| (((x_instr_1) > 0) && ((x_instr_2)"
-                    + " <= 0) && ((x_instr_2) < (x_instr_5 / (x_instr_1))))|| (((x_instr_1) <= 0) &&"
-                    + " ((x_instr_2) > 0) && ((x_instr_1) < (x_instr_5 / (x_instr_2))))|| (((x_instr_1)"
-                    + " <= 0) && ((x_instr_2) <= 0) && ((x_instr_1) != 0 && ((x_instr_2) < (x_instr_4"
-                    + " / (x_instr_1))))))); }"),
+                    + " ((x_instr_1) > (x_instr_4 / (x_instr_2))))|| (((x_instr_1) > 0) &&"
+                    + " ((x_instr_2) <= 0) && ((x_instr_2) < (x_instr_5 / (x_instr_1))))||"
+                    + " (((x_instr_1) <= 0) && ((x_instr_2) > 0) && ((x_instr_1) < (x_instr_5 /"
+                    + " (x_instr_2))))|| (((x_instr_1) <= 0) && ((x_instr_2) <= 0) && ((x_instr_1)"
+                    + " != 0 && ((x_instr_2) < (x_instr_4 / (x_instr_1))))))); }"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t5 =
