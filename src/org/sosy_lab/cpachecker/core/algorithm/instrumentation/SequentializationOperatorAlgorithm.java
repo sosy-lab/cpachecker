@@ -300,20 +300,23 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       return false;
     }
 
-    String condition = pMatchedVariables.size() != 5 ? "true" : pMatchedVariables.get(2);
+    String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
+    if (condition.contains("__CPAchecker_TMP")) {
+      condition = "1";
+    }
     CFANode node1 = CFANode.newDummyCFANode();
     CFANode node2 = CFANode.newDummyCFANode();
 
     node1.addLeavingEdge(
         new CStatementEdge(
-            operand1.toASTString(),
+            "(" + operand1.toASTString() + ")",
             new CExpressionStatement(pCFAEdge.getFileLocation(), operand1),
             pCFAEdge.getFileLocation(),
             node1,
             pCFAEdge.getSuccessor()));
     node2.addLeavingEdge(
         new CStatementEdge(
-            operand2.toASTString(),
+            "(" + operand2.toASTString() + ")",
             new CExpressionStatement(pCFAEdge.getFileLocation(), operand2),
             pCFAEdge.getFileLocation(),
             node2,
@@ -335,7 +338,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       Map<CFANode, String> pDecomposedMap,
       ImmutableList<String> pMatchedVariables,
       CFunctionCallAssignmentStatement pCallAssignmentStatement) {
-    String condition = pMatchedVariables.size() != 3 ? "true" : pMatchedVariables.get(2);
+    String condition = pMatchedVariables.size() != 5 ? "1" : pMatchedVariables.get(2);
     List<CExpression> parameters =
         pCallAssignmentStatement.getFunctionCallExpression().getParameterExpressions();
 
