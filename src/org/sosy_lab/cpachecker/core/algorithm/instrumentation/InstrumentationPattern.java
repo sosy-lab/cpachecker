@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 /**
  * Class for patterns defined on the transitions of instrumentation automaton. Should not be used
@@ -193,7 +194,9 @@ public class InstrumentationPattern {
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
-        if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
+        if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")
+            && (!(operand1.getExpressionType().getCanonicalType() instanceof CPointerType)
+                || !(operand2.getExpressionType().getCanonicalType() instanceof CPointerType))) {
           if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
             return ImmutableList.of(
                 operand1.toASTString(),
