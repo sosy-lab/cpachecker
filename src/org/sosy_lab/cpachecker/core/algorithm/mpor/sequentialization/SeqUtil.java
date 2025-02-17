@@ -67,13 +67,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqThreadJoinStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcRead;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnPcWrite;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars.FunctionVars;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcWrite;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars.ThreadVars;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -100,8 +100,8 @@ public class SeqUtil {
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       // TODO group Function and Thread Vars into SeqVars
-      FunctionVars pFuncVars,
-      ThreadVars pThreadVars)
+      GhostFunctionVariables pFuncVars,
+      GhostThreadVariables pThreadVars)
       throws UnrecognizedCodeException {
 
     pCoveredNodes.add(pThreadNode);

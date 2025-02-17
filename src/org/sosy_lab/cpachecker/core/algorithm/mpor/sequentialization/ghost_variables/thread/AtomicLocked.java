@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 

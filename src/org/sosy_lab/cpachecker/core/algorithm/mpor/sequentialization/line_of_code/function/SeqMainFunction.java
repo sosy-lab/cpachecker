@@ -168,42 +168,42 @@ public class SeqMainFunction extends SeqFunction {
 
   @Override
   public ImmutableList<LineOfCode> buildBody() {
-    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
+    ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
     // declare main() local variables NUM_THREADS, pc, next_thread and optionally prev_thread
-    rDefinition.addAll(buildVarDeclarations(numThreads.getDeclaration(), pcDeclarations));
+    rBody.addAll(buildVarDeclarations(numThreads.getDeclaration(), pcDeclarations));
     if (assignPrevThread.isPresent()) {
-      rDefinition.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
+      rBody.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
     }
-    rDefinition.add(LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD.toASTString()));
-    rDefinition.add(LineOfCode.empty());
+    rBody.add(LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD.toASTString()));
+    rBody.add(LineOfCode.empty());
     // --- loop starts here ---
-    rDefinition.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
+    rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     // optional: add loop invariants at loop head
-    rDefinition.addAll(buildLoopInvariants(loopInvariants));
-    rDefinition.add(LineOfCode.of(2, assignNextThread.toASTString()));
-    rDefinition.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
+    rBody.addAll(buildLoopInvariants(loopInvariants));
+    rBody.add(LineOfCode.of(2, assignNextThread.toASTString()));
+    rBody.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
     // add assumption over pc depending on array vs. scalar pc
     if (assumeNextThreadPc instanceof SeqSwitchStatement) {
-      rDefinition.add(LineOfCode.of(0, assumeNextThreadPc.toASTString()));
+      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(assignNextThread.toASTString()));
     } else {
-      rDefinition.add(LineOfCode.of(2, assumeNextThreadPc.toASTString()));
+      rBody.add(LineOfCode.of(2, assumeNextThreadPc.toASTString()));
     }
-    rDefinition.add(LineOfCode.empty());
+    rBody.add(LineOfCode.empty());
     // add all assumptions over thread variables
-    rDefinition.addAll(buildAssumptions(threadAssumptions, porAssumptions));
+    rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
     if (assignPrevThread.isPresent()) {
-      rDefinition.add(LineOfCode.empty());
-      rDefinition.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
+      rBody.add(LineOfCode.empty());
+      rBody.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
     }
-    rDefinition.add(LineOfCode.empty());
+    rBody.add(LineOfCode.empty());
     // add all switch statements
-    rDefinition.addAll(buildSwitchStatements(caseClauses));
-    rDefinition.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
-    rDefinition.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
+    rBody.addAll(buildSwitchStatements(caseClauses));
+    rBody.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
+    rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
     // end of main function, only reachable if thread simulation finished incorrectly -> error
-    rDefinition.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
-    return rDefinition.build();
+    rBody.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
+    return rBody.build();
   }
 
   @Override

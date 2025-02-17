@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.thread_vars;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class ThreadVars {
+public class GhostThreadVariables {
 
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
@@ -38,7 +38,7 @@ public class ThreadVars {
    */
   public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
 
-  public ThreadVars(
+  public GhostThreadVariables(
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,

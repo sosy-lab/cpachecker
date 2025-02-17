@@ -42,9 +42,9 @@ public class SeqReachErrorFunction extends SeqFunction {
 
   @Override
   public ImmutableList<LineOfCode> buildBody() {
-    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(1, assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
-    return rDefinition.build();
+    ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
+    rBody.add(LineOfCode.of(1, assertFailCall.toASTString() + SeqSyntax.SEMICOLON));
+    return rBody.build();
   }
 
   @Override

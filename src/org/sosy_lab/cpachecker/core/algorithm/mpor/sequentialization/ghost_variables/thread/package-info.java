@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Helper ASTNodes to handle function calls and pthread method replacements in the
- * sequentialization.
+ * (Wrapper) Classes for variables injected into the sequentialization to create assumptions over
+ * thread simulations.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.function_vars;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.thread_vars;

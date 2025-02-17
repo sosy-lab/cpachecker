@@ -50,11 +50,11 @@ public class SeqAssumeFunction extends SeqFunction {
 
   @Override
   public ImmutableList<LineOfCode> buildBody() {
-    ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(ifCond.toASTString())));
-    rDefinition.add(LineOfCode.of(2, abortCall.toASTString() + SeqSyntax.SEMICOLON));
-    rDefinition.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
-    return rDefinition.build();
+    ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
+    rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(ifCond.toASTString())));
+    rBody.add(LineOfCode.of(2, abortCall.toASTString() + SeqSyntax.SEMICOLON));
+    rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
+    return rBody.build();
   }
 
   @Override
