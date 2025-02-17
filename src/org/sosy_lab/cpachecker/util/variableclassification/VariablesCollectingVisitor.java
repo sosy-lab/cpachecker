@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -195,10 +194,5 @@ class VariablesCollectingVisitor implements CExpressionVisitor<Set<String>, NoEx
   public Set<String> visit(CAddressOfLabelExpression exp) {
     checkNotNull(exp);
     return null;
-  }
-
-  @Override
-  public Set<String> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    throw new UnsupportedOperationException();
   }
 }

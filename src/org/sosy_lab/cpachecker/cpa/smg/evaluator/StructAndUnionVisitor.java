@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -53,10 +51,5 @@ class StructAndUnionVisitor extends AddressVisitor
       // TODO cast reinterpretation
       return visitDefault(cast);
     }
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableList.of();
   }
 }

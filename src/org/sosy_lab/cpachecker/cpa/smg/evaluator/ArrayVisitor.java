@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -51,11 +49,6 @@ class ArrayVisitor extends AddressVisitor
   public List<SMGAddressAndState> visit(CUnaryExpression unaryExpression)
       throws CPATransferException {
     throw new AssertionError("The result of any unary expression cannot be an array type.");
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableList.of();
   }
 
   @Override

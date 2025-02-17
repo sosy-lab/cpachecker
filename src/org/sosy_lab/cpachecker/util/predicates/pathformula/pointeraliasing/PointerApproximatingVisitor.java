@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -84,11 +83,6 @@ class PointerApproximatingVisitor
   @Override
   public Optional<String> visit(CUnaryExpression e) throws UnrecognizedCodeException {
     return e.getOperand().accept(this);
-  }
-
-  @Override
-  public Optional<String> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return Optional.empty();
   }
 
   @Override

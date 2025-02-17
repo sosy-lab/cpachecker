@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -123,11 +122,6 @@ final class CollectingRHSVisitor
       case SIZEOF -> visitType(e.getOperand().getExpressionType());
       default -> e.getOperand().accept(this);
     };
-  }
-
-  @Override
-  public VarFieldDependencies visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    throw new UnsupportedOperationException();
   }
 
   @Override

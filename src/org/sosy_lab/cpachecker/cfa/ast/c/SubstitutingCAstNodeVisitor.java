@@ -145,11 +145,6 @@ public final class SubstitutingCAstNodeVisitor
   }
 
   @Override
-  public CAstNode visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
-  }
-
-  @Override
   public CAstNode visit(CArraySubscriptExpression pNode) {
     return substitute(pNode, () -> super.visit(pNode));
   }

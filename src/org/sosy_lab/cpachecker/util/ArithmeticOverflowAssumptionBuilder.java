@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -420,11 +419,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
       }
       return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
     }
 
     @Override

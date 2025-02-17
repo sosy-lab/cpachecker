@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -85,11 +84,6 @@ public class ComparesPointerWithNonPointer implements CExpressionVisitor<Boolean
 
   @Override
   public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws NoException {
-    return false;
-  }
-
-  @Override
-  public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
     return false;
   }
 

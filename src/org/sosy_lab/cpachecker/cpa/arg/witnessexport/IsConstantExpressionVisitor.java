@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
@@ -103,11 +102,6 @@ enum IsConstantExpressionVisitor implements CExpressionVisitor<Boolean, NoExcept
 
   @Override
   public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
-    return false;
-  }
-
-  @Override
-  public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
     return false;
   }
 }

@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -608,11 +607,6 @@ public class AppliedCustomInstructionParser {
     @Override
     public Boolean visit(final CUnaryExpression pIastUnaryExpression) {
       return pIastUnaryExpression.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return false;
     }
 
     @Override

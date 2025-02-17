@@ -37,6 +37,6 @@ public final class CLemmaFunctionCall extends CFunctionCallExpression implements
 
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
-    return v.visit(this);
+    throw new UnsupportedOperationException("This method should never be called.");
   }
 }

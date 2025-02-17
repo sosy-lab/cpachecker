@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -216,11 +215,6 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
         // TODO alignof is not handled
     }
 
-    return null;
-  }
-
-  @Override
-  public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
     return null;
   }
 

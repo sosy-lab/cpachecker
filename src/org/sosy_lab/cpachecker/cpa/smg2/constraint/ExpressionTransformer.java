@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -337,11 +336,6 @@ public class ExpressionTransformer
   public Collection<SymbolicExpressionAndSMGState> visit(
       final CAddressOfLabelExpression pAddressOfLabelExpression) throws CPATransferException {
     throw new AssertionError("Address of label expression used in symbolic expression");
-  }
-
-  @Override
-  public Collection<SymbolicExpressionAndSMGState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableList.of();
   }
 
   @Override

@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -1198,11 +1197,6 @@ public class AssumptionToEdgeAllocator {
         }
 
         return super.visit(pUnaryExpression);
-      }
-
-      @Override
-      public Value visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-        return null;
       }
 
       private Value handleAmper(CExpression pOperand) {

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -156,11 +155,6 @@ class LvalueToPointerTargetPatternVisitor
     }
 
     @Override
-    public PointerTargetPatternBuilder visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
-    }
-
-    @Override
     public PointerTargetPatternBuilder visit(final CPointerExpression e)
         throws UnrecognizedCodeException {
       return null;
@@ -263,11 +257,6 @@ class LvalueToPointerTargetPatternVisitor
       default:
         throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
     }
-  }
-
-  @Override
-  public PointerTargetPatternBuilder visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
   }
 
   @Override

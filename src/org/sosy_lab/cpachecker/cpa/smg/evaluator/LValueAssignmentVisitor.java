@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
-import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -34,11 +32,6 @@ public class LValueAssignmentVisitor extends AddressVisitor {
   public List<SMGAddressAndState> visit(CUnaryExpression lValue) throws CPATransferException {
     throw new UnrecognizedCodeException(
         lValue.toASTString() + " is not an lValue", getCfaEdge(), lValue);
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableList.of();
   }
 
   @Override

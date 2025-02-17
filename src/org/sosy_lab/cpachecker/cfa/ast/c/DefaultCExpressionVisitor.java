@@ -87,9 +87,4 @@ public abstract class DefaultCExpressionVisitor<R, X extends Exception>
   public R visit(CAddressOfLabelExpression e) throws X {
     return visitDefault(e);
   }
-
-  @Override
-  public R visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
-  }
 }

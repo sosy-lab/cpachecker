@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -90,11 +89,6 @@ public class BDDBooleanExpressionVisitor extends DefaultCExpressionVisitor<Regio
   @Override
   public Region visit(CImaginaryLiteralExpression pE) {
     return pE.getValue().accept(this);
-  }
-
-  @Override
-  public Region visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
   }
 
   @Override

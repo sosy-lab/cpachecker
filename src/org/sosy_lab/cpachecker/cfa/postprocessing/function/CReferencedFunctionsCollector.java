@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
@@ -165,11 +164,6 @@ class CReferencedFunctionsCollector {
     @Override
     public Void visit(CUnaryExpression pE) {
       pE.getOperand().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
       return null;
     }
 

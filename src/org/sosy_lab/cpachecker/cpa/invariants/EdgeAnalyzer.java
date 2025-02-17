@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -423,11 +422,6 @@ class EdgeAnalyzer {
                 operand, pIastUnaryExpression.getExpressionType());
       }
       return operand.accept(this);
-    }
-
-    @Override
-    public Iterable<ALeftHandSide> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
     }
   }
 }

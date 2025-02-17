@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -92,11 +91,6 @@ final class CollectingLHSVisitor
     checkNotNull(pE);
     // Something like ((char *)0)* = ...
     return Pair.of(VariableOrField.unknown(), VarFieldDependencies.emptyDependencies());
-  }
-
-  @Override
-  public Pair<VariableOrField, VarFieldDependencies> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    throw new UnsupportedOperationException();
   }
 
   @Override

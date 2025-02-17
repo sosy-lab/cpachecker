@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -587,11 +586,6 @@ class FunctionCloner implements CFAVisitor {
           cloneType(exp.getExpressionType()),
           exp.getOperand().accept(this),
           exp.getOperator());
-    }
-
-    @Override
-    public CExpression visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
     }
 
     @Override

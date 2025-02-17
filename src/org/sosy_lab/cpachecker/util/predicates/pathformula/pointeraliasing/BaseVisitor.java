@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -89,11 +88,6 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeEx
 
   @Override
   public Variable visit(final CIntegerLiteralExpression e) throws UnrecognizedCodeException {
-    return null;
-  }
-
-  @Override
-  public Variable visit(CLemmaFunctionCall pCLemmaFunctionCall) {
     return null;
   }
 

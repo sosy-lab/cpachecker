@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -250,11 +249,6 @@ public class GlobalAccessChecker {
     @Override
     public Boolean visit(CUnaryExpression pE) {
       return pE.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return false;
     }
 
     @Override

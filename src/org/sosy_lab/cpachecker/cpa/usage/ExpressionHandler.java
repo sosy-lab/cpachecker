@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -89,11 +88,6 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
     // In all other unary operation we only read the operand
     accessMode = Access.READ;
     expression.getOperand().accept(this);
-    return null;
-  }
-
-  @Override
-  public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
     return null;
   }
 

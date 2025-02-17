@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -137,11 +136,6 @@ class AssignsParameterOfOtherFunction implements Predicate<AExpressionStatement>
           @Override
           public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
             return true;
-          }
-
-          @Override
-          public Boolean visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-            return false;
           }
         });
   }

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.modificationsprop;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -102,11 +100,6 @@ public class VariableIdentifierVisitor
   @Override
   public Set<String> visit(final CUnaryExpression pExp) throws PointerAccessException {
     return pExp.getOperand().accept(this);
-  }
-
-  @Override
-  public Set<String> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return ImmutableSet.of();
   }
 
   @Override

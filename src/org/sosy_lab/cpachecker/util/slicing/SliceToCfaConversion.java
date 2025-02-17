@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
@@ -339,11 +338,6 @@ final class SliceToCfaConversion {
           pFunctionDeclaration.getOrigName(),
           relevantParameters,
           pFunctionDeclaration.getAttributes());
-    }
-
-    @Override
-    public CAstNode visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return null;
     }
   }
 

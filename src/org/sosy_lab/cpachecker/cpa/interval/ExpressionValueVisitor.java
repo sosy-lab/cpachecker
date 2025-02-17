@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -142,11 +141,6 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   @Override
   public Interval visit(CImaginaryLiteralExpression exp) throws UnrecognizedCodeException {
     return exp.getValue().accept(this);
-  }
-
-  @Override
-  public Interval visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-    return null;
   }
 
   @Override

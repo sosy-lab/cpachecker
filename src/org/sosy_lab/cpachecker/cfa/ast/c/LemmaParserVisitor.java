@@ -14,8 +14,8 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class LemmaParserVisitor extends DefaultCExpressionVisitor<CExpression, NoException> {
 
-  private Map<String, CLemmaFunctionCall> replacements;
-  private Pattern p;
+  private final Map<String, CLemmaFunctionCall> replacements;
+  private final Pattern p;
 
   public LemmaParserVisitor(Map<String, CLemmaFunctionCall> pReplacements) {
     this.replacements = pReplacements;
@@ -23,7 +23,7 @@ public class LemmaParserVisitor extends DefaultCExpressionVisitor<CExpression, N
   }
 
   @Override
-  protected CExpression visitDefault(CExpression exp) throws NoException {
+  protected CExpression visitDefault(CExpression exp) {
     return exp;
   }
 

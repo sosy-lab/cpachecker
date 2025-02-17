@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -1130,11 +1129,6 @@ public class ApronTransferRelation
     }
 
     @Override
-    public Set<Texpr0Node> visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return ImmutableSet.of();
-    }
-
-    @Override
     public Set<Texpr0Node> visit(CFunctionCallExpression e) throws CPATransferException {
       if (e.getFunctionNameExpression() instanceof CIdExpression) {
         switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
@@ -1250,11 +1244,6 @@ public class ApronTransferRelation
           break;
       }
       return null;
-    }
-
-    @Override
-    public Double visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-      return 0.0;
     }
 
     @Override

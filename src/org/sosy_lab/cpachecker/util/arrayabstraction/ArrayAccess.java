@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -478,11 +477,6 @@ final class ArrayAccess {
 
     @Override
     public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
-      return null;
-    }
-
-    @Override
-    public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
       return null;
     }
 

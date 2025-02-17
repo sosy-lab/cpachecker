@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -373,11 +372,6 @@ public class CFACheck {
     @Override
     public Void visit(CImaginaryLiteralExpression pLiteralExpression) {
       pLiteralExpression.getValue().accept(this);
-      return null;
-    }
-
-    @Override
-    public Void visit(CLemmaFunctionCall pCLemmaFunctionCall) {
       return null;
     }
 

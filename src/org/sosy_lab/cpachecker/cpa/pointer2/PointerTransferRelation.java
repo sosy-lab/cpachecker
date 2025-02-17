@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -692,11 +691,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               throws UnrecognizedCodeException {
             throw new UnrecognizedCodeException(
                 "Address of labels not supported by pointer analysis", pAddressOfLabelExpression);
-          }
-
-          @Override
-          public LocationSet visit(CLemmaFunctionCall pCLemmaFunctionCall) {
-            return null;
           }
         });
   }
