@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard
 public class SeqStringUtil {
 
   /** The amount of spaces in a tab, adjust as desired. */
-  private static final int TAB_SIZE = 2;
+  public static final int TAB_SIZE = 2;
 
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");

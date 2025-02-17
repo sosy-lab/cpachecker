@@ -98,6 +98,10 @@ public class SeqCaseClause implements SeqStatement {
 
   @Override
   public String toASTString() {
-    return label.toASTString() + SeqSyntax.SPACE + block.toASTString() + SeqSyntax.NEWLINE;
+    String blockString = block.toASTString();
+    // if the block starts with a newline, we don't want to add an unnecessary trailing space
+    String separator =
+        blockString.startsWith(SeqSyntax.NEWLINE) ? SeqSyntax.EMPTY_STRING : SeqSyntax.SPACE;
+    return label.toASTString() + separator + blockString + SeqSyntax.NEWLINE;
   }
 }

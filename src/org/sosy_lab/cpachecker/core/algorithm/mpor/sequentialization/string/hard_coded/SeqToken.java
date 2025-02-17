@@ -52,7 +52,7 @@ public class SeqToken {
 
   public static final String __file = "__file";
 
-  public static final String __FILE_NAME_PLACEHOLDER__ = "\"__FILE_NAME_PLACEHOLDER__\"";
+  public static final String __FILE_NAME_PLACEHOLDER__ = "__FILE_NAME_PLACEHOLDER__";
 
   public static final String __function = "__function";
 

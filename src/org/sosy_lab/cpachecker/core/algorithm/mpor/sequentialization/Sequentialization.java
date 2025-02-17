@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
@@ -178,8 +179,8 @@ public class Sequentialization {
     try {
       ImmutableList<LineOfCode> initProgram = initProgram();
       return LineOfCodeUtil.buildString(finalProgram(initProgram));
-    } catch (UnrecognizedCodeException pE) {
-      throw new RuntimeException(pE);
+    } catch (UnrecognizedCodeException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -190,7 +191,7 @@ public class Sequentialization {
    */
   private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
     // consider license and seq comment header for line numbers
-    int currentLine = licenseHeader.size() + mporHeader.size();
+    int currentLine = licenseHeader.size() + mporHeader.size() + 1;
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
     rProgram.addAll(licenseHeader);
     rProgram.addAll(mporHeader);
@@ -200,17 +201,18 @@ public class Sequentialization {
       if (code.contains(inputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
             buildReachErrorCall(inputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
-        rProgram.add(
-            lineOfCode.copyWithCode(
-                code.replace(
-                    inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON)));
+        String replacement =
+            code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+        rProgram.add(lineOfCode.copyWithCode(replacement));
       } else if (code.contains(outputReachErrorDummy)) {
         CFunctionCallExpression reachErrorCall =
-            buildReachErrorCall(outputFileName, currentLine, SeqToken.__SEQUENTIALIZATION_ERROR__);
-        rProgram.add(
-            lineOfCode.copyWithCode(
-                code.replace(
-                    outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON)));
+            buildReachErrorCall(
+                outputFileName + FileExtension.I.suffix,
+                currentLine,
+                SeqToken.__SEQUENTIALIZATION_ERROR__);
+        String replacement =
+            code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+        rProgram.add(lineOfCode.copyWithCode(replacement));
       } else {
         rProgram.add(lineOfCode);
       }
@@ -1039,7 +1041,7 @@ public class Sequentialization {
         CDeclaration dec = decEdge.getDeclaration();
         if (!(dec instanceof CVariableDeclaration)) {
           assert pThread.isMain(); // test if only main thread declares non-vars, e.g. functions
-          rNonVarDeclarations.add(LineOfCode.of(0, threadEdge.cfaEdge.getCode()));
+          rNonVarDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(threadEdge.cfaEdge.getCode()));
         }
       }
     }

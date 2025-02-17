@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqScalarPcAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
@@ -281,14 +282,14 @@ public class SeqMainFunction extends SeqFunction {
       CIntegerLiteralExpression threadId =
           SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
       try {
-        CBinaryExpression nextThreadEquals =
+        CBinaryExpression nextThreadEqualsThreadId =
             SeqBinaryExpression.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
         // first switch case: use "if", otherwise "else if"
         SeqControlFlowStatementType statementType =
             i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
         SeqControlFlowStatement statement =
-            new SeqControlFlowStatement(nextThreadEquals, statementType);
+            new SeqControlFlowStatement(nextThreadEqualsThreadId, statementType);
         rSwitches.add(
             LineOfCode.of(
                 2,
@@ -299,9 +300,8 @@ public class SeqMainFunction extends SeqFunction {
         throw new RuntimeException(e);
       }
       CExpression pcExpr = SeqExpressions.getPcExpression(thread.id);
-      SeqSwitchStatement switchCaseExpr = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
-      // TODO the switchCaseExpr should also be a LOC list
-      rSwitches.add(LineOfCode.of(0, switchCaseExpr.toASTString()));
+      SeqSwitchStatement switchStatement = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
+      rSwitches.addAll(LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString()));
 
       // append additional newlines between switch cases
       if (i != caseClauses.size() - 1) {

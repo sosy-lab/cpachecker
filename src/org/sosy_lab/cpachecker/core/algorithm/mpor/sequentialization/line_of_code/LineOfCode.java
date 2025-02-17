@@ -22,10 +22,9 @@ public class LineOfCode {
   private LineOfCode(int pTabs, String pCode) {
     // pCode.isEmpty() -> pTabs == 0
     checkArgument(!pCode.isEmpty() || pTabs == 0, "if pCode is empty, pTabs must be 0");
-    // TODO add this once switches are refactored
-    /*checkArgument(
-    pCode.length() == pCode.trim().length(),
-    "pCode cannot have leading or trailing whitespaces");*/
+    checkArgument(
+        pCode.length() == pCode.trim().length(),
+        "pCode cannot have leading or trailing whitespaces");
     tabs = pTabs;
     code = pCode;
   }
