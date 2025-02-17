@@ -43,7 +43,7 @@ public class ACSLParserUtils {
       throws InterruptedException, InvalidAutomatonException {
 
     String lString = lAssumeCode;
-    Map<String, ACSLFunctionCall> replacements = new HashMap<String, ACSLFunctionCall>();
+    Map<String, ACSLFunctionCall> replacements = new HashMap<>();
     Pattern lp = Pattern.compile("LEMMA_FUNC\\((?<function>.*)\\)");
     Matcher lm = lp.matcher(lString);
     String tmp = "lemma_tmp_";

@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
-import org.sosy_lab.cpachecker.util.ACSLUtils;
+import org.sosy_lab.cpachecker.util.ACSLParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -131,7 +131,7 @@ public class InvariantExchangeFormatTransformer {
           default -> DummyScope.getInstance();
         };
     try {
-      return ACSLUtils.parseACSLExpression(pLemmaEntry.getValue(), cparser, scope);
+      return ACSLParserUtils.parseACSLExpression(pLemmaEntry.getValue(), cparser, scope);
     } catch (InvalidAutomatonException e) {
       throw new InterruptedException(
           "Could not parse statement as CExpression:" + pLemmaEntry.getValue());
