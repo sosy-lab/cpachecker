@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -149,19 +151,20 @@ public class SeqUtil {
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(new SeqAssumeStatement(stmt, pThread.id, targetPc));
 
-          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
-            // assert that both call and summary edge are present
-            assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.returnPcWrites.containsKey(threadEdge);
-            FunctionReturnPcWrite write =
-                Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
-            stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
+            if (!isReachErrorCall(funcSummary)) {
+              // assert that both call and summary edge are present
+              assert pThreadNode.leavingEdges().size() >= 2;
+              assert pFuncVars.returnPcWrites.containsKey(threadEdge);
+              FunctionReturnPcWrite write =
+                  Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
+              stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
+            }
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
-            String funcName =
-                funcCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
-            if (funcName.equals(SeqToken.reach_error)) {
-              stmts.add(new SeqReachErrorStatement()); // inject non-inlined reach_error
+            if (isReachErrorCall(funcCall)) {
+              // inject non-inlined reach_error
+              stmts.add(new SeqReachErrorStatement());
             }
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -347,23 +350,33 @@ public class SeqUtil {
    */
   private static boolean blankCaseBlock(
       SubstituteEdge pSub, CFANode pSuccessor, MPORThread pThread) {
+
     // exiting start routine of thread -> blank, just set pc[i] = -1;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
       // TODO this needs to be refactored once we support start routine return values
       //  that can be used with pthread_join -> block may not be blank but sets the return value
       return true;
+
+    } else if (pSuccessor.getFunctionName().equals(SeqToken.reach_error)) {
+      // if we enter reach_error, include only call edge (to inject reach_error)
+      return !(pSub.cfaEdge instanceof CFunctionCallEdge);
+
     } else if (pSub.cfaEdge instanceof BlankEdge) {
+      // blank edges have no code
       assert pSub.cfaEdge.getCode().isEmpty();
       return true;
+
     } else if (pSub.cfaEdge instanceof CDeclarationEdge decEdge) {
       CDeclaration dec = decEdge.getDeclaration();
       if (!(dec instanceof CVariableDeclaration varDec)) {
-        return true; // all non vars are declared beforehand
+        // all non vars (functions, structs, ...) are declared beforehand
+        return true;
       } else {
         // declaration of const int CPAchecker_TMP vars is included in the cases
         return !isConstCPAcheckerTMP(varDec);
       }
+
     } else if (PthreadFuncType.callsAnyPthreadFunc(pSub.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
       return !isExplicitlyHandledPthreadFunc(pSub.cfaEdge);
@@ -379,6 +392,23 @@ public class SeqUtil {
   private static boolean isExplicitlyHandledPthreadFunc(CFAEdge pEdge) {
     if (PthreadFuncType.callsAnyPthreadFunc(pEdge)) {
       return PthreadFuncType.getPthreadFuncType(pEdge).isExplicitlyHandled;
+    }
+    return false;
+  }
+
+  private static boolean isReachErrorCall(CFAEdge pEdge) {
+    if (pEdge instanceof FunctionCallEdge funcCall) {
+      return funcCall
+          .getFunctionCallExpression()
+          .getDeclaration()
+          .getOrigName()
+          .equals(SeqToken.reach_error);
+    } else if (pEdge instanceof FunctionSummaryEdge funcSummary) {
+      return funcSummary
+          .getFunctionEntry()
+          .getFunction()
+          .getOrigName()
+          .equals(SeqToken.reach_error);
     }
     return false;
   }

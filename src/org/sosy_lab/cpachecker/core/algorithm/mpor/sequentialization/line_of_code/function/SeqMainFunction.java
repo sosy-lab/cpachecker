@@ -184,7 +184,7 @@ public class SeqMainFunction extends SeqFunction {
     rBody.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
     // add assumption over pc depending on array vs. scalar pc
     if (assumeNextThreadPc instanceof SeqSwitchStatement) {
-      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(assignNextThread.toASTString()));
+      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(assumeNextThreadPc.toASTString()));
     } else {
       rBody.add(LineOfCode.of(2, assumeNextThreadPc.toASTString()));
     }

@@ -35,6 +35,13 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeq_fib_safe7() throws Exception {
+    // TODO the sequentialization is faulty here, the local variable is assigned on declaration:
+    //  _Bool LOCAL_THREAD0_19_assert_cond = LOCAL_THREAD0_18___CPAchecker_TMP_0;
+    //  and then only the rhs is updated:
+    //  LOCAL_THREAD0_18___CPAchecker_TMP_0 = 1;
+    //  but the lhs read for the parameter to VERIFIER_assert:
+    //  PARAM_THREAD0_14_expression = LOCAL_THREAD0_19_assert_cond;
+    //  -> assert_cond is always the initial value of CPAchecker_TMP_0 i.e. 0 !
     // contains __VERIFIER_atomic_begin and __VERIFIER_atomic_end
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();

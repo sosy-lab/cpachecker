@@ -10,16 +10,17 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
-// TODO refactor this so that only reach_error is called (i.e. we do not consider nodes
-//  that belong to reach_error in the switch statements but replace them with this)
-//  this would also make the target pc non-optional (-1)
 /**
  * Represents an injected call to {@code reach_error} so that the sequentialization actually adopts
- * {@code reach_error}s from the input program for the property {@code unreach-call.prp}.
+ * {@code reach_error}s from the input program for the property {@code unreach-call.prp} instead of
+ * inlining the function.
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
+
+  private final int targetPc = SeqUtil.EXIT_PC;
 
   public SeqReachErrorStatement() {}
 

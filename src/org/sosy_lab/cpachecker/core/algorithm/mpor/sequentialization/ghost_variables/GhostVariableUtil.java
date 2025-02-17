@@ -138,9 +138,7 @@ public class GhostVariableUtil {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
-          CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
           MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
-
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
             String varName = SeqNameUtil.buildThreadJoinsThreadName(thread.id, targetThread.id);

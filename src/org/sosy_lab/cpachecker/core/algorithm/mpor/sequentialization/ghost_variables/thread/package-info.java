@@ -10,4 +10,4 @@
  * (Wrapper) Classes for variables injected into the sequentialization to create assumptions over
  * thread simulations.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.thread_vars;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread;

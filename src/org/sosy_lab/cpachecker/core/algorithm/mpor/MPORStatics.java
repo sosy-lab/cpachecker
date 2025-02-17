@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 
+// TODO remove this class entirely and pass the bin expr builder -> better interface
 /** A place to initialize, store and get static values used in the mpor package. */
 public class MPORStatics {
 
