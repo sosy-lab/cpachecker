@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-public class LemmaParserVisitor extends DefaultCExpressionVisitor<CExpression, NoException> {
+public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoException> {
 
-  private final Map<String, CLemmaFunctionCall> replacements;
+  private final Map<String, ACSLFunctionCall> replacements;
   private final Pattern p;
 
-  public LemmaParserVisitor(Map<String, CLemmaFunctionCall> pReplacements) {
+  public ACSLVisitor(Map<String, ACSLFunctionCall> pReplacements) {
     this.replacements = pReplacements;
     p = Pattern.compile("lemma_tmp_\\d+");
   }

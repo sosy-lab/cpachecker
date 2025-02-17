@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public sealed class CFunctionCallExpression extends AFunctionCallExpression
-    implements CRightHandSide permits CLemmaFunctionCall {
+    implements CRightHandSide permits ACSLFunctionCall {
 
   @Serial private static final long serialVersionUID = -3958452761163446674L;
 

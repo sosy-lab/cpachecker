@@ -20,7 +20,7 @@ public sealed interface CExpression extends CRightHandSide, AExpression
         CLiteralExpression,
         CTypeIdExpression,
         CUnaryExpression,
-        CLemmaFunctionCall {
+        ACSLFunctionCall {
 
   <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X;
 

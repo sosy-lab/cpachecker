@@ -13,11 +13,11 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CLemmaFunctionCall extends CFunctionCallExpression implements CExpression {
+public final class ACSLFunctionCall extends CFunctionCallExpression implements CExpression {
 
   @Serial private static final long serialVersionUID = -3614875951469862750L;
 
-  public CLemmaFunctionCall(
+  public ACSLFunctionCall(
       FileLocation pFileLocation,
       CType pType,
       CExpression pFunctionName,
@@ -26,7 +26,7 @@ public final class CLemmaFunctionCall extends CFunctionCallExpression implements
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
-  public CLemmaFunctionCall(CFunctionCallExpression pFunctionCall) {
+  public ACSLFunctionCall(CFunctionCallExpression pFunctionCall) {
     this(
         pFunctionCall.getFileLocation(),
         pFunctionCall.getExpressionType(),

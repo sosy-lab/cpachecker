@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -22,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLemmaFunctionCall;
 
 public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
@@ -42,12 +42,12 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     if (pStatement instanceof CFunctionCallStatement) {
       CFunctionCallExpression exp =
           ((CFunctionCallStatement) pStatement).getFunctionCallExpression();
-      return of(new CLemmaFunctionCall(exp));
+      return of(new ACSLFunctionCall(exp));
     }
     if (pStatement instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallExpression exp =
           ((CFunctionCallAssignmentStatement) pStatement).getFunctionCallExpression();
-      CLemmaFunctionCall functionCall = new CLemmaFunctionCall(exp);
+      ACSLFunctionCall functionCall = new ACSLFunctionCall(exp);
       CBinaryExpression binaryExpression =
           pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
               ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide(),
