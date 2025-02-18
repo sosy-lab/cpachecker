@@ -1383,59 +1383,6 @@ public class AssumptionToEdgeAllocator {
       return valueLiterals;
     }
 
-    /**
-     * Recast a floating point calue as an integer
-     *
-     * <p>Takes the bits of a floating point value and reinterprets them as an integer.
-     */
-    private Number recastToInteger(Number pNumber) {
-      NumericValue numeric = new NumericValue(pNumber);
-      FloatValue floatingPointValue = numeric.getFloatValue();
-      FloatValue.Format precision = floatingPointValue.getFormat();
-
-      if (precision.equals(FloatValue.Format.Float32)) {
-        return Float.floatToRawIntBits(floatingPointValue.floatValue());
-      } else if (precision.equals(FloatValue.Format.Float64)) {
-        return Double.doubleToRawLongBits(floatingPointValue.doubleValue());
-      } else {
-        throw new IllegalArgumentException(
-            String.format(
-                "Unsupported precision. Can't recast float value `%s` to an integer type. The value"
-                    + "has precision `%s` and is %d bit wide. However, we only support 32 and 64bit"
-                    + "integer values.",
-                floatingPointValue, precision, 1 + precision.expBits() + precision.sigBits()));
-      }
-    }
-
-    /**
-     * Recast an integer as a floating point value
-     *
-     * <p>Takes the bits of an integer and reinterprets them as a floating point value.
-     */
-    private Number recastToFloat(Number pNumber, CType pType) {
-      Format precision = FloatValue.Format.fromCType(machineModel, pType);
-      BigInteger integerValue = new NumericValue(pNumber).bigIntegerValue();
-
-      Preconditions.checkArgument(
-          integerValue.bitLength() <= 1 + precision.expBits() + precision.sigBits(),
-          "Value `%s` has too many bits to be recast as `%s`.",
-          integerValue.toString(2),
-          pType);
-
-      if (precision.equals(FloatValue.Format.Float32)) {
-        return Float.intBitsToFloat(integerValue.intValue());
-      } else if (precision.equals(FloatValue.Format.Float64)) {
-        return Double.longBitsToDouble(integerValue.longValue());
-      } else {
-        // FIXME: Add support for long double?
-        throw new IllegalArgumentException(
-            String.format(
-                "Can't reinterpret integer value `%s` as floating point number. Target format must"
-                    + " be 32 or 64bit wide.",
-                integerValue.toString(2)));
-      }
-    }
-
     protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
       CBasicType basicType = pSimpleType.getCanonicalType().getType();
       if (pValue instanceof FloatingPointNumber pFloatingPointNumber) {
@@ -1450,38 +1397,22 @@ public class AssumptionToEdgeAllocator {
           case CHAR:
           case INT:
           case INT128:
-            Object integerValue;
-            if (numericValue.hasFloatType()) {
-              // Recast if we were given a float, but the target type is integer
-              integerValue = recastToInteger(pNumber);
-            } else if (numericValue.hasIntegerType()) {
-              integerValue = pNumber;
-            } else {
-              throw new IllegalArgumentException(
-                  String.format(
-                      "Value has unexpected type: Can't convert value `%s` from `%s` to an integer"
-                          + " type.",
-                      pNumber, pNumber.getClass().getSimpleName()));
-            }
-            return handleIntegerNumbers(integerValue, pSimpleType);
+            Preconditions.checkArgument(
+                numericValue.hasIntegerType(),
+                "Expecting an integer value, but `%s` has type `%s`.",
+                pNumber,
+                pNumber.getClass().getSimpleName());
+            return handleIntegerNumbers(pNumber, pSimpleType);
 
           case FLOAT:
           case DOUBLE:
           case FLOAT128:
-            Object floatValue;
-            if (numericValue.hasIntegerType()) {
-              // Recast if we were given an integer, but the target type is float
-              floatValue = recastToFloat(pNumber, pSimpleType);
-            } else if (numericValue.hasFloatType()) {
-              floatValue = pNumber;
-            } else {
-              throw new IllegalArgumentException(
-                  String.format(
-                      "Value has unexpected type: Can't convert value `%s` from `%s` to a floating"
-                          + " point type.",
-                      pNumber, pNumber.getClass().getSimpleName()));
-            }
-            return handleFloatingPointNumbers(floatValue, pSimpleType);
+            Preconditions.checkArgument(
+                numericValue.hasFloatType() || numericValue.getNumber() instanceof Rational,
+                "Expecting a floating-point value, but `%s` has type `%s`.",
+                pNumber,
+                pNumber.getClass().getSimpleName());
+            return handleFloatingPointNumbers(pNumber, pSimpleType);
 
           default:
             throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
