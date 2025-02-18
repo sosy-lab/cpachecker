@@ -120,7 +120,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -128,6 +127,8 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+//////////////////////////////////////
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 @Options(prefix = "bmc")
 abstract class AbstractBMCAlgorithm
@@ -1131,66 +1132,38 @@ abstract class AbstractBMCAlgorithm
                   PathFormula pContext) throws InterruptedException {
 
 
+                SSAMap ssaMap = pfmgr.makeEmptyPathFormula().getSsa();
+//                Set<String> allVariables = ssaMap.allVariables();
+                List<String> variableSetToList = new ArrayList<>(ssaMap.allVariables());
+                BooleanFormula notEqualInvariant = fmgr.getBooleanFormulaManager().makeTrue();
 
-                AbstractState state1 = new AbstractState() {
-                  @Override
-                  public boolean equals(Object obj) {
-                    if (this == obj) {
-                      return true;
-                    }
-                    if (obj == null || getClass() != obj.getClass()) {
-                      return false;
-                    }
-                    AbstractState addedStates = (AbstractState) obj;
-                    return this.toString().equals(addedStates.toString());
+
+//                for (String var1 : allVariables) {
+//                  for (String var2 : allVariables) {
+//                    if (!var1.equals(var2)) {
+//                      BooleanFormula state1 = fmgr.getBooleanFormulaManager().makeVariable(var1);
+//                      BooleanFormula state2 = fmgr.getBooleanFormulaManager().makeVariable(var2);
+//
+//                      BooleanFormula inequality = fmgr.makeNot(fmgr.makeEqual(state1, fstate2));
+//                      notEqualInvariant = fmgr.makeAnd(notEqualInvariant, inequality);
+//                    }
+//                  }
+//                }
+                for(int i = 0; i < variableSetToList.size(); i+=2)
+                  if (i+1 < variableSetToList.size()) {
+                    String var1 = variableSetToList.get(i);
+                    String var2 = variableSetToList.get(i + 1);
+
+                    BooleanFormula state1 = fmgr.getBooleanFormulaManager().makeVariable(var1);
+                    BooleanFormula state2 = fmgr.getBooleanFormulaManager().makeVariable(var2);
+                    BooleanFormula inequality = fmgr.makeNot(fmgr.makeEqual(state1, state2));
+                    notEqualInvariant = fmgr.makeAnd(notEqualInvariant, inequality);
+
                   }
-
-                  @Override
-                  public int hashCode() {
-                    return this.toString().hashCode();
-                  }
-
-                  @Override
-                  public String toString() {
-                    return "State1";
-                  }
-                };
-
-
-                AbstractState state2 = new AbstractState() {
-                  @Override
-                  public boolean equals(Object obj) {
-                    if (this == obj) {
-                      return true;
-                    }
-                    if (obj == null || getClass() != obj.getClass()) {
-                      return false;
-                    }
-                    AbstractState addedStates = (AbstractState) obj;
-                    return this.toString().equals(addedStates.toString());
-                  }
-
-                  @Override
-                  public int hashCode() {
-                    return this.toString().hashCode();
-                  }
-
-                  @Override
-                  public String toString() {
-                    return "State2";
-                  }
-                };
-
-
-
-                if (!state1.equals(state2)) {
-                  return fmgr.getBooleanFormulaManager().makeTrue();
-                } else {
-                  return fmgr.getBooleanFormulaManager().makeFalse();
-                }
-              }
+                return notEqualInvariant;
 
             };
+          };
           }
 
           @Override
@@ -1201,109 +1174,6 @@ abstract class AbstractBMCAlgorithm
         };
       }
     },
-//
-//    NOT_EQUAL2 {
-//      @Override
-//      InvariantGenerator createInvariantGenerator(
-//          Configuration pConfig,
-//          LogManager pLogger,
-//          ReachedSetFactory pReachedSetFactory,
-//          ShutdownManager pShutdownManager,
-//          CFA pCFA,
-//          Specification pSpecification,
-//          AggregatedReachedSets pAggregatedReachedSets,
-//          TargetLocationProvider pTargetLocationProvider) {
-//        return new NotEqualInvariantGenerator();
-//        {
-//
-//
-//        }
-//      }
-//    };
-
-
-
-
-//    public class NotEqualInvariantGenerator extends AbstractInvariantGenerator {
-//
-//     @Override
-//          protected void startImpl(CFANode pInitialLocation) {
-//            // do nothing
-//          }
-//
-//          @Override
-//          public boolean isProgramSafe() {
-//            // just return false, program will be ended by parallel algorithm if the invariant
-//            // generator can prove safety before the current analysis
-//            return false;
-//          }
-//
-//          @Override
-//          public void cancel() {
-//            // do nothing
-//          }
-//
-//      @Override
-//      public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
-//        return new InvariantSupplier() {
-//
-//          private final Set<AbstractState> allStates = new HashSet<>();
-//
-//          @Override
-//          public BooleanFormula getInvariantFor(
-//              CFANode node,
-//              Optional<CallstackStateEqualsWrapper> callstackInformation,
-//              FormulaManagerView fmgr,
-//              PathFormulaManager pfmgr,
-//              PathFormula pContext) throws InterruptedException {
-//
-//
-//            @Override
-//            public boolean equals (Object obj){
-//              if (this == obj) {
-//                return true;
-//              }
-//              if (obj == null || getClass() != obj.getClass()) {
-//                return false;
-//              }
-//
-//              return true;
-//            }
-//
-//            @Override
-//            public int hashCode () {
-//
-//              return true;
-//            }
-//
-//            @Override
-//            public String toString () {
-//              return true;
-//            }
-//
-//
-//           for (AbstractState state1 : allStates) {
-//            for (AbstractState state2 : allStates) {
-//
-//              if (!state1.equals(state2)) {
-//
-//                if (!allStates.contains(state1)) {
-//                  a llStates.add(state1);
-//                }
-//
-//                if (!allStates.contains(state2)) {
-//                    allStates.add(state2);
-//                }
-//
-//                return fmgr.getBooleanFormulaManager().makeTrue();
-//               }
-//            }
-//          }
-//
-//        };
-//      }
-//    }
-
 
     REACHED_SET {
       @Override
@@ -1641,7 +1511,6 @@ abstract class AbstractBMCAlgorithm
 
     void waitForInvariantGenerator() throws InterruptedException;
   }
-
   private enum InvariantGeneratorHeadStartFactories {
     NONE {
 
@@ -1650,7 +1519,6 @@ abstract class AbstractBMCAlgorithm
         return () -> {}; // Returns immediately
       }
     },
-
     AWAIT_TERMINATION {
 
       @Override
