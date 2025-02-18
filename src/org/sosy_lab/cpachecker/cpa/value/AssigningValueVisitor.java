@@ -93,23 +93,33 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   @Override
   public Value visit(CBinaryExpression pE) throws UnrecognizedCodeException {
     BinaryOperator binaryOperator = pE.getOperator();
-    CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+    CExpression lVarInBinaryExp = pE.getOperand1();
     CExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValue =
-        castCValue(
-            lVarInBinaryExp.accept(nonAssigningValueVisitor),
-            pE.getCalculationType(),
-            getMachineModel(),
-            getLogger(),
-            pE.getFileLocation());
-    Value rightValue =
-        castCValue(
-            rVarInBinaryExp.accept(nonAssigningValueVisitor),
-            pE.getCalculationType(),
-            getMachineModel(),
-            getLogger(),
-            pE.getFileLocation());
+    Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
+    if (!(leftValue.isExplicitlyKnown()
+        && leftValue.asNumericValue().getNumber() instanceof BigInteger
+        && ((BigInteger) leftValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
+      leftValue =
+          castCValue(
+              leftValue,
+              pE.getCalculationType(),
+              getMachineModel(),
+              getLogger(),
+              pE.getFileLocation());
+    }
+
+    Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
+    if (!(rightValue.isExplicitlyKnown()
+        && rightValue.asNumericValue().getNumber() instanceof BigInteger
+        && ((BigInteger) rightValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
+      castCValue(
+          rightValue,
+          pE.getCalculationType(),
+          getMachineModel(),
+          getLogger(),
+          pE.getFileLocation());
+    }
 
     if (isEqualityAssumption(binaryOperator)) {
       if (leftValue.isExplicitlyKnown()) {
