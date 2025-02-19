@@ -1095,7 +1095,7 @@ class WebInterface:
 
                         logging.info("Deleting run collection %s", run_collection_id)
                         server_reply, _ = self._request(
-                        "DELETE", f"runs/collection/{run_collection_id}"
+                            "DELETE", f"runs/collection/{run_collection_id}"
                         )
                         logging.info(server_reply.decode("utf-8"))
 
@@ -1108,7 +1108,9 @@ class WebInterface:
 
                     except HTTPError as e:
                         logging.warning(
-                            "Stopping of run collection %s failed: %s", run_collection_id, e
+                            "Stopping of run collection %s failed: %s",
+                            run_collection_id,
+                            e,
                         )
                 self._run_collection_ids.clear()
                 self._unfinished_runs.clear()
@@ -1119,9 +1121,7 @@ class WebInterface:
             for runId in self._unfinished_runs.keys():
                 stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                 self._unfinished_runs[runId].set_exception(
-                    UserAbortError(
-                        "Run was canceled because user requested shutdown."
-                    )
+                    UserAbortError("Run was canceled because user requested shutdown.")
                 )
             self._unfinished_runs.clear()
             self._run_collection_ids.clear()
