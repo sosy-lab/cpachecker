@@ -1080,25 +1080,25 @@ class WebInterface:
         self._result_downloader.shutdown()
 
         if self._run_collection_ids and self._unfinished_runs:
-            for run_collection_id in self._run_collection_ids:
-                try:
-                    state, _ = self._request(
-                        "GET", f"runs/collection/{run_collection_id}/state"
-                    )
-                    if state.decode("utf-8") == "COMPLETED":
-                        logging.info(
-                            "Skipping run collection %s as it is already completed",
-                            run_collection_id,
+            with self._unfinished_runs_lock:
+                for run_collection_id in self._run_collection_ids:
+                    try:
+                        state, _ = self._request(
+                            "GET", f"runs/collection/{run_collection_id}/state"
                         )
-                        continue
+                        if state.decode("utf-8") == "COMPLETED":
+                            logging.info(
+                                "Skipping run collection %s as it is already completed",
+                                run_collection_id,
+                            )
+                            continue
 
-                    logging.info("Deleting run collection %s", run_collection_id)
-                    server_reply, _ = self._request(
+                        logging.info("Deleting run collection %s", run_collection_id)
+                        server_reply, _ = self._request(
                         "DELETE", f"runs/collection/{run_collection_id}"
-                    )
-                    logging.info(server_reply.decode("utf-8"))
+                        )
+                        logging.info(server_reply.decode("utf-8"))
 
-                    with self._unfinished_runs_lock:
                         for _, future in self._unfinished_runs.items():
                             future.set_exception(
                                 UserAbortError(
@@ -1106,26 +1106,25 @@ class WebInterface:
                                 )
                             )
 
-                except HTTPError as e:
-                    logging.info(
-                        "Stopping of run collection %s failed: %s", run_collection_id, e
-                    )
-            self._run_collection_ids.clear()
-            self._unfinished_runs.clear()
+                    except HTTPError as e:
+                        logging.info(
+                            "Stopping of run collection %s failed: %s", run_collection_id, e
+                        )
+                self._run_collection_ids.clear()
+                self._unfinished_runs.clear()
         elif self._unfinished_runs:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
-            with self._unfinished_runs_lock:
-                for runId in self._unfinished_runs.keys():
-                    stop_tasks.add(stop_executor.submit(self._stop_run, runId))
-                    self._unfinished_runs[runId].set_exception(
-                        UserAbortError(
-                            "Run was canceled because user requested shutdown."
-                        )
+            for runId in self._unfinished_runs.keys():
+                stop_tasks.add(stop_executor.submit(self._stop_run, runId))
+                self._unfinished_runs[runId].set_exception(
+                    UserAbortError(
+                        "Run was canceled because user requested shutdown."
                     )
-                self._unfinished_runs.clear()
-                self._run_collection_ids.clear()
+                )
+            self._unfinished_runs.clear()
+            self._run_collection_ids.clear()
 
             for task in stop_tasks:
                 task.result()
