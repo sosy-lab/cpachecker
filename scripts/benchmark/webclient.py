@@ -1107,7 +1107,7 @@ class WebInterface:
                             )
 
                     except HTTPError as e:
-                        logging.info(
+                        logging.warning(
                             "Stopping of run collection %s failed: %s", run_collection_id, e
                         )
                 self._run_collection_ids.clear()
