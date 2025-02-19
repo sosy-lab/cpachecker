@@ -1080,6 +1080,7 @@ class WebInterface:
         self._result_downloader.shutdown()
 
         if self._run_collection_ids and self._unfinished_runs:
+            logging.info("Stopping tasks on server...")
             with self._unfinished_runs_lock:
                 for run_collection_id in self._run_collection_ids:
                     try:
