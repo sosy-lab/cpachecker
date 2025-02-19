@@ -273,9 +273,6 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             }
           }
 
-          // TODO what about precision loss, in particular interesting for return null might need to
-          // become unknown (at least at some points)
-          // getMachineModel().
           return invertCastFromInteger(origType, castType, resVal, false);
         }
 
