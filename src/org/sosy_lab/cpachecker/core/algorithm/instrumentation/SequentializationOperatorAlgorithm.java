@@ -177,9 +177,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                 // If there is a self-loop in the automaton, we have to move forward.
                 matched = matched || !transition.getDestination().equals(transition.getSource());
               }
-              String newEdge = computeLineNumberBasedOnTransition(transition, edge)
-                  + "|||"
-                  + transition.getOperation().insertVariablesInsideOperation(matchedVariables);
+              String newEdge =
+                  computeLineNumberBasedOnTransition(transition, edge)
+                      + "|||"
+                      + transition.getOperation().insertVariablesInsideOperation(matchedVariables);
               if (newEdge.contains("__CPAchecker_TMP")) {
                 throw new CPAException("Matching for line with function calls is unsupported.");
               }
