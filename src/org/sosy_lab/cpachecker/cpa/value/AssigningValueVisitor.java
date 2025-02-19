@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -80,11 +81,37 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     this.options = options;
   }
 
-  private static AExpression unwrap(AExpression expression) {
+  private AExpression unwrap(AExpression expression) {
     // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
+    CSimpleType expType;
+    CSimpleType castType;
+    boolean stop = false;
+    while (!stop && expression instanceof CCastExpression) {
+      stop = true;
+      if (expression.getExpressionType() instanceof CType
+          && ((CType) expression.getExpressionType()).getCanonicalType() instanceof CSimpleType
+          && ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType()
+              instanceof CSimpleType) {
+        castType = (CSimpleType) ((CType) expression.getExpressionType()).getCanonicalType();
 
-    while (expression instanceof CCastExpression) {
-      expression = ((CCastExpression) expression).getOperand();
+        expType =
+            (CSimpleType)
+                ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType();
+        if ((expType.getType().isIntegerType()
+                && castType.getType().isIntegerType()
+                && (expType.getType() == CBasicType.BOOL
+                    || getMachineModel().getSizeof(expType) < getMachineModel().getSizeof(castType)
+                    || (getMachineModel().getSizeof(expType)
+                            == getMachineModel().getSizeof(castType)
+                        && getMachineModel().isSigned(expType)
+                            == getMachineModel().isSigned(castType))))
+            || (expType.getType().isFloatingPointType()
+                && castType.getType().isFloatingPointType()
+                && getMachineModel().getSizeof(expType) < getMachineModel().getSizeof(castType))) {
+          expression = ((CCastExpression) expression).getOperand();
+          stop = false;
+        }
+      }
     }
 
     return expression;
@@ -93,8 +120,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   @Override
   public Value visit(CBinaryExpression pE) throws UnrecognizedCodeException {
     BinaryOperator binaryOperator = pE.getOperator();
-    CExpression lVarInBinaryExp = pE.getOperand1();
-    CExpression rVarInBinaryExp = pE.getOperand2();
+    CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
+    CExpression rVarInBinaryExp = (CExpression) unwrap(pE.getOperand2());
 
     Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(leftValue.isExplicitlyKnown()
@@ -115,11 +142,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         && ((BigInteger) rightValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
       rightValue =
           castCValue(
-          rightValue,
-          pE.getCalculationType(),
-          getMachineModel(),
-          getLogger(),
-          pE.getFileLocation());
+              rightValue,
+              pE.getCalculationType(),
+              getMachineModel(),
+              getLogger(),
+              pE.getFileLocation());
     }
 
     if (isEqualityAssumption(binaryOperator)) {
