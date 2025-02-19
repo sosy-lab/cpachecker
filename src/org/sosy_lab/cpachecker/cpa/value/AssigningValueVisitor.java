@@ -113,7 +113,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (!(rightValue.isExplicitlyKnown()
         && rightValue.asNumericValue().getNumber() instanceof BigInteger
         && ((BigInteger) rightValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
-      castCValue(
+      rightValue =
+          castCValue(
           rightValue,
           pE.getCalculationType(),
           getMachineModel(),
