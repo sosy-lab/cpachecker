@@ -1085,7 +1085,7 @@ class WebInterface:
                 for run_collection_id in self._run_collection_ids:
                     try:
                         state, _ = self._request(
-                            "GET", f"runs/collection/{run_collection_id}/state"
+                            "GET", f"runs/collection/{run_collection_id}"
                         )
                         if state.decode("utf-8") == "COMPLETED":
                             logging.info(
