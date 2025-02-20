@@ -10,14 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
 import java.io.IOException;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.TestAlgorithmFactory.AnalysisComponents;
@@ -32,7 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix = "test")
 public class ErrorConditionAlgorithm implements Algorithm {
 
   private final Configuration config;
@@ -40,17 +36,14 @@ public class ErrorConditionAlgorithm implements Algorithm {
   private final CFA cfa;
   private final Specification specification;
   private final ConfigurableProgramAnalysis cpa;
-  
 
   public ErrorConditionAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
       Specification pSpecification,
-      ConfigurableProgramAnalysis pCPA)
-      throws InvalidConfigurationException {  
+      ConfigurableProgramAnalysis pCPA) {
     config = pConfig;
-    config.inject(this);
     logger = pLogger;
     cfa = pCfa;
     specification = pSpecification;
@@ -70,26 +63,36 @@ public class ErrorConditionAlgorithm implements Algorithm {
     try {
       ImmutableList.Builder<ConfigurableProgramAnalysis> ctrlcpalist = ImmutableList.builder();
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
-        if(!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)){
-        if (c instanceof ControlAutomatonCPA ctrlcpa) {
-          if(ctrlcpa.getAutomatonName().contains("SVCOMP")){
-          ctrlcpalist.add(ctrlcpa.invert());
+        if (!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)) {
+          if (c instanceof ControlAutomatonCPA ctrlcpa) {
+            if (ctrlcpa.getAutomatonName().startsWith("SVCOMP")) {
+              ctrlcpalist.add(ctrlcpa.invert());
+            } else {
+              ctrlcpalist.add(ctrlcpa);
+            }
           } else {
-            ctrlcpalist.add(ctrlcpa);
+            ctrlcpalist.add(c);
           }
-        } else {
-          ctrlcpalist.add(c);
         }
       }
-      }
 
-      Configuration predicateConfig = Configuration.builder().loadFromFile("config/predicateAnalysis.properties").build();
-      ARGCPA cpaSpec = new ARGCPA(new CompositeCPA(config, cfa, ctrlcpalist.build()), config, logger, specification, cfa);
+      Configuration predicateConfig =
+          Configuration.builder()
+              .loadFromFile("config/predicateAnalysis.properties")
+              .setOption("analysis.stopAfterError", "false")
+              .build();
+      ARGCPA cpaSpec =
+          new ARGCPA(
+              new CompositeCPA(config, cfa, ctrlcpalist.build()),
+              config,
+              logger,
+              specification,
+              cfa);
       AnalysisComponents aSpec =
           TestAlgorithmFactory.createAlgorithm(
               logger, specification, cfa, predicateConfig, ShutdownManager.create(), cpaSpec);
       boolean resultSpec = runcheck(aSpec);
-      if(resultSpec){
+      if (resultSpec) {
         logger.log(Level.INFO, "Witness complete");
       } else {
         logger.log(Level.INFO, "Witness incomplete");
@@ -97,25 +100,31 @@ public class ErrorConditionAlgorithm implements Algorithm {
 
       ImmutableList.Builder<ConfigurableProgramAnalysis> obscpalist = ImmutableList.builder();
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
-        if(!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)){
-        if (c instanceof ControlAutomatonCPA obscpa) {
-          if(obscpa.getAutomatonName().contains("WitnessAutomaton")){
-          obscpalist.add(obscpa.invert());
+        if (!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)) {
+          if (c instanceof ControlAutomatonCPA obscpa) {
+            if (obscpa.getAutomatonName().startsWith("WitnessAutomaton")) {
+              obscpalist.add(obscpa.invert());
+            } else {
+              obscpalist.add(obscpa);
+            }
           } else {
-            obscpalist.add(obscpa);
+            obscpalist.add(c);
           }
-        } else {
-          obscpalist.add(c);
         }
       }
-      }
 
-      ARGCPA cpaWitness = new ARGCPA(new CompositeCPA(config, cfa, obscpalist.build()), config, logger, specification, cfa);
+      ARGCPA cpaWitness =
+          new ARGCPA(
+              new CompositeCPA(config, cfa, obscpalist.build()),
+              config,
+              logger,
+              specification,
+              cfa);
       AnalysisComponents aWitness =
           TestAlgorithmFactory.createAlgorithm(
               logger, specification, cfa, predicateConfig, ShutdownManager.create(), cpaWitness);
       boolean resultWitness = runcheck(aWitness);
-      if(resultWitness){
+      if (resultWitness) {
         logger.log(Level.INFO, "Witness sound");
       } else {
         logger.log(Level.INFO, "Witness unsound");

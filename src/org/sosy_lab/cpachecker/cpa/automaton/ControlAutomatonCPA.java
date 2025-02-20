@@ -239,7 +239,7 @@ public class ControlAutomatonCPA
     return automaton;
   }
 
-  public String getAutomatonName(){
+  public String getAutomatonName() {
     return automaton.getName();
   }
 
@@ -254,6 +254,9 @@ public class ControlAutomatonCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+    if (invertTransferRelation) {
+      return buildInitStateForAutomaton(automaton).flip();
+    }
     return buildInitStateForAutomaton(automaton);
   }
 

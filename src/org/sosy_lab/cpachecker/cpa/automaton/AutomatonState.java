@@ -52,11 +52,11 @@ public class AutomatonState
   private AutomatonState original;
 
   public void setOriginal(AutomatonState pOriginal) {
-      original = pOriginal;
+    original = pOriginal;
   }
-        
+
   public AutomatonState getOriginal() {
-      return original == null ? this : original;
+    return original == null ? this : original;
   }
 
   @Serial private static final long serialVersionUID = -4665039439114057346L;
@@ -273,7 +273,7 @@ public class AutomatonState
     return automaton;
   }
 
-  public boolean isSinkState(){
+  public boolean isSinkState() {
     return getInternalState().getTransitions().isEmpty();
   }
 
@@ -527,23 +527,25 @@ public class AutomatonState
 
   @Override
   public AutomatonState flip() {
-    
-    AutomatonTargetInformation ptargetInformation = new AutomatonTargetInformation(automaton, getInternalState().getTransitions().get(0));
+
+    AutomatonTargetInformation ptargetInformation =
+        new AutomatonTargetInformation(automaton, getInternalState().getTransitions().get(0));
     if (targetInformation != null) {
       ptargetInformation = null;
     }
 
-    AutomatonState a = new AutomatonState(
-        vars,
-        internalState.flip(),
-        automaton,
-        assumptions,
-        candidateInvariants,
-        areDefaultCandidateInvariants,
-        matches,
-        failedMatches,
-        ptargetInformation,
-        !treatErrorAsTarget);
+    AutomatonState a =
+        new AutomatonState(
+            vars,
+            internalState.flip(),
+            automaton,
+            assumptions,
+            candidateInvariants,
+            areDefaultCandidateInvariants,
+            matches,
+            failedMatches,
+            ptargetInformation,
+            treatErrorAsTarget);
     a.setOriginal(this);
     return a;
   }

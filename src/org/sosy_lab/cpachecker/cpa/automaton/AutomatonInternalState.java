@@ -171,12 +171,15 @@ public class AutomatonInternalState {
     return false;
   }
 
-  public AutomatonInternalState flip(){
-    ImmutableList.Builder<AutomatonTransition> ptransitions = ImmutableList.<AutomatonTransition>builder().addAll(transitions);
-    if(transitions.isEmpty()){
-      AutomatonTransition.Builder atBuilder = new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
+  public AutomatonInternalState flip() {
+    ImmutableList.Builder<AutomatonTransition> ptransitions =
+        ImmutableList.<AutomatonTransition>builder().addAll(transitions);
+    if (transitions.isEmpty()) {
+      AutomatonTransition.Builder atBuilder =
+          new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
       ptransitions.add(atBuilder.build());
     }
-    return new AutomatonInternalState(name, ptransitions.build(), !mIsTarget, mAllTransitions, isCycleStart);
+    return new AutomatonInternalState(
+        name, ptransitions.build(), !mIsTarget, mAllTransitions, isCycleStart);
   }
 }

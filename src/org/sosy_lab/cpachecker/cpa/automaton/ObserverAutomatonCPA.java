@@ -43,7 +43,7 @@ public class ObserverAutomatonCPA extends ControlAutomatonCPA {
     return AutomaticCPAFactory.forType(ObserverAutomatonCPA.class);
   }
 
-    @Override
+  @Override
   public ControlAutomatonCPA invert()
       throws CPATransferException, InvalidConfigurationException, InterruptedException {
     return new ObserverAutomatonCPA(

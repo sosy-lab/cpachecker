@@ -469,7 +469,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     return successors;
   }
 
-  public AutomatonTransferRelation invert(){
+  public AutomatonTransferRelation invert() {
     return new InvertedAutomatonTransferRelation(cpa, logger, machineModel, stats);
   }
 }
