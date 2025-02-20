@@ -1080,7 +1080,7 @@ class WebInterface:
         self._result_downloader.shutdown()
 
         if self._run_collection_ids and self._unfinished_runs:
-            logging.info("Stopping tasks on server...")
+            logging.info("Cancelling run collections...")
             for run_collection_id in self._run_collection_ids:
                 try:
                     state, _ = self._request(
@@ -1106,6 +1106,7 @@ class WebInterface:
                                     "Run was canceled because user requested shutdown."
                                 )
                             )
+                    logging.info("Stopped all runs.")
 
                 except HTTPError as e:
                     logging.warning(
