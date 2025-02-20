@@ -88,12 +88,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     boolean stop = false;
     while (!stop && expression instanceof CCastExpression) {
       stop = true;
-      if (expression.getExpressionType() instanceof CType
-          && ((CType) expression.getExpressionType()).getCanonicalType() instanceof CSimpleType
+      // expression.getExpressionType() instanceof CType because expression CCastExpression
+      if (((CType) expression.getExpressionType()).getCanonicalType() instanceof CSimpleType
           && ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType()
               instanceof CSimpleType) {
         castType = (CSimpleType) ((CType) expression.getExpressionType()).getCanonicalType();
-
         expType =
             (CSimpleType)
                 ((CCastExpression) expression).getOperand().getExpressionType().getCanonicalType();
