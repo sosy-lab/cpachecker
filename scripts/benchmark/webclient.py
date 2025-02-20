@@ -1123,7 +1123,9 @@ class WebInterface:
                 for runId in self._unfinished_runs.keys():
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
-                        UserAbortError("Run was canceled because user requested shutdown.")
+                        UserAbortError(
+                            "Run was canceled because user requested shutdown."
+                        )
                     )
                 self._unfinished_runs.clear()
                 self._run_collection_ids.clear()
