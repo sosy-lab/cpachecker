@@ -1119,13 +1119,14 @@ class WebInterface:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
             stop_tasks = set()
-            for runId in self._unfinished_runs.keys():
-                stop_tasks.add(stop_executor.submit(self._stop_run, runId))
-                self._unfinished_runs[runId].set_exception(
-                    UserAbortError("Run was canceled because user requested shutdown.")
-                )
-            self._unfinished_runs.clear()
-            self._run_collection_ids.clear()
+            with self._unfinished_runs_lock:
+                for runId in self._unfinished_runs.keys():
+                    stop_tasks.add(stop_executor.submit(self._stop_run, runId))
+                    self._unfinished_runs[runId].set_exception(
+                        UserAbortError("Run was canceled because user requested shutdown.")
+                    )
+                self._unfinished_runs.clear()
+                self._run_collection_ids.clear()
 
             for task in stop_tasks:
                 task.result()
