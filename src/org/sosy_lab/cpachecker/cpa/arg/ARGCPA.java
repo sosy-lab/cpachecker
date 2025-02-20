@@ -97,7 +97,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   private final ARGMergeJoin.MergeOptions mergeOptions;
   private final ARGStatistics stats;
 
-  private ARGCPA(
+  public ARGCPA(
       ConfigurableProgramAnalysis cpa,
       Configuration config,
       LogManager logger,

@@ -49,6 +49,16 @@ public class AutomatonState
         Graphable,
         InvertableState<AutomatonState> {
 
+  private AutomatonState original;
+
+  public void setOriginal(AutomatonState pOriginal) {
+      original = pOriginal;
+  }
+        
+  public AutomatonState getOriginal() {
+      return original == null ? this : original;
+  }
+
   @Serial private static final long serialVersionUID = -4665039439114057346L;
   private static final String AutomatonAnalysisNamePrefix = "AutomatonAnalysis_";
 
@@ -261,6 +271,10 @@ public class AutomatonState
 
   public Automaton getOwningAutomaton() {
     return automaton;
+  }
+
+  public boolean isSinkState(){
+    return getInternalState().getTransitions().isEmpty();
   }
 
   @Override
@@ -513,10 +527,24 @@ public class AutomatonState
 
   @Override
   public AutomatonState flip() {
-    AutomatonTargetInformation ptargetInformation = new AutomatonTargetInformation(automaton, null);
-    if(targetInformation!=null){
+    
+    AutomatonTargetInformation ptargetInformation = new AutomatonTargetInformation(automaton, getInternalState().getTransitions().get(0));
+    if (targetInformation != null) {
       ptargetInformation = null;
     }
-    return new AutomatonState(vars, internalState, automaton, assumptions, candidateInvariants, areDefaultCandidateInvariants, matches, failedMatches, ptargetInformation, !treatErrorAsTarget);
+
+    AutomatonState a = new AutomatonState(
+        vars,
+        internalState.flip(),
+        automaton,
+        assumptions,
+        candidateInvariants,
+        areDefaultCandidateInvariants,
+        matches,
+        failedMatches,
+        ptargetInformation,
+        !treatErrorAsTarget);
+    a.setOriginal(this);
+    return a;
   }
 }

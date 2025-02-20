@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ViolationWitnessAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ErrorConditionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.DARAlgorithm;
@@ -386,9 +386,9 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.violationwitness",
-      description = "use a Violation Witness for Validation")
-  private boolean useViolationWitness = false;
+      name = "algorithm.errorcondition",
+      description = "use a Error Condition for Validation")
+  private boolean useErrorCondition = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -521,10 +521,9 @@ public class CoreComponentsFactory {
     } else if (useRandomTestCaseGeneratorAlgorithm) {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (useErrorCondition) {
+        algorithm = new ErrorConditionAlgorithm(config, logger, cfa, specification, cpa);
     } else {
-      if (useViolationWitness) {
-        algorithm = new ViolationWitnessAlgorithm(config, logger, cfa, specification, cpa);
-      }
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (testGoalConverter) {

@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
-import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertedAutomatonTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -57,6 +57,7 @@ public class AutomatonTransferRelation implements TransferRelation {
   private final ControlAutomatonCPA cpa;
   private final LogManager logger;
   private final MachineModel machineModel;
+  private final AutomatonStatistics stats;
 
   private final TimerWrapper totalPostTime;
   private final TimerWrapper matchTime;
@@ -73,6 +74,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     cpa = pCpa;
     logger = pLogger;
     machineModel = pMachineModel;
+    stats = pStats;
 
     totalPostTime = pStats.totalPostTime.getNewTimer();
     matchTime = pStats.matchTime.getNewTimer();
@@ -96,7 +98,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     }
 
     Collection<AutomatonState> result =
-        getAbstractSuccessors0((AutomatonState) pElement, pCfaEdge, pPrecision);
+        getAbstractSuccessors0(((AutomatonState) pElement).getOriginal(), pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }
@@ -467,7 +469,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     return successors;
   }
 
-  public TransferRelation invert() {
-    return new InvertingTransferRelation(this);
+  public AutomatonTransferRelation invert(){
+    return new InvertedAutomatonTransferRelation(cpa, logger, machineModel, stats);
   }
 }

@@ -56,7 +56,6 @@ public class TestAlgorithmFactory {
             singleShutdownManager.getNotifier(),
             AggregatedReachedSets.empty());
 
-
     Algorithm algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     ReachedSet reached =
         createInitialReachedSet(cpa, cfa.getMainFunction(), coreComponents, singleLogger);
