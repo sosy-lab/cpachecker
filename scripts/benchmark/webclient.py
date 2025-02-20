@@ -1081,19 +1081,19 @@ class WebInterface:
 
         if self._run_collection_ids and self._unfinished_runs:
             logging.info("Stopping tasks on server...")
-            with self._unfinished_runs_lock:
-                for run_collection_id in self._run_collection_ids:
-                    try:
-                        state, _ = self._request(
-                            "GET", f"runs/collection/{run_collection_id}"
+            for run_collection_id in self._run_collection_ids:
+                try:
+                    state, _ = self._request(
+                        "GET", f"runs/collection/{run_collection_id}"
+                    )
+                    if state.decode("utf-8") == "COMPLETED":
+                        logging.info(
+                            "Skipping run collection %s as it is already completed",
+                            run_collection_id,
                         )
-                        if state.decode("utf-8") == "COMPLETED":
-                            logging.info(
-                                "Skipping run collection %s as it is already completed",
-                                run_collection_id,
-                            )
-                            continue
+                        continue
 
+                    with self._unfinished_runs_lock:
                         logging.info("Deleting run collection %s", run_collection_id)
                         server_reply, _ = self._request(
                             "DELETE", f"runs/collection/{run_collection_id}"
@@ -1107,14 +1107,14 @@ class WebInterface:
                                 )
                             )
 
-                    except HTTPError as e:
-                        logging.warning(
-                            "Stopping of run collection %s failed: %s",
-                            run_collection_id,
-                            e,
-                        )
-                self._run_collection_ids.clear()
-                self._unfinished_runs.clear()
+                except HTTPError as e:
+                    logging.warning(
+                        "Stopping of run collection %s failed: %s",
+                        run_collection_id,
+                        e,
+                    )
+            self._run_collection_ids.clear()
+            self._unfinished_runs.clear()
         elif self._unfinished_runs:
             logging.info("Stopping tasks on server...")
             stop_executor = ThreadPoolExecutor(max_workers=5 * self.thread_count)
