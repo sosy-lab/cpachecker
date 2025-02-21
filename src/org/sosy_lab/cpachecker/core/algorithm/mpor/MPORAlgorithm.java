@@ -102,14 +102,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException {
-    // TODO adjust for multiple input files (also in .yml file)
-    Path inputFilePath = inputCfa.getFileNames().get(0);
-    String inputFileName = inputFilePath.getFileName().toString();
-    String outputFileName = SeqNameUtil.buildOutputFileName(inputFilePath);
+    // just use the first input file name for naming purposes
+    Path firstInputFilePath = inputCfa.getFileNames().get(0);
+    String inputFileName = firstInputFilePath.toString();
+    String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
     String outputProgram = sequentialization.toString();
     SequentializationWriter sequentializationWriter =
-        new SequentializationWriter(logger, outputFileName, inputFilePath);
+        new SequentializationWriter(logger, outputFileName, inputCfa.getFileNames(), options);
     sequentializationWriter.write(outputProgram, options);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
