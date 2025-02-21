@@ -131,7 +131,7 @@ public class QuantiferEliminationRefiner implements Refiner {
     formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
         String.format("Deterministic Variables:\n%s", irrelevantVariables));
     formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
-        String.format("Non-Deterministic Variables:\n%s", deterministicVariablesPredicate));
+        String.format("Non-Deterministic Variables:\n%s", nondetVariables));
 
 
     BooleanFormula quantifiedFormula = quantifierSolver

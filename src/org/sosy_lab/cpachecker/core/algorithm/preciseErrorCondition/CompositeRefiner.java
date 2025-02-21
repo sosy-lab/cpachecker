@@ -40,8 +40,8 @@ public class CompositeRefiner implements Refiner {
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     exclusionFormula = context.getManager().makeEmptyPathFormula(); // initially empty
-    initializeRefiners(pRefiners, pQuantifierSolver);
     parallelRefinement = pParallelRefinement;
+    initializeRefiners(pRefiners, pQuantifierSolver);
   }
 
   @Override
@@ -132,7 +132,13 @@ public class CompositeRefiner implements Refiner {
   private void initializeRefiners(RefinementStrategy[] pRefiners, Solvers pQuantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     for (RefinementStrategy refiner : pRefiners) {
-      refiners.put(refiner, RefinerFactory.createRefiner(refiner, context, pQuantifierSolver));
+      FormulaContext newContext = context;
+      if (parallelRefinement && pRefiners.length > 1) {
+        // create new context for each refiner
+        newContext = context.createContextFromThis();
+      }
+      refiners.put(refiner,
+          RefinerFactory.createRefiner(refiner, newContext, pQuantifierSolver));
     }
   }
 

@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -83,5 +85,22 @@ public class FormulaContext {
 
   public void setProverOptions(ProverOptions pProverOptions) {
     prover = solver.newProverEnvironment(pProverOptions);
+  }
+
+  public FormulaContext createContextFromThis() throws InvalidConfigurationException {
+    Solver newSolver = Solver.create(
+        Configuration.builder().copyFrom(configuration)
+            .setOption("solver.solver", solver.getSolverName().toString())
+            .build(), logger, shutdownNotifier);
+
+    PathFormulaManagerImpl newManager = new PathFormulaManagerImpl(
+        newSolver.getFormulaManager(),
+        configuration,
+        logger,
+        shutdownNotifier,
+        cfa,
+        AnalysisDirection.FORWARD);
+
+    return new FormulaContext(newSolver, newManager, cfa, logger, configuration, shutdownNotifier);
   }
 }

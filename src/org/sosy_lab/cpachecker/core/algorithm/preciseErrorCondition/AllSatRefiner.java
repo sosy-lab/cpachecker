@@ -12,8 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -28,7 +26,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class AllSatRefiner implements Refiner {
 
-  private static final Logger log = LoggerFactory.getLogger(AllSatRefiner.class);
   private final FormulaContext context;
   private final BooleanFormulaManager bmgr;
   private final ErrorConditionFormatter formatter;

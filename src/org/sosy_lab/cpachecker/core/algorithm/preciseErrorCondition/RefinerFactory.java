@@ -20,6 +20,10 @@ public class RefinerFactory {
       Solvers quantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     return switch (pRefinementStrategy) {
+      case GENERATE_MODEL -> {
+        context.getLogger().log(Level.INFO, "Initializing GenerateModelRefiner...");
+        yield new GenerateModelRefiner(context);
+      }
       case ALLSAT -> {
         context.getLogger().log(Level.INFO, "Initializing AllSatRefiner...");
         yield new AllSatRefiner(context);
@@ -27,10 +31,6 @@ public class RefinerFactory {
       case QUANTIFIER_ELIMINATION -> {
         context.getLogger().log(Level.INFO, "Initializing QuantifierEliminationRefiner...");
         yield new QuantiferEliminationRefiner(context, quantifierSolver);
-      }
-      case GENERATE_MODEL -> {
-        context.getLogger().log(Level.INFO, "Initializing GenerateModelRefiner...");
-        yield new GenerateModelRefiner(context);
       }
     };
   }
