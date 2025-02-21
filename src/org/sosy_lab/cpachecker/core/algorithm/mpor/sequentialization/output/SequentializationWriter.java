@@ -33,15 +33,15 @@ public class SequentializationWriter {
     }
   }
 
-  private enum Error {
+  private enum OutputError {
     IO("MPOR FAIL. An IO error occurred while writing the outputProgram:"),
     NO_OVERWRITING("MPOR FAIL. File exists already:"),
-    OPTIONS_ILLEGAL_ACCESS("MPOR FAIL. Could not retrieve MPOROptions fields."),
+    OPTIONS_ILLEGAL_ACCESS("MPOR FAIL. Could not retrieve MPOROptions fields:"),
     TARGET_DIR("MPOR FAIL. Could not create target directory:");
 
     final String message;
 
-    Error(String pMessage) {
+    OutputError(String pMessage) {
       message = pMessage;
     }
   }
@@ -56,7 +56,7 @@ public class SequentializationWriter {
 
   private final String seqProgramPath;
 
-  private final String seqMetadataPath;
+  private final String metadataPath;
 
   public SequentializationWriter(
       LogManager pLogManager, String pSeqName, List<Path> pInputFilePaths, MPOROptions pOptions) {
@@ -65,47 +65,65 @@ public class SequentializationWriter {
     inputFilePaths = pInputFilePaths;
     options = pOptions;
     seqProgramPath = targetDirectory + pSeqName + FileExtension.I.suffix;
-    seqMetadataPath = targetDirectory + pSeqName + FileExtension.YML.suffix;
+    metadataPath = targetDirectory + pSeqName + FileExtension.YML.suffix;
   }
 
-  public void write(final String pFinalSeq, MPOROptions pOptions) {
+  public void write(final String pFinalSeq) {
     try {
       File seqProgramFile = new File(seqProgramPath);
       File parentDir = seqProgramFile.getParentFile();
-      // ensure the target directory exists
-      if (!parentDir.exists()) {
-        if (parentDir.mkdirs()) {
-          logManager.log(Level.INFO, "Directory created: " + targetDirectory);
-        } else {
-          logManager.log(Level.SEVERE, Error.TARGET_DIR.message, targetDirectory);
-          throw new RuntimeException();
-        }
-        // ensure the file does not exist already (no overwriting)
-      } else if (!seqProgramFile.createNewFile() && !pOptions.fileOverwriting) {
-        logManager.log(
-            Level.SEVERE, Error.NO_OVERWRITING.message, seqProgramFile.getAbsolutePath());
-        throw new RuntimeException();
-      } else {
-        // write content to the file
-        try (Writer writer =
-            Files.newBufferedWriter(seqProgramFile.toPath(), StandardCharsets.UTF_8)) {
-          writer.write(pFinalSeq);
-        }
-        File seqMetadataFile = new File(seqMetadataPath);
-        try (Writer writer =
-            Files.newBufferedWriter(seqMetadataFile.toPath(), StandardCharsets.UTF_8)) {
-          writer.write(createMetadata());
-        } catch (IllegalAccessException pE) {
-          logManager.log(Level.SEVERE, Error.OPTIONS_ILLEGAL_ACCESS);
-          throw new RuntimeException();
-        }
-        logManager.log(
-            Level.INFO,
-            () -> "MPOR SUCCESS. Sequentialization created: " + seqProgramFile.getAbsolutePath());
+
+      handleDirectoryCreation(parentDir);
+      // option: no overwriting
+      handleOverwriting(seqProgramFile);
+
+      // write sequentialized program to file
+      try (Writer writer =
+          Files.newBufferedWriter(seqProgramFile.toPath(), StandardCharsets.UTF_8)) {
+        writer.write(pFinalSeq);
       }
+
+      // option: create metadata file
+      handleMetadata(metadataPath);
+
     } catch (IOException e) {
-      logManager.log(Level.SEVERE, Error.IO.message, e.getMessage());
+      logManager.log(Level.SEVERE, OutputError.IO.message, e.getMessage());
       throw new RuntimeException();
+    }
+  }
+
+  private void handleDirectoryCreation(File pParentDir) {
+    if (!pParentDir.exists()) {
+      if (pParentDir.mkdirs()) {
+        logManager.log(Level.INFO, "Directory created: " + targetDirectory);
+      } else {
+        logManager.log(Level.SEVERE, OutputError.TARGET_DIR.message, targetDirectory);
+        throw new RuntimeException();
+      }
+    }
+  }
+
+  private void handleOverwriting(File pSeqProgramFile) throws IOException {
+    if (!pSeqProgramFile.createNewFile() && !options.overwriteFiles) {
+      // ensure the file does not exist already
+      logManager.log(
+          Level.SEVERE, OutputError.NO_OVERWRITING.message, pSeqProgramFile.getAbsolutePath());
+      throw new RuntimeException();
+    }
+  }
+
+  private void handleMetadata(String pMetadataPath) {
+    if (options.outputMetadata) {
+      File seqMetadataFile = new File(pMetadataPath);
+      try (Writer writer =
+          Files.newBufferedWriter(seqMetadataFile.toPath(), StandardCharsets.UTF_8)) {
+        writer.write(createMetadata());
+      } catch (IllegalAccessException e) {
+        logManager.log(Level.SEVERE, OutputError.OPTIONS_ILLEGAL_ACCESS.message, e);
+        throw new RuntimeException();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -116,7 +134,7 @@ public class SequentializationWriter {
       rMetadata.append(createNameAndPathEntry(inputFilePath));
     }
     rMetadata.append("\n");
-    rMetadata.append("options:\n");
+    rMetadata.append("algorithm_options:\n");
     for (Field field : options.getClass().getDeclaredFields()) {
       rMetadata.append("  ").append(field.getName()).append(": ");
       rMetadata.append(field.get(options)).append("\n");

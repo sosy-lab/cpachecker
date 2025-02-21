@@ -262,9 +262,13 @@ analysis.algorithm.MPOR.addLoopInvariants = false
 # to reduce the state space
 analysis.algorithm.MPOR.addPOR = false
 
+# adds an additional .yml file with metadata such as algorithm options and
+# input file(s)
+analysis.algorithm.MPOR.outputMetadata = true
+
 # whether to overwrite files in the ./output directory when creating
 # sequentializations
-analysis.algorithm.MPOR.fileOverwriting = true
+analysis.algorithm.MPOR.overwriteFiles = true
 
 # whether to use separate int values (scalars) for tracking thread pcs
 # instead of int arrays. may slow down or improve verification depending on
