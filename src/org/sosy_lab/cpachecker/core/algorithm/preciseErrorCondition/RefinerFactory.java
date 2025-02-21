@@ -14,7 +14,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 
 public class RefinerFactory {
-  public static Refiner createRefiner(RefinementStrategy pRefinementStrategy, FormulaContext context, Solvers quantifierSolver)
+  public static Refiner createRefiner(
+      RefinementStrategy pRefinementStrategy,
+      FormulaContext context,
+      Solvers quantifierSolver)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     return switch (pRefinementStrategy) {
       case ALLSAT -> {

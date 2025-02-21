@@ -47,17 +47,15 @@ public class ErrorConditionFormatter {
       }
     }
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: CEX Non-Det Variables Mapping: \n%s",
-            currentRefinementIteration,
-            variableMapping));
+    loggingWithIteration(currentRefinementIteration,
+        Level.INFO, String.format("CEX Non-Det Variables Mapping:\n%s", variableMapping));
   }
 
   private void formatErrorCondition(BooleanFormula exclusionFormula, int currentRefinementIteration)
       throws InterruptedException {
-    //FormulaToCExpressionConverter exprConverter =
-    //    new FormulaToCExpressionConverter(solver.getFormulaManager());
-    //String cExpr = exprConverter.formulaToCExpression(exclusionFormula);
+    FormulaToCExpressionConverter exprConverter =
+        new FormulaToCExpressionConverter(solver.getFormulaManager());
+    String cExpr = exprConverter.formulaToCExpression(exclusionFormula);
 
     FormulaToCVisitor visitor = new FormulaToCVisitor(solver.getFormulaManager(), id -> id);
     solver.getFormulaManager().visit(exclusionFormula, visitor);
@@ -69,19 +67,24 @@ public class ErrorConditionFormatter {
         String ssaVariable = entry.getKey();
         String originalName = entry.getValue().replace("main::", "");
         visitedFormula = visitedFormula.replace(ssaVariable, originalName);
-        //cExpr = cExpr.replace(ssaVariable, originalName);
+        cExpr = cExpr.replace(ssaVariable, originalName);
       }
     }
 
-//    context.getLogger().log(Level.INFO,
-//        String.format("Iteration %d: Converted To C Expression : \n%s \n",
-//            currentRefinementIteration,
-//            cExpr));
+    loggingWithIteration(currentRefinementIteration,
+        Level.INFO, String.format("Error Condition In This Iteration: %s\n", visitedFormula));
+    loggingWithIteration(currentRefinementIteration,
+        Level.INFO, String.format("Error Condition Represented As C Expression : \n%s", cExpr));
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Error Condition in this iteration: \n%s \n",
+  }
+
+  public void loggingWithIteration(
+      int currentRefinementIteration,
+      Level loggingLevel, String message) {
+    context.getLogger().log(loggingLevel,
+        String.format("Iteration %d - %s \n",
             currentRefinementIteration,
-            visitedFormula));
+            message));
   }
 
   public void reformat(

@@ -92,9 +92,9 @@ public class Analyzer {
     }
     context.getLogger().log(Level.INFO,
         String.format(
-            "Iteration %d: Updated initial state with the exclusion formula for next iteration.",
+            "Iteration %d: Updated Initial State With The Exclusion Formula For Next Iteration.",
             currentIteration));
-    context.getLogger().log(Level.FINE, String.format("Iteration %s: Updated initial state: ", initialState));
+    context.getLogger().log(Level.FINE, String.format("Iteration %s: Updated Initial State: ", initialState));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 }

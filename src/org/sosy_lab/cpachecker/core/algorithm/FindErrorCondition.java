@@ -47,38 +47,34 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "findErrorCondition")
 public class FindErrorCondition implements Algorithm, StatisticsProvider, Statistics {
 
+  private final Algorithm algorithm;
+  private final ConfigurableProgramAnalysis cpa;
+  private final LogManager logger;
+  private final StatTimer totalTime =
+      new StatTimer("Total time for finding precise error condition");
+  private final FormulaContext context;
   @Option(
       secure = true,
       description = "Maximum iterations for error condition refinement.",
       name = "maxIterations")
   private int maxIterations = -1; // default: no iteration limit
-
   @Option(
       secure = true,
       description = "Solver that should perform quantifier Elimination.",
       name = "qSolver")
   private Solvers qSolver = Solvers.Z3; // default
-
   @Option(
       secure = true,
       description = "List of refiners to use",
       name = "refiners")
   private RefinementStrategy[] refiners =
       {RefinementStrategy.QUANTIFIER_ELIMINATION, RefinementStrategy.ALLSAT}; // default
-
   @Option(
       secure = true,
       description = "Enable parallel refinement. Only if at least two refiners are in use.",
       name = "parallel")
   private boolean parallelRefinement = true; // default
-
-  private final Algorithm algorithm;
-  private final ConfigurableProgramAnalysis cpa;
-  private final LogManager logger;
-  private final StatTimer totalTime =
-      new StatTimer("Total time for finding precise error condition");
   private int currentIteration = 0;
-  private final FormulaContext context;
 
   public FindErrorCondition(
       Algorithm pAlgorithm,
@@ -142,6 +138,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             // Refinement
             errorCondition = refiner.refine(cex);
           }
+          // do not continue if error condition is empty/unchanged
           if (errorCondition.equals(context.getManager().makeEmptyPathFormula())) {
             break;
           }
@@ -154,18 +151,16 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           || maxIterations == -1));
 
       context.getLogger()
-          .log(Level.INFO, "Final error condition:\n" + errorCondition);
+          .log(Level.INFO, "Final Error Condition:\n" + errorCondition);
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {
-      throw new CPAException("Error during the execution of FindErrorCondition", ex);
+      throw new CPAException("Error During The Execution Of FindErrorCondition", ex);
     } finally {
       totalTime.stop();
     }
   }
 
-
-  // TODO minimize Error condition remove redundant expressions
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {

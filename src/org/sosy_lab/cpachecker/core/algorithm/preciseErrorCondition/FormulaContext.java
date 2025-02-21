@@ -21,11 +21,11 @@ public class FormulaContext {
 
   private final Solver solver;
   private final PathFormulaManagerImpl manager;
-  private ProverEnvironment prover;
   private final CFA cfa;
   private final LogManager logger;
   private final Configuration configuration;
   private final ShutdownNotifier shutdownNotifier;
+  private ProverEnvironment prover;
 
   /**
    * This class maintains the most often used objects .

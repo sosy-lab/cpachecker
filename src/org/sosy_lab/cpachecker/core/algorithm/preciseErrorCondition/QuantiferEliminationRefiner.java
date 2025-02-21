@@ -15,19 +15,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.FormulaTransformationVisitor;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -35,9 +35,9 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final FormulaContext context;
   private final Solver solver;
   private final Solver quantifierSolver;
+  private final ErrorConditionFormatter formatter;
   private PathFormula exclusionFormula;
   private int currentRefinementIteration = 0;
-  private final ErrorConditionFormatter formatter;
 
   public QuantiferEliminationRefiner(
       FormulaContext pContext, Solvers pQuantifierSolver)
@@ -56,14 +56,11 @@ public class QuantiferEliminationRefiner implements Refiner {
   public PathFormula refine(CounterexampleInfo cex)
       throws CPATransferException, InterruptedException, SolverException {
 
-    context.getLogger().log(Level.INFO,
-        "******************************** Refinement ********************************");
-
     PathFormula cexFormula =
         context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath());
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Current CEX FORMULA: \n%s \n", currentRefinementIteration,
-            cexFormula.getFormula()));
+
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Current CEX FORMULA: \n%s", cexFormula.getFormula()));
 
     // translate to Z3
     BooleanFormula translatedFormula =
@@ -94,14 +91,15 @@ public class QuantiferEliminationRefiner implements Refiner {
       Solver thisSolver,
       Solver otherSolver) {
     // formula translation between solvers, e.g. MATHSAT5 to Z3 or vice versa.
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Translating Formula from %s to %s.",
-            currentRefinementIteration, thisSolver.getSolverName(), otherSolver.getSolverName()));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Translating Formula From %s To %s.", thisSolver.getSolverName(),
+            otherSolver.getSolverName()));
+
     BooleanFormula translatedFormula = otherSolver.getFormulaManager().translateFrom(
         formula, thisSolver.getFormulaManager());
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Translated Formula:\n%s \n", currentRefinementIteration,
-            translatedFormula));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Translated Formula:\n%s", translatedFormula));
+
     return translatedFormula;
   }
 
@@ -130,40 +128,34 @@ public class QuantiferEliminationRefiner implements Refiner {
         .transform(Entry::getValue)
         .toList();
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Deterministic variables: %s",
-            currentRefinementIteration,
-            irrelevantVariables));
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Non-Deterministic variables : %s", currentRefinementIteration,
-            nondetVariables));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Deterministic Variables:\n%s", irrelevantVariables));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Non-Deterministic Variables:\n%s", deterministicVariablesPredicate));
+
 
     BooleanFormula quantifiedFormula = quantifierSolver
         .getFormulaManager()
         .getQuantifiedFormulaManager()
         .mkQuantifier(Quantifier.EXISTS, irrelevantVariables, translatedFormula);
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Quantified non-deterministic variables: \n%s",
-            currentRefinementIteration,
-            quantifiedFormula));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Quantified Formula:\n%s", quantifiedFormula));
 
     BooleanFormula eliminationResult = quantifierSolver
         .getFormulaManager()
         .getQuantifiedFormulaManager()
         .eliminateQuantifiers(quantifiedFormula);
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Quantifier Elimination Result: \n%s",
-            currentRefinementIteration,
-            eliminationResult));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Quantifier Elimination Result: \n%s", eliminationResult));
+
 
     // handle modulo operation before translation back to MATHSAT5
     BooleanFormula fixedEliminationResult = handleModuloOp(eliminationResult);
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Modified Result After Modulo Fix: \n%s \n",
-            currentRefinementIteration,
-            fixedEliminationResult));
+
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Modified Result After Modulo Fix: \n%s", fixedEliminationResult));
 
     return fixedEliminationResult;
   }
@@ -206,13 +198,11 @@ public class QuantiferEliminationRefiner implements Refiner {
     //update exclusion formula with the new quantified variables from this iteration.
     exclusionFormula = context.getManager()
         .makeAnd(exclusionFormula,
-        solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult))
+            solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult))
         .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
-    context.getLogger().log(Level.INFO,
-        String.format("Iteration %d: Updated Exclusion Formula: \n%s \n",
-            currentRefinementIteration,
-            exclusionFormula.getFormula()));
+    formatter.loggingWithIteration(currentRefinementIteration, Level.INFO,
+        String.format("Updated Exclusion Formula: \n%s", exclusionFormula.getFormula()));
   }
 
 }

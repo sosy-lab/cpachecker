@@ -10,12 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -24,27 +26,21 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-import java.util.List;
-import java.util.logging.Level;
-
 public class AllSatRefiner implements Refiner {
 
+  private static final Logger log = LoggerFactory.getLogger(AllSatRefiner.class);
   private final FormulaContext context;
-  private PathFormula exclusionModelFormula;
-  private Solver solver;
-  private int currentRefinementIteration = 0;
   private final BooleanFormulaManager bmgr;
-  private final FormulaManagerView fmgr;
-  private final PathFormulaManagerImpl pathManager;
   private final ErrorConditionFormatter formatter;
+  private PathFormula exclusionModelFormula;
+  private final Solver solver;
+  private int currentRefinementIteration = 0;
 
   public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    fmgr = solver.getFormulaManager();
-    pathManager = context.getManager();
-    exclusionModelFormula = pathManager.makeEmptyPathFormula();
+    exclusionModelFormula = context.getManager().makeEmptyPathFormula();
     formatter = new ErrorConditionFormatter(context);
   }
 
@@ -56,53 +52,51 @@ public class AllSatRefiner implements Refiner {
 
       // get the formula for the counterexample path
       PathFormula pathFormula =
-          pathManager.makeFormulaForPath(cex.getTargetPath().getFullPath());
+          context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath());
 
       prover.push(pathFormula.getFormula());
 
       // extract atoms from the formula
       ImmutableList<BooleanFormula> atoms = ImmutableList.copyOf(
-          fmgr.extractAtoms(pathFormula.getFormula(), false)
+          solver.getFormulaManager().extractAtoms(pathFormula.getFormula(), false)
       );
 
-
-      context.getLogger().log(Level.INFO,
-          String.format("Iteration %d: Atoms: \n%s \n",
-              currentRefinementIteration,
-              atoms));
-
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.INFO, String.format("Found Atoms In Formula:\n%s", atoms));
 
       // Invoke allSat
       AllSatCallback callback = new AllSatCallback(bmgr);
-      // TODO not all atoms should be passed to the prover, but rather only the 'important' ones
+      // TODO not all atoms should be passed to the allsat method, but rather only the 'important'
+      //  predicates, which are usually the predicates that are connected to a nondet var.
+      //  for example an assignment like {@code x = 2} won't be necessary to pass, since it will
+      //  always be the same in the found model
       List<BooleanFormula> models = prover.allSat(callback, atoms);
 
-      context.getLogger().log(Level.INFO,
-          String.format("Iteration %d: Found Models With AllSat Prover : \n%s \n",
-              currentRefinementIteration,
-              models));
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.INFO, String.format("Found Models:\n%s", models)
+      );
 
       // combine the found models into a disjunction (OR)
-      BooleanFormula modelsCombined = bmgr.makeFalse();
+      BooleanFormula combinedModels = bmgr.makeFalse();
       for (BooleanFormula model : models) {
-        modelsCombined = bmgr.or(modelsCombined, model);
+        combinedModels = bmgr.or(combinedModels, model);
       }
 
-      context.getLogger().log(Level.FINE,
-          String.format("Iteration %d: Combined Exclusion with OR : \n%s \n",
-              currentRefinementIteration,
-              modelsCombined));
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.FINE, String.format("Combined Models Into Boolean Formula:\n%s", combinedModels));
 
-      // Update exclusion formula
-      exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(modelsCombined));
 
+      // Update exclusion formula with the found models
+      exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(combinedModels));
+      formatter.setupSSAMap(pathFormula);
       formatter.reformat(pathFormula, exclusionModelFormula.getFormula(),
           currentRefinementIteration);
 
       currentRefinementIteration++;
       return exclusionModelFormula;
     } catch (SolverException e) {
-      context.getLogger().log(Level.WARNING, "Solver error during refinement: ", e);
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.WARNING, String.format("Solver Error During Refinement: %s", e.getMessage()));
       throw e;
     }
   }
@@ -120,6 +114,8 @@ public class AllSatRefiner implements Refiner {
 
     @Override
     public void apply(List<BooleanFormula> modelLiterals) {
+      // TODO: potential optimization here is to not add every conjunction directly,
+      //  but do some refinement/clean up prior
       if (!modelLiterals.isEmpty()) { // Skip empty models
 
         // combine literals into a conjunction (AND) to represent the found model
@@ -137,4 +133,5 @@ public class AllSatRefiner implements Refiner {
       return models;
     }
   }
+
 }

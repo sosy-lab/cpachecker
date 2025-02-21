@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -22,15 +22,13 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-import java.util.logging.Level;
-
 public class GenerateModelRefiner implements Refiner {
 
   private final FormulaContext context;
-  private PathFormula exclusionModelFormula;
   private final Solver solver;
-  private int currentRefinementIteration = 0;
   private final ErrorConditionFormatter formatter;
+  private PathFormula exclusionModelFormula;
+  private int currentRefinementIteration = 0;
 
   public GenerateModelRefiner(FormulaContext pContext) throws InvalidConfigurationException {
     context = pContext;
@@ -44,7 +42,6 @@ public class GenerateModelRefiner implements Refiner {
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula nondetModel = bmgr.makeTrue();
-    ImmutableSet.Builder<String> nondetVariables = ImmutableSet.builder();
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       PathFormula cexFormula = exclusionModelFormula;
@@ -55,36 +52,35 @@ public class GenerateModelRefiner implements Refiner {
       prover.push(cexFormula.getFormula());
 
       if (prover.isUnsat()) {
-        context.getLogger()
-            .log(Level.WARNING, "Counterexample is infeasible. Returning an empty formula.");
+        formatter.loggingWithIteration(currentRefinementIteration,
+            Level.WARNING, "Counterexample Is Infeasible. Returning An Empty Formula.");
         return exclusionModelFormula; // empty
       }
 
-      context.getLogger().log(Level.INFO,
-          String.format("Iteration %d: Current CEX FORMULA: \n%s \n", currentRefinementIteration,
-              cexFormula.getFormula()));
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.INFO, String.format("Current CEX FORMULA:\n%s", cexFormula.getFormula()));
+
 
       for (ValueAssignment assignment : prover.getModelAssignments()) {
         if (assignment.getName().contains("_nondet")) {
           nondetModel = bmgr.and(nondetModel, assignment.getAssignmentAsFormula());
-          nondetVariables.add(assignment.getName());
         }
       }
 
-      context.getLogger().log(Level.INFO,
-          String.format("Iteration %d: Non-Det Model in current iteration:\n%s.",
-              currentRefinementIteration, nondetModel));
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.INFO, String.format("Non-Det Model In Current Iteration:\n%s", nondetModel));
+
       formatter.setupSSAMap(cexFormula);
       // Update exclusion formula
       exclusionModelFormula = context.getManager()
-              .makeAnd(exclusionModelFormula, bmgr.not(nondetModel))
-              .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+          .makeAnd(exclusionModelFormula, bmgr.not(nondetModel))
+          .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
-      System.out.printf(nondetVariables.build() + "\n");
-      context.getLogger().log(Level.INFO,
-          String.format(
-              "Iteration %d: Updated exclusion formula with precondition: \n%s",
-              currentRefinementIteration, exclusionModelFormula.getFormula()));
+
+      formatter.loggingWithIteration(currentRefinementIteration,
+          Level.INFO, String.format("Updated Exclusion Formula With Precondition: \n%s",
+              exclusionModelFormula.getFormula()));
+
       formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
           currentRefinementIteration);
     }
