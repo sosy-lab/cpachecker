@@ -16,9 +16,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cmdline.Output;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
 public class SequentializationWriter {
+
+  private enum WriterError {
+    IO("MPOR FAIL. An IO error occurred while writing the outputProgram: "),
+    NO_OVERWRITING("MPOR FAIL. No sequentialization created, file exists already: "),
+    TARGET_DIR("MPOR FAIL. No sequentialization created, could not create target directory: %s");
+
+    final String message;
+
+    WriterError(String pMessage) {
+      message = pMessage;
+    }
+  }
 
   private static final String targetDirectory = "output/";
 
@@ -48,7 +60,7 @@ public class SequentializationWriter {
     seqMetadataPath = targetDirectory + pSeqName + FileExtension.YML.suffix;
   }
 
-  public void write(final String pFinalSeq) {
+  public void write(final String pFinalSeq, MPOROptions pOptions) {
     try {
       File seqProgramFile = new File(seqProgramPath);
       File parentDir = seqProgramFile.getParentFile();
@@ -57,15 +69,14 @@ public class SequentializationWriter {
         if (parentDir.mkdirs()) {
           logManager.log(Level.INFO, "Directory created: " + targetDirectory);
         } else {
-          throw Output.fatalError(
-              "MPOR FAIL. No sequentialization created, could not create target directory: %s",
-              targetDirectory);
+          logManager.log(Level.SEVERE, WriterError.TARGET_DIR.message, targetDirectory);
+          throw new RuntimeException();
         }
         // ensure the file does not exist already (no overwriting)
-      } else if (!seqProgramFile.createNewFile()) {
-        throw Output.fatalError(
-            "MPOR FAIL. No sequentialization created, file exists already: %s",
-            seqProgramFile.getAbsolutePath());
+      } else if (!seqProgramFile.createNewFile() && !pOptions.fileOverwriting) {
+        logManager.log(
+            Level.SEVERE, WriterError.NO_OVERWRITING.message, seqProgramFile.getAbsolutePath());
+        throw new RuntimeException();
       } else {
         // write content to the file
         try (Writer writer =
@@ -82,8 +93,8 @@ public class SequentializationWriter {
             () -> "MPOR SUCCESS. Sequentialization created: " + seqProgramFile.getAbsolutePath());
       }
     } catch (IOException e) {
-      throw Output.fatalError(
-          "MPOR FAIL. An IO error occurred while writing the outputProgram: %s", e.getMessage());
+      logManager.log(Level.SEVERE, WriterError.IO.message, e.getMessage());
+      throw new RuntimeException();
     }
   }
 

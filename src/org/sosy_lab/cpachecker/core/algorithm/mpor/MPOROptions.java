@@ -26,9 +26,12 @@ public class MPOROptions {
 
   public final boolean addPOR;
 
+  public final boolean fileOverwriting;
+
   public final boolean scalarPc;
 
-  public MPOROptions(boolean pAddLoopInvariants, boolean pAddPOR, boolean pScalarPc) {
+  public MPOROptions(
+      boolean pAddLoopInvariants, boolean pAddPOR, boolean pFileOverwriting, boolean pScalarPc) {
     checkArgument(
         correctParamAmount(),
         "the amount of constructor parameters must match the amount of @Option fields in"
@@ -38,6 +41,7 @@ public class MPOROptions {
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
     addLoopInvariants = pAddLoopInvariants;
     addPOR = pAddPOR;
+    fileOverwriting = pFileOverwriting;
     scalarPc = pScalarPc;
   }
 

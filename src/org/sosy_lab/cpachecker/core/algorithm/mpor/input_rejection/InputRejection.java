@@ -99,7 +99,9 @@ public class InputRejection {
   private static void handleRejection(InputRejectionMessage pMessage, Object... args) {
     String formatted = String.format(pMessage.formatMessage(), args);
     // using RuntimeException because checkArgument throws IllegalArgumentExceptions
-    logger.logUserException(Level.SEVERE, new RuntimeException(), formatted);
+    logger.logUserException(
+        Level.SEVERE, new RuntimeException(), String.format(pMessage.formatMessage(), args));
+    // we need the error message here too for unit tests (matching error messages to programs)
     throw new RuntimeException(formatted);
   }
 

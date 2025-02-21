@@ -88,6 +88,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "whether to overwrite files in the ./output directory when creating sequentializations")
+  private boolean fileOverwriting = true;
+
+  @Option(
+      secure = true,
+      description =
           "whether to use separate int values (scalars) for tracking thread pcs instead of"
               + " int arrays. may slow down or improve verification depending on the verifier")
   private boolean scalarPc = false;
@@ -104,7 +110,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String outputProgram = sequentialization.toString();
     SequentializationWriter sequentializationWriter =
         new SequentializationWriter(logger, outputFileName, inputFilePath);
-    sequentializationWriter.write(outputProgram);
+    sequentializationWriter.write(outputProgram, options);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -159,7 +165,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     pConfiguration.inject(this);
 
-    options = new MPOROptions(addLoopInvariants, addPOR, scalarPc);
+    options = new MPOROptions(addLoopInvariants, addPOR, fileOverwriting, scalarPc);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

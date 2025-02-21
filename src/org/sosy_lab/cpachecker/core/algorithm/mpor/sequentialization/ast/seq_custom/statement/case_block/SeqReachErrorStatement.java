@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 /**
@@ -19,8 +18,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
  * inlining the function.
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
-
-  private final int targetPc = SeqUtil.EXIT_PC;
 
   public SeqReachErrorStatement() {}
 

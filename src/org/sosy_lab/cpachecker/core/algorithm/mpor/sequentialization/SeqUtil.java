@@ -27,9 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -151,15 +149,13 @@ public class SeqUtil {
             SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
             stmts.add(new SeqAssumeStatement(stmt, pThread.id, targetPc));
 
-          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-            if (!isReachErrorCall(funcSummary)) {
-              // assert that both call and summary edge are present
-              assert pThreadNode.leavingEdges().size() >= 2;
-              assert pFuncVars.returnPcWrites.containsKey(threadEdge);
-              FunctionReturnPcWrite write =
-                  Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
-              stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
-            }
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
+            // assert that both call and summary edge are present
+            assert pThreadNode.leavingEdges().size() >= 2;
+            assert pFuncVars.returnPcWrites.containsKey(threadEdge);
+            FunctionReturnPcWrite write =
+                Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
+            stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             if (isReachErrorCall(funcCall)) {
@@ -396,21 +392,12 @@ public class SeqUtil {
     return false;
   }
 
-  private static boolean isReachErrorCall(CFAEdge pEdge) {
-    if (pEdge instanceof FunctionCallEdge funcCall) {
-      return funcCall
-          .getFunctionCallExpression()
-          .getDeclaration()
-          .getOrigName()
-          .equals(SeqToken.reach_error);
-    } else if (pEdge instanceof FunctionSummaryEdge funcSummary) {
-      return funcSummary
-          .getFunctionEntry()
-          .getFunction()
-          .getOrigName()
-          .equals(SeqToken.reach_error);
-    }
-    return false;
+  private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
+    return pFunctionCallEdge
+        .getFunctionCallExpression()
+        .getDeclaration()
+        .getOrigName()
+        .equals(SeqToken.reach_error);
   }
 
   public static SeqFunctionCallExpression createPORAssumption(int pThreadId, int pPc)
