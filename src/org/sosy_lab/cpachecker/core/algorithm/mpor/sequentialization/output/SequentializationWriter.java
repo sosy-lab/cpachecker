@@ -104,8 +104,8 @@ public class SequentializationWriter {
   }
 
   private void handleOverwriting(File pSeqProgramFile) throws IOException {
+    // ensure the file does not exist already (if overwriteFiles is false)
     if (!pSeqProgramFile.createNewFile() && !options.overwriteFiles) {
-      // ensure the file does not exist already
       logManager.log(
           Level.SEVERE, OutputError.NO_OVERWRITING.message, pSeqProgramFile.getAbsolutePath());
       throw new RuntimeException();

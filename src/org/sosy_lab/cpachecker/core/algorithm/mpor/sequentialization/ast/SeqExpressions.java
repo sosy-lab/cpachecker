@@ -74,6 +74,8 @@ public class SeqExpressions {
 
   public static class SeqBinaryExpression {
 
+
+
     public static CBinaryExpression buildBinaryExpression(
         CExpression pOperand1, CExpression pOperand2, BinaryOperator pOperator)
         throws UnrecognizedCodeException {
@@ -143,6 +145,7 @@ public class SeqExpressions {
       return new CIdExpression(FileLocation.DUMMY, pDec);
     }
 
+    // TODO make this non-static?
     // scalar pc int expressions ===================================================================
 
     private static ImmutableList<CIdExpression> scalarPc = null;

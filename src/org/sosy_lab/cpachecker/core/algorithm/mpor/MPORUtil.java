@@ -47,6 +47,7 @@ public final class MPORUtil {
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       CFANode pCurrentNode,
       Optional<CFANode> pPrevFuncReturnNode) {
+
     if (pFunctionCallMap.containsKey(pCurrentNode)) {
       return Optional.ofNullable(pFunctionCallMap.get(pCurrentNode));
     } else {

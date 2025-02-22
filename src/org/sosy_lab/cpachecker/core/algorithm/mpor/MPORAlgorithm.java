@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.state.StateBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -137,15 +136,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final GlobalAccessChecker gac;
 
-  private final PredicateTransferRelation ptr;
-
   /**
    * A map from {@link CFunctionCallEdge} Predecessors to Return Nodes. Needs to be initialized
    * before {@link MPORAlgorithm#threads}.
    */
   private final ImmutableMap<CFANode, CFANode> funcCallMap;
-
-  private final StateBuilder stateBuilder;
 
   private final ThreadBuilder threadBuilder;
 
@@ -181,14 +176,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
-    PredicateCPA predicateCpa =
-        CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, PredicateRefiner.class);
-    ptr = predicateCpa.getTransferRelation();
 
     funcCallMap = getFunctionCallMap(inputCfa);
 
     threadBuilder = new ThreadBuilder(funcCallMap);
-    stateBuilder = new StateBuilder(ptr, funcCallMap);
 
     threads = getThreads(inputCfa, funcCallMap);
 
@@ -216,12 +207,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     InputRejection.handleInitialRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
-    ptr = null;
 
     funcCallMap = getFunctionCallMap(inputCfa);
 
     threadBuilder = new ThreadBuilder(funcCallMap);
-    stateBuilder = null;
 
     threads = getThreads(inputCfa, funcCallMap);
 
@@ -317,6 +306,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private void initStaticVariables(
       CFA pInputCfa, LogManager pLogger, MPOROptions pOptions, int pNumThreads) {
+
     // in tests, we may use the same CPAchecker instance -> builder may be init already
     if (!MPORStatics.isBinExprBuilderSet()) {
       MPORStatics.setBinExprBuilder(
