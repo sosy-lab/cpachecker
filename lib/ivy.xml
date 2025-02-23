@@ -163,7 +163,7 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.1-345-gc7a93d2a7" conf="runtime->runtime; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.1-362-g3846f26ca" conf="runtime->runtime; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case.
