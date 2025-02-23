@@ -73,13 +73,10 @@ public class SeqValidator {
     // exclude INIT_PC, it is (often) not present as a target pc
     if (pOriginPc != SeqUtil.INIT_PC) {
       if (!pAllTargetPcs.contains(pOriginPc)) {
-        pLogger.log(
-            Level.SEVERE,
-            "origin pc",
-            pOriginPc,
-            "does not exist as target pc in thread",
-            pThreadId);
-        MPORAlgorithm.fail();
+        String message =
+            "origin pc " + pOriginPc + " does not exist as target pc in thread " + pThreadId;
+        pLogger.log(Level.SEVERE, message);
+        MPORAlgorithm.fail(message);
       }
     }
   }
@@ -88,19 +85,16 @@ public class SeqValidator {
       ImmutableSet<Integer> pTargetPcs,
       ImmutableSet<Integer> pOriginPcs,
       int pThreadId,
-      LogManager pLogger) {
+      org.sosy_lab.common.log.LogManager pLogger) {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as an origin pc
       if (targetPc != SeqUtil.EXIT_PC) {
         if (!pOriginPcs.contains(targetPc)) {
-          pLogger.log(
-              Level.SEVERE,
-              "target pc",
-              targetPc,
-              "does not exist as origin pc in thread",
-              pThreadId);
-          MPORAlgorithm.fail();
+          String message =
+              "target pc " + targetPc + " does not exist as origin pc in thread " + pThreadId;
+          pLogger.log(Level.SEVERE, message);
+          MPORAlgorithm.fail(message);
         }
       }
     }

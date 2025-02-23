@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.Optional;
+import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -114,11 +115,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   private static final String INTERNAL_ERROR =
-      "MPOR FAIL. Sequentialization could not be created due to an internal error.";
+      "MPOR FAIL. Sequentialization could not be created due to an internal error: ";
 
   /** Stops the algorithm by throwing an {@link AssertionError}. */
-  public static void fail() {
-    throw new AssertionError(INTERNAL_ERROR);
+  @TerminatesExecution
+  public static void fail(String pMessage) {
+    throw new AssertionError(INTERNAL_ERROR + pMessage);
   }
 
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
