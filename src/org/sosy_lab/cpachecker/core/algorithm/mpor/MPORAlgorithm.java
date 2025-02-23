@@ -36,8 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -183,8 +181,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     threadBuilder = new ThreadBuilder(funcCallMap);
     threads = getThreads(inputCfa, funcCallMap);
 
-    initStaticVariables(inputCfa, logger, options, threads.size());
-
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions =
         SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
@@ -215,8 +211,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     threadBuilder = new ThreadBuilder(funcCallMap);
     threads = getThreads(inputCfa, funcCallMap);
-
-    initStaticVariables(inputCfa, logger, options, threads.size());
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
     substitutions =
@@ -305,23 +299,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       }
     }
     return rThreads.build();
-  }
-
-  private void initStaticVariables(
-      CFA pInputCfa, LogManager pLogger, MPOROptions pOptions, int pNumThreads) {
-
-    // reset if necessary (should only occur in unit tests)
-    if (SeqIdExpression.areScalarPcSet()) {
-      SeqIdExpression.resetScalarPc();
-    }
-    if (SeqArraySubscriptExpression.areArrayPcSet()) {
-      SeqArraySubscriptExpression.resetArrayPc();
-    }
-    if (pOptions.scalarPc) {
-      SeqIdExpression.initScalarPc(pNumThreads);
-    } else {
-      SeqArraySubscriptExpression.initArrayPcExpression(pNumThreads);
-    }
   }
 
   // (Public) Helpers ===========================================================================

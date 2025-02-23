@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
@@ -21,22 +22,22 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final SeqControlFlowStatement controlFlowStatement;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   public SeqAssumeStatement(
-      SeqControlFlowStatement pControlFlowStatement, int pThreadId, int pTargetPc) {
+      SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     controlFlowStatement = pControlFlowStatement;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
     return controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(pcWrite.toASTString());
@@ -50,7 +51,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAssumeStatement(controlFlowStatement, threadId, pTargetPc);
+    return new SeqAssumeStatement(controlFlowStatement, pcLeftHandSide, pTargetPc);
   }
 
   @Override

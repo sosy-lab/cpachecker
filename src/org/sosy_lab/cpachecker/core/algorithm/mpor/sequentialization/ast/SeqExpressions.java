@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -29,7 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressions {
 
@@ -40,33 +42,34 @@ public class SeqExpressions {
           FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
     }
 
-    // array pc int expressions ===================================================================
+    static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
 
-    private static ImmutableList<CArraySubscriptExpression> arrayPc = null;
-
-    public static boolean areArrayPcSet() {
-      return arrayPc != null;
-    }
-
-    public static ImmutableList<CArraySubscriptExpression> arrayPc() {
-      checkArgument(arrayPc != null, "arrayPc not initialized");
-      return arrayPc;
-    }
-
-    public static void resetArrayPc() {
-      checkArgument(arrayPc != null, "arrayPc not initialized, cannot reset");
-      arrayPc = null;
-    }
-
-    public static void initArrayPcExpression(int pNumThreads) {
-      checkArgument(arrayPc == null, "arrayPc was initialized already");
-      ImmutableList.Builder<CArraySubscriptExpression> rExpr = ImmutableList.builder();
+      ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
-        rExpr.add(
+        rArrayPc.add(
             buildPcSubscriptExpression(
                 SeqIntegerLiteralExpression.buildIntegerLiteralExpression(i)));
       }
-      arrayPc = rExpr.build();
+      return rArrayPc.build();
+    }
+  }
+
+  public static class SeqBinaryExpression {
+
+    /**
+     * Returns {@code pc[pJoinedThreadId] != -1} for array and {@code pc{pJoinedThreadId} != -1} for
+     * scalar {@code pc}.
+     */
+    public static CBinaryExpression buildPcNotExitPc(
+        PcLeftHandSides pPcLeftHandSides,
+        int pJoinedThreadId,
+        CBinaryExpressionBuilder pBinaryExpressionBuilder)
+        throws UnrecognizedCodeException {
+
+      return pBinaryExpressionBuilder.buildBinaryExpression(
+          pPcLeftHandSides.get(pJoinedThreadId),
+          SeqIntegerLiteralExpression.INT_EXIT_PC,
+          BinaryOperator.NOT_EQUALS);
     }
   }
 
@@ -126,7 +129,7 @@ public class SeqExpressions {
      * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} =
      * {pInitializer};}.
      */
-    public static CIdExpression buildIntegerIdExpression(
+    public static CIdExpression buildIdExpressionWithIntegerInitializer(
         String pVarName, CInitializer pInitializer) {
 
       CVariableDeclaration varDec =
@@ -139,37 +142,17 @@ public class SeqExpressions {
       return new CIdExpression(FileLocation.DUMMY, pDec);
     }
 
-    // TODO make this non-static?
-    // scalar pc int expressions ===================================================================
-
-    private static ImmutableList<CIdExpression> scalarPc = null;
-
-    public static ImmutableList<CIdExpression> scalarPc() {
-      checkArgument(scalarPc != null, "scalarPc not initialized");
-      return scalarPc;
-    }
-
-    public static boolean areScalarPcSet() {
-      return scalarPc != null;
-    }
-
-    public static void resetScalarPc() {
-      checkArgument(scalarPc != null, "scalarPc not initialized, cannot reset");
-      scalarPc = null;
-    }
-
-    public static void initScalarPc(int pNumThreads) {
-      checkArgument(scalarPc == null, "scalarPc was initialized already");
-      ImmutableList.Builder<CIdExpression> rExpr = ImmutableList.builder();
+    static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
+      ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
         CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
-        rExpr.add(
+        rScalarPc.add(
             new CIdExpression(
                 FileLocation.DUMMY,
                 SeqVariableDeclaration.buildVariableDeclaration(
                     false, SeqSimpleType.INT, SeqToken.pc + i, initializer)));
       }
-      scalarPc = rExpr.build();
+      return rScalarPc.build();
     }
   }
 
@@ -180,18 +163,6 @@ public class SeqExpressions {
 
     public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
       return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
-    }
-  }
-
-  // Helper Functions ============================================================================
-
-  // TODO this entire cross referencing is not really nice or safe with the arrayPc / scalarPc
-  public static CLeftHandSide getPcExpression(int pThreadId) {
-    if (SeqArraySubscriptExpression.areArrayPcSet()) {
-      assert !SeqIdExpression.areScalarPcSet();
-      return SeqArraySubscriptExpression.arrayPc().get(pThreadId);
-    } else {
-      return SeqIdExpression.scalarPc().get(pThreadId);
     }
   }
 }

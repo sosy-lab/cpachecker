@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
@@ -23,22 +24,22 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement lockedFalse;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   public SeqMutexUnlockStatement(
-      CExpressionAssignmentStatement pLockedFalse, int pThreadId, int pTargetPc) {
+      CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     lockedFalse = pLockedFalse;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
     return lockedFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
@@ -50,7 +51,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexUnlockStatement(lockedFalse, threadId, pTargetPc);
+    return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pTargetPc);
   }
 
   @Override

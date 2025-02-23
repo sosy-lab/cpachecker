@@ -29,19 +29,17 @@ public class SeqStatements {
      * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
      * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
      */
-    public static CExpressionAssignmentStatement buildPcWrite(int pThreadId, int pTargetPc) {
-      return buildPcWrite(
-          pThreadId, SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pTargetPc));
+    public static CExpressionAssignmentStatement buildPcWrite(
+        CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
+      return build(
+          pPcLeftHandSide, SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pTargetPc));
     }
 
-    /**
-     * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pRightHandSide;}
-     * or {@code pc{pThreadId} = pRightHandSide;} for scalarPc.
-     */
     public static CExpressionAssignmentStatement buildPcWrite(
-        int pThreadId, CExpression pRightHandSide) {
+        CLeftHandSide pPcLeftHandSide, CExpression pRightHandSide) {
 
-      return build(SeqExpressions.getPcExpression(pThreadId), pRightHandSide);
+      return build(pPcLeftHandSide, pRightHandSide);
     }
   }
 }

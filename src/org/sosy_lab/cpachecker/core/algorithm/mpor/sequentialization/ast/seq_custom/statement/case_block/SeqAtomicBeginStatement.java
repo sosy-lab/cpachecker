@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -28,19 +29,19 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final CIdExpression threadBeginsAtomic;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   public SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
-      int pThreadId,
+      CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
@@ -59,7 +60,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
 
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
 
     String elseStmts =
         SeqStringUtil.wrapInCurlyInwards(
@@ -86,7 +87,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, threadId, pTargetPc);
+    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
   }
 
   @Override

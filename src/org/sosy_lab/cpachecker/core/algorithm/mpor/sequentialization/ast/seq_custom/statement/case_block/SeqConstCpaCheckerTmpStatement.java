@@ -15,6 +15,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -47,7 +48,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final SubstituteEdge statementB;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
@@ -55,7 +56,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
-      int pThreadId,
+      CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
     checkArgument(
@@ -85,14 +86,14 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
 
     declaration = pDeclaration;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
     return declaration.getCode()
         + SeqSyntax.SPACE
         + statementA.cfaEdge.getCode()
@@ -111,7 +112,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
-        declaration, statementA, statementB, threadId, pTargetPc);
+        declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
   }
 
   @Override

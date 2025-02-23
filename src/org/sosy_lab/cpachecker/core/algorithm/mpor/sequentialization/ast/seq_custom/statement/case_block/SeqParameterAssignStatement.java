@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
@@ -26,7 +27,7 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
 
   private final CExpressionAssignmentStatement assign;
 
-  private final Optional<Integer> threadId;
+  private final Optional<CLeftHandSide> pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
 
@@ -35,26 +36,26 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
   //  the optional entirely.
   public SeqParameterAssignStatement(
       CExpressionAssignmentStatement pAssign,
-      Optional<Integer> pThreadId,
+      Optional<CLeftHandSide> pPcLeftHandSide,
       Optional<Integer> pTargetPc) {
 
     // the presence of pThreadId and pTargetPc must be equivalent
-    checkArgument(pThreadId.isEmpty() || pTargetPc.isPresent());
-    checkArgument(pTargetPc.isEmpty() || pThreadId.isPresent());
+    checkArgument(pPcLeftHandSide.isEmpty() || pTargetPc.isPresent());
+    checkArgument(pTargetPc.isEmpty() || pPcLeftHandSide.isPresent());
 
     assign = pAssign;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
   @Override
   public String toASTString() {
-    if (threadId.isPresent() && targetPc.isPresent()) {
+    if (pcLeftHandSide.isPresent() && targetPc.isPresent()) {
       CExpressionAssignmentStatement pcWrite =
           SeqExpressionAssignmentStatement.buildPcWrite(
-              threadId.orElseThrow(), targetPc.orElseThrow());
+              pcLeftHandSide.orElseThrow(), targetPc.orElseThrow());
       return assign.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
-    } else if (threadId.isEmpty() && targetPc.isEmpty()) {
+    } else if (pcLeftHandSide.isEmpty() && targetPc.isEmpty()) {
       return assign.toASTString();
     } else {
       throw new IllegalArgumentException("presence of threadId and targetPc must be equivalent");
@@ -70,7 +71,7 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
   @Override
   public SeqParameterAssignStatement cloneWithTargetPc(int pTargetPc) {
     checkArgument(targetPc.isPresent(), "cannot replace empty targetPc");
-    return new SeqParameterAssignStatement(assign, threadId, Optional.of(pTargetPc));
+    return new SeqParameterAssignStatement(assign, pcLeftHandSide, Optional.of(pTargetPc));
   }
 
   @Override

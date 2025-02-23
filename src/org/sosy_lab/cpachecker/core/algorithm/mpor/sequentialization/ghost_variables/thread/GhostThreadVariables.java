@@ -52,7 +52,7 @@ public class GhostThreadVariables {
       atomicLocked = Optional.empty();
     } else {
       CIdExpression var =
-          SeqIdExpression.buildIntegerIdExpression(
+          SeqIdExpression.buildIdExpressionWithIntegerInitializer(
               SeqNameUtil.buildAtomicLockedName(), SeqInitializer.INT_0);
       atomicLocked = Optional.of(new AtomicLocked(var));
     }

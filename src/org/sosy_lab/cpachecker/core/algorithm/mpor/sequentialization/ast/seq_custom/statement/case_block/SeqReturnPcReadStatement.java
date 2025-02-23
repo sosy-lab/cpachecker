@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
 /**
@@ -22,19 +23,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStat
  */
 public class SeqReturnPcReadStatement implements SeqCaseBlockStatement {
 
-  public final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   public final CIdExpression returnPcVar;
 
-  public SeqReturnPcReadStatement(int pThreadId, CIdExpression pReturnPcVar) {
-    threadId = pThreadId;
+  public SeqReturnPcReadStatement(CLeftHandSide pPcLeftHandSide, CIdExpression pReturnPcVar) {
+
+    pcLeftHandSide = pPcLeftHandSide;
     returnPcVar = pReturnPcVar;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, returnPcVar);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, returnPcVar);
     return pcWrite.toASTString();
   }
 

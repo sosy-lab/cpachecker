@@ -32,8 +32,6 @@ public class InputRejection {
 
   public enum InputRejectionMessage {
     LANGUAGE_NOT_C("MPOR only supports language C", false),
-    // TODO this can probably be removed entirely since CPAchecker handles this
-    MULTIPLE_INPUT_FILES("MPOR only supports exactly one input file", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
     PTHREAD_CREATE_LOOP(

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -102,14 +103,17 @@ public class SeqUtil {
       // TODO group Function and Thread Vars into SeqVars
       GhostFunctionVariables pFuncVars,
       GhostThreadVariables pThreadVars,
+      PcLeftHandSides pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     pCoveredNodes.add(pThreadNode);
 
     int originPc = pThreadNode.pc;
-    ImmutableList.Builder<SeqCaseBlockStatement> stmts = ImmutableList.builder();
+    ImmutableList.Builder<SeqCaseBlockStatement> statements = ImmutableList.builder();
     ImmutableList.Builder<ThreadEdge> threadEdges = ImmutableList.builder();
+
+    CLeftHandSide pcLeftHandSide = pPcLeftHandSides.get(pThread.id);
 
     // no edges -> exit node of thread reached -> no case because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
@@ -120,7 +124,7 @@ public class SeqUtil {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
       assert pFuncVars.returnPcReads.containsKey(pThreadNode);
       FunctionReturnPcRead read = Objects.requireNonNull(pFuncVars.returnPcReads.get(pThreadNode));
-      stmts.add(new SeqReturnPcReadStatement(read.threadId, read.returnPcVar));
+      statements.add(new SeqReturnPcReadStatement(pcLeftHandSide, read.returnPcVar));
 
     } else {
       // TODO create separate methods here to handle the different cases for better overview
@@ -136,19 +140,21 @@ public class SeqUtil {
 
         if (blankCaseBlock(sub, successor, pThread)) {
           assert pThreadNode.leavingEdges().size() == 1;
-          stmts.add(new SeqBlankStatement(pThread.id, targetPc));
+          statements.add(new SeqBlankStatement(pcLeftHandSide, targetPc));
 
         } else {
           // use (else) if (condition) for all assumes (if, for, while, switch, ...)
           if (sub.cfaEdge instanceof CAssumeEdge assumeEdge) {
             assert allEdgesAssume(pThreadNode.leavingEdges());
-            SeqControlFlowStatementType stmtType =
+            SeqControlFlowStatementType statementType =
                 firstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
             if (firstEdge) {
               firstEdge = false;
             }
-            SeqControlFlowStatement stmt = new SeqControlFlowStatement(assumeEdge, stmtType);
-            stmts.add(new SeqAssumeStatement(stmt, pThread.id, targetPc));
+            SeqControlFlowStatement statement =
+                new SeqControlFlowStatement(assumeEdge, statementType);
+            statements.add(
+                new SeqAssumeStatement(statement, pPcLeftHandSides.get(pThread.id), targetPc));
 
           } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
             // assert that both call and summary edge are present
@@ -156,12 +162,12 @@ public class SeqUtil {
             assert pFuncVars.returnPcWrites.containsKey(threadEdge);
             FunctionReturnPcWrite write =
                 Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
-            stmts.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
+            statements.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
 
           } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
             if (isReachErrorCall(funcCall)) {
               // inject non-inlined reach_error
-              stmts.add(new SeqReachErrorStatement());
+              statements.add(new SeqReachErrorStatement());
             }
             // assert that both call and summary edge are present
             assert pThreadNode.leavingEdges().size() >= 2;
@@ -169,16 +175,16 @@ public class SeqUtil {
             ImmutableList<FunctionParameterAssignment> assigns =
                 Objects.requireNonNull(pFuncVars.parameterAssignments.get(threadEdge));
             if (assigns.isEmpty()) {
-              stmts.add(new SeqBlankStatement(pThread.id, targetPc));
+              statements.add(new SeqBlankStatement(pcLeftHandSide, targetPc));
             } else {
               for (int i = 0; i < assigns.size(); i++) {
                 FunctionParameterAssignment assign = assigns.get(i);
                 // if this is the last param assign, add the pcUpdate, otherwise empty
                 boolean lastParam = i == assigns.size() - 1;
-                stmts.add(
+                statements.add(
                     new SeqParameterAssignStatement(
                         assign.statement,
-                        lastParam ? Optional.of(pThread.id) : Optional.empty(),
+                        lastParam ? Optional.of(pcLeftHandSide) : Optional.empty(),
                         lastParam ? Optional.of(targetPc) : Optional.empty()));
               }
             }
@@ -202,8 +208,9 @@ public class SeqUtil {
             SubstituteEdge subA = Objects.requireNonNull(pSubEdges.get(statementA));
             SubstituteEdge subB = Objects.requireNonNull(pSubEdges.get(statementB));
             int newTargetPc = statementB.getSuccessor().pc;
-            stmts.add(
-                new SeqConstCpaCheckerTmpStatement(decEdge, subA, subB, pThread.id, newTargetPc));
+            statements.add(
+                new SeqConstCpaCheckerTmpStatement(
+                    decEdge, subA, subB, pcLeftHandSide, newTargetPc));
 
           } else if (sub.cfaEdge instanceof CReturnStatementEdge) {
             // TODO add support and test for pthread_join(id, &start_routine_return)
@@ -212,12 +219,12 @@ public class SeqUtil {
             ImmutableSet<FunctionReturnValueAssignment> assigns =
                 Objects.requireNonNull(pFuncVars.returnValueAssignments.get(threadEdge));
             if (assigns.isEmpty()) { // -> function does not return anything, i.e. return;
-              stmts.add(new SeqBlankStatement(pThread.id, targetPc));
+              statements.add(new SeqBlankStatement(pcLeftHandSide, targetPc));
             } else {
               // just get the first element in the set for the RETURN_PC
               CIdExpression returnPc = assigns.iterator().next().returnPcWrite.returnPcVar;
-              stmts.add(
-                  new SeqReturnValueAssignStatements(returnPc, assigns, pThread.id, targetPc));
+              statements.add(
+                  new SeqReturnValueAssignStatements(returnPc, assigns, pcLeftHandSide, targetPc));
             }
 
           } else if (isExplicitlyHandledPthreadFunc(edge)) {
@@ -227,7 +234,9 @@ public class SeqUtil {
                 CExpression pthreadT = PthreadUtil.extractPthreadT(edge);
                 MPORThread createdThread =
                     PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-                stmts.add(new SeqThreadCreationStatement(createdThread.id, pThread.id, targetPc));
+                statements.add(
+                    new SeqThreadCreationStatement(
+                        createdThread.id, pThread.id, targetPc, pPcLeftHandSides));
                 break;
 
               case PTHREAD_MUTEX_LOCK:
@@ -243,7 +252,8 @@ public class SeqUtil {
                             Objects.requireNonNull(pThreadVars.locks.get(pThread))
                                 .get(lockedMutexT))
                         .idExpression;
-                stmts.add(new SeqMutexLockStatement(lockedVar, mutexAwaits, pThread.id, targetPc));
+                statements.add(
+                    new SeqMutexLockStatement(lockedVar, mutexAwaits, pcLeftHandSide, targetPc));
                 break;
 
               case PTHREAD_MUTEX_UNLOCK:
@@ -254,7 +264,7 @@ public class SeqUtil {
                     SeqExpressionAssignmentStatement.build(
                         Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
                         SeqIntegerLiteralExpression.INT_0);
-                stmts.add(new SeqMutexUnlockStatement(lockedFalse, pThread.id, targetPc));
+                statements.add(new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, targetPc));
                 break;
 
               case PTHREAD_JOIN:
@@ -265,12 +275,13 @@ public class SeqUtil {
                             Objects.requireNonNull(pThreadVars.joins.get(pThread))
                                 .get(targetThread))
                         .idExpression;
-                stmts.add(
+                statements.add(
                     new SeqThreadJoinStatement(
                         targetThread.id,
                         threadJoins,
                         pThread.id,
                         targetPc,
+                        pPcLeftHandSides,
                         pBinaryExpressionBuilder));
                 break;
 
@@ -281,8 +292,9 @@ public class SeqUtil {
                 assert pThreadVars.begins.containsKey(pThread);
                 CIdExpression beginsVar =
                     Objects.requireNonNull(pThreadVars.begins.get(pThread)).idExpression;
-                stmts.add(
-                    new SeqAtomicBeginStatement(atomicLocked, beginsVar, pThread.id, targetPc));
+                statements.add(
+                    new SeqAtomicBeginStatement(
+                        atomicLocked, beginsVar, pPcLeftHandSides.get(pThread.id), targetPc));
                 break;
 
               case __VERIFIER_ATOMIC_END:
@@ -292,7 +304,9 @@ public class SeqUtil {
                     SeqExpressionAssignmentStatement.build(
                         Objects.requireNonNull(pThreadVars.atomicLocked.orElseThrow().idExpression),
                         SeqIntegerLiteralExpression.INT_0);
-                stmts.add(new SeqAtomicEndStatement(atomicLockedFalse, pThread.id, targetPc));
+                statements.add(
+                    new SeqAtomicEndStatement(
+                        atomicLockedFalse, pPcLeftHandSides.get(pThread.id), targetPc));
                 break;
 
               default:
@@ -300,7 +314,8 @@ public class SeqUtil {
             }
           } else {
             assert sub.cfaEdge instanceof CStatementEdge;
-            stmts.add(new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pThread.id, targetPc));
+            statements.add(
+                new SeqDefaultStatement((CStatementEdge) sub.cfaEdge, pcLeftHandSide, targetPc));
           }
         }
       }
@@ -310,7 +325,7 @@ public class SeqUtil {
             anyGlobalAccess(threadEdges.build()),
             pThreadNode.cfaNode.isLoopStart(),
             originPc,
-            new SeqCaseBlock(stmts.build(), Terminator.CONTINUE)));
+            new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
   }
 
   // Helpers =====================================================================================
@@ -407,7 +422,10 @@ public class SeqUtil {
   }
 
   public static SeqFunctionCallExpression createPORAssumption(
-      int pThreadId, int pPc, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      int pThreadId,
+      int pPc,
+      PcLeftHandSides pPcLeftHandSides,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CIntegerLiteralExpression threadId =
@@ -417,7 +435,7 @@ public class SeqUtil {
             SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
     CBinaryExpression pcEquals =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqExpressions.getPcExpression(pThreadId),
+            pPcLeftHandSides.get(pThreadId),
             SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pPc),
             BinaryOperator.EQUALS);
     CToSeqExpression nextThread =

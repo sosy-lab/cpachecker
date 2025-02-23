@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqScalarPcAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
@@ -88,9 +89,9 @@ public class SeqMainFunction extends SeqFunction {
   // optional: sequentialization errors at loop head
   private final Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants;
 
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final PcLeftHandSides pcLeftHandSides;
 
-  // TODO best put pc expressions (array and scalar) here as they are local to main()
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public SeqMainFunction(
       int pNumThreads,
@@ -99,6 +100,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      PcLeftHandSides pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -114,6 +116,7 @@ public class SeqMainFunction extends SeqFunction {
     threadAssumptions = pThreadAssumptions;
     porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
+    pcLeftHandSides = pPcLeftHandSides;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
 
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
@@ -131,7 +134,8 @@ public class SeqMainFunction extends SeqFunction {
 
     assumeNextThread =
         new SeqFunctionCallExpression(SeqIdExpression.ASSUME, boundNextThreadExpression());
-    assumeNextThreadPc = createNextThreadPcAssumption(pNumThreads, pOptions.scalarPc);
+    assumeNextThreadPc =
+        createNextThreadPcAssumption(pNumThreads, pOptions.scalarPc, pcLeftHandSides);
 
     assignPrevThread =
         porAssumptions.isPresent()
@@ -152,7 +156,7 @@ public class SeqMainFunction extends SeqFunction {
             SeqVariableDeclaration.buildVariableDeclaration(
                 false,
                 SeqSimpleType.INT,
-                SeqExpressions.getPcExpression(i).toASTString(),
+                pcLeftHandSides.get(i).toASTString(),
                 i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1));
       }
     } else {
@@ -303,7 +307,7 @@ public class SeqMainFunction extends SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      CExpression pcExpr = SeqExpressions.getPcExpression(thread.id);
+      CExpression pcExpr = pcLeftHandSides.get(thread.id);
       SeqSwitchStatement switchStatement = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
       rSwitches.addAll(LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString()));
 
@@ -331,13 +335,16 @@ public class SeqMainFunction extends SeqFunction {
     return rParams.build();
   }
 
-  private SeqStatement createNextThreadPcAssumption(int pNumThreads, boolean pScalarPc)
+  private SeqStatement createNextThreadPcAssumption(
+      int pNumThreads, boolean pScalarPc, PcLeftHandSides pPcLeftHandSides)
       throws UnrecognizedCodeException {
 
     if (pScalarPc) {
       // scalar pc int: switch statement with individual case i: assume(pci != -1);
       ImmutableList.Builder<SeqCaseClause> assumeCaseClauses = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
+        // ensure pc
+        Verify.verify(pPcLeftHandSides.get(i) instanceof CIdExpression);
         SeqFunctionCallStatement assumeCall =
             new SeqFunctionCallStatement(
                 new SeqFunctionCallExpression(
@@ -345,7 +352,7 @@ public class SeqMainFunction extends SeqFunction {
                     ImmutableList.of(
                         new CToSeqExpression(
                             binaryExpressionBuilder.buildBinaryExpression(
-                                SeqIdExpression.scalarPc().get(i),
+                                pPcLeftHandSides.get(i),
                                 SeqIntegerLiteralExpression.INT_EXIT_PC,
                                 BinaryOperator.NOT_EQUALS)))));
         assumeCaseClauses.add(

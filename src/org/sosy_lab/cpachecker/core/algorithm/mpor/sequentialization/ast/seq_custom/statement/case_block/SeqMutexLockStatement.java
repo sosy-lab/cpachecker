@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -36,16 +37,19 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final CIdExpression threadLocksMutex;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   public SeqMutexLockStatement(
-      CIdExpression pMutexLocked, CIdExpression pThreadLocksMutex, int pThreadId, int pTargetPc) {
+      CIdExpression pMutexLocked,
+      CIdExpression pThreadLocksMutex,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
     mutexLocked = pMutexLocked;
     threadLocksMutex = pThreadLocksMutex;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
@@ -64,9 +68,9 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
             FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
 
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
 
-    String elseStmts =
+    String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
             setLockedTrue.toASTString()
                 + SeqSyntax.SPACE
@@ -80,7 +84,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         + SeqSyntax.SPACE
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE
-        + elseStmts;
+        + elseStatements;
   }
 
   @Override
@@ -91,7 +95,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, threadId, pTargetPc);
+    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pcLeftHandSide, pTargetPc);
   }
 
   @Override

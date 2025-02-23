@@ -41,19 +41,19 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final CIdExpression returnPc;
 
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   public SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
-      int pThreadId,
+      CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
     assigns = pAssigns;
     returnPc = pReturnPc;
-    threadId = pThreadId;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
 
@@ -74,7 +74,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     // TODO remove hardcoded int values?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
@@ -104,7 +104,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnValueAssignStatements(returnPc, assigns, threadId, pTargetPc);
+    return new SeqReturnValueAssignStatements(returnPc, assigns, pcLeftHandSide, pTargetPc);
   }
 
   @Override

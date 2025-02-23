@@ -40,10 +40,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadBeginsAtomic;
@@ -141,6 +142,8 @@ public class Sequentialization {
 
   private final LogManager logger;
 
+  private final PcLeftHandSides pcLeftHandSides;
+
   public Sequentialization(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       MPOROptions pOptions,
@@ -155,6 +158,9 @@ public class Sequentialization {
     options = pOptions;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
+    pcLeftHandSides =
+        new PcLeftHandSides(
+            SeqLeftHandSides.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
   }
 
   @Override
@@ -301,6 +307,7 @@ public class Sequentialization {
             createThreadSimulationAssumptions(substitutions.keySet(), threadVars),
             porAssumptions,
             prunedCaseClauses,
+            pcLeftHandSides,
             binaryExpressionBuilder);
     rProgram.addAll(mainMethod.buildDefinition());
 
@@ -469,7 +476,7 @@ public class Sequentialization {
         if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
           rAssumptions.add(
               SeqUtil.createPORAssumption(
-                  threadId, caseClause.label.value, binaryExpressionBuilder));
+                  threadId, caseClause.label.value, pcLeftHandSides, binaryExpressionBuilder));
         }
       }
     }
@@ -484,7 +491,7 @@ public class Sequentialization {
     for (MPORThread thread : pThreads) {
       CBinaryExpression nextThreadNotId =
           binaryExpressionBuilder.buildBinaryExpression(
-              SeqExpressions.getPcExpression(thread.id),
+              pcLeftHandSides.get(thread.id),
               SeqIntegerLiteralExpression.INT_EXIT_PC,
               BinaryOperator.NOT_EQUALS);
       rExpressions.put(thread.id, nextThreadNotId);
@@ -537,6 +544,7 @@ public class Sequentialization {
                   GhostVariableUtil.buildFunctionVariables(
                       thread, substitution, pSubEdges, pReturnPcVars),
                   pThreadVars,
+                  pcLeftHandSides,
                   binaryExpressionBuilder);
           if (caseClause.isPresent()) {
             caseClauses.add(caseClause.orElseThrow());
@@ -654,15 +662,18 @@ public class Sequentialization {
     ImmutableList.Builder<SeqCaseClause> prune2 = ImmutableList.builder();
     for (SeqCaseClause caseClause : prune1.build()) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStmts = ImmutableList.builder();
-      for (SeqCaseBlockStatement stmt : caseClause.block.statements) {
-        Optional<Integer> targetPc = stmt.getTargetPc();
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+        Optional<Integer> targetPc = statement.getTargetPc();
         // if the statement targets a pruned pc, clone it with the new target pc
         if (targetPc.isPresent() && prunePcs.containsKey(targetPc.orElseThrow())) {
           int newTargetPc = prunePcs.get(targetPc.orElseThrow());
-          newStmts.add(stmt.cloneWithTargetPc(newTargetPc));
+          SeqCaseBlockStatement clone = statement.cloneWithTargetPc(newTargetPc);
+          assert clone.getClass().equals(statement.getClass())
+              : "clone class must equal original statement class";
+          newStmts.add(clone);
         } else {
           // otherwise, add unchanged statement
-          newStmts.add(stmt);
+          newStmts.add(statement);
         }
       }
       prune2.add(

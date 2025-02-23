@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 
 /**
@@ -28,18 +29,24 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqThreadCreationStatement(int pCreatedThreadId, int pThreadId, int pTargetPc) {
+  private final PcLeftHandSides pcLeftHandSides;
+
+  public SeqThreadCreationStatement(
+      int pCreatedThreadId, int pThreadId, int pTargetPc, PcLeftHandSides pPcLeftHandSides) {
+
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     targetPc = pTargetPc;
+    pcLeftHandSides = pPcLeftHandSides;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement createdPcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(createdThreadId, SeqUtil.INIT_PC);
+        SeqExpressionAssignmentStatement.buildPcWrite(
+            pcLeftHandSides.get(createdThreadId), SeqUtil.INIT_PC);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(threadId, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSides.get(threadId), targetPc);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
@@ -51,7 +58,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc);
+    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcLeftHandSides);
   }
 
   @Override
