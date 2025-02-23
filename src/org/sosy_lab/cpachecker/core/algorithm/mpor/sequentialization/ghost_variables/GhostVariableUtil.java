@@ -91,7 +91,8 @@ public class GhostVariableUtil {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
           CIdExpression subPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
           String varName = SeqNameUtil.buildMutexLockedName(subPthreadMutexT.getName());
-          CIdExpression mutexLocked = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
+          CIdExpression mutexLocked =
+              SeqIdExpression.buildIntegerIdExpression(varName, SeqInitializer.INT_0);
           rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
         }
       }
@@ -118,7 +119,8 @@ public class GhostVariableUtil {
           if (!awaitVars.containsKey(pthreadMutexT)) {
             String varName =
                 SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
-            CIdExpression awaits = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
+            CIdExpression awaits =
+                SeqIdExpression.buildIntegerIdExpression(varName, SeqInitializer.INT_0);
             awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
           }
         }
@@ -142,7 +144,8 @@ public class GhostVariableUtil {
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
             String varName = SeqNameUtil.buildThreadJoinsThreadName(thread.id, targetThread.id);
-            CIdExpression joins = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
+            CIdExpression joins =
+                SeqIdExpression.buildIntegerIdExpression(varName, SeqInitializer.INT_0);
             targetThreads.put(targetThread, new ThreadJoinsThread(joins));
           }
         }
@@ -161,7 +164,8 @@ public class GhostVariableUtil {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.__VERIFIER_ATOMIC_BEGIN)) {
           String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
-          CIdExpression begin = SeqIdExpression.buildIntIdExpr(varName, SeqInitializer.INT_0);
+          CIdExpression begin =
+              SeqIdExpression.buildIntegerIdExpression(varName, SeqInitializer.INT_0);
           rVars.put(thread, new ThreadBeginsAtomic(begin));
           break; // only need one call to atomic_begin -> break inner loop
         }

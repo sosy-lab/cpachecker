@@ -46,13 +46,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
@@ -121,7 +117,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
   public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
-    return new Sequentialization(substitutions, options, pInputFileName, pOutputFileName, logger);
+    return new Sequentialization(
+        substitutions, options, pInputFileName, pOutputFileName, binaryExpressionBuilder, logger);
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -141,6 +138,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
    * before {@link MPORAlgorithm#threads}.
    */
   private final ImmutableMap<CFANode, CFANode> funcCallMap;
+
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   private final ThreadBuilder threadBuilder;
 
@@ -179,14 +178,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     funcCallMap = getFunctionCallMap(inputCfa);
 
-    threadBuilder = new ThreadBuilder(funcCallMap);
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
+    threadBuilder = new ThreadBuilder(funcCallMap);
     threads = getThreads(inputCfa, funcCallMap);
 
     initStaticVariables(inputCfa, logger, options, threads.size());
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
+    substitutions =
+        SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
   }
 
   public static MPORAlgorithm testInstance(
@@ -210,14 +211,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     funcCallMap = getFunctionCallMap(inputCfa);
 
-    threadBuilder = new ThreadBuilder(funcCallMap);
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
+    threadBuilder = new ThreadBuilder(funcCallMap);
     threads = getThreads(inputCfa, funcCallMap);
 
     initStaticVariables(inputCfa, logger, options, threads.size());
 
     ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
-    substitutions = SubstituteBuilder.buildSubstitutions(globalVars, threads);
+    substitutions =
+        SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
   }
 
   // Variable Initializers =======================================================================
@@ -307,11 +310,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private void initStaticVariables(
       CFA pInputCfa, LogManager pLogger, MPOROptions pOptions, int pNumThreads) {
 
-    // in tests, we may use the same CPAchecker instance -> builder may be init already
-    if (!MPORStatics.isBinExprBuilderSet()) {
-      MPORStatics.setBinExprBuilder(
-          new CBinaryExpressionBuilder(pInputCfa.getMachineModel(), pLogger));
-    }
     // reset if necessary (should only occur in unit tests)
     if (SeqIdExpression.areScalarPcSet()) {
       SeqIdExpression.resetScalarPc();
@@ -322,7 +320,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     if (pOptions.scalarPc) {
       SeqIdExpression.initScalarPc(pNumThreads);
     } else {
-      SeqArraySubscriptExpression.initArrayPcExpr(pNumThreads);
+      SeqArraySubscriptExpression.initArrayPcExpression(pNumThreads);
     }
   }
 

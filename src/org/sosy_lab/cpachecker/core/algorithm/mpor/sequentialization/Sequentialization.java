@@ -27,6 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -40,7 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
@@ -137,6 +137,8 @@ public class Sequentialization {
 
   private final String outputFileName;
 
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
   private final LogManager logger;
 
   public Sequentialization(
@@ -144,13 +146,15 @@ public class Sequentialization {
       MPOROptions pOptions,
       String pInputFileName,
       String pOutputFileName,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger) {
 
     substitutions = pSubstitutions;
-    options = pOptions;
-    logger = pLogger;
     inputFileName = pInputFileName;
     outputFileName = pOutputFileName;
+    options = pOptions;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    logger = pLogger;
   }
 
   @Override
@@ -269,7 +273,7 @@ public class Sequentialization {
 
     // add non main() function definitions
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
-    SeqAssumeFunction assume = new SeqAssumeFunction();
+    SeqAssumeFunction assume = new SeqAssumeFunction(binaryExpressionBuilder);
     rProgram.addAll(reachError.buildDefinition());
     rProgram.add(LineOfCode.empty());
     rProgram.addAll(assume.buildDefinition());
@@ -296,7 +300,8 @@ public class Sequentialization {
             loopInvariants,
             createThreadSimulationAssumptions(substitutions.keySet(), threadVars),
             porAssumptions,
-            prunedCaseClauses);
+            prunedCaseClauses,
+            binaryExpressionBuilder);
     rProgram.addAll(mainMethod.buildDefinition());
 
     return rProgram.build();
@@ -462,7 +467,9 @@ public class Sequentialization {
       int threadId = entry.getKey().id;
       for (SeqCaseClause caseClause : entry.getValue()) {
         if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
-          rAssumptions.add(SeqUtil.createPORAssumption(threadId, caseClause.label.value));
+          rAssumptions.add(
+              SeqUtil.createPORAssumption(
+                  threadId, caseClause.label.value, binaryExpressionBuilder));
         }
       }
     }
@@ -476,7 +483,7 @@ public class Sequentialization {
     ImmutableMap.Builder<Integer, CBinaryExpression> rExpressions = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       CBinaryExpression nextThreadNotId =
-          SeqBinaryExpression.buildBinaryExpression(
+          binaryExpressionBuilder.buildBinaryExpression(
               SeqExpressions.getPcExpression(thread.id),
               SeqIntegerLiteralExpression.INT_EXIT_PC,
               BinaryOperator.NOT_EQUALS);
@@ -492,9 +499,9 @@ public class Sequentialization {
     ImmutableMap.Builder<Integer, CBinaryExpression> rExpressions = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       CIntegerLiteralExpression threadId =
-          SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
+          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(thread.id);
       CBinaryExpression nextThreadNotId =
-          SeqBinaryExpression.buildBinaryExpression(
+          binaryExpressionBuilder.buildBinaryExpression(
               SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.NOT_EQUALS);
       rExpressions.put(thread.id, nextThreadNotId);
     }
@@ -529,7 +536,8 @@ public class Sequentialization {
                   pSubEdges,
                   GhostVariableUtil.buildFunctionVariables(
                       thread, substitution, pSubEdges, pReturnPcVars),
-                  pThreadVars);
+                  pThreadVars,
+                  binaryExpressionBuilder);
           if (caseClause.isPresent()) {
             caseClauses.add(caseClause.orElseThrow());
           }
@@ -754,8 +762,8 @@ public class Sequentialization {
       ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
       for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
         CVariableDeclaration varDec =
-            SeqVariableDeclaration.buildReturnPcVarDeclaration(thread.id, function.getName());
-        returnPc.put(function, SeqIdExpression.buildIdExpr(varDec));
+            SeqVariableDeclaration.buildReturnPcVariableDeclaration(thread.id, function.getName());
+        returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
       }
       rVars.put(thread, returnPc.buildOrThrow());
     }
@@ -832,12 +840,14 @@ public class Sequentialization {
    */
   public static CFunctionCallExpression buildReachErrorCall(
       String pFile, int pLine, String pFunction) {
+
     CStringLiteralExpression file =
-        SeqStringLiteralExpression.buildStringLiteralExpr(
+        SeqStringLiteralExpression.buildStringLiteralExpression(
             SeqStringUtil.wrapInQuotationMarks(pFile));
-    CIntegerLiteralExpression line = SeqIntegerLiteralExpression.buildIntLiteralExpr(pLine);
+    CIntegerLiteralExpression line =
+        SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pLine);
     CStringLiteralExpression function =
-        SeqStringLiteralExpression.buildStringLiteralExpr(
+        SeqStringLiteralExpression.buildStringLiteralExpression(
             SeqStringUtil.wrapInQuotationMarks(pFunction));
     return new CFunctionCallExpression(
         FileLocation.DUMMY,

@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -37,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
@@ -101,7 +101,8 @@ public class SeqUtil {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       // TODO group Function and Thread Vars into SeqVars
       GhostFunctionVariables pFuncVars,
-      GhostThreadVariables pThreadVars)
+      GhostThreadVariables pThreadVars,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     pCoveredNodes.add(pThreadNode);
@@ -265,7 +266,12 @@ public class SeqUtil {
                                 .get(targetThread))
                         .idExpression;
                 stmts.add(
-                    new SeqThreadJoinStatement(targetThread.id, threadJoins, pThread.id, targetPc));
+                    new SeqThreadJoinStatement(
+                        targetThread.id,
+                        threadJoins,
+                        pThread.id,
+                        targetPc,
+                        pBinaryExpressionBuilder));
                 break;
 
               case __VERIFIER_ATOMIC_BEGIN:
@@ -400,21 +406,23 @@ public class SeqUtil {
         .equals(SeqToken.reach_error);
   }
 
-  public static SeqFunctionCallExpression createPORAssumption(int pThreadId, int pPc)
+  public static SeqFunctionCallExpression createPORAssumption(
+      int pThreadId, int pPc, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CIntegerLiteralExpression threadId = SeqIntegerLiteralExpression.buildIntLiteralExpr(pThreadId);
+    CIntegerLiteralExpression threadId =
+        SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pThreadId);
     CBinaryExpression prevEquals =
-        SeqBinaryExpression.buildBinaryExpression(
+        pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
     CBinaryExpression pcEquals =
-        SeqBinaryExpression.buildBinaryExpression(
+        pBinaryExpressionBuilder.buildBinaryExpression(
             SeqExpressions.getPcExpression(pThreadId),
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(pPc),
+            SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pPc),
             BinaryOperator.EQUALS);
     CToSeqExpression nextThread =
         new CToSeqExpression(
-            SeqBinaryExpression.buildBinaryExpression(
+            pBinaryExpressionBuilder.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
     SeqLogicalNotExpression notAnd =
         new SeqLogicalNotExpression(new SeqLogicalAndExpression(prevEquals, pcEquals));

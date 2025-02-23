@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -32,12 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
@@ -84,18 +78,6 @@ public class ThreadBuilder {
 
     ImmutableSet<CVariableDeclaration> localVars = getLocalVars(threadEdges.build());
 
-    ImmutableSet.Builder<MPORCreate> creates = ImmutableSet.builder();
-    searchThreadForCreates(
-        creates, pExitNode, new HashSet<>(), new HashSet<>(), pEntryNode, Optional.empty());
-
-    ImmutableSet.Builder<MPORMutex> mutexes = ImmutableSet.builder();
-    searchThreadForMutexes(mutexes, pExitNode, new HashSet<>(), pEntryNode, Optional.empty());
-
-    ImmutableSet.Builder<MPORJoin> joins = ImmutableSet.builder();
-    searchThreadForJoins(joins, pExitNode, new HashSet<>(), pEntryNode, Optional.empty());
-
-    // TODO searchThreadForBarriers
-
     assert pEntryNode.getFunction().getType() instanceof CFunctionType;
 
     return new MPORThread(
@@ -103,9 +85,6 @@ public class ThreadBuilder {
         (CFunctionType) pEntryNode.getFunction().getType(),
         pThreadObject,
         localVars,
-        creates.build(),
-        mutexes.build(),
-        joins.build(),
         threadCfa);
   }
 
@@ -173,215 +152,8 @@ public class ThreadBuilder {
     return rLocalVars.build();
   }
 
-  /**
-   * Recursively searches the CFA of the thread with pThreadExitNode for pthread_create calls.
-   *
-   * @param pCreates the set of creates to be created
-   * @param pThreadExitNode the exit node of the thread (the FunctionExitNode of the start routine)
-   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
-   *     there are loop structures in the CFA
-   * @param pEdgesTrace trace CFAEdges executed until pthread_create is encountered
-   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_create
-   * @param pFuncReturnNode used to track the original context when entering the CFA of another
-   *     function.
-   */
-  private void searchThreadForCreates(
-      ImmutableSet.Builder<MPORCreate> pCreates,
-      final CFANode pThreadExitNode,
-      Set<CFANode> pVisitedNodes,
-      Set<CFAEdge> pEdgesTrace,
-      CFANode pCurrentNode,
-      Optional<CFANode> pFuncReturnNode) {
-
-    if (!pCurrentNode.equals(pThreadExitNode)) {
-      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-        for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
-            pEdgesTrace.add(cfaEdge);
-            CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-            pCreates.add(new MPORCreate(pthreadT, ImmutableSet.copyOf(pEdgesTrace)));
-          }
-          pEdgesTrace.add(cfaEdge);
-          searchThreadForCreates(
-              pCreates,
-              pThreadExitNode,
-              pVisitedNodes,
-              // copying set so that it does not contain edges from a "parallel" trace (i.e. nondet)
-              new HashSet<>(pEdgesTrace),
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
-        }
-      }
-    }
-  }
-
-  /**
-   * Recursively searches the CFA of pThread for mutex_locks.
-   *
-   * @param pMutexes the set of mutexes to be created
-   * @param pThreadExitNode the exit node of the thread (the FunctionExitNode of the start routine)
-   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
-   *     there are loop structures in the CFA
-   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for mutex_locks
-   * @param pFuncReturnNode used to track the original context when entering the CFA of another
-   *     function.
-   */
-  private void searchThreadForMutexes(
-      ImmutableSet.Builder<MPORMutex> pMutexes,
-      final CFANode pThreadExitNode,
-      Set<CFANode> pVisitedNodes,
-      CFANode pCurrentNode,
-      Optional<CFANode> pFuncReturnNode) {
-
-    if (!pCurrentNode.equals(pThreadExitNode)) {
-      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-        for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_LOCK)) {
-            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
-            // the successor node of mutex_lock is the first inside the lock
-            CFANode initialNode = cfaEdge.getSuccessor();
-            Set<CFANode> mutexNodes = new HashSet<>(); // using a set so that we can use .contains
-            ImmutableSet.Builder<CFAEdge> mutexEdges = ImmutableSet.builder();
-            ImmutableSet.Builder<CFANode> mutexExitNodes = ImmutableSet.builder();
-            initMutexVariables(
-                pthreadMutexT,
-                mutexNodes,
-                mutexEdges,
-                mutexExitNodes,
-                initialNode,
-                Optional.empty());
-            MPORMutex mutex =
-                new MPORMutex(
-                    pthreadMutexT,
-                    initialNode,
-                    ImmutableSet.copyOf(mutexNodes),
-                    mutexEdges.build(),
-                    mutexExitNodes.build());
-            pMutexes.add(mutex);
-          }
-          searchThreadForMutexes(
-              pMutexes,
-              pThreadExitNode,
-              pVisitedNodes,
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
-        }
-      }
-    }
-  }
-
-  /**
-   * Recursively searches the CFA of pThread for all (entry and exit) CFANodes and CFAEdges inside
-   * the mutex lock.
-   *
-   * @param pPthreadMutexT the pthread_mutex_t object encountered in a pthread_mutex_lock call
-   * @param pMutexNodes the set of CFANodes inside the mutex lock, made immutable once finished
-   * @param pMutexEdges the set of CFAEdges inside the mutex lock
-   * @param pMutexExitNodes the set of CFANodes whose leaving edge(s) are pthread_mutex_unlocks
-   * @param pCurrentNode the current CFANode whose leaving Edges we search for mutex_unlocks
-   * @param pFuncReturnNode used to track the original context when entering the CFA of another
-   *     function.
-   */
-  private void initMutexVariables(
-      final CIdExpression pPthreadMutexT,
-      Set<CFANode> pMutexNodes, // using a set so that we can use .contains(...)
-      ImmutableSet.Builder<CFAEdge> pMutexEdges,
-      ImmutableSet.Builder<CFANode> pMutexExitNodes,
-      CFANode pCurrentNode,
-      Optional<CFANode> pFuncReturnNode) {
-
-    // visit CFANodes only once to prevent infinite loops in case of loop structures
-    if (MPORUtil.shouldVisit(pMutexNodes, pCurrentNode)) {
-      for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-        pMutexEdges.add(cfaEdge);
-        if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_MUTEX_UNLOCK)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(cfaEdge);
-          if (pthreadMutexT.equals(pPthreadMutexT)) {
-            pMutexExitNodes.add(pCurrentNode);
-          }
-        } else {
-          initMutexVariables(
-              pPthreadMutexT,
-              pMutexNodes,
-              pMutexEdges,
-              pMutexExitNodes,
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
-        }
-      }
-    }
-  }
-
-  /**
-   * Recursively searches the CFA of pThread for pthread_join calls.
-   *
-   * @param pJoins the set of joins to be created
-   * @param pThreadExitNode the FunctionExitNode of the threads start routine
-   * @param pVisitedNodes keep track of already visited CFANodes to prevent an infinite loop if
-   *     there are loop structures in the CFA
-   * @param pCurrentNode the CFANode whose leaving CFAEdges we analyze for pthread_joins
-   * @param pFuncReturnNode used to track the original context when entering the CFA of another
-   *     function.
-   */
-  private void searchThreadForJoins(
-      ImmutableSet.Builder<MPORJoin> pJoins,
-      final CFANode pThreadExitNode,
-      Set<CFANode> pVisitedNodes,
-      CFANode pCurrentNode,
-      Optional<CFANode> pFuncReturnNode) {
-
-    if (!pCurrentNode.equals(pThreadExitNode)) {
-      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-        for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_JOIN)) {
-            CExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-            MPORJoin join = new MPORJoin(pthreadT, pCurrentNode, cfaEdge);
-            pJoins.add(join);
-          }
-          searchThreadForJoins(
-              pJoins,
-              pThreadExitNode,
-              pVisitedNodes,
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
-        }
-      }
-    }
-  }
-
-  /**
-   * TODO
-   *
-   * @param pThread TODO
-   * @param pVisitedNodes TODO
-   * @param pCurrentNode TODO
-   * @param pFuncReturnNode TODO
-   */
-  private void searchThreadForBarriers(
-      MPORThread pThread,
-      Set<CFANode> pVisitedNodes,
-      CFANode pCurrentNode,
-      Optional<CFANode> pFuncReturnNode) {
-
-    // TODO see pthread-divine for example barrier programs
-    if (!pCurrentNode.equals(pThread.cfa.exitNode)) {
-      if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
-        for (CFAEdge cfaEdge : MPORUtil.returnLeavingEdges(pCurrentNode, pFuncReturnNode)) {
-          if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_BARRIER_INIT)) {
-            // TODO unsure how to handle this, SV benchmarks use their custom barrier objects and
-            //  functions, e.g. pthread-divine/barrier_2t.i
-            //  but the general approach is identifying MPORBarriers from barrier_init calls
-            //  and then identify the corresponding MPORBarrierWaits
-          }
-          searchThreadForBarriers(
-              pThread,
-              pVisitedNodes,
-              cfaEdge.getSuccessor(),
-              updateFuncReturnNode(pCurrentNode, pFuncReturnNode));
-        }
-      }
-    }
-  }
+  // TODO barriers see pthread-divine for examples
+  //  SV benchmarks use their custom barrier objects and functions, e.g. pthread-divine/barrier_2t.i
 
   // (Private) Helpers =============================================================================
 

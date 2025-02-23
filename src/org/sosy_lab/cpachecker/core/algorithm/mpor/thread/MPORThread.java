@@ -13,9 +13,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORCreate;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORJoin;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.total_strict_order.MPORMutex;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -34,12 +31,6 @@ public class MPORThread {
   /** The set of local variable declarations of this thread, used to identify variables. */
   public final ImmutableSet<CVariableDeclaration> localVars;
 
-  public final ImmutableSet<MPORCreate> creates;
-
-  public final ImmutableSet<MPORMutex> mutexes;
-
-  public final ImmutableSet<MPORJoin> joins;
-
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
@@ -48,17 +39,11 @@ public class MPORThread {
       CFunctionType pStartRoutine,
       Optional<CIdExpression> pThreadObject,
       ImmutableSet<CVariableDeclaration> pLocalVars,
-      ImmutableSet<MPORCreate> pCreates,
-      ImmutableSet<MPORMutex> pMutexes,
-      ImmutableSet<MPORJoin> pJoins,
       ThreadCFA pCfa) {
     id = pId;
     startRoutine = pStartRoutine;
     threadObject = pThreadObject;
     localVars = pLocalVars;
-    creates = pCreates;
-    mutexes = pMutexes;
-    joins = pJoins;
     cfa = pCfa;
   }
 

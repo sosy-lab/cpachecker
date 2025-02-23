@@ -14,8 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -24,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORStatics;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
@@ -33,13 +30,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressions {
 
   public static class SeqArraySubscriptExpression {
 
-    public static CArraySubscriptExpression buildPcSubscriptExpr(CExpression pSubscriptExpr) {
+    public static CArraySubscriptExpression buildPcSubscriptExpression(CExpression pSubscriptExpr) {
       return new CArraySubscriptExpression(
           FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
     }
@@ -62,40 +58,30 @@ public class SeqExpressions {
       arrayPc = null;
     }
 
-    public static void initArrayPcExpr(int pNumThreads) {
+    public static void initArrayPcExpression(int pNumThreads) {
       checkArgument(arrayPc == null, "arrayPc was initialized already");
       ImmutableList.Builder<CArraySubscriptExpression> rExpr = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
-        rExpr.add(buildPcSubscriptExpr(SeqIntegerLiteralExpression.buildIntLiteralExpr(i)));
+        rExpr.add(
+            buildPcSubscriptExpression(
+                SeqIntegerLiteralExpression.buildIntegerLiteralExpression(i)));
       }
       arrayPc = rExpr.build();
-    }
-  }
-
-  public static class SeqBinaryExpression {
-
-
-
-    public static CBinaryExpression buildBinaryExpression(
-        CExpression pOperand1, CExpression pOperand2, BinaryOperator pOperator)
-        throws UnrecognizedCodeException {
-
-      return MPORStatics.binExprBuilder().buildBinaryExpression(pOperand1, pOperand2, pOperator);
     }
   }
 
   public static class SeqIntegerLiteralExpression {
 
     public static final CIntegerLiteralExpression INT_EXIT_PC =
-        buildIntLiteralExpr(SeqUtil.EXIT_PC);
+        buildIntegerLiteralExpression(SeqUtil.EXIT_PC);
 
-    public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntLiteralExpr(-1);
+    public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntegerLiteralExpression(-1);
 
-    public static final CIntegerLiteralExpression INT_0 = buildIntLiteralExpr(0);
+    public static final CIntegerLiteralExpression INT_0 = buildIntegerLiteralExpression(0);
 
-    public static final CIntegerLiteralExpression INT_1 = buildIntLiteralExpr(1);
+    public static final CIntegerLiteralExpression INT_1 = buildIntegerLiteralExpression(1);
 
-    public static CIntegerLiteralExpression buildIntLiteralExpr(int pValue) {
+    public static CIntegerLiteralExpression buildIntegerLiteralExpression(int pValue) {
       return new CIntegerLiteralExpression(
           FileLocation.DUMMY, SeqSimpleType.INT, BigInteger.valueOf(pValue));
     }
@@ -103,45 +89,53 @@ public class SeqExpressions {
 
   public static class SeqIdExpression {
 
-    public static final CIdExpression COND = buildIdExpr(SeqParameterDeclaration.COND);
+    public static final CIdExpression COND = buildIdExpression(SeqParameterDeclaration.COND);
 
-    public static final CIdExpression FILE = buildIdExpr(SeqParameterDeclaration.FILE);
+    public static final CIdExpression FILE = buildIdExpression(SeqParameterDeclaration.FILE);
 
-    public static final CIdExpression LINE = buildIdExpr(SeqParameterDeclaration.LINE);
+    public static final CIdExpression LINE = buildIdExpression(SeqParameterDeclaration.LINE);
 
-    public static final CIdExpression FUNCTION = buildIdExpr(SeqParameterDeclaration.FUNCTION);
+    public static final CIdExpression FUNCTION =
+        buildIdExpression(SeqParameterDeclaration.FUNCTION);
 
-    protected static final CIdExpression DUMMY_PC = buildIdExpr(SeqVariableDeclaration.DUMMY_PC);
+    protected static final CIdExpression DUMMY_PC =
+        buildIdExpression(SeqVariableDeclaration.DUMMY_PC);
 
-    public static final CIdExpression PREV_THREAD = buildIdExpr(SeqVariableDeclaration.PREV_THREAD);
+    public static final CIdExpression PREV_THREAD =
+        buildIdExpression(SeqVariableDeclaration.PREV_THREAD);
 
-    public static final CIdExpression NEXT_THREAD = buildIdExpr(SeqVariableDeclaration.NEXT_THREAD);
+    public static final CIdExpression NEXT_THREAD =
+        buildIdExpression(SeqVariableDeclaration.NEXT_THREAD);
 
-    public static final CIdExpression REACH_ERROR = buildIdExpr(SeqFunctionDeclaration.REACH_ERROR);
+    public static final CIdExpression REACH_ERROR =
+        buildIdExpression(SeqFunctionDeclaration.REACH_ERROR);
 
     public static final CIdExpression VERIFIER_NONDET_INT =
-        buildIdExpr(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+        buildIdExpression(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
 
-    public static final CIdExpression ABORT = buildIdExpr(SeqFunctionDeclaration.ABORT);
+    public static final CIdExpression ABORT = buildIdExpression(SeqFunctionDeclaration.ABORT);
 
-    public static final CIdExpression ASSERT_FAIL = buildIdExpr(SeqFunctionDeclaration.ASSERT_FAIL);
+    public static final CIdExpression ASSERT_FAIL =
+        buildIdExpression(SeqFunctionDeclaration.ASSERT_FAIL);
 
-    public static final CIdExpression ASSUME = buildIdExpr(SeqFunctionDeclaration.ASSUME);
+    public static final CIdExpression ASSUME = buildIdExpression(SeqFunctionDeclaration.ASSUME);
 
-    public static final CIdExpression MAIN = buildIdExpr(SeqFunctionDeclaration.MAIN);
+    public static final CIdExpression MAIN = buildIdExpression(SeqFunctionDeclaration.MAIN);
 
     /**
      * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} =
      * {pInitializer};}.
      */
-    public static CIdExpression buildIntIdExpr(String pVarName, CInitializer pInitializer) {
+    public static CIdExpression buildIntegerIdExpression(
+        String pVarName, CInitializer pInitializer) {
+
       CVariableDeclaration varDec =
-          SeqVariableDeclaration.buildVarDeclaration(
+          SeqVariableDeclaration.buildVariableDeclaration(
               true, SeqSimpleType.INT, pVarName, pInitializer);
       return new CIdExpression(FileLocation.DUMMY, varDec);
     }
 
-    public static CIdExpression buildIdExpr(CSimpleDeclaration pDec) {
+    public static CIdExpression buildIdExpression(CSimpleDeclaration pDec) {
       return new CIdExpression(FileLocation.DUMMY, pDec);
     }
 
@@ -172,7 +166,7 @@ public class SeqExpressions {
         rExpr.add(
             new CIdExpression(
                 FileLocation.DUMMY,
-                SeqVariableDeclaration.buildVarDeclaration(
+                SeqVariableDeclaration.buildVariableDeclaration(
                     false, SeqSimpleType.INT, SeqToken.pc + i, initializer)));
       }
       scalarPc = rExpr.build();
@@ -181,9 +175,10 @@ public class SeqExpressions {
 
   public static class SeqStringLiteralExpression {
 
-    public static final CStringLiteralExpression STRING_0 = buildStringLiteralExpr(SeqToken._0);
+    public static final CStringLiteralExpression STRING_0 =
+        buildStringLiteralExpression(SeqToken._0);
 
-    public static CStringLiteralExpression buildStringLiteralExpr(String pValue) {
+    public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
       return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
     }
   }

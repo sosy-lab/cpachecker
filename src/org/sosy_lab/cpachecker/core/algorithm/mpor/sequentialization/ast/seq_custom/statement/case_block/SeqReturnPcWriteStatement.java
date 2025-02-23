@@ -38,7 +38,7 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY,
             returnPcVar,
-            SeqIntegerLiteralExpression.buildIntLiteralExpr(returnPc));
+            SeqIntegerLiteralExpression.buildIntegerLiteralExpression(returnPc));
     return assign.toASTString();
   }
 

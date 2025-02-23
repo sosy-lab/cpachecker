@@ -30,7 +30,8 @@ public class SeqStatements {
      * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
      */
     public static CExpressionAssignmentStatement buildPcWrite(int pThreadId, int pTargetPc) {
-      return buildPcWrite(pThreadId, SeqIntegerLiteralExpression.buildIntLiteralExpr(pTargetPc));
+      return buildPcWrite(
+          pThreadId, SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pTargetPc));
     }
 
     /**

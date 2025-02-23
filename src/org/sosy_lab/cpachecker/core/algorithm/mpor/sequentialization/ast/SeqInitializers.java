@@ -21,11 +21,12 @@ public class SeqInitializers {
   public static class SeqInitializer {
 
     public static final CInitializer INT_MINUS_1 =
-        buildIntInitializer(SeqIntegerLiteralExpression.INT_MINUS_1);
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_MINUS_1);
 
-    public static final CInitializer INT_0 = buildIntInitializer(SeqIntegerLiteralExpression.INT_0);
+    public static final CInitializer INT_0 =
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_0);
 
-    public static CInitializer buildIntInitializer(CIntegerLiteralExpression pExpression) {
+    public static CInitializer buildInitializerExpression(CIntegerLiteralExpression pExpression) {
       return new CInitializerExpression(FileLocation.DUMMY, pExpression);
     }
   }

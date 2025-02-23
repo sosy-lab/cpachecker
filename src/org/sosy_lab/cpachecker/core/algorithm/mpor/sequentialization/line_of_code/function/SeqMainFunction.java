@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -32,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
@@ -88,6 +88,8 @@ public class SeqMainFunction extends SeqFunction {
   // optional: sequentialization errors at loop head
   private final Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants;
 
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
   // TODO best put pc expressions (array and scalar) here as they are local to main()
 
   public SeqMainFunction(
@@ -96,21 +98,23 @@ public class SeqMainFunction extends SeqFunction {
       Optional<ImmutableList<SeqLogicalAndExpression>> pLoopInvariants,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     numThreads =
-        SeqIdExpression.buildIdExpr(
-            SeqVariableDeclaration.buildVarDeclaration(
+        SeqIdExpression.buildIdExpression(
+            SeqVariableDeclaration.buildVariableDeclaration(
                 false,
                 SeqSimpleType.CONST_INT,
                 SeqToken.NUM_THREADS,
-                SeqInitializer.buildIntInitializer(
-                    SeqIntegerLiteralExpression.buildIntLiteralExpr(pNumThreads))));
+                SeqInitializer.buildInitializerExpression(
+                    SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pNumThreads))));
     loopInvariants = pLoopInvariants;
     threadAssumptions = pThreadAssumptions;
     porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
 
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
@@ -145,7 +149,7 @@ public class SeqMainFunction extends SeqFunction {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
-            SeqVariableDeclaration.buildVarDeclaration(
+            SeqVariableDeclaration.buildVariableDeclaration(
                 false,
                 SeqSimpleType.INT,
                 SeqExpressions.getPcExpression(i).toASTString(),
@@ -160,7 +164,7 @@ public class SeqMainFunction extends SeqFunction {
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
-          SeqVariableDeclaration.buildVarDeclaration(
+          SeqVariableDeclaration.buildVariableDeclaration(
               false, SeqArrayType.INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
@@ -280,10 +284,10 @@ public class SeqMainFunction extends SeqFunction {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       CIntegerLiteralExpression threadId =
-          SeqIntegerLiteralExpression.buildIntLiteralExpr(thread.id);
+          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(thread.id);
       try {
         CBinaryExpression nextThreadEqualsThreadId =
-            SeqBinaryExpression.buildBinaryExpression(
+            binaryExpressionBuilder.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
         // first switch case: use "if", otherwise "else if"
         SeqControlFlowStatementType statementType =
@@ -318,11 +322,11 @@ public class SeqMainFunction extends SeqFunction {
     ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
     rParams.add(
         new SeqLogicalAndExpression(
-            SeqBinaryExpression.buildBinaryExpression(
+            binaryExpressionBuilder.buildBinaryExpression(
                 SeqIntegerLiteralExpression.INT_0,
                 SeqIdExpression.NEXT_THREAD,
                 BinaryOperator.LESS_EQUAL),
-            SeqBinaryExpression.buildBinaryExpression(
+            binaryExpressionBuilder.buildBinaryExpression(
                 SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
     return rParams.build();
   }
@@ -340,7 +344,7 @@ public class SeqMainFunction extends SeqFunction {
                     SeqIdExpression.ASSUME,
                     ImmutableList.of(
                         new CToSeqExpression(
-                            SeqBinaryExpression.buildBinaryExpression(
+                            binaryExpressionBuilder.buildBinaryExpression(
                                 SeqIdExpression.scalarPc().get(i),
                                 SeqIntegerLiteralExpression.INT_EXIT_PC,
                                 BinaryOperator.NOT_EQUALS)))));
@@ -361,8 +365,8 @@ public class SeqMainFunction extends SeqFunction {
               SeqIdExpression.ASSUME,
               ImmutableList.of(
                   new CToSeqExpression(
-                      SeqBinaryExpression.buildBinaryExpression(
-                          SeqArraySubscriptExpression.buildPcSubscriptExpr(
+                      binaryExpressionBuilder.buildBinaryExpression(
+                          SeqArraySubscriptExpression.buildPcSubscriptExpression(
                               SeqIdExpression.NEXT_THREAD),
                           SeqIntegerLiteralExpression.INT_EXIT_PC,
                           BinaryOperator.NOT_EQUALS)))));

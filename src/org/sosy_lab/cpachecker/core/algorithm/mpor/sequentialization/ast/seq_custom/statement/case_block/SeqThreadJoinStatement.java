@@ -13,10 +13,10 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -47,8 +47,14 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
   public SeqThreadJoinStatement(
-      int pJoinedThreadId, CIdExpression pThreadJoins, int pThreadId, int pTargetPc)
+      int pJoinedThreadId,
+      CIdExpression pThreadJoins,
+      int pThreadId,
+      int pTargetPc,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     joinedThreadId = pJoinedThreadId;
@@ -56,10 +62,12 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     threadJoins = pThreadJoins;
     threadId = pThreadId;
     targetPc = pTargetPc;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
   private CBinaryExpression buildPcNotExitPc(int pJoinedThreadId) throws UnrecognizedCodeException {
-    return SeqBinaryExpression.buildBinaryExpression(
+    assert binaryExpressionBuilder != null;
+    return binaryExpressionBuilder.buildBinaryExpression(
         SeqExpressions.getPcExpression(pJoinedThreadId),
         SeqIntegerLiteralExpression.INT_EXIT_PC,
         BinaryOperator.NOT_EQUALS);
@@ -97,7 +105,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
-    return new SeqThreadJoinStatement(joinedThreadId, threadJoins, threadId, pTargetPc);
+    return new SeqThreadJoinStatement(
+        joinedThreadId, threadJoins, threadId, pTargetPc, binaryExpressionBuilder);
   }
 
   @Override

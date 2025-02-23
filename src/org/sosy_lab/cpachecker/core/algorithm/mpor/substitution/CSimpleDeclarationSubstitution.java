@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -56,21 +56,24 @@ public class CSimpleDeclarationSubstitution implements Substitution {
    */
   public final Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> parameterSubstitutes;
 
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+
   public CSimpleDeclarationSubstitution(
       Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalVarSubstitutes,
       ImmutableMap<CVariableDeclaration, CIdExpression> pLocalVarSubstitutes,
-      Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes) {
+      Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     globalVarSubstitutes = pGlobalVarSubstitutes;
     localVarSubstitutes = pLocalVarSubstitutes;
     parameterSubstitutes = pParameterSubstitutes;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
   // TODO take a look at ExpressionSubstitution.applySubstitution()
 
   @Override
   public CExpression substitute(CExpression pExpression) {
-
     FileLocation fl = pExpression.getFileLocation();
     CType exprType = pExpression.getExpressionType();
 
@@ -86,7 +89,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binExpr.getOperand1() || op2 != binExpr.getOperand2()) {
         try {
-          return SeqBinaryExpression.buildBinaryExpression(op1, op2, binExpr.getOperator());
+          return binaryExpressionBuilder.buildBinaryExpression(op1, op2, binExpr.getOperator());
         } catch (UnrecognizedCodeException e) {
           // "convert" exception -> no UnrecognizedCodeException in signature
           throw new RuntimeException(e);
