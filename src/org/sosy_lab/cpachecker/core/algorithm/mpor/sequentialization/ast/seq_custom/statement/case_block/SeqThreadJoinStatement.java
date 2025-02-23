@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -45,7 +45,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  private final PcLeftHandSides pcLeftHandSides;
+  private final GhostPcVariables pcLeftHandSides;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -56,7 +56,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       CIdExpression pThreadJoins,
       int pThreadId,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 

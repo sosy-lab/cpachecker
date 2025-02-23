@@ -40,11 +40,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStat
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -96,16 +97,14 @@ public class SeqCaseBlockStatementBuilder {
       boolean pFirstEdge,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
-      PcLeftHandSides pPcLeftHandSides,
-      GhostFunctionVariables pFunctionVars,
-      GhostThreadVariables pThreadVars,
+      GhostVariables pGhostVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
-    CLeftHandSide pcLeftHandSide = pPcLeftHandSides.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     if (isBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
       return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
@@ -120,7 +119,7 @@ public class SeqCaseBlockStatementBuilder {
           // TODO this is the only reason we use Optional here... maybe merge with blank statements?
           return Optional.empty();
         } else {
-          return Optional.of(buildReturnPcWriteStatement(pThreadEdge, pFunctionVars));
+          return Optional.of(buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function));
         }
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
@@ -129,9 +128,9 @@ public class SeqCaseBlockStatementBuilder {
           // inject non-inlined reach_error
           return Optional.of(new SeqReachErrorStatement());
         }
-        assert pFunctionVars.parameterAssignments.containsKey(pThreadEdge);
+        assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
         ImmutableList<FunctionParameterAssignment> assignments =
-            Objects.requireNonNull(pFunctionVars.parameterAssignments.get(pThreadEdge));
+            Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
         if (assignments.isEmpty()) {
           return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
         }
@@ -150,7 +149,7 @@ public class SeqCaseBlockStatementBuilder {
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
         return Optional.of(
             buildReturnValueAssignmentStatement(
-                pThreadEdge, targetPc, pcLeftHandSide, pFunctionVars));
+                pThreadEdge, targetPc, pcLeftHandSide, pGhostVariables.function));
 
       } else if (isExplicitlyHandledPthreadFunction(edge)) {
         return Optional.of(
@@ -160,8 +159,8 @@ public class SeqCaseBlockStatementBuilder {
                 pThreadEdge,
                 pSubstituteEdge,
                 targetPc,
-                pPcLeftHandSides,
-                pThreadVars,
+                pGhostVariables.pc,
+                pGhostVariables.thread,
                 pBinaryExpressionBuilder));
       }
     }
@@ -217,7 +216,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       GhostThreadVariables pThreadVars,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -251,7 +250,7 @@ public class SeqCaseBlockStatementBuilder {
       ImmutableSet<MPORThread> pAllThreads,
       CFAEdge pCfaEdge,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides) {
+      GhostPcVariables pPcLeftHandSides) {
 
     CExpression pthreadT = PthreadUtil.extractPthreadT(pCfaEdge);
     MPORThread createdThread = PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
@@ -299,7 +298,7 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       CFAEdge pCfaEdge,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       GhostThreadVariables pThreadVars,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -321,7 +320,7 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(
       MPORThread pThread,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       GhostThreadVariables pThreadVars) {
 
     assert pThreadVars.atomicLocked.isPresent();
@@ -336,7 +335,7 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqAtomicEndStatement buildAtomicEndStatement(
       MPORThread pThread,
       int pTargetPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       GhostThreadVariables pThreadVars) {
 
     assert pThreadVars.atomicLocked.isPresent();

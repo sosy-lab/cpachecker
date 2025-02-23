@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -61,7 +61,7 @@ public class SeqExpressions {
      * scalar {@code pc}.
      */
     public static CBinaryExpression buildPcNotExitPc(
-        PcLeftHandSides pPcLeftHandSides,
+        GhostPcVariables pPcLeftHandSides,
         int pJoinedThreadId,
         CBinaryExpressionBuilder pBinaryExpressionBuilder)
         throws UnrecognizedCodeException {

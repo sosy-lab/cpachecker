@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
@@ -89,7 +89,7 @@ public class SeqMainFunction extends SeqFunction {
   // optional: sequentialization errors at loop head
   private final Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants;
 
-  private final PcLeftHandSides pcLeftHandSides;
+  private final GhostPcVariables pcLeftHandSides;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -100,7 +100,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -336,7 +336,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private SeqStatement createNextThreadPcAssumption(
-      int pNumThreads, boolean pScalarPc, PcLeftHandSides pPcLeftHandSides)
+      int pNumThreads, boolean pScalarPc, GhostPcVariables pPcLeftHandSides)
       throws UnrecognizedCodeException {
 
     if (pScalarPc) {

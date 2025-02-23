@@ -47,7 +47,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadBeginsAtomic;
@@ -134,7 +136,7 @@ public class Sequentialization {
 
   private final LogManager logger;
 
-  private final PcLeftHandSides pcLeftHandSides;
+  private final GhostPcVariables pcLeftHandSides;
 
   public Sequentialization(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
@@ -151,7 +153,7 @@ public class Sequentialization {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
     pcLeftHandSides =
-        new PcLeftHandSides(
+        new GhostPcVariables(
             SeqLeftHandSides.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
   }
 
@@ -491,6 +493,12 @@ public class Sequentialization {
       ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
+      GhostFunctionVariables functionVariables =
+          GhostVariableUtil.buildFunctionVariables(thread, substitution, pSubEdges, pReturnPcVars);
+
+      GhostVariables ghostVariables =
+          new GhostVariables(functionVariables, pcLeftHandSides, pThreadVars);
+
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (coveredNodes.add(threadNode)) {
           Optional<SeqCaseClause> caseClause =
@@ -500,10 +508,7 @@ public class Sequentialization {
                   coveredNodes,
                   threadNode,
                   pSubEdges,
-                  pcLeftHandSides,
-                  GhostVariableUtil.buildFunctionVariables(
-                      thread, substitution, pSubEdges, pReturnPcVars),
-                  pThreadVars,
+                  ghostVariables,
                   binaryExpressionBuilder);
           if (caseClause.isPresent()) {
             caseClauses.add(caseClause.orElseThrow());

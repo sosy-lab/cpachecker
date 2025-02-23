@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
-public class PcLeftHandSides {
+public class GhostPcVariables {
 
   private final ImmutableList<CLeftHandSide> pc;
 
-  public PcLeftHandSides(ImmutableList<CLeftHandSide> pPc) {
+  public GhostPcVariables(ImmutableList<CLeftHandSide> pPc) {
     pc = pPc;
   }
 

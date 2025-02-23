@@ -39,10 +39,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -68,10 +67,7 @@ public class SeqUtil {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-      PcLeftHandSides pPcLeftHandSides,
-      // TODO group Function and Thread Vars into SeqGhostVariables
-      GhostFunctionVariables pFuncVars,
-      GhostThreadVariables pThreadVars,
+      GhostVariables pGhostVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -80,7 +76,7 @@ public class SeqUtil {
     int originPc = pThreadNode.pc;
     Builder<SeqCaseBlockStatement> statements = ImmutableList.builder();
 
-    CLeftHandSide pcLeftHandSide = pPcLeftHandSides.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     // no edges -> exit node of thread reached -> no case because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
@@ -89,8 +85,9 @@ public class SeqUtil {
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
       // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
-      assert pFuncVars.returnPcReads.containsKey(pThreadNode);
-      FunctionReturnPcRead read = Objects.requireNonNull(pFuncVars.returnPcReads.get(pThreadNode));
+      assert pGhostVariables.function.returnPcReads.containsKey(pThreadNode);
+      FunctionReturnPcRead read =
+          Objects.requireNonNull(pGhostVariables.function.returnPcReads.get(pThreadNode));
       statements.add(
           SeqCaseBlockStatementBuilder.buildReturnPcReadStatement(
               pcLeftHandSide, read.returnPcVar));
@@ -116,9 +113,7 @@ public class SeqUtil {
                   firstEdge,
                   threadEdge,
                   substitute,
-                  pPcLeftHandSides,
-                  pFuncVars,
-                  pThreadVars,
+                  pGhostVariables,
                   pBinaryExpressionBuilder);
           if (statement.isPresent()) {
             statements.add(statement.orElseThrow());
@@ -162,7 +157,7 @@ public class SeqUtil {
   public static SeqFunctionCallExpression createPORAssumption(
       int pThreadId,
       int pPc,
-      PcLeftHandSides pPcLeftHandSides,
+      GhostPcVariables pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
