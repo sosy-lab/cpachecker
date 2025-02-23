@@ -106,7 +106,7 @@ public class ThreadBuilder {
       CFANode pCurrentNode,
       Optional<CFANode> pFuncReturnNode) {
 
-    if (MPORUtil.shouldVisit(pVisitedNodes, pCurrentNode)) {
+    if (pVisitedNodes.add(pCurrentNode)) {
       FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
       List<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);

@@ -167,47 +167,11 @@ public class Sequentialization {
   public String toString() {
     try {
       ImmutableList<LineOfCode> initProgram = initProgram();
-      return LineOfCodeUtil.buildString(finalProgram(initProgram));
+      ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
+      return LineOfCodeUtil.buildString(finalProgram);
     } catch (UnrecognizedCodeException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  /**
-   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
-   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
-   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
-   */
-  private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
-    // consider license and seq comment header for line numbers
-    int currentLine = licenseHeader.size() + mporHeader.size() + 1;
-    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
-    rProgram.addAll(licenseHeader);
-    rProgram.addAll(mporHeader);
-    // replace dummy line numbers (-1) with actual line numbers in the seq
-    for (LineOfCode lineOfCode : pInitProgram) {
-      String code = lineOfCode.code;
-      if (code.contains(inputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            buildReachErrorCall(inputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
-        String replacement =
-            code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-        rProgram.add(lineOfCode.copyWithCode(replacement));
-      } else if (code.contains(outputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            buildReachErrorCall(
-                outputFileName + FileExtension.I.suffix,
-                currentLine,
-                SeqToken.__SEQUENTIALIZATION_ERROR__);
-        String replacement =
-            code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-        rProgram.add(lineOfCode.copyWithCode(replacement));
-      } else {
-        rProgram.add(lineOfCode);
-      }
-      currentLine++;
-    }
-    return rProgram.build();
   }
 
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
@@ -311,6 +275,43 @@ public class Sequentialization {
             binaryExpressionBuilder);
     rProgram.addAll(mainMethod.buildDefinition());
 
+    return rProgram.build();
+  }
+
+  /**
+   * Adds the license and sequentialization comments at the top of pInitProgram and replaces the
+   * file name and line in {@code reach_error("__FILE_NAME_PLACEHOLDER__", -1,
+   * "__SEQUENTIALIZATION_ERROR__");} with pOutputFileName and the actual line.
+   */
+  private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
+    // consider license and seq comment header for line numbers
+    int currentLine = licenseHeader.size() + mporHeader.size() + 1;
+    ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+    rProgram.addAll(licenseHeader);
+    rProgram.addAll(mporHeader);
+    // replace dummy line numbers (-1) with actual line numbers in the seq
+    for (LineOfCode lineOfCode : pInitProgram) {
+      String code = lineOfCode.code;
+      if (code.contains(inputReachErrorDummy)) {
+        CFunctionCallExpression reachErrorCall =
+            buildReachErrorCall(inputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
+        String replacement =
+            code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+        rProgram.add(lineOfCode.copyWithCode(replacement));
+      } else if (code.contains(outputReachErrorDummy)) {
+        CFunctionCallExpression reachErrorCall =
+            buildReachErrorCall(
+                outputFileName + FileExtension.I.suffix,
+                currentLine,
+                SeqToken.__SEQUENTIALIZATION_ERROR__);
+        String replacement =
+            code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+        rProgram.add(lineOfCode.copyWithCode(replacement));
+      } else {
+        rProgram.add(lineOfCode);
+      }
+      currentLine++;
+    }
     return rProgram.build();
   }
 

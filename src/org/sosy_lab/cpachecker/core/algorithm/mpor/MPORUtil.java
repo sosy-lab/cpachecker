@@ -12,11 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -57,30 +55,6 @@ public final class MPORUtil {
         return pPrevFuncReturnNode;
       }
     }
-  }
-
-  /**
-   * Background: a FunctionExitNode may have several leaving Edges, one for each time the function
-   * is called. With this function, if pCurrentNode is a FunctionExitNode, we extract only the
-   * leaving edges of the original calling context, i.e. the edges whose successor is
-   * pFuncReturnNode.
-   *
-   * @param pCurrentNode the CFANode whose leaving Edges we analyze
-   * @param pFuncReturnNode the return node (extracted from the original functionCallEdge)
-   * @return a FluentIterable of context-sensitive return leaving CFAEdges of pCurrentNode
-   */
-  public static ImmutableSet<CFAEdge> returnLeavingEdges(
-      CFANode pCurrentNode, Optional<CFANode> pFuncReturnNode) {
-
-    ImmutableSet.Builder<CFAEdge> rReturnEdges = ImmutableSet.builder();
-    if (pCurrentNode instanceof FunctionExitNode && pFuncReturnNode.isPresent()) {
-      rReturnEdges.addAll(
-          CFAUtils.leavingEdges(pCurrentNode)
-              .filter(cfaEdge -> cfaEdge.getSuccessor().equals(pFuncReturnNode.orElseThrow())));
-    } else {
-      rReturnEdges.addAll(CFAUtils.leavingEdges(pCurrentNode));
-    }
-    return rReturnEdges.build();
   }
 
   /**
@@ -149,15 +123,6 @@ public final class MPORUtil {
     PredicateAbstractState baState = getNextPredicateAbstractState(pPtr, bState, pEdgeA);
 
     return abState.getPathFormula().equals(baState.getPathFormula());
-  }
-
-  /**
-   * If pVisitedElem contained pNewElem before, this returns false and true otherwise.
-   *
-   * <p>The function could be replaced with pVisitedElem.add(pNewElem).
-   */
-  public static <E> boolean shouldVisit(Set<E> pVisitedElem, E pNewElem) {
-    return pVisitedElem.add(pNewElem);
   }
 
   /**
