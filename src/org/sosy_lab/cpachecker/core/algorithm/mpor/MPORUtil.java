@@ -19,6 +19,9 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -186,5 +189,21 @@ public final class MPORUtil {
       }
     }
     return foundPath;
+  }
+
+  public static boolean isReachErrorCall(CFunctionSummaryEdge pFunctionSummaryEdge) {
+    return pFunctionSummaryEdge
+        .getFunctionEntry()
+        .getFunction()
+        .getOrigName()
+        .equals(SeqToken.reach_error);
+  }
+
+  public static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
+    return pFunctionCallEdge
+        .getFunctionCallExpression()
+        .getDeclaration()
+        .getOrigName()
+        .equals(SeqToken.reach_error);
   }
 }

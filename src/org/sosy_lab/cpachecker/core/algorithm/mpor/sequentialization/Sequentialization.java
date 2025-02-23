@@ -773,9 +773,13 @@ public class Sequentialization {
     for (MPORThread thread : pThreads) {
       ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
       for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
-        CVariableDeclaration varDec =
-            SeqVariableDeclaration.buildReturnPcVariableDeclaration(thread.id, function.getName());
-        returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
+        // no RETURN_PC for reach_error, the function never returns
+        if (!function.getOrigName().equals(SeqToken.reach_error)) {
+          CVariableDeclaration varDec =
+              SeqVariableDeclaration.buildReturnPcVariableDeclaration(
+                  thread.id, function.getName());
+          returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
+        }
       }
       rVars.put(thread, returnPc.buildOrThrow());
     }

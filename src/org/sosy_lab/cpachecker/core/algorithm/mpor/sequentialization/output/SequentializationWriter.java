@@ -46,6 +46,8 @@ public class SequentializationWriter {
     }
   }
 
+  private static final String SUCCESS = "MPOR SUCCESS. Sequentialization created in:";
+
   private static final String targetDirectory = "output/";
 
   private final LogManager logManager;
@@ -81,6 +83,7 @@ public class SequentializationWriter {
       try (Writer writer =
           Files.newBufferedWriter(seqProgramFile.toPath(), StandardCharsets.UTF_8)) {
         writer.write(pFinalSeq);
+        logManager.log(Level.INFO, SUCCESS, seqProgramPath);
       }
 
       // option: create metadata file

@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
@@ -156,16 +157,18 @@ public class SeqUtil {
             statements.add(
                 new SeqAssumeStatement(statement, pPcLeftHandSides.get(pThread.id), targetPc));
 
-          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge) {
-            // assert that both call and summary edge are present
-            assert pThreadNode.leavingEdges().size() >= 2;
-            assert pFuncVars.returnPcWrites.containsKey(threadEdge);
-            FunctionReturnPcWrite write =
-                Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
-            statements.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
+          } else if (sub.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
+            if (!MPORUtil.isReachErrorCall(functionSummary)) {
+              // assert that both call and summary edge are present
+              assert pThreadNode.leavingEdges().size() >= 2;
+              assert pFuncVars.returnPcWrites.containsKey(threadEdge);
+              FunctionReturnPcWrite write =
+                  Objects.requireNonNull(pFuncVars.returnPcWrites.get(threadEdge));
+              statements.add(new SeqReturnPcWriteStatement(write.returnPcVar, write.value));
+            }
 
-          } else if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
-            if (isReachErrorCall(funcCall)) {
+          } else if (sub.cfaEdge instanceof CFunctionCallEdge functionCall) {
+            if (MPORUtil.isReachErrorCall(functionCall)) {
               // inject non-inlined reach_error
               statements.add(new SeqReachErrorStatement());
             }
@@ -411,14 +414,6 @@ public class SeqUtil {
       return PthreadFuncType.getPthreadFuncType(pEdge).isExplicitlyHandled;
     }
     return false;
-  }
-
-  private static boolean isReachErrorCall(CFunctionCallEdge pFunctionCallEdge) {
-    return pFunctionCallEdge
-        .getFunctionCallExpression()
-        .getDeclaration()
-        .getOrigName()
-        .equals(SeqToken.reach_error);
   }
 
   public static SeqFunctionCallExpression createPORAssumption(

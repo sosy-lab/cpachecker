@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
@@ -287,12 +288,14 @@ public class GhostVariableUtil {
     ImmutableMap.Builder<ThreadEdge, FunctionReturnPcWrite> rAssigns = ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-        CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
-        CIdExpression returnPc = pReturnPcVars.get(function);
-        assert returnPc != null;
-        FunctionReturnPcWrite returnPcWrite =
-            new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
-        rAssigns.put(threadEdge, returnPcWrite);
+        if (!MPORUtil.isReachErrorCall(funcSummary)) {
+          CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
+          CIdExpression returnPc = pReturnPcVars.get(function);
+          assert returnPc != null;
+          FunctionReturnPcWrite returnPcWrite =
+              new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
+          rAssigns.put(threadEdge, returnPcWrite);
+        }
       }
     }
     return rAssigns.buildOrThrow();
@@ -311,14 +314,16 @@ public class GhostVariableUtil {
     Map<ThreadNode, FunctionReturnPcRead> rAssigns = new HashMap<>();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-        Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
-        if (funcExitNode.isPresent()) {
-          CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
-          CIdExpression returnPc = pReturnPcVars.get(function);
-          ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
-          if (!rAssigns.containsKey(threadNode)) {
-            FunctionReturnPcRead returnPcRead = new FunctionReturnPcRead(pThread.id, returnPc);
-            rAssigns.put(threadNode, returnPcRead);
+        if (!MPORUtil.isReachErrorCall(funcSummary)) {
+          Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
+          if (funcExitNode.isPresent()) {
+            CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
+            CIdExpression returnPc = pReturnPcVars.get(function);
+            ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
+            if (!rAssigns.containsKey(threadNode)) {
+              FunctionReturnPcRead returnPcRead = new FunctionReturnPcRead(pThread.id, returnPc);
+              rAssigns.put(threadNode, returnPcRead);
+            }
           }
         }
       }
