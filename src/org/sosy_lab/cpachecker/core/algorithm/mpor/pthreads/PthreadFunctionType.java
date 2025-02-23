@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * Contains mostly methods from the pthread standard, though we also include e.g. {@code
  * __VERIFIER_atomic_begin} here.
  */
-public enum PthreadFuncType {
+public enum PthreadFunctionType {
 
   // TODO create barrier logic, see e.g. pthread-divine/barrier_2t.i
 
@@ -239,7 +239,7 @@ public enum PthreadFuncType {
   // TODO maybe its best to create a class that states the type of the pthread object, the index /
   //  indices and whether it is never / always / sometimes a pointer
   //  then just create an immutablelist with the desired properties of the function
-  PthreadFuncType(
+  PthreadFunctionType(
       String pName,
       boolean pIsSupported,
       boolean pIsExplicitlyHandled,
@@ -298,13 +298,13 @@ public enum PthreadFuncType {
    * Tries to extract the {@link CFunctionCallStatement} from pEdge and returns true if it is a call
    * to pFuncType.
    */
-  public static boolean callsPthreadFunc(CFAEdge pEdge, PthreadFuncType pFuncType) {
+  public static boolean callsPthreadFunc(CFAEdge pEdge, PthreadFunctionType pFuncType) {
     return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
   }
 
   public static boolean callsAnyPthreadFunc(CFAEdge pEdge) {
-    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (callsPthreadFunc(pEdge, funcType)) {
         return true;
       }
@@ -313,7 +313,7 @@ public enum PthreadFuncType {
   }
 
   public static boolean callsAnyPthreadFuncWithPthreadT(CFAEdge pEdge) {
-    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.pthreadTIndex.isPresent()) {
         if (callsPthreadFunc(pEdge, funcType)) {
           return true;
@@ -324,7 +324,7 @@ public enum PthreadFuncType {
   }
 
   public static boolean callsAnyPthreadFuncWithPthreadMutexT(CFAEdge pEdge) {
-    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.pthreadMutexTIndex.isPresent()) {
         if (callsPthreadFunc(pEdge, funcType)) {
           return true;
@@ -335,7 +335,7 @@ public enum PthreadFuncType {
   }
 
   public static boolean callsAnyPthreadFuncWithStartRoutine(CFAEdge pEdge) {
-    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.startRoutineIndex.isPresent()) {
         if (callsPthreadFunc(pEdge, funcType)) {
           return true;
@@ -345,10 +345,10 @@ public enum PthreadFuncType {
     return false;
   }
 
-  public static PthreadFuncType getPthreadFuncType(CFAEdge pEdge) {
+  public static PthreadFunctionType getPthreadFuncType(CFAEdge pEdge) {
     checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
     String funcName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
-    for (PthreadFuncType funcType : PthreadFuncType.values()) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.name.equals(funcName)) {
         return funcType;
       }

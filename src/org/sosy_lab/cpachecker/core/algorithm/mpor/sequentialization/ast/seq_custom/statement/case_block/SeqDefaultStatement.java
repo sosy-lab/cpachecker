@@ -29,7 +29,8 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqDefaultStatement(CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  protected SeqDefaultStatement(
+      CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;

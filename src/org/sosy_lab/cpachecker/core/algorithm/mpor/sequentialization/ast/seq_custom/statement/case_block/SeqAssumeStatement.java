@@ -26,7 +26,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqAssumeStatement(
+  protected SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     controlFlowStatement = pControlFlowStatement;

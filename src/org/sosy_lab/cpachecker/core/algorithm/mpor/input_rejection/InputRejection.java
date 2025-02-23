@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -76,7 +76,7 @@ public class InputRejection {
    *   <li>has no call to {@code pthread_create} i.e. is not concurrent
    *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
    *   <li>stores the return value of any pthread method call
-   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFuncType}
+   *   <li>contains any unsupported {@code pthread} function, see {@link PthreadFunctionType}
    *   <li>contains a {@code pthread_create} call in a loop
    *   <li>contains a recursive function call (both direct and indirect)
    * </ul>
@@ -113,7 +113,7 @@ public class InputRejection {
   private static void checkIsParallelProgram(CFA pInputCfa) {
     boolean isParallel = false;
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFunctionType.callsPthreadFunc(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         isParallel = true;
         break;
       }
@@ -146,9 +146,9 @@ public class InputRejection {
 
   private static void checkUnsupportedFunctions(CFA pInputCfa) {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      for (PthreadFuncType funcType : PthreadFuncType.values()) {
+      for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
         if (!funcType.isSupported) {
-          if (PthreadFuncType.callsPthreadFunc(edge, funcType)) {
+          if (PthreadFunctionType.callsPthreadFunc(edge, funcType)) {
             handleRejection(
                 InputRejectionMessage.UNSUPPORTED_FUNCTION, edge.getLineNumber(), edge.getCode());
           }
@@ -159,7 +159,7 @@ public class InputRejection {
 
   private static void checkPthreadFunctionReturnValues(CFA pInputCfa) {
     for (CFAEdge edge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsAnyPthreadFunc(edge)) {
+      if (PthreadFunctionType.callsAnyPthreadFunc(edge)) {
         if (edge.getRawAST().orElseThrow() instanceof CFunctionCallAssignmentStatement) {
           handleRejection(
               InputRejectionMessage.PTHREAD_RETURN_VALUE, edge.getLineNumber(), edge.getCode());
@@ -174,7 +174,7 @@ public class InputRejection {
    */
   private static void checkPthreadCreateLoops(CFA pInputCfa) {
     for (CFAEdge cfaEdge : CFAUtils.allEdges(pInputCfa)) {
-      if (PthreadFuncType.callsPthreadFunc(cfaEdge, PthreadFuncType.PTHREAD_CREATE)) {
+      if (PthreadFunctionType.callsPthreadFunc(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
         if (MPORUtil.isSelfReachable(cfaEdge, Optional.empty(), new ArrayList<>(), cfaEdge)) {
           handleRejection(InputRejectionMessage.PTHREAD_CREATE_LOOP);
         }

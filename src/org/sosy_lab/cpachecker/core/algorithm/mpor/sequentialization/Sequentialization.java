@@ -281,30 +281,41 @@ public class Sequentialization {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
     rProgram.addAll(licenseHeader);
     rProgram.addAll(mporHeader);
-    // replace dummy line numbers (-1) with actual line numbers in the seq
     for (LineOfCode lineOfCode : pInitProgram) {
-      String code = lineOfCode.code;
-      if (code.contains(inputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            buildReachErrorCall(inputFileName, currentLine, SeqToken.__PRETTY_FUNCTION__);
-        String replacement =
-            code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-        rProgram.add(lineOfCode.copyWithCode(replacement));
-      } else if (code.contains(outputReachErrorDummy)) {
-        CFunctionCallExpression reachErrorCall =
-            buildReachErrorCall(
-                outputFileName + FileExtension.I.suffix,
-                currentLine,
-                SeqToken.__SEQUENTIALIZATION_ERROR__);
-        String replacement =
-            code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-        rProgram.add(lineOfCode.copyWithCode(replacement));
-      } else {
-        rProgram.add(lineOfCode);
-      }
+      // replace dummy line numbers (-1) with actual line numbers in the seq
+      rProgram.add(replaceReachErrorDummies(lineOfCode, currentLine));
       currentLine++;
     }
     return rProgram.build();
+  }
+
+  /**
+   * Replaces dummy calls to {@code reach_error}, or returns {@code pLineOfCode} as is if there is
+   * none.
+   */
+  private LineOfCode replaceReachErrorDummies(LineOfCode pLineOfCode, int pLineNumber) {
+    String code = pLineOfCode.code;
+
+    if (code.contains(inputReachErrorDummy)) {
+      // reach_error calls from the input program
+      CFunctionCallExpression reachErrorCall =
+          buildReachErrorCall(inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
+      String replacement =
+          code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+      return pLineOfCode.copyWithCode(replacement);
+
+    } else if (code.contains(outputReachErrorDummy)) {
+      // reach_error calls injected by the sequentialization
+      CFunctionCallExpression reachErrorCall =
+          buildReachErrorCall(
+              outputFileName + FileExtension.I.suffix,
+              pLineNumber,
+              SeqToken.__SEQUENTIALIZATION_ERROR__);
+      String replacement =
+          code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
+      return pLineOfCode.copyWithCode(replacement);
+    }
+    return pLineOfCode;
   }
 
   // TODO problem: methods such as pthread_cancel allow the termination of another thread.
@@ -489,10 +500,10 @@ public class Sequentialization {
                   coveredNodes,
                   threadNode,
                   pSubEdges,
+                  pcLeftHandSides,
                   GhostVariableUtil.buildFunctionVariables(
                       thread, substitution, pSubEdges, pReturnPcVars),
                   pThreadVars,
-                  pcLeftHandSides,
                   binaryExpressionBuilder);
           if (caseClause.isPresent()) {
             caseClauses.add(caseClause.orElseThrow());

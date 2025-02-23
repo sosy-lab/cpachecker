@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqScalarPcAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -361,7 +361,8 @@ public class SeqMainFunction extends SeqFunction {
                 false,
                 i,
                 new SeqCaseBlock(
-                    ImmutableList.of(new SeqScalarPcAssumeStatement(assumeCall)),
+                    ImmutableList.of(
+                        SeqCaseBlockStatementBuilder.buildScalarPcAssumeStatement(assumeCall)),
                     Terminator.BREAK)));
       }
       return new SeqSwitchStatement(SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 2);

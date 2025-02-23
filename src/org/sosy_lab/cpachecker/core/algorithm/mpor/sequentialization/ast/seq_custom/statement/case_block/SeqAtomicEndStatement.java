@@ -23,7 +23,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqAtomicEndStatement(
+  protected SeqAtomicEndStatement(
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {

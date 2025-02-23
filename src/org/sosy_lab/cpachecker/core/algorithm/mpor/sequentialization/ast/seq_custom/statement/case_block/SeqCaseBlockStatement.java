@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+// TODO further divide this into thread, function, ... interfaces
 public interface SeqCaseBlockStatement extends SeqStatement {
 
   Optional<Integer> getTargetPc();

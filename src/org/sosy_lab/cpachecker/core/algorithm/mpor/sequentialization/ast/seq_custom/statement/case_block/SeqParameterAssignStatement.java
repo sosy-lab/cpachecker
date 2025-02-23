@@ -34,7 +34,7 @@ public class SeqParameterAssignStatement implements SeqCaseBlockStatement {
   // TODO better make this encompass multiple statements i.e. assigns with a non-optional
   //  targetPc. we can still create an inner class here with only one assignment then we can remove
   //  the optional entirely.
-  public SeqParameterAssignStatement(
+  protected SeqParameterAssignStatement(
       CExpressionAssignmentStatement pAssign,
       Optional<CLeftHandSide> pPcLeftHandSide,
       Optional<Integer> pTargetPc) {

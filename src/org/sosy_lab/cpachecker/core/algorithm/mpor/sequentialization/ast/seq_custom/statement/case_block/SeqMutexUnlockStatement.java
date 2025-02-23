@@ -28,7 +28,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqMutexUnlockStatement(
+  protected SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     lockedFalse = pLockedFalse;

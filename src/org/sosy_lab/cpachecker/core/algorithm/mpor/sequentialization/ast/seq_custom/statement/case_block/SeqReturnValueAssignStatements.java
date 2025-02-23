@@ -45,7 +45,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqReturnValueAssignStatements(
+  protected SeqReturnValueAssignStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
       CLeftHandSide pPcLeftHandSide,

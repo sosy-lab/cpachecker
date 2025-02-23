@@ -51,7 +51,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final CBinaryExpression pcNotExitPc;
 
-  public SeqThreadJoinStatement(
+  protected SeqThreadJoinStatement(
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,

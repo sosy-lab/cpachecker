@@ -23,10 +23,10 @@ public class PthreadUtil {
 
   public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.callsAnyPthreadFuncWithPthreadT(pEdge),
+        PthreadFunctionType.callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
     CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     if (funcType.isPthreadTPointer()) {
@@ -38,10 +38,10 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.callsAnyPthreadFuncWithPthreadT(pEdge),
+        PthreadFunctionType.callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
     CExpression param = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     if (funcType.isPthreadTPointer()) {
@@ -59,10 +59,10 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadMutexT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.callsAnyPthreadFuncWithPthreadMutexT(pEdge),
+        PthreadFunctionType.callsAnyPthreadFuncWithPthreadMutexT(pEdge),
         "pEdge must be call to a pthread method with a pthread_mutex_t param");
 
-    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
     CExpression pthreadMutexT =
         CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadMutexTIndex());
 
@@ -75,10 +75,10 @@ public class PthreadUtil {
 
   public static CFunctionType extractStartRoutine(CFAEdge pEdge) {
     checkArgument(
-        PthreadFuncType.callsAnyPthreadFuncWithStartRoutine(pEdge),
+        PthreadFunctionType.callsAnyPthreadFuncWithStartRoutine(pEdge),
         "pEdge must be call to a pthread method with a start_routine param");
 
-    PthreadFuncType funcType = PthreadFuncType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
     return CFAUtils.getCFunctionTypeFromCExpression(
         CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineIndex()));
   }

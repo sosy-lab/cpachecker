@@ -41,7 +41,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqMutexLockStatement(
+  protected SeqMutexLockStatement(
       CIdExpression pMutexLocked,
       CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,

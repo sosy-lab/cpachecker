@@ -52,7 +52,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqConstCpaCheckerTmpStatement(
+  protected SeqConstCpaCheckerTmpStatement(
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,

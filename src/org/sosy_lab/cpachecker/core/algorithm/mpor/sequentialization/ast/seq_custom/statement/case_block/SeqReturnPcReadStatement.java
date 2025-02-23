@@ -27,7 +27,7 @@ public class SeqReturnPcReadStatement implements SeqCaseBlockStatement {
 
   public final CIdExpression returnPcVar;
 
-  public SeqReturnPcReadStatement(CLeftHandSide pPcLeftHandSide, CIdExpression pReturnPcVar) {
+  protected SeqReturnPcReadStatement(CLeftHandSide pPcLeftHandSide, CIdExpression pReturnPcVar) {
 
     pcLeftHandSide = pPcLeftHandSide;
     returnPcVar = pReturnPcVar;

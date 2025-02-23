@@ -26,7 +26,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  protected SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }

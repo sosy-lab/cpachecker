@@ -33,7 +33,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  public SeqAtomicBeginStatement(
+  protected SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,

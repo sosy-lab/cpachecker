@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
-  public SeqReachErrorStatement() {}
+  protected SeqReachErrorStatement() {}
 
   @Override
   public String toASTString() {

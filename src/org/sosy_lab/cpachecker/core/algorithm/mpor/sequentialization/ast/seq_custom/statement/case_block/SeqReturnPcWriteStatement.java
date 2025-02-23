@@ -27,7 +27,7 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
 
   private final int returnPc;
 
-  public SeqReturnPcWriteStatement(CIdExpression pReturnPcVar, int pReturnPc) {
+  protected SeqReturnPcWriteStatement(CIdExpression pReturnPcVar, int pReturnPc) {
     returnPcVar = pReturnPcVar;
     returnPc = pReturnPc;
   }

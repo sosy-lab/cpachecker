@@ -31,7 +31,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final PcLeftHandSides pcLeftHandSides;
 
-  public SeqThreadCreationStatement(
+  protected SeqThreadCreationStatement(
       int pCreatedThreadId, int pThreadId, int pTargetPc, PcLeftHandSides pPcLeftHandSides) {
 
     createdThreadId = pCreatedThreadId;
