@@ -113,6 +113,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
+  private static final String INTERNAL_ERROR =
+      "MPOR FAIL. Sequentialization could not be created due to an internal error.";
+
+  /** Stops the algorithm by throwing an {@link AssertionError}. */
+  public static void fail() {
+    throw new AssertionError(INTERNAL_ERROR);
+  }
+
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
   public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
     return new Sequentialization(

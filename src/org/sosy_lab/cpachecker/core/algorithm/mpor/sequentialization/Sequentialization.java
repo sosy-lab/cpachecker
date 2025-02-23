@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -73,6 +71,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -420,52 +419,6 @@ public class Sequentialization {
     return rAssumptions.build();
   }
 
-  /**
-   * Returns {@code pCaseClauses} as is if all targetPc (e.g. {@code pc[i] = 42;}) except {@code -1}
-   * are present as an originPc (e.g. {@code case 42:}), throws a {@link AssertionError} otherwise.
-   * <br>
-   * Every sequentialization needs to fulfill this property, otherwise it is faulty.
-   */
-  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
-
-    for (ImmutableList<SeqCaseClause> caseClauses : pCaseClauses.values()) {
-      // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
-      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(caseClauses);
-      // check if each targetPc is also present as an origin pc
-      for (var pcEntry : pcMap.entrySet()) {
-        for (int targetPc : pcEntry.getValue()) {
-          // exclude EXIT_PC, it is never present as an origin pc
-          if (targetPc != SeqUtil.EXIT_PC) {
-            if (!pcMap.containsKey(targetPc)) {
-              pLogger.log(Level.SEVERE, "targetPc %s does not exist as an origin pc", targetPc);
-              throw new AssertionError(
-                  "MPOR FAIL. Sequentialization could not be created due to an internal error.");
-            }
-          }
-        }
-      }
-    }
-    return pCaseClauses;
-  }
-
-  /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
-  private @NonNull ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
-      ImmutableList<SeqCaseClause> pCaseClauses) {
-
-    ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqCaseBlockStatement stmt : caseClause.block.statements) {
-        if (stmt.getTargetPc().isPresent()) {
-          targetPcs.add(stmt.getTargetPc().orElseThrow());
-        }
-      }
-      pcMapBuilder.put(caseClause.label.value, targetPcs.build());
-    }
-    return pcMapBuilder.buildOrThrow();
-  }
-
   private ImmutableList<SeqFunctionCallExpression> createPORAssumptions(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pPrunedCaseClauses)
       throws UnrecognizedCodeException {
@@ -554,7 +507,7 @@ public class Sequentialization {
       }
       rCaseClauses.put(thread, caseClauses.build());
     }
-    return validCaseClauses(rCaseClauses.buildOrThrow(), pLogger);
+    return SeqValidator.validateCaseClauses(rCaseClauses.buildOrThrow(), pLogger);
   }
 
   /**
@@ -591,7 +544,7 @@ public class Sequentialization {
       }
     }
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> rPruned = pruned.buildOrThrow();
-    return validCaseClauses(rPruned, pLogger);
+    return SeqValidator.validateCaseClauses(rPruned, pLogger);
   }
 
   private SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
