@@ -1106,14 +1106,13 @@ class WebInterface:
                                     "Run was canceled because user requested shutdown."
                                 )
                             )
-                    logging.info("Stopped all runs.")
-
                 except HTTPError as e:
                     logging.warning(
                         "Stopping of run collection %s failed: %s",
                         run_collection_id,
                         e,
                     )
+            logging.info("Stopped all runs.")
             self._run_collection_ids.clear()
             self._unfinished_runs.clear()
         elif self._unfinished_runs:
