@@ -45,7 +45,10 @@ public class Analyzer {
         StateSpacePartition.getDefaultPartition());
   }
 
-  public ReachedSet updateReachedSet(ReachedSet reachedSet, AbstractState initialState, int currentIteration)
+  public ReachedSet updateReachedSet(
+      ReachedSet reachedSet,
+      AbstractState initialState,
+      int currentIteration)
       throws InterruptedException {
     reachedSet.clear();
     reachedSet.add(initialState,
@@ -94,7 +97,8 @@ public class Analyzer {
         String.format(
             "Iteration %d: Updated Initial State With The Exclusion Formula For Next Iteration.",
             currentIteration));
-    context.getLogger().log(Level.FINE, String.format("Iteration %s: Updated Initial State: ", initialState));
+    context.getLogger()
+        .log(Level.FINE, String.format("Iteration %s: Updated Initial State: ", initialState));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 }

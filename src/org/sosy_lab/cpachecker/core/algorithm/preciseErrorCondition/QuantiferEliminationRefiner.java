@@ -36,11 +36,12 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final Solver solver;
   private final Solver quantifierSolver;
   private final ErrorConditionFormatter formatter;
+  private final Boolean withFormatter;
   private PathFormula exclusionFormula;
   private int currentRefinementIteration = 0;
 
   public QuantiferEliminationRefiner(
-      FormulaContext pContext, Solvers pQuantifierSolver)
+      FormulaContext pContext, Solvers pQuantifierSolver, Boolean pWithFormatter)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
     solver = pContext.getSolver();
@@ -49,6 +50,7 @@ public class QuantiferEliminationRefiner implements Refiner {
             .setOption("solver.solver", pQuantifierSolver.name())
             .build(), context.getLogger(), context.getShutdownNotifier());
     exclusionFormula = context.getManager().makeEmptyPathFormula();
+    withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
 
@@ -80,8 +82,9 @@ public class QuantiferEliminationRefiner implements Refiner {
 
     updateExclusionFormula(quantifierEliminationResult, cexFormula);
 
-    formatter.reformat(cexFormula, exclusionFormula.getFormula(), currentRefinementIteration);
-
+    if (withFormatter) {
+      formatter.reformat(cexFormula, exclusionFormula.getFormula(), currentRefinementIteration);
+    }
     currentRefinementIteration++;
     return exclusionFormula;
   }

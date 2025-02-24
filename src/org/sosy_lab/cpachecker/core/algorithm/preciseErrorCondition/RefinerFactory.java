@@ -16,21 +16,22 @@ import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 public class RefinerFactory {
   public static Refiner createRefiner(
       RefinementStrategy pRefinementStrategy,
-      FormulaContext context,
-      Solvers quantifierSolver)
+      FormulaContext pContext,
+      Solvers pQuantifierSolver,
+      Boolean pWithFormatter)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     return switch (pRefinementStrategy) {
       case GENERATE_MODEL -> {
-        context.getLogger().log(Level.INFO, "Initializing GenerateModelRefiner...");
-        yield new GenerateModelRefiner(context);
+        pContext.getLogger().log(Level.INFO, "Initializing GenerateModelRefiner...");
+        yield new GenerateModelRefiner(pContext, pWithFormatter);
       }
       case ALLSAT -> {
-        context.getLogger().log(Level.INFO, "Initializing AllSatRefiner...");
-        yield new AllSatRefiner(context);
+        pContext.getLogger().log(Level.INFO, "Initializing AllSatRefiner...");
+        yield new AllSatRefiner(pContext, pWithFormatter);
       }
       case QUANTIFIER_ELIMINATION -> {
-        context.getLogger().log(Level.INFO, "Initializing QuantifierEliminationRefiner...");
-        yield new QuantiferEliminationRefiner(context, quantifierSolver);
+        pContext.getLogger().log(Level.INFO, "Initializing QuantifierEliminationRefiner...");
+        yield new QuantiferEliminationRefiner(pContext, pQuantifierSolver, pWithFormatter);
       }
     };
   }

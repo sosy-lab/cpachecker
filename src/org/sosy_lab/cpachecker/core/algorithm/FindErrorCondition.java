@@ -74,6 +74,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       description = "Enable parallel refinement. Only if at least two refiners are in use.",
       name = "parallel")
   private boolean parallelRefinement = true; // default
+  @Option(
+      secure = true,
+      description = "Enable formatter for the error condition.",
+      name = "withFormatter")
+  private boolean withFormatter = true; // default
   private int currentIteration = 0;
 
   public FindErrorCondition(
@@ -115,7 +120,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       Analyzer analyzer = new Analyzer(cpa, context);
       AbstractState initialState = analyzer.getInitialState();
       CompositeRefiner refiner =
-          new CompositeRefiner(context, refiners, qSolver, parallelRefinement);
+          new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter);
       PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
 
       do {

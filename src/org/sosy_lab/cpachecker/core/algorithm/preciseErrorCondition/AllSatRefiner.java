@@ -29,15 +29,18 @@ public class AllSatRefiner implements Refiner {
   private final FormulaContext context;
   private final BooleanFormulaManager bmgr;
   private final ErrorConditionFormatter formatter;
-  private PathFormula exclusionModelFormula;
   private final Solver solver;
+  private final Boolean withFormatter;
+  private PathFormula exclusionModelFormula;
   private int currentRefinementIteration = 0;
 
-  public AllSatRefiner(FormulaContext pContext) throws InvalidConfigurationException {
+  public AllSatRefiner(FormulaContext pContext, Boolean pWithFormatter)
+      throws InvalidConfigurationException {
     context = pContext;
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
+    withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(context);
   }
 
@@ -85,9 +88,11 @@ public class AllSatRefiner implements Refiner {
 
       // Update exclusion formula with the found models
       exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(combinedModels));
-      formatter.setupSSAMap(pathFormula);
-      formatter.reformat(pathFormula, exclusionModelFormula.getFormula(),
-          currentRefinementIteration);
+      if (withFormatter) {
+        formatter.setupSSAMap(pathFormula);
+        formatter.reformat(pathFormula, exclusionModelFormula.getFormula(),
+            currentRefinementIteration);
+      }
 
       currentRefinementIteration++;
       return exclusionModelFormula;

@@ -27,13 +27,16 @@ public class GenerateModelRefiner implements Refiner {
   private final FormulaContext context;
   private final Solver solver;
   private final ErrorConditionFormatter formatter;
+  private final Boolean withFormatter;
   private PathFormula exclusionModelFormula;
   private int currentRefinementIteration = 0;
 
-  public GenerateModelRefiner(FormulaContext pContext) throws InvalidConfigurationException {
+  public GenerateModelRefiner(FormulaContext pContext, Boolean pWithFormatter)
+      throws InvalidConfigurationException {
     context = pContext;
     exclusionModelFormula = context.getManager().makeEmptyPathFormula();
     solver = pContext.getSolver();
+    withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
 
@@ -80,9 +83,10 @@ public class GenerateModelRefiner implements Refiner {
       formatter.loggingWithIteration(currentRefinementIteration,
           Level.INFO, String.format("Updated Exclusion Formula With Precondition: \n%s",
               exclusionModelFormula.getFormula()));
-
-      formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
-          currentRefinementIteration);
+      if (withFormatter) {
+        formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
+            currentRefinementIteration);
+      }
     }
     currentRefinementIteration++;
     return exclusionModelFormula;
