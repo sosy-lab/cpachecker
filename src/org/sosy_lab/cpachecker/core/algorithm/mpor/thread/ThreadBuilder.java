@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -54,13 +53,10 @@ public class ThreadBuilder {
    *
    * @param pThreadObject the pthread_t object, set to empty for the main thread
    * @param pEntryNode the entry node of the start routine or main function of the thread
-   * @param pExitNode the exit node of the start routine or main function of the thread
    * @return a MPORThread object with properly initialized variables
    */
   public MPORThread createThread(
-      Optional<CIdExpression> pThreadObject,
-      FunctionEntryNode pEntryNode,
-      FunctionExitNode pExitNode) {
+      Optional<CIdExpression> pThreadObject, FunctionEntryNode pEntryNode) {
 
     currentPc = SeqUtil.INIT_PC; // reset pc for every thread created
 
@@ -73,8 +69,7 @@ public class ThreadBuilder {
         visitedNodes, threadNodes, threadEdges, calledFuncs, pEntryNode, Optional.empty());
 
     ThreadCFA threadCfa =
-        new ThreadCFA(
-            pEntryNode, pExitNode, threadNodes.build(), threadEdges.build(), calledFuncs.build());
+        new ThreadCFA(pEntryNode, threadNodes.build(), threadEdges.build(), calledFuncs.build());
 
     ImmutableSet<CVariableDeclaration> localVars = getLocalVars(threadEdges.build());
 

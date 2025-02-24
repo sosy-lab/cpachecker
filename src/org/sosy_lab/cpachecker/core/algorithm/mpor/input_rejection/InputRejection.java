@@ -40,11 +40,7 @@ public class InputRejection {
     UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
-    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
-    // TODO test if this can be removed entirely
-    NO_FUNC_EXIT_NODE(
-        "MPOR expects the main function and all start routines to contain a FunctionExitNode",
-        false);
+    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true);
 
     public final String message;
 
@@ -67,12 +63,11 @@ public class InputRejection {
   private static LogManager logger;
 
   /**
-   * Handles initial (i.e. more may come at later stages of the MPOR transformation) input program
-   * rejections and throws an {@link IllegalArgumentException} if the input program...
+   * Handles input program rejections and throws an {@link IllegalArgumentException} if the input
+   * program...
    *
    * <ul>
    *   <li>is not in C
-   *   <li>contains multiple files
    *   <li>has no call to {@code pthread_create} i.e. is not concurrent
    *   <li>uses arrays for {@code pthread_t} or {@code pthread_mutex_t} identifiers
    *   <li>stores the return value of any pthread method call
@@ -81,7 +76,7 @@ public class InputRejection {
    *   <li>contains a recursive function call (both direct and indirect)
    * </ul>
    */
-  public static void handleInitialRejections(LogManager pLogger, CFA pInputCfa) {
+  public static void handleRejections(LogManager pLogger, CFA pInputCfa) {
     logger = pLogger;
     checkLanguageC(pInputCfa);
     checkIsParallelProgram(pInputCfa);
@@ -193,18 +188,5 @@ public class InputRejection {
             entry.getFunctionName());
       }
     }
-  }
-
-  // TODO this can probably be removed entirely -> take a look how the exitnode is used
-  //  at the moment just for the TSOs, which are not used
-  /**
-   * Tries to extract the FunctionExitNode from the given FunctionEntryNode and throws an {@link
-   * IllegalArgumentException} if there is none.
-   */
-  public static FunctionExitNode getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    if (pFunctionEntryNode.getExitNode().isEmpty()) {
-      handleRejection(InputRejectionMessage.NO_FUNC_EXIT_NODE);
-    }
-    return pFunctionEntryNode.getExitNode().orElseThrow();
   }
 }

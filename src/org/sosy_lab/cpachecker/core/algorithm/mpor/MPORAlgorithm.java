@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -180,7 +179,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
-    InputRejection.handleInitialRejections(logger, inputCfa);
+    InputRejection.handleRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
 
@@ -211,7 +210,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
-    InputRejection.handleInitialRejections(logger, inputCfa);
+    InputRejection.handleRejections(logger, inputCfa);
 
     gac = new GlobalAccessChecker();
 
@@ -290,9 +289,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    FunctionExitNode mainExitNode = InputRejection.getFunctionExitNode(mainEntryNode);
     assert threadBuilder != null;
-    rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode, mainExitNode));
+    rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode));
 
     // search the CFA for pthread_create calls
     for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
@@ -303,9 +301,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        FunctionExitNode exitNode = InputRejection.getFunctionExitNode(entryNode);
-        rThreads.add(
-            threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode, exitNode));
+        rThreads.add(threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode));
       }
     }
     return rThreads.build();

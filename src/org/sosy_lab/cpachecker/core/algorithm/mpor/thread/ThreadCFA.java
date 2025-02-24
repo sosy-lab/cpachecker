@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -28,7 +29,7 @@ public class ThreadCFA {
    * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
    * see {@link FunctionEntryNode#getExitNode()}.
    */
-  public final FunctionExitNode exitNode;
+  public final Optional<FunctionExitNode> exitNode;
 
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableSet<ThreadNode> threadNodes;
@@ -39,13 +40,12 @@ public class ThreadCFA {
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
-      FunctionExitNode pExitNode,
       ImmutableSet<ThreadNode> pThreadNodes,
       ImmutableSet<ThreadEdge> pThreadEdges,
       ImmutableSet<CFunctionDeclaration> pCalledFuncs) {
 
     entryNode = pEntryNode;
-    exitNode = pExitNode;
+    exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
     calledFuncs = pCalledFuncs;

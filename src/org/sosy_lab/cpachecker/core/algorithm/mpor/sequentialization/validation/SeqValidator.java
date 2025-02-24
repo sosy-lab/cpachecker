@@ -34,8 +34,7 @@ public class SeqValidator {
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validateCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      LogManager pLogger) {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
