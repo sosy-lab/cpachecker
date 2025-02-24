@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -29,7 +30,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDecl
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -81,6 +84,33 @@ public class SeqExpressions {
           SeqIdExpression.NEXT_THREAD,
           SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pThreadId),
           BinaryOperator.NOT_EQUALS);
+    }
+  }
+
+  public static class SeqFunctionCallExpressionBuilder {
+
+    /**
+     * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFile}", {pLine},
+     * "{pFunction}")}
+     */
+    public static CFunctionCallExpression buildReachError(
+        String pFile, int pLine, String pFunction) {
+
+      CStringLiteralExpression file =
+          SeqStringLiteralExpression.buildStringLiteralExpression(
+              SeqStringUtil.wrapInQuotationMarks(pFile));
+      CIntegerLiteralExpression line =
+          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pLine);
+      CStringLiteralExpression function =
+          SeqStringLiteralExpression.buildStringLiteralExpression(
+              SeqStringUtil.wrapInQuotationMarks(pFunction));
+
+      return new CFunctionCallExpression(
+          FileLocation.DUMMY,
+          SeqVoidType.VOID,
+          SeqIdExpression.REACH_ERROR,
+          ImmutableList.of(file, line, function),
+          SeqFunctionDeclaration.REACH_ERROR);
     }
   }
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -19,15 +20,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -37,11 +35,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqFunctionCallExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -61,7 +57,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
@@ -113,12 +108,13 @@ public class Sequentialization {
           LineOfCode.empty());
 
   public static final String inputReachErrorDummy =
-      buildReachErrorCall(SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
+      SeqFunctionCallExpressionBuilder.buildReachError(
+                  SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
   public static final String outputReachErrorDummy =
-      buildReachErrorCall(
+      SeqFunctionCallExpressionBuilder.buildReachError(
                   SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
@@ -315,7 +311,8 @@ public class Sequentialization {
     if (code.contains(inputReachErrorDummy)) {
       // reach_error calls from the input program
       CFunctionCallExpression reachErrorCall =
-          buildReachErrorCall(inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
+          SeqFunctionCallExpressionBuilder.buildReachError(
+              inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
       String replacement =
           code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
       return pLineOfCode.copyWithCode(replacement);
@@ -323,7 +320,7 @@ public class Sequentialization {
     } else if (code.contains(outputReachErrorDummy)) {
       // reach_error calls injected by the sequentialization
       CFunctionCallExpression reachErrorCall =
-          buildReachErrorCall(
+          SeqFunctionCallExpressionBuilder.buildReachError(
               outputFileName + FileExtension.I.suffix,
               pLineNumber,
               SeqToken.__SEQUENTIALIZATION_ERROR__);
@@ -408,8 +405,7 @@ public class Sequentialization {
   }
 
   /**
-   * Ensures that the initial label {@code pc} for all threads is {@link
-   * SeqCaseClauseBuilder#INIT_PC}.
+   * Ensures that the initial label {@code pc} for all threads is {@link Sequentialization#INIT_PC}.
    */
   private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
@@ -523,30 +519,5 @@ public class Sequentialization {
       rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
     }
     return rParameterVarDeclarations.build();
-  }
-
-  // Helpers for better Overview =================================================================
-
-  /**
-   * Returns the {@link CFunctionCallExpression} of {@code reach_error("{pFile}", {pLine},
-   * "{pFunction}")}
-   */
-  public static CFunctionCallExpression buildReachErrorCall(
-      String pFile, int pLine, String pFunction) {
-
-    CStringLiteralExpression file =
-        SeqStringLiteralExpression.buildStringLiteralExpression(
-            SeqStringUtil.wrapInQuotationMarks(pFile));
-    CIntegerLiteralExpression line =
-        SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pLine);
-    CStringLiteralExpression function =
-        SeqStringLiteralExpression.buildStringLiteralExpression(
-            SeqStringUtil.wrapInQuotationMarks(pFunction));
-    return new CFunctionCallExpression(
-        FileLocation.DUMMY,
-        SeqVoidType.VOID,
-        SeqIdExpression.REACH_ERROR,
-        ImmutableList.of(file, line, function),
-        SeqFunctionDeclaration.REACH_ERROR);
   }
 }
