@@ -591,7 +591,7 @@ public class Sequentialization {
     for (CIdExpression localVar : pSubstitution.localVarSubstitutes.values()) {
       CVariableDeclaration varDeclaration =
           pSubstitution.castToVarDeclaration(localVar.getDeclaration());
-      if (!SeqUtil.isConstCPAcheckerTMP(varDeclaration)) {
+      if (!SeqUtil.isConstCpaCheckerTmp(varDeclaration)) {
         rLocalVarDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
       }
     }

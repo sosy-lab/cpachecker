@@ -63,7 +63,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         pDeclaration.getDeclaration() instanceof CVariableDeclaration,
         "pDeclaration must be CVariableDeclaration");
     checkArgument(
-        SeqUtil.isConstCPAcheckerTMP((CVariableDeclaration) pDeclaration.getDeclaration()),
+        SeqUtil.isConstCpaCheckerTmp((CVariableDeclaration) pDeclaration.getDeclaration()),
         "pDeclaration must declare a const __CPAchecker_TMP variable");
     checkArgument(
         pStatementA.cfaEdge instanceof CStatementEdge,

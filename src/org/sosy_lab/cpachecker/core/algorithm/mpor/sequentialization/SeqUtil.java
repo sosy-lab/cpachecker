@@ -93,14 +93,13 @@ public class SeqUtil {
     } else {
       boolean firstEdge = true;
       for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
-        SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
-        if (substitute.cfaEdge instanceof CDeclarationEdge) {
-          // "leftover" declaration: const CPAchecker_TMP var
-          //  -> handle separately because it accesses successor nodes and edges
+        if (isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
+          // handle const CPAchecker_TMP first because it requires successor nodes and edges
           statements.add(
               SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
                   threadEdge, pcLeftHandSide, pCoveredNodes, pSubEdges));
         } else {
+          SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
           Optional<SeqCaseBlockStatement> statement =
               SeqCaseBlockStatementBuilder.tryBuildCaseBlockStatementFromEdge(
                   pThread,
@@ -127,10 +126,19 @@ public class SeqUtil {
 
   // Helpers =====================================================================================
 
-  public static boolean isConstCPAcheckerTMP(CVariableDeclaration pVarDec) {
+  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {
     return pVarDec.getType().isConst()
         && !pVarDec.isGlobal()
         && pVarDec.getName().contains(SeqToken.__CPAchecker_TMP_);
+  }
+
+  private static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
   }
 
   /**

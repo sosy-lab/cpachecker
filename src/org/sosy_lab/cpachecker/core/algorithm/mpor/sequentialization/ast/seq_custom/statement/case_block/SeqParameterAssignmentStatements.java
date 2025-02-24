@@ -29,12 +29,12 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final Integer targetPc;
+  private final int targetPc;
 
   protected SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
-      Integer pTargetPc) {
+      int pTargetPc) {
 
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;

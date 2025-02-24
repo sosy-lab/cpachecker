@@ -15,12 +15,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -83,12 +80,14 @@ public class SeqCaseBlockStatementBuilder {
     pCoveredNodes.add(successorB);
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
+    CFAEdge cfaEdge = Objects.requireNonNull(pSubEdges.get(pThreadEdge)).cfaEdge;
+    assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
     SubstituteEdge subA = Objects.requireNonNull(pSubEdges.get(statementA));
     SubstituteEdge subB = Objects.requireNonNull(pSubEdges.get(statementB));
     int newTargetPc = statementB.getSuccessor().pc;
 
     return new SeqConstCpaCheckerTmpStatement(
-        (CDeclarationEdge) pThreadEdge.cfaEdge, subA, subB, pPcLeftHandSide, newTargetPc);
+        (CDeclarationEdge) cfaEdge, subA, subB, pPcLeftHandSide, newTargetPc);
   }
 
   public static Optional<SeqCaseBlockStatement> tryBuildCaseBlockStatementFromEdge(
@@ -387,14 +386,8 @@ public class SeqCaseBlockStatementBuilder {
       return true;
 
     } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
-      CDeclaration dec = decEdge.getDeclaration();
-      if (!(dec instanceof CVariableDeclaration varDec)) {
-        // all non vars (functions, structs, ...) are declared beforehand
-        return true;
-      } else {
-        // declaration of const int CPAchecker_TMP vars is included in the cases
-        return !SeqUtil.isConstCPAcheckerTMP(varDec);
-      }
+      // all non vars (functions, structs, ...) are declared beforehand -> blank
+      return true;
 
     } else if (PthreadFunctionType.callsAnyPthreadFunc(pSubstituteEdge.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
