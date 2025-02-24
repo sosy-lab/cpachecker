@@ -22,6 +22,7 @@
     <option name="--predicateAnalysis"/>
     <option name="--option">analysis.algorithm.findErrorCondition=true</option>
     <option name="--option">findErrorCondition.refiners=ALLSAT</option>
+    <option name="--option">findErrorCondition.withFormatter=false</option>
 
     <rundefinition name="ErrorCondition">
         <tasks name="ReachSafety-BitVectors">

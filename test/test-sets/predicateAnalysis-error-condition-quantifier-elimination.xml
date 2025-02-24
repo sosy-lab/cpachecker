@@ -24,6 +24,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--predicateAnalysis"/>
   <option name="--option">analysis.algorithm.findErrorCondition=true</option>
   <option name="--option">findErrorCondition.refiners=QUANTIFIER_ELIMINATION</option>
+  <option name="--option">findErrorCondition.withFormatter=false</option>
 
   <rundefinition name="ErrorCondition">
     <tasks name="ReachSafety-BitVectors">
