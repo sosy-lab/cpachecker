@@ -61,13 +61,13 @@ public class SeqExpressions {
      * scalar {@code pc}.
      */
     public static CBinaryExpression buildPcNotExitPc(
-        GhostPcVariables pPcLeftHandSides,
+        GhostPcVariables pPcVariables,
         int pJoinedThreadId,
         CBinaryExpressionBuilder pBinaryExpressionBuilder)
         throws UnrecognizedCodeException {
 
       return pBinaryExpressionBuilder.buildBinaryExpression(
-          pPcLeftHandSides.get(pJoinedThreadId),
+          pPcVariables.get(pJoinedThreadId),
           SeqIntegerLiteralExpression.INT_EXIT_PC,
           BinaryOperator.NOT_EQUALS);
     }

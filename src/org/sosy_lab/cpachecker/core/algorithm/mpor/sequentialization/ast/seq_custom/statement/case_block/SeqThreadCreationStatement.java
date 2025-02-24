@@ -29,24 +29,24 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  private final GhostPcVariables pcLeftHandSides;
+  private final GhostPcVariables pcVariables;
 
   protected SeqThreadCreationStatement(
-      int pCreatedThreadId, int pThreadId, int pTargetPc, GhostPcVariables pPcLeftHandSides) {
+      int pCreatedThreadId, int pThreadId, int pTargetPc, GhostPcVariables pPcVariables) {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     targetPc = pTargetPc;
-    pcLeftHandSides = pPcLeftHandSides;
+    pcVariables = pPcVariables;
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement createdPcWrite =
         SeqExpressionAssignmentStatement.buildPcWrite(
-            pcLeftHandSides.get(createdThreadId), SeqUtil.INIT_PC);
+            pcVariables.get(createdThreadId), SeqUtil.INIT_PC);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSides.get(threadId), targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcVariables.get(threadId), targetPc);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
@@ -58,7 +58,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   @NonNull
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcLeftHandSides);
+    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
   }
 
   @Override

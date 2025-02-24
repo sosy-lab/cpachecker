@@ -45,7 +45,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  private final GhostPcVariables pcLeftHandSides;
+  private final GhostPcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -56,7 +56,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       CIdExpression pThreadJoins,
       int pThreadId,
       int pTargetPc,
-      GhostPcVariables pPcLeftHandSides,
+      GhostPcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -64,11 +64,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     threadJoins = pThreadJoins;
     threadId = pThreadId;
     targetPc = pTargetPc;
-    pcLeftHandSides = pPcLeftHandSides;
+    pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcNotExitPc =
-        SeqBinaryExpression.buildPcNotExitPc(
-            pcLeftHandSides, joinedThreadId, binaryExpressionBuilder);
+        SeqBinaryExpression.buildPcNotExitPc(pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
   @Override
@@ -82,7 +81,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_0);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSides.get(threadId), targetPc);
+        SeqExpressionAssignmentStatement.buildPcWrite(pcVariables.get(threadId), targetPc);
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
             joinsFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString());
@@ -104,7 +103,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   @Override
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
     return new SeqThreadJoinStatement(
-        joinedThreadId, threadJoins, threadId, pTargetPc, pcLeftHandSides, binaryExpressionBuilder);
+        joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
   }
 
   @Override
