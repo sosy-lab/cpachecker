@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -63,7 +63,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         pDeclaration.getDeclaration() instanceof CVariableDeclaration,
         "pDeclaration must be CVariableDeclaration");
     checkArgument(
-        SeqUtil.isConstCpaCheckerTmp((CVariableDeclaration) pDeclaration.getDeclaration()),
+        MPORUtil.isConstCpaCheckerTmp((CVariableDeclaration) pDeclaration.getDeclaration()),
         "pDeclaration must declare a const __CPAchecker_TMP variable");
     checkArgument(
         pStatementA.cfaEdge instanceof CStatementEdge,

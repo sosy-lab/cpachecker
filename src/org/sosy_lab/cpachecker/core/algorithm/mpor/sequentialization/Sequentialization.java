@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqType
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
@@ -120,6 +122,10 @@ public class Sequentialization {
                   SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
+
+  public static final int INIT_PC = 0;
+
+  public static final int EXIT_PC = -1;
 
   private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
 
@@ -386,22 +392,14 @@ public class Sequentialization {
       GhostVariables ghostVariables =
           new GhostVariables(functionVariables, pcVariables, pThreadVariables);
 
-      for (ThreadNode threadNode : thread.cfa.threadNodes) {
-        if (coveredNodes.add(threadNode)) {
-          Optional<SeqCaseClause> caseClause =
-              SeqUtil.buildCaseClauseFromThreadNode(
-                  thread,
-                  pSubstitutions.keySet(),
-                  coveredNodes,
-                  threadNode,
-                  pSubstituteEdges,
-                  ghostVariables,
-                  binaryExpressionBuilder);
-          if (caseClause.isPresent()) {
-            caseClauses.add(caseClause.orElseThrow());
-          }
-        }
-      }
+      caseClauses.addAll(
+          SeqCaseClauseBuilder.buildCaseClauses(
+              thread,
+              pSubstitutions.keySet(),
+              coveredNodes,
+              pSubstituteEdges,
+              ghostVariables,
+              binaryExpressionBuilder));
       rCaseClauses.put(thread, caseClauses.build());
     }
     // modified reach_error result in unreachable statements of that function
@@ -409,7 +407,10 @@ public class Sequentialization {
     return rCaseClauses.buildOrThrow();
   }
 
-  /** Ensures that the initial label {@code pc} for all threads is {@link SeqUtil#INIT_PC}. */
+  /**
+   * Ensures that the initial label {@code pc} for all threads is {@link
+   * SeqCaseClauseBuilder#INIT_PC}.
+   */
   private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
 
@@ -424,7 +425,7 @@ public class Sequentialization {
         assert !caseClause.isPrunable()
             : "case clause is still prunable. did you use the pruned case clauses?";
         if (firstCase) {
-          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(SeqUtil.INIT_PC)));
+          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC)));
           firstCase = false;
         } else {
           updatedCases.add(caseClause);
@@ -507,7 +508,7 @@ public class Sequentialization {
     for (CIdExpression localVar : pSubstitution.localSubstitutes.values()) {
       CVariableDeclaration varDeclaration =
           pSubstitution.castToVarDeclaration(localVar.getDeclaration());
-      if (!SeqUtil.isConstCpaCheckerTmp(varDeclaration)) {
+      if (!MPORUtil.isConstCpaCheckerTmp(varDeclaration)) {
         rLocalVarDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
       }
     }

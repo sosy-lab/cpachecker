@@ -16,9 +16,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
@@ -205,5 +207,20 @@ public final class MPORUtil {
         .getDeclaration()
         .getOrigName()
         .equals(SeqToken.reach_error);
+  }
+
+  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {
+    return pVarDec.getType().isConst()
+        && !pVarDec.isGlobal()
+        && pVarDec.getName().contains(SeqToken.__CPAchecker_TMP_);
+  }
+
+  public static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+        return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
   }
 }

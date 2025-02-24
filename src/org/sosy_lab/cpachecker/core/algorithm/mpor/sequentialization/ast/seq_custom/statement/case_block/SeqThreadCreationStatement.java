@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
@@ -44,7 +44,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     CExpressionAssignmentStatement createdPcWrite =
         SeqExpressionAssignmentStatement.buildPcWrite(
-            pcVariables.get(createdThreadId), SeqUtil.INIT_PC);
+            pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWrite(pcVariables.get(threadId), targetPc);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();

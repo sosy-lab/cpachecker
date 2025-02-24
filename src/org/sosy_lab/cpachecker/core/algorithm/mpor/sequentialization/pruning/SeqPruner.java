@@ -14,7 +14,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
@@ -43,9 +43,9 @@ public class SeqPruner {
           rPruned.put(
               thread,
               ImmutableList.of(
-                  threadExit.label.value == SeqUtil.INIT_PC
+                  threadExit.label.value == Sequentialization.INIT_PC
                       ? threadExit
-                      : threadExit.cloneWithLabel(new SeqCaseLabel(SeqUtil.INIT_PC))));
+                      : threadExit.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC))));
         } else {
           rPruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
@@ -70,7 +70,7 @@ public class SeqPruner {
         for (SeqCaseBlockStatement statement : caseClause.block.statements) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
-            if (targetPc != SeqUtil.EXIT_PC) {
+            if (targetPc != Sequentialization.EXIT_PC) {
               SeqCaseClause nextCaseClause = requireNonNull(labelValueMap.get(targetPc));
               if (nextCaseClause.isPrunable()) {
                 // if next case clause is prunable ...
@@ -80,7 +80,7 @@ public class SeqPruner {
                   Verify.verify(validPrunableCaseClause(nonBlank));
                   int nonBlankTargetPc =
                       nonBlank.block.statements.get(0).getTargetPc().orElseThrow();
-                  Verify.verify(nonBlankTargetPc == SeqUtil.EXIT_PC);
+                  Verify.verify(nonBlankTargetPc == Sequentialization.EXIT_PC);
                   // ... and non-blank targets the exit pc, use the target pc instead of label pc
                   SeqCaseBlockStatement clone = statement.cloneWithTargetPc(nonBlankTargetPc);
                   newStatements.add(clone);
@@ -123,7 +123,7 @@ public class SeqPruner {
   private static SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
     for (SeqCaseClause caseClause : pCaseClauses) {
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        if (statement.getTargetPc().orElseThrow() == SeqUtil.EXIT_PC) {
+        if (statement.getTargetPc().orElseThrow() == Sequentialization.EXIT_PC) {
           return caseClause;
         }
       }
@@ -144,7 +144,7 @@ public class SeqPruner {
     if (pCurrent.isPrunable()) {
       Verify.verify(validPrunableCaseClause(pCurrent));
       int targetPc = pCurrent.block.statements.get(0).getTargetPc().orElseThrow();
-      if (targetPc != SeqUtil.EXIT_PC) {
+      if (targetPc != Sequentialization.EXIT_PC) {
         SeqCaseClause nextCaseClause = requireNonNull(pLabelValueMap.get(targetPc));
         return nonPrunableCaseClause(pInitial, nextCaseClause, pLabelValueMap);
       }

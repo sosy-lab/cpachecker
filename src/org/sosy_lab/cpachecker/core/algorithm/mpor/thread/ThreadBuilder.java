@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @SuppressWarnings("unused")
@@ -39,7 +39,7 @@ public class ThreadBuilder {
 
   private int currentId = 0;
 
-  private int currentPc = SeqUtil.INIT_PC;
+  private int currentPc = Sequentialization.INIT_PC;
 
   /** A copy of the functionCallMap in {@link MPORAlgorithm}. */
   private final ImmutableMap<CFANode, CFANode> functionCallMap;
@@ -58,7 +58,7 @@ public class ThreadBuilder {
   public MPORThread createThread(
       Optional<CIdExpression> pThreadObject, FunctionEntryNode pEntryNode) {
 
-    currentPc = SeqUtil.INIT_PC; // reset pc for every thread created
+    currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
 
     Set<CFANode> visitedNodes = new HashSet<>(); // using set so that we can use .contains()
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
@@ -106,7 +106,7 @@ public class ThreadBuilder {
       List<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
       pThreadEdges.addAll(threadEdges);
       if (leavingCfaEdges.isEmpty()) {
-        pThreadNodes.add(new ThreadNode(pCurrentNode, SeqUtil.EXIT_PC, threadEdges));
+        pThreadNodes.add(new ThreadNode(pCurrentNode, Sequentialization.EXIT_PC, threadEdges));
       } else {
         pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
         for (CFAEdge cfaEdge : leavingCfaEdges) {

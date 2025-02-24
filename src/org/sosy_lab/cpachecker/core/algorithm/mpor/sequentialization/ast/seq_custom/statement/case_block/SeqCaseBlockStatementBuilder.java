@@ -59,7 +59,47 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqReturnPcReadStatement(pPcLeftHandSide, pReturnPcVariable);
   }
 
-  public static SeqConstCpaCheckerTmpStatement buildConstCpaCheckerTmpStatement(
+  public static ImmutableList<SeqCaseBlockStatement> buildStatementsFromThreadNode(
+      MPORThread pThread,
+      ImmutableSet<MPORThread> pAllThreads,
+      ThreadNode pThreadNode,
+      CLeftHandSide pPcLeftHandSide,
+      Set<ThreadNode> pCoveredNodes,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      GhostVariables pGhostVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqCaseBlockStatement> rStatements = ImmutableList.builder();
+
+    boolean firstEdge = true;
+    for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
+      if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
+        // handle const CPAchecker_TMP first because it requires successor nodes and edges
+        rStatements.add(
+            SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
+                threadEdge, pPcLeftHandSide, pCoveredNodes, pSubstituteEdges));
+      } else {
+        SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+        Optional<SeqCaseBlockStatement> statement =
+            SeqCaseBlockStatementBuilder.tryBuildCaseBlockStatementFromEdge(
+                pThread,
+                pAllThreads,
+                firstEdge,
+                threadEdge,
+                substitute,
+                pGhostVariables,
+                pBinaryExpressionBuilder);
+        if (statement.isPresent()) {
+          rStatements.add(statement.orElseThrow());
+        }
+      }
+      firstEdge = false;
+    }
+    return rStatements.build();
+  }
+
+  private static SeqConstCpaCheckerTmpStatement buildConstCpaCheckerTmpStatement(
       ThreadEdge pThreadEdge,
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
@@ -90,7 +130,7 @@ public class SeqCaseBlockStatementBuilder {
         (CDeclarationEdge) cfaEdge, subA, subB, pPcLeftHandSide, newTargetPc);
   }
 
-  public static Optional<SeqCaseBlockStatement> tryBuildCaseBlockStatementFromEdge(
+  private static Optional<SeqCaseBlockStatement> tryBuildCaseBlockStatementFromEdge(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       boolean pFirstEdge,
@@ -105,7 +145,7 @@ public class SeqCaseBlockStatementBuilder {
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
-    if (isBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
+    if (yieldsBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
       return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
 
     } else {
@@ -371,7 +411,7 @@ public class SeqCaseBlockStatementBuilder {
    * Returns true if the resulting case block has only pc adjustments, i.e. no code changing the
    * input program state.
    */
-  private static boolean isBlankCaseBlock(
+  private static boolean yieldsBlankCaseBlock(
       MPORThread pThread, SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
 
     // exiting start routine of thread -> blank, just set pc[i] = -1;

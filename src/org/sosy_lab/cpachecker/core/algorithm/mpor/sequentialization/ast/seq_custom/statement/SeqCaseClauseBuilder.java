@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -17,19 +17,15 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -37,18 +33,44 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqUtil {
+public class SeqCaseClauseBuilder {
 
-  public static final int INIT_PC = 0;
+  public static ImmutableList<SeqCaseClause> buildCaseClauses(
+      MPORThread pThread,
+      ImmutableSet<MPORThread> pAllThreads,
+      Set<ThreadNode> pCoveredNodes,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      GhostVariables pGhostVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-  public static final int EXIT_PC = -1;
+    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
+
+    for (ThreadNode threadNode : pThread.cfa.threadNodes) {
+      if (pCoveredNodes.add(threadNode)) {
+        Optional<SeqCaseClause> caseClause =
+            buildCaseClauseFromThreadNode(
+                pThread,
+                pAllThreads,
+                pCoveredNodes,
+                threadNode,
+                pSubstituteEdges,
+                pGhostVariables,
+                pBinaryExpressionBuilder);
+        if (caseClause.isPresent()) {
+          rCaseClauses.add(caseClause.orElseThrow());
+        }
+      }
+    }
+    return rCaseClauses.build();
+  }
 
   /**
    * Returns a {@link SeqCaseClause} which represents case statements in the sequentializations
    * while loop. Returns {@link Optional#empty()} if pThreadNode has no leaving edges i.e. its pc is
    * -1.
    */
-  public static Optional<SeqCaseClause> buildCaseClauseFromThreadNode(
+  private static Optional<SeqCaseClause> buildCaseClauseFromThreadNode(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -65,9 +87,9 @@ public class SeqUtil {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
-    // no edges -> exit node of thread reached -> no case because no edges with code
     if (pThreadNode.leavingEdges().isEmpty()) {
-      assert pThreadNode.pc == EXIT_PC;
+      // no edges -> exit node of thread reached -> no case because no edges with code
+      assert pThreadNode.pc == Sequentialization.EXIT_PC;
       return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
@@ -80,30 +102,16 @@ public class SeqUtil {
               pcLeftHandSide, read.returnPcVar));
 
     } else {
-      boolean firstEdge = true;
-      for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
-        if (isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
-          // handle const CPAchecker_TMP first because it requires successor nodes and edges
-          statements.add(
-              SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
-                  threadEdge, pcLeftHandSide, pCoveredNodes, pSubEdges));
-        } else {
-          SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
-          Optional<SeqCaseBlockStatement> statement =
-              SeqCaseBlockStatementBuilder.tryBuildCaseBlockStatementFromEdge(
-                  pThread,
-                  pAllThreads,
-                  firstEdge,
-                  threadEdge,
-                  substitute,
-                  pGhostVariables,
-                  pBinaryExpressionBuilder);
-          if (statement.isPresent()) {
-            statements.add(statement.orElseThrow());
-          }
-        }
-        firstEdge = false;
-      }
+      statements.addAll(
+          SeqCaseBlockStatementBuilder.buildStatementsFromThreadNode(
+              pThread,
+              pAllThreads,
+              pThreadNode,
+              pcLeftHandSide,
+              pCoveredNodes,
+              pSubEdges,
+              pGhostVariables,
+              pBinaryExpressionBuilder));
     }
     return Optional.of(
         new SeqCaseClause(
@@ -114,21 +122,6 @@ public class SeqUtil {
   }
 
   // Helpers =====================================================================================
-
-  public static boolean isConstCpaCheckerTmp(CVariableDeclaration pVarDec) {
-    return pVarDec.getType().isConst()
-        && !pVarDec.isGlobal()
-        && pVarDec.getName().contains(SeqToken.__CPAchecker_TMP_);
-  }
-
-  private static boolean isConstCpaCheckerTmpDeclaration(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-        return isConstCpaCheckerTmp(variableDeclaration);
-      }
-    }
-    return false;
-  }
 
   /**
    * Returns {@code true} if any {@link CFAEdge} of the given {@link ThreadEdge}s read or write a

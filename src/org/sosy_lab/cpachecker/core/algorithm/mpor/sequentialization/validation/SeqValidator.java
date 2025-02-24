@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -71,7 +71,7 @@ public class SeqValidator {
       int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger) {
 
     // exclude INIT_PC, it is (often) not present as a target pc
-    if (pLabelPc != SeqUtil.INIT_PC) {
+    if (pLabelPc != Sequentialization.INIT_PC) {
       if (!pAllTargetPc.contains(pLabelPc)) {
         String message =
             "label pc " + pLabelPc + " does not exist as target pc in thread " + pThreadId;
@@ -89,7 +89,7 @@ public class SeqValidator {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
-      if (targetPc != SeqUtil.EXIT_PC) {
+      if (targetPc != Sequentialization.EXIT_PC) {
         if (!pLabelPcs.contains(targetPc)) {
           String message =
               "target pc " + targetPc + " does not exist as label pc in thread " + pThreadId;

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
@@ -87,7 +87,7 @@ public class SeqExpressions {
   public static class SeqIntegerLiteralExpression {
 
     public static final CIntegerLiteralExpression INT_EXIT_PC =
-        buildIntegerLiteralExpression(SeqUtil.EXIT_PC);
+        buildIntegerLiteralExpression(Sequentialization.EXIT_PC);
 
     public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntegerLiteralExpression(-1);
 
