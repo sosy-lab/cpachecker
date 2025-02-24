@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -33,17 +34,18 @@ public class SeqValidator {
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validateCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      LogManager pLogger) {
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(entry.getValue());
-      // ImmutableSet<Integer> allTargetPcs =
-      // pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
+      ImmutableSet<Integer> allTargetPcs =
+          pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
-        // checkOriginPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
-        checkTargetPcsAsOriginPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
+        checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
+        checkTargetPcsAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
     }
     return pCaseClauses;
@@ -66,32 +68,32 @@ public class SeqValidator {
     return rPcMap.buildOrThrow();
   }
 
-  private static void checkOriginPcAsTargetPc(
-      int pOriginPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger) {
+  private static void checkLabelPcAsTargetPc(
+      int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger) {
 
     // exclude INIT_PC, it is (often) not present as a target pc
-    if (pOriginPc != SeqUtil.INIT_PC) {
-      if (!pAllTargetPc.contains(pOriginPc)) {
+    if (pLabelPc != SeqUtil.INIT_PC) {
+      if (!pAllTargetPc.contains(pLabelPc)) {
         String message =
-            "origin pc " + pOriginPc + " does not exist as target pc in thread " + pThreadId;
+            "label pc " + pLabelPc + " does not exist as target pc in thread " + pThreadId;
         pLogger.log(Level.SEVERE, message);
         MPORAlgorithm.fail(message);
       }
     }
   }
 
-  private static void checkTargetPcsAsOriginPc(
+  private static void checkTargetPcsAsLabelPc(
       ImmutableSet<Integer> pTargetPcs,
-      ImmutableSet<Integer> pOriginPcs,
+      ImmutableSet<Integer> pLabelPcs,
       int pThreadId,
       org.sosy_lab.common.log.LogManager pLogger) {
 
     for (int targetPc : pTargetPcs) {
-      // exclude EXIT_PC, it is never present as an origin pc
+      // exclude EXIT_PC, it is never present as a label pc
       if (targetPc != SeqUtil.EXIT_PC) {
-        if (!pOriginPcs.contains(targetPc)) {
+        if (!pLabelPcs.contains(targetPc)) {
           String message =
-              "target pc " + targetPc + " does not exist as origin pc in thread " + pThreadId;
+              "target pc " + targetPc + " does not exist as label pc in thread " + pThreadId;
           pLogger.log(Level.SEVERE, message);
           MPORAlgorithm.fail(message);
         }

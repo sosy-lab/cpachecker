@@ -14,24 +14,22 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqPruner {
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger)
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
       throws UnrecognizedCodeException {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> pruned = ImmutableMap.builder();
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rPruned = ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
       if (isPrunable(caseClauses)) {
@@ -42,20 +40,20 @@ public class SeqPruner {
           // TODO we should check that there are not multiple thread exits when all are prunable
           SeqCaseClause threadExit = getThreadExitCaseClause(caseClauses);
           // ensure that the single thread exit case clause has label INIT_PC
-          // TODO refactor and then delete .cloneWithLabel
-          pruned.put(
+          rPruned.put(
               thread,
               ImmutableList.of(
                   threadExit.label.value == SeqUtil.INIT_PC
                       ? threadExit
                       : threadExit.cloneWithLabel(new SeqCaseLabel(SeqUtil.INIT_PC))));
         } else {
-          pruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
+          rPruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
       }
     }
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> rPruned = pruned.buildOrThrow();
-    return SeqValidator.validateCaseClauses(rPruned, pLogger);
+    // the initial pc are (often) not targeted here, we update them later to INIT_PC
+    //  -> no validation of cases here
+    return rPruned.buildOrThrow();
   }
 
   private static ImmutableList<SeqCaseClause> pruneSingleThreadCaseClauses(

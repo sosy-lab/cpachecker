@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqS
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -247,7 +249,9 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         initCaseClauses(substitutions, subEdges, returnPcVars, threadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
-        SeqPruner.pruneCaseClauses(caseClauses, logger);
+        SeqPruner.pruneCaseClauses(caseClauses);
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> finalCaseClauses =
+        updateInitialLabels(prunedCaseClauses, logger);
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
         options.addLoopInvariants
@@ -255,7 +259,7 @@ public class Sequentialization {
             : Optional.empty();
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        options.addPOR ? Optional.of(createPORAssumptions(prunedCaseClauses)) : Optional.empty();
+        options.addPOR ? Optional.of(createPORAssumptions(finalCaseClauses)) : Optional.empty();
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             substitutions.size(),
@@ -263,7 +267,7 @@ public class Sequentialization {
             loopInvariants,
             createThreadSimulationAssumptions(substitutions.keySet(), threadVars),
             porAssumptions,
-            prunedCaseClauses,
+            finalCaseClauses,
             pcLeftHandSides,
             binaryExpressionBuilder);
     rProgram.addAll(mainMethod.buildDefinition());
@@ -518,6 +522,30 @@ public class Sequentialization {
     // modified reach_error result in unreachable statements of that function
     //  -> no validation of case clauses here
     return rCaseClauses.buildOrThrow();
+  }
+
+  /** Ensures that the initial label {@code pc} for all threads is {@link SeqUtil#INIT_PC}. */
+  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rUpdated =
+        ImmutableMap.builder();
+    for (var entry : pCaseClauses.entrySet()) {
+      boolean firstCase = true;
+      ImmutableList.Builder<SeqCaseClause> updatedCases = ImmutableList.builder();
+      // this approach (just taking the first case) is sound because the path up to the first
+      //  non-blank case is deterministic (i.e. only 1 leaving edge)
+      for (SeqCaseClause caseClause : entry.getValue()) {
+        if (firstCase) {
+          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(SeqUtil.INIT_PC)));
+          firstCase = false;
+        } else {
+          updatedCases.add(caseClause);
+        }
+      }
+      rUpdated.put(entry.getKey(), updatedCases.build());
+    }
+    return SeqValidator.validateCaseClauses(rUpdated.buildOrThrow(), pLogger);
   }
 
   /**

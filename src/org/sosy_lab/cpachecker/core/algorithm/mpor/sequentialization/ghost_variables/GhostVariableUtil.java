@@ -53,16 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class GhostVariableUtil {
 
-  public static GhostThreadVariables buildThreadVariables(
-      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
-
-    return new GhostThreadVariables(
-        mapMutexLockedVars(pThreads, pSubEdges),
-        mapThreadAwaitsMutexVars(pThreads, pSubEdges),
-        mapThreadJoinsThreadVars(pThreads),
-        mapThreadBeginsAtomicVars(pThreads));
-  }
-
   public static GhostFunctionVariables buildFunctionVariables(
       MPORThread pThread,
       CSimpleDeclarationSubstitution pSubstitution,
@@ -76,6 +66,16 @@ public class GhostVariableUtil {
         mapReturnValueAssignments(pThread, pSubEdges, returnPcWrites),
         returnPcWrites,
         mapReturnPcReads(pThread, pReturnPcVars.get(pThread)));
+  }
+
+  public static GhostThreadVariables buildThreadVariables(
+      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+
+    return new GhostThreadVariables(
+        mapMutexLockedVars(pThreads, pSubEdges),
+        mapThreadAwaitsMutexVars(pThreads, pSubEdges),
+        mapThreadJoinsThreadVars(pThreads),
+        mapThreadBeginsAtomicVars(pThreads));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> mapMutexLockedVars(
