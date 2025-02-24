@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadJoinsThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -53,32 +56,60 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class GhostVariableUtil {
 
+  /**
+   * Maps {@link CFunctionDeclaration}s to {@code return_pc} {@link CIdExpression}s for all threads.
+   *
+   * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
+   * __return_pc_t0_fib}.
+   */
+  public static ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+      buildReturnPcVariables(ImmutableSet<MPORThread> pThreads) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> rVars =
+        ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
+      for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
+        // no RETURN_PC for reach_error, the function never returns
+        if (!function.getOrigName().equals(SeqToken.reach_error)) {
+          CVariableDeclaration varDec =
+              SeqVariableDeclaration.buildReturnPcVariableDeclaration(
+                  thread.id, function.getName());
+          returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
+        }
+      }
+      rVars.put(thread, returnPc.buildOrThrow());
+    }
+    return rVars.buildOrThrow();
+  }
+
   public static GhostFunctionVariables buildFunctionVariables(
       MPORThread pThread,
       CSimpleDeclarationSubstitution pSubstitution,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars) {
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+          pReturnPcVariables) {
 
     ImmutableMap<ThreadEdge, FunctionReturnPcWrite> returnPcWrites =
-        mapReturnPcWrites(pThread, pReturnPcVars.get(pThread));
+        buildReturnPcWrites(pThread, pReturnPcVariables.get(pThread));
     return new GhostFunctionVariables(
-        mapParameterAssignments(pThread, pSubEdges, pSubstitution),
-        mapReturnValueAssignments(pThread, pSubEdges, returnPcWrites),
+        buildParameterAssignments(pThread, pSubEdges, pSubstitution),
+        buildReturnValueAssignments(pThread, pSubEdges, returnPcWrites),
         returnPcWrites,
-        mapReturnPcReads(pThread, pReturnPcVars.get(pThread)));
+        buildReturnPcReads(pThread, pReturnPcVariables.get(pThread)));
   }
 
   public static GhostThreadVariables buildThreadVariables(
       ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     return new GhostThreadVariables(
-        mapMutexLockedVars(pThreads, pSubEdges),
-        mapThreadAwaitsMutexVars(pThreads, pSubEdges),
-        mapThreadJoinsThreadVars(pThreads),
-        mapThreadBeginsAtomicVars(pThreads));
+        buildMutexLockedVariables(pThreads, pSubEdges),
+        buildThreadAwaitsMutexVariables(pThreads, pSubEdges),
+        buildThreadJoinsThreadVariables(pThreads),
+        buildThreadBeginsAtomicVariables(pThreads));
   }
 
-  private static ImmutableMap<CIdExpression, MutexLocked> mapMutexLockedVars(
+  private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
       ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
@@ -105,7 +136,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
-      mapThreadAwaitsMutexVars(
+      buildThreadAwaitsMutexVariables(
           ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
@@ -136,7 +167,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
-      mapThreadJoinsThreadVars(ImmutableSet<MPORThread> pThreads) {
+      buildThreadJoinsThreadVariables(ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> rVars =
         ImmutableMap.builder();
@@ -161,7 +192,7 @@ public class GhostVariableUtil {
     return rVars.buildOrThrow();
   }
 
-  private static ImmutableMap<MPORThread, ThreadBeginsAtomic> mapThreadBeginsAtomicVars(
+  private static ImmutableMap<MPORThread, ThreadBeginsAtomic> buildThreadBeginsAtomicVariables(
       ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();
@@ -191,7 +222,7 @@ public class GhostVariableUtil {
    * CSimpleDeclarationSubstitution#parameterSubstitutes}.
    */
   private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
-      mapParameterAssignments(
+      buildParameterAssignments(
           MPORThread pThread,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
           CSimpleDeclarationSubstitution pSub) {
@@ -234,7 +265,7 @@ public class GhostVariableUtil {
    * corresponding {@link CFunctionSummaryEdge}s.
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
-      mapReturnValueAssignments(
+      buildReturnValueAssignments(
           MPORThread pThread,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
           ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites) {
@@ -288,7 +319,7 @@ public class GhostVariableUtil {
    * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
    * thread 0 is mapped to the return pc write with the assignment {@code __return_pc_t0_fib = 10;}.
    */
-  private static ImmutableMap<ThreadEdge, FunctionReturnPcWrite> mapReturnPcWrites(
+  private static ImmutableMap<ThreadEdge, FunctionReturnPcWrite> buildReturnPcWrites(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     ImmutableMap.Builder<ThreadEdge, FunctionReturnPcWrite> rAssigns = ImmutableMap.builder();
@@ -314,7 +345,7 @@ public class GhostVariableUtil {
    * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
    * assignment {@code pc[0] = __return_pc_t0_fib;}.
    */
-  private static ImmutableMap<ThreadNode, FunctionReturnPcRead> mapReturnPcReads(
+  private static ImmutableMap<ThreadNode, FunctionReturnPcRead> buildReturnPcReads(
       MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
 
     Map<ThreadNode, FunctionReturnPcRead> rAssigns = new HashMap<>();

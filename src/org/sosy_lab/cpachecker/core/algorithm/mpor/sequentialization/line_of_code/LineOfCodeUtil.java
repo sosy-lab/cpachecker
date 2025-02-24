@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqStringUtil;
 
 public class LineOfCodeUtil {
@@ -35,6 +36,17 @@ public class LineOfCodeUtil {
       int leadingSpaces = line.length() - line.stripLeading().length();
       int tabs = (int) Math.ceil((double) leadingSpaces / SeqStringUtil.TAB_SIZE);
       rLinesOfCode.add(LineOfCode.of(tabs, line.trim()));
+    }
+    return rLinesOfCode.build();
+  }
+
+  /** Return the list of {@link LineOfCode} for pAstNodes. */
+  public static <T extends CAstNode> ImmutableList<LineOfCode> buildLinesOfCode(
+      ImmutableList<T> pAstNodes) {
+
+    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
+    for (T astNode : pAstNodes) {
+      rLinesOfCode.addAll(buildLinesOfCode(astNode.toASTString()));
     }
     return rLinesOfCode.build();
   }

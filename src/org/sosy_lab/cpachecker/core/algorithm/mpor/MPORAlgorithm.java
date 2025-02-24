@@ -306,16 +306,4 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     }
     return rThreads.build();
   }
-
-  // (Public) Helpers ===========================================================================
-
-  /** Returns the MPORThread in pThreads whose pthread_t object is empty. */
-  public static MPORThread getMainThread(ImmutableSet<MPORThread> pThreads) {
-    for (MPORThread thread : pThreads) {
-      if (thread.isMain()) {
-        return thread;
-      }
-    }
-    throw new IllegalArgumentException("pThreads does not contain the main thread");
-  }
 }

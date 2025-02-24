@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,17 +25,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqFunctionCallExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
@@ -67,6 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @SuppressWarnings("unused")
@@ -167,43 +163,49 @@ public class Sequentialization {
     }
   }
 
+  // TODO add separate functions for better overview
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
   private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
-
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
     ImmutableSet<MPORThread> threads = substitutions.keySet();
 
     // add all original program declarations that are not substituted
     rProgram.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
     for (MPORThread thread : threads) {
-      rProgram.addAll(createNonVarDeclarations(thread));
+      ImmutableList<CDeclaration> nonVariableDeclarations =
+          ThreadUtil.extractNonVariableDeclarations(thread);
+      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(nonVariableDeclarations));
     }
     rProgram.add(LineOfCode.empty());
 
     // add all var substitute declarations in the order global - local - params - return_pc
     // global var substitutes
     rProgram.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
-    MPORThread mainThread = MPORAlgorithm.getMainThread(threads);
-    rProgram.addAll(
-        createGlobalVarDeclarations(Objects.requireNonNull(substitutions.get(mainThread))));
+    MPORThread mainThread = ThreadUtil.extractMainThread(threads);
+    ImmutableList<CVariableDeclaration> globalDeclarations =
+        Objects.requireNonNull(substitutions.get(mainThread)).getGlobalDeclarations();
+    rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(globalDeclarations));
     rProgram.add(LineOfCode.empty());
     // local var substitutes
     rProgram.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
     for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
-      rProgram.addAll(createLocalVarDeclarations(substitution));
+      ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
+      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(localDeclarations));
     }
     rProgram.add(LineOfCode.empty());
     // parameter variables storing function arguments
     rProgram.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
     for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
-      rProgram.addAll(createParameterVarDeclarations(substitution));
+      ImmutableList<CParameterDeclaration> parameterDeclarations =
+          substitution.getParameterDeclarations();
+      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(parameterDeclarations));
     }
     rProgram.add(LineOfCode.empty());
     // ghost return pcs storing calling contexts
     rProgram.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
-    ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVars =
-        mapReturnPcVars(threads);
-    for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVars.values()) {
+    ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVariables =
+        GhostVariableUtil.buildReturnPcVariables(threads);
+    for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVariables.values()) {
       for (CIdExpression returnPc : map.values()) {
         rProgram.add(LineOfCode.of(0, returnPc.getDeclaration().toASTString()));
       }
@@ -245,7 +247,7 @@ public class Sequentialization {
     // TODO the case clauses should be multimaps
     // create pruned (i.e. only non-blank) cases statements in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        initCaseClauses(substitutions, subEdges, returnPcVars, threadVars);
+        initCaseClauses(substitutions, subEdges, returnPcVariables, threadVars);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         SeqPruner.pruneCaseClauses(caseClauses);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> finalCaseClauses =
@@ -430,94 +432,5 @@ public class Sequentialization {
       rUpdated.put(entry.getKey(), updatedCases.build());
     }
     return SeqValidator.validateCaseClauses(rUpdated.buildOrThrow(), pLogger);
-  }
-
-  /**
-   * Maps {@link CFunctionDeclaration}s to {@code return_pc} {@link CIdExpression}s for all threads.
-   *
-   * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
-   * __return_pc_t0_fib}.
-   */
-  private ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-      mapReturnPcVars(ImmutableSet<MPORThread> pThreads) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> rVars =
-        ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
-      for (CFunctionDeclaration function : thread.cfa.calledFuncs) {
-        // no RETURN_PC for reach_error, the function never returns
-        if (!function.getOrigName().equals(SeqToken.reach_error)) {
-          CVariableDeclaration varDec =
-              SeqVariableDeclaration.buildReturnPcVariableDeclaration(
-                  thread.id, function.getName());
-          returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
-        }
-      }
-      rVars.put(thread, returnPc.buildOrThrow());
-    }
-    return rVars.buildOrThrow();
-  }
-
-  // LOC Creators =============================================================================
-
-  /**
-   * Creates {@link LineOfCode}s for all non-variable declarations (e.g. function and struct
-   * declarations) for the given thread.
-   */
-  private ImmutableList<LineOfCode> createNonVarDeclarations(MPORThread pThread) {
-    ImmutableList.Builder<LineOfCode> rNonVarDeclarations = ImmutableList.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
-        CDeclaration dec = decEdge.getDeclaration();
-        if (!(dec instanceof CVariableDeclaration)) {
-          assert pThread.isMain(); // test if only main thread declares non-vars, e.g. functions
-          rNonVarDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(threadEdge.cfaEdge.getCode()));
-        }
-      }
-    }
-    return rNonVarDeclarations.build();
-  }
-
-  /**
-   * Creates {@link LineOfCode}s for all global variable declarations for based on the substitutions
-   * of the main thread.
-   */
-  private ImmutableList<LineOfCode> createGlobalVarDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
-    for (CIdExpression globalVar : pSubstitution.globalSubstitutes.orElseThrow().values()) {
-      rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
-    }
-    return rGlobalVarDeclarations.build();
-  }
-
-  /**
-   * Creates {@link LineOfCode}s for all local variable declarations for the given thread id based
-   * on the given main thread.
-   */
-  private ImmutableList<LineOfCode> createLocalVarDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<LineOfCode> rLocalVarDeclarations = ImmutableList.builder();
-    for (CIdExpression localVar : pSubstitution.localSubstitutes.values()) {
-      CVariableDeclaration varDeclaration =
-          pSubstitution.castToVarDeclaration(localVar.getDeclaration());
-      if (!MPORUtil.isConstCpaCheckerTmp(varDeclaration)) {
-        rLocalVarDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
-      }
-    }
-    return rLocalVarDeclarations.build();
-  }
-
-  private ImmutableList<LineOfCode> createParameterVarDeclarations(
-      CSimpleDeclarationSubstitution pSubstitution) {
-
-    ImmutableList.Builder<LineOfCode> rParameterVarDeclarations = ImmutableList.builder();
-    for (CIdExpression param : pSubstitution.parameterSubstitutes.orElseThrow().values()) {
-      rParameterVarDeclarations.add(LineOfCode.of(0, param.getDeclaration().toASTString()));
-    }
-    return rParameterVarDeclarations.build();
   }
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -226,15 +228,50 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return (CVariableDeclaration) idExpression.getDeclaration();
   }
 
-  public CVariableDeclaration castToVarDeclaration(CSimpleDeclaration pSimpleDeclaration) {
+  public <T extends CSimpleDeclaration> T castTo(
+      CSimpleDeclaration pSimpleDeclaration, Class<T> pClass) {
     checkArgument(
-        pSimpleDeclaration instanceof CVariableDeclaration,
-        "pSimpleDeclaration must be CVariableDeclaration");
-    return (CVariableDeclaration) pSimpleDeclaration;
+        pClass.isInstance(pSimpleDeclaration),
+        "pSimpleDeclaration must be an instance of " + pClass.getSimpleName());
+    return pClass.cast(pSimpleDeclaration);
   }
 
   private boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
+  }
+
+  // Declaration Extraction ========================================================================
+
+  public ImmutableList<CVariableDeclaration> getGlobalDeclarations() {
+    ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
+    for (CIdExpression globalVariable : globalSubstitutes.orElseThrow().values()) {
+      CVariableDeclaration variableDeclaration =
+          castTo(globalVariable.getDeclaration(), CVariableDeclaration.class);
+      rGlobalDeclarations.add(variableDeclaration);
+    }
+    return rGlobalDeclarations.build();
+  }
+
+  public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
+    ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
+    for (CIdExpression localVariable : localSubstitutes.values()) {
+      CVariableDeclaration variableDeclaration =
+          castTo(localVariable.getDeclaration(), CVariableDeclaration.class);
+      if (!MPORUtil.isConstCpaCheckerTmp(variableDeclaration)) {
+        rLocalDeclarations.add(variableDeclaration);
+      }
+    }
+    return rLocalDeclarations.build();
+  }
+
+  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
+    ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
+    for (CIdExpression parameter : parameterSubstitutes.orElseThrow().values()) {
+      CParameterDeclaration parameterDeclaration =
+          castTo(parameter.getDeclaration(), CParameterDeclaration.class);
+      rParameterDeclarations.add(parameterDeclaration);
+    }
+    return rParameterDeclarations.build();
   }
 }
