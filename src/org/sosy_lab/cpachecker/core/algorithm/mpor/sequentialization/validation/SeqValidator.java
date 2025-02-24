@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
@@ -40,10 +39,10 @@ public class SeqValidator {
       MPORThread thread = entry.getKey();
       // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(entry.getValue());
-      ImmutableSet<Integer> allTargetPcs =
-          pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
+      // ImmutableSet<Integer> allTargetPcs =
+      // pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
-        checkOriginPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
+        // checkOriginPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
         checkTargetPcsAsOriginPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
     }

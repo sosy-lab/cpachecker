@@ -37,12 +37,16 @@ public class SeqCaseBlock implements SeqStatement {
     terminator = pTerminator;
   }
 
+  public SeqCaseBlock cloneWithStatements(ImmutableList<SeqCaseBlockStatement> pStatements) {
+    return new SeqCaseBlock(pStatements, terminator);
+  }
+
   @Override
   public String toASTString() {
-    StringBuilder stmts = new StringBuilder();
-    for (SeqCaseBlockStatement stmt : this.statements) {
-      stmts.append(stmt.toASTString()).append(SeqSyntax.SPACE);
+    StringBuilder statementsString = new StringBuilder();
+    for (SeqCaseBlockStatement statement : this.statements) {
+      statementsString.append(statement.toASTString()).append(SeqSyntax.SPACE);
     }
-    return stmts + terminator.asString + SeqSyntax.SEMICOLON;
+    return statementsString + terminator.asString + SeqSyntax.SEMICOLON;
   }
 }
