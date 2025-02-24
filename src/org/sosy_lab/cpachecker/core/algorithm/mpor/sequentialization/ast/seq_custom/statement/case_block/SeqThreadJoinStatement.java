@@ -67,7 +67,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcNotExitPc =
-        SeqBinaryExpression.buildPcNotExitPc(pcVariables, joinedThreadId, binaryExpressionBuilder);
+        SeqBinaryExpression.buildPcUnequalExitPc(
+            pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
   @Override

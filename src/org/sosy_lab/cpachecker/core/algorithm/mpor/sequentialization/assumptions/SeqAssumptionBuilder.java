@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
@@ -40,7 +40,6 @@ public class SeqAssumptionBuilder {
    * simulations and pthread methods inside the sequentialization.
    */
   public static ImmutableList<SeqFunctionCallExpression> createThreadSimulationAssumptions(
-      ImmutableSet<MPORThread> pThreads,
       GhostPcVariables pPcVariables,
       GhostThreadVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -48,25 +47,19 @@ public class SeqAssumptionBuilder {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
 
-    // create expressions beforehand for all threads (e.g. pc[i] != n or next_thread != i)
-    ImmutableMap<Integer, CBinaryExpression> nextThreadNotIdExpressions =
-        mapNextThreadNotIdExpressions(pThreads, pBinaryExpressionBuilder);
-    ImmutableMap<Integer, CBinaryExpression> pcNotExitPcExpressions =
-        mapPcNotExitPcExpressions(pThreads, pPcVariables, pBinaryExpressionBuilder);
-
     // add all assumptions to simulate threads
-    rAssumptions.addAll(buildMutexAssumptions(pThreadVariables, nextThreadNotIdExpressions));
+    rAssumptions.addAll(buildMutexAssumptions(pThreadVariables, pBinaryExpressionBuilder));
     rAssumptions.addAll(
-        buildJoinAssumptions(pThreadVariables, pcNotExitPcExpressions, nextThreadNotIdExpressions));
-    rAssumptions.addAll(buildAtomicAssumptions(pThreadVariables, nextThreadNotIdExpressions));
+        buildJoinAssumptions(pPcVariables, pThreadVariables, pBinaryExpressionBuilder));
+    rAssumptions.addAll(buildAtomicAssumptions(pThreadVariables, pBinaryExpressionBuilder));
 
     return rAssumptions.build();
   }
 
   /** Assumptions over mutexes: {@code assume(!(m_locked && ti_locks_m) || next_thread != i)} */
   private static ImmutableList<SeqFunctionCallExpression> buildMutexAssumptions(
-      GhostThreadVariables pThreadVariables,
-      ImmutableMap<Integer, CBinaryExpression> pNextThreadNotIdExpressions) {
+      GhostThreadVariables pThreadVariables, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rMutexAssumptions = ImmutableList.builder();
 
@@ -83,7 +76,9 @@ public class SeqAssumptionBuilder {
                 new SeqLogicalNotExpression(
                     new SeqLogicalAndExpression(locked.idExpression, awaits.idExpression));
             CToSeqExpression nextThreadNotId =
-                new CToSeqExpression(pNextThreadNotIdExpressions.get(thread.id));
+                new CToSeqExpression(
+                    SeqBinaryExpression.buildNextThreadUnequal(
+                        thread.id, pBinaryExpressionBuilder));
             SeqLogicalOrExpression assumption =
                 new SeqLogicalOrExpression(notLockedAndAwaits, nextThreadNotId);
             SeqFunctionCallExpression assumeCall =
@@ -98,9 +93,10 @@ public class SeqAssumptionBuilder {
 
   /** Assumptions over joins: {@code assume(!(pc[i] != -1 && tj_joins_ti) || next_thread != j)} */
   private static ImmutableList<SeqFunctionCallExpression> buildJoinAssumptions(
+      GhostPcVariables pPcVariables,
       GhostThreadVariables pThreadVariables,
-      ImmutableMap<Integer, CBinaryExpression> pPcNotExitPcExpressions,
-      ImmutableMap<Integer, CBinaryExpression> pNextThreadNotIdExpressions) {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rJoinAssumptions = ImmutableList.builder();
 
@@ -112,9 +108,12 @@ public class SeqAssumptionBuilder {
         SeqLogicalNotExpression notActiveAndJoins =
             new SeqLogicalNotExpression(
                 new SeqLogicalAndExpression(
-                    pPcNotExitPcExpressions.get(iThread.id), joinVar.idExpression));
+                    SeqBinaryExpression.buildPcUnequalExitPc(
+                        pPcVariables, iThread.id, pBinaryExpressionBuilder),
+                    joinVar.idExpression));
         CToSeqExpression nextThreadNotId =
-            new CToSeqExpression(pNextThreadNotIdExpressions.get(jThread.id));
+            new CToSeqExpression(
+                SeqBinaryExpression.buildNextThreadUnequal(jThread.id, pBinaryExpressionBuilder));
         SeqLogicalOrExpression assumption =
             new SeqLogicalOrExpression(notActiveAndJoins, nextThreadNotId);
         SeqFunctionCallExpression assumeCall =
@@ -129,8 +128,8 @@ public class SeqAssumptionBuilder {
    * Atomic assumptions: {@code assume(!(atomic_locked && ti_begins_atomic) || next_thread != i)}
    */
   private static ImmutableList<SeqFunctionCallExpression> buildAtomicAssumptions(
-      GhostThreadVariables pThreadVariables,
-      ImmutableMap<Integer, CBinaryExpression> pNextThreadNotIdExpressions) {
+      GhostThreadVariables pThreadVariables, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAtomicAssumptions = ImmutableList.builder();
 
@@ -143,7 +142,8 @@ public class SeqAssumptionBuilder {
               new SeqLogicalAndExpression(
                   pThreadVariables.atomicLocked.orElseThrow().idExpression, begins.idExpression));
       CToSeqExpression nextThreadNotId =
-          new CToSeqExpression(pNextThreadNotIdExpressions.get(thread.id));
+          new CToSeqExpression(
+              SeqBinaryExpression.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder));
       SeqLogicalOrExpression assumption =
           new SeqLogicalOrExpression(notAtomicLockedAndBegins, nextThreadNotId);
       SeqFunctionCallExpression assumeCall =
@@ -151,46 +151,6 @@ public class SeqAssumptionBuilder {
       rAtomicAssumptions.add(assumeCall);
     }
     return rAtomicAssumptions.build();
-  }
-
-  // TODO these two should be in an ExpressionBuilder etc.
-
-  // TODO these should be lists for indexing?
-  /** Maps thread ids {@code i} to {@code next_thread != i} expressions. */
-  private static ImmutableMap<Integer, CBinaryExpression> mapNextThreadNotIdExpressions(
-      ImmutableSet<MPORThread> pThreads, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableMap.Builder<Integer, CBinaryExpression> rExpressions = ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      CIntegerLiteralExpression threadId =
-          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(thread.id);
-      CBinaryExpression nextThreadNotId =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.NOT_EQUALS);
-      rExpressions.put(thread.id, nextThreadNotId);
-    }
-    return rExpressions.buildOrThrow();
-  }
-
-  // TODO these should be lists for indexing?
-  /** Maps thread ids {@code i} to {@code pc[i] != i} expressions. */
-  public static ImmutableMap<Integer, CBinaryExpression> mapPcNotExitPcExpressions(
-      ImmutableSet<MPORThread> pThreads,
-      GhostPcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableMap.Builder<Integer, CBinaryExpression> rExpressions = ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      CBinaryExpression nextThreadNotId =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              pPcVariables.get(thread.id),
-              SeqIntegerLiteralExpression.INT_EXIT_PC,
-              BinaryOperator.NOT_EQUALS);
-      rExpressions.put(thread.id, nextThreadNotId);
-    }
-    return rExpressions.buildOrThrow();
   }
 
   // Partial Order Reduction =======================================================================

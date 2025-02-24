@@ -72,8 +72,8 @@ public class SeqCaseClause implements SeqStatement {
    * pc.
    */
   public boolean isPrunable() {
-    for (SeqCaseBlockStatement stmt : block.statements) {
-      if (!(stmt instanceof SeqBlankStatement)) {
+    for (SeqCaseBlockStatement statement : block.statements) {
+      if (!(statement instanceof SeqBlankStatement)) {
         return false;
       }
     }
@@ -88,8 +88,8 @@ public class SeqCaseClause implements SeqStatement {
    * unlocked.
    */
   public boolean alwaysUpdatesPc() {
-    for (SeqCaseBlockStatement stmt : block.statements) {
-      if (!stmt.alwaysWritesPc()) {
+    for (SeqCaseBlockStatement statement : block.statements) {
+      if (!statement.alwaysWritesPc()) {
         return false;
       }
     }

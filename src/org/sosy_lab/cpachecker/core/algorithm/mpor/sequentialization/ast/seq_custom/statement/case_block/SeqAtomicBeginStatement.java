@@ -62,7 +62,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
 
-    String elseStmts =
+    String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
             setAtomicLockedTrue.toASTString()
                 + SeqSyntax.SPACE
@@ -76,7 +76,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
         + SeqSyntax.SPACE
         + elseNotLocked.toASTString()
         + SeqSyntax.SPACE
-        + elseStmts;
+        + elseStatements;
   }
 
   @Override

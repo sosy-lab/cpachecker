@@ -70,33 +70,37 @@ public class SubstituteBuilder {
                 new SubstituteEdge(
                     substituteAssumeEdge(assume, substitution.substitute(assume.getExpression())));
 
-          } else if (cfaEdge instanceof CStatementEdge stmt) {
+          } else if (cfaEdge instanceof CStatementEdge statement) {
             substitute =
                 new SubstituteEdge(
-                    substituteStatementEdge(stmt, substitution.substitute(stmt.getStatement())));
+                    substituteStatementEdge(
+                        statement, substitution.substitute(statement.getStatement())));
 
-          } else if (cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
+          } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
             // only substitute assignments (e.g. CPAchecker_TMP = func();)
-            if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
+            if (functionSummary.getExpression()
+                instanceof CFunctionCallAssignmentStatement assignment) {
               substitute =
                   new SubstituteEdge(
-                      substituteFunctionSummaryEdge(funcSumm, substitution.substitute(assignStmt)));
+                      substituteFunctionSummaryEdge(
+                          functionSummary, substitution.substitute(assignment)));
             }
 
-          } else if (cfaEdge instanceof CFunctionCallEdge funcCall) {
+          } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
             // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here
             // too
             substitute =
                 new SubstituteEdge(
                     substituteFunctionCallEdge(
-                        funcCall,
-                        (CFunctionCall) substitution.substitute(funcCall.getFunctionCall())));
+                        functionCall,
+                        (CFunctionCall) substitution.substitute(functionCall.getFunctionCall())));
 
-          } else if (cfaEdge instanceof CReturnStatementEdge retStmt) {
+          } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
             substitute =
                 new SubstituteEdge(
                     substituteReturnStatementEdge(
-                        retStmt, substitution.substitute(retStmt.getReturnStatement())));
+                        returnStatement,
+                        substitution.substitute(returnStatement.getReturnStatement())));
           }
 
           rSubstitutes.put(threadEdge, substitute);
@@ -170,10 +174,10 @@ public class SubstituteBuilder {
   }
 
   private static CStatementEdge substituteStatementEdge(
-      CStatementEdge pOriginal, CStatement pStmt) {
+      CStatementEdge pOriginal, CStatement pStatement) {
     return new CStatementEdge(
         pOriginal.getRawStatement(),
-        pStmt,
+        pStatement,
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor());
@@ -202,10 +206,10 @@ public class SubstituteBuilder {
   }
 
   private static CReturnStatementEdge substituteReturnStatementEdge(
-      CReturnStatementEdge pOriginal, CReturnStatement pRetStmt) {
+      CReturnStatementEdge pOriginal, CReturnStatement pReturnStatement) {
     return new CReturnStatementEdge(
         pOriginal.getRawStatement(),
-        pRetStmt,
+        pReturnStatement,
         pOriginal.getFileLocation(),
         pOriginal.getPredecessor(),
         pOriginal.getSuccessor());

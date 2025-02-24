@@ -239,40 +239,43 @@ public class GhostVariableUtil {
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
           ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> rRetStmts =
-        ImmutableMap.builder();
-    for (ThreadEdge aThreadEdge : pThread.cfa.threadEdges) {
-      SubstituteEdge aSub = pSubEdges.get(aThreadEdge);
-      assert aSub != null;
+    ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+        rReturnStatements = ImmutableMap.builder();
+    for (ThreadEdge threadEdgeA : pThread.cfa.threadEdges) {
+      SubstituteEdge substituteEdgeA = pSubEdges.get(threadEdgeA);
+      assert substituteEdgeA != null;
 
-      if (aSub.cfaEdge instanceof CReturnStatementEdge returnStmtEdge) {
+      if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
         ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
-        for (ThreadEdge bThreadEdge : pThread.cfa.threadEdges) {
-          SubstituteEdge bSub = pSubEdges.get(bThreadEdge);
-          assert bSub != null;
+        for (ThreadEdge threadEdgeB : pThread.cfa.threadEdges) {
+          SubstituteEdge substituteEdgeB = pSubEdges.get(threadEdgeB);
+          assert substituteEdgeB != null;
 
-          if (bSub.cfaEdge instanceof CFunctionSummaryEdge funcSumm) {
+          if (substituteEdgeB.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
             // if the summary edge is of the form value = func(); (i.e. an assignment)
-            if (funcSumm.getExpression() instanceof CFunctionCallAssignmentStatement assignStmt) {
-              AFunctionDeclaration aFuncDec = returnStmtEdge.getSuccessor().getFunction();
-              AFunctionType aFunc = aFuncDec.getType();
-              AFunctionType bFunc = funcSumm.getFunctionEntry().getFunction().getType();
-              if (aFunc.equals(bFunc)) {
-                assert aFuncDec instanceof CFunctionDeclaration;
+            if (functionSummary.getExpression()
+                instanceof CFunctionCallAssignmentStatement assignmentStatement) {
+              AFunctionDeclaration functionDeclarationA =
+                  returnStatementEdge.getSuccessor().getFunction();
+              AFunctionType functionTypeA = functionDeclarationA.getType();
+              AFunctionType functionTypeB =
+                  functionSummary.getFunctionEntry().getFunction().getType();
+              if (functionTypeA.equals(functionTypeB)) {
+                assert functionDeclarationA instanceof CFunctionDeclaration;
                 FunctionReturnValueAssignment assign =
                     new FunctionReturnValueAssignment(
-                        pReturnPcWrites.get(bThreadEdge),
-                        assignStmt.getLeftHandSide(),
-                        returnStmtEdge.getExpression().orElseThrow());
+                        pReturnPcWrites.get(threadEdgeB),
+                        assignmentStatement.getLeftHandSide(),
+                        returnStatementEdge.getExpression().orElseThrow());
                 assigns.add(assign);
               }
             }
           }
         }
-        rRetStmts.put(aThreadEdge, assigns.build());
+        rReturnStatements.put(threadEdgeA, assigns.build());
       }
     }
-    return rRetStmts.buildOrThrow();
+    return rReturnStatements.buildOrThrow();
   }
 
   // TODO the major problem here is that if we assign a pc that is pruned later, the assignment

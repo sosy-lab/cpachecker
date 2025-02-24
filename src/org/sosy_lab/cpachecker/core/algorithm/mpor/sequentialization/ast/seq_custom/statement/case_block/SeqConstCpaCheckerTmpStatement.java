@@ -75,14 +75,14 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     statementA = pStatementA;
     statementB = pStatementB;
 
-    CSimpleDeclaration decA = pDeclaration.getDeclaration();
-    CExpressionStatement stmtB =
-        (CExpressionStatement) ((CStatementEdge) statementB.cfaEdge).getStatement();
-    CIdExpression idB = (CIdExpression) stmtB.getExpression();
-    CSimpleDeclaration decB = idB.getDeclaration();
+    CSimpleDeclaration declarationA = pDeclaration.getDeclaration();
+    CExpressionStatement statement =
+        (CExpressionStatement) ((CStatementEdge) this.statementB.cfaEdge).getStatement();
+    CIdExpression idExpressionB = (CIdExpression) statement.getExpression();
+    CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
 
     checkArgument(
-        decA.equals(decB),
+        declarationA.equals(declarationB),
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
 
     declaration = pDeclaration;

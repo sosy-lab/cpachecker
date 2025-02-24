@@ -57,18 +57,29 @@ public class SeqExpressions {
   public static class SeqBinaryExpression {
 
     /**
-     * Returns {@code pc[pJoinedThreadId] != -1} for array and {@code pc{pJoinedThreadId} != -1} for
-     * scalar {@code pc}.
+     * Returns {@code pc[pThreadId] != -1} for array and {@code pc{pThreadId} != -1} for scalar
+     * {@code pc}.
      */
-    public static CBinaryExpression buildPcNotExitPc(
+    public static CBinaryExpression buildPcUnequalExitPc(
         GhostPcVariables pPcVariables,
-        int pJoinedThreadId,
+        int pThreadId,
         CBinaryExpressionBuilder pBinaryExpressionBuilder)
         throws UnrecognizedCodeException {
 
       return pBinaryExpressionBuilder.buildBinaryExpression(
-          pPcVariables.get(pJoinedThreadId),
+          pPcVariables.get(pThreadId),
           SeqIntegerLiteralExpression.INT_EXIT_PC,
+          BinaryOperator.NOT_EQUALS);
+    }
+
+    /** Returns {@code next_thread != pThreadId}. */
+    public static CBinaryExpression buildNextThreadUnequal(
+        int pThreadId, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+        throws UnrecognizedCodeException {
+
+      return pBinaryExpressionBuilder.buildBinaryExpression(
+          SeqIdExpression.NEXT_THREAD,
+          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pThreadId),
           BinaryOperator.NOT_EQUALS);
     }
   }

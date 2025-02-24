@@ -227,7 +227,7 @@ public class SeqCaseBlockStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVars,
+      GhostThreadVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -239,16 +239,22 @@ public class SeqCaseBlockStatementBuilder {
       case PTHREAD_CREATE ->
           buildThreadCreationStatement(pThread, pAllThreads, cfaEdge, pTargetPc, pPcVariables);
       case PTHREAD_MUTEX_LOCK ->
-          buildMutexLockStatement(pThread, pThreadEdge, pTargetPc, pcLeftHandSide, pThreadVars);
+          buildMutexLockStatement(
+              pThread, pThreadEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockStatement(cfaEdge, pTargetPc, pcLeftHandSide, pThreadVars);
+          buildMutexUnlockStatement(cfaEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case PTHREAD_JOIN ->
           buildThreadJoinStatement(
-              pThread, cfaEdge, pTargetPc, pPcVariables, pThreadVars, pBinaryExpressionBuilder);
+              pThread,
+              cfaEdge,
+              pTargetPc,
+              pPcVariables,
+              pThreadVariables,
+              pBinaryExpressionBuilder);
       case __VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicBeginStatement(pThread, pTargetPc, pPcVariables, pThreadVars);
+          buildAtomicBeginStatement(pThread, pTargetPc, pPcVariables, pThreadVariables);
       case __VERIFIER_ATOMIC_END ->
-          buildAtomicEndStatement(pThread, pTargetPc, pPcVariables, pThreadVars);
+          buildAtomicEndStatement(pThread, pTargetPc, pPcVariables, pThreadVariables);
       default ->
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
@@ -272,17 +278,17 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadVariables pThreadVars) {
+      GhostThreadVariables pThreadVariables) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
-    assert pThreadVars.locked.containsKey(lockedMutexT);
+    assert pThreadVariables.locked.containsKey(lockedMutexT);
     CIdExpression lockedVar =
-        Objects.requireNonNull(pThreadVars.locked.get(lockedMutexT)).idExpression;
-    assert pThreadVars.locks.containsKey(pThread);
-    assert Objects.requireNonNull(pThreadVars.locks.get(pThread)).containsKey(lockedMutexT);
+        Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT)).idExpression;
+    assert pThreadVariables.locks.containsKey(pThread);
+    assert Objects.requireNonNull(pThreadVariables.locks.get(pThread)).containsKey(lockedMutexT);
     CIdExpression mutexAwaits =
         Objects.requireNonNull(
-                Objects.requireNonNull(pThreadVars.locks.get(pThread)).get(lockedMutexT))
+                Objects.requireNonNull(pThreadVariables.locks.get(pThread)).get(lockedMutexT))
             .idExpression;
     return new SeqMutexLockStatement(lockedVar, mutexAwaits, pPcLeftHandSide, pTargetPc);
   }
@@ -291,14 +297,14 @@ public class SeqCaseBlockStatementBuilder {
       CFAEdge pCfaEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadVariables pThreadVars) {
+      GhostThreadVariables pThreadVariables) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pCfaEdge);
-    assert pThreadVars.locked.containsKey(unlockedMutexT);
+    assert pThreadVariables.locked.containsKey(unlockedMutexT);
     // assign 0 to locked variable
     CExpressionAssignmentStatement lockedFalse =
         SeqExpressionAssignmentStatement.build(
-            Objects.requireNonNull(pThreadVars.locked.get(unlockedMutexT)).idExpression,
+            Objects.requireNonNull(pThreadVariables.locked.get(unlockedMutexT)).idExpression,
             SeqIntegerLiteralExpression.INT_0);
     return new SeqMutexUnlockStatement(lockedFalse, pPcLeftHandSide, pTargetPc);
   }
@@ -308,14 +314,14 @@ public class SeqCaseBlockStatementBuilder {
       CFAEdge pCfaEdge,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVars,
+      GhostThreadVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    MPORThread targetThread = PthreadUtil.extractThread(pThreadVars.joins.keySet(), pCfaEdge);
+    MPORThread targetThread = PthreadUtil.extractThread(pThreadVariables.joins.keySet(), pCfaEdge);
     CIdExpression threadJoins =
         Objects.requireNonNull(
-                Objects.requireNonNull(pThreadVars.joins.get(pThread)).get(targetThread))
+                Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
             .idExpression;
     return new SeqThreadJoinStatement(
         targetThread.id,
@@ -330,13 +336,14 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVars) {
+      GhostThreadVariables pThreadVariables) {
 
-    assert pThreadVars.atomicLocked.isPresent();
+    assert pThreadVariables.atomicLocked.isPresent();
     CIdExpression atomicLocked =
-        Objects.requireNonNull(pThreadVars.atomicLocked.orElseThrow().idExpression);
-    assert pThreadVars.begins.containsKey(pThread);
-    CIdExpression beginsVar = Objects.requireNonNull(pThreadVars.begins.get(pThread)).idExpression;
+        Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression);
+    assert pThreadVariables.begins.containsKey(pThread);
+    CIdExpression beginsVar =
+        Objects.requireNonNull(pThreadVariables.begins.get(pThread)).idExpression;
     return new SeqAtomicBeginStatement(
         atomicLocked, beginsVar, pPcVariables.get(pThread.id), pTargetPc);
   }
@@ -345,13 +352,13 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVars) {
+      GhostThreadVariables pThreadVariables) {
 
-    assert pThreadVars.atomicLocked.isPresent();
+    assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable
     CExpressionAssignmentStatement atomicLockedFalse =
         SeqExpressionAssignmentStatement.build(
-            Objects.requireNonNull(pThreadVars.atomicLocked.orElseThrow().idExpression),
+            Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression),
             SeqIntegerLiteralExpression.INT_0);
     return new SeqAtomicEndStatement(atomicLockedFalse, pPcVariables.get(pThread.id), pTargetPc);
   }

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqStringLiteralExpression;
@@ -250,7 +251,9 @@ public class Sequentialization {
     // optional: include loop invariant assertions over thread variables
     Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
         options.addLoopInvariants
-            ? Optional.of(createLoopInvariants(substitutions.keySet(), threadVars))
+            ? Optional.of(
+                createLoopInvariants(
+                    substitutions.keySet(), pcVariables, threadVars, binaryExpressionBuilder))
             : Optional.empty();
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
@@ -261,7 +264,7 @@ public class Sequentialization {
             : Optional.empty();
     ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
-            substitutions.keySet(), pcVariables, threadVars, binaryExpressionBuilder);
+            pcVariables, threadVars, binaryExpressionBuilder);
     SeqMainFunction mainMethod =
         new SeqMainFunction(
             substitutions.size(),
@@ -330,23 +333,29 @@ public class Sequentialization {
   //  and the invariants will not hold
   //  -> once we support intermediary thread terminations, remove these invariants
   private ImmutableList<SeqLogicalAndExpression> createLoopInvariants(
-      ImmutableSet<MPORThread> pThreads, GhostThreadVariables pThreadVars)
+      ImmutableSet<MPORThread> pThreads,
+      GhostPcVariables pPcVariables,
+      GhostThreadVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
-    ImmutableMap<Integer, CBinaryExpression> pcNotExitPcExpressions =
-        SeqAssumptionBuilder.mapPcNotExitPcExpressions(
-            pThreads, pcVariables, binaryExpressionBuilder);
     // add assertions over locks: ti_locks_m && pc[i] == -1) ==> assert_fail
-    for (var lockedEntry : pThreadVars.locks.entrySet()) {
-      CBinaryExpression pcNotExitPc = pcNotExitPcExpressions.get(lockedEntry.getKey().id);
+    for (var lockedEntry : pThreadVariables.locks.entrySet()) {
+      MPORThread thread = lockedEntry.getKey();
+      CBinaryExpression pcNotExitPc =
+          SeqBinaryExpression.buildPcUnequalExitPc(
+              pPcVariables, thread.id, pBinaryExpressionBuilder);
       for (ThreadLocksMutex locks : lockedEntry.getValue().values()) {
         rAssertions.add(new SeqLogicalAndExpression(locks.idExpression, pcNotExitPc));
       }
     }
     // add assertions over joins: tj_joins_ti && pc[j] == -1 ==> assert_fail
-    for (var joinsEntry : pThreadVars.joins.entrySet()) {
-      CBinaryExpression pcNotExitPc = pcNotExitPcExpressions.get(joinsEntry.getKey().id);
+    for (var joinsEntry : pThreadVariables.joins.entrySet()) {
+      MPORThread thread = joinsEntry.getKey();
+      CBinaryExpression pcNotExitPc =
+          SeqBinaryExpression.buildPcUnequalExitPc(
+              pPcVariables, thread.id, pBinaryExpressionBuilder);
       for (ThreadJoinsThread joins : joinsEntry.getValue().values()) {
         rAssertions.add(new SeqLogicalAndExpression(joins.idExpression, pcNotExitPc));
       }
@@ -357,9 +366,10 @@ public class Sequentialization {
   /** Maps threads to the case clauses they potentially execute. */
   private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> pReturnPcVars,
-      GhostThreadVariables pThreadVars)
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+          pReturnPcVariables,
+      GhostThreadVariables pThreadVariables)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
@@ -371,9 +381,10 @@ public class Sequentialization {
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       GhostFunctionVariables functionVariables =
-          GhostVariableUtil.buildFunctionVariables(thread, substitution, pSubEdges, pReturnPcVars);
+          GhostVariableUtil.buildFunctionVariables(
+              thread, substitution, pSubstituteEdges, pReturnPcVariables);
       GhostVariables ghostVariables =
-          new GhostVariables(functionVariables, pcVariables, pThreadVars);
+          new GhostVariables(functionVariables, pcVariables, pThreadVariables);
 
       for (ThreadNode threadNode : thread.cfa.threadNodes) {
         if (coveredNodes.add(threadNode)) {
@@ -383,7 +394,7 @@ public class Sequentialization {
                   pSubstitutions.keySet(),
                   coveredNodes,
                   threadNode,
-                  pSubEdges,
+                  pSubstituteEdges,
                   ghostVariables,
                   binaryExpressionBuilder);
           if (caseClause.isPresent()) {
@@ -479,7 +490,7 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalVarDeclarations = ImmutableList.builder();
-    for (CIdExpression globalVar : pSubstitution.globalVarSubstitutes.orElseThrow().values()) {
+    for (CIdExpression globalVar : pSubstitution.globalSubstitutes.orElseThrow().values()) {
       rGlobalVarDeclarations.add(LineOfCode.of(0, globalVar.getDeclaration().toASTString()));
     }
     return rGlobalVarDeclarations.build();
@@ -493,7 +504,7 @@ public class Sequentialization {
       CSimpleDeclarationSubstitution pSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rLocalVarDeclarations = ImmutableList.builder();
-    for (CIdExpression localVar : pSubstitution.localVarSubstitutes.values()) {
+    for (CIdExpression localVar : pSubstitution.localSubstitutes.values()) {
       CVariableDeclaration varDeclaration =
           pSubstitution.castToVarDeclaration(localVar.getDeclaration());
       if (!SeqUtil.isConstCpaCheckerTmp(varDeclaration)) {
