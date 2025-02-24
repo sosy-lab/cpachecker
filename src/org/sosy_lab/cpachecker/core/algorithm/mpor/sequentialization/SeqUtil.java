@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
@@ -74,7 +72,7 @@ public class SeqUtil {
     pCoveredNodes.add(pThreadNode);
 
     int originPc = pThreadNode.pc;
-    Builder<SeqCaseBlockStatement> statements = ImmutableList.builder();
+    ImmutableList.Builder<SeqCaseBlockStatement> statements = ImmutableList.builder();
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
@@ -102,9 +100,6 @@ public class SeqUtil {
           statements.add(
               SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
                   threadEdge, pcLeftHandSide, pCoveredNodes, pSubEdges));
-        } else if (substitute.cfaEdge instanceof CFunctionCallEdge) {
-          //
-
         } else {
           Optional<SeqCaseBlockStatement> statement =
               SeqCaseBlockStatementBuilder.tryBuildCaseBlockStatementFromEdge(

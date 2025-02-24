@@ -495,7 +495,6 @@ public class Sequentialization {
 
       GhostFunctionVariables functionVariables =
           GhostVariableUtil.buildFunctionVariables(thread, substitution, pSubEdges, pReturnPcVars);
-
       GhostVariables ghostVariables =
           new GhostVariables(functionVariables, pcLeftHandSides, pThreadVars);
 

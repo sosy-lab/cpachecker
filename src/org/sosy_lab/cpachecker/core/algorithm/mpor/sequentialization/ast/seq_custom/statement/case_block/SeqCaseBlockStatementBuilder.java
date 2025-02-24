@@ -114,37 +114,12 @@ public class SeqCaseBlockStatementBuilder {
         return Optional.of(buildAssumeStatement(pFirstEdge, assumeEdge, pcLeftHandSide, targetPc));
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-        // function summaries -> store calling context in return_pc
-        if (MPORUtil.isReachErrorCall(functionSummary)) {
-          // TODO this is the only reason we use Optional here... maybe merge with blank statements?
-          return Optional.empty();
-        } else {
-          return Optional.of(buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function));
-        }
+        return handleFunctionSummaryEdge(functionSummary, pThreadEdge, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
-        // function calls -> store parameters in ghost variables
-        if (MPORUtil.isReachErrorCall(functionCall)) {
-          // inject non-inlined reach_error
-          return Optional.of(new SeqReachErrorStatement());
-        }
-        assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
-        ImmutableList<FunctionParameterAssignment> assignments =
-            Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
-        if (assignments.isEmpty()) {
-          return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
-        }
-        // TODO refactor so that we can use a single statement for all parameter assignments
-        for (int i = 0; i < assignments.size(); i++) {
-          FunctionParameterAssignment assign = assignments.get(i);
-          // if this is the last param assign, add the pcUpdate, otherwise empty
-          boolean lastParam = i == assignments.size() - 1;
-          return Optional.of(
-              new SeqParameterAssignStatement(
-                  assign.statement,
-                  lastParam ? Optional.of(pcLeftHandSide) : Optional.empty(),
-                  lastParam ? Optional.of(targetPc) : Optional.empty()));
-        }
+        return Optional.of(
+            handleFunctionCallEdge(
+                pThread.id, functionCall, pThreadEdge, targetPc, pGhostVariables));
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
         return Optional.of(
@@ -190,6 +165,42 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqReturnPcWriteStatement(write.returnPcVar, write.value);
   }
 
+  private static Optional<SeqCaseBlockStatement> handleFunctionSummaryEdge(
+      CFunctionSummaryEdge pFunctionSummaryEdge,
+      ThreadEdge pThreadEdge,
+      GhostVariables pGhostVariables) {
+
+    // function summaries -> store calling context in return_pc
+    if (MPORUtil.isReachErrorCall(pFunctionSummaryEdge)) {
+      // TODO this is the only reason we use Optional here... maybe merge with blank statements?
+      return Optional.empty();
+    } else {
+      return Optional.of(buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function));
+    }
+  }
+
+  private static SeqCaseBlockStatement handleFunctionCallEdge(
+      int pThreadId,
+      CFunctionCallEdge pFunctionCallEdge,
+      ThreadEdge pThreadEdge,
+      int pTargetPc,
+      GhostVariables pGhostVariables) {
+
+    // function calls -> store parameters in ghost variables
+    if (MPORUtil.isReachErrorCall(pFunctionCallEdge)) {
+      // inject non-inlined reach_error
+      return new SeqReachErrorStatement();
+    }
+    assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
+    ImmutableList<FunctionParameterAssignment> assignments =
+        Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
+    if (assignments.isEmpty()) {
+      return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
+    }
+    return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
+  }
+
   private static SeqCaseBlockStatement buildReturnValueAssignmentStatement(
       ThreadEdge pThreadEdge,
       int pTargetPc,
@@ -206,7 +217,7 @@ public class SeqCaseBlockStatementBuilder {
     } else {
       // just get the first element in the set for the RETURN_PC
       CIdExpression returnPc = assigns.iterator().next().returnPcWrite.returnPcVar;
-      return new SeqReturnValueAssignStatements(returnPc, assigns, pcLeftHandSide, pTargetPc);
+      return new SeqReturnValueAssignmentStatements(returnPc, assigns, pcLeftHandSide, pTargetPc);
     }
   }
 

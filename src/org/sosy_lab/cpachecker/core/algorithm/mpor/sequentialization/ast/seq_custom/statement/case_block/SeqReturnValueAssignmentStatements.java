@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard
  * fibNumber;} (where {@code x} is declared beforehand) in the sequentialization.
  *
  * <p>The function {@code fib} may be called multiple times by one thread, so we create a switch
- * statement with one or multiple {@link SeqReturnValueAssignCaseBlockStatement}s where only the
- * original calling context i.e. the {@code return_pc} of the function {@code fib} and the
- * respective thread is considered.
+ * statement with one or multiple {@link SeqReturnValueAssignmentStatement}s where only the original
+ * calling context i.e. the {@code return_pc} of the function {@code fib} and the respective thread
+ * is considered.
  */
-public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
+public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement {
 
-  private final ImmutableSet<FunctionReturnValueAssignment> assigns;
+  private final ImmutableSet<FunctionReturnValueAssignment> assignments;
 
   private final CIdExpression returnPc;
 
@@ -45,13 +45,13 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  protected SeqReturnValueAssignStatements(
+  protected SeqReturnValueAssignmentStatements(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
-    assigns = pAssigns;
+    assignments = pAssigns;
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -60,13 +60,13 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
-    for (FunctionReturnValueAssignment assignment : assigns) {
+    for (FunctionReturnValueAssignment assignment : assignments) {
       int caseLabelValue = assignment.returnPcWrite.value;
-      SeqReturnValueAssignCaseBlockStatement assignmentStatement =
-          new SeqReturnValueAssignCaseBlockStatement(assignment.statement);
+      SeqReturnValueAssignmentStatement assignmentStatement =
+          new SeqReturnValueAssignmentStatement(assignment.statement);
       caseClauses.add(
           new SeqCaseClause(
-              anyGlobalAssign(assigns),
+              anyGlobalAssign(assignments),
               false,
               caseLabelValue,
               new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
@@ -103,8 +103,8 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
   @NonNull
   @Override
-  public SeqReturnValueAssignStatements cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnValueAssignStatements(returnPc, assigns, pcLeftHandSide, pTargetPc);
+  public SeqReturnValueAssignmentStatements cloneWithTargetPc(int pTargetPc) {
+    return new SeqReturnValueAssignmentStatements(returnPc, assignments, pcLeftHandSide, pTargetPc);
   }
 
   @Override
@@ -112,11 +112,11 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
     return true;
   }
 
-  private static class SeqReturnValueAssignCaseBlockStatement implements SeqCaseBlockStatement {
+  private static class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
 
     private final CExpressionAssignmentStatement assignment;
 
-    private SeqReturnValueAssignCaseBlockStatement(CExpressionAssignmentStatement pAssignment) {
+    private SeqReturnValueAssignmentStatement(CExpressionAssignmentStatement pAssignment) {
       assignment = pAssignment;
     }
 
@@ -132,7 +132,7 @@ public class SeqReturnValueAssignStatements implements SeqCaseBlockStatement {
 
     @NonNull
     @Override
-    public SeqReturnValueAssignCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
+    public SeqReturnValueAssignmentStatement cloneWithTargetPc(int pTargetPc) {
       throw new UnsupportedOperationException(
           this.getClass().getSimpleName() + " do not have targetPcs");
     }
