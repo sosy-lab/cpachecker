@@ -54,25 +54,25 @@ public class SeqValidator {
   private static ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
-    ImmutableMap.Builder<Integer, ImmutableSet<Integer>> pcMapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqCaseBlockStatement stmt : caseClause.block.statements) {
-        if (stmt.getTargetPc().isPresent()) {
-          targetPcs.add(stmt.getTargetPc().orElseThrow());
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+        if (statement.getTargetPc().isPresent()) {
+          targetPcs.add(statement.getTargetPc().orElseThrow());
         }
       }
-      pcMapBuilder.put(caseClause.label.value, targetPcs.build());
+      rPcMap.put(caseClause.label.value, targetPcs.build());
     }
-    return pcMapBuilder.buildOrThrow();
+    return rPcMap.buildOrThrow();
   }
 
   private static void checkOriginPcAsTargetPc(
-      int pOriginPc, ImmutableSet<Integer> pAllTargetPcs, int pThreadId, LogManager pLogger) {
+      int pOriginPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger) {
 
     // exclude INIT_PC, it is (often) not present as a target pc
     if (pOriginPc != SeqUtil.INIT_PC) {
-      if (!pAllTargetPcs.contains(pOriginPc)) {
+      if (!pAllTargetPc.contains(pOriginPc)) {
         String message =
             "origin pc " + pOriginPc + " does not exist as target pc in thread " + pThreadId;
         pLogger.log(Level.SEVERE, message);

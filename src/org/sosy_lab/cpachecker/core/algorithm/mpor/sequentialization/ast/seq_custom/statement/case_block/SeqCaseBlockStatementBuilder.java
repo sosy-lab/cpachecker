@@ -385,8 +385,8 @@ public class SeqCaseBlockStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
-    } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge decEdge) {
-      // all non vars (functions, structs, ...) are declared beforehand -> blank
+    } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge) {
+      // all variables, functions, structs... are declared beforehand -> blank
       return true;
 
     } else if (PthreadFunctionType.callsAnyPthreadFunc(pSubstituteEdge.cfaEdge)) {
