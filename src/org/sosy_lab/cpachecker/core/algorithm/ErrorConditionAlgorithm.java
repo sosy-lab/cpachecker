@@ -51,7 +51,25 @@ public class ErrorConditionAlgorithm implements Algorithm {
   }
 
   private boolean runcheck(AnalysisComponents pcomp) throws CPAException, InterruptedException {
-    pcomp.algorithm().run(pcomp.reached());
+    AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    while (pcomp.reached().hasWaitingState() && status.isPrecise() && status.isSound()) {
+      status = status.update(pcomp.algorithm().run(pcomp.reached()));
+    }
+    if (!status.isSound() || !status.isPrecise()) {
+      throw new CPAException(
+          "Error in CPA analysis: precise: " + status.isPrecise() + " sound: " + status.isSound());
+    }
+    /*for (AbstractState state : pcomp.reached()) {
+      FluentIterable<AutomatonState> states = AbstractStates.asIterable(state).filter(AutomatonState.class);
+      if (states.size() != 2) {
+        throw new CPAException("More than two automaton states in reached set: " + states.toList());
+      }
+      int targetCounter = states.stream().mapToInt(i -> i.isTarget() ? 1 : 0).sum();
+      if (targetCounter == 2) {
+        return false;
+      }
+    }
+    return true;*/
     return FluentIterable.from(pcomp.reached()).filter(AbstractStates::isTargetState).isEmpty();
   }
 
@@ -77,10 +95,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
       }
 
       Configuration predicateConfig =
-          Configuration.builder()
-              .loadFromFile("config/predicateAnalysis.properties")
-              .setOption("analysis.stopAfterError", "false")
-              .build();
+          Configuration.builder().loadFromFile("config/predicateAnalysis.properties").build();
       ARGCPA cpaSpec =
           new ARGCPA(
               new CompositeCPA(config, cfa, ctrlcpalist.build()),
