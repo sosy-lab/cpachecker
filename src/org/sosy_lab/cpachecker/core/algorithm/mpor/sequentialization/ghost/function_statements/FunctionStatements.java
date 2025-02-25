@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
-public class GhostFunctionVariables {
+public class FunctionStatements {
 
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
@@ -26,7 +26,7 @@ public class GhostFunctionVariables {
 
   public final ImmutableMap<ThreadNode, FunctionReturnPcRead> returnPcReads;
 
-  public GhostFunctionVariables(
+  public FunctionStatements(
       ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
       ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
       ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites,

@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStat
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcWrite;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcWrite;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -196,7 +196,7 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   private static SeqReturnPcWriteStatement buildReturnPcWriteStatement(
-      ThreadEdge pThreadEdge, GhostFunctionVariables pFunctionVariables) {
+      ThreadEdge pThreadEdge, FunctionStatements pFunctionVariables) {
 
     assert pFunctionVariables.returnPcWrites.containsKey(pThreadEdge);
     FunctionReturnPcWrite write =
@@ -244,7 +244,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       int pTargetPc,
       CLeftHandSide pcLeftHandSide,
-      GhostFunctionVariables pFunctionVariables) {
+      FunctionStatements pFunctionVariables) {
 
     // TODO add support and test for pthread_join(id, &start_routine_return)
     //  where start_routine_return is assigned the return value of the threads start routine
@@ -266,8 +266,8 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -306,7 +306,7 @@ public class SeqCaseBlockStatementBuilder {
       ImmutableSet<MPORThread> pAllThreads,
       CFAEdge pCfaEdge,
       int pTargetPc,
-      GhostPcVariables pPcVariables) {
+      PcVariables pPcVariables) {
 
     CExpression pthreadT = PthreadUtil.extractPthreadT(pCfaEdge);
     MPORThread createdThread = PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
@@ -318,7 +318,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadSimulationVariables pThreadVariables) {
+      ThreadSimulationVariables pThreadVariables) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(lockedMutexT);
@@ -337,7 +337,7 @@ public class SeqCaseBlockStatementBuilder {
       CFAEdge pCfaEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadSimulationVariables pThreadVariables) {
+      ThreadSimulationVariables pThreadVariables) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pCfaEdge);
     assert pThreadVariables.locked.containsKey(unlockedMutexT);
@@ -353,8 +353,8 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       CFAEdge pCfaEdge,
       int pTargetPc,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -375,8 +375,8 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(
       MPORThread pThread,
       int pTargetPc,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables) {
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     CIdExpression atomicLocked =
@@ -391,8 +391,8 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqAtomicEndStatement buildAtomicEndStatement(
       MPORThread pThread,
       int pTargetPc,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables) {
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -45,18 +45,18 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  private final GhostPcVariables pcVariables;
+  private final PcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  private final CBinaryExpression pcNotExitPc;
+  private final CBinaryExpression pcUnequalExitPc;
 
   protected SeqThreadJoinStatement(
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,
       int pTargetPc,
-      GhostPcVariables pPcVariables,
+      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -66,7 +66,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     targetPc = pTargetPc;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
-    pcNotExitPc =
+    pcUnequalExitPc =
         SeqBinaryExpression.buildPcUnequalExitPc(
             pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
@@ -74,7 +74,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     SeqControlFlowStatement ifJoinedThreadActive =
-        new SeqControlFlowStatement(pcNotExitPc, SeqControlFlowStatementType.IF);
+        new SeqControlFlowStatement(pcUnequalExitPc, SeqControlFlowStatementType.IF);
     CExpressionAssignmentStatement joinsTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_1);

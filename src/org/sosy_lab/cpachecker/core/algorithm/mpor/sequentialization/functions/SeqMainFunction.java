@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -86,7 +86,7 @@ public class SeqMainFunction extends SeqFunction {
 
   private final Optional<CExpressionAssignmentStatement> assignPrevThread;
 
-  private final GhostPcVariables pcVariables;
+  private final PcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -96,7 +96,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      GhostPcVariables pPcVariables,
+      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -309,7 +309,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private SeqStatement createNextThreadPcAssumption(
-      int pNumThreads, boolean pScalarPc, GhostPcVariables pPcVariables)
+      int pNumThreads, boolean pScalarPc, PcVariables pPcVariables)
       throws UnrecognizedCodeException {
 
     if (pScalarPc) {

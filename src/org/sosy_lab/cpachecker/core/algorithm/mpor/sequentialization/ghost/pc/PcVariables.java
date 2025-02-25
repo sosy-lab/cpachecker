@@ -6,16 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
-public class GhostPcVariables {
+public class PcVariables {
 
   private final ImmutableList<CLeftHandSide> pc;
 
-  public GhostPcVariables(ImmutableList<CLeftHandSide> pPc) {
+  public PcVariables(ImmutableList<CLeftHandSide> pPc) {
     pc = pPc;
   }
 

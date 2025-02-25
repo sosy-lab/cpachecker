@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -40,7 +42,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class ThreadBuilder {
 
-  private static int currentThreadId = 0;
+  private static int currentThreadId;
 
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
   private static int currentPc = Sequentialization.INIT_PC;
@@ -56,6 +58,7 @@ public class ThreadBuilder {
   public static ImmutableList<MPORThread> createThreads(
       CFA pCfa, ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
 
+    currentThreadId = 0; // reset thread id (necessary only for unit tests)
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
@@ -84,42 +87,47 @@ public class ThreadBuilder {
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       FunctionEntryNode pEntryNode) {
 
+    // ensure so that we can cast to CFunctionType
+    checkArgument(
+        pEntryNode.getFunction().getType() instanceof CFunctionType,
+        "pEntryNode function must be CFunctionType");
     currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
+    ThreadCFA threadCfa = buildThreadCfa(pEntryNode, pFunctionCallMap, Optional.empty());
+    return new MPORThread(
+        currentThreadId++,
+        (CFunctionType) pEntryNode.getFunction().getType(),
+        pThreadObject,
+        getLocalVariableDeclarations(threadCfa.threadEdges),
+        threadCfa);
+  }
+
+  private static ThreadCFA buildThreadCfa(
+      FunctionEntryNode pEntryNode,
+      ImmutableMap<CFANode, CFANode> pFunctionCallMap,
+      Optional<CFANode> pFuncReturnNode) {
 
     Set<CFANode> visitedNodes = new HashSet<>(); // using set to check if node is present already
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadEdge> threadEdges = ImmutableSet.builder();
     ImmutableSet.Builder<CFunctionDeclaration> calledFunctions = ImmutableSet.builder();
 
-    initThreadVariables(
+    initThreadCfaVariables(
         visitedNodes,
         threadNodes,
         threadEdges,
         calledFunctions,
         pEntryNode,
         pFunctionCallMap,
-        Optional.empty());
-
-    ThreadCFA threadCfa =
-        new ThreadCFA(
-            pEntryNode, threadNodes.build(), threadEdges.build(), calledFunctions.build());
-    ImmutableSet<CVariableDeclaration> localVars =
-        getLocalVariableDeclarations(threadEdges.build());
-    assert pEntryNode.getFunction().getType() instanceof CFunctionType;
-
-    return new MPORThread(
-        currentThreadId++,
-        (CFunctionType) pEntryNode.getFunction().getType(),
-        pThreadObject,
-        localVars,
-        threadCfa);
+        pFuncReturnNode);
+    return new ThreadCFA(
+        pEntryNode, threadNodes.build(), threadEdges.build(), calledFunctions.build());
   }
 
   /**
    * Recursively searches the CFA of a thread specified by its entry node (the first pCurrentNode)
    * and pExitNode.
    */
-  private static void initThreadVariables(
+  private static void initThreadCfaVariables(
       Set<CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<ThreadEdge> pThreadEdges,
@@ -143,7 +151,7 @@ public class ThreadBuilder {
             if (cfaEdge instanceof CFunctionCallEdge funcCallEdge) {
               pCalledFunctions.add(funcCallEdge.getFunctionCallExpression().getDeclaration());
             }
-            initThreadVariables(
+            initThreadCfaVariables(
                 pVisitedNodes,
                 pThreadNodes,
                 pThreadEdges,

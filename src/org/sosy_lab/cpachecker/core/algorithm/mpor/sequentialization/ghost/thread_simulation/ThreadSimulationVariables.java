@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class GhostThreadSimulationVariables {
+public class ThreadSimulationVariables {
 
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
@@ -38,7 +38,7 @@ public class GhostThreadSimulationVariables {
    */
   public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
 
-  public GhostThreadSimulationVariables(
+  public ThreadSimulationVariables(
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,

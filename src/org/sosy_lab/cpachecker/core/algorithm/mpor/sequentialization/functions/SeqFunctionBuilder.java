@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -37,8 +37,8 @@ public class SeqFunctionBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadSimulationVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -71,8 +71,8 @@ public class SeqFunctionBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -84,7 +84,7 @@ public class SeqFunctionBuilder {
             pSubstituteEdges,
             pReturnPcVariables,
             pPcVariables,
-            pThreadVariables,
+            pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
     // optional: include POR assumptions
@@ -96,7 +96,7 @@ public class SeqFunctionBuilder {
             : Optional.empty();
     ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
-            pPcVariables, pThreadVariables, pBinaryExpressionBuilder);
+            pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder);
     return new SeqMainFunction(
         pSubstitutions.size(),
         pOptions,

@@ -26,9 +26,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.declarations.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -110,7 +110,7 @@ public class Sequentialization {
 
   private final LogManager logger;
 
-  private final GhostPcVariables pcVariables;
+  private final PcVariables pcVariables;
 
   public Sequentialization(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
@@ -127,7 +127,7 @@ public class Sequentialization {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
     pcVariables =
-        new GhostPcVariables(
+        new PcVariables(
             SeqLeftHandSides.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
   }
 
@@ -154,7 +154,7 @@ public class Sequentialization {
         GhostVariableUtil.buildReturnPcVariables(threads);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteBuilder.substituteEdges(substitutions);
-    GhostThreadSimulationVariables threadSimulationVariables =
+    ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 
     // add function, struct, variable declarations in the order: original, global, local, parameters

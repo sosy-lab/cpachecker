@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 

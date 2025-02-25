@@ -24,12 +24,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.MutexLocked;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadBeginsAtomic;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadJoinsThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadLocksMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.MutexLocked;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadBeginsAtomic;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadJoinsThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadLocksMutex;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -40,35 +40,37 @@ public class SeqAssumptionBuilder {
    * simulations and pthread methods inside the sequentialization.
    */
   public static ImmutableList<SeqFunctionCallExpression> createThreadSimulationAssumptions(
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
 
     // add all assumptions to simulate threads
-    rAssumptions.addAll(buildMutexAssumptions(pThreadVariables, pBinaryExpressionBuilder));
     rAssumptions.addAll(
-        buildJoinAssumptions(pPcVariables, pThreadVariables, pBinaryExpressionBuilder));
-    rAssumptions.addAll(buildAtomicAssumptions(pThreadVariables, pBinaryExpressionBuilder));
+        buildMutexAssumptions(pThreadSimulationVariables, pBinaryExpressionBuilder));
+    rAssumptions.addAll(
+        buildJoinAssumptions(pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder));
+    rAssumptions.addAll(
+        buildAtomicAssumptions(pThreadSimulationVariables, pBinaryExpressionBuilder));
 
     return rAssumptions.build();
   }
 
   /** Assumptions over mutexes: {@code assume(!(m_locked && ti_locks_m) || next_thread != i)} */
   private static ImmutableList<SeqFunctionCallExpression> buildMutexAssumptions(
-      GhostThreadSimulationVariables pThreadVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rMutexAssumptions = ImmutableList.builder();
 
-    for (var lockedEntry : pThreadVariables.locked.entrySet()) {
+    for (var lockedEntry : pThreadSimulationVariables.locked.entrySet()) {
       CIdExpression pthreadMutexT = lockedEntry.getKey();
       MutexLocked locked = lockedEntry.getValue();
       // search for the awaits variable corresponding to pthreadMutexT
-      for (var awaitsEntry : pThreadVariables.locks.entrySet()) {
+      for (var awaitsEntry : pThreadSimulationVariables.locks.entrySet()) {
         MPORThread thread = awaitsEntry.getKey();
         for (var awaitsValue : awaitsEntry.getValue().entrySet()) {
           if (pthreadMutexT.equals(awaitsValue.getKey())) {
@@ -94,14 +96,14 @@ public class SeqAssumptionBuilder {
 
   /** Assumptions over joins: {@code assume(!(pc[i] != -1 && tj_joins_ti) || next_thread != j)} */
   private static ImmutableList<SeqFunctionCallExpression> buildJoinAssumptions(
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rJoinAssumptions = ImmutableList.builder();
 
-    for (var join : pThreadVariables.joins.entrySet()) {
+    for (var join : pThreadSimulationVariables.joins.entrySet()) {
       MPORThread jThread = join.getKey();
       for (var joinValue : join.getValue().entrySet()) {
         MPORThread iThread = joinValue.getKey();
@@ -129,20 +131,21 @@ public class SeqAssumptionBuilder {
    * Atomic assumptions: {@code assume(!(atomic_locked && ti_begins_atomic) || next_thread != i)}
    */
   private static ImmutableList<SeqFunctionCallExpression> buildAtomicAssumptions(
-      GhostThreadSimulationVariables pThreadVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAtomicAssumptions = ImmutableList.builder();
 
-    for (var entry : pThreadVariables.begins.entrySet()) {
-      assert pThreadVariables.atomicLocked.isPresent();
+    for (var entry : pThreadSimulationVariables.begins.entrySet()) {
+      assert pThreadSimulationVariables.atomicLocked.isPresent();
       MPORThread thread = entry.getKey();
       ThreadBeginsAtomic begins = entry.getValue();
       SeqLogicalNotExpression notAtomicLockedAndBegins =
           new SeqLogicalNotExpression(
               new SeqLogicalAndExpression(
-                  pThreadVariables.atomicLocked.orElseThrow().idExpression, begins.idExpression));
+                  pThreadSimulationVariables.atomicLocked.orElseThrow().idExpression,
+                  begins.idExpression));
       CToSeqExpression nextThreadNotId =
           new CToSeqExpression(
               SeqBinaryExpression.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder));
@@ -164,7 +167,7 @@ public class SeqAssumptionBuilder {
    */
   public static ImmutableList<SeqFunctionCallExpression> createPORAssumptions(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pPrunedCaseClauses,
-      GhostPcVariables pPcVariables,
+      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -185,7 +188,7 @@ public class SeqAssumptionBuilder {
   private static SeqFunctionCallExpression createPORAssumption(
       int pThreadId,
       int pPc,
-      GhostPcVariables pPcVariables,
+      PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 

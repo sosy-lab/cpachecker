@@ -10,4 +10,4 @@
  * To store the pc expressions for all threads, i.e. {@code pc[0]} for array or {@code pc0} for
  * scalar.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc;

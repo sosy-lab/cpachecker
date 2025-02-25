@@ -10,4 +10,4 @@
  * Classes for injected variables in the sequentialization that were not present in the input
  * program (ghost variables) to simulate functions and threads.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost;

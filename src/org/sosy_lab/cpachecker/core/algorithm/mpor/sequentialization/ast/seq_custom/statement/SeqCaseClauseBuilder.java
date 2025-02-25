@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcRead;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -51,8 +51,8 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -63,7 +63,7 @@ public class SeqCaseClauseBuilder {
             pSubstituteEdges,
             pReturnPcVariables,
             pPcVariables,
-            pThreadVariables,
+            pThreadSimulationVariables,
             pBinaryExpressionBuilder);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
@@ -76,8 +76,8 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
-      GhostPcVariables pPcVariables,
-      GhostThreadSimulationVariables pThreadVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -89,11 +89,11 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
-      GhostFunctionVariables functionVariables =
+      FunctionStatements functionVariables =
           GhostVariableUtil.buildFunctionVariables(
               thread, substitution, pSubstituteEdges, pReturnPcVariables);
       GhostVariables ghostVariables =
-          new GhostVariables(functionVariables, pPcVariables, pThreadVariables);
+          new GhostVariables(functionVariables, pPcVariables, pThreadSimulationVariables);
 
       caseClauses.addAll(
           initCaseClauses(

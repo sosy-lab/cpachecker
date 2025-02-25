@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
@@ -96,14 +96,14 @@ public class SeqDeclarationBuilder {
   }
 
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
-      GhostThreadSimulationVariables pThreadSimulationVariables) {
+      ThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableList.Builder<LineOfCode> rThreadSimulationVariableDeclarations =
         ImmutableList.builder();
     rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
-    for (CIdExpression threadVar : pThreadSimulationVariables.getIdExpressions()) {
-      assert threadVar.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVar.getDeclaration();
+    for (CIdExpression threadVariable : pThreadSimulationVariables.getIdExpressions()) {
+      assert threadVariable.getDeclaration() instanceof CVariableDeclaration;
+      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVariable.getDeclaration();
       rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
     }
     rThreadSimulationVariableDeclarations.add(LineOfCode.empty());
