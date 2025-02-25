@@ -8,15 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypeParser;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
@@ -34,18 +35,35 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.SplitConjunctionsVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.StringToBooleanFormulaParser;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.AcceptSpecifiedVariableSelection;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SMTToBooleanIntervalFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.SMTToNumeralIntervalFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DeserializeDataflowAnalysisStateOperator implements DeserializeOperator {
   private final CFA cfa;
   private final InvariantsCPA invariantsCPA;
   private final BlockNode blockNode;
+  private final Map<MemoryLocation, CType> variableTypes;
+  private final Solver solver;
+  private final FormulaManagerView formulaManager;
 
   public DeserializeDataflowAnalysisStateOperator(
-      InvariantsCPA pInvariantsCPA, CFA pCFA, BlockNode pBlockNode) {
+      InvariantsCPA pInvariantsCPA,
+      CFA pCFA,
+      BlockNode pBlockNode,
+      Map<MemoryLocation, CType> pVariableTypes,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
     cfa = pCFA;
     invariantsCPA = pInvariantsCPA;
     blockNode = pBlockNode;
+    variableTypes = pVariableTypes;
+    solver = Solver.create(config, pLogger, shutdownNotifier);
+    formulaManager = solver.getFormulaManager();
   }
 
   @Override
@@ -82,7 +100,7 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
                 .createStrategy(
                     invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel())
                 .getAbstractionState(),
-            extractVariableTypes(pMessage),
+            variableTypes,
             true);
 
     for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
@@ -91,28 +109,16 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     deserializedInvariantsState =
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
+    // test formulaToInterval Visitor
+    // org.sosy_lab.java_smt.api.BooleanFormula smtFormula =
+    // deserializedInvariantsState.getFormulaApproximation(formulaManager);
+    // SMTToNumeralIntervalFormulaVisitor smtToNumeralFormulaVisitor = new
+    // SMTToNumeralIntervalFormulaVisitor(formulaManager, variableTypes, cfa.getMachineModel());
+    // SMTToBooleanIntervalFormulaVisitor formulaToIntervalVisitor = new
+    // SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
+    // BooleanFormula<CompoundInterval> compoundInterval =
+    //     formulaManager.visit(smtFormula, formulaToIntervalVisitor);
     return deserializedInvariantsState;
-  }
-
-  private Map<MemoryLocation, CType> extractVariableTypes(BlockSummaryMessage pMessage) {
-    String variableTypesString = "";
-    if (pMessage instanceof BlockSummaryPostConditionMessage postConditionMessage) {
-      variableTypesString = postConditionMessage.getVTypes();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorConditionMessage) {
-      variableTypesString = errorConditionMessage.getVTypes();
-    }
-
-    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
-    for (String variableTypeEntry : Splitter.on(" && ").split(variableTypesString)) {
-      variableTypeEntry = variableTypeEntry.trim();
-      if (!variableTypeEntry.isEmpty()) {
-        List<String> parts = Splitter.on(".ti").splitToList(variableTypeEntry);
-        MemoryLocation memoryLocation = MemoryLocation.parseExtendedQualifiedName(parts.get(0));
-        CType type = CTypeParser.parse(parts.get(1));
-        variableTypes.put(memoryLocation, type);
-      }
-    }
-    return variableTypes;
   }
 
   private AbstractionStrategyFactories extractAbstractionStrategy(BlockSummaryMessage pMessage) {
@@ -123,5 +129,38 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
       strategyString = errorMessage.getAbstractionStrategy();
     }
     return AbstractionStrategyFactories.valueOf(strategyString);
+  }
+
+  @Override
+  public InvariantsState deserializeFromFormula(org.sosy_lab.java_smt.api.BooleanFormula pFormula) {
+    SMTToNumeralIntervalFormulaVisitor smtToNumeralFormulaVisitor =
+        new SMTToNumeralIntervalFormulaVisitor(
+            formulaManager, variableTypes, cfa.getMachineModel());
+
+    SMTToBooleanIntervalFormulaVisitor SMTToBooleanIntervalFormulaVisitor =
+        new SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
+    BooleanFormula<CompoundInterval> compoundInterval =
+        formulaManager.visit(pFormula, SMTToBooleanIntervalFormulaVisitor);
+    AcceptSpecifiedVariableSelection<CompoundInterval> collectVarsVariableSelection =
+        new AcceptSpecifiedVariableSelection<>(compoundInterval.accept(new CollectVarsVisitor<>()));
+    List<BooleanFormula<CompoundInterval>> assumptionParts =
+        compoundInterval.accept(new SplitConjunctionsVisitor<>());
+    InvariantsState deserializedInvariantsState =
+        new InvariantsState(
+            collectVarsVariableSelection,
+            invariantsCPA.getCompoundIntervalFormulaManagerFactory(),
+            cfa.getMachineModel(),
+            AbstractionStrategyFactories.ENTERING_EDGES
+                .createStrategy(
+                    invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel())
+                .getAbstractionState(),
+            variableTypes,
+            true);
+    for (BooleanFormula<CompoundInterval> assumption : assumptionParts) {
+      deserializedInvariantsState = deserializedInvariantsState.assume(assumption);
+    }
+    deserializedInvariantsState =
+        deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
+    return deserializedInvariantsState;
   }
 }

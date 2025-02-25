@@ -88,7 +88,7 @@ public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand2 the second operand of the equation.
    * @return an invariants formula representing the equation of the given operands.
    */
-  static <ConstantType> Equal<ConstantType> of(
+  public static <ConstantType> Equal<ConstantType> of(
       NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new Equal<>(pOperand1, pOperand2);
   }

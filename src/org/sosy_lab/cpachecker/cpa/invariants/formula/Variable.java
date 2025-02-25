@@ -65,7 +65,8 @@ public class Variable<ConstantType> extends AbstractFormula<ConstantType>
    * @param pMemoryLocation the memory location of the variable.
    * @return an invariants formula representing the variable with the given memory location.
    */
-  static <ConstantType> Variable<ConstantType> of(TypeInfo pInfo, MemoryLocation pMemoryLocation) {
+  public static <ConstantType> Variable<ConstantType> of(
+      TypeInfo pInfo, MemoryLocation pMemoryLocation) {
     return new Variable<>(pInfo, pMemoryLocation);
   }
 }

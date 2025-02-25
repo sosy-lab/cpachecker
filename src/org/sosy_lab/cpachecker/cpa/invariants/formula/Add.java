@@ -63,7 +63,7 @@ public final class Add<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @param pSummand2 the second summand.
    * @return the sum of the given formulae.
    */
-  static <ConstantType> Add<ConstantType> of(
+  public static <ConstantType> Add<ConstantType> of(
       NumeralFormula<ConstantType> pSummand1, NumeralFormula<ConstantType> pSummand2) {
     return new Add<>(pSummand1, pSummand2);
   }

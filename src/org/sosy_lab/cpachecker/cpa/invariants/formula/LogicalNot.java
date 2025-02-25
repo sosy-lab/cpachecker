@@ -96,7 +96,7 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pToNegate the invariants formula to negate.
    * @return an invariants formula representing the logical negation of the given operand.
    */
-  static <ConstantType> LogicalNot<ConstantType> of(BooleanFormula<ConstantType> pToNegate) {
+  public static <ConstantType> LogicalNot<ConstantType> of(BooleanFormula<ConstantType> pToNegate) {
     return new LogicalNot<>(pToNegate);
   }
 }

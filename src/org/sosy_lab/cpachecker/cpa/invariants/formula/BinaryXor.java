@@ -13,7 +13,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
+public final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   private BinaryXor(
@@ -42,7 +42,7 @@ final class BinaryXor<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @return an invariants formula representing the binary exclusive or operation over the given
    *     operands.
    */
-  static <ConstantType> BinaryXor<ConstantType> of(
+  public static <ConstantType> BinaryXor<ConstantType> of(
       NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryXor<>(pOperand1, pOperand2);
   }

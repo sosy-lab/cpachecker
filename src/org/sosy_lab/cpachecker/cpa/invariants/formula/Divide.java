@@ -14,7 +14,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
+public final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   /**
@@ -67,7 +67,7 @@ final class Divide<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @return an invariants formula representing the division of the given numerator formula by the
    *     given denominator formula.
    */
-  static <ConstantType> Divide<ConstantType> of(
+  public static <ConstantType> Divide<ConstantType> of(
       NumeralFormula<ConstantType> pNumerator, NumeralFormula<ConstantType> pDenominator) {
     return new Divide<>(pNumerator, pDenominator);
   }

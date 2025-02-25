@@ -9,7 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
@@ -23,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DistributedValueAnalysisCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -30,27 +37,29 @@ public class DistributedValueAnalysisCPA
   private final ValueAnalysisCPA valueAnalysisCPA;
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
-  // private final SerializePrecisionOperator serializePrecisionOperator;
-  // private final DeserializePrecisionOperator deserializePrecisionOperator;
+  private final Map<MemoryLocation, CType> variableTypes;
+
   private final BlockNode blockNode;
 
   public DistributedValueAnalysisCPA(
-      ValueAnalysisCPA pValueAnalysisCPA, BlockNode pNode, CFA pCFA) {
+      ValueAnalysisCPA pValueAnalysisCPA,
+      BlockNode pNode,
+      CFA pCFA,
+      Configuration pConfig,
+      org.sosy_lab.common.log.LogManager pLogManager,
+      ShutdownNotifier shutdownNotifier,
+      Map<MemoryLocation, CType> pVariableTypes)
+      throws InvalidConfigurationException {
     valueAnalysisCPA = pValueAnalysisCPA;
-    serializeOperator = new SerializeValueAnalysisStateOperator();
-    deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA);
-    // serializePrecisionOperator = new SerializeVariableTrackingPrecision();
-    // deserializePrecisionOperator = new DeserializeVariableTrackingPrecision(pValueAnalysisCPA);
+    variableTypes = new HashMap<>(pVariableTypes);
+    serializeOperator =
+        new SerializeValueAnalysisStateOperator(
+            valueAnalysisCPA, pConfig, pLogManager, shutdownNotifier);
+    deserializeOperator =
+        new DeserializeValueAnalysisStateOperator(
+            pCFA, variableTypes, pConfig, pLogManager, shutdownNotifier);
     blockNode = pNode;
   }
-
-  /*
-   * @Override public DeserializePrecisionOperator getDeserializePrecisionOperator() { return
-   * deserializePrecisionOperator; }
-   *
-   * @Override public SerializePrecisionOperator getSerializePrecisionOperator() { return
-   * serializePrecisionOperator; }
-   */
 
   @Override
   public SerializeOperator getSerializeOperator() {

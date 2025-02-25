@@ -10,13 +10,16 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -34,10 +37,14 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DssFactory {
 
@@ -62,6 +69,14 @@ public class DssFactory {
       throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
+    CompoundIntervalManagerFactory compoundIntervalManagerFactory =
+        CompoundBitVectorIntervalManagerFactory.forbidSignedWrapAround();
+    EdgeAnalyzer edgeAnalyzer =
+        new EdgeAnalyzer(compoundIntervalManagerFactory, pCFA.getMachineModel());
+    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
+    for (CFAEdge edge : CFAUtils.allEdges(pCFA)) {
+      variableTypes.putAll(edgeAnalyzer.getInvolvedVariableTypes(edge));
+    }
     if (pCPA instanceof PredicateCPA predicateCPA) {
       return distribute(
           predicateCPA,
@@ -71,11 +86,19 @@ public class DssFactory {
           pOptions,
           pLogManager,
           pShutdownNotifier,
-          integerToNodeMap);
+          integerToNodeMap,
+          variableTypes);
     }
 
     if (pCPA instanceof InvariantsCPA invariantsCPA) {
-      return distribute(invariantsCPA, pBlockNode, pCFA);
+      return distribute(
+          invariantsCPA,
+          pBlockNode,
+          pCFA,
+          pConfiguration,
+          pLogManager,
+          pShutdownNotifier,
+          variableTypes);
     }
     if (pCPA instanceof CallstackCPA callstackCPA) {
       return distribute(callstackCPA, pCFA, integerToNodeMap);
@@ -110,7 +133,14 @@ public class DssFactory {
           integerToNodeMap);
     }
     if (pCPA instanceof ValueAnalysisCPA valueCPA) {
-      return distribute(valueCPA, pBlockNode, pCFA);
+      return distribute(
+          valueCPA,
+          pBlockNode,
+          pCFA,
+          pConfiguration,
+          pLogManager,
+          pShutdownNotifier,
+          variableTypes);
     }
     /* TODO: implement support for LocationCPA and LocationBackwardCPA
     as soon as targetCFANode is not required anymore */
@@ -119,13 +149,41 @@ public class DssFactory {
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      ValueAnalysisCPA pValueAnalysisCPA, BlockNode pBlockNode, CFA pCFA) {
-    return new DistributedValueAnalysisCPA(pValueAnalysisCPA, pBlockNode, pCFA);
+      ValueAnalysisCPA pValueAnalysisCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      Map<MemoryLocation, CType> pVaribleTypes)
+      throws InvalidConfigurationException {
+    return new DistributedValueAnalysisCPA(
+        pValueAnalysisCPA,
+        pBlockNode,
+        pCFA,
+        pConfiguration,
+        pLogManager,
+        pShutdownNotifier,
+        pVaribleTypes);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
-      InvariantsCPA pInvariantsCPA, BlockNode pBlockNode, CFA pCFA) {
-    return new DistributedDataFlowAnalysisCPA(pInvariantsCPA, pBlockNode, pCFA);
+      InvariantsCPA pInvariantsCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Configuration pConfiguration,
+      LogManager pLogManager,
+      ShutdownNotifier pShutdownNotifier,
+      Map<MemoryLocation, CType> pVaribleTypes)
+      throws InvalidConfigurationException {
+    return new DistributedDataFlowAnalysisCPA(
+        pInvariantsCPA,
+        pBlockNode,
+        pCFA,
+        pConfiguration,
+        pLogManager,
+        pShutdownNotifier,
+        pVaribleTypes);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(
@@ -141,7 +199,8 @@ public class DssFactory {
       DssAnalysisOptions pOptions,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIntegerCFANodeMap)
+      Map<Integer, CFANode> pIntegerCFANodeMap,
+      Map<MemoryLocation, CType> pVariableTypes)
       throws InvalidConfigurationException {
     return new DistributedPredicateCPA(
         pPredicateCPA,
@@ -151,7 +210,8 @@ public class DssFactory {
         pOptions,
         pLogManager,
         pShutdownNotifier,
-        pIntegerCFANodeMap);
+        pIntegerCFANodeMap,
+        pVariableTypes);
   }
 
   private static DistributedConfigurableProgramAnalysis distribute(

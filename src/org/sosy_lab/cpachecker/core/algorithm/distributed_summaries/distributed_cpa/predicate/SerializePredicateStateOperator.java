@@ -74,4 +74,13 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     return payload.buildPayload();
   }
+
+  @Override
+  public BooleanFormula serializeToFormula(AbstractState pState) {
+    PredicateAbstractState state = (PredicateAbstractState) pState;
+    if (state.isAbstractionState()) {
+      return state.getAbstractionFormula().asFormula();
+    }
+    return state.getPathFormula().getFormula();
+  }
 }

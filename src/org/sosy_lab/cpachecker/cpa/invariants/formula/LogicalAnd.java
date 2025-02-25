@@ -82,7 +82,7 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand2 the second operand of the conjunction.
    * @return an invariants formula representing the logical conjunction over the given operands.
    */
-  static <ConstantType> LogicalAnd<ConstantType> of(
+  public static <ConstantType> LogicalAnd<ConstantType> of(
       BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
     return new LogicalAnd<>(pOperand1, pOperand2);
   }
