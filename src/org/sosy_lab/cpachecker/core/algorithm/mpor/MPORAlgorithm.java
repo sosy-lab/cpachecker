@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -21,38 +21,29 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * The Modular Partial Order Reduction (MPOR) algorithm produces a sequentialization of a concurrent
- * C program. The sequentialization contains reductions in the state space via assumptions over
- * allowed transitions between thread simulations. Sequentializations can be given to any verifier
- * capable of verifying sequential C programs, hence modular.
+ * C program. The sequentialization contains reductions in the state space by grouping commuting
+ * statements together. Sequentializations can be given to any verifier capable of verifying
+ * sequential C programs, hence modular.
  */
 @Options(prefix = "analysis.algorithm.MPOR")
 @SuppressWarnings("unused")
@@ -60,9 +51,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO remove all @SuppressWarnings once finished
-
-  // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
-  //  contains all CFANodes visited so far
 
   @Option(
       secure = true,
@@ -104,6 +92,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
+  /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
+  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
+    return new Sequentialization(
+        substitutions, options, pInputFileName, pOutputFileName, binaryExpressionBuilder, logger);
+  }
+
   private static final String INTERNAL_ERROR =
       "MPOR FAIL. Sequentialization could not be created due to an internal error: ";
 
@@ -111,12 +105,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @TerminatesExecution
   public static void fail(String pMessage) {
     throw new AssertionError(INTERNAL_ERROR + pMessage);
-  }
-
-  /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
-  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
-    return new Sequentialization(
-        substitutions, options, pInputFileName, pOutputFileName, binaryExpressionBuilder, logger);
   }
 
   private final ConfigurableProgramAnalysis cpa;
@@ -129,23 +117,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CFA inputCfa;
 
-  private final GlobalAccessChecker gac;
-
-  /**
-   * A map from {@link CFunctionCallEdge} Predecessors to Return Nodes. Needs to be initialized
-   * before {@link MPORAlgorithm#threads}.
-   */
-  private final ImmutableMap<CFANode, CFANode> funcCallMap;
-
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  private final ThreadBuilder threadBuilder;
-
   /**
-   * The set of threads in the program, including the main thread and all pthreads. Needs to be
-   * initialized after {@link MPORAlgorithm#funcCallMap}.
+   * A map from {@link CFunctionCallEdge} predecessors to return nodes, used to perform calling
+   * context-sensitive searches.
    */
-  private final ImmutableSet<MPORThread> threads;
+  private final ImmutableMap<CFANode, CFANode> functionCallMap;
+
+  /** The list of threads in the program, including the main thread and all pthreads. */
+  private final ImmutableList<MPORThread> threads;
 
   /**
    * The map of thread specific variable declaration substitutions. The main thread (0) handles
@@ -172,24 +153,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     InputRejection.handleRejections(logger, inputCfa);
 
-    gac = new GlobalAccessChecker();
-
-    funcCallMap = getFunctionCallMap(inputCfa);
-
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    threadBuilder = new ThreadBuilder(funcCallMap);
-    threads = getThreads(inputCfa, funcCallMap);
+    functionCallMap = CFAUtils.getFunctionCallMap(inputCfa);
+    threads = ThreadBuilder.createThreads(inputCfa, functionCallMap);
 
-    ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
+    ImmutableSet<CVariableDeclaration> globalVars =
+        CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
         SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
-  }
-
-  public static MPORAlgorithm testInstance(
-      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
-
-    return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
   }
 
   /** Use this constructor only for test purposes. */
@@ -203,98 +175,21 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     InputRejection.handleRejections(logger, inputCfa);
 
-    gac = new GlobalAccessChecker();
-
-    funcCallMap = getFunctionCallMap(inputCfa);
-
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    threadBuilder = new ThreadBuilder(funcCallMap);
-    threads = getThreads(inputCfa, funcCallMap);
+    functionCallMap = CFAUtils.getFunctionCallMap(inputCfa);
+    threads = ThreadBuilder.createThreads(inputCfa, functionCallMap);
 
-    ImmutableSet<CVariableDeclaration> globalVars = getGlobalVars(inputCfa);
+    ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
+        CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
-        SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
+        SubstituteBuilder.buildSubstitutions(
+            globalVariableDeclarations, threads, binaryExpressionBuilder);
   }
 
-  // Variable Initializers =======================================================================
+  public static MPORAlgorithm testInstance(
+      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
 
-  /**
-   * Searches all CFAEdges in pCfa for {@link CFunctionCallEdge} and maps the predecessor CFANodes
-   * to their ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
-   *
-   * <p>E.g. a FunctionExitNode may have several leaving Edges, one for each time the function is
-   * called. With the Map, extracting only the leaving Edge resulting in the ReturnNode is possible.
-   * Using FunctionEntryNodes is not possible because the calling context (the node before the
-   * function call) is lost, which is why keys are not FunctionEntryNodes.
-   *
-   * @param pCfa the CFA to be analyzed
-   * @return A Map of CFANodes before a {@link CFunctionCallEdge} (keys) to the CFANodes where a
-   *     function continues (values, i.e. the ReturnNode) after going through the CFA of the
-   *     function called.
-   */
-  private ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
-    ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-        rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
-      }
-    }
-    return rFunctionCallMap.buildOrThrow();
-  }
-
-  /** Extracts all global variable declarations from pCfa. */
-  private ImmutableSet<CVariableDeclaration> getGlobalVars(CFA pCfa) {
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
-    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
-      if (edge instanceof CDeclarationEdge declarationEdge) {
-        if (gac.hasGlobalAccess(edge) && declarationEdge.getDeclaration().isGlobal()) {
-          AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
-          // exclude FunctionDeclarations
-          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
-            rGlobalVars.add(cVariableDeclaration);
-          }
-        }
-      }
-    }
-    return rGlobalVars.build();
-  }
-
-  // TODO pthread_create calls in loops can be considered by loop unrolling
-  /**
-   * Extracts all threads (main and pthreads) and the FunctionEntry / ExitNodes of their start
-   * routines from the given CFA.
-   *
-   * <p>This functions needs to be called after functionCallMap was initialized so that we can track
-   * the calling context of each thread.
-   *
-   * @param pCfa the CFA to be analyzed
-   * @param pFunctionCallMap map from CFANodes before {@link CFunctionCallEdge} to
-   *     FunctionReturnNodes
-   * @return the set of threads
-   */
-  private ImmutableSet<MPORThread> getThreads(
-      CFA pCfa, ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
-
-    ImmutableSet.Builder<MPORThread> rThreads = ImmutableSet.builder();
-
-    // add the main thread
-    FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    assert threadBuilder != null;
-    rThreads.add(threadBuilder.createThread(Optional.empty(), mainEntryNode));
-
-    // search the CFA for pthread_create calls
-    for (CFAEdge cfaEdge : CFAUtils.allUniqueEdges(pCfa)) {
-      if (PthreadFunctionType.callsPthreadFunc(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-        // extract the first parameter of pthread_create, i.e. the pthread_t value
-        CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-        // extract the third parameter of pthread_create which points to the start routine function
-        CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
-        FunctionEntryNode entryNode =
-            CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
-        rThreads.add(threadBuilder.createThread(Optional.ofNullable(pthreadT), entryNode));
-      }
-    }
-    return rThreads.build();
+    return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
   }
 }

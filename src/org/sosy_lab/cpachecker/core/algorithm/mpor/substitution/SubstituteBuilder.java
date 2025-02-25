@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -150,6 +151,7 @@ public class SubstituteBuilder {
 
   private static CInitializerExpression substituteInitExpr(
       CInitializerExpression pOriginal, CExpression pExpression) {
+
     return new CInitializerExpression(pOriginal.getFileLocation(), pExpression);
   }
 
@@ -165,6 +167,7 @@ public class SubstituteBuilder {
 
   private static CDeclarationEdge substituteDeclarationEdge(
       CDeclarationEdge pOriginal, CVariableDeclaration pVarDec) {
+
     return new CDeclarationEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
@@ -175,6 +178,7 @@ public class SubstituteBuilder {
 
   private static CStatementEdge substituteStatementEdge(
       CStatementEdge pOriginal, CStatement pStatement) {
+
     return new CStatementEdge(
         pOriginal.getRawStatement(),
         pStatement,
@@ -185,6 +189,7 @@ public class SubstituteBuilder {
 
   private static CFunctionSummaryEdge substituteFunctionSummaryEdge(
       CFunctionSummaryEdge pOriginal, CStatement pFuncCall) {
+
     return new CFunctionSummaryEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
@@ -196,6 +201,7 @@ public class SubstituteBuilder {
 
   private static CFunctionCallEdge substituteFunctionCallEdge(
       CFunctionCallEdge pOriginal, CFunctionCall pFuncCall) {
+
     return new CFunctionCallEdge(
         pOriginal.getRawStatement(),
         pOriginal.getFileLocation(),
@@ -207,6 +213,7 @@ public class SubstituteBuilder {
 
   private static CReturnStatementEdge substituteReturnStatementEdge(
       CReturnStatementEdge pOriginal, CReturnStatement pReturnStatement) {
+
     return new CReturnStatementEdge(
         pOriginal.getRawStatement(),
         pReturnStatement,
@@ -218,21 +225,25 @@ public class SubstituteBuilder {
   // Thread Substitutions ========================================================================
 
   public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> buildSubstitutions(
-      ImmutableSet<CVariableDeclaration> pGlobalVars,
-      ImmutableSet<MPORThread> pThreads,
+      ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
+      ImmutableList<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDeclarationSubstitutions =
         ImmutableMap.builder();
     // create global vars up front, their initializer cannot contain local variables
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
-        getVarSubstitutes(
-            Optional.empty(), Optional.empty(), 0, pGlobalVars, pBinaryExpressionBuilder);
+        buildVariableDeclarationSubstitutes(
+            Optional.empty(),
+            Optional.empty(),
+            0,
+            pGlobalVariableDeclarations,
+            pBinaryExpressionBuilder);
     for (MPORThread thread : pThreads) {
       ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes =
           getParameterSubstitutes(thread);
       ImmutableMap<CVariableDeclaration, CIdExpression> localVarSubstitutes =
-          getVarSubstitutes(
+          buildVariableDeclarationSubstitutes(
               Optional.of(globalVarSubstitutes),
               Optional.of(parameterSubstitutes),
               thread.id,
@@ -253,7 +264,7 @@ public class SubstituteBuilder {
       MPORThread pThread) {
 
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rThreadSubs = ImmutableMap.builder();
-    for (CFunctionDeclaration funcDec : pThread.cfa.calledFuncs) {
+    for (CFunctionDeclaration funcDec : pThread.cfa.calledFunctions) {
       for (CParameterDeclaration paramDec : funcDec.getParameters()) {
         String varName = SeqNameUtil.buildParameterName(paramDec, pThread.id);
         CVariableDeclaration varDec =
@@ -268,17 +279,18 @@ public class SubstituteBuilder {
    * Creates substitutes for all variables in the program and maps them to their original. The
    * substitutes differ only in their name.
    */
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> getVarSubstitutes(
-      Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalVarSubstitutes,
-      Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes,
-      int pThreadId,
-      ImmutableSet<CVariableDeclaration> pVarDeclarations,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+  private static ImmutableMap<CVariableDeclaration, CIdExpression>
+      buildVariableDeclarationSubstitutes(
+          Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
+          Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes,
+          int pThreadId,
+          ImmutableSet<CVariableDeclaration> pVariableDeclarations,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyVarSubsB =
         ImmutableMap.builder();
-    for (CVariableDeclaration varDec : pVarDeclarations) {
+    for (CVariableDeclaration varDec : pVariableDeclarations) {
       String substituteName = SeqNameUtil.buildVarName(varDec, pThreadId);
       CVariableDeclaration substitute = substituteVarDeclaration(varDec, substituteName);
       dummyVarSubsB.put(varDec, SeqIdExpression.buildIdExpression(substitute));
@@ -289,10 +301,7 @@ public class SubstituteBuilder {
     // create dummy substitution
     CSimpleDeclarationSubstitution dummySubstitution =
         new CSimpleDeclarationSubstitution(
-            pGlobalVarSubstitutes,
-            dummyLocalVarSubs,
-            pParameterSubstitutes,
-            pBinaryExpressionBuilder);
+            pGlobalSubstitutes, dummyLocalVarSubs, pParameterSubstitutes, pBinaryExpressionBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubs = ImmutableMap.builder();

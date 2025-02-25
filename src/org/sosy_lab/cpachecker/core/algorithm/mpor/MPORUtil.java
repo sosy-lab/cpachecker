@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -46,7 +46,7 @@ public final class MPORUtil {
    * @return the previous or new FunctionReturnNode or {@link Optional#empty()} if pCurrentNode
    *     exits a function
    */
-  public static Optional<CFANode> updateFuncReturnNode(
+  public static Optional<CFANode> updateFunctionReturnNode(
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       CFANode pCurrentNode,
       Optional<CFANode> pPrevFuncReturnNode) {
@@ -92,6 +92,8 @@ public final class MPORUtil {
     return rAbstractSuccessor;
   }
 
+  // TODO (not sure if important for our algorithm) PredicateAbstractState.abstractLocations
+  //  contains all CFANodes visited so far
   /**
    * Checks whether two CFAEdges a and b <i>commute</i>, i.e. if, from the current pAbstractState,
    * executing a then b or b then a result in the same PathFormula.

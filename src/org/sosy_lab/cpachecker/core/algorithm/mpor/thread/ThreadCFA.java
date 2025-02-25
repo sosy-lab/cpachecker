@@ -36,28 +36,28 @@ public class ThreadCFA {
 
   public final ImmutableSet<ThreadEdge> threadEdges;
 
-  public final ImmutableSet<CFunctionDeclaration> calledFuncs;
+  public final ImmutableSet<CFunctionDeclaration> calledFunctions;
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
       ImmutableSet<ThreadNode> pThreadNodes,
       ImmutableSet<ThreadEdge> pThreadEdges,
-      ImmutableSet<CFunctionDeclaration> pCalledFuncs) {
+      ImmutableSet<CFunctionDeclaration> pCalledFunctions) {
 
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
-    calledFuncs = pCalledFuncs;
+    calledFunctions = pCalledFunctions;
     initPredecessors();
     initSuccessors();
-    handleFuncReturnEdges();
+    handleFunctionReturnEdges();
   }
 
   /**
    * Initializes successors of CFunctionReturnEdges or prunes them if they lead to another thread.
    */
-  private void handleFuncReturnEdges() {
+  private void handleFunctionReturnEdges() {
     for (ThreadNode threadNode : threadNodes) {
       if (threadNode.cfaNode instanceof FunctionExitNode) {
         Set<ThreadEdge> prunedEdges = new HashSet<>();
@@ -99,7 +99,7 @@ public class ThreadCFA {
 
   /**
    * Initializes all successor ThreadNodes for each ThreadEdge except CFunctionReturnEdges which are
-   * handled in {@link ThreadCFA#handleFuncReturnEdges()}.
+   * handled in {@link ThreadCFA#handleFunctionReturnEdges()}.
    */
   private void initSuccessors() {
     for (ThreadEdge threadEdge : threadEdges) {

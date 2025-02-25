@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Classes containing strings used to create a sequentialization. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded;

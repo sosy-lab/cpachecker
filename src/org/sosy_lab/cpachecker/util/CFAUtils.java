@@ -20,6 +20,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -96,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -119,9 +121,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -312,6 +317,25 @@ public class CFAUtils {
       return cExpressions.get(pIndex);
     }
     throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
+  }
+
+  /**
+   * Searches all CFAEdges in pCfa for {@link CFunctionCallEdge} and maps the predecessor CFANodes
+   * to their ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
+   *
+   * <p>E.g. a FunctionExitNode may have several leaving Edges, one for each time the function is
+   * called. With the Map, extracting only the leaving Edge resulting in the ReturnNode is possible.
+   * Using FunctionEntryNodes is not possible because the calling context (the node before the
+   * function call) is lost, which is why keys are not FunctionEntryNodes.
+   */
+  public static ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
+    ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
+    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
+      if (cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+        rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
+      }
+    }
+    return rFunctionCallMap.buildOrThrow();
   }
 
   /**
@@ -708,6 +732,25 @@ public class CFAUtils {
     CFATraversal.dfs().ignoreSummaryEdges().traverseOnce(rootNode, visitor);
 
     return visitor.hasBackwardsEdges();
+  }
+
+  /** Extracts all {@link CVariableDeclaration} from {@code pCfa} that are global. */
+  public static ImmutableSet<CVariableDeclaration> getGlobalVariableDeclarations(CFA pCfa) {
+    ImmutableSet.Builder<CVariableDeclaration> rGlobalVars = ImmutableSet.builder();
+    GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+      if (edge instanceof CDeclarationEdge declarationEdge) {
+        if (globalAccessChecker.hasGlobalAccess(edge)
+            && declarationEdge.getDeclaration().isGlobal()) {
+          AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
+          // exclude CFunctionDeclaration and CTypeDeclaration (e.g. for structs)
+          if (aAstNode instanceof CVariableDeclaration cVariableDeclaration) {
+            rGlobalVars.add(cVariableDeclaration);
+          }
+        }
+      }
+    }
+    return rGlobalVars.build();
   }
 
   /**

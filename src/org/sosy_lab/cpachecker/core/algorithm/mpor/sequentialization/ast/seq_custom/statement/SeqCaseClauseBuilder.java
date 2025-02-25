@@ -158,7 +158,7 @@ public class SeqCaseClauseBuilder {
 
     pCoveredNodes.add(pThreadNode);
 
-    int originPc = pThreadNode.pc;
+    int labelPc = pThreadNode.pc;
     ImmutableList.Builder<SeqCaseBlockStatement> statements = ImmutableList.builder();
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
@@ -193,7 +193,7 @@ public class SeqCaseClauseBuilder {
         new SeqCaseClause(
             anyGlobalAccess(pThreadNode.leavingEdges()),
             pThreadNode.cfaNode.isLoopStart(),
-            originPc,
+            labelPc,
             new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
   }
 
