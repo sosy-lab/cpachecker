@@ -170,7 +170,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case BV_AND:
         return " & ";
       case OR:
-        return "\n|| ";
+        return " || ";
       case BV_OR:
         return " | ";
       case BV_XOR:
