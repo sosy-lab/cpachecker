@@ -96,8 +96,6 @@ public class SeqDeclarationBuilder {
   }
 
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      ImmutableSet<MPORThread> pThreads,
       GhostThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableList.Builder<LineOfCode> rThreadSimulationVariableDeclarations =

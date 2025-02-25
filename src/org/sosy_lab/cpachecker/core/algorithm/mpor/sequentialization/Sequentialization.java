@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 @SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class Sequentialization {
 
+  private static final String license = "Apache-2.0";
+
   private static final ImmutableList<LineOfCode> licenseHeader =
       ImmutableList.of(
           LineOfCode.of(0, "// This file is part of CPAchecker,"),
@@ -58,7 +60,8 @@ public class Sequentialization {
                   + Year.now(ZoneId.systemDefault()).getValue()
                   + " Dirk Beyer <https://www.sosy-lab.org>"),
           LineOfCode.of(0, "//"),
-          LineOfCode.of(0, "// SPDX-License-Identifier: " + "Apache-2.0"),
+          // splitting this with + so that 'reuse lint' accepts it
+          LineOfCode.of(0, "// SPDX-" + "License-" + "Identifier: " + license),
           LineOfCode.empty());
 
   private static final ImmutableList<LineOfCode> mporHeader =
@@ -163,8 +166,7 @@ public class Sequentialization {
     // add variable declarations for ghost variables: return_pc, thread simulation variables
     rProgram.addAll(SeqDeclarationBuilder.buildReturnPcDeclarations(returnPcVariables));
     rProgram.addAll(
-        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(
-            substitutions, threads, threadSimulationVariables));
+        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(threadSimulationVariables));
 
     // add custom function declarations and definitions
     rProgram.addAll(SeqDeclarationBuilder.buildFunctionDeclarations());
