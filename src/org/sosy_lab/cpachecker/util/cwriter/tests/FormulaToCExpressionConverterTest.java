@@ -669,7 +669,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case PRINCESS -> "(((y + (-1 * x)) + -1) >= 0)";
-            case OPENSMT -> "(!(0<=(x+(-1*y))))";
+            case OPENSMT -> "(!(0 <= (x + (-1 * y))))";
             default -> "(x < y)";
           };
       assertThat(converter.formulaToCExpression(formula)).isEqualTo(expected);
