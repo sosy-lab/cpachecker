@@ -232,7 +232,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       CSimpleDeclaration pSimpleDeclaration, Class<T> pClass) {
     checkArgument(
         pClass.isInstance(pSimpleDeclaration),
-        "pSimpleDeclaration must be an instance of " + pClass.getSimpleName());
+        "pSimpleDeclaration must be an instance of %s",
+        pClass.getSimpleName());
     return pClass.cast(pSimpleDeclaration);
   }
 

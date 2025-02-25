@@ -14,10 +14,8 @@ import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Year;
 import java.time.ZoneId;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -34,10 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeft
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -45,17 +40,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -239,19 +231,22 @@ public class Sequentialization {
     rProgram.add(LineOfCode.empty());
 
     // TODO the case clauses should be multimaps
-    // create pruned (i.e. only non-blank) cases statements in main method
+    // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        initCaseClauses(substitutions, subEdges, returnPcVariables, threadVars);
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
-        SeqPruner.pruneCaseClauses(caseClauses);
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> finalCaseClauses =
-        updateInitialLabels(prunedCaseClauses, logger);
+        SeqCaseClauseBuilder.buildCaseClauses(
+            substitutions,
+            subEdges,
+            returnPcVariables,
+            pcVariables,
+            threadVars,
+            binaryExpressionBuilder,
+            logger);
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
         options.partialOrderReduction
             ? Optional.of(
                 SeqAssumptionBuilder.createPORAssumptions(
-                    finalCaseClauses, pcVariables, binaryExpressionBuilder))
+                    caseClauses, pcVariables, binaryExpressionBuilder))
             : Optional.empty();
     ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
@@ -262,7 +257,7 @@ public class Sequentialization {
             options,
             threadSimulationAssumptions,
             porAssumptions,
-            finalCaseClauses,
+            caseClauses,
             pcVariables,
             binaryExpressionBuilder);
     rProgram.addAll(mainMethod.buildDefinition());
@@ -317,71 +312,5 @@ public class Sequentialization {
       return pLineOfCode.copyWithCode(replacement);
     }
     return pLineOfCode;
-  }
-
-  /** Maps threads to the case clauses they potentially execute. */
-  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables,
-      GhostThreadVariables pThreadVariables)
-      throws UnrecognizedCodeException {
-
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
-        ImmutableMap.builder();
-    for (var entry : pSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      CSimpleDeclarationSubstitution substitution = entry.getValue();
-      ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
-      Set<ThreadNode> coveredNodes = new HashSet<>();
-
-      GhostFunctionVariables functionVariables =
-          GhostVariableUtil.buildFunctionVariables(
-              thread, substitution, pSubstituteEdges, pReturnPcVariables);
-      GhostVariables ghostVariables =
-          new GhostVariables(functionVariables, pcVariables, pThreadVariables);
-
-      caseClauses.addAll(
-          SeqCaseClauseBuilder.buildCaseClauses(
-              thread,
-              pSubstitutions.keySet(),
-              coveredNodes,
-              pSubstituteEdges,
-              ghostVariables,
-              binaryExpressionBuilder));
-      rCaseClauses.put(thread, caseClauses.build());
-    }
-    // modified reach_error result in unreachable statements of that function
-    //  -> no validation of case clauses here
-    return rCaseClauses.buildOrThrow();
-  }
-
-  /**
-   * Ensures that the initial label {@code pc} for all threads is {@link Sequentialization#INIT_PC}.
-   */
-  private ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rUpdated =
-        ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
-      boolean firstCase = true;
-      ImmutableList.Builder<SeqCaseClause> updatedCases = ImmutableList.builder();
-      // this approach (just taking the first case) is sound because the path up to the first
-      //  non-blank case is deterministic (i.e. only 1 leaving edge)
-      for (SeqCaseClause caseClause : entry.getValue()) {
-        assert !caseClause.isPrunable()
-            : "case clause is still prunable. did you use the pruned case clauses?";
-        if (firstCase) {
-          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC)));
-          firstCase = false;
-        } else {
-          updatedCases.add(caseClause);
-        }
-      }
-      rUpdated.put(entry.getKey(), updatedCases.build());
-    }
-    return SeqValidator.validateCaseClauses(rUpdated.buildOrThrow(), pLogger);
   }
 }

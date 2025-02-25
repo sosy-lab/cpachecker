@@ -11,11 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -24,8 +28,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -35,7 +46,72 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCaseClauseBuilder {
 
-  public static ImmutableList<SeqCaseClause> buildCaseClauses(
+  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> buildCaseClauses(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+          pReturnPcVariables,
+      GhostPcVariables pPcVariables,
+      GhostThreadVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
+
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
+        initCaseClauses(
+            pSubstitutions,
+            pSubstituteEdges,
+            pReturnPcVariables,
+            pPcVariables,
+            pThreadVariables,
+            pBinaryExpressionBuilder);
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
+        SeqPruner.pruneCaseClauses(initialCaseClauses);
+    return updateInitialLabels(prunedCaseClauses, pLogger);
+  }
+
+  /** Maps threads to the case clauses they potentially execute. */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+          pReturnPcVariables,
+      GhostPcVariables pPcVariables,
+      GhostThreadVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
+        ImmutableMap.builder();
+    for (var entry : pSubstitutions.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CSimpleDeclarationSubstitution substitution = entry.getValue();
+      ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
+      Set<ThreadNode> coveredNodes = new HashSet<>();
+
+      GhostFunctionVariables functionVariables =
+          GhostVariableUtil.buildFunctionVariables(
+              thread, substitution, pSubstituteEdges, pReturnPcVariables);
+      GhostVariables ghostVariables =
+          new GhostVariables(functionVariables, pPcVariables, pThreadVariables);
+
+      caseClauses.addAll(
+          initCaseClauses(
+              thread,
+              pSubstitutions.keySet(),
+              coveredNodes,
+              pSubstituteEdges,
+              ghostVariables,
+              pBinaryExpressionBuilder));
+      rCaseClauses.put(thread, caseClauses.build());
+    }
+    // modified reach_error result in unreachable statements of that function
+    //  -> no validation of case clauses here
+    return rCaseClauses.buildOrThrow();
+  }
+
+  /** Builds the case clauses for the single thread {@code pThread}. */
+  private static ImmutableList<SeqCaseClause> initCaseClauses(
       MPORThread pThread,
       ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -119,6 +195,34 @@ public class SeqCaseClauseBuilder {
             pThreadNode.cfaNode.isLoopStart(),
             originPc,
             new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
+  }
+
+  /**
+   * Ensures that the initial label {@code pc} for all threads is {@link Sequentialization#INIT_PC}.
+   */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rUpdated =
+        ImmutableMap.builder();
+    for (var entry : pCaseClauses.entrySet()) {
+      boolean firstCase = true;
+      ImmutableList.Builder<SeqCaseClause> updatedCases = ImmutableList.builder();
+      // this approach (just taking the first case) is sound because the path up to the first
+      //  non-blank case is deterministic (i.e. only 1 leaving edge)
+      for (SeqCaseClause caseClause : entry.getValue()) {
+        assert !caseClause.isPrunable()
+            : "case clause is still prunable. did you use the pruned case clauses?";
+        if (firstCase) {
+          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC)));
+          firstCase = false;
+        } else {
+          updatedCases.add(caseClause);
+        }
+      }
+      rUpdated.put(entry.getKey(), updatedCases.build());
+    }
+    return SeqValidator.validateCaseClauses(rUpdated.buildOrThrow(), pLogger);
   }
 
   // Helpers =====================================================================================
