@@ -85,7 +85,7 @@ public class Constant<T> extends AbstractFormula<T> implements NumeralFormula<T>
    * @param pValue the value of the constant.
    * @return a invariants formula representing a constant with the given value.
    */
-  static <T> Constant<T> of(TypeInfo pInfo, T pValue) {
+  public static <T> Constant<T> of(TypeInfo pInfo, T pValue) {
     return new Constant<>(pInfo, pValue);
   }
 

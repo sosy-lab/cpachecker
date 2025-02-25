@@ -9,6 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
 import java.util.Map.Entry;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -16,9 +20,24 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.type.SerializeValueVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeValueAnalysisStateOperator implements SerializeOperator {
+
+  private final Solver solver;
+  private final FormulaManagerView formulaManager;
+
+  public SerializeValueAnalysisStateOperator(
+      ValueAnalysisCPA pValueAnalysisCPA,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
+    solver = Solver.create(config, pLogger, shutdownNotifier);
+    formulaManager = solver.getFormulaManager();
+  }
 
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
@@ -47,5 +66,13 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
             .addEntry(ValueAnalysisCPA.class.getName(), serializedValueString);
 
     return payload.buildPayload();
+  }
+
+  @Override
+  public org.sosy_lab.java_smt.api.BooleanFormula serializeToFormula(AbstractState pState) {
+    ValueAnalysisState valueState = (ValueAnalysisState) pState;
+    org.sosy_lab.java_smt.api.BooleanFormula formula =
+        valueState.getFormulaApproximation(formulaManager);
+    return formula;
   }
 }

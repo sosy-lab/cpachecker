@@ -20,4 +20,8 @@ public interface SerializeOperator {
    * @return payload
    */
   BlockSummaryMessagePayload serialize(AbstractState pState);
+
+  default org.sosy_lab.java_smt.api.BooleanFormula serializeToFormula(AbstractState pState) {
+    throw new UnsupportedOperationException("This method is not supported.");
+  }
 }

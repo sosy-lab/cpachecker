@@ -63,7 +63,7 @@ public final class Multiply<ConstantType> extends AbstractBinaryFormula<Constant
    * @param pFactor2 the second factor.
    * @return an invariants formula representing the multiplication of the given factors.
    */
-  static <ConstantType> Multiply<ConstantType> of(
+  public static <ConstantType> Multiply<ConstantType> of(
       NumeralFormula<ConstantType> pFactor1, NumeralFormula<ConstantType> pFactor2) {
     return new Multiply<>(pFactor1, pFactor2);
   }

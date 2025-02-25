@@ -21,4 +21,8 @@ public interface DeserializeOperator {
    * @throws InterruptedException thrown if program is interrupted from the outside.
    */
   AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException;
+
+  default AbstractState deserializeFromFormula(org.sosy_lab.java_smt.api.BooleanFormula pFormula) {
+    throw new UnsupportedOperationException("deserializeFromFormula not implemented yet");
+  }
 }

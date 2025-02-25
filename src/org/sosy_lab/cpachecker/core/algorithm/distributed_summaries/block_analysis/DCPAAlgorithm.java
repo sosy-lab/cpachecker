@@ -172,13 +172,13 @@ public class DCPAAlgorithm {
       ARGState newBlockEndState = blockEndState;
 
       // remove InvariantsState if predicateState is an abstraction state
-      if (predicateState != null && predicateState.isAbstractionState()) {
-        List<AbstractState> wrappedStates =
-            new ArrayList<>(
-                ((CompositeState) blockEndState.getWrappedStates().get(0)).getWrappedStates());
-        wrappedStates.removeIf(state -> state instanceof InvariantsState);
-        newBlockEndState = new ARGState(new CompositeState(wrappedStates), null);
-      }
+      // if (predicateState != null && predicateState.isAbstractionState()) {
+      //   List<AbstractState> wrappedStates =
+      //       new ArrayList<>(
+      //           ((CompositeState) blockEndState.getWrappedStates().get(0)).getWrappedStates());
+      //   wrappedStates.removeIf(state -> state instanceof InvariantsState);
+      //   newBlockEndState = new ARGState(new CompositeState(wrappedStates), null);
+      // }
 
       if (dcpa.isTop(blockEndState) && !allowTop) {
         return ImmutableSet.of();

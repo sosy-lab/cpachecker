@@ -13,7 +13,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-class BinaryNot<ConstantType> extends AbstractFormula<ConstantType>
+public class BinaryNot<ConstantType> extends AbstractFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   /** The operand of the bit flip operation. */
@@ -74,7 +74,7 @@ class BinaryNot<ConstantType> extends AbstractFormula<ConstantType>
    * @param pToFlip the operand of the bit flip operation.
    * @return the binary negation of the given formula.
    */
-  static <ConstantType> BinaryNot<ConstantType> of(NumeralFormula<ConstantType> pToFlip) {
+  public static <ConstantType> BinaryNot<ConstantType> of(NumeralFormula<ConstantType> pToFlip) {
     return new BinaryNot<>(pToFlip);
   }
 }

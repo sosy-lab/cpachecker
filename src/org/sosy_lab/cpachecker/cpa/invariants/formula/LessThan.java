@@ -82,7 +82,7 @@ public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand2 the right operand of the inequation.
    * @return an invariants formula representing a less-than inequation over the given operands.
    */
-  static <ConstantType> LessThan<ConstantType> of(
+  public static <ConstantType> LessThan<ConstantType> of(
       NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new LessThan<>(pOperand1, pOperand2);
   }

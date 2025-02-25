@@ -12,6 +12,10 @@ import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -23,9 +27,26 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeBooleanFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.SerializeNumeralFormulaVisitor;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
+
+  private final InvariantsCPA invariantsCPA;
+  private final Solver solver;
+  private final FormulaManagerView formulaManager;
+
+  public SerializeDataflowAnalysisStateOperator(
+      InvariantsCPA pInvariantsCPA,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
+    invariantsCPA = pInvariantsCPA;
+    solver = Solver.create(config, pLogger, shutdownNotifier);
+    formulaManager = solver.getFormulaManager();
+  }
 
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
@@ -49,7 +70,6 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
     }
 
     String serializedVariableTypes = Joiner.on(" && ").join(serializedVariableTypeEntries);
-
     BlockSummaryMessagePayload.Builder payload =
         BlockSummaryMessagePayload.builder()
             .addEntry(InvariantsCPA.class.getName(), booleanFormulaString)
@@ -60,5 +80,11 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
     }
 
     return payload.buildPayload();
+  }
+
+  @Override
+  public org.sosy_lab.java_smt.api.BooleanFormula serializeToFormula(AbstractState pState) {
+    InvariantsState state = (InvariantsState) pState;
+    return state.getFormulaApproximation(formulaManager);
   }
 }

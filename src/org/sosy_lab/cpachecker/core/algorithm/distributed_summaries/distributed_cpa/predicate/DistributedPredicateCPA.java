@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -57,6 +59,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final PathFormulaManager backwardManager;
   private final boolean hasRootAsPredecessor;
   private final ProceedPredicateStateOperator proceedOperator;
+  private final Map<MemoryLocation, CType> variableTypes;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -67,13 +70,15 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       BlockSummaryMessageFactory pMessageFactory,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      Map<Integer, CFANode> pIdToNodeMap)
+      Map<Integer, CFANode> pIdToNodeMap,
+      Map<MemoryLocation, CType> pVariableTypes)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
+    variableTypes = pVariableTypes;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
-    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode);
+    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, variableTypes);
     serializePrecisionOperator =
         new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
     ImmutableMap<Integer, CFANode> threadSafeCopy = ImmutableMap.copyOf(pIdToNodeMap);
