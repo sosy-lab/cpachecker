@@ -265,11 +265,11 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return rLocalDeclarations.build();
   }
 
-  public ImmutableList<CParameterDeclaration> getParameterDeclarations() {
-    ImmutableList.Builder<CParameterDeclaration> rParameterDeclarations = ImmutableList.builder();
+  public ImmutableList<CVariableDeclaration> getParameterDeclarations() {
+    ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (CIdExpression parameter : parameterSubstitutes.orElseThrow().values()) {
-      CParameterDeclaration parameterDeclaration =
-          castTo(parameter.getDeclaration(), CParameterDeclaration.class);
+      CVariableDeclaration parameterDeclaration =
+          castTo(parameter.getDeclaration(), CVariableDeclaration.class);
       rParameterDeclarations.add(parameterDeclaration);
     }
     return rParameterDeclarations.build();

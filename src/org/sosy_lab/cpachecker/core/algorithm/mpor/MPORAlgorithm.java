@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
@@ -67,34 +67,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "whether to add assertions over thread simulation variables at the loop head. slows"
-              + " down verification but improves sequentialization correctness guarantees")
-  private boolean addLoopInvariants = false;
-
-  @Option(
-      secure = true,
-      description =
-          "whether to add partial order reduction assumptions in the sequentialization"
-              + " to reduce the state space")
-  private boolean addPOR = false;
-
-  @Option(
-      secure = true,
-      description =
-          "adds an additional .yml file with metadata such as algorithm options and input file(s)")
+          "add an additional .yml file with metadata such as algorithm options and input file(s)?")
   private boolean outputMetadata = true;
 
   @Option(
       secure = true,
-      description =
-          "whether to overwrite files in the ./output directory when creating sequentializations")
+      description = "overwrite files in the ./output directory when creating sequentializations?")
   private boolean overwriteFiles = true;
 
   @Option(
       secure = true,
       description =
-          "whether to use separate int values (scalars) for tracking thread pcs instead of"
-              + " int arrays. may slow down or improve verification depending on the verifier")
+          "add partial order reduction (grouping commuting statements) in the sequentialization"
+              + " to reduce the state space?")
+  private boolean partialOrderReduction = false;
+
+  @Option(
+      secure = true,
+      description =
+          "use separate int values (scalars) for tracking thread pcs instead of"
+              + " int arrays? may slow down or improve verification depending on the verifier")
   private boolean scalarPc = false;
 
   private final MPOROptions options;
@@ -107,9 +99,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
     String outputProgram = sequentialization.toString();
-    SequentializationWriter sequentializationWriter =
-        new SequentializationWriter(logger, outputFileName, inputCfa.getFileNames(), options);
-    sequentializationWriter.write(outputProgram);
+    SeqWriter seqWriter = new SeqWriter(logger, outputFileName, inputCfa.getFileNames(), options);
+    seqWriter.write(outputProgram);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -172,7 +163,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     pConfiguration.inject(this);
 
-    options = new MPOROptions(addLoopInvariants, addPOR, outputMetadata, overwriteFiles, scalarPc);
+    options = new MPOROptions(outputMetadata, overwriteFiles, partialOrderReduction, scalarPc);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

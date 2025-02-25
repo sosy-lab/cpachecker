@@ -19,22 +19,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqFunctionCallExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
@@ -43,14 +40,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadJoinsThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output.SequentializationWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
@@ -196,7 +190,7 @@ public class Sequentialization {
     // parameter variables storing function arguments
     rProgram.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
     for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
-      ImmutableList<CParameterDeclaration> parameterDeclarations =
+      ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarations();
       rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(parameterDeclarations));
     }
@@ -252,16 +246,9 @@ public class Sequentialization {
         SeqPruner.pruneCaseClauses(caseClauses);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> finalCaseClauses =
         updateInitialLabels(prunedCaseClauses, logger);
-    // optional: include loop invariant assertions over thread variables
-    Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants =
-        options.addLoopInvariants
-            ? Optional.of(
-                createLoopInvariants(
-                    substitutions.keySet(), pcVariables, threadVars, binaryExpressionBuilder))
-            : Optional.empty();
     // optional: include POR assumptions
     Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        options.addPOR
+        options.partialOrderReduction
             ? Optional.of(
                 SeqAssumptionBuilder.createPORAssumptions(
                     finalCaseClauses, pcVariables, binaryExpressionBuilder))
@@ -273,7 +260,6 @@ public class Sequentialization {
         new SeqMainFunction(
             substitutions.size(),
             options,
-            loopInvariants,
             threadSimulationAssumptions,
             porAssumptions,
             finalCaseClauses,
@@ -331,41 +317,6 @@ public class Sequentialization {
       return pLineOfCode.copyWithCode(replacement);
     }
     return pLineOfCode;
-  }
-
-  // TODO problem: methods such as pthread_cancel allow the termination of another thread.
-  //  so if thread i waits for a mutex or a thread, then another thread can cancel i
-  //  and the invariants will not hold
-  //  -> once we support intermediary thread terminations, remove these invariants
-  private ImmutableList<SeqLogicalAndExpression> createLoopInvariants(
-      ImmutableSet<MPORThread> pThreads,
-      GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqLogicalAndExpression> rAssertions = ImmutableList.builder();
-    // add assertions over locks: ti_locks_m && pc[i] == -1) ==> assert_fail
-    for (var lockedEntry : pThreadVariables.locks.entrySet()) {
-      MPORThread thread = lockedEntry.getKey();
-      CBinaryExpression pcNotExitPc =
-          SeqBinaryExpression.buildPcUnequalExitPc(
-              pPcVariables, thread.id, pBinaryExpressionBuilder);
-      for (ThreadLocksMutex locks : lockedEntry.getValue().values()) {
-        rAssertions.add(new SeqLogicalAndExpression(locks.idExpression, pcNotExitPc));
-      }
-    }
-    // add assertions over joins: tj_joins_ti && pc[j] == -1 ==> assert_fail
-    for (var joinsEntry : pThreadVariables.joins.entrySet()) {
-      MPORThread thread = joinsEntry.getKey();
-      CBinaryExpression pcNotExitPc =
-          SeqBinaryExpression.buildPcUnequalExitPc(
-              pPcVariables, thread.id, pBinaryExpressionBuilder);
-      for (ThreadJoinsThread joins : joinsEntry.getValue().values()) {
-        rAssertions.add(new SeqLogicalAndExpression(joins.idExpression, pcNotExitPc));
-      }
-    }
-    return rAssertions.build();
   }
 
   /** Maps threads to the case clauses they potentially execute. */

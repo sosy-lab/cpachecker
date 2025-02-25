@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.output;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 
-public class SequentializationWriter {
+/** A class to write the sequentialized program to a file. */
+public class SeqWriter {
 
   public enum FileExtension {
     I(".i"),
@@ -60,7 +61,7 @@ public class SequentializationWriter {
 
   private final String metadataPath;
 
-  public SequentializationWriter(
+  public SeqWriter(
       LogManager pLogManager, String pSeqName, List<Path> pInputFilePaths, MPOROptions pOptions) {
 
     logManager = pLogManager;

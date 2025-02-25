@@ -86,9 +86,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final Optional<CExpressionAssignmentStatement> assignPrevThread;
 
-  // optional: sequentialization errors at loop head
-  private final Optional<ImmutableList<SeqLogicalAndExpression>> loopInvariants;
-
   private final GhostPcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -96,7 +93,6 @@ public class SeqMainFunction extends SeqFunction {
   public SeqMainFunction(
       int pNumThreads,
       MPOROptions pOptions,
-      Optional<ImmutableList<SeqLogicalAndExpression>> pLoopInvariants,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
@@ -112,7 +108,6 @@ public class SeqMainFunction extends SeqFunction {
                 SeqToken.NUM_THREADS,
                 SeqInitializer.buildInitializerExpression(
                     SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pNumThreads))));
-    loopInvariants = pLoopInvariants;
     threadAssumptions = pThreadAssumptions;
     porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
@@ -185,8 +180,6 @@ public class SeqMainFunction extends SeqFunction {
     rBody.add(LineOfCode.empty());
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
-    // optional: add loop invariants at loop head
-    rBody.addAll(buildLoopInvariants(loopInvariants));
     rBody.add(LineOfCode.of(2, assignNextThread.toASTString()));
     rBody.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
     // add assumption over pc depending on array vs. scalar pc
@@ -237,25 +230,6 @@ public class SeqMainFunction extends SeqFunction {
       rVarDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
     }
     return rVarDeclarations.build();
-  }
-
-  private ImmutableList<LineOfCode> buildLoopInvariants(
-      Optional<ImmutableList<SeqLogicalAndExpression>> pLoopInvariants) {
-
-    ImmutableList.Builder<LineOfCode> rLoopInvariants = ImmutableList.builder();
-    if (pLoopInvariants.isPresent()) {
-      for (SeqLogicalAndExpression assertion : pLoopInvariants.orElseThrow()) {
-        SeqControlFlowStatement ifStatement =
-            new SeqControlFlowStatement(assertion, SeqControlFlowStatementType.IF);
-        rLoopInvariants.add(
-            LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
-        rLoopInvariants.add(
-            LineOfCode.of(
-                3, SeqStringUtil.appendClosingCurly(Sequentialization.outputReachErrorDummy)));
-      }
-      rLoopInvariants.add(LineOfCode.empty());
-    }
-    return rLoopInvariants.build();
   }
 
   private ImmutableList<LineOfCode> buildAssumptions(

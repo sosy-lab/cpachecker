@@ -45,7 +45,7 @@ public class SequentializationTest {
     // contains __VERIFIER_atomic_begin and __VERIFIER_atomic_end
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(true, true, false, true, true);
+    MPOROptions options = new MPOROptions(false, false, true, true);
     testCompile(path, options);
   }
 
@@ -53,7 +53,7 @@ public class SequentializationTest {
   public void testCompileSeq_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(true, false, false, true, true);
+    MPOROptions options = new MPOROptions(false, false, true, false);
     testCompile(path, options);
   }
 
@@ -61,7 +61,7 @@ public class SequentializationTest {
   public void testCompileSeq_queue_longest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(false, true, false, true, true);
+    MPOROptions options = new MPOROptions(false, false, false, true);
     testCompile(path, options);
   }
 
@@ -69,7 +69,7 @@ public class SequentializationTest {
   public void testCompileSeq_simple_two() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(false, false, false, true, true);
+    MPOROptions options = new MPOROptions(false, false, false, false);
     testCompile(path, options);
   }
 
@@ -78,7 +78,7 @@ public class SequentializationTest {
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(true, true, false, true, false);
+    MPOROptions options = new MPOROptions(false, false, true, true);
     testCompile(path, options);
   }
 
@@ -86,7 +86,7 @@ public class SequentializationTest {
   public void testCompileSeq_stack1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = new MPOROptions(true, false, false, true, false);
+    MPOROptions options = new MPOROptions(false, false, true, false);
     testCompile(path, options);
   }
 

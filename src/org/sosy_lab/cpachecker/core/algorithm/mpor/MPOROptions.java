@@ -22,21 +22,18 @@ import org.sosy_lab.common.configuration.Option;
  */
 public class MPOROptions {
 
-  public final boolean addLoopInvariants;
-
-  public final boolean addPOR;
-
   public final boolean outputMetadata;
 
   public final boolean overwriteFiles;
 
+  public final boolean partialOrderReduction;
+
   public final boolean scalarPc;
 
   public MPOROptions(
-      boolean pAddLoopInvariants,
-      boolean pAddPOR,
       boolean pOutputMetadata,
       boolean pOverwriteFiles,
+      boolean pPartialOrderReduction,
       boolean pScalarPc) {
 
     checkArgument(
@@ -46,10 +43,9 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
-    addLoopInvariants = pAddLoopInvariants;
-    addPOR = pAddPOR;
     outputMetadata = pOutputMetadata;
     overwriteFiles = pOverwriteFiles;
+    partialOrderReduction = pPartialOrderReduction;
     scalarPc = pScalarPc;
   }
 
