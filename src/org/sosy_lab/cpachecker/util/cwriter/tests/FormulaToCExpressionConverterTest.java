@@ -232,7 +232,7 @@ public class FormulaToCExpressionConverterTest {
           switch (solverToUse()) {
             case MATHSAT5, PRINCESS -> "((x && y) || ((!x) && (!y)))";
             case Z3 -> "((y || (!x)) && (x || (!y)))";
-            case BITWUZLA -> "((!(y&&(!x)))&&(!(x&&(!y))))";
+            case BITWUZLA -> "((!(y && (!x))) && (!(x && (!y))))";
             default -> "(((!x) || y) && (x || (!y)))";
           };
       checkThat(converter.formulaToCExpression(formula)).isEquivalentTo(expected);
