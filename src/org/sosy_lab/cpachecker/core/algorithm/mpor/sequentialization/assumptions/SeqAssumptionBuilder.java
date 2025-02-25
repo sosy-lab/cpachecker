@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadJoinsThread;
@@ -41,7 +41,7 @@ public class SeqAssumptionBuilder {
    */
   public static ImmutableList<SeqFunctionCallExpression> createThreadSimulationAssumptions(
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -58,7 +58,8 @@ public class SeqAssumptionBuilder {
 
   /** Assumptions over mutexes: {@code assume(!(m_locked && ti_locks_m) || next_thread != i)} */
   private static ImmutableList<SeqFunctionCallExpression> buildMutexAssumptions(
-      GhostThreadVariables pThreadVariables, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      GhostThreadSimulationVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rMutexAssumptions = ImmutableList.builder();
@@ -94,7 +95,7 @@ public class SeqAssumptionBuilder {
   /** Assumptions over joins: {@code assume(!(pc[i] != -1 && tj_joins_ti) || next_thread != j)} */
   private static ImmutableList<SeqFunctionCallExpression> buildJoinAssumptions(
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -128,7 +129,8 @@ public class SeqAssumptionBuilder {
    * Atomic assumptions: {@code assume(!(atomic_locked && ti_begins_atomic) || next_thread != i)}
    */
   private static ImmutableList<SeqFunctionCallExpression> buildAtomicAssumptions(
-      GhostThreadVariables pThreadVariables, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      GhostThreadSimulationVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqFunctionCallExpression> rAtomicAssumptions = ImmutableList.builder();

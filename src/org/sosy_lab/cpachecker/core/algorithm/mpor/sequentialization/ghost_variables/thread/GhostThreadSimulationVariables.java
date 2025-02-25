@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInit
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class GhostThreadVariables {
+public class GhostThreadSimulationVariables {
 
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
@@ -38,7 +38,7 @@ public class GhostThreadVariables {
    */
   public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
 
-  public GhostThreadVariables(
+  public GhostThreadSimulationVariables(
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,

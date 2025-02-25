@@ -15,32 +15,22 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Objects;
-import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqFunctionCallExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.declarations.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqAssumeFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqMainFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -149,118 +139,45 @@ public class Sequentialization {
     }
   }
 
-  // TODO add separate functions for better overview
   /** Generates and returns the sequentialized program that contains dummy reach_error calls. */
   private ImmutableList<LineOfCode> initProgram() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+
+    // first initialize some variables needed for the declarations and definitions
     ImmutableSet<MPORThread> threads = substitutions.keySet();
-
-    // add all original program declarations that are not substituted
-    rProgram.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
-    for (MPORThread thread : threads) {
-      ImmutableList<CDeclaration> nonVariableDeclarations =
-          ThreadUtil.extractNonVariableDeclarations(thread);
-      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(nonVariableDeclarations));
-    }
-    rProgram.add(LineOfCode.empty());
-
-    // add all var substitute declarations in the order global - local - params - return_pc
-    // global var substitutes
-    rProgram.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
-    MPORThread mainThread = ThreadUtil.extractMainThread(threads);
-    ImmutableList<CVariableDeclaration> globalDeclarations =
-        Objects.requireNonNull(substitutions.get(mainThread)).getGlobalDeclarations();
-    rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(globalDeclarations));
-    rProgram.add(LineOfCode.empty());
-    // local var substitutes
-    rProgram.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
-    for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
-      ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
-      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(localDeclarations));
-    }
-    rProgram.add(LineOfCode.empty());
-    // parameter variables storing function arguments
-    rProgram.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
-    for (CSimpleDeclarationSubstitution substitution : substitutions.values()) {
-      ImmutableList<CVariableDeclaration> parameterDeclarations =
-          substitution.getParameterDeclarations();
-      rProgram.addAll(LineOfCodeUtil.buildLinesOfCode(parameterDeclarations));
-    }
-    rProgram.add(LineOfCode.empty());
-    // ghost return pcs storing calling contexts
-    rProgram.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
+    CSimpleDeclarationSubstitution mainThreadSubstitution =
+        Objects.requireNonNull(substitutions.get(ThreadUtil.extractMainThread(threads)));
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVariables =
         GhostVariableUtil.buildReturnPcVariables(threads);
-    for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : returnPcVariables.values()) {
-      for (CIdExpression returnPc : map.values()) {
-        rProgram.add(LineOfCode.of(0, returnPc.getDeclaration().toASTString()));
-      }
-    }
-    rProgram.add(LineOfCode.empty());
-
-    // add thread simulation vars
-    rProgram.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
-    ImmutableMap<ThreadEdge, SubstituteEdge> subEdges =
+    ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteBuilder.substituteEdges(substitutions);
-    GhostThreadVariables threadVars = GhostVariableUtil.buildThreadVariables(threads, subEdges);
-    for (CIdExpression threadVar : threadVars.getIdExpressions()) {
-      assert threadVar.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVar.getDeclaration();
-      rProgram.add(LineOfCode.of(0, varDeclaration.toASTString()));
-    }
-    rProgram.add(LineOfCode.empty());
+    GhostThreadSimulationVariables threadSimulationVariables =
+        GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 
-    // add all custom function declarations
-    rProgram.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
-    // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ABORT.toASTString()));
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.REACH_ERROR.toASTString()));
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSUME.toASTString()));
-    // main should always be duplicate
-    rProgram.add(LineOfCode.of(0, SeqFunctionDeclaration.MAIN.toASTString()));
-    rProgram.add(LineOfCode.empty());
+    // add function, struct, variable declarations in the order: original, global, local, parameters
+    rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(threads));
+    rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(mainThreadSubstitution));
+    rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(substitutions.values()));
+    rProgram.addAll(SeqDeclarationBuilder.buildParameterDeclarations(substitutions.values()));
 
-    // add non main() function definitions
-    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
-    SeqAssumeFunction assume = new SeqAssumeFunction(binaryExpressionBuilder);
-    rProgram.addAll(reachError.buildDefinition());
-    rProgram.add(LineOfCode.empty());
-    rProgram.addAll(assume.buildDefinition());
-    rProgram.add(LineOfCode.empty());
+    // add variable declarations for ghost variables: return_pc, thread simulation variables
+    rProgram.addAll(SeqDeclarationBuilder.buildReturnPcDeclarations(returnPcVariables));
+    rProgram.addAll(
+        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(
+            substitutions, threads, threadSimulationVariables));
 
-    // TODO the case clauses should be multimaps
-    // create case clauses in main method
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        SeqCaseClauseBuilder.buildCaseClauses(
+    // add custom function declarations and definitions
+    rProgram.addAll(SeqDeclarationBuilder.buildFunctionDeclarations());
+    rProgram.addAll(
+        SeqFunctionBuilder.buildFunctionDefinitions(
+            options,
             substitutions,
-            subEdges,
+            substituteEdges,
             returnPcVariables,
             pcVariables,
-            threadVars,
+            threadSimulationVariables,
             binaryExpressionBuilder,
-            logger);
-    // optional: include POR assumptions
-    Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        options.partialOrderReduction
-            ? Optional.of(
-                SeqAssumptionBuilder.createPORAssumptions(
-                    caseClauses, pcVariables, binaryExpressionBuilder))
-            : Optional.empty();
-    ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
-        SeqAssumptionBuilder.createThreadSimulationAssumptions(
-            pcVariables, threadVars, binaryExpressionBuilder);
-    SeqMainFunction mainMethod =
-        new SeqMainFunction(
-            substitutions.size(),
-            options,
-            threadSimulationAssumptions,
-            porAssumptions,
-            caseClauses,
-            pcVariables,
-            binaryExpressionBuilder);
-    rProgram.addAll(mainMethod.buildDefinition());
+            logger));
 
     return rProgram.build();
   }

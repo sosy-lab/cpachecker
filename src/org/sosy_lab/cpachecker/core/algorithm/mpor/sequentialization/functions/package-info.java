@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** Classes to represent custom functions definitions in the Sequentialization. */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.function;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;

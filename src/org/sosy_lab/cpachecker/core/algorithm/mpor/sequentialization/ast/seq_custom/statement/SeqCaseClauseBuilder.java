@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcRead;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
@@ -52,7 +52,7 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -77,7 +77,7 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 

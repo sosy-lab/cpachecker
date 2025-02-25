@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.ThreadJoinsThread;
@@ -99,10 +99,10 @@ public class GhostVariableUtil {
         buildReturnPcReads(pThread, pReturnPcVariables.get(pThread)));
   }
 
-  public static GhostThreadVariables buildThreadVariables(
+  public static GhostThreadSimulationVariables buildThreadSimulationVariables(
       ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
-    return new GhostThreadVariables(
+    return new GhostThreadSimulationVariables(
         buildMutexLockedVariables(pThreads, pSubEdges),
         buildThreadAwaitsMutexVariables(pThreads, pSubEdges),
         buildThreadJoinsThreadVariables(pThreads),

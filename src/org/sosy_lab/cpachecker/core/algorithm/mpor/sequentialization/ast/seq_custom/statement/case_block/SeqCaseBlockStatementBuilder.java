@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function.GhostFunctionVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.GhostPcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread.GhostThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.string.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -267,7 +267,7 @@ public class SeqCaseBlockStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -318,7 +318,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadVariables pThreadVariables) {
+      GhostThreadSimulationVariables pThreadVariables) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(lockedMutexT);
@@ -337,7 +337,7 @@ public class SeqCaseBlockStatementBuilder {
       CFAEdge pCfaEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      GhostThreadVariables pThreadVariables) {
+      GhostThreadSimulationVariables pThreadVariables) {
 
     CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pCfaEdge);
     assert pThreadVariables.locked.containsKey(unlockedMutexT);
@@ -354,7 +354,7 @@ public class SeqCaseBlockStatementBuilder {
       CFAEdge pCfaEdge,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables,
+      GhostThreadSimulationVariables pThreadVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -376,7 +376,7 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables) {
+      GhostThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     CIdExpression atomicLocked =
@@ -392,7 +392,7 @@ public class SeqCaseBlockStatementBuilder {
       MPORThread pThread,
       int pTargetPc,
       GhostPcVariables pPcVariables,
-      GhostThreadVariables pThreadVariables) {
+      GhostThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable
