@@ -155,7 +155,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case BITWUZLA -> "(!((!x) && (!y)))";
-            default -> "(x|| y)";
+            default -> "(x || y)";
           };
       checkThat(converter.formulaToCExpression(formula)).isEquivalentTo(expected);
     }
@@ -173,7 +173,7 @@ public class FormulaToCExpressionConverterTest {
       String expected =
           switch (solverToUse()) {
             case MATHSAT5, Z3 -> "(y || (!x))";
-            case BITWUZLA -> "(!(x&&(!y)))";
+            case BITWUZLA -> "(!(x && (!y)))";
             default -> "((!x) || y)";
           };
       checkThat(converter.formulaToCExpression(formula)).isEquivalentTo(expected);
@@ -300,7 +300,7 @@ public class FormulaToCExpressionConverterTest {
             case PRINCESS -> "(!((y + (-1 * x)) >= 0))";
             case OPENSMT -> "(!(0 <= ((-1 * x) + y)))";
             case BITWUZLA -> "(y < x)";
-            default -> "(!(x<=y))";
+            default -> "(!(x <= y))";
           };
       checkThat(converter.formulaToCExpression(formula)).isEquivalentTo(expected);
     }
@@ -310,7 +310,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula = imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
       String expected =
           switch (solverToUse()) {
-            case MATHSAT5, Z3 -> "(!(x<=y))";
+            case MATHSAT5, Z3 -> "(!(x <= y))";
             case PRINCESS -> "(((x + (-1 * y)) + -1) >= 0)";
             case OPENSMT -> "(!(0 <= ((-1 * x) + y)))";
             case BITWUZLA -> "(y < x)";
@@ -358,7 +358,7 @@ public class FormulaToCExpressionConverterTest {
             case MATHSAT5 -> "(!(y <= x))";
             case PRINCESS -> "(!((x + (-1 * y)) >= 0))";
             case OPENSMT -> "(!(0 <= (x + (-1 * y))))";
-            case BITWUZLA -> "(x<y)";
+            case BITWUZLA -> "(x < y)";
             default -> "(!(x >= y))";
           };
       checkThat(converter.formulaToCExpression(formula)).isEquivalentTo(expected);
