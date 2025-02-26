@@ -347,8 +347,7 @@ public class ExpressionValueVisitorTest {
     NumericValue inValue = new NumericValue(in);
 
     final Value value =
-        AbstractExpressionValueVisitor.castCValue(
-            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+        AbstractExpressionValueVisitor.castCValue(inValue, outType, machineModel, logger);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
@@ -358,8 +357,7 @@ public class ExpressionValueVisitorTest {
     NumericValue inValue = new NumericValue(in);
 
     final Value value =
-        AbstractExpressionValueVisitor.castCValue(
-            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+        AbstractExpressionValueVisitor.castCValue(inValue, outType, machineModel, logger);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).doubleValue()).isEqualTo(expectedOut);
@@ -369,8 +367,7 @@ public class ExpressionValueVisitorTest {
     NumericValue inValue = new NumericValue(in);
 
     final Value value =
-        AbstractExpressionValueVisitor.castCValue(
-            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+        AbstractExpressionValueVisitor.castCValue(inValue, outType, machineModel, logger);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).floatValue()).isEqualTo(expectedOut);
@@ -380,8 +377,7 @@ public class ExpressionValueVisitorTest {
     NumericValue inValue = new NumericValue(in);
 
     final Value value =
-        AbstractExpressionValueVisitor.castCValue(
-            inValue, outType, machineModel, logger, FileLocation.DUMMY);
+        AbstractExpressionValueVisitor.castCValue(inValue, outType, machineModel, logger);
 
     assertThat(value).isInstanceOf(NumericValue.class);
     assertThat(((NumericValue) value).longValue()).isEqualTo(expectedOut);

@@ -1014,8 +1014,7 @@ public class CtoFormulaConverter {
         intValue = intValue.negate();
       }
       Value floatValue =
-          AbstractExpressionValueVisitor.castCValue(
-              intValue, targetType, machineModel, logger, e.getFileLocation());
+          AbstractExpressionValueVisitor.castCValue(intValue, targetType, machineModel, logger);
       return new CFloatLiteralExpression(
           e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
     }
