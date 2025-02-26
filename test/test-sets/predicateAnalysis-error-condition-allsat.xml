@@ -15,7 +15,7 @@
     <option name="--heap" />
     <option name="10000M" />
     <option name="--timelimit" />
-    <option name="1800 s" />
+    <option name="900 s" />
 
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
@@ -24,105 +24,10 @@
     <option name="--option">findErrorCondition.refiners=ALLSAT</option>
     <option name="--option">findErrorCondition.withFormatter=false</option>
 
-    <rundefinition name="ErrorCondition">
-        <tasks name="ReachSafety-BitVectors">
-            <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <rundefinition name="ErrorCondition-AllSat">
+        <tasks name="Correct-False">
+            <includesfile>../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
             <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-ControlFlow">
-            <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-ECA">
-            <includesfile>../programs/benchmarks/ECA.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Floats">
-            <includesfile>../programs/benchmarks/Floats.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Heap">
-            <includesfile>../programs/benchmarks/Heap.set</includesfile>
-            <includesfile>../programs/benchmarks/LinkedLists.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Loops">
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-ProductLines">
-            <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Sequentialized">
-            <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-XCSP">
-            <includesfile>../programs/benchmarks/XCSP.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Combinations">
-            <includesfile>../programs/benchmarks/Combinations.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="ReachSafety-Hardware">
-            <includesfile>../programs/benchmarks/Hardware.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-
-        <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
-            <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="SoftwareSystems-BusyBox-ReachSafety">
-            <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="SoftwareSystems-coreutils-ReachSafety">
-            <includesfile>../programs/benchmarks/SoftwareSystems-coreutils.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
-            <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-        </tasks>
-        <tasks name="SoftwareSystems-uthash-ReachSafety">
-            <includesfile>../programs/benchmarks/SoftwareSystems-uthash.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-            <!-- SV-Comp files assume that malloc always succeeds -->
-            <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
         </tasks>
 
     </rundefinition>

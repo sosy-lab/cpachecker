@@ -21,7 +21,7 @@
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <option name="--predicateAnalysis"/>
 
-    <rundefinition name="ErrorCondition">
+    <rundefinition name="PredicateAnalysisFalse">
         <tasks name="ReachSafety-BitVectors">
             <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
             <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
