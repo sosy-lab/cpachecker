@@ -77,6 +77,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " int arrays? may slow down or improve verification depending on the verifier")
   private boolean scalarPc = false;
 
+  @Option(
+      secure = true,
+      description =
+          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint() when"
+              + " assigning next_thread at the loop head. may slow down or improve verification"
+              + " depending on the verifier")
+  private boolean signedNextThread = false;
+
   private final MPOROptions options;
 
   @Override
@@ -144,7 +152,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     pConfiguration.inject(this);
 
-    options = new MPOROptions(outputMetadata, overwriteFiles, partialOrderReduction, scalarPc);
+    options =
+        new MPOROptions(
+            outputMetadata, overwriteFiles, partialOrderReduction, scalarPc, signedNextThread);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

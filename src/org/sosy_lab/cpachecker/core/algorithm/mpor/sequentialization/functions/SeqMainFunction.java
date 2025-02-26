@@ -75,11 +75,13 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableList<CVariableDeclaration> pcDeclarations;
 
-  private final CFunctionCallAssignmentStatement assignNextThread;
+  private final CVariableDeclaration nextThreadDeclaration;
 
-  private final SeqFunctionCallExpression assumeNextThread;
+  private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
-  private final SeqStatement assumeNextThreadPc;
+  private final SeqFunctionCallExpression nextThreadAssumption;
+
+  private final SeqStatement pcNextThreadAssumption;
 
   // optional: POR variables
   private final Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions;
@@ -91,8 +93,8 @@ public class SeqMainFunction extends SeqFunction {
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public SeqMainFunction(
-      int pNumThreads,
       MPOROptions pOptions,
+      int pNumThreads,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
       Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
@@ -116,20 +118,12 @@ public class SeqMainFunction extends SeqFunction {
 
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
-    assignNextThread =
-        new CFunctionCallAssignmentStatement(
-            FileLocation.DUMMY,
-            SeqIdExpression.NEXT_THREAD,
-            new CFunctionCallExpression(
-                FileLocation.DUMMY,
-                SeqSimpleType.INT,
-                SeqIdExpression.VERIFIER_NONDET_INT,
-                ImmutableList.of(),
-                SeqFunctionDeclaration.VERIFIER_NONDET_INT));
-
-    assumeNextThread =
-        new SeqFunctionCallExpression(SeqIdExpression.ASSUME, boundNextThreadExpression());
-    assumeNextThreadPc = createNextThreadPcAssumption(pNumThreads, pOptions.scalarPc, pcVariables);
+    nextThreadDeclaration = pOptions.signedNextThread ? SeqVariableDeclaration.NEXT_THREAD_SIGNED
+                                                       : SeqVariableDeclaration.NEXT_THREAD_UNSIGNED;
+    nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNextThread);
+    nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNextThread);
+    pcNextThreadAssumption =
+        buildPcNextThreadAssumption(pNumThreads, pOptions.scalarPc, pcVariables);
 
     assignPrevThread =
         porAssumptions.isPresent()
@@ -172,22 +166,18 @@ public class SeqMainFunction extends SeqFunction {
   public ImmutableList<LineOfCode> buildBody() {
     ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
     // declare main() local variables NUM_THREADS, pc, next_thread and optionally prev_thread
-    rBody.addAll(buildVarDeclarations(numThreads.getDeclaration(), pcDeclarations));
+    rBody.addAll(buildVariableDeclarations(numThreads.getDeclaration(), pcDeclarations));
     if (assignPrevThread.isPresent()) {
       rBody.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
     }
-    rBody.add(LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD.toASTString()));
+    rBody.add(LineOfCode.of(1, nextThreadDeclaration.toASTString()));
     rBody.add(LineOfCode.empty());
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
-    rBody.add(LineOfCode.of(2, assignNextThread.toASTString()));
-    rBody.add(LineOfCode.of(2, assumeNextThread.toASTString() + SeqSyntax.SEMICOLON));
-    // add assumption over pc depending on array vs. scalar pc
-    if (assumeNextThreadPc instanceof SeqSwitchStatement) {
-      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(assumeNextThreadPc.toASTString()));
-    } else {
-      rBody.add(LineOfCode.of(2, assumeNextThreadPc.toASTString()));
-    }
+    rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
+    rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString() + SeqSyntax.SEMICOLON));
+    // assumptions over next_thread being active (pc != -1)
+    rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, pcNextThreadAssumption.toASTString()));
     rBody.add(LineOfCode.empty());
     // add all assumptions over thread variables
     rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
@@ -221,7 +211,8 @@ public class SeqMainFunction extends SeqFunction {
     return ImmutableList.of();
   }
 
-  private ImmutableList<LineOfCode> buildVarDeclarations(
+  /** Returns {@link LineOfCode} for {@code NUM_THREADS} and {@code pc}. */
+  private ImmutableList<LineOfCode> buildVariableDeclarations(
       CSimpleDeclaration pNumThreads, ImmutableList<CVariableDeclaration> pPcDeclarations) {
 
     ImmutableList.Builder<LineOfCode> rVarDeclarations = ImmutableList.builder();
@@ -230,6 +221,27 @@ public class SeqMainFunction extends SeqFunction {
       rVarDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
     }
     return rVarDeclarations.build();
+  }
+
+  private CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
+    return new CFunctionCallAssignmentStatement(
+        FileLocation.DUMMY,
+        SeqIdExpression.NEXT_THREAD,
+        new CFunctionCallExpression(
+            FileLocation.DUMMY,
+            pIsSigned ? SeqSimpleType.INT : SeqSimpleType.UNSIGNED_INT,
+            pIsSigned ? SeqIdExpression.VERIFIER_NONDET_INT : SeqIdExpression.VERIFIER_NONDET_UINT,
+            ImmutableList.of(),
+            pIsSigned
+                ? SeqFunctionDeclaration.VERIFIER_NONDET_INT
+                : SeqFunctionDeclaration.VERIFIER_NONDET_UINT));
+  }
+
+  private SeqFunctionCallExpression buildNextThreadAssumption(boolean pIsSigned)
+      throws UnrecognizedCodeException {
+
+    return new SeqFunctionCallExpression(
+        SeqIdExpression.ASSUME, buildNextThreadAssumptionExpression(pIsSigned));
   }
 
   private ImmutableList<LineOfCode> buildAssumptions(
@@ -294,21 +306,27 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   /** Returns the expression {@code 0 <= next_thread && next_thread < NUM_THREADS} */
-  private ImmutableList<SeqExpression> boundNextThreadExpression()
+  private ImmutableList<SeqExpression> buildNextThreadAssumptionExpression(boolean pIsSigned)
       throws UnrecognizedCodeException {
-    ImmutableList.Builder<SeqExpression> rParams = ImmutableList.builder();
-    rParams.add(
-        new SeqLogicalAndExpression(
-            binaryExpressionBuilder.buildBinaryExpression(
-                SeqIntegerLiteralExpression.INT_0,
-                SeqIdExpression.NEXT_THREAD,
-                BinaryOperator.LESS_EQUAL),
-            binaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN)));
-    return rParams.build();
+
+    ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
+    // next_thread < NUM_THREADS is used for both signed and unsigned
+    CBinaryExpression nextThreadLessThanNumThreads =
+        binaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.NEXT_THREAD, numThreads, BinaryOperator.LESS_THAN);
+    rParameters.add(
+        pIsSigned
+            ? new SeqLogicalAndExpression(
+                binaryExpressionBuilder.buildBinaryExpression(
+                    SeqIntegerLiteralExpression.INT_0,
+                    SeqIdExpression.NEXT_THREAD,
+                    BinaryOperator.LESS_EQUAL),
+                nextThreadLessThanNumThreads)
+            : new CToSeqExpression(nextThreadLessThanNumThreads));
+    return rParameters.build();
   }
 
-  private SeqStatement createNextThreadPcAssumption(
+  private SeqStatement buildPcNextThreadAssumption(
       int pNumThreads, boolean pScalarPc, PcVariables pPcVariables)
       throws UnrecognizedCodeException {
 
@@ -338,7 +356,7 @@ public class SeqMainFunction extends SeqFunction {
                         SeqCaseBlockStatementBuilder.buildScalarPcAssumeStatement(assumeCall)),
                     Terminator.BREAK)));
       }
-      return new SeqSwitchStatement(SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 2);
+      return new SeqSwitchStatement(SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);
     } else {
       // pc array: single assume(pc[next_thread] != -1);
       return new SeqFunctionCallStatement(

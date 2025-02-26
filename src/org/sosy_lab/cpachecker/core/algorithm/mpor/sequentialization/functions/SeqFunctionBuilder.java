@@ -98,8 +98,8 @@ public class SeqFunctionBuilder {
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
             pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder);
     return new SeqMainFunction(
-        pSubstitutions.size(),
         pOptions,
+        pSubstitutions.size(),
         threadSimulationAssumptions,
         porAssumptions,
         caseClauses,

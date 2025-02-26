@@ -64,6 +64,9 @@ public class SeqTypes {
     public static final CFunctionType VERIFIER_NONDET_INT =
         new CFunctionType(SeqSimpleType.INT, ImmutableList.of(), false);
 
+    public static final CFunctionType VERIFIER_NONDET_UINT =
+        new CFunctionType(SeqSimpleType.UNSIGNED_INT, ImmutableList.of(), false);
+
     public static final CFunctionTypeWithNames REACH_ERROR =
         new CFunctionTypeWithNames(
             SeqVoidType.VOID,

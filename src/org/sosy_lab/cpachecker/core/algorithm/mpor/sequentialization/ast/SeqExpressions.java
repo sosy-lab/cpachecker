@@ -147,13 +147,16 @@ public class SeqExpressions {
         buildIdExpression(SeqVariableDeclaration.PREV_THREAD);
 
     public static final CIdExpression NEXT_THREAD =
-        buildIdExpression(SeqVariableDeclaration.NEXT_THREAD);
+        buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
 
     public static final CIdExpression REACH_ERROR =
         buildIdExpression(SeqFunctionDeclaration.REACH_ERROR);
 
     public static final CIdExpression VERIFIER_NONDET_INT =
         buildIdExpression(SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+
+    public static final CIdExpression VERIFIER_NONDET_UINT =
+        buildIdExpression(SeqFunctionDeclaration.VERIFIER_NONDET_UINT);
 
     public static final CIdExpression ABORT = buildIdExpression(SeqFunctionDeclaration.ABORT);
 

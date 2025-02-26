@@ -23,6 +23,24 @@ public class LineOfCodeUtil {
     return rString.toString();
   }
 
+
+  /**
+   * Create and return the {@link ImmutableList} for {@code pString} that is split on newlines and
+   * preserves leading {@link LineOfCode#tabs} and adds {@code pAdditionalTabs}.
+   *
+   * <p>This function adds additional leading whitespaces if the amount of leading whitespaces is
+   * not a multiple of {@link SeqStringUtil#TAB_SIZE}.
+   */
+  public static ImmutableList<LineOfCode> buildLinesOfCode(int pAdditionalTabs, String pString) {
+    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
+    for (String line : SeqStringUtil.splitOnNewline(pString)) {
+      int leadingSpaces = line.length() - line.stripLeading().length();
+      int tabs = (int) Math.ceil((double) leadingSpaces / SeqStringUtil.TAB_SIZE);
+      rLinesOfCode.add(LineOfCode.of(tabs + pAdditionalTabs, line.trim()));
+    }
+    return rLinesOfCode.build();
+  }
+
   /**
    * Create and return the {@link ImmutableList} for {@code pString} that is split on newlines and
    * preserves leading {@link LineOfCode#tabs}.
@@ -31,13 +49,7 @@ public class LineOfCodeUtil {
    * not a multiple of {@link SeqStringUtil#TAB_SIZE}.
    */
   public static ImmutableList<LineOfCode> buildLinesOfCode(String pString) {
-    ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
-    for (String line : SeqStringUtil.splitOnNewline(pString)) {
-      int leadingSpaces = line.length() - line.stripLeading().length();
-      int tabs = (int) Math.ceil((double) leadingSpaces / SeqStringUtil.TAB_SIZE);
-      rLinesOfCode.add(LineOfCode.of(tabs, line.trim()));
-    }
-    return rLinesOfCode.build();
+    return buildLinesOfCode(0, pString);
   }
 
   /** Return the list of {@link LineOfCode} for pAstNodes. */

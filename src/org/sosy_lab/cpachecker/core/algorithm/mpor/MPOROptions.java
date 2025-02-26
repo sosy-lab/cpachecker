@@ -30,11 +30,14 @@ public class MPOROptions {
 
   public final boolean scalarPc;
 
+  public final boolean signedNextThread;
+
   public MPOROptions(
       boolean pOutputMetadata,
       boolean pOverwriteFiles,
       boolean pPartialOrderReduction,
-      boolean pScalarPc) {
+      boolean pScalarPc,
+      boolean pSignedNextThread) {
 
     checkArgument(
         correctParamAmount(),
@@ -47,6 +50,14 @@ public class MPOROptions {
     overwriteFiles = pOverwriteFiles;
     partialOrderReduction = pPartialOrderReduction;
     scalarPc = pScalarPc;
+    signedNextThread = pSignedNextThread;
+  }
+
+  /** Returns a test instance that sets all options regarding output files to false. */
+  public static MPOROptions testInstance(
+      boolean pPartialOrderReduction, boolean pScalarPc, boolean pSignedNextThread) {
+
+    return new MPOROptions(false, false, pPartialOrderReduction, pScalarPc, pSignedNextThread);
   }
 
   private boolean correctParamAmount() {

@@ -39,9 +39,13 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqSimpleType.INT, SeqToken.prev_thread, SeqInitializer.INT_MINUS_1);
 
-    public static final CVariableDeclaration NEXT_THREAD =
+    public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(
             false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);
+
+    public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
+        buildVariableDeclaration(
+            false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
     public static CVariableDeclaration buildVariableDeclaration(
@@ -107,6 +111,14 @@ public class SeqDeclarations {
             FileLocation.DUMMY,
             SeqFunctionType.VERIFIER_NONDET_INT,
             SeqToken.__VERIFIER_nondet_int,
+            ImmutableList.of(),
+            ImmutableSet.of());
+
+    public static final CFunctionDeclaration VERIFIER_NONDET_UINT =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            SeqFunctionType.VERIFIER_NONDET_UINT,
+            SeqToken.__VERIFIER_nondet_uint,
             ImmutableList.of(),
             ImmutableSet.of());
 
