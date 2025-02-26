@@ -215,7 +215,12 @@ public class AssigningValueVisitorTest {
     // both floats
     NumericValue val2 = new NumericValue(Float.valueOf(255));
     assertThat(visitor.invertCast(CNumericTypes.FLOAT, CNumericTypes.FLOAT, val2)).isEqualTo(val2);
-    assertThat(visitor.invertCast(CNumericTypes.FLOAT, CNumericTypes.DOUBLE, val2))
+    assertThat(visitor.invertCast(CNumericTypes.DOUBLE, CNumericTypes.FLOAT, val2))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(visitor.invertCast(CNumericTypes.FLOAT, CNumericTypes.DOUBLE, val2)).isEqualTo(val2);
+    assertThat(
+            visitor.invertCast(
+                CNumericTypes.FLOAT, CNumericTypes.DOUBLE, new NumericValue(Double.valueOf(0.1))))
         .isEqualTo(UnknownValue.getInstance());
 
     // test undo cast from integer to float

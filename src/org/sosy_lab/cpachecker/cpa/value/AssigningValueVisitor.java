@@ -211,6 +211,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     checkState(
         !(pOldValue instanceof SymbolicValue),
         "Symbolic values should never be replaced by a concrete value");
+
     Preconditions.checkArgument(isValueInRangeOfType(pValueType, pNewValue));
 
     Value pInvertedCastValue =
@@ -239,6 +240,19 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         Preconditions.checkArgument(castType.getType().isFloatingPointType());
         Preconditions.checkArgument(
             getMachineModel().getSizeof(castType) != getMachineModel().getSizeof(origType));
+
+        if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
+          // TODO set null value or delete parameter because not used anyways
+          Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger(), null);
+          if (downCastVal.isExplicitlyKnown()
+              && !(downCastVal.asNumericValue().getNumber() instanceof Rational)
+              && downCastVal
+                  .asNumericValue()
+                  .bigDecimalValue()
+                  .equals(pValue.asNumericValue().bigDecimalValue())) {
+            return pValue;
+          }
+        }
 
         // potential precision loss, be conservative
         return UnknownValue.getInstance();
