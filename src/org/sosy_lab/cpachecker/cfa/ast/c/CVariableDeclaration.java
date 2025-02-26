@@ -88,6 +88,29 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
     super.addInitializer(pCInitializer);
   }
 
+  /**
+   * Only call this method when there is a {@link CInitializer}.
+   *
+   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
+   * yields {@code int x;}.
+   */
+  public String toASTStringWithoutInitializer() {
+    checkArgument(getInitializer() != null, "this instance does not have an initializer");
+    return cStorageClass.toASTString() + getType().toASTString(getName()) + ";";
+  }
+
+  /**
+   * Only call this method when there is a {@link CInitializer}.
+   *
+   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
+   * yields {@code x = 42;}.
+   */
+  public String toASTStringWithoutStorageClass() {
+    // it only makes sense to call this method to extract the assignment without the storage class
+    checkArgument(getInitializer() != null, "this instance does not have an initializer");
+    return getType().toASTString(getName()) + " = " + getInitializer().toASTString() + ";";
+  }
+
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();

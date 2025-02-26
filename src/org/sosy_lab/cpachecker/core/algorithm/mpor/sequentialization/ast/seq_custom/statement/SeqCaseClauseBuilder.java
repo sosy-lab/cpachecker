@@ -57,6 +57,7 @@ public class SeqCaseClauseBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    // initialize, prune, update initial labels and then validate case clauses.
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
         initCaseClauses(
             pSubstitutions,
@@ -67,7 +68,9 @@ public class SeqCaseClauseBuilder {
             pBinaryExpressionBuilder);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
-    return updateInitialLabels(prunedCaseClauses, pLogger);
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updatedInitialLabelCaseClauses =
+        updateInitialLabels(prunedCaseClauses);
+    return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
   }
 
   /** Maps threads to the case clauses they potentially execute. */
@@ -201,7 +204,7 @@ public class SeqCaseClauseBuilder {
    * Ensures that the initial label {@code pc} for all threads is {@link Sequentialization#INIT_PC}.
    */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rUpdated =
         ImmutableMap.builder();
@@ -222,7 +225,7 @@ public class SeqCaseClauseBuilder {
       }
       rUpdated.put(entry.getKey(), updatedCases.build());
     }
-    return SeqValidator.validateCaseClauses(rUpdated.buildOrThrow(), pLogger);
+    return rUpdated.buildOrThrow();
   }
 
   // Helpers =====================================================================================

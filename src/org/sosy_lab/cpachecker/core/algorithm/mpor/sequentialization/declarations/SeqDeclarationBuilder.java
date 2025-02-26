@@ -60,7 +60,16 @@ public class SeqDeclarationBuilder {
     rLocalDeclarations.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
     for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
-      rLocalDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(localDeclarations));
+      for (CVariableDeclaration localDeclaration : localDeclarations) {
+        if (localDeclaration.getInitializer() == null) {
+          // no initializer -> add declaration as is
+          rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
+        } else {
+          // initializer -> add declaration without initializer (and assign later in seq)
+          rLocalDeclarations.add(
+              LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));
+        }
+      }
     }
     rLocalDeclarations.add(LineOfCode.empty());
     return rLocalDeclarations.build();

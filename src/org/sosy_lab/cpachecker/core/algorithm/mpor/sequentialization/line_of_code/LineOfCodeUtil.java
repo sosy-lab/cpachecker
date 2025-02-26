@@ -23,7 +23,6 @@ public class LineOfCodeUtil {
     return rString.toString();
   }
 
-
   /**
    * Create and return the {@link ImmutableList} for {@code pString} that is split on newlines and
    * preserves leading {@link LineOfCode#tabs} and adds {@code pAdditionalTabs}.

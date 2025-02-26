@@ -266,6 +266,10 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     return rLocalDeclarations.build();
   }
 
+  /**
+   * Note that these are not {@link CParameterDeclaration} but {@link CVariableDeclaration} because
+   * they are treated as variables in the sequentialization (cf. inlining functions).
+   */
   public ImmutableList<CVariableDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (CIdExpression parameter : parameterSubstitutes.orElseThrow().values()) {

@@ -27,8 +27,9 @@ public class SeqValidator {
    *
    * <ul>
    *   <li>not all target {@code pc} (e.g. {@code 42} in {@code pc[0] = 42;} are present as origin
-   *       {@code pc} (e.g. {@code case 42:})
-   *   <li>not all origin {@code pc} are also target {@code pc} somewhere in the thread simulation
+   *       {@code pc} (e.g. {@code case 42:}), except {@link Sequentialization#EXIT_PC}
+   *   <li>not all origin {@code pc} are also target {@code pc} somewhere in the thread simulation,
+   *       except {@link Sequentialization#INIT_PC}
    * </ul>
    *
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -15,10 +17,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -149,8 +153,14 @@ public class SeqCaseBlockStatementBuilder {
       return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
 
     } else {
+      // TODO ensure that the functions uniformly return optional or the objects directly
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
         return Optional.of(buildAssumeStatement(pFirstEdge, assumeEdge, pcLeftHandSide, targetPc));
+
+      } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
+        return Optional.of(
+            buildLocalVariableDeclarationWithInitializerStatement(
+                declarationEdge, pcLeftHandSide, targetPc));
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
         return handleFunctionSummaryEdge(functionSummary, pThreadEdge, pGhostVariables);
@@ -193,6 +203,18 @@ public class SeqCaseBlockStatementBuilder {
         pFirstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
     SeqControlFlowStatement statement = new SeqControlFlowStatement(pAssumeEdge, statementType);
     return new SeqAssumeStatement(statement, pPcLeftHandSide, pTargetPc);
+  }
+
+  private static SeqLocalVariableDeclarationWithInitializerStatement
+      buildLocalVariableDeclarationWithInitializerStatement(
+          CDeclarationEdge pDeclarationEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+
+    // "leftover" declarations should be local variables with an initializer
+    checkArgument(
+        pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration,
+        "pDeclarationEdge must declare variable");
+    return new SeqLocalVariableDeclarationWithInitializerStatement(
+        (CVariableDeclaration) pDeclarationEdge.getDeclaration(), pPcLeftHandSide, pTargetPc);
   }
 
   private static SeqReturnPcWriteStatement buildReturnPcWriteStatement(
@@ -430,8 +452,13 @@ public class SeqCaseBlockStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
-    } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge) {
-      // all variables, functions, structs... are declared beforehand -> blank
+    } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
+      CDeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof CVariableDeclaration variableDeclaration) {
+        // all variables, functions, structs... are declared outside the main function,
+        // EXCEPT local variables that have an initializer:
+        return !(!variableDeclaration.isGlobal() && variableDeclaration.getInitializer() != null);
+      }
       return true;
 
     } else if (PthreadFunctionType.callsAnyPthreadFunc(pSubstituteEdge.cfaEdge)) {

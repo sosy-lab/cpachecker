@@ -118,8 +118,10 @@ public class SeqMainFunction extends SeqFunction {
 
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
-    nextThreadDeclaration = pOptions.signedNextThread ? SeqVariableDeclaration.NEXT_THREAD_SIGNED
-                                                       : SeqVariableDeclaration.NEXT_THREAD_UNSIGNED;
+    nextThreadDeclaration =
+        pOptions.signedNextThread
+            ? SeqVariableDeclaration.NEXT_THREAD_SIGNED
+            : SeqVariableDeclaration.NEXT_THREAD_UNSIGNED;
     nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNextThread);
     nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNextThread);
     pcNextThreadAssumption =
