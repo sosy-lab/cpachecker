@@ -44,6 +44,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   @Override
   public @NonNull SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(
       int pTargetPc) throws UnrecognizedCodeException {
+
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         variableDeclaration, pcLeftHandSide, pTargetPc);
   }

@@ -65,7 +65,7 @@ public class SeqDeclarationBuilder {
           // no initializer -> add declaration as is
           rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
         } else {
-          // initializer -> add declaration without initializer (and assign later in seq)
+          // initializer -> add declaration without initializer (and assign later in cases)
           rLocalDeclarations.add(
               LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));
         }

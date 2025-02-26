@@ -83,10 +83,11 @@ public class SeqCaseBlockStatementBuilder {
         rStatements.add(
             SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
                 threadEdge, pPcLeftHandSide, pCoveredNodes, pSubstituteEdges));
-      } else {
+
+      } else if (!isFunctionSummaryReachErrorCall(threadEdge.cfaEdge)) {
         SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-        Optional<SeqCaseBlockStatement> statement =
-            SeqCaseBlockStatementBuilder.tryBuildCaseBlockStatementFromEdge(
+        SeqCaseBlockStatement statement =
+            SeqCaseBlockStatementBuilder.buildCaseBlockStatementFromEdge(
                 pThread,
                 pAllThreads,
                 firstEdge,
@@ -94,9 +95,7 @@ public class SeqCaseBlockStatementBuilder {
                 substitute,
                 pGhostVariables,
                 pBinaryExpressionBuilder);
-        if (statement.isPresent()) {
-          rStatements.add(statement.orElseThrow());
-        }
+        rStatements.add(statement);
       }
       firstEdge = false;
     }
@@ -134,7 +133,7 @@ public class SeqCaseBlockStatementBuilder {
         (CDeclarationEdge) cfaEdge, subA, subB, pPcLeftHandSide, newTargetPc);
   }
 
-  private static Optional<SeqCaseBlockStatement> tryBuildCaseBlockStatementFromEdge(
+  private static SeqCaseBlockStatement buildCaseBlockStatementFromEdge(
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       boolean pFirstEdge,
@@ -150,54 +149,50 @@ public class SeqCaseBlockStatementBuilder {
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     if (yieldsBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
-      return Optional.of(new SeqBlankStatement(pcLeftHandSide, targetPc));
+      return new SeqBlankStatement(pcLeftHandSide, targetPc);
 
     } else {
-      // TODO ensure that the functions uniformly return optional or the objects directly
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
-        return Optional.of(buildAssumeStatement(pFirstEdge, assumeEdge, pcLeftHandSide, targetPc));
+        return buildAssumeStatement(pFirstEdge, assumeEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
-        return Optional.of(
-            buildLocalVariableDeclarationWithInitializerStatement(
-                declarationEdge, pcLeftHandSide, targetPc));
+        return buildLocalVariableDeclarationWithInitializerStatement(
+            declarationEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
         return handleFunctionSummaryEdge(functionSummary, pThreadEdge, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
-        return Optional.of(
-            handleFunctionCallEdge(
-                pThread.id, functionCall, pThreadEdge, targetPc, pGhostVariables));
+        return handleFunctionCallEdge(
+            pThread.id, functionCall, pThreadEdge, targetPc, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
-        return Optional.of(
-            buildReturnValueAssignmentStatement(
-                pThreadEdge, targetPc, pcLeftHandSide, pGhostVariables.function));
+        return buildReturnValueAssignmentStatement(
+            pThreadEdge, targetPc, pcLeftHandSide, pGhostVariables.function);
 
       } else if (isExplicitlyHandledPthreadFunction(edge)) {
-        return Optional.of(
-            buildStatementFromPthreadFunction(
-                pThread,
-                pAllThreads,
-                pThreadEdge,
-                pSubstituteEdge,
-                targetPc,
-                pGhostVariables.pc,
-                pGhostVariables.thread,
-                pBinaryExpressionBuilder));
+        return buildStatementFromPthreadFunction(
+            pThread,
+            pAllThreads,
+            pThreadEdge,
+            pSubstituteEdge,
+            targetPc,
+            pGhostVariables.pc,
+            pGhostVariables.thread,
+            pBinaryExpressionBuilder);
       }
     }
     // "leftover" edges should be statement edges
     assert pSubstituteEdge.cfaEdge instanceof CStatementEdge;
-    return Optional.of(
-        new SeqDefaultStatement(
-            (CStatementEdge) pSubstituteEdge.cfaEdge, pcLeftHandSide, targetPc));
+    return new SeqDefaultStatement(
+        (CStatementEdge) pSubstituteEdge.cfaEdge, pcLeftHandSide, targetPc);
   }
 
   private static SeqAssumeStatement buildAssumeStatement(
       boolean pFirstEdge, CAssumeEdge pAssumeEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
+    // TODO it would (probably) be more efficient to use just 'else' when the second condition
+    //  is the negation of the first (which should be the case for a majority of assumes here)
     // use (else) if (condition) for all assume edges (if, for, while, switch, ...)
     SeqControlFlowStatementType statementType =
         pFirstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
@@ -226,18 +221,16 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqReturnPcWriteStatement(write.returnPcVar, write.value);
   }
 
-  private static Optional<SeqCaseBlockStatement> handleFunctionSummaryEdge(
+  private static SeqCaseBlockStatement handleFunctionSummaryEdge(
       CFunctionSummaryEdge pFunctionSummaryEdge,
       ThreadEdge pThreadEdge,
       GhostVariables pGhostVariables) {
 
     // function summaries -> store calling context in return_pc
-    if (MPORUtil.isReachErrorCall(pFunctionSummaryEdge)) {
-      // TODO this is the only reason we use Optional here... maybe merge with blank statements?
-      return Optional.empty();
-    } else {
-      return Optional.of(buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function));
-    }
+    checkArgument(
+        !MPORUtil.isReachErrorCall(pFunctionSummaryEdge),
+        "pFunctionSummaryEdge is call to reach_error");
+    return buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function);
   }
 
   private static SeqCaseBlockStatement handleFunctionCallEdge(
@@ -477,6 +470,17 @@ public class SeqCaseBlockStatementBuilder {
   private static boolean isExplicitlyHandledPthreadFunction(CFAEdge pEdge) {
     if (PthreadFunctionType.callsAnyPthreadFunc(pEdge)) {
       return PthreadFunctionType.getPthreadFuncType(pEdge).isExplicitlyHandled;
+    }
+    return false;
+  }
+
+  /**
+   * {@code reach_error} never returns, so we don't want a {@code RETURN_PC} (which is extracted
+   * from the {@link CFunctionSummaryEdge}.
+   */
+  private static boolean isFunctionSummaryReachErrorCall(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+      return MPORUtil.isReachErrorCall(functionSummaryEdge);
     }
     return false;
   }
