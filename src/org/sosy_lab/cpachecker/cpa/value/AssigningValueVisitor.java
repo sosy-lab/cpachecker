@@ -126,26 +126,14 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (!(leftValue.isExplicitlyKnown()
         && leftValue.asNumericValue().getNumber() instanceof BigInteger
         && ((BigInteger) leftValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
-      leftValue =
-          castCValue(
-              leftValue,
-              pE.getCalculationType(),
-              getMachineModel(),
-              getLogger(),
-              pE.getFileLocation());
+      leftValue = castCValue(leftValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(rightValue.isExplicitlyKnown()
         && rightValue.asNumericValue().getNumber() instanceof BigInteger
         && ((BigInteger) rightValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
-      rightValue =
-          castCValue(
-              rightValue,
-              pE.getCalculationType(),
-              getMachineModel(),
-              getLogger(),
-              pE.getFileLocation());
+      rightValue = castCValue(rightValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     if (isEqualityAssumption(binaryOperator)) {
@@ -242,8 +230,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             getMachineModel().getSizeof(castType) != getMachineModel().getSizeof(origType));
 
         if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
-          // TODO set null value or delete parameter because not used anyways
-          Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger(), null);
+          Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger());
           if (downCastVal.isExplicitlyKnown()
               && !(downCastVal.asNumericValue().getNumber() instanceof Rational)
               && downCastVal
