@@ -109,15 +109,6 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     deserializedInvariantsState =
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
-    // test formulaToInterval Visitor
-    // org.sosy_lab.java_smt.api.BooleanFormula smtFormula =
-    // deserializedInvariantsState.getFormulaApproximation(formulaManager);
-    // SMTToNumeralIntervalFormulaVisitor smtToNumeralFormulaVisitor = new
-    // SMTToNumeralIntervalFormulaVisitor(formulaManager, variableTypes, cfa.getMachineModel());
-    // SMTToBooleanIntervalFormulaVisitor formulaToIntervalVisitor = new
-    // SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
-    // BooleanFormula<CompoundInterval> compoundInterval =
-    //     formulaManager.visit(smtFormula, formulaToIntervalVisitor);
     return deserializedInvariantsState;
   }
 
