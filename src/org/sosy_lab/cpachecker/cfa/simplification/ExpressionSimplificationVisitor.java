@@ -215,7 +215,7 @@ public class ExpressionSimplificationVisitor
     // TODO: handle the case that the result is not a numeric value
     final Value castedValue =
         AbstractExpressionValueVisitor.castCValue(
-            value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
+            value, expr.getExpressionType(), machineModel, logger);
 
     return convertExplicitValueToExpression(expr, castedValue);
   }
@@ -272,7 +272,7 @@ public class ExpressionSimplificationVisitor
         final NumericValue negatedValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    value.negate(), exprType, machineModel, logger, loc);
+                    value.negate(), exprType, machineModel, logger);
         switch (((CSimpleType) operandType).getType()) {
           case BOOL: // negation of zero is zero, other values should be irrelevant
           case CHAR:
@@ -301,7 +301,7 @@ public class ExpressionSimplificationVisitor
         final NumericValue complementValue =
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
-                    new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
+                    new NumericValue(~value.longValue()), exprType, machineModel, logger);
         return new CIntegerLiteralExpression(loc, exprType, complementValue.bigIntegerValue());
       }
 
