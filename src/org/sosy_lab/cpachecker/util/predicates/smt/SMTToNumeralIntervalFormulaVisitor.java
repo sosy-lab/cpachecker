@@ -95,6 +95,8 @@ public class SMTToNumeralIntervalFormulaVisitor
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
     switch (kind) {
+      case BV_ADD:
+      case FP_ADD:
       case ADD:
         return Add.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
       case BV_AND:

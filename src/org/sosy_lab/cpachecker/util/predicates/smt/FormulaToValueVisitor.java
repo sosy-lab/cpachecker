@@ -69,6 +69,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
                     variableTypes.get(currentMemoryLocation)));
       }
     }
+    // handle floating point values
     return false;
   }
 
