@@ -234,9 +234,10 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           if (downCastVal.isExplicitlyKnown()
               && !(downCastVal.asNumericValue().getNumber() instanceof Rational)
               && downCastVal
-                  .asNumericValue()
-                  .bigDecimalValue()
-                  .equals(pValue.asNumericValue().bigDecimalValue())) {
+                      .asNumericValue()
+                      .bigDecimalValue()
+                      .compareTo(pValue.asNumericValue().bigDecimalValue())
+                  == 0) {
             return pValue;
           }
         }
