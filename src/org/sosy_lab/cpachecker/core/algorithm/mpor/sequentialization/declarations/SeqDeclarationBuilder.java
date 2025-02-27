@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -28,14 +29,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 public class SeqDeclarationBuilder {
 
   public static ImmutableList<LineOfCode> buildOriginalDeclarations(
-      ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+
     ImmutableList.Builder<LineOfCode> rOriginalDeclarations = ImmutableList.builder();
     // add all original program declarations that are not substituted
     rOriginalDeclarations.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
     for (MPORThread thread : pThreads) {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           ThreadUtil.extractNonVariableDeclarations(thread);
-      rOriginalDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(nonVariableDeclarations));
+      for (CDeclaration declaration : nonVariableDeclarations) {
+        // if it is a function declaration, add it only if the option is set
+        if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
+          rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
+        }
+      }
     }
     rOriginalDeclarations.add(LineOfCode.empty());
     return rOriginalDeclarations.build();

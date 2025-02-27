@@ -226,7 +226,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       GhostVariables pGhostVariables) {
 
-    // function summaries -> store calling context in return_pc
+    // function summaries -> store calling context in return_pc (none for reach_error)
     checkArgument(
         !MPORUtil.isReachErrorCall(pFunctionSummaryEdge),
         "pFunctionSummaryEdge is call to reach_error");

@@ -22,13 +22,13 @@ public class ThreadUtil {
    * declarations) for the given thread.
    */
   public static ImmutableList<CDeclaration> extractNonVariableDeclarations(MPORThread pThread) {
-
     ImmutableList.Builder<CDeclaration> rNonVariableDeclarations = ImmutableList.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (threadEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         CDeclaration declaration = declarationEdge.getDeclaration();
         if (!(declaration instanceof CVariableDeclaration)) {
-          assert pThread.isMain(); // check if only main thread declares non-vars, e.g. functions
+          // check if only main thread declares non-vars, e.g. functions
+          assert pThread.isMain();
           rNonVariableDeclarations.add(declaration);
         }
       }

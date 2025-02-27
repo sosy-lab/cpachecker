@@ -158,7 +158,7 @@ public class Sequentialization {
         GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
-    rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(threads));
+    rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(options, threads));
     rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(mainThreadSubstitution));
     rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(substitutions.values()));
     rProgram.addAll(SeqDeclarationBuilder.buildParameterDeclarations(substitutions.values()));

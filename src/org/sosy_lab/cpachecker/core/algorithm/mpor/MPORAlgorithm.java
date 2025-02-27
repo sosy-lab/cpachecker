@@ -55,6 +55,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "include original function declarations from input file? if true, the output file"
+              + " will take up more storage.")
+  private boolean inputFunctionDeclarations = false;
+
+  @Option(
+      secure = true,
+      description =
           "add an additional .yml file with metadata such as algorithm options and input file(s)?")
   private boolean outputMetadata = true;
 
@@ -154,7 +161,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     options =
         new MPOROptions(
-            outputMetadata, overwriteFiles, partialOrderReduction, scalarPc, signedNextThread);
+            inputFunctionDeclarations,
+            outputMetadata,
+            overwriteFiles,
+            partialOrderReduction,
+            scalarPc,
+            signedNextThread);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

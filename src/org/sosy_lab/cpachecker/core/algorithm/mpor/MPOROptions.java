@@ -22,6 +22,8 @@ import org.sosy_lab.common.configuration.Option;
  */
 public class MPOROptions {
 
+  public final boolean inputFunctionDeclarations;
+
   public final boolean outputMetadata;
 
   public final boolean overwriteFiles;
@@ -33,6 +35,7 @@ public class MPOROptions {
   public final boolean signedNextThread;
 
   public MPOROptions(
+      boolean pInputFunctionDeclarations,
       boolean pOutputMetadata,
       boolean pOverwriteFiles,
       boolean pPartialOrderReduction,
@@ -46,6 +49,7 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
+    inputFunctionDeclarations = pInputFunctionDeclarations;
     outputMetadata = pOutputMetadata;
     overwriteFiles = pOverwriteFiles;
     partialOrderReduction = pPartialOrderReduction;
@@ -57,7 +61,8 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pPartialOrderReduction, boolean pScalarPc, boolean pSignedNextThread) {
 
-    return new MPOROptions(false, false, pPartialOrderReduction, pScalarPc, pSignedNextThread);
+    return new MPOROptions(
+        false, false, false, pPartialOrderReduction, pScalarPc, pSignedNextThread);
   }
 
   private boolean correctParamAmount() {
