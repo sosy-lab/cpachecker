@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.cfa.Language.C;
+
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -35,16 +37,20 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.ACSLParserUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -57,13 +63,16 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -233,9 +242,11 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
-  public ImmutableSet<CExpression> prepareInitialLemmas()
+  public ImmutableSet<PathFormula> prepareInitialLemmas()
       throws InterruptedException, InvalidConfigurationException {
+    List<LemmaSetEntry> lemmaSetEntries = new ArrayList<>();
     List<LemmaEntry> lemmaSet = new ArrayList<>();
+    List<String> declarationEntries = new ArrayList<>();
 
     if (!predicatesFiles.isEmpty()) {
       for (Path lemmaFile : predicatesFiles) {
@@ -245,7 +256,10 @@ public final class PredicatePrecisionBootstrapper {
             logger.log(Level.WARNING, "Lemmas can only be supplied via a YAML file.");
             continue;
           }
-          lemmaSet.addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaFile, logger));
+          lemmaSetEntries.addAll(AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile));
+          declarationEntries.addAll(
+              AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries));
+          lemmaSet.addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries));
         } catch (IOException e) {
           logger.logfUserException(Level.WARNING, e, "Could not read lemma file");
         }
@@ -254,10 +268,22 @@ public final class PredicatePrecisionBootstrapper {
 
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+    PathFormulaManagerImpl pathFormulaManagerImpl =
+        new PathFormulaManagerImpl(
+            formulaManagerView, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
 
-    ImmutableSet.Builder<CExpression> lemmas = new ImmutableSet.Builder<>();
+    List<CDeclaration> declarations = ACSLParserUtils.parseDeclarations(declarationEntries);
+
+    if (cfa.getLanguage() != C) {
+      throw new InvalidYAMLWitnessException("CFA language must be C.");
+    }
+    CProgramScope scope = new CProgramScope(cfa, logger);
+    for (CDeclaration declaration : declarations) {
+      scope.addDeclarationToScope(declaration);
+    }
+    ImmutableSet.Builder<PathFormula> lemmas = new ImmutableSet.Builder<>();
     for (LemmaEntry e : lemmaSet) {
-      lemmas.add(transformer.parseLemmaEntry(e));
+      lemmas.add(transformer.parseLemmaEntry(e, pathFormulaManagerImpl, scope));
     }
     return lemmas.build();
   }

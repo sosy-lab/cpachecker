@@ -21,7 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -215,7 +214,7 @@ public class PredicateCPA
             predAbsManager);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
-    ImmutableSet<CExpression> initialLemmas = precisionBootstraper.prepareInitialLemmas();
+    ImmutableSet<PathFormula> initialLemmas = precisionBootstraper.prepareInitialLemmas();
     logger.log(Level.FINEST, "Initial lemmas are", initialLemmas);
 
     PredicateProvider predicateProvider =

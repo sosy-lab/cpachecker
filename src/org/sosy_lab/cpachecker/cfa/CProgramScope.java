@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -172,7 +173,7 @@ public class CProgramScope implements Scope {
 
   private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
 
-  private final Multimap<String, CFunctionDeclaration> functionDeclarations;
+  private Multimap<String, CFunctionDeclaration> functionDeclarations;
 
   private final Multimap<String, CSimpleDeclaration> qualifiedDeclarations;
 
@@ -410,6 +411,29 @@ public class CProgramScope implements Scope {
   public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
     // Assume that all type declarations are already registered
     return false;
+  }
+
+  public void addDeclarationToScope(CDeclaration pDeclaration) throws InvalidYAMLWitnessException {
+
+    if (pDeclaration instanceof CVariableDeclaration) {
+      if (variableNames.contains(pDeclaration)) {
+        throw new InvalidYAMLWitnessException(
+            "Variable declaration already in use: " + pDeclaration);
+      }
+    } else if (pDeclaration instanceof CFunctionDeclaration) {
+      if (lookupFunction(pDeclaration.getName()) != null) {
+        throw new InvalidYAMLWitnessException(
+            "Function declaration already in use: " + pDeclaration.getName());
+      }
+      ImmutableListMultimap.Builder<String, CFunctionDeclaration> newFunctionDeclarations =
+          ImmutableListMultimap.builder();
+      newFunctionDeclarations.putAll(functionDeclarations);
+      newFunctionDeclarations.put(pDeclaration.getName(), (CFunctionDeclaration) pDeclaration);
+      this.functionDeclarations = newFunctionDeclarations.build();
+    } else {
+      throw new UnsupportedOperationException(
+          "Declaration must be a function declaration or a variable declaration." + pDeclaration);
+    }
   }
 
   @Override

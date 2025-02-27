@@ -13,20 +13,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serial;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -154,18 +152,21 @@ public class AutomatonWitnessV2ParserUtils {
     return Optional.empty();
   }
 
-  public static ImmutableSet<LemmaEntry> parseLemmasFromFile(Path lemmaFile, LogManager logger) {
+  public static ImmutableSet<LemmaEntry> parseLemmasFromFile(List<LemmaSetEntry> pLemmaSetEntries) {
     ImmutableSet.Builder<LemmaEntry> lemmaSet = new ImmutableSet.Builder<>();
-    List<LemmaSetEntry> lemmaSetEntries = new ArrayList<>();
-    try {
-      lemmaSetEntries = readLemmaFile(lemmaFile);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not read lemmas from file");
-    }
-    for (LemmaSetEntry e : lemmaSetEntries) {
+    for (LemmaSetEntry e : pLemmaSetEntries) {
       lemmaSet.addAll(e.getContent());
     }
     return lemmaSet.build();
+  }
+
+  public static ImmutableSet<String> parseDeclarationsFromFile(
+      List<LemmaSetEntry> pLemmaSetEntries) {
+    ImmutableSet.Builder<String> declarationStrings = new Builder<>();
+    for (LemmaSetEntry e : pLemmaSetEntries) {
+      declarationStrings.addAll(e.getDeclarations());
+    }
+    return declarationStrings.build();
   }
 
   public static List<LemmaSetEntry> readLemmaFile(Path lemmaFile) throws IOException {

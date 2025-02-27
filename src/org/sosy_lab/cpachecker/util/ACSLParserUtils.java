@@ -8,22 +8,38 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 
 public class ACSLParserUtils {
+
   private static ACSLFunctionCall extractFunctionCall(
       String functionCall, CParser parser, Scope scope) throws InterruptedException {
 
@@ -44,7 +60,7 @@ public class ACSLParserUtils {
 
     String lString = lAssumeCode;
     Map<String, ACSLFunctionCall> replacements = new HashMap<>();
-    Pattern lp = Pattern.compile("LEMMA_FUNC\\((?<function>.*)\\)");
+    Pattern lp = Pattern.compile("ACSL\\((?<function>.*)\\)");
     Matcher lm = lp.matcher(lString);
     String tmp = "lemma_tmp_";
 
@@ -70,5 +86,90 @@ public class ACSLParserUtils {
     CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new ACSLVisitor(replacements));
     return exp;
+  }
+
+  public static List<CDeclaration> parseDeclarations(List<String> declarations)
+      throws InvalidYAMLWitnessException {
+    ImmutableList.Builder<CDeclaration> functionDeclarations = new ImmutableList.Builder<>();
+
+    for (String declaration : declarations) {
+      functionDeclarations.add(parseSingleDeclaration(declaration));
+    }
+    return functionDeclarations.build();
+  }
+
+  public static CDeclaration parseSingleDeclaration(String assumeDeclaration)
+      throws InvalidYAMLWitnessException {
+    Pattern functionPattern = Pattern.compile("\\w+\\*?\\s+\\w+\\s*\\(.*\\)");
+    Pattern variablePattern = Pattern.compile("\\w+\\*?\\s+\\w+");
+    Pattern declarationPattern =
+        Pattern.compile(
+            "(?<declaration>(?<type>(void|int|char|long|float|double)(\\*?))\\s+(?<name>\\w+))");
+
+    Matcher isFunction = functionPattern.matcher(assumeDeclaration);
+    Matcher isVariable = variablePattern.matcher(assumeDeclaration);
+
+    if (isFunction.matches()) {
+      return parseFunctionDeclaration(assumeDeclaration, declarationPattern);
+    } else if (isVariable.matches()) {
+      return parseVariableDeclaration(assumeDeclaration, declarationPattern);
+
+    } else {
+      throw new InvalidYAMLWitnessException(
+          "Statement is not a valid declaration: " + assumeDeclaration);
+    }
+  }
+
+  public static CFunctionDeclaration parseFunctionDeclaration(
+      String assumeDeclaration, Pattern pPattern) throws InvalidYAMLWitnessException {
+    Matcher functionMatcher = pPattern.matcher(assumeDeclaration);
+
+    if (functionMatcher.find()) {
+      ImmutableList.Builder<CParameterDeclaration> parameters = new ImmutableList.Builder<>();
+      // The first match is the return type and the name of the function
+      CFunctionType returnType =
+          CFunctionType.functionTypeWithReturnType(toCtype(functionMatcher.group("type")));
+      String functionName = functionMatcher.group("name");
+
+      // Subsequent matches are the type and name of the function parameters
+      while (functionMatcher.find()) {
+        CType type = toCtype(functionMatcher.group("type"));
+        String name = functionMatcher.group("name");
+        CParameterDeclaration decl = new CParameterDeclaration(FileLocation.DUMMY, type, name);
+        parameters.add(decl);
+      }
+      return new CFunctionDeclaration(
+          FileLocation.DUMMY, returnType, functionName, parameters.build(), ImmutableSet.of());
+    } else {
+      throw new InvalidYAMLWitnessException(
+          "Statement is not a valid function declaration: " + assumeDeclaration);
+    }
+  }
+
+  public static CVariableDeclaration parseVariableDeclaration(
+      String assumeDeclaration, Pattern pPattern) throws InvalidYAMLWitnessException {
+    Matcher variableMatcher = pPattern.matcher(assumeDeclaration);
+    if (variableMatcher.find()) {
+      CType type = toCtype(variableMatcher.group("type"));
+      String name = variableMatcher.group("name");
+      return new CVariableDeclaration(
+          FileLocation.DUMMY, false, CStorageClass.AUTO, type, name, name, name, null);
+    } else {
+      throw new InvalidYAMLWitnessException(
+          "Statement is not a valid variable declaration: " + assumeDeclaration);
+    }
+  }
+
+  private static CType toCtype(String typeName) {
+    return switch (typeName) {
+      case "void" -> CVoidType.VOID;
+      case "int" -> CNumericTypes.INT;
+      case "char" -> CNumericTypes.CHAR;
+      case "long" -> CNumericTypes.LONG_INT;
+      case "float" -> CNumericTypes.FLOAT;
+      case "double" -> CNumericTypes.DOUBLE;
+      case "int*" -> new CPointerType(false, false, CNumericTypes.INT);
+      default -> throw new IllegalArgumentException("Not a valid type declaration: " + typeName);
+    };
   }
 }

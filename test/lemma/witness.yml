@@ -19,13 +19,27 @@
           line: 25
           column: 3
           function: maxArray
-        value: "m == maxArray(a,i)"
+        value: "m == MaxArray(a,i)"
         format: c_expression
 - entry_type: lemma_set
+  declarations: 
+    - "int MaxArray(int* A, int I)"
+    - "int* A"
+    - "int I"
   content:
     - lemma:
-        value: "MaxArray(A,0) = A[0]"
+        location:
+          # file_name: maxArray.c
+          line: 25
+          column: 3
+          function: maxArray
+        value: "ACSL(MaxArray(A,0)) == a[0]"
         format: c_expression
     - lemma:
-        value: "MaxArray(A,I) = A[I] > MaxArray[A,I-1] ? A[I] : MaxArray[A,I-1]"
+        location:
+          # file_name: maxArray.c
+          line: 25
+          column: 3
+          function: maxArray
+        value: "ACSL(MaxArray(a,i)) == (a[i] > ACSL(MaxArray(a,i-1))) ? a[i] : ACSL(MaxArray(a,i-1))"
         format: c_expression

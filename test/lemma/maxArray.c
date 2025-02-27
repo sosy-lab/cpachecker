@@ -15,11 +15,11 @@ extern unsigned __VERIFIER_nondet_uchar();
 
 
 
-int max(int a, int b) {
-    return a>=b ? a:b;
+int max(int n, int m) {
+    return n>=m ? n:m;
 }
 
-int maxArray (int *a, int l) {
+int maxArray (int* a, int l) {
   int m = a[0];
 
   for(int i = 0; i < l; i++) {
@@ -30,23 +30,23 @@ int maxArray (int *a, int l) {
 
 int main() {
 
-  unsigned char l = __VERIFIER_nondet_uchar();
-  if (l < 1){
-    return 0;
-  }
-  int a[l];
-  for(int i=0;i<20;i++){
-    a[i] = __VERIFIER_nondet_uint();
+  const unsigned char l = 50;
+  // if (l < 1){
+  //   return 0;
+  // }
+  int arr[50];
+  for(int i=0;i<l;i++){
+    arr[i] = __VERIFIER_nondet_uint();
   }
   // int l = 20;
-  int m = maxArray(a,l);
+  int m = maxArray(arr,l);
 
-  if(m < a[0]) {
+  if(m < arr[0]) {
     reach_error();
     return 1;
   }
   
-  if (m < a[l-1]) {
+  if (m < arr[l-1]) {
     reach_error();
     return 1;
   }

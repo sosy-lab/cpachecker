@@ -38,10 +38,11 @@ public class LemmaEntryTest {
   }
 
   @Test
-  public void testParseLemmas() {
+  public void testParseLemmas() throws IOException {
     Path lemmaFile = Path.of(TEST_DIR_PATH, "witness.yml");
+    List<LemmaSetEntry> lemmaSetEntries = AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile);
     ImmutableSet<LemmaEntry> lemmaSet =
-        AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaFile, null);
+        AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries);
     assertThat(lemmaSet).hasSize(2);
     assertThat(lemmaSet.asList().get(0).getValue()).isEqualTo("MaxArray(A,0) = A[0]");
     assertThat(lemmaSet.asList().get(0).getFormat().toString()).isEqualTo("c_expression");
