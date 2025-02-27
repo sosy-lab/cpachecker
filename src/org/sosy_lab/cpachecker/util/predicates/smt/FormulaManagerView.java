@@ -1869,6 +1869,8 @@ public class FormulaManagerView {
     try {
       nnf = applyTactic(input, Tactic.NNF);
     } catch (SolverException e) {
+      // TODO: propagate this exception throughout CPAchecker as far as possible and handle possible
+      //  resolutions in the components. See issue #1327.
       throw new AssertionError("Solver failed when applying tactic NNF", e);
     }
 
