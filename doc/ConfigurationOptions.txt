@@ -699,7 +699,7 @@ bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 
 # Type of BDD used in PJBDD.
 bdd.pjbdd.useBDDType = "BDD"
-  allowed values: [BDD, ChainedBDD]
+  allowed values: [BDD, ChainedBDD, TBDD, TaggedDD]
 
 # Use internal a int based bdd representation.
 bdd.pjbdd.useInts = false

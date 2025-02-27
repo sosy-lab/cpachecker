@@ -238,13 +238,12 @@ public class PJBDDRegionManager implements RegionManager {
     private boolean useInts = false;
 
     // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
-    private static final List<String> ALL_BDD_TYPES = ImmutableList.of("BDD", "ChainedBDD");
+    private static final List<String> ALL_BDD_TYPES = ImmutableList.of("BDD", "ChainedBDD", "TBDD", "TaggedDD");
 
     @Option(
         secure = true,
         description = "Type of BDD used in PJBDD.",
-        values = {"BDD", "ChainedBDD"},
-        toUppercase = true)
+        values = {"BDD", "ChainedBDD", "TBDD", "TaggedDD"})
     private String useBDDType = "BDD";
 
     @Option(secure = true, description = "Disable thread safe bdd operations.")
@@ -272,6 +271,10 @@ public class PJBDDRegionManager implements RegionManager {
       CreatorBuilder builder;
       if (useBDDType.equals("ChainedBDD")) {
         builder = Builders.cbddBuilder();
+      } else if (useBDDType.equals("TaggedDD")) {
+        builder = Builders.newTaggedDDBuilder();
+      } else if (useBDDType.equals("TBDD")) {
+        builder = Builders.newTBDDBuilder();
       } else {
         builder = Builders.bddBuilder();
       }
