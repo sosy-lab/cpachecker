@@ -40,11 +40,6 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
   // TODO: do not hardcode the function separator.
   private static final String FUNCTION_NAME_SEPARATOR = "::";
 
-  // C99 knows macros for NAN and INF, but a user should not use them as constants.
-  // see https://www.gnu.org/software/libc/manual/html_node/Infinity-and-NaN.html
-  public static final String C99_NAN = "NAN"; // identical to 0.0/0.0
-  public static final String C99_INF = "INFINITY"; // identical to 1.0/0.0
-
   private static final ImmutableSet<FunctionDeclarationKind> COMMUTATIVE_OPERATIONS =
       ImmutableSet.of(
           FunctionDeclarationKind.EQ, FunctionDeclarationKind.BV_EQ, FunctionDeclarationKind.FP_EQ);
@@ -115,10 +110,19 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           break;
         }
       case FP_IS_ZERO:
+        // +0.0 and -0.0 are equal and are both handled here.
+        result = cache.get(newArgs.get(0)) + " == 0.0";
+        break;
       case FP_IS_NAN:
+        // NaN is not a number, so it is unequal to itself.
+        var nanArg = cache.get(newArgs.get(0));
+        result = nanArg + " != " + nanArg;
+        break;
       case FP_IS_INF:
-        result =
-            cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
+        // C99 standard for positive infinity is "1 / 0",
+        // see https://www.gnu.org/software/libc/manual/html_node/Infinity-and-NaN.html
+        var infArg = cache.get(newArgs.get(0));
+        result = infArg + " == (1 / 0)" + " || " + infArg + " == -(1 / 0)";
         break;
       case ITE:
         result =
@@ -228,12 +232,6 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
         return "~";
       case BV_SHL:
         return " << ";
-      case FP_IS_ZERO:
-        return " == 0.0";
-      case FP_IS_NAN:
-        return " == " + C99_NAN;
-      case FP_IS_INF:
-        return " == " + C99_INF;
       case UF:
         // There are several CPAchecker-internal UFs that replace unsupported function in solvers.
         // See FormulaManagerView and ReplaceBitvectorWithNumeralAndFunctionTheory for details.

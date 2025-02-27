@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.cwriter.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
-import static org.sosy_lab.cpachecker.util.cwriter.FormulaToCExpressionVisitor.C99_NAN;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -815,22 +814,14 @@ public class FormulaToCExpressionConverterTest {
     }
   }
 
+  /**
+   * Build a string that represents the equality of two floating point numbers. As NaN is special,
+   * we need to check for it explicitly. The check for zero is not necessary, Bitwuzla has it.
+   */
   private static String getFpEqualityForBitwuzla(String a, String b, String aEqB) {
-    return "(((!("
-        + a
-        + " == "
-        + C99_NAN
-        + ")) && (!("
-        + b
-        + " == "
-        + C99_NAN
-        + "))) && (!((!("
-        + aEqB
-        + ")) && (!(("
-        + a
-        + " == 0.0) && ("
-        + b
-        + " == 0.0))))))";
+    return String.format(
+        "(((!(%s != %s)) && (!(%s != %s))) && (!((!(%s)) && (!((%s == 0.0) && (%s == 0.0))))))",
+        a, a, b, b, aEqB, a, b);
   }
 
   @RunWith(Parameterized.class)
