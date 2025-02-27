@@ -254,12 +254,15 @@ analysis.algorithm.MPI = false
 analysis.algorithm.MPOR = false
 
 # include original function declarations from input file? if true, the output
-# file will take up more storage.
+# file size is bigger
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
 
 # add an additional .yml file with metadata such as algorithm options and
 # input file(s)?
 analysis.algorithm.MPOR.outputMetadata = true
+
+# the path to output the sequentialization and (optionally) metadata to. ("output/" by default)
+analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true

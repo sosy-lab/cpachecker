@@ -55,8 +55,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "include original function declarations from input file? if true, the output file"
-              + " will take up more storage.")
+          "include original function declarations from input file? if true, the output file size is"
+              + " bigger")
   private boolean inputFunctionDeclarations = false;
 
   @Option(
@@ -64,6 +64,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "add an additional .yml file with metadata such as algorithm options and input file(s)?")
   private boolean outputMetadata = true;
+
+  @Option(
+      secure = true,
+      description =
+          "the path to output the sequentialization and metadata to. (\"output/\" by default)")
+  private String outputPath = SeqWriter.DEFAULT_OUTPUT_PATH;
 
   @Option(
       secure = true,
@@ -163,6 +169,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         new MPOROptions(
             inputFunctionDeclarations,
             outputMetadata,
+            outputPath,
             overwriteFiles,
             partialOrderReduction,
             scalarPc,

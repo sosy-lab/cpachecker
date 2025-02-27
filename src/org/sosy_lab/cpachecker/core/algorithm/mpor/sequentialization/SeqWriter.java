@@ -49,7 +49,7 @@ public class SeqWriter {
 
   private static final String SUCCESS = "MPOR SUCCESS. Sequentialization created in:";
 
-  private static final String targetDirectory = "output/";
+  public static final String DEFAULT_OUTPUT_PATH = "output/";
 
   private final LogManager logManager;
 
@@ -67,8 +67,8 @@ public class SeqWriter {
     logManager = pLogManager;
     inputFilePaths = pInputFilePaths;
     options = pOptions;
-    seqProgramPath = targetDirectory + pSeqName + FileExtension.I.suffix;
-    metadataPath = targetDirectory + pSeqName + FileExtension.YML.suffix;
+    seqProgramPath = pOptions.outputPath + pSeqName + FileExtension.I.suffix;
+    metadataPath = pOptions.outputPath + pSeqName + FileExtension.YML.suffix;
   }
 
   public void write(final String pFinalSeq) {
@@ -99,9 +99,9 @@ public class SeqWriter {
   private void handleDirectoryCreation(File pParentDir) {
     if (!pParentDir.exists()) {
       if (pParentDir.mkdirs()) {
-        logManager.log(Level.INFO, "Directory created: " + targetDirectory);
+        logManager.log(Level.INFO, "Directory created: " + options.outputPath);
       } else {
-        logManager.log(Level.SEVERE, OutputError.TARGET_DIR.message, targetDirectory);
+        logManager.log(Level.SEVERE, OutputError.TARGET_DIR.message, options.outputPath);
         throw new RuntimeException();
       }
     }

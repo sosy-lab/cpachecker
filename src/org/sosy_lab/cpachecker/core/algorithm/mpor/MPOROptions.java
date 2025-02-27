@@ -15,6 +15,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 
 /**
  * For better overview so that not all {@link Option}s passed to {@code analysis.algorithm.MPOR}
@@ -25,6 +26,8 @@ public class MPOROptions {
   public final boolean inputFunctionDeclarations;
 
   public final boolean outputMetadata;
+
+  public final String outputPath;
 
   public final boolean overwriteFiles;
 
@@ -37,6 +40,7 @@ public class MPOROptions {
   public MPOROptions(
       boolean pInputFunctionDeclarations,
       boolean pOutputMetadata,
+      String pOutputPath,
       boolean pOverwriteFiles,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
@@ -51,6 +55,7 @@ public class MPOROptions {
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
     inputFunctionDeclarations = pInputFunctionDeclarations;
     outputMetadata = pOutputMetadata;
+    outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
     partialOrderReduction = pPartialOrderReduction;
     scalarPc = pScalarPc;
@@ -62,7 +67,13 @@ public class MPOROptions {
       boolean pPartialOrderReduction, boolean pScalarPc, boolean pSignedNextThread) {
 
     return new MPOROptions(
-        false, false, false, pPartialOrderReduction, pScalarPc, pSignedNextThread);
+        false,
+        false,
+        SeqWriter.DEFAULT_OUTPUT_PATH,
+        false,
+        pPartialOrderReduction,
+        pScalarPc,
+        pSignedNextThread);
   }
 
   private boolean correctParamAmount() {
