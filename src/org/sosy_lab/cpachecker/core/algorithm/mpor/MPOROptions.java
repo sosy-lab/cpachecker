@@ -62,12 +62,15 @@ public class MPOROptions {
     signedNextThread = pSignedNextThread;
   }
 
-  /** Returns a test instance that sets all options regarding output files to false. */
+  /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
-      boolean pPartialOrderReduction, boolean pScalarPc, boolean pSignedNextThread) {
+      boolean pInputFunctionDeclarations,
+      boolean pPartialOrderReduction,
+      boolean pScalarPc,
+      boolean pSignedNextThread) {
 
     return new MPOROptions(
-        false,
+        pInputFunctionDeclarations,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,

@@ -261,7 +261,8 @@ analysis.algorithm.MPOR.inputFunctionDeclarations = false
 # input file(s)?
 analysis.algorithm.MPOR.outputMetadata = true
 
-# the path to output the sequentialization and (optionally) metadata to. ("output/" by default)
+# the path to output the sequentialization and metadata to. ("output/" by
+# default)
 analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 
 # overwrite files in the ./output directory when creating sequentializations?
