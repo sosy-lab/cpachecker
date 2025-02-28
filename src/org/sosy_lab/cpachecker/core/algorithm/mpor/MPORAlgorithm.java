@@ -55,7 +55,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "include comments with trivia and additional newlines in the sequentialization? true ->"
+          "include comments with explaining trivia in the sequentialization? true ->"
               + " bigger file size")
   private boolean comments = false;
 

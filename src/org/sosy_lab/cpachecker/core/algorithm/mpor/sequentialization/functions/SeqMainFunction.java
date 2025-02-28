@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.Pc
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -65,6 +66,8 @@ public class SeqMainFunction extends SeqFunction {
   private static final SeqControlFlowStatement whileTrue =
       new SeqControlFlowStatement(
           SeqIntegerLiteralExpression.INT_1, SeqControlFlowStatementType.WHILE);
+
+  private final MPOROptions options;
 
   private final CIdExpression numThreads;
 
@@ -102,6 +105,7 @@ public class SeqMainFunction extends SeqFunction {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    options = pOptions;
     numThreads =
         SeqIdExpression.buildIdExpression(
             SeqVariableDeclaration.buildVariableDeclaration(
@@ -175,16 +179,28 @@ public class SeqMainFunction extends SeqFunction {
     rBody.add(LineOfCode.of(1, nextThreadDeclaration.toASTString()));
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
+    if (options.comments) {
+      rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_NONDET));
+    }
     rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
     rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString() + SeqSyntax.SEMICOLON));
     // assumptions over next_thread being active (pc != -1)
+    if (options.comments) {
+      rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
+    }
     rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, pcNextThreadAssumption.toASTString()));
     // add all assumptions over thread variables
+    if (options.comments) {
+      rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_ASSUMPTIONS));
+    }
     rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
     if (assignPrevThread.isPresent()) {
       rBody.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
     }
     // add all switch statements
+    if (options.comments) {
+      rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_SWITCHES));
+    }
     rBody.addAll(buildSwitchStatements(caseClauses));
     rBody.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
@@ -209,12 +225,15 @@ public class SeqMainFunction extends SeqFunction {
     return ImmutableList.of();
   }
 
-  /** Returns {@link LineOfCode} for {@code NUM_THREADS} and {@code pc}. */
+  /** Returns {@link LineOfCode} for {@code NUM_THREADS} and {@code pc} declarations. */
   private ImmutableList<LineOfCode> buildVariableDeclarations(
       CSimpleDeclaration pNumThreads, ImmutableList<CVariableDeclaration> pPcDeclarations) {
 
     ImmutableList.Builder<LineOfCode> rVarDeclarations = ImmutableList.builder();
     rVarDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
+    if (options.comments) {
+      rVarDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
+    }
     for (CVariableDeclaration varDeclaration : pPcDeclarations) {
       rVarDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
     }

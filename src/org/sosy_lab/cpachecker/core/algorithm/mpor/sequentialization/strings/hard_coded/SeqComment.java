@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded;
 
+/** The comments are sorted as they appear in the output program. */
 public class SeqComment {
 
   private static final String COMMENT_SINGLE = "//";
@@ -27,8 +28,25 @@ public class SeqComment {
   public static final String RETURN_PCS =
       COMMENT_SINGLE + " thread local function return pc storing calling contexts";
 
-  public static final String THREAD_SIMULATION = COMMENT_SINGLE + " (p)thread simulation variables";
+  public static final String THREAD_SIMULATION =
+      COMMENT_SINGLE + " thread and pthread method simulation variables";
 
   public static final String CUSTOM_FUNCTION_DECLARATIONS =
       COMMENT_SINGLE + " custom function declarations";
+
+  public static final String PC_DECLARATION =
+      COMMENT_SINGLE + " track current program locations (pc) for all thread simulations";
+
+  public static final String NEXT_THREAD_NONDET =
+      COMMENT_SINGLE + " choose and assign next_thread non-deterministically";
+
+  public static final String NEXT_THREAD_ACTIVE =
+      COMMENT_SINGLE + " ensure next_thread is yet / still active";
+
+  public static final String THREAD_SIMULATION_ASSUMPTIONS =
+      COMMENT_SINGLE
+          + " enforce strict orders over execution of program statements such as pthread methods";
+
+  public static final String THREAD_SIMULATION_SWITCHES =
+      COMMENT_SINGLE + " represent reachable statements of thread simulations in switch cases";
 }
