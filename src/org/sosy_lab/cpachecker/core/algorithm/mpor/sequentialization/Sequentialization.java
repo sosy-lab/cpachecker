@@ -197,8 +197,9 @@ public class Sequentialization {
     int currentLine =
         options.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
-    // TODO create additional license option
-    rProgram.addAll(licenseHeader);
+    if (options.license) {
+      rProgram.addAll(licenseHeader);
+    }
     if (options.comments) {
       rProgram.addAll(mporHeader);
     }

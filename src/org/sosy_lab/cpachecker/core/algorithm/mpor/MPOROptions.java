@@ -27,6 +27,8 @@ public class MPOROptions {
 
   public final boolean inputFunctionDeclarations;
 
+  public final boolean license;
+
   public final boolean outputMetadata;
 
   public final String outputPath;
@@ -42,6 +44,7 @@ public class MPOROptions {
   public MPOROptions(
       boolean pComments,
       boolean pInputFunctionDeclarations,
+      boolean pLicense,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
@@ -56,8 +59,10 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
+
     comments = pComments;
     inputFunctionDeclarations = pInputFunctionDeclarations;
+    license = pLicense;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
@@ -70,6 +75,7 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pComments,
       boolean pInputFunctionDeclarations,
+      boolean pLicense,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
       boolean pSignedNextThread) {
@@ -77,6 +83,7 @@ public class MPOROptions {
     return new MPOROptions(
         pComments,
         pInputFunctionDeclarations,
+        pLicense,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,

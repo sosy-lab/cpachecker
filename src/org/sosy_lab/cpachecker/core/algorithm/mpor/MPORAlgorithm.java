@@ -68,6 +68,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "include CPAchecker license header in the sequentialization? true -> bigger file size")
+  private boolean license = false;
+
+  @Option(
+      secure = true,
+      description =
           "add an additional .yml file with metadata such as algorithm options and input file(s)?")
   private boolean outputMetadata = true;
 
@@ -168,7 +174,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
       CFA pInputCfa)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
 
     pConfiguration.inject(this);
 
@@ -176,6 +182,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         new MPOROptions(
             comments,
             inputFunctionDeclarations,
+            license,
             outputMetadata,
             outputPath,
             overwriteFiles,
