@@ -139,7 +139,7 @@ public class CompositeRefiner implements Refiner {
       FormulaContext newContext = context;
       if (parallelRefinement && pRefiners.length > 1) {
         // create new context for each refiner
-        newContext = context.createContextFromThis();
+        newContext = context.createContextFromThis(context.getSolver().getSolverName().toString());
       }
       refiners.put(refiner,
           RefinerFactory.createRefiner(refiner, newContext, pQuantifierSolver, pWithFormatter));

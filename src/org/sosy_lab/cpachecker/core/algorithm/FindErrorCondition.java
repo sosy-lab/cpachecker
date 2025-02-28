@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -22,7 +24,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ECUtilities;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.Utility;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementStrategy;
@@ -117,7 +119,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       // Initialize variables
       boolean foundNewCounterexamples;
-      AbstractState initialState = ECUtilities.getInitialState(cpa, context);
+      AbstractState initialState = Utility.getInitialState(cpa, context);
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter);
       PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
@@ -127,12 +129,12 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         foundNewCounterexamples = false;
 
         // Run reachability analysis
-        reachedSet = ECUtilities.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
+        reachedSet = Utility.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
         status = algorithm.run(reachedSet);
 
         // Collect counterexamples
         FluentIterable<CounterexampleInfo> counterExamples =
-            ECUtilities.getCounterexamples(reachedSet);
+            Utility.getCounterexamples(reachedSet);
 
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
@@ -147,8 +149,12 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             break;
           }
           // update initial state with the exclusion formula
-          initialState = ECUtilities.updateInitialStateWithExclusions(initialState, errorCondition,
+          initialState = Utility.updateInitialStateWithExclusions(initialState, errorCondition,
               currentIteration, context);
+        }
+        else {
+          logger.log(Level.INFO,
+              String.format("Iteration %d: No Counterexamples Found. Finished Refinement.", currentIteration));
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
@@ -156,6 +162,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       context.getLogger()
           .log(Level.INFO, "Final Error Condition:\n" + errorCondition);
+      //TODO: can add a visitor to make final Error Condition more user friendly and easier to read.
+      Utility.visit(new ArrayList<>(List.of(errorCondition.getFormula())),context)
+          .get(0);
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {

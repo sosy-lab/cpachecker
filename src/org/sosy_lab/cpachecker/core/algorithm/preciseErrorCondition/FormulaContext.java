@@ -87,10 +87,10 @@ public class FormulaContext {
     prover = solver.newProverEnvironment(pProverOptions);
   }
 
-  public FormulaContext createContextFromThis() throws InvalidConfigurationException {
+  public FormulaContext createContextFromThis(String newSolverName) throws InvalidConfigurationException {
     Solver newSolver = Solver.create(
         Configuration.builder().copyFrom(configuration)
-            .setOption("solver.solver", solver.getSolverName().toString())
+            .setOption("solver.solver", newSolverName)
             .build(), logger, shutdownNotifier);
 
     PathFormulaManagerImpl newManager = new PathFormulaManagerImpl(

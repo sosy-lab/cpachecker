@@ -47,8 +47,8 @@ public class ErrorConditionFormatter {
       }
     }
 
-    ECUtilities.logWithIteration(currentRefinementIteration,
-        Level.INFO, context, String.format("CEX Non-Det Variables Mapping:\n%s", variableMapping));
+    Utility.logWithIteration(currentRefinementIteration,
+        Level.FINE, context, String.format("CEX Non-Det Variables Mapping:\n%s", variableMapping));
   }
 
   private void formatErrorCondition(BooleanFormula exclusionFormula, int currentRefinementIteration)
@@ -71,11 +71,11 @@ public class ErrorConditionFormatter {
       }
     }
 
-    ECUtilities.logWithIteration(currentRefinementIteration,
+    Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
         String.format("Error Condition In This Iteration: %s\n", visitedFormula));
-    ECUtilities.logWithIteration(currentRefinementIteration,
-        Level.INFO, context,
+    Utility.logWithIteration(currentRefinementIteration,
+        Level.FINE, context,
         String.format("Error Condition Represented As C Expression : \n%s", cExpr));
 
   }

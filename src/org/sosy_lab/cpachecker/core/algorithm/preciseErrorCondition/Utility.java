@@ -29,12 +29,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public final class ECUtilities {
+public final class Utility {
 
-  private ECUtilities() {
+  private Utility() {
     // Prevent instantiation
   }
 
@@ -104,19 +103,18 @@ public final class ECUtilities {
             "Iteration %d: Updated Initial State With The Exclusion Formula For Next Iteration.",
             pCurrentIteration));
     pContext.getLogger()
-        .log(Level.FINE, String.format("Iteration %s: Updated Initial State: ", pInitialState));
+        .log(Level.FINER, String.format("Iteration %s: Updated Initial State: ", pInitialState));
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 
   public static List<String> visit(
       List<BooleanFormula> pAtoms,
-      Solver pSolver,
       FormulaContext pContext) {
-    FormulaToCVisitor visitor = new FormulaToCVisitor(pSolver.getFormulaManager(), id -> id);
+    FormulaToCVisitor visitor = new FormulaToCVisitor(pContext.getSolver().getFormulaManager(), id -> id);
     ArrayList<String> atomsAsStrings = new ArrayList<>(pAtoms.size());
     for (BooleanFormula atom : pAtoms) {
       PathFormula newPath = pContext.getManager().makeEmptyPathFormula();
-      pSolver.getFormulaManager().visit(newPath.withFormula(atom).getFormula(), visitor);
+      pContext.getSolver().getFormulaManager().visit(newPath.withFormula(atom).getFormula(), visitor);
       String visitedFormula = visitor.getString();
       atomsAsStrings.add(visitedFormula);
     }

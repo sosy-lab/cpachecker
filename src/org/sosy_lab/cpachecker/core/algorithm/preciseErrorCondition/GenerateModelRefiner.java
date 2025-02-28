@@ -55,12 +55,12 @@ public class GenerateModelRefiner implements Refiner {
       prover.push(cexFormula.getFormula());
 
       if (prover.isUnsat()) {
-        ECUtilities.logWithIteration(currentRefinementIteration,
+        Utility.logWithIteration(currentRefinementIteration,
             Level.WARNING, context, "Counterexample Is Infeasible. Returning An Empty Formula.");
         return exclusionModelFormula; // empty
       }
 
-      ECUtilities.logWithIteration(currentRefinementIteration,
+      Utility.logWithIteration(currentRefinementIteration,
           Level.FINE, context, String.format("Current CEX FORMULA:\n%s", cexFormula.getFormula()));
 
 
@@ -70,9 +70,12 @@ public class GenerateModelRefiner implements Refiner {
         }
       }
 
-      ECUtilities.logWithIteration(currentRefinementIteration,
+      Utility.logWithIteration(currentRefinementIteration,
           Level.INFO, context,
-          String.format("Non-Det Model In Current Iteration:\n%s", nondetModel));
+          String.format("Found Model In Current Iteration:\n%s", nondetModel));
+
+      Utility.logWithIteration(currentRefinementIteration,
+          Level.INFO, context, "Updating Exclusion Formula With Model...");
 
       formatter.setupSSAMap(cexFormula);
       // Update exclusion formula
@@ -80,9 +83,8 @@ public class GenerateModelRefiner implements Refiner {
           .makeAnd(exclusionModelFormula, bmgr.not(nondetModel))
           .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
-
-      ECUtilities.logWithIteration(currentRefinementIteration,
-          Level.INFO, context, String.format("Updated Exclusion Formula With Precondition: \n%s",
+      Utility.logWithIteration(currentRefinementIteration,
+          Level.FINE, context, String.format("Updated Exclusion Formula With Model: \n%s",
               exclusionModelFormula.getFormula()));
       if (withFormatter) {
         formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
