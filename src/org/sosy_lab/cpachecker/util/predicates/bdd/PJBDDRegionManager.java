@@ -292,6 +292,9 @@ public class PJBDDRegionManager implements RegionManager {
         case "TBDD":
           builder = Builders.newTBDDBuilder();
           break;
+        case "BDD":
+          builder = Builders.bddBuilder();
+          break;
         default:
           builder = Builders.bddBuilder();
       }
