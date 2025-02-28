@@ -238,7 +238,8 @@ public class PJBDDRegionManager implements RegionManager {
     private boolean useInts = false;
 
     // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
-    private static final List<String> ALL_BDD_TYPES = ImmutableList.of("BDD", "ChainedBDD", "TBDD", "TaggedDD");
+    private static final List<String> ALL_BDD_TYPES =
+        ImmutableList.of("BDD", "ChainedBDD", "TBDD", "TaggedDD");
 
     @Option(
         secure = true,
@@ -252,14 +253,28 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(secure = true, description = "Enable Synchronized Reordering")
     private boolean synchronizeReordering = false;
 
-    @Option(secure = true, description = "Type of Table used in PJBDD",
+    @Option(
+        secure = true,
+        description = "Type of Table used in PJBDD",
         values = {"HashSet", "HashBucket", "CASArray", "Array"})
     private String uniqueTableType = "Array";
 
-    @Option(secure = true, description = "Type of Creator used in PJBDD",
-        values = {"ForkJoin", "ApplyOp", "SerialApply", "CompletableApply",
-            "CompletableFuture", "Future", "Stream", "Serial",
-            "Guava", "CBDD", "ConcurrentCBDD"})
+    @Option(
+        secure = true,
+        description = "Type of Creator used in PJBDD",
+        values = {
+          "ForkJoin",
+          "ApplyOp",
+          "SerialApply",
+          "CompletableApply",
+          "CompletableFuture",
+          "Future",
+          "Stream",
+          "Serial",
+          "Guava",
+          "CBDD",
+          "ConcurrentCBDD"
+        })
     private String creatorType = "ApplyOp";
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
@@ -282,7 +297,7 @@ public class PJBDDRegionManager implements RegionManager {
       }
 
       CreatorBuilder builder;
-      switch (useDDType){
+      switch (useDDType) {
         case "ChainedBDD":
           builder = Builders.cbddBuilder();
           break;
@@ -343,14 +358,10 @@ public class PJBDDRegionManager implements RegionManager {
               .setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
           break;
         case "ApplyOp":
-          pBuilder
-              .setUseApply(true)
-              .setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
+          pBuilder.setUseApply(true).setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
           break;
         case "SerialApply":
-          pBuilder
-              .setUseApply(true)
-              .setParallelizationType(Builders.ParallelizationType.NONE);
+          pBuilder.setUseApply(true).setParallelizationType(Builders.ParallelizationType.NONE);
           break;
         case "CompletableApply":
           pBuilder
@@ -363,19 +374,13 @@ public class PJBDDRegionManager implements RegionManager {
               .setParallelizationType(Builders.ParallelizationType.COMPLETABLE_FUTURE);
           break;
         case "Future":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.FUTURE);
+          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.FUTURE);
           break;
         case "Stream":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.STREAM);
+          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.STREAM);
           break;
         case "Serial":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.NONE);
+          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.NONE);
           break;
         case "Guava":
           pBuilder
