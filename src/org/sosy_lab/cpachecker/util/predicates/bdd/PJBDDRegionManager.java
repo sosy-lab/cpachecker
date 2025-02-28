@@ -282,14 +282,18 @@ public class PJBDDRegionManager implements RegionManager {
       }
 
       CreatorBuilder builder;
-      if (useDDType.equals("ChainedBDD")) {
-        builder = Builders.cbddBuilder();
-      } else if (useDDType.equals("TaggedDD")) {
-        builder = Builders.newTaggedDDBuilder();
-      } else if (useDDType.equals("TBDD")) {
-        builder = Builders.newTBDDBuilder();
-      } else {
-        builder = Builders.bddBuilder();
+      switch (useDDType){
+        case "ChainedBDD":
+          builder = Builders.cbddBuilder();
+          break;
+        case "TaggedDD":
+          builder = Builders.newTaggedDDBuilder();
+          break;
+        case "TBDD":
+          builder = Builders.newTBDDBuilder();
+          break;
+        default:
+          builder = Builders.bddBuilder();
       }
       resolveProperties(builder);
       return builder.build();
