@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,18 +50,26 @@ public class AllSatRefiner implements Refiner {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
 
       // get the formula for the counterexample path
-      PathFormula pathFormula =
+      PathFormula cexPathFormula =
           context.getManager().makeFormulaForPath(cex.getTargetPath().getFullPath());
 
-      prover.push(pathFormula.getFormula());
+      prover.push(cexPathFormula.getFormula());
 
-      // extract atoms from the formula
-      ImmutableList<BooleanFormula> atoms = ImmutableList.copyOf(
-          solver.getFormulaManager().extractAtoms(pathFormula.getFormula(), false)
+      // extract atoms from the cex
+      List<BooleanFormula> atoms = List.copyOf(
+          solver
+              .getFormulaManager()
+              .extractAtoms(cexPathFormula.getFormula(), false)
       );
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.INFO, String.format("Found Atoms In Formula:\n%s", atoms));
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context, String.format("Extracted Atoms From CEX:\n%s", atoms));
+
+
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context,
+          String.format("Visited Found Atoms:\n%s", ECUtilities.visit(atoms, solver, context)));
+
 
       // Invoke allSat
       AllSatCallback callback = new AllSatCallback(bmgr);
@@ -72,9 +79,13 @@ public class AllSatRefiner implements Refiner {
       //  always be the same in the found model
       List<BooleanFormula> models = prover.allSat(callback, atoms);
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.INFO, String.format("Found Models:\n%s", models)
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context, String.format("Found Models:\n%s", models)
       );
+
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context,
+          String.format("Visited Found Models:\n%s", ECUtilities.visit(models, solver, context)));
 
       // combine the found models into a disjunction (OR)
       BooleanFormula combinedModels = bmgr.makeFalse();
@@ -82,23 +93,25 @@ public class AllSatRefiner implements Refiner {
         combinedModels = bmgr.or(combinedModels, model);
       }
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.FINE, String.format("Combined Models Into Boolean Formula:\n%s", combinedModels));
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.FINE, context,
+          String.format("Combined Models Into Boolean Formula:\n%s", combinedModels));
 
 
       // Update exclusion formula with the found models
       exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(combinedModels));
       if (withFormatter) {
-        formatter.setupSSAMap(pathFormula);
-        formatter.reformat(pathFormula, exclusionModelFormula.getFormula(),
+        formatter.setupSSAMap(cexPathFormula);
+        formatter.reformat(cexPathFormula, exclusionModelFormula.getFormula(),
             currentRefinementIteration);
       }
 
       currentRefinementIteration++;
       return exclusionModelFormula;
     } catch (SolverException e) {
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.WARNING, String.format("Solver Error During Refinement: %s", e.getMessage()));
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.WARNING, context,
+          String.format("Solver Error During Refinement: %s", e.getMessage()));
       throw e;
     }
   }

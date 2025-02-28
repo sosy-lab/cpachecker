@@ -22,7 +22,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.Analyzer;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.ECUtilities;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementStrategy;
@@ -117,8 +117,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
       // Initialize variables
       boolean foundNewCounterexamples;
-      Analyzer analyzer = new Analyzer(cpa, context);
-      AbstractState initialState = analyzer.getInitialState();
+      AbstractState initialState = ECUtilities.getInitialState(cpa, context);
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter);
       PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
@@ -128,12 +127,12 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         foundNewCounterexamples = false;
 
         // Run reachability analysis
-        reachedSet = analyzer.updateReachedSet(reachedSet, initialState, currentIteration);
+        reachedSet = ECUtilities.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
         status = algorithm.run(reachedSet);
 
         // Collect counterexamples
         FluentIterable<CounterexampleInfo> counterExamples =
-            analyzer.getCounterexamples(reachedSet);
+            ECUtilities.getCounterexamples(reachedSet);
 
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
@@ -148,8 +147,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
             break;
           }
           // update initial state with the exclusion formula
-          initialState = analyzer.updateInitialStateWithExclusions(initialState, errorCondition,
-              currentIteration);
+          initialState = ECUtilities.updateInitialStateWithExclusions(initialState, errorCondition,
+              currentIteration, context);
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations

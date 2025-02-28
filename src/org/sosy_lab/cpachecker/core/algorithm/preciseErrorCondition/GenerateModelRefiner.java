@@ -55,13 +55,13 @@ public class GenerateModelRefiner implements Refiner {
       prover.push(cexFormula.getFormula());
 
       if (prover.isUnsat()) {
-        formatter.loggingWithIteration(currentRefinementIteration,
-            Level.WARNING, "Counterexample Is Infeasible. Returning An Empty Formula.");
+        ECUtilities.logWithIteration(currentRefinementIteration,
+            Level.WARNING, context, "Counterexample Is Infeasible. Returning An Empty Formula.");
         return exclusionModelFormula; // empty
       }
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.INFO, String.format("Current CEX FORMULA:\n%s", cexFormula.getFormula()));
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.FINE, context, String.format("Current CEX FORMULA:\n%s", cexFormula.getFormula()));
 
 
       for (ValueAssignment assignment : prover.getModelAssignments()) {
@@ -70,8 +70,9 @@ public class GenerateModelRefiner implements Refiner {
         }
       }
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.INFO, String.format("Non-Det Model In Current Iteration:\n%s", nondetModel));
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context,
+          String.format("Non-Det Model In Current Iteration:\n%s", nondetModel));
 
       formatter.setupSSAMap(cexFormula);
       // Update exclusion formula
@@ -80,8 +81,8 @@ public class GenerateModelRefiner implements Refiner {
           .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
 
-      formatter.loggingWithIteration(currentRefinementIteration,
-          Level.INFO, String.format("Updated Exclusion Formula With Precondition: \n%s",
+      ECUtilities.logWithIteration(currentRefinementIteration,
+          Level.INFO, context, String.format("Updated Exclusion Formula With Precondition: \n%s",
               exclusionModelFormula.getFormula()));
       if (withFormatter) {
         formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
