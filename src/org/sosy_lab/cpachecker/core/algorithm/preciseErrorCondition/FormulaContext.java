@@ -87,7 +87,8 @@ public class FormulaContext {
     prover = solver.newProverEnvironment(pProverOptions);
   }
 
-  public FormulaContext createContextFromThis(String newSolverName) throws InvalidConfigurationException {
+  public FormulaContext createContextFromThis(String newSolverName)
+      throws InvalidConfigurationException {
     Solver newSolver = Solver.create(
         Configuration.builder().copyFrom(configuration)
             .setOption("solver.solver", newSolverName)

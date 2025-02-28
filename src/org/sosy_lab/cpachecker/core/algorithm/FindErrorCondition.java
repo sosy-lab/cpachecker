@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -138,8 +136,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
-          logger.log(Level.INFO,
-              String.format("Iteration %d: Found Counterexamples", currentIteration));
+          logger.log(Level.INFO, "Found Counterexamples");
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
             errorCondition = refiner.refine(cex);
@@ -163,8 +160,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       context.getLogger()
           .log(Level.INFO, "Final Error Condition:\n" + errorCondition);
       //TODO: can add a visitor to make final Error Condition more user friendly and easier to read.
-      Utility.visit(new ArrayList<>(List.of(errorCondition.getFormula())),context)
-          .get(0);
       return status;
 
     } catch (InvalidConfigurationException | SolverException ex) {

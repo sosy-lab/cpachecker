@@ -72,7 +72,7 @@ public class AllSatRefiner implements Refiner {
 
       Utility.logWithIteration(currentRefinementIteration,
           Level.FINE, context,
-          String.format("Visited Found Atoms:\n%s", Utility.visit(atoms, context)));
+          String.format("Visited Found Atoms:\n%s", formatter.visitBooleanFormulaList(atoms)));
 
 
       // Invoke allSat
@@ -89,7 +89,7 @@ public class AllSatRefiner implements Refiner {
 
       Utility.logWithIteration(currentRefinementIteration,
           Level.FINE, context,
-          String.format("Visited Found Models:\n%s", Utility.visit(models, context)));
+          String.format("Visited Found Models:\n%s", formatter.visitBooleanFormulaList(models)));
 
       // combine the found models into a disjunction (OR)
       BooleanFormula combinedModels = bmgr.makeFalse();

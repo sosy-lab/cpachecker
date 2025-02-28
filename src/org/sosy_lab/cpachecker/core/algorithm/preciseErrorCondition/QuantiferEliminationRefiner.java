@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -37,9 +36,9 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final Solver quantifierSolver;
   private final ErrorConditionFormatter formatter;
   private final Boolean withFormatter;
+  private final FormulaContext quantifierContext;
   private PathFormula exclusionFormula;
   private int currentRefinementIteration = 0;
-  private final FormulaContext quantifierContext;
 
   public QuantiferEliminationRefiner(
       FormulaContext pContext, Solvers pQuantifierSolver, Boolean pWithFormatter)
@@ -96,7 +95,7 @@ public class QuantiferEliminationRefiner implements Refiner {
     // formula translation between solvers, e.g. MATHSAT5 to Z3 or vice versa.
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
-        String.format("Translating Formula From %s To %s.", thisSolver.getSolverName(),
+        String.format("Translating Formula From %s To %s...", thisSolver.getSolverName(),
             otherSolver.getSolverName()));
 
     BooleanFormula translatedFormula = otherSolver.getFormulaManager().translateFrom(
@@ -115,9 +114,6 @@ public class QuantiferEliminationRefiner implements Refiner {
       Predicate<Entry<String, Formula>> deterministicVariablesPredicate,
       Predicate<Entry<String, Formula>> nonDetVariablesPredicate
   ) throws InterruptedException, SolverException {
-
-    context.getLogger().log(Level.INFO,
-        "******************************** Quantifier Elimination ********************************");
 
     Map<String, Formula> formulaNameToFormulaMap =
         quantifierSolver.getFormulaManager().extractVariables(translatedFormula);
@@ -152,12 +148,6 @@ public class QuantiferEliminationRefiner implements Refiner {
         Level.FINE, context,
         String.format("Quantified Formula:\n%s", quantifiedFormula));
 
-    Utility.logWithIteration(currentRefinementIteration,
-        Level.FINE, context,
-        String.format("Visited Quantified Formula:\n%s",
-            Utility.visit(new ArrayList<>(List.of(quantifiedFormula)), quantifierContext)
-                .get(0)));
-
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context, "Eliminating Quantifiers...");
@@ -171,12 +161,6 @@ public class QuantiferEliminationRefiner implements Refiner {
         Level.FINE, context,
         String.format("Quantifier Elimination Result: \n%s", eliminationResult));
 
-    Utility.logWithIteration(currentRefinementIteration,
-        Level.FINE, context,
-        String.format("Visited Elimination Result:\n%s",
-            Utility.visit(new ArrayList<>(List.of(eliminationResult)), quantifierContext)
-                .get(0)));
-
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context, "Handling Modulo Operator...");
@@ -186,12 +170,6 @@ public class QuantiferEliminationRefiner implements Refiner {
     Utility.logWithIteration(currentRefinementIteration,
         Level.FINE, context,
         String.format("Modified Result After Modulo Fix: \n%s", fixedEliminationResult));
-
-    Utility.logWithIteration(currentRefinementIteration,
-        Level.FINE, context,
-        String.format("Visited Result After Modulo Fix:\n%s",
-            Utility.visit(new ArrayList<>(List.of(fixedEliminationResult)), quantifierContext)
-                .get(0)));
 
     return fixedEliminationResult;
   }
@@ -242,15 +220,13 @@ public class QuantiferEliminationRefiner implements Refiner {
         .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
     Utility.logWithIteration(currentRefinementIteration,
-        Level.FINE, context,
-        String.format("Updated Exclusion Formula: \n%s", exclusionFormula.getFormula()));
+        Level.INFO, context,
+        String.format("Exclusion Formula In This Iteration: \n%s", exclusionFormula.getFormula()));
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.FINE, context,
         String.format("Visited Updated Exclusion Formula: \n%s",
-            Utility.visit(new ArrayList<>(List.of(exclusionFormula.getFormula())),
-                    context)
-                .get(0)));
+            formatter.visitBooleanFormula(exclusionFormula.getFormula())));
   }
 
 }

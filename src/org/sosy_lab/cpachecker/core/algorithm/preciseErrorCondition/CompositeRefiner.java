@@ -50,7 +50,7 @@ public class CompositeRefiner implements Refiner {
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
     context.getLogger().log(Level.INFO,
-        "******************************** Refinement ********************************");
+        "******************************** Refinement ********************************\n");
     // single
     if (refiners.size() == 1) {
       return singleRefinement(pCounterexample);
@@ -152,10 +152,12 @@ public class CompositeRefiner implements Refiner {
       throws SolverException, CPATransferException, InterruptedException,
              InvalidConfigurationException {
     context.getLogger()
-        .log(Level.INFO, "Starting Refinement With " + refiner.getClass().getSimpleName());
+        .log(Level.INFO, String.format("*** Starting Refinement With %s... ***",
+            refiner.getClass().getSimpleName()));
     PathFormula result = refiner.refine(cex);
     context.getLogger()
-        .log(Level.INFO, refiner.getClass().getSimpleName() + " Completed Successfully.");
+        .log(Level.INFO, String.format("*** %s Completed Successfully. ***",
+            refiner.getClass().getSimpleName()));
     return result;
   }
 

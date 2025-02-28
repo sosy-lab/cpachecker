@@ -12,8 +12,6 @@ import com.google.common.collect.FluentIterable;
 import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -28,8 +26,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public final class Utility {
 
@@ -107,20 +103,6 @@ public final class Utility {
     return new ARGState(new CompositeState(initialAbstractStates.build()), null);
   }
 
-  public static List<String> visit(
-      List<BooleanFormula> pAtoms,
-      FormulaContext pContext) {
-    FormulaToCVisitor visitor = new FormulaToCVisitor(pContext.getSolver().getFormulaManager(), id -> id);
-    ArrayList<String> atomsAsStrings = new ArrayList<>(pAtoms.size());
-    for (BooleanFormula atom : pAtoms) {
-      PathFormula newPath = pContext.getManager().makeEmptyPathFormula();
-      pContext.getSolver().getFormulaManager().visit(newPath.withFormula(atom).getFormula(), visitor);
-      String visitedFormula = visitor.getString();
-      atomsAsStrings.add(visitedFormula);
-    }
-    return atomsAsStrings;
-  }
-
   public static void logWithIteration(
       int pCurrentRefinementIteration,
       Level pLoggingLevel,
@@ -131,6 +113,4 @@ public final class Utility {
             pCurrentRefinementIteration,
             pMessage));
   }
-
-
 }

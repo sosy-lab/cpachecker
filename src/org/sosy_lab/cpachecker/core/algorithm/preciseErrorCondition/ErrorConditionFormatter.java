@@ -73,10 +73,10 @@ public class ErrorConditionFormatter {
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
-        String.format("Error Condition In This Iteration: %s\n", visitedFormula));
+        String.format("Formatted Exclusion Formula: %s\n", visitedFormula));
     Utility.logWithIteration(currentRefinementIteration,
-        Level.FINE, context,
-        String.format("Error Condition Represented As C Expression : \n%s", cExpr));
+        Level.INFO, context,
+        String.format("Formatted Exclusion Formula Represented As C Expression : \n%s", cExpr));
 
   }
 
@@ -87,6 +87,30 @@ public class ErrorConditionFormatter {
       throws InterruptedException {
     mapNonDetToOriginalNames(cexFormula, currentRefinementIteration);
     formatErrorCondition(exclusionFormula, currentRefinementIteration);
+  }
+
+  public List<String> visitBooleanFormulaList(
+      List<BooleanFormula> pAtoms) {
+    FormulaToCVisitor visitor =
+        new FormulaToCVisitor(context.getSolver().getFormulaManager(), id -> id);
+    ArrayList<String> atomsAsStrings = new ArrayList<>(pAtoms.size());
+    for (BooleanFormula atom : pAtoms) {
+      PathFormula newPath = context.getManager().makeEmptyPathFormula();
+      context.getSolver().getFormulaManager()
+          .visit(newPath.withFormula(atom).getFormula(), visitor);
+      String visitedFormula = visitor.getString();
+      atomsAsStrings.add(visitedFormula);
+    }
+    return atomsAsStrings;
+  }
+
+  public String visitBooleanFormula(BooleanFormula bFormula) {
+    FormulaToCVisitor visitor =
+        new FormulaToCVisitor(context.getSolver().getFormulaManager(), id -> id);
+    PathFormula newPath = context.getManager().makeEmptyPathFormula();
+    context.getSolver().getFormulaManager()
+        .visit(newPath.withFormula(bFormula).getFormula(), visitor);
+    return visitor.getString();
   }
 
   public SSAMapBuilder getSsaBuilder() {
