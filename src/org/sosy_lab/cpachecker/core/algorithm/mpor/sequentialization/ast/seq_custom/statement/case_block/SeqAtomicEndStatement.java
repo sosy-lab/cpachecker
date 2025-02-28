@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -21,7 +22,9 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   protected SeqAtomicEndStatement(
       CExpressionAssignmentStatement pAtomicLockedFalse,
@@ -30,29 +33,56 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqAtomicEndStatement(
+      CExpressionAssignmentStatement pAtomicLockedFalse,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPcExpression) {
+
+    atomicLockedFalse = pAtomicLockedFalse;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPcExpression);
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
     return atomicLockedFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
   }
 
-  @NonNull
   @Override
-  public SeqAtomicEndStatement cloneWithTargetPc(int pTargetPc) {
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
+  }
+
+  @Override
+  public @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqAtomicEndStatement(atomicLockedFalse, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public @NonNull SeqCaseBlockStatement cloneWithTargetPc(CIdExpression pTargetPc) {
     return new SeqAtomicEndStatement(atomicLockedFalse, pcLeftHandSide, pTargetPc);
   }
 
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

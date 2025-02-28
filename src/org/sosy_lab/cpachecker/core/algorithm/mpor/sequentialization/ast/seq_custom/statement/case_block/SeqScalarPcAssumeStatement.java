@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
 /**
@@ -36,9 +37,23 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
         this.getClass().getSimpleName() + " do not have a target pc");
   }
 
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have a target pc");
+  }
+
   @NonNull
   @Override
   public SeqScalarPcAssumeStatement cloneWithTargetPc(int pTargetPc) {
+    // we do not clone this as it is not used for pruning, but just for the loop head assumption
+    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+  }
+
+  @NonNull
+  @Override
+  public SeqScalarPcAssumeStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    // we do not clone this as it is not used for pruning, but just for the loop head assumption
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
   }
 
@@ -46,5 +61,10 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   public boolean alwaysWritesPc() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " are not part of POR");
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

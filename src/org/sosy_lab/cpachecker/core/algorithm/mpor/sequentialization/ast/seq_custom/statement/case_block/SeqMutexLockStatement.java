@@ -39,7 +39,9 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   protected SeqMutexLockStatement(
       CIdExpression pMutexLocked,
@@ -50,7 +52,21 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     mutexLocked = pMutexLocked;
     threadLocksMutex = pThreadLocksMutex;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqMutexLockStatement(
+      CIdExpression pMutexLocked,
+      CIdExpression pThreadLocksMutex,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPc) {
+
+    mutexLocked = pMutexLocked;
+    threadLocksMutex = pThreadLocksMutex;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPc);
   }
 
   @Override
@@ -68,7 +84,8 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
             FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
 
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
 
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
@@ -89,7 +106,12 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
@@ -98,8 +120,19 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pcLeftHandSide, pTargetPc);
   }
 
+  @NonNull
+  @Override
+  public SeqMutexLockStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pcLeftHandSide, pTargetPc);
+  }
+
   @Override
   public boolean alwaysWritesPc() {
+    return false;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
     return false;
   }
 }

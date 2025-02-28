@@ -50,14 +50,12 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
 
-  protected SeqConstCpaCheckerTmpStatement(
-      CDeclarationEdge pDeclaration,
-      SubstituteEdge pStatementA,
-      SubstituteEdge pStatementB,
-      CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
+  private final Optional<CIdExpression> targetPcExpression;
+
+  private void checkArguments(
+      CDeclarationEdge pDeclaration, SubstituteEdge pStatementA, SubstituteEdge pStatementB) {
 
     checkArgument(
         pDeclaration.getDeclaration() instanceof CVariableDeclaration,
@@ -72,28 +70,54 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         pStatementB.cfaEdge instanceof CStatementEdge,
         "pStatementB.cfaEdge must be CStatementEdge");
 
-    statementA = pStatementA;
-    statementB = pStatementB;
-
     CSimpleDeclaration declarationA = pDeclaration.getDeclaration();
     CExpressionStatement statement =
-        (CExpressionStatement) ((CStatementEdge) this.statementB.cfaEdge).getStatement();
+        (CExpressionStatement) ((CStatementEdge) pStatementB.cfaEdge).getStatement();
     CIdExpression idExpressionB = (CIdExpression) statement.getExpression();
     CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
 
     checkArgument(
         declarationA.equals(declarationB),
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
+  }
 
+  protected SeqConstCpaCheckerTmpStatement(
+      CDeclarationEdge pDeclaration,
+      SubstituteEdge pStatementA,
+      SubstituteEdge pStatementB,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
+
+    checkArguments(pDeclaration, pStatementA, pStatementB);
+    statementA = pStatementA;
+    statementB = pStatementB;
     declaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqConstCpaCheckerTmpStatement(
+      CDeclarationEdge pDeclaration,
+      SubstituteEdge pStatementA,
+      SubstituteEdge pStatementB,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPcExpression) {
+
+    checkArguments(pDeclaration, pStatementA, pStatementB);
+    statementA = pStatementA;
+    statementB = pStatementB;
+    declaration = pDeclaration;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPcExpression);
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
     return declaration.getCode()
         + SeqSyntax.SPACE
         + statementA.cfaEdge.getCode()
@@ -105,12 +129,26 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
+
+    return new SeqConstCpaCheckerTmpStatement(
+        declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
+  }
+
+  @NonNull
+  @Override
+  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+
     return new SeqConstCpaCheckerTmpStatement(
         declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
   }
@@ -118,5 +156,10 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

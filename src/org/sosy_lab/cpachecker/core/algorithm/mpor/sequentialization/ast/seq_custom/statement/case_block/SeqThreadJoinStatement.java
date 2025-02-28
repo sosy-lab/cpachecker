@@ -43,7 +43,9 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final int threadId;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   private final PcVariables pcVariables;
 
@@ -63,7 +65,29 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     joinedThreadId = pJoinedThreadId;
     threadJoins = pThreadJoins;
     threadId = pThreadId;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+    pcVariables = pPcVariables;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    pcUnequalExitPc =
+        SeqBinaryExpression.buildPcUnequalExitPc(
+            pcVariables, joinedThreadId, binaryExpressionBuilder);
+  }
+
+  protected SeqThreadJoinStatement(
+      int pJoinedThreadId,
+      CIdExpression pThreadJoins,
+      int pThreadId,
+      CIdExpression pTargetPc,
+      PcVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    joinedThreadId = pJoinedThreadId;
+    threadJoins = pThreadJoins;
+    threadId = pThreadId;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPc);
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
@@ -82,7 +106,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_0);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcVariables.get(threadId), targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcVariables.get(threadId), targetPc, targetPcExpression);
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
             joinsFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString());
@@ -97,18 +122,38 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
   @Override
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
+
+    return new SeqThreadJoinStatement(
+        joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
+  }
+
+  @NonNull
+  @Override
+  public SeqThreadJoinStatement cloneWithTargetPc(CIdExpression pTargetPc)
+      throws UnrecognizedCodeException {
+
     return new SeqThreadJoinStatement(
         joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
   }
 
   @Override
   public boolean alwaysWritesPc() {
+    return false;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
     return false;
   }
 }

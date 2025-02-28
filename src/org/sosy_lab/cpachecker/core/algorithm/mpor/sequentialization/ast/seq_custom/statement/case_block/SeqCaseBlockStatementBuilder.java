@@ -221,7 +221,7 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqReturnPcWriteStatement(write.returnPcVar, write.value);
   }
 
-  private static SeqCaseBlockStatement handleFunctionSummaryEdge(
+  private static SeqReturnPcWriteStatement handleFunctionSummaryEdge(
       CFunctionSummaryEdge pFunctionSummaryEdge,
       ThreadEdge pThreadEdge,
       GhostVariables pGhostVariables) {

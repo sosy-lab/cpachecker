@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
@@ -29,7 +30,9 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   protected SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
@@ -38,7 +41,19 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqParameterAssignmentStatements(
+      ImmutableList<FunctionParameterAssignment> pAssignments,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPc) {
+
+    assignments = pAssignments;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPc);
   }
 
   @Override
@@ -48,14 +63,20 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
       rString.append(assignment.statement.toASTString()).append(SeqSyntax.SPACE);
     }
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
     rString.append(pcWrite.toASTString());
     return rString.toString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
@@ -64,8 +85,19 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
   }
 
+  @NonNull
+  @Override
+  public SeqParameterAssignmentStatements cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
+  }
+
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

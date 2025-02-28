@@ -31,7 +31,9 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   protected SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
@@ -42,7 +44,21 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqAtomicBeginStatement(
+      CIdExpression pAtomicLocked,
+      CIdExpression pThreadBeginsAtomic,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPcExpression) {
+
+    atomicLocked = pAtomicLocked;
+    threadBeginsAtomic = pThreadBeginsAtomic;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPcExpression);
   }
 
   @Override
@@ -60,7 +76,8 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
 
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
 
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
@@ -81,7 +98,12 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
@@ -90,8 +112,19 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
   }
 
+  @NonNull
+  @Override
+  public SeqAtomicBeginStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
+  }
+
   @Override
   public boolean alwaysWritesPc() {
+    return false;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
     return false;
   }
 }

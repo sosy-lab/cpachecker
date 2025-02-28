@@ -43,7 +43,9 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   protected SeqReturnValueAssignmentStatements(
       CIdExpression pReturnPc,
@@ -54,7 +56,21 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
     assignments = pAssigns;
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  protected SeqReturnValueAssignmentStatements(
+      CIdExpression pReturnPc,
+      ImmutableSet<FunctionReturnValueAssignment> pAssigns,
+      CLeftHandSide pPcLeftHandSide,
+      CIdExpression pTargetPc) {
+
+    assignments = pAssigns;
+    returnPc = pReturnPc;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPc);
   }
 
   @Override
@@ -74,7 +90,8 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
     // TODO remove hardcoded int values?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
@@ -98,7 +115,12 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
@@ -107,9 +129,20 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
     return new SeqReturnValueAssignmentStatements(returnPc, assignments, pcLeftHandSide, pTargetPc);
   }
 
+  @NonNull
+  @Override
+  public SeqReturnValueAssignmentStatements cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqReturnValueAssignmentStatements(returnPc, assignments, pcLeftHandSide, pTargetPc);
+  }
+
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 
   private static class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
@@ -130,6 +163,11 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
       return Optional.empty();
     }
 
+    @Override
+    public Optional<CIdExpression> getTargetPcExpression() {
+      return Optional.empty();
+    }
+
     @NonNull
     @Override
     public SeqReturnValueAssignmentStatement cloneWithTargetPc(int pTargetPc) {
@@ -137,9 +175,21 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
           this.getClass().getSimpleName() + " do not have targetPcs");
     }
 
+    @NonNull
+    @Override
+    public SeqReturnValueAssignmentStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " do not have targetPcs");
+    }
+
     @Override
     public boolean alwaysWritesPc() {
       return true;
+    }
+
+    @Override
+    public boolean onlyWritesPc() {
+      return false;
     }
   }
 }

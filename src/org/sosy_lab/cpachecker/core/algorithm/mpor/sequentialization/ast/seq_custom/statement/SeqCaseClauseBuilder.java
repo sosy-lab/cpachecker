@@ -214,7 +214,7 @@ public class SeqCaseClauseBuilder {
       // this approach (just taking the first case) is sound because the path up to the first
       //  non-blank case is deterministic (i.e. only 1 leaving edge)
       for (SeqCaseClause caseClause : entry.getValue()) {
-        assert !caseClause.isPrunable()
+        assert !caseClause.onlyWritesPc()
             : "case clause is still prunable. did you use the pruned case clauses?";
         if (firstCase) {
           updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC)));

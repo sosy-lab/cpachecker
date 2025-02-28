@@ -48,14 +48,33 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
     return Optional.of(returnPc);
   }
 
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return Optional.empty();
+  }
+
   @NonNull
   @Override
   public SeqReturnPcWriteStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqReturnPcWriteStatement(returnPcVar, pTargetPc);
   }
 
+  @NonNull
+  @Override
+  public SeqReturnPcWriteStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    // if RETURN_PC = RETURN_PC is possible on assignment, then the function is completely prunable
+    //  -> throw exception, this should never occur
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " cannot be cloned with CIdExpression targetPc");
+  }
+
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

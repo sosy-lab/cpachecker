@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
 /**
@@ -31,6 +32,11 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
     return Optional.empty();
   }
 
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return Optional.empty();
+  }
+
   @NonNull
   @Override
   public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
@@ -38,8 +44,20 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
         this.getClass().getSimpleName() + " do not have targetPcs");
   }
 
+  @NonNull
+  @Override
+  public SeqReachErrorStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have targetPcs");
+  }
+
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }

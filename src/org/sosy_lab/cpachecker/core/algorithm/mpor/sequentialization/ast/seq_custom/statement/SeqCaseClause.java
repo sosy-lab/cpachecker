@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -71,9 +70,9 @@ public class SeqCaseClause implements SeqStatement {
    * Returns true if all statements in the {@link SeqCaseBlock} are blank, i.e. they only update a
    * pc.
    */
-  public boolean isPrunable() {
+  public boolean onlyWritesPc() {
     for (SeqCaseBlockStatement statement : block.statements) {
-      if (!(statement instanceof SeqBlankStatement)) {
+      if (!statement.onlyWritesPc()) {
         return false;
       }
     }

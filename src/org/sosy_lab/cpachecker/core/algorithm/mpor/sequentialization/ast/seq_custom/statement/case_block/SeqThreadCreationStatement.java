@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
@@ -27,7 +28,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final int threadId;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CIdExpression> targetPcExpression;
 
   private final PcVariables pcVariables;
 
@@ -36,7 +39,18 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+    pcVariables = pPcVariables;
+  }
+
+  protected SeqThreadCreationStatement(
+      int pCreatedThreadId, int pThreadId, CIdExpression pTargetPc, PcVariables pPcVariables) {
+
+    createdThreadId = pCreatedThreadId;
+    threadId = pThreadId;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPc);
     pcVariables = pPcVariables;
   }
 
@@ -46,13 +60,19 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         SeqExpressionAssignmentStatement.buildPcWrite(
             pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcVariables.get(threadId), targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcVariables.get(threadId), targetPc, targetPcExpression);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
+  }
+
+  @Override
+  public Optional<CIdExpression> getTargetPcExpression() {
+    return targetPcExpression;
   }
 
   @NonNull
@@ -61,8 +81,19 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
   }
 
+  @NonNull
+  @Override
+  public SeqThreadCreationStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
+  }
+
   @Override
   public boolean alwaysWritesPc() {
     return true;
+  }
+
+  @Override
+  public boolean onlyWritesPc() {
+    return false;
   }
 }
