@@ -138,7 +138,8 @@ public class SeqDeclarationBuilder {
     ImmutableList.Builder<LineOfCode> rThreadSimulationVariableDeclarations =
         ImmutableList.builder();
     if (pOptions.comments) {
-      rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
+      rThreadSimulationVariableDeclarations.add(
+          LineOfCode.of(0, SeqComment.THREAD_SIMULATION_VARIABLES));
     }
     for (CIdExpression threadVariable : pThreadSimulationVariables.getIdExpressions()) {
       assert threadVariable.getDeclaration() instanceof CVariableDeclaration;

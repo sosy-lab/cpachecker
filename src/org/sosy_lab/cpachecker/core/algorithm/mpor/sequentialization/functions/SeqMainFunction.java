@@ -180,17 +180,23 @@ public class SeqMainFunction extends SeqFunction {
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     if (options.comments) {
+      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_NONDET));
     }
     rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
+    if (options.comments) {
+      rBody.add(LineOfCode.empty());
+    }
     rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString() + SeqSyntax.SEMICOLON));
     // assumptions over next_thread being active (pc != -1)
     if (options.comments) {
+      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
     }
     rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, pcNextThreadAssumption.toASTString()));
     // add all assumptions over thread variables
     if (options.comments) {
+      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_ASSUMPTIONS));
     }
     rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
@@ -199,6 +205,7 @@ public class SeqMainFunction extends SeqFunction {
     }
     // add all switch statements
     if (options.comments) {
+      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_SWITCHES));
     }
     rBody.addAll(buildSwitchStatements(caseClauses));
@@ -229,15 +236,16 @@ public class SeqMainFunction extends SeqFunction {
   private ImmutableList<LineOfCode> buildVariableDeclarations(
       CSimpleDeclaration pNumThreads, ImmutableList<CVariableDeclaration> pPcDeclarations) {
 
-    ImmutableList.Builder<LineOfCode> rVarDeclarations = ImmutableList.builder();
-    rVarDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
+    ImmutableList.Builder<LineOfCode> rVariableDeclarations = ImmutableList.builder();
+    rVariableDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
     if (options.comments) {
-      rVarDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
+      rVariableDeclarations.add(LineOfCode.empty());
+      rVariableDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
     }
     for (CVariableDeclaration varDeclaration : pPcDeclarations) {
-      rVarDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
+      rVariableDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
     }
-    return rVarDeclarations.build();
+    return rVariableDeclarations.build();
   }
 
   private CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -44,6 +45,9 @@ public class SeqFunctionBuilder {
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rFunctionDefinitions = ImmutableList.builder();
+    if (pOptions.comments) {
+      rFunctionDefinitions.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
+    }
     // custom function definitions: reach_error(), assume(), main()
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
     rFunctionDefinitions.addAll(reachError.buildDefinition());

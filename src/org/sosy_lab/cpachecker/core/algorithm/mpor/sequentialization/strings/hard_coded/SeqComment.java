@@ -14,7 +14,7 @@ public class SeqComment {
   private static final String COMMENT_SINGLE = "//";
 
   public static final String UNCHANGED_DECLARATIONS =
-      COMMENT_SINGLE + " unchanged input program declarations";
+      COMMENT_SINGLE + " input program declarations, optionally with function declarations";
 
   public static final String GLOBAL_VAR_DECLARATIONS =
       COMMENT_SINGLE + " global variable substitutes";
@@ -28,11 +28,14 @@ public class SeqComment {
   public static final String RETURN_PCS =
       COMMENT_SINGLE + " thread local function return pc storing calling contexts";
 
-  public static final String THREAD_SIMULATION =
+  public static final String THREAD_SIMULATION_VARIABLES =
       COMMENT_SINGLE + " thread and pthread method simulation variables";
 
   public static final String CUSTOM_FUNCTION_DECLARATIONS =
       COMMENT_SINGLE + " custom function declarations";
+
+  public static final String CUSTOM_FUNCTION_DEFINITIONS =
+      COMMENT_SINGLE + " custom function definitions";
 
   public static final String PC_DECLARATION =
       COMMENT_SINGLE + " track current program locations (pc) for all thread simulations";
@@ -44,9 +47,9 @@ public class SeqComment {
       COMMENT_SINGLE + " ensure next_thread is yet / still active";
 
   public static final String THREAD_SIMULATION_ASSUMPTIONS =
-      COMMENT_SINGLE
-          + " enforce strict orders over execution of program statements such as pthread methods";
+      COMMENT_SINGLE + " enforce strict orders over execution of program statements such as locks";
 
   public static final String THREAD_SIMULATION_SWITCHES =
-      COMMENT_SINGLE + " represent reachable statements of thread simulations in switch cases";
+      COMMENT_SINGLE
+          + " represent reachable statements of thread simulations in separate switch cases";
 }
