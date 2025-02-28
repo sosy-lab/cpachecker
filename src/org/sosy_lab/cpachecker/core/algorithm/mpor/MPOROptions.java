@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
  */
 public class MPOROptions {
 
+  public final boolean comments;
+
   public final boolean inputFunctionDeclarations;
 
   public final boolean outputMetadata;
@@ -38,6 +40,7 @@ public class MPOROptions {
   public final boolean signedNextThread;
 
   public MPOROptions(
+      boolean pComments,
       boolean pInputFunctionDeclarations,
       boolean pOutputMetadata,
       String pOutputPath,
@@ -53,6 +56,7 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
+    comments = pComments;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
@@ -64,12 +68,14 @@ public class MPOROptions {
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
+      boolean pComments,
       boolean pInputFunctionDeclarations,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
       boolean pSignedNextThread) {
 
     return new MPOROptions(
+        pComments,
         pInputFunctionDeclarations,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,

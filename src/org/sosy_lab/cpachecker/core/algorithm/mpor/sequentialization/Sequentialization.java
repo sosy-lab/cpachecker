@@ -61,8 +61,7 @@ public class Sequentialization {
                   + " Dirk Beyer <https://www.sosy-lab.org>"),
           LineOfCode.of(0, "//"),
           // splitting this with + so that 'reuse lint' accepts it
-          LineOfCode.of(0, "// SPDX-" + "License-" + "Identifier: " + license),
-          LineOfCode.empty());
+          LineOfCode.of(0, "// SPDX-" + "License-" + "Identifier: " + license));
 
   private static final ImmutableList<LineOfCode> mporHeader =
       ImmutableList.of(
@@ -97,6 +96,8 @@ public class Sequentialization {
   public static final int INIT_PC = 0;
 
   public static final int EXIT_PC = -1;
+
+  private static final int FIRST_LINE = 1;
 
   private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
 
@@ -159,17 +160,19 @@ public class Sequentialization {
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
     rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(options, threads));
-    rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(mainThreadSubstitution));
-    rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(substitutions.values()));
-    rProgram.addAll(SeqDeclarationBuilder.buildParameterDeclarations(substitutions.values()));
+    rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(options, mainThreadSubstitution));
+    rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(options, substitutions.values()));
+    rProgram.addAll(
+        SeqDeclarationBuilder.buildParameterDeclarations(options, substitutions.values()));
 
     // add variable declarations for ghost variables: return_pc, thread simulation variables
-    rProgram.addAll(SeqDeclarationBuilder.buildReturnPcDeclarations(returnPcVariables));
+    rProgram.addAll(SeqDeclarationBuilder.buildReturnPcDeclarations(options, returnPcVariables));
     rProgram.addAll(
-        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(threadSimulationVariables));
+        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(
+            options, threadSimulationVariables));
 
     // add custom function declarations and definitions
-    rProgram.addAll(SeqDeclarationBuilder.buildFunctionDeclarations());
+    rProgram.addAll(SeqDeclarationBuilder.buildFunctionDeclarations(options));
     rProgram.addAll(
         SeqFunctionBuilder.buildFunctionDefinitions(
             options,
@@ -191,10 +194,14 @@ public class Sequentialization {
    */
   private ImmutableList<LineOfCode> finalProgram(ImmutableList<LineOfCode> pInitProgram) {
     // consider license and seq comment header for line numbers
-    int currentLine = licenseHeader.size() + mporHeader.size() + 1;
+    int currentLine =
+        options.comments ? licenseHeader.size() + mporHeader.size() + FIRST_LINE : FIRST_LINE;
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
+    // TODO create additional license option
     rProgram.addAll(licenseHeader);
-    rProgram.addAll(mporHeader);
+    if (options.comments) {
+      rProgram.addAll(mporHeader);
+    }
     for (LineOfCode lineOfCode : pInitProgram) {
       // replace dummy line numbers (-1) with actual line numbers in the seq
       rProgram.add(replaceReachErrorDummies(lineOfCode, currentLine));

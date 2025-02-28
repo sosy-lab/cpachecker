@@ -32,8 +32,10 @@ public class SeqDeclarationBuilder {
       MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
 
     ImmutableList.Builder<LineOfCode> rOriginalDeclarations = ImmutableList.builder();
+    if (pOptions.comments) {
+      rOriginalDeclarations.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
+    }
     // add all original program declarations that are not substituted
-    rOriginalDeclarations.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
     for (MPORThread thread : pThreads) {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           ThreadUtil.extractNonVariableDeclarations(thread);
@@ -44,27 +46,35 @@ public class SeqDeclarationBuilder {
         }
       }
     }
-    rOriginalDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rOriginalDeclarations.add(LineOfCode.empty());
+    }
     return rOriginalDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildGlobalDeclarations(
-      CSimpleDeclarationSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, CSimpleDeclarationSubstitution pMainThreadSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalDeclarations = ImmutableList.builder();
-    rGlobalDeclarations.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
+    if (pOptions.comments) {
+      rGlobalDeclarations.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
+    }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalDeclarations();
     rGlobalDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(globalDeclarations));
-    rGlobalDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rGlobalDeclarations.add(LineOfCode.empty());
+    }
     return rGlobalDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildLocalDeclarations(
-      ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rLocalDeclarations = ImmutableList.builder();
-    rLocalDeclarations.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
+    if (pOptions.comments) {
+      rLocalDeclarations.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
+    }
     for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
@@ -78,57 +88,74 @@ public class SeqDeclarationBuilder {
         }
       }
     }
-    rLocalDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rLocalDeclarations.add(LineOfCode.empty());
+    }
     return rLocalDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildParameterDeclarations(
-      ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rParameterDeclarations = ImmutableList.builder();
-    rParameterDeclarations.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
+    if (pOptions.comments) {
+      rParameterDeclarations.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
+    }
     for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarations();
       rParameterDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(parameterDeclarations));
     }
-    rParameterDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rParameterDeclarations.add(LineOfCode.empty());
+    }
     return rParameterDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildReturnPcDeclarations(
+      MPOROptions pOptions,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
           pReturnPcVariables) {
 
     ImmutableList.Builder<LineOfCode> rReturnPcDeclarations = ImmutableList.builder();
-    rReturnPcDeclarations.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
+    if (pOptions.comments) {
+      rReturnPcDeclarations.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
+    }
     for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : pReturnPcVariables.values()) {
       for (CIdExpression returnPc : map.values()) {
         rReturnPcDeclarations.add(LineOfCode.of(0, returnPc.getDeclaration().toASTString()));
       }
     }
-    rReturnPcDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rReturnPcDeclarations.add(LineOfCode.empty());
+    }
     return rReturnPcDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
-      ThreadSimulationVariables pThreadSimulationVariables) {
+      MPOROptions pOptions, ThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableList.Builder<LineOfCode> rThreadSimulationVariableDeclarations =
         ImmutableList.builder();
-    rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
+    if (pOptions.comments) {
+      rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, SeqComment.THREAD_SIMULATION));
+    }
     for (CIdExpression threadVariable : pThreadSimulationVariables.getIdExpressions()) {
       assert threadVariable.getDeclaration() instanceof CVariableDeclaration;
       CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVariable.getDeclaration();
       rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
     }
-    rThreadSimulationVariableDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rThreadSimulationVariableDeclarations.add(LineOfCode.empty());
+    }
     return rThreadSimulationVariableDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildFunctionDeclarations() {
+  public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
     ImmutableList.Builder<LineOfCode> rFunctionDeclarations = ImmutableList.builder();
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
+    if (pOptions.comments) {
+      rFunctionDeclarations.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
+    }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
     rFunctionDeclarations.add(
@@ -138,7 +165,9 @@ public class SeqDeclarationBuilder {
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSUME.toASTString()));
     // main should always be duplicate
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.MAIN.toASTString()));
-    rFunctionDeclarations.add(LineOfCode.empty());
+    if (pOptions.comments) {
+      rFunctionDeclarations.add(LineOfCode.empty());
+    }
     return rFunctionDeclarations.build();
   }
 }

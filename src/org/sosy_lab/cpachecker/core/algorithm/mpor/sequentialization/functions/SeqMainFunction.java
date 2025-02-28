@@ -173,21 +173,17 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
     }
     rBody.add(LineOfCode.of(1, nextThreadDeclaration.toASTString()));
-    rBody.add(LineOfCode.empty());
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
     rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString() + SeqSyntax.SEMICOLON));
     // assumptions over next_thread being active (pc != -1)
     rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, pcNextThreadAssumption.toASTString()));
-    rBody.add(LineOfCode.empty());
     // add all assumptions over thread variables
     rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
     if (assignPrevThread.isPresent()) {
-      rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
     }
-    rBody.add(LineOfCode.empty());
     // add all switch statements
     rBody.addAll(buildSwitchStatements(caseClauses));
     rBody.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
@@ -297,11 +293,6 @@ public class SeqMainFunction extends SeqFunction {
       CExpression pcExpr = pcVariables.get(thread.id);
       SeqSwitchStatement switchStatement = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
       rSwitches.addAll(LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString()));
-
-      // append additional newlines between switch cases
-      if (i != caseClauses.size() - 1) {
-        rSwitches.add(LineOfCode.empty());
-      }
       i++;
     }
     return rSwitches.build();

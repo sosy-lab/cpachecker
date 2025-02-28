@@ -47,10 +47,8 @@ public class SeqFunctionBuilder {
     // custom function definitions: reach_error(), assume(), main()
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
     rFunctionDefinitions.addAll(reachError.buildDefinition());
-    rFunctionDefinitions.add(LineOfCode.empty());
     SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
     rFunctionDefinitions.addAll(assume.buildDefinition());
-    rFunctionDefinitions.add(LineOfCode.empty());
     SeqMainFunction mainFunction =
         buildMainFunction(
             pOptions,

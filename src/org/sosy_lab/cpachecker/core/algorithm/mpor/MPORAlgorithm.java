@@ -55,8 +55,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "include original function declarations from input file? if true, the output file size is"
-              + " bigger")
+          "include comments with trivia and additional newlines in the sequentialization? true ->"
+              + " bigger file size")
+  private boolean comments = false;
+
+  @Option(
+      secure = true,
+      description =
+          "include original function declarations from input file? true -> bigger file size")
   private boolean inputFunctionDeclarations = false;
 
   @Option(
@@ -87,7 +93,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description =
           "use separate int values (scalars) for tracking thread pcs instead of"
-              + " int arrays? may slow down or improve verification depending on the verifier")
+              + " int arrays? may slow down or improve verification depending on the verifier and"
+              + " input program")
   private boolean scalarPc = false;
 
   @Option(
@@ -95,7 +102,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint() when"
               + " assigning next_thread at the loop head. may slow down or improve verification"
-              + " depending on the verifier")
+              + " depending on the verifier and input program")
   private boolean signedNextThread = false;
 
   private final MPOROptions options;
@@ -167,6 +174,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     options =
         new MPOROptions(
+            comments,
             inputFunctionDeclarations,
             outputMetadata,
             outputPath,
