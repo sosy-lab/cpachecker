@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
@@ -166,7 +167,8 @@ public class SeqCaseClauseBuilder {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
-    if (pThreadNode.leavingEdges().isEmpty()) {
+    List<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
+    if (leavingEdges.isEmpty()) {
       // no edges -> exit node of thread reached -> no case because no edges with code
       assert pThreadNode.pc == Sequentialization.EXIT_PC;
       return Optional.empty();
@@ -181,6 +183,9 @@ public class SeqCaseClauseBuilder {
               pcLeftHandSide, read.returnPcVar));
 
     } else {
+      boolean isAssume = leavingEdges.get(0).cfaEdge instanceof CAssumeEdge;
+      assert !isAssume || leavingEdges.size() == 2
+          : "if there is an assume edge, the node must have exactly two assume edges";
       statements.addAll(
           SeqCaseBlockStatementBuilder.buildStatementsFromThreadNode(
               pThread,
@@ -194,7 +199,7 @@ public class SeqCaseClauseBuilder {
     }
     return Optional.of(
         new SeqCaseClause(
-            anyGlobalAccess(pThreadNode.leavingEdges()),
+            anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
             labelPc,
             new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));

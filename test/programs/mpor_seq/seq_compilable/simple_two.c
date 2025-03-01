@@ -25,6 +25,10 @@ int main() {
     pthread_join(id2, (void *) 0);
     if (x < 2) {
       __assert_fail("0", "simple_two.c", 24, __extension__ __PRETTY_FUNCTION__);
+    } else if (x == 2) {
+        x++;
+    } else {
+        x--;
     }
     return 0;
 }

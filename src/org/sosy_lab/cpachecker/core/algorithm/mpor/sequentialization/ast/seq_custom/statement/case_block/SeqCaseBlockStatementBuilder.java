@@ -76,8 +76,9 @@ public class SeqCaseBlockStatementBuilder {
 
     ImmutableList.Builder<SeqCaseBlockStatement> rStatements = ImmutableList.builder();
 
-    boolean firstEdge = true;
-    for (ThreadEdge threadEdge : pThreadNode.leavingEdges()) {
+    int leavingEdgesSize = pThreadNode.leavingEdges().size();
+    for (int i = 0; i < leavingEdgesSize; i++) {
+      ThreadEdge threadEdge = pThreadNode.leavingEdges().get(i);
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
         // handle const CPAchecker_TMP first because it requires successor nodes and edges
         rStatements.add(
@@ -90,14 +91,14 @@ public class SeqCaseBlockStatementBuilder {
             SeqCaseBlockStatementBuilder.buildCaseBlockStatementFromEdge(
                 pThread,
                 pAllThreads,
-                firstEdge,
+                i == 0,
+                i == leavingEdgesSize - 1,
                 threadEdge,
                 substitute,
                 pGhostVariables,
                 pBinaryExpressionBuilder);
         rStatements.add(statement);
       }
-      firstEdge = false;
     }
     return rStatements.build();
   }
@@ -137,6 +138,7 @@ public class SeqCaseBlockStatementBuilder {
       final MPORThread pThread,
       final ImmutableSet<MPORThread> pAllThreads,
       boolean pFirstEdge,
+      boolean pLastEdge,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       GhostVariables pGhostVariables,
@@ -153,7 +155,7 @@ public class SeqCaseBlockStatementBuilder {
 
     } else {
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
-        return buildAssumeStatement(pFirstEdge, assumeEdge, pcLeftHandSide, targetPc);
+        return buildAssumeStatement(pFirstEdge, pLastEdge, assumeEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         return buildLocalVariableDeclarationWithInitializerStatement(
@@ -189,14 +191,23 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   private static SeqAssumeStatement buildAssumeStatement(
-      boolean pFirstEdge, CAssumeEdge pAssumeEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      boolean pFirstEdge,
+      boolean pLastEdge,
+      CAssumeEdge pAssumeEdge,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
 
-    // TODO it would (probably) be more efficient to use just 'else' when the second condition
-    //  is the negation of the first (which should be the case for a majority of assumes here)
-    // use (else) if (condition) for all assume edges (if, for, while, switch, ...)
-    SeqControlFlowStatementType statementType =
-        pFirstEdge ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
-    SeqControlFlowStatement statement = new SeqControlFlowStatement(pAssumeEdge, statementType);
+    // the CFA converts the assumptions into 2 assume edges, even with if ... else if ... else
+    checkArgument(pFirstEdge || pLastEdge, "either pFirstEdge and pLastEdge must be true");
+
+    SeqControlFlowStatement statement;
+    if (pFirstEdge) {
+      // if (condition) for first assume edge
+      statement = new SeqControlFlowStatement(pAssumeEdge, SeqControlFlowStatementType.IF);
+    } else {
+      // use else ... for last (= second) assume edge
+      statement = new SeqControlFlowStatement();
+    }
     return new SeqAssumeStatement(statement, pPcLeftHandSide, pTargetPc);
   }
 
