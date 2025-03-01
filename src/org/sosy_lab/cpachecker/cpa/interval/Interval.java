@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -26,7 +26,7 @@ public final class Interval implements Serializable {
   /** the upper bound of the interval */
   private final Long high;
 
-  private static final Interval EMPTY = new Interval(null, null);
+  public static final Interval EMPTY = new Interval(null, null);
   public static final Interval UNBOUND = new Interval(Long.MIN_VALUE, Long.MAX_VALUE);
   public static final Interval BOOLEAN_INTERVAL = new Interval(0L, 1L);
   public static final Interval ZERO = new Interval(0L, 0L);
@@ -174,6 +174,16 @@ public final class Interval implements Serializable {
    */
   public boolean isGreaterOrEqualThan(Interval other) {
     return !isEmpty() && !other.isEmpty() && low >= other.high;
+  }
+
+  /**
+   * Determines if this interval is definitely equal to the other interval.
+   *
+   * @param other the other interval.
+   * @return true if they are definitely equal.
+   */
+  public boolean isEqualTo(Interval other) {
+    return !isEmpty() && !other.isEmpty() && low == other.low && high == other.high && low == high;
   }
 
   /**
@@ -486,6 +496,9 @@ public final class Interval implements Serializable {
 
   @Override
   public String toString() {
+    if (isUnbound()) {
+      return "⊤";
+    }
     return "[" + (low == null ? "" : low) + "; " + (high == null ? "" : high) + "]";
   }
 
