@@ -311,7 +311,7 @@ public class PJBDDRegionManager implements RegionManager {
           builder = Builders.bddBuilder();
           break;
         default:
-          builder = Builders.bddBuilder();
+          throw new IllegalArgumentException("Unknown DD type");
       }
       resolveProperties(builder);
       return builder.build();
