@@ -141,12 +141,20 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     FileLocation fileLocation = pStatement.getFileLocation();
 
     if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
-      if (functionCallAssignment.getLeftHandSide() instanceof CIdExpression idExpression) {
-        CExpression leftHandSide = substitute(idExpression);
-        if (leftHandSide instanceof CIdExpression idExpressionSubstitute) {
+      CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
+      if (leftHandSide instanceof CIdExpression idExpression) {
+        CExpression substitute = substitute(idExpression);
+        if (substitute instanceof CIdExpression idExpressionSubstitute) {
           CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
           return new CFunctionCallAssignmentStatement(
               fileLocation, idExpressionSubstitute, substitute(rightHandSide));
+        }
+      } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
+        CExpression substitute = substitute(arraySubscriptExpression);
+        if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
+          CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
+          return new CFunctionCallAssignmentStatement(
+              fileLocation, arraySubscriptExpressionSubstitute, substitute(rightHandSide));
         }
       }
 
