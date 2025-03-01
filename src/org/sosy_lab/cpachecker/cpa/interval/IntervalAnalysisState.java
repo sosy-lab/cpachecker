@@ -24,6 +24,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -158,6 +160,18 @@ public class IntervalAnalysisState
         arrays.putAndCopy(variableName, funArray)
     );
   }
+
+  public IntervalAnalysisState assignArrayElement(String arrayName, CExpression index, Interval interval, ExpressionValueVisitor visitor) {
+    if (arrays.containsKey(arrayName)) {
+      return new IntervalAnalysisState(
+          intervals,
+          referenceCounts,
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor))
+      );
+    }
+    return this;
+  }
+
   /**
    * This method removes the interval for a given variable.
    *
