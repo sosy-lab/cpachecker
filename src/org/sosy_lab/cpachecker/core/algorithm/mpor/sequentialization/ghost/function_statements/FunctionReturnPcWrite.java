@@ -12,12 +12,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 public class FunctionReturnPcWrite {
 
-  public final CIdExpression returnPcVar;
+  public final CIdExpression variable;
 
   public final int value;
 
   public FunctionReturnPcWrite(CIdExpression pReturnPcVar, int pValue) {
-    returnPcVar = pReturnPcVar;
+    variable = pReturnPcVar;
     value = pValue;
   }
 }

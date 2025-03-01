@@ -35,9 +35,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * calling context i.e. the {@code return_pc} of the function {@code fib} and the respective thread
  * is considered.
  */
-public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement {
+public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStatement {
 
-  private final ImmutableSet<FunctionReturnValueAssignment> assignments;
+  public final ImmutableSet<FunctionReturnValueAssignment> assignments;
 
   private final CIdExpression returnPc;
 
@@ -47,7 +47,7 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
 
   private final Optional<CIdExpression> targetPcExpression;
 
-  protected SeqReturnValueAssignmentStatements(
+  protected SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
       CLeftHandSide pPcLeftHandSide,
@@ -60,7 +60,7 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqReturnValueAssignmentStatements(
+  protected SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
       CLeftHandSide pPcLeftHandSide,
@@ -71,6 +71,10 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+  }
+
+  public CIdExpression getReturnPc() {
+    return returnPc;
   }
 
   @Override
@@ -125,14 +129,16 @@ public class SeqReturnValueAssignmentStatements implements SeqCaseBlockStatement
 
   @NonNull
   @Override
-  public SeqReturnValueAssignmentStatements cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnValueAssignmentStatements(returnPc, assignments, pcLeftHandSide, pTargetPc);
+  public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(int pTargetPc) {
+    return new SeqReturnValueAssignmentSwitchStatement(
+        returnPc, assignments, pcLeftHandSide, pTargetPc);
   }
 
   @NonNull
   @Override
-  public SeqReturnValueAssignmentStatements cloneWithTargetPc(CIdExpression pTargetPc) {
-    return new SeqReturnValueAssignmentStatements(returnPc, assignments, pcLeftHandSide, pTargetPc);
+  public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    return new SeqReturnValueAssignmentSwitchStatement(
+        returnPc, assignments, pcLeftHandSide, pTargetPc);
   }
 
   @Override

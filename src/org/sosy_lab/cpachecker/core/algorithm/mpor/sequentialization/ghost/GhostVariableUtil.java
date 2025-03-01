@@ -309,9 +309,6 @@ public class GhostVariableUtil {
     return rReturnStatements.buildOrThrow();
   }
 
-  // TODO the major problem here is that if we assign a pc that is pruned later, the assignment
-  //  results the case not being matched because the origin pc is pruned --> the program stops.
-  //  before pruning, we should assert that the pc assigned does not point to a blank statement
   /**
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionSummaryEdge}s to {@link
    * FunctionReturnPcWrite}s.

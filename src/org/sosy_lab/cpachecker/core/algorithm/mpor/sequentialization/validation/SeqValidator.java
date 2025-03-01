@@ -8,16 +8,22 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqValidator {
@@ -39,7 +45,7 @@ public class SeqValidator {
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      // create the map of originPc n (e.g. case n) to target pc(s) m (e.g. pc[i] = m)
+      // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(entry.getValue());
       ImmutableSet<Integer> allTargetPcs =
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
@@ -47,6 +53,7 @@ public class SeqValidator {
         checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
         checkTargetPcsAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
+      checkReturnValueAssignmentLabelPc(entry.getValue());
     }
     return pCaseClauses;
   }
@@ -86,7 +93,7 @@ public class SeqValidator {
       ImmutableSet<Integer> pTargetPcs,
       ImmutableSet<Integer> pLabelPcs,
       int pThreadId,
-      org.sosy_lab.common.log.LogManager pLogger) {
+      LogManager pLogger) {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
@@ -99,5 +106,68 @@ public class SeqValidator {
         }
       }
     }
+  }
+
+  /**
+   * Ensures that the label {@code pc} in {@link SeqReturnValueAssignmentSwitchStatement} are at
+   * some point assigned to the respective {@code RETURN_PC} in {@code pCaseClauses}.
+   */
+  private static void checkReturnValueAssignmentLabelPc(ImmutableList<SeqCaseClause> pCaseClauses) {
+
+    // extract returnPcWrites and map variables to assigned values
+    ImmutableList<SeqReturnPcWriteStatement> returnPcWrites =
+        extractStatements(pCaseClauses, SeqReturnPcWriteStatement.class);
+    ImmutableMultimap<CIdExpression, Integer> returnPcWriteMap =
+        getReturnPcWriteMap(returnPcWrites);
+
+    // extract returnValueAssignments (i.e. switch statements)
+    ImmutableList<SeqReturnValueAssignmentSwitchStatement> switchStatements =
+        extractStatements(pCaseClauses, SeqReturnValueAssignmentSwitchStatement.class);
+
+    // for each switch statement, ensure that each label is a variable in a return pc write
+    for (SeqReturnValueAssignmentSwitchStatement switchStatement : switchStatements) {
+      // we switch over the return_pc: switch(return_pc) ...
+      CIdExpression switchExpression = switchStatement.getReturnPc();
+      Verify.verify(
+          returnPcWriteMap.containsKey(switchExpression),
+          "return value assignment switch expression %s is not a written RETURN_PC in pCaseClauses",
+          switchExpression.toASTString());
+      for (FunctionReturnValueAssignment assignment : switchStatement.assignments) {
+        CIdExpression assignmentReturnPc = assignment.returnPcWrite.variable;
+        int assignmentLabel = assignment.returnPcWrite.value;
+        //
+        Verify.verify(
+            returnPcWriteMap.get(assignmentReturnPc).contains(assignmentLabel),
+            "the return pc %s is never assigned the label pc %s",
+            assignmentReturnPc.toASTString(),
+            assignmentLabel);
+      }
+    }
+  }
+
+  private static ImmutableMultimap<CIdExpression, Integer> getReturnPcWriteMap(
+      ImmutableList<SeqReturnPcWriteStatement> pReturnPcWrites) {
+
+    ImmutableMultimap.Builder<CIdExpression, Integer> rMap = ImmutableMultimap.builder();
+    for (SeqReturnPcWriteStatement returnPcWrite : pReturnPcWrites) {
+      Verify.verify(
+          returnPcWrite.getTargetPc().isPresent(), "return pc write does not have a target pc");
+      rMap.put(returnPcWrite.getReturnPcVariable(), returnPcWrite.getTargetPc().orElseThrow());
+    }
+    return rMap.build();
+  }
+
+  private static <T extends SeqCaseBlockStatement> ImmutableList<T> extractStatements(
+      ImmutableList<SeqCaseClause> pCaseClauses, Class<T> pStatementClass) {
+
+    ImmutableList.Builder<T> rStatements = ImmutableList.builder();
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+        if (pStatementClass.isInstance(statement)) {
+          rStatements.add(pStatementClass.cast(statement));
+        }
+      }
+    }
+    return rStatements.build();
   }
 }

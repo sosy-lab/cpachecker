@@ -229,7 +229,7 @@ public class SeqCaseBlockStatementBuilder {
     assert pFunctionVariables.returnPcWrites.containsKey(pThreadEdge);
     FunctionReturnPcWrite write =
         Objects.requireNonNull(pFunctionVariables.returnPcWrites.get(pThreadEdge));
-    return new SeqReturnPcWriteStatement(write.returnPcVar, write.value);
+    return new SeqReturnPcWriteStatement(write.variable, write.value);
   }
 
   private static SeqReturnPcWriteStatement handleFunctionSummaryEdge(
@@ -281,8 +281,9 @@ public class SeqCaseBlockStatementBuilder {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     } else {
       // just get the first element in the set for the RETURN_PC
-      CIdExpression returnPc = assigns.iterator().next().returnPcWrite.returnPcVar;
-      return new SeqReturnValueAssignmentStatements(returnPc, assigns, pcLeftHandSide, pTargetPc);
+      CIdExpression returnPc = assigns.iterator().next().returnPcWrite.variable;
+      return new SeqReturnValueAssignmentSwitchStatement(
+          returnPc, assigns, pcLeftHandSide, pTargetPc);
     }
   }
 

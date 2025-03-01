@@ -32,6 +32,10 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
     returnPc = pReturnPc;
   }
 
+  public CIdExpression getReturnPcVariable() {
+    return returnPcVar;
+  }
+
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement assign =
