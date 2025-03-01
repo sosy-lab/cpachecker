@@ -291,9 +291,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       // closing bracket of the function whose return statement is being considered
       AStatement statement = edge.getStatement();
       FileLocation statementLocation = statement.getFileLocation();
-      int columnStartOfStatement = statementLocation.getStartColumnInLine();
-      int columnOfClosingBracketInFunctionCall =
-          columnStartOfStatement + statement.toString().lastIndexOf(")");
+      int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
       if (columnOfClosingBracketInFunctionCall != followColumn
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;

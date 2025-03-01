@@ -486,7 +486,7 @@ public class ConfigurationFileChecks {
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
               Path.of("importFaults.properties"),
-              Path.of("distributed-block-summaries"));
+              Path.of("distributed-summary-synthesis"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
