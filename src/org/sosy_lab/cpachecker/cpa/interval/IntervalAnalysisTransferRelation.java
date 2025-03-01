@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -26,8 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -41,7 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -339,10 +341,8 @@ public class IntervalAnalysisTransferRelation
   private IntervalAnalysisState addInterval(
       IntervalAnalysisState newState, CExpression lhs, Interval interval) {
     // we currently only handle IdExpressions and ignore more complex Expressions
-    if (lhs instanceof CIdExpression) {
-      newState =
-          newState.addInterval(
-              ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
+    if (lhs instanceof CIdExpression id) {
+      return newState.addInterval(id.getDeclaration().getQualifiedName(), interval, threshold);
     }
     return newState;
   }
@@ -359,29 +359,50 @@ public class IntervalAnalysisTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = state;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
-
-      // ignore pointer variables
-      if (decl.getType() instanceof CPointerType) {
-        return soleSuccessor(newState);
-      }
-
-      Interval interval;
-      CInitializer init = decl.getInitializer();
-
-      // variable may be initialized explicitly on the spot ...
-      if (init instanceof CInitializerExpression) {
-        CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp, declarationEdge);
-      } else {
-        interval = Interval.UNBOUND;
-      }
-
-      newState = newState.addInterval(decl.getQualifiedName(), interval, threshold);
+      return handleVariableDeclarationEdge(declarationEdge, decl);
     }
 
-    return soleSuccessor(newState);
+    return soleSuccessor(state);
+  }
+
+  private Collection<IntervalAnalysisState> handleVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+
+    if (decl.getType() instanceof CSimpleType) {
+      return handleSimpleTypeVariableDeclarationEdge(declarationEdge, decl);
+    }
+    if (decl.getType() instanceof CArrayType) {
+      return handleArrayVariableDeclarationEdge(declarationEdge, decl);
+    }
+    return soleSuccessor(state);
+  }
+
+  private Collection<IntervalAnalysisState> handleSimpleTypeVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+    Interval interval;
+
+    // variable may be initialized explicitly on the spot ...
+    if (decl.getInitializer() instanceof CInitializerExpression initializerExpression) {
+      CExpression expression = initializerExpression.getExpression();
+      interval = evaluateInterval(state, expression, declarationEdge);
+    } else {
+      interval = Interval.UNBOUND;
+    }
+
+    return soleSuccessor(state.addInterval(decl.getQualifiedName(), interval, threshold));
+  }
+
+  private Collection<IntervalAnalysisState> handleArrayVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+    if (decl.getInitializer() instanceof CInitializerList initializerList) {
+      ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
+      return soleSuccessor(state.addArray(decl.getQualifiedName(), FunArray.ofInitializerList(initializerList.getInitializers(), visitor)));
+    } else if (decl.getType() instanceof CArrayType arrayType) {
+      FunArray simpleArray = new FunArray(arrayType.getLength());
+      return soleSuccessor(state.addArray(decl.getQualifiedName(), simpleArray));
+    }
+    throw new RuntimeException("Not yet implemented");
   }
 
   /**
@@ -400,8 +421,18 @@ public class IntervalAnalysisTransferRelation
       CExpression op1 = assignExpression.getLeftHandSide();
       CRightHandSide op2 = assignExpression.getRightHandSide();
 
-      // a = ?
-      successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
+      if (op1 instanceof CIdExpression id) {
+        successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
+      } else if (op1 instanceof CArraySubscriptExpression subscriptExpression) {
+        if (subscriptExpression.getArrayExpression() instanceof CIdExpression id) {
+          String arrayName = id.getDeclaration().getQualifiedName();
+          if (op2 instanceof CExpression rightHandSideExpression) {
+            successor = successor.assignArrayElement(arrayName, subscriptExpression.getSubscriptExpression(),
+                evaluateInterval(state, op2, cfaEdge), new ExpressionValueVisitor(state, cfaEdge));
+          }
+        }
+      }
+
     }
     return soleSuccessor(successor);
   }
