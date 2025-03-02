@@ -241,13 +241,13 @@ public class PJBDDRegionManager implements RegionManager {
         secure = true,
         description = "Type of Parallelization used in PJBDD",
         values = {"ForkJoin", "CompletableFuture", "Future", "Guava", "Stream", "None"})
-    private String parallelizationType = "None";
+    private String parallelizationType = "ForkJoin";
 
     @Option(
         secure = true,
         description = "Type of Table used in PJBDD",
         values = {"ConcurrentHashBucket", "ConcurrentHashMap", "CASArray", "Array"})
-    private String tableType = "Array";
+    private String tableType = "CASArray";
 
     @Option(secure = true, description = "Enable Synchronized Reordering in PJBDD")
     private boolean synchronizeReordering = false;

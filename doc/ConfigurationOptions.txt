@@ -688,7 +688,7 @@ bdd.pjbdd.initTableRatio = 0.001
 bdd.pjbdd.initTableSize = 0
 
 # Type of Parallelization used in PJBDD
-bdd.pjbdd.parallelizationType = "None"
+bdd.pjbdd.parallelizationType = "ForkJoin"
   allowed values: [ForkJoin, CompletableFuture, Future, Guava, Stream, None]
 
 # Enable Synchronized Reordering in PJBDD
@@ -698,7 +698,7 @@ bdd.pjbdd.synchronizeReordering = false
 bdd.pjbdd.tableParallelism = 10000
 
 # Type of Table used in PJBDD
-bdd.pjbdd.tableType = "Array"
+bdd.pjbdd.tableType = "CASArray"
   allowed values: [ConcurrentHashBucket, ConcurrentHashMap, CASArray, Array]
 
 # Thread safe bdd operations.
