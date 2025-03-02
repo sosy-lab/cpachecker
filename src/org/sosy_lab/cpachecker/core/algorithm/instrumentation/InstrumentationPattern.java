@@ -167,10 +167,16 @@ public class InstrumentationPattern {
         if (expression.getExpressionType().getCanonicalType().toString().matches("signed.*int")) {
           if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
             return ImmutableList.of(
-                operand.toASTString(), condition, "TRANS_LONG_LONG_MAX", "TRANS_LONG_LONG_MIN");
+                removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
+                condition,
+                "TRANS_LONG_LONG_MAX",
+                "TRANS_LONG_LONG_MIN");
           }
           return ImmutableList.of(
-              operand.toASTString(), condition, "TRANS_INT_MAX", "TRANS_INT_MIN");
+              removeIndicesOfVariablesWithSameName(operand, pCFAEdge),
+              condition,
+              "TRANS_INT_MAX",
+              "TRANS_INT_MIN");
         } else {
           return ImmutableList.of();
         }
@@ -199,15 +205,15 @@ public class InstrumentationPattern {
                 || !(operand2.getExpressionType().getCanonicalType() instanceof CPointerType))) {
           if (expression.getExpressionType().getCanonicalType().toString().contains("long long")) {
             return ImmutableList.of(
-                operand1.toASTString(),
-                operand2.toASTString(),
+                removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
+                removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
                 condition,
                 "TRANS_LONG_LONG_MAX",
                 "TRANS_LONG_LONG_MIN");
           }
           return ImmutableList.of(
-              operand1.toASTString(),
-              operand2.toASTString(),
+              removeIndicesOfVariablesWithSameName(operand1, pCFAEdge),
+              removeIndicesOfVariablesWithSameName(operand2, pCFAEdge),
               condition,
               "TRANS_INT_MAX",
               "TRANS_INT_MIN");
@@ -241,6 +247,15 @@ public class InstrumentationPattern {
       }
     }
     return condition.toString();
+  }
+
+  private String removeIndicesOfVariablesWithSameName(CExpression pOperand, CFAEdge pCFAEdge) {
+    String rawStatement = pCFAEdge.getRawStatement();
+    String operandWithoutIndex = pOperand.toASTString();
+    if (!rawStatement.contains(operandWithoutIndex) && operandWithoutIndex.contains("__")) {
+      return operandWithoutIndex.substring(0, operandWithoutIndex.lastIndexOf("__"));
+    }
+    return operandWithoutIndex;
   }
 
   @Nullable
