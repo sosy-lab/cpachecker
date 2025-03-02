@@ -15,6 +15,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Objects;
+import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -33,12 +36,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @SuppressWarnings("unused")
@@ -109,6 +114,8 @@ public class Sequentialization {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
+  private final ShutdownNotifier shutdownNotifier;
+
   private final LogManager logger;
 
   private final PcVariables pcVariables;
@@ -119,6 +126,7 @@ public class Sequentialization {
       String pInputFileName,
       String pOutputFileName,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      ShutdownNotifier pShutdownNotifier,
       LogManager pLogger) {
 
     substitutions = pSubstitutions;
@@ -126,6 +134,7 @@ public class Sequentialization {
     outputFileName = pOutputFileName;
     options = pOptions;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
+    shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     pcVariables =
         new PcVariables(
@@ -137,8 +146,14 @@ public class Sequentialization {
     try {
       ImmutableList<LineOfCode> initProgram = initProgram();
       ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
-      return LineOfCodeUtil.buildString(finalProgram);
-    } catch (UnrecognizedCodeException e) {
+      String program = LineOfCodeUtil.buildString(finalProgram);
+      return SeqValidator.validateProgramParsing(program, shutdownNotifier, logger);
+    } catch (UnrecognizedCodeException
+        | InvalidConfigurationException
+        | ParserException
+        | InterruptedException e) {
+      // we convert to RuntimeExceptions for unit tests
+      logger.log(Level.SEVERE, e);
       throw new RuntimeException(e);
     }
   }

@@ -111,6 +111,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " depending on the verifier and input program")
   private boolean signedNextThread = false;
 
+  @Option(
+      secure = true,
+      description =
+          "test if CPAchecker can parse sequentialization? true -> less efficient, but more"
+              + " correctness guarantees")
+  private boolean validateParse = true;
+
   private final MPOROptions options;
 
   @Override
@@ -129,7 +136,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
   public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
     return new Sequentialization(
-        substitutions, options, pInputFileName, pOutputFileName, binaryExpressionBuilder, logger);
+        substitutions,
+        options,
+        pInputFileName,
+        pOutputFileName,
+        binaryExpressionBuilder,
+        shutdownNotifier,
+        logger);
   }
 
   private static final String INTERNAL_ERROR =
@@ -188,7 +201,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             overwriteFiles,
             partialOrderReduction,
             scalarPc,
-            signedNextThread);
+            signedNextThread,
+            validateParse);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

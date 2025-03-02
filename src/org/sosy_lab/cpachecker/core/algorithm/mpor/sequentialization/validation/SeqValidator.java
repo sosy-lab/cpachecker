@@ -17,7 +17,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -28,12 +32,21 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class SeqValidator {
 
-  // TODO add a method that checks if the final sequentialization can be compiled
-  //  similar to unit tests. but add an option to disable. default is enabled
-  //  then we can remove the compile test entirely from unit tests
+  /** Returns {@code pSequentialization} as is if CPAchecker can parse it or reports an error. */
+  public static String validateProgramParsing(
+      String pSequentialization, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
+      throws InvalidConfigurationException, ParserException, InterruptedException {
+
+    // validate that seq can be parsed and cfa created -> code compiles
+    CFACreator creator =
+        new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
+    Verify.verify(creator.parseSourceAndCreateCFA(pSequentialization) != null);
+    return pSequentialization;
+  }
 
   /**
    * Returns {@code pCaseClauses} as is or throws an {@link AssertionError} if:

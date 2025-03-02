@@ -41,6 +41,8 @@ public class MPOROptions {
 
   public final boolean signedNextThread;
 
+  public final boolean validateParse;
+
   public MPOROptions(
       boolean pComments,
       boolean pInputFunctionDeclarations,
@@ -50,7 +52,8 @@ public class MPOROptions {
       boolean pOverwriteFiles,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
-      boolean pSignedNextThread) {
+      boolean pSignedNextThread,
+      boolean pValidateParse) {
 
     checkArgument(
         correctParamAmount(),
@@ -69,6 +72,7 @@ public class MPOROptions {
     partialOrderReduction = pPartialOrderReduction;
     scalarPc = pScalarPc;
     signedNextThread = pSignedNextThread;
+    validateParse = pValidateParse;
   }
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
@@ -89,7 +93,8 @@ public class MPOROptions {
         false,
         pPartialOrderReduction,
         pScalarPc,
-        pSignedNextThread);
+        pSignedNextThread,
+        false);
   }
 
   private boolean correctParamAmount() {

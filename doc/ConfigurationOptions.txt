@@ -291,6 +291,10 @@ analysis.algorithm.MPOR.scalarPc = false
 # program
 analysis.algorithm.MPOR.signedNextThread = false
 
+# test if CPAchecker can parse sequentialization? true -> less efficient, but
+# more correctness guarantees
+analysis.algorithm.MPOR.validateParse = true
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
