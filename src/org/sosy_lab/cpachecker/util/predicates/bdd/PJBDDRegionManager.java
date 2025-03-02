@@ -287,10 +287,10 @@ public class PJBDDRegionManager implements RegionManager {
           builder = Builders.cbddBuilder();
           break;
         case "TaggedDD":
-          builder = Builders.newTaggedDDBuilder();
+          builder = Builders.taggedDDBuilder();
           break;
         case "TBDD":
-          builder = Builders.newTBDDBuilder();
+          builder = Builders.tbddBuilder();
           break;
         case "IntDD":
           builder = Builders.intBuilder();
