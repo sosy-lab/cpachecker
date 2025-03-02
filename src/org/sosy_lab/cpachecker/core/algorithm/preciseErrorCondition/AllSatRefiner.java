@@ -102,12 +102,12 @@ public class AllSatRefiner implements Refiner {
           String.format("Disjunction Of Models:\n%s", combinedModels));
 
       Utility.logWithIteration(currentRefinementIteration,
-          Level.INFO, context, "Updating Exclusion Formula...");
+          Level.INFO, context, "Updating Exclusion Formula With Disjunct Combined Model...");
       // Update exclusion formula with the found models
       exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(combinedModels));
 
       Utility.logWithIteration(currentRefinementIteration,
-          Level.FINE, context, String.format("Updated Exclusion Formula With The Disjunction: \n%s",
+          Level.INFO, context, String.format("Exclusion Formula In This Iteration: \n%s",
               exclusionModelFormula.getFormula()));
 
       if (withFormatter) {

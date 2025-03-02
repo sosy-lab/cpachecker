@@ -49,8 +49,6 @@ public class CompositeRefiner implements Refiner {
   public PathFormula refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException {
-    context.getLogger().log(Level.INFO,
-        "******************************** Refinement ********************************\n");
     // single
     if (refiners.size() == 1) {
       return singleRefinement(pCounterexample);
@@ -86,11 +84,22 @@ public class CompositeRefiner implements Refiner {
 
   private PathFormula sequentialRefinement(CounterexampleInfo pCounterexample) {
     context.getLogger().log(Level.INFO, "Sequential Refinement");
+    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
+
     for (Refiner refiner : refiners.values()) {
       try {
-        // update exclusion formula with result
-        exclusionFormula = refineWith(refiner, pCounterexample);
-        return exclusionFormula;
+        PathFormula result = refineWith(refiner, pCounterexample);
+
+        // check if the result is valid (not empty)
+        if (!isFormulaEmpty(result, emptyFormula)) {
+          exclusionFormula = result;
+          return exclusionFormula;
+        } else {
+          context.getLogger().log(Level.WARNING,
+              "Refiner " + refiner.getClass().getSimpleName() + " returned an invalid result.");
+          context.getLogger().log(Level.INFO, "Trying With Next Refiner");
+        }
+
       } catch (Exception e) {
         context.getLogger()
             .log(Level.WARNING, "Refiner Failed: " + refiner.getClass().getSimpleName());
@@ -98,9 +107,10 @@ public class CompositeRefiner implements Refiner {
         context.getLogger().log(Level.INFO, "Trying With Next Refiner");
       }
     }
+
     context.getLogger().log(Level.SEVERE,
-        "Error During Sequential Refinement. Returning An Empty Exclusion Formula.");
-    return context.getManager().makeEmptyPathFormula();
+        "All refiners failed during sequential refinement. Returning an empty exclusion formula.");
+    return emptyFormula;
   }
 
 
@@ -110,13 +120,16 @@ public class CompositeRefiner implements Refiner {
 
     try {
       List<Callable<PathFormula>> tasks = new ArrayList<>();
-      refiners.values().forEach(
-          (pRefiner) -> tasks.add(() -> refineWith(pRefiner, pCounterexample)));
+      refiners.values().forEach((pRefiner) -> tasks.add(() -> {
+        // Check for interruption before starting
+        if (Thread.interrupted()) {
+          throw new InterruptedException("Task interrupted before execution");
+        }
+        return refineWithInterruptible(pRefiner, pCounterexample);
+      }));
 
       // execute tasks with a timeout and return the first successful result
-      exclusionFormula = executor.invokeAny(tasks, TIMEOUT_SECONDS,
-          TimeUnit.SECONDS);
-      executor.shutdown();
+      exclusionFormula = executor.invokeAny(tasks, TIMEOUT_SECONDS, TimeUnit.SECONDS);
       return exclusionFormula;
 
     } catch (TimeoutException e) {
@@ -124,6 +137,18 @@ public class CompositeRefiner implements Refiner {
           .logfUserException(Level.SEVERE, e, "Refinement Timed Out For All Strategies.");
     } catch (Exception e) {
       context.getLogger().logfUserException(Level.SEVERE, e, "Error During Parallel Refinement.");
+    } finally {
+      // shutdown the executor to cancel all ongoing tasks
+      executor.shutdownNow(); // This sends interrupt signals to all threads
+      try {
+        // wait and allow tasks to respond to interrupts
+        if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+          context.getLogger()
+              .log(Level.WARNING, "Some refinement tasks did not terminate promptly");
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
     }
     context.getLogger().log(Level.SEVERE,
         "Error During Parallel Refinement. Returning An Empty Exclusion Formula.");
@@ -138,7 +163,7 @@ public class CompositeRefiner implements Refiner {
     for (RefinementStrategy refiner : pRefiners) {
       FormulaContext newContext = context;
       if (parallelRefinement && pRefiners.length > 1) {
-        // create new context for each refiner
+        // create new context for each refiner when in parallel mode
         newContext = context.createContextFromThis(context.getSolver().getSolverName().toString());
       }
       refiners.put(refiner,
@@ -146,19 +171,44 @@ public class CompositeRefiner implements Refiner {
     }
   }
 
-  private PathFormula refineWith(
-      Refiner refiner,
-      CounterexampleInfo cex)
+  private PathFormula refineWith(Refiner refiner, CounterexampleInfo cex)
       throws SolverException, CPATransferException, InterruptedException,
              InvalidConfigurationException {
-    context.getLogger()
-        .log(Level.INFO, String.format("*** Starting Refinement With %s... ***",
-            refiner.getClass().getSimpleName()));
+    context.getLogger().log(Level.INFO, String.format("*** Starting Refinement With %s... ***",
+        refiner.getClass().getSimpleName()));
     PathFormula result = refiner.refine(cex);
-    context.getLogger()
-        .log(Level.INFO, String.format("*** %s Completed Successfully. ***",
-            refiner.getClass().getSimpleName()));
+    context.getLogger().log(Level.INFO,
+        String.format("*** %s Completed Successfully. ***", refiner.getClass().getSimpleName()));
     return result;
+  }
+
+  /**
+   * Checks if the result is equivalent to the empty formula.
+   * TODO: eventually replace with a more robust check if necessary.
+   */
+  private boolean isFormulaEmpty(PathFormula result, PathFormula emptyFormula) {
+    return result.getFormula().equals(emptyFormula.getFormula());
+  }
+
+  private PathFormula refineWithInterruptible(Refiner refiner, CounterexampleInfo cex)
+      throws SolverException, CPATransferException, InterruptedException,
+             InvalidConfigurationException {
+    context.getLogger().log(Level.INFO, String.format("*** Starting Refinement With %s... ***",
+        refiner.getClass().getSimpleName()));
+    try {
+      PathFormula result = refiner.refine(cex);
+      //  check for interruption
+      if (Thread.interrupted()) {
+        throw new InterruptedException("Refiner was interrupted");
+      }
+      context.getLogger().log(Level.INFO,
+          String.format("*** %s Completed Successfully. ***", refiner.getClass().getSimpleName()));
+      return result;
+    } catch (InterruptedException e) {
+      context.getLogger().log(Level.INFO,
+          String.format("*** %s Interrupted. ***", refiner.getClass().getSimpleName()));
+      throw e; // Re-throw to handle in invokeAny
+    }
   }
 
 }

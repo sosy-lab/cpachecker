@@ -111,7 +111,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     AlgorithmStatus status;
-    logger.log(Level.INFO, "Finding error condition...");
+    logger.log(Level.INFO, "Finding Error Condition...");
     totalTime.start();
     try {
 

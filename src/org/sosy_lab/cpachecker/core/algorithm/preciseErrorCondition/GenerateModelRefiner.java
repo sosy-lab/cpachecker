@@ -84,8 +84,9 @@ public class GenerateModelRefiner implements Refiner {
           .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
 
       Utility.logWithIteration(currentRefinementIteration,
-          Level.FINE, context, String.format("Updated Exclusion Formula With Model: \n%s",
+          Level.INFO, context, String.format("Exclusion Formula In This Iteration: \n%s",
               exclusionModelFormula.getFormula()));
+
       if (withFormatter) {
         formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
             currentRefinementIteration);
