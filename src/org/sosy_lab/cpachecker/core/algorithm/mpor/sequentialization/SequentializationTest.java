@@ -27,11 +27,18 @@ public class SequentializationTest {
 
   // TODO this triggers an AssertionError
   // goblint-regression/36-apron_21-traces-cluster-based-true.c
+
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
   // "ring_2w1r-2",
+
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
+
+  // TODO parsing fails for sequentializations of:
+  // 28-race_reach_45-escape_racing
+  // weaver/popl120-send-receive.wvr
+  // 28-race_reach_46-escape_racefree
 
   @Test
   public void testCompileSeq_fib_safe7() throws Exception {

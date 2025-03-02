@@ -147,7 +147,9 @@ public class Sequentialization {
       ImmutableList<LineOfCode> initProgram = initProgram();
       ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
       String program = LineOfCodeUtil.buildString(finalProgram);
-      return SeqValidator.validateProgramParsing(program, shutdownNotifier, logger);
+      return options.validateParse
+          ? SeqValidator.validateProgramParsing(program, shutdownNotifier, logger)
+          : program;
     } catch (UnrecognizedCodeException
         | InvalidConfigurationException
         | ParserException

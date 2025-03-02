@@ -71,7 +71,7 @@ public class SeqValidator {
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
         checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
-        checkTargetPcsAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
+        checkTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
       checkReturnValueAssignmentLabelPc(entry.getValue(), pLogger);
     }
@@ -115,7 +115,7 @@ public class SeqValidator {
     }
   }
 
-  private static void checkTargetPcsAsLabelPc(
+  private static void checkTargetPcAsLabelPc(
       ImmutableSet<Integer> pTargetPcs,
       ImmutableSet<Integer> pLabelPcs,
       int pThreadId,

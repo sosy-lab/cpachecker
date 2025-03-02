@@ -94,6 +94,7 @@ public class MPOROptions {
         pPartialOrderReduction,
         pScalarPc,
         pSignedNextThread,
+        // no parse validation in unit tests -> tests are independent of implementation
         false);
   }
 
