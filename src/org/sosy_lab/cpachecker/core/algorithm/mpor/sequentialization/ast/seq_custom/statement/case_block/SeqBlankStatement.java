@@ -25,37 +25,45 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<CExpression> targetPcExpression;
 
   /** Use this if the target pc is an {@code int}. */
   protected SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
+  private SeqBlankStatement(CLeftHandSide pPcLeftHandSide, CExpression pTargetPcExpression) {
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.of(pTargetPcExpression);
   }
 
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
+            pcLeftHandSide, targetPc, targetPcExpression);
     return pcWrite.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
   }
 
   @Override
   public Optional<CExpression> getTargetPcExpression() {
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " does not have targetPcExpressions");
+    return targetPcExpression;
   }
 
   @NonNull
   @Override
   public SeqBlankStatement cloneWithTargetPc(CExpression pTargetPc) {
-    // we never want to clone blank statements
-    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+    return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
   }
 
   @Override
