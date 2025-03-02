@@ -50,7 +50,7 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqReturnValueAssignmentSwitchStatement(
+  SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,

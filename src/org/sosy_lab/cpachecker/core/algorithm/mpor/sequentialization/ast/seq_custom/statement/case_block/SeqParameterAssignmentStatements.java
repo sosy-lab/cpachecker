@@ -34,7 +34,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqParameterAssignmentStatements(
+  SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
@@ -45,7 +45,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqParameterAssignmentStatements(
+  private SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPc) {

@@ -26,7 +26,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqAtomicEndStatement(
+  SeqAtomicEndStatement(
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
@@ -37,7 +37,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqAtomicEndStatement(
+  private SeqAtomicEndStatement(
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPcExpression) {

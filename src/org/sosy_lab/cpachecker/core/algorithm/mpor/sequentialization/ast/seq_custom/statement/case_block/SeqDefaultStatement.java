@@ -32,8 +32,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqDefaultStatement(
-      CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  SeqDefaultStatement(CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
@@ -41,7 +40,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqDefaultStatement(
+  private SeqDefaultStatement(
       CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, CExpression pTargetPc) {
 
     edge = pEdge;

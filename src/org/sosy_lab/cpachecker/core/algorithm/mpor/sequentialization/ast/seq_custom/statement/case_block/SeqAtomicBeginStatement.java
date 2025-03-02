@@ -36,7 +36,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqAtomicBeginStatement(
+  SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,
@@ -49,7 +49,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqAtomicBeginStatement(
+  private SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,

@@ -16,6 +16,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 // TODO further divide this into thread, function, ... interfaces
+/**
+ * Please ensure that constructors are package-private (see {@link SeqCaseBlockStatementBuilder} and
+ * constructors used for cloning are {@code private}.
+ */
 public interface SeqCaseBlockStatement extends SeqStatement {
 
   Optional<Integer> getTargetPc();

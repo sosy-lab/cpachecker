@@ -22,7 +22,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
 
   private final SeqStatement statement;
 
-  protected SeqScalarPcAssumeStatement(SeqStatement pStatement) {
+  SeqScalarPcAssumeStatement(SeqStatement pStatement) {
     statement = pStatement;
   }
 

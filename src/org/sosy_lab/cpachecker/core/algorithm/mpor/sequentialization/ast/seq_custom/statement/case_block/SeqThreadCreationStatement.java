@@ -34,7 +34,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final PcVariables pcVariables;
 
-  protected SeqThreadCreationStatement(
+  SeqThreadCreationStatement(
       int pCreatedThreadId, int pThreadId, int pTargetPc, PcVariables pPcVariables) {
 
     createdThreadId = pCreatedThreadId;
@@ -44,7 +44,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     pcVariables = pPcVariables;
   }
 
-  protected SeqThreadCreationStatement(
+  private SeqThreadCreationStatement(
       int pCreatedThreadId, int pThreadId, CExpression pTargetPc, PcVariables pPcVariables) {
 
     createdThreadId = pCreatedThreadId;

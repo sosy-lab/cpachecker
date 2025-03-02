@@ -44,7 +44,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqMutexLockStatement(
+  SeqMutexLockStatement(
       CIdExpression pMutexLocked,
       CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,
@@ -57,7 +57,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqMutexLockStatement(
+  private SeqMutexLockStatement(
       CIdExpression pMutexLocked,
       CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,

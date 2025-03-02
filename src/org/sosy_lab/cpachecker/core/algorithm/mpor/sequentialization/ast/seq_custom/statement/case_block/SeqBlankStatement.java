@@ -30,7 +30,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   private final Optional<CExpression> targetPcExpression;
 
   /** Use this if the target pc is an {@code int}. */
-  protected SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();

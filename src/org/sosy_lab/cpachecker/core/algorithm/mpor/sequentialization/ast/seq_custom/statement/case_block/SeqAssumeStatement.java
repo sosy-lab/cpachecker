@@ -29,7 +29,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqAssumeStatement(
+  SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     controlFlowStatement = pControlFlowStatement;
@@ -38,8 +38,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  // TODO make all clone constructors private
-  protected SeqAssumeStatement(
+  private SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPcExpression) {

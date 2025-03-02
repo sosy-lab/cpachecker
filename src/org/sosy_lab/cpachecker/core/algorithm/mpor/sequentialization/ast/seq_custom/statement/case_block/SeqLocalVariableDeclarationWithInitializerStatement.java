@@ -35,7 +35,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         "pVariableDeclaration must have an initializer");
   }
 
-  protected SeqLocalVariableDeclarationWithInitializerStatement(
+  SeqLocalVariableDeclarationWithInitializerStatement(
       CVariableDeclaration pVariableDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     checkArguments(pVariableDeclaration);
@@ -45,7 +45,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqLocalVariableDeclarationWithInitializerStatement(
+  private SeqLocalVariableDeclarationWithInitializerStatement(
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPc) {

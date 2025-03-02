@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
-  protected SeqReachErrorStatement() {}
+  SeqReachErrorStatement() {}
 
   @Override
   public String toASTString() {
@@ -41,7 +41,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   @Override
   public SeqReachErrorStatement cloneWithTargetPc(CExpression pTargetPc) {
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have targetPcs");
+        this.getClass().getSimpleName() + " do not have targetPcs and cannot be cloned");
   }
 
   @Override

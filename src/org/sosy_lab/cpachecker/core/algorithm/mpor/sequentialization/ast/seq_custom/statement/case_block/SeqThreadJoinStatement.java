@@ -54,7 +54,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final CBinaryExpression pcUnequalExitPc;
 
-  protected SeqThreadJoinStatement(
+  SeqThreadJoinStatement(
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,
@@ -75,7 +75,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
             pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
-  protected SeqThreadJoinStatement(
+  private SeqThreadJoinStatement(
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,

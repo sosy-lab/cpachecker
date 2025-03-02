@@ -29,13 +29,13 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> returnPcExpression;
 
-  protected SeqReturnPcWriteStatement(CIdExpression pReturnPcVariable, int pReturnPc) {
+  SeqReturnPcWriteStatement(CIdExpression pReturnPcVariable, int pReturnPc) {
     returnPcVariable = pReturnPcVariable;
     returnPc = Optional.of(pReturnPc);
     returnPcExpression = Optional.empty();
   }
 
-  protected SeqReturnPcWriteStatement(
+  private SeqReturnPcWriteStatement(
       CIdExpression pReturnPcVariable, CExpression pReturnPcExpression) {
 
     returnPcVariable = pReturnPcVariable;

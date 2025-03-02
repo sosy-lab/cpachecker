@@ -82,7 +82,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
   }
 
-  protected SeqConstCpaCheckerTmpStatement(
+  SeqConstCpaCheckerTmpStatement(
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
@@ -98,7 +98,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqConstCpaCheckerTmpStatement(
+  private SeqConstCpaCheckerTmpStatement(
       CDeclarationEdge pDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,

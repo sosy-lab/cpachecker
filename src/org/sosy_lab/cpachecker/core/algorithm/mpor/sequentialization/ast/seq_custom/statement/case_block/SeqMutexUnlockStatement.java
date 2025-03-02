@@ -31,7 +31,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
-  protected SeqMutexUnlockStatement(
+  SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     lockedFalse = pLockedFalse;
@@ -40,7 +40,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqMutexUnlockStatement(
+  private SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPc) {
