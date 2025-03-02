@@ -677,13 +677,6 @@ bdd.pjbdd.cacheRatio = 0.1
 # size of the BDD cache.
 bdd.pjbdd.cacheSize = 0
 
-# Type of Creator used in PJBDD
-bdd.pjbdd.creatorType = "ApplyOp"
-  allowed values: [ForkJoin, ApplyOp, SerialApply, CompletableApply, CompletableFuture, Future, Stream, Serial, Guava, CBDD, ConcurrentCBDD]
-
-# Disable thread safe bdd operations.
-bdd.pjbdd.disableThreadSafety = false
-
 # increase factor for resizing tables
 bdd.pjbdd.increaseFactor = 1
 
@@ -694,26 +687,33 @@ bdd.pjbdd.initTableRatio = 0.001
 # Initial size of the BDD node table, use 0 for size based on initTableRatio.
 bdd.pjbdd.initTableSize = 0
 
-# Enable Synchronized Reordering
+# Type of Parallelization used in PJBDD
+bdd.pjbdd.parallelizationType = "None"
+  allowed values: [ForkJoin, CompletableFuture, Future, Guava, Stream, None]
+
+# Enable Synchronized Reordering in PJBDD
 bdd.pjbdd.synchronizeReordering = false
 
 # unique table's concurrency factor
 bdd.pjbdd.tableParallelism = 10000
 
+# Type of Table used in PJBDD
+bdd.pjbdd.tableType = "Array"
+  allowed values: [ConcurrentHashBucket, ConcurrentHashMap, CASArray, Array]
+
+# Thread safe bdd operations.
+bdd.pjbdd.threadSafety = true
+
 # Number of worker threads, Runtime.getRuntime().availableProcessors()
 # default
 bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 
-# Type of Table used in PJBDD
-bdd.pjbdd.uniqueTableType = "Array"
-  allowed values: [HashSet, HashBucket, CASArray, Array]
+# Enable Apply Algorithm in PJBDD
+bdd.pjbdd.useApply = true
 
 # Type of BDD used in PJBDD.
 bdd.pjbdd.useDDType = "BDD"
-  allowed values: [BDD, ChainedBDD, TBDD, TaggedDD]
-
-# Use internal a int based bdd representation.
-bdd.pjbdd.useInts = false
+  allowed values: [BDD, CBDD, TBDD, TaggedDD, IntDD]
 
 # initial variable count
 bdd.pjbdd.varCount = 100

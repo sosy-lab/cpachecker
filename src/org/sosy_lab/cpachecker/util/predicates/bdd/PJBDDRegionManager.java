@@ -336,7 +336,7 @@ public class PJBDDRegionManager implements RegionManager {
         case "Stream":
           pBuilder.setParallelizationType(Builders.ParallelizationType.STREAM);
           break;
-        case "NONE":
+        case "None":
           pBuilder.setParallelizationType(Builders.ParallelizationType.NONE);
           break;
         default:
