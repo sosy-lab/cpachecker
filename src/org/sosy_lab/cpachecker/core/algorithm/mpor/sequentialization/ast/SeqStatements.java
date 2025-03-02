@@ -49,7 +49,7 @@ public class SeqStatements {
     public static CExpressionAssignmentStatement buildPcWriteByTargetPc(
         CLeftHandSide pPcLeftHandSide,
         Optional<Integer> pTargetPc,
-        Optional<CIdExpression> pTargetPcExpression) {
+        Optional<CExpression> pTargetPcExpression) {
 
       // this is XOR, not (true, true) and not (false, false)
       checkArgument(
@@ -61,6 +61,25 @@ public class SeqStatements {
       return pTargetPc.isPresent()
           ? buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow())
           : buildPcWrite(pPcLeftHandSide, pTargetPcExpression.orElseThrow());
+    }
+
+    public static CExpressionAssignmentStatement buildReturnPcWriteByTargetPc(
+        CIdExpression pReturnPcVariable,
+        Optional<Integer> pReturnPc,
+        Optional<CExpression> pReturnPcExpression) {
+
+      // this is XOR, not (true, true) and not (false, false)
+      checkArgument(
+          pReturnPc.isPresent() || pReturnPcExpression.isPresent(),
+          "either pReturnPc or pReturnPcExpression must be present");
+      checkArgument(
+          pReturnPc.isEmpty() || pReturnPcExpression.isEmpty(),
+          "either pReturnPc or pReturnPcExpression must be empty");
+      return pReturnPc.isPresent()
+          ? build(
+              pReturnPcVariable,
+              SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pReturnPc.orElseThrow()))
+          : build(pReturnPcVariable, pReturnPcExpression.orElseThrow());
     }
   }
 }

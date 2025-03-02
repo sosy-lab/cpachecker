@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
@@ -32,7 +32,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   protected SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
@@ -48,7 +48,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
   protected SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPc) {
+      CExpression pTargetPc) {
 
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
@@ -75,19 +75,13 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqParameterAssignmentStatements cloneWithTargetPc(int pTargetPc) {
-    return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqParameterAssignmentStatements cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqParameterAssignmentStatements cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
   }
 

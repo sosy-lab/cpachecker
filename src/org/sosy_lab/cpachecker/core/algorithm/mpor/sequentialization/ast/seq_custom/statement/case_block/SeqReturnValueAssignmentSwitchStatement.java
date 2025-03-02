@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -45,7 +46,7 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   protected SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
@@ -64,7 +65,7 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
       CIdExpression pReturnPc,
       ImmutableSet<FunctionReturnValueAssignment> pAssigns,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPc) {
+      CExpression pTargetPc) {
 
     assignments = pAssigns;
     returnPc = pReturnPc;
@@ -123,20 +124,13 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnValueAssignmentSwitchStatement(
-        returnPc, assignments, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqReturnValueAssignmentSwitchStatement(
         returnPc, assignments, pcLeftHandSide, pTargetPc);
   }
@@ -170,20 +164,13 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
     }
 
     @Override
-    public Optional<CIdExpression> getTargetPcExpression() {
+    public Optional<CExpression> getTargetPcExpression() {
       return Optional.empty();
     }
 
     @NonNull
     @Override
-    public SeqReturnValueAssignmentStatement cloneWithTargetPc(int pTargetPc) {
-      throw new UnsupportedOperationException(
-          this.getClass().getSimpleName() + " do not have targetPcs");
-    }
-
-    @NonNull
-    @Override
-    public SeqReturnValueAssignmentStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+    public SeqReturnValueAssignmentStatement cloneWithTargetPc(CExpression pTargetPc) {
       throw new UnsupportedOperationException(
           this.getClass().getSimpleName() + " do not have targetPcs");
     }

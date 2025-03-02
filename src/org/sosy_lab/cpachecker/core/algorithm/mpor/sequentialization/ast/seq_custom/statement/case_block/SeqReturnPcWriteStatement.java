@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
 /**
  * Represents a {@code return_pc} write, i.e. assigning the successor {@code pc} to the {@code
@@ -23,53 +23,53 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
  */
 public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
 
-  private final CIdExpression returnPcVar;
+  private final CIdExpression returnPcVariable;
 
-  private final int returnPc;
+  private final Optional<Integer> returnPc;
 
-  protected SeqReturnPcWriteStatement(CIdExpression pReturnPcVar, int pReturnPc) {
-    returnPcVar = pReturnPcVar;
-    returnPc = pReturnPc;
+  private final Optional<CExpression> returnPcExpression;
+
+  protected SeqReturnPcWriteStatement(CIdExpression pReturnPcVariable, int pReturnPc) {
+    returnPcVariable = pReturnPcVariable;
+    returnPc = Optional.of(pReturnPc);
+    returnPcExpression = Optional.empty();
+  }
+
+  protected SeqReturnPcWriteStatement(
+      CIdExpression pReturnPcVariable, CExpression pReturnPcExpression) {
+
+    returnPcVariable = pReturnPcVariable;
+    returnPc = Optional.empty();
+    returnPcExpression = Optional.of(pReturnPcExpression);
   }
 
   public CIdExpression getReturnPcVariable() {
-    return returnPcVar;
+    return returnPcVariable;
   }
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement assign =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY,
-            returnPcVar,
-            SeqIntegerLiteralExpression.buildIntegerLiteralExpression(returnPc));
-    return assign.toASTString();
+    CExpressionAssignmentStatement assignment =
+        SeqExpressionAssignmentStatement.buildReturnPcWriteByTargetPc(
+            returnPcVariable, returnPc, returnPcExpression);
+    return assignment.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
     // the return_pc is treated as a targetPc because it must be a valid targetPc
-    return Optional.of(returnPc);
+    return returnPc;
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
-    return Optional.empty();
-  }
-
-  @NonNull
-  @Override
-  public SeqReturnPcWriteStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqReturnPcWriteStatement(returnPcVar, pTargetPc);
+  public Optional<CExpression> getTargetPcExpression() {
+    return returnPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqReturnPcWriteStatement cloneWithTargetPc(CIdExpression pTargetPc) {
-    // if RETURN_PC = RETURN_PC is possible on assignment, then the function is completely prunable
-    //  -> throw exception, this should never occur
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " cannot be cloned with CIdExpression targetPc");
+  public SeqReturnPcWriteStatement cloneWithTargetPc(CExpression pTargetPc) {
+    return new SeqReturnPcWriteStatement(returnPcVariable, pTargetPc);
   }
 
   @Override

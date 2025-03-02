@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 
@@ -46,23 +46,14 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " does not have targetPcExpressions");
   }
 
   @NonNull
   @Override
-  public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
-    // we never want to clone blank statements
-    // throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be
-    // cloned");
-  }
-
-  @NonNull
-  @Override
-  public SeqBlankStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqBlankStatement cloneWithTargetPc(CExpression pTargetPc) {
     // we never want to clone blank statements
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
   }

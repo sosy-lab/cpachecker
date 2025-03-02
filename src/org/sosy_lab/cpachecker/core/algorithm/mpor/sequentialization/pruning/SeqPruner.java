@@ -14,8 +14,10 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
@@ -112,7 +114,7 @@ public class SeqPruner {
 
     SeqCaseBlockStatement nonBlankSingleStatement = pNonBlank.block.statements.get(0);
     if (nonBlankSingleStatement instanceof SeqReturnPcReadStatement) {
-      CIdExpression returnPc = nonBlankSingleStatement.getTargetPcExpression().orElseThrow();
+      CExpression returnPc = nonBlankSingleStatement.getTargetPcExpression().orElseThrow();
       // if we read a return pc (pc[i] = return_pc), then clone statement with return_pc as target
       return pStatement.cloneWithTargetPc(returnPc);
     }
@@ -122,12 +124,16 @@ public class SeqPruner {
       int nonBlankTargetPc = pNonBlank.block.statements.get(0).getTargetPc().orElseThrow();
       Verify.verify(nonBlankTargetPc == Sequentialization.EXIT_PC);
       // if the found non-blank is still blank, it must be an exit location
-      return pStatement.cloneWithTargetPc(nonBlankTargetPc);
+      CIntegerLiteralExpression targetPcExpression =
+          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(nonBlankTargetPc);
+      return pStatement.cloneWithTargetPc(targetPcExpression);
     }
 
     int nonBlankLabelPc = pNonBlank.label.value;
+    CIntegerLiteralExpression labelPcExpression =
+        SeqIntegerLiteralExpression.buildIntegerLiteralExpression(nonBlankLabelPc);
     // otherwise clone statement with the label pc of the found non-blank as target pc
-    return pStatement.cloneWithTargetPc(nonBlankLabelPc);
+    return pStatement.cloneWithTargetPc(labelPcExpression);
   }
 
   /**

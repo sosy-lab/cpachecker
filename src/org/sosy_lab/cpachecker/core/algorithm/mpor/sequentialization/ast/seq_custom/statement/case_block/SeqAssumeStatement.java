@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -27,7 +27,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   protected SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -41,7 +41,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   protected SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPcExpression) {
+      CExpression pTargetPcExpression) {
 
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
@@ -65,19 +65,13 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAssumeStatement(controlFlowStatement, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqAssumeStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqAssumeStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqAssumeStatement(controlFlowStatement, pcLeftHandSide, pTargetPc);
   }
 

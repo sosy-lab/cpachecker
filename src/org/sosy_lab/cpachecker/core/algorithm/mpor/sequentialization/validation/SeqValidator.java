@@ -13,13 +13,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
@@ -66,7 +71,12 @@ public class SeqValidator {
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        if (statement.getTargetPc().isPresent()) {
+        Optional<CExpression> targetPcExpression = statement.getTargetPcExpression();
+        if (targetPcExpression.isPresent()) {
+          if (targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression intExpression) {
+            targetPcs.add(intExpression.getValue().intValue());
+          }
+        } else if (statement.getTargetPc().isPresent()) {
           targetPcs.add(statement.getTargetPc().orElseThrow());
         }
       }
@@ -116,13 +126,14 @@ public class SeqValidator {
 
     // extract returnPcWrites and map variables to assigned values
     ImmutableList<SeqReturnPcWriteStatement> returnPcWrites =
-        extractStatements(pCaseClauses, SeqReturnPcWriteStatement.class);
+        SeqCaseClauseUtil.extractStatements(pCaseClauses, SeqReturnPcWriteStatement.class);
     ImmutableMultimap<CIdExpression, Integer> returnPcWriteMap =
         getReturnPcWriteMap(returnPcWrites);
 
     // extract returnValueAssignments (i.e. switch statements)
     ImmutableList<SeqReturnValueAssignmentSwitchStatement> switchStatements =
-        extractStatements(pCaseClauses, SeqReturnValueAssignmentSwitchStatement.class);
+        SeqCaseClauseUtil.extractStatements(
+            pCaseClauses, SeqReturnValueAssignmentSwitchStatement.class);
 
     // for each switch statement, ensure that each label is a variable in a return pc write
     for (SeqReturnValueAssignmentSwitchStatement switchStatement : switchStatements) {
@@ -145,29 +156,30 @@ public class SeqValidator {
     }
   }
 
-  private static ImmutableMultimap<CIdExpression, Integer> getReturnPcWriteMap(
+  /**
+   * Maps the variables {@code RETURN_PC} to their assigned {@code int} values based on {@code
+   * pReturnPcWrites}.
+   */
+  private static ImmutableSetMultimap<CIdExpression, Integer> getReturnPcWriteMap(
       ImmutableList<SeqReturnPcWriteStatement> pReturnPcWrites) {
 
-    ImmutableMultimap.Builder<CIdExpression, Integer> rMap = ImmutableMultimap.builder();
+    ImmutableSetMultimap.Builder<CIdExpression, Integer> rMap = ImmutableSetMultimap.builder();
     for (SeqReturnPcWriteStatement returnPcWrite : pReturnPcWrites) {
+      Optional<Integer> targetPc = returnPcWrite.getTargetPc();
+      Optional<CExpression> targetPcExpression = returnPcWrite.getTargetPcExpression();
       Verify.verify(
-          returnPcWrite.getTargetPc().isPresent(), "return pc write does not have a target pc");
-      rMap.put(returnPcWrite.getReturnPcVariable(), returnPcWrite.getTargetPc().orElseThrow());
-    }
-    return rMap.build();
-  }
-
-  private static <T extends SeqCaseBlockStatement> ImmutableList<T> extractStatements(
-      ImmutableList<SeqCaseClause> pCaseClauses, Class<T> pStatementClass) {
-
-    ImmutableList.Builder<T> rStatements = ImmutableList.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        if (pStatementClass.isInstance(statement)) {
-          rStatements.add(pStatementClass.cast(statement));
-        }
+          targetPc.isPresent()
+              || targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression,
+          "either int targetPc must pe present or targetPcExpression must be integer expression");
+      CIdExpression returnPcVariable = returnPcWrite.getReturnPcVariable();
+      if (targetPc.isPresent()) {
+        rMap.put(returnPcVariable, targetPc.orElseThrow());
+      } else {
+        CIntegerLiteralExpression intExpression =
+            (CIntegerLiteralExpression) targetPcExpression.orElseThrow();
+        rMap.put(returnPcVariable, intExpression.getValue().intValue());
       }
     }
-    return rStatements.build();
+    return rMap.build();
   }
 }

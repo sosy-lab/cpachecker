@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -33,7 +34,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   protected SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
@@ -52,7 +53,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPcExpression) {
+      CExpression pTargetPcExpression) {
 
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
@@ -102,19 +103,13 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqAtomicBeginStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqAtomicBeginStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
   }
 

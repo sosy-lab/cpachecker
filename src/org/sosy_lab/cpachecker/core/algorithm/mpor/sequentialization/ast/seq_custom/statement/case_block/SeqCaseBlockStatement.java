@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -20,21 +20,14 @@ public interface SeqCaseBlockStatement extends SeqStatement {
 
   Optional<Integer> getTargetPc();
 
-  Optional<CIdExpression> getTargetPcExpression();
+  Optional<CExpression> getTargetPcExpression();
 
   /**
    * This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. The
-   * target {@code pc} may be a {@code RETURN_PC}, thus we need a {@link CIdExpression} instead of
-   * an {@code int}.
+   * target {@code pc} may be a {@code RETURN_PC}, thus we need a {@link CExpression} instead of an
+   * {@code int}.
    */
-  @NonNull SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException;
-
-  /**
-   * This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. The
-   * target {@code pc} may be a {@code RETURN_PC}, thus we need a {@link CIdExpression} instead of
-   * an {@code int}.
-   */
-  @NonNull SeqCaseBlockStatement cloneWithTargetPc(CIdExpression pTargetPc)
+  @NonNull SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException;
 
   // TODO this can be removed later when getting rid of POR assumptions

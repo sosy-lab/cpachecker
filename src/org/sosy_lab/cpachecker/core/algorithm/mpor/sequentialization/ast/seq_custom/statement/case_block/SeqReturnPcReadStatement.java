@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -46,20 +47,13 @@ public class SeqReturnPcReadStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return Optional.of(returnPcVariable);
   }
 
   @Override
   @NonNull
-  public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
-    // we never want to clone blank statements
-    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
-  }
-
-  @Override
-  @NonNull
-  public SeqCaseBlockStatement cloneWithTargetPc(CIdExpression pTargetPc)
+  public SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException {
     // we never want to clone blank statements
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");

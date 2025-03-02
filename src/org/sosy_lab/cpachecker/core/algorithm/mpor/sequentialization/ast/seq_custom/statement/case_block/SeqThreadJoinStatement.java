@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
@@ -45,7 +46,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   private final PcVariables pcVariables;
 
@@ -78,7 +79,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,
-      CIdExpression pTargetPc,
+      CExpression pTargetPc,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -126,21 +127,13 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
-
-    return new SeqThreadJoinStatement(
-        joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
-  }
-
-  @NonNull
-  @Override
-  public SeqThreadJoinStatement cloneWithTargetPc(CIdExpression pTargetPc)
+  public SeqThreadJoinStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException {
 
     return new SeqThreadJoinStatement(

@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
@@ -30,7 +30,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   private final PcVariables pcVariables;
 
@@ -45,7 +45,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   protected SeqThreadCreationStatement(
-      int pCreatedThreadId, int pThreadId, CIdExpression pTargetPc, PcVariables pPcVariables) {
+      int pCreatedThreadId, int pThreadId, CExpression pTargetPc, PcVariables pPcVariables) {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
@@ -71,19 +71,13 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
-  }
-
-  @NonNull
-  @Override
-  public SeqThreadCreationStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqThreadCreationStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
   }
 

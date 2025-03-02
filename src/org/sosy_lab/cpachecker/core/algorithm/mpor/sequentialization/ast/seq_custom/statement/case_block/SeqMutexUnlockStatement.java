@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -29,7 +29,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   protected SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -43,7 +43,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   protected SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPc) {
+      CExpression pTargetPc) {
 
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
@@ -65,19 +65,13 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqMutexUnlockStatement cloneWithTargetPc(CIdExpression pTargetPc) {
+  public SeqMutexUnlockStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pTargetPc);
   }
 

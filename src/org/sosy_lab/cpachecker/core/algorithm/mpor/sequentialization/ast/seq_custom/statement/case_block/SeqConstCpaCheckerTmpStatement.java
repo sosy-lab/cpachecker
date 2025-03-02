@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -52,7 +53,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CIdExpression> targetPcExpression;
+  private final Optional<CExpression> targetPcExpression;
 
   private void checkArguments(
       CDeclarationEdge pDeclaration, SubstituteEdge pStatementA, SubstituteEdge pStatementB) {
@@ -102,7 +103,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
       CLeftHandSide pPcLeftHandSide,
-      CIdExpression pTargetPcExpression) {
+      CExpression pTargetPcExpression) {
 
     checkArguments(pDeclaration, pStatementA, pStatementB);
     statementA = pStatementA;
@@ -133,22 +134,13 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CIdExpression> getTargetPcExpression() {
+  public Optional<CExpression> getTargetPcExpression() {
     return targetPcExpression;
   }
 
   @NonNull
   @Override
-  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
-
-    return new SeqConstCpaCheckerTmpStatement(
-        declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
-  }
-
-  @NonNull
-  @Override
-  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(CIdExpression pTargetPc) {
-
+  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
         declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
   }
