@@ -102,13 +102,13 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   /**
    * Only call this method when there is a {@link CInitializer}.
    *
-   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code int x = 42;} then this method
-   * yields {@code x = 42;}.
+   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code extern int x = 42;} then this
+   * method yields {@code x = 42;}.
    */
-  public String toASTStringWithoutStorageClass() {
+  public String toASTStringWithOnlyNameAndInitializer() {
     // it only makes sense to call this method to extract the assignment without the storage class
     checkArgument(getInitializer() != null, "this instance does not have an initializer");
-    return getType().toASTString(getName()) + " = " + getInitializer().toASTString() + ";";
+    return getName() + " = " + getInitializer().toASTString() + ";";
   }
 
   @Override

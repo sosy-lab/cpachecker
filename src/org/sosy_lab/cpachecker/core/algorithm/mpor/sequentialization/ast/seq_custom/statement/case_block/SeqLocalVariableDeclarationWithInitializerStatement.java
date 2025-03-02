@@ -12,15 +12,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqCaseBlockStatement {
 
-  private final CVariableDeclaration variableDeclaration;
+  private final CDeclaration declaration;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -28,30 +31,32 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
 
   private final Optional<CExpression> targetPcExpression;
 
-  private void checkArguments(CVariableDeclaration pVariableDeclaration) {
-    checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
+  private void checkArguments(CDeclaration pDeclaration) {
     checkArgument(
-        pVariableDeclaration.getInitializer() != null,
-        "pVariableDeclaration must have an initializer");
+        pDeclaration instanceof CVariableDeclaration || pDeclaration instanceof CTypeDeclaration,
+        "pDeclaration must be variable or type declaration");
+    checkArgument(!pDeclaration.isGlobal(), "pDeclaration must be local");
+    if (pDeclaration instanceof CVariableDeclaration variableDeclaration) {
+      checkArgument(
+          variableDeclaration.getInitializer() != null, "pDeclaration must have an initializer");
+    }
   }
 
   SeqLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      CDeclaration pDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
-    checkArguments(pVariableDeclaration);
-    variableDeclaration = pVariableDeclaration;
+    checkArguments(pDeclaration);
+    declaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration,
-      CLeftHandSide pPcLeftHandSide,
-      CExpression pTargetPc) {
+      CDeclaration pDeclaration, CLeftHandSide pPcLeftHandSide, CExpression pTargetPc) {
 
-    checkArguments(pVariableDeclaration);
-    variableDeclaration = pVariableDeclaration;
+    checkArguments(pDeclaration);
+    declaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
@@ -62,7 +67,20 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
             pcLeftHandSide, targetPc, targetPcExpression);
-    return variableDeclaration.toASTStringWithoutStorageClass() + pcWrite.toASTString();
+    if (declaration instanceof CVariableDeclaration variableDeclaration) {
+      return variableDeclaration.toASTStringWithOnlyNameAndInitializer()
+          + SeqSyntax.SPACE
+          + pcWrite.toASTString();
+    } else {
+      // TODO test this
+      throw new AssertionError(
+          "type def declarations inside functions are currently not supported");
+      /*Verify.verify(declaration instanceof CTypeDeclaration);
+      CTypeDeclaration typeDeclaration = (CTypeDeclaration) declaration;
+      return typeDeclaration.toASTString()
+          + SeqSyntax.SPACE
+          + pcWrite.toASTString();*/
+    }
   }
 
   @Override
@@ -81,7 +99,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
       CExpression pTargetPc) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        variableDeclaration, pcLeftHandSide, pTargetPc);
+        declaration, pcLeftHandSide, pTargetPc);
   }
 
   @Override

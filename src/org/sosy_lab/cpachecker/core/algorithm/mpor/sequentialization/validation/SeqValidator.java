@@ -31,6 +31,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqValidator {
 
+  // TODO add a method that checks if the final sequentialization can be compiled
+  //  similar to unit tests. but add an option to disable. default is enabled
+  //  then we can remove the compile test entirely from unit tests
+
   /**
    * Returns {@code pCaseClauses} as is or throws an {@link AssertionError} if:
    *
