@@ -21,7 +21,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
@@ -58,7 +57,7 @@ public class SeqValidator {
         checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
         checkTargetPcsAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
-      checkReturnValueAssignmentLabelPc(entry.getValue());
+      checkReturnValueAssignmentLabelPc(entry.getValue(), pLogger);
     }
     return pCaseClauses;
   }
@@ -86,15 +85,16 @@ public class SeqValidator {
   }
 
   private static void checkLabelPcAsTargetPc(
-      int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger) {
+      int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger)
+      throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
     if (pLabelPc != Sequentialization.INIT_PC) {
       if (!pAllTargetPc.contains(pLabelPc)) {
-        String message =
-            "label pc " + pLabelPc + " does not exist as target pc in thread " + pThreadId;
-        pLogger.log(Level.SEVERE, message);
-        MPORAlgorithm.fail(message);
+        handleValidationException(
+            String.format(
+                "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
+            pLogger);
       }
     }
   }
@@ -103,16 +103,17 @@ public class SeqValidator {
       ImmutableSet<Integer> pTargetPcs,
       ImmutableSet<Integer> pLabelPcs,
       int pThreadId,
-      LogManager pLogger) {
+      LogManager pLogger)
+      throws IllegalArgumentException {
 
     for (int targetPc : pTargetPcs) {
       // exclude EXIT_PC, it is never present as a label pc
       if (targetPc != Sequentialization.EXIT_PC) {
         if (!pLabelPcs.contains(targetPc)) {
-          String message =
-              "target pc " + targetPc + " does not exist as label pc in thread " + pThreadId;
-          pLogger.log(Level.SEVERE, message);
-          MPORAlgorithm.fail(message);
+          handleValidationException(
+              String.format(
+                  "target pc %s does not exist as label pc in thread %s", targetPc, pThreadId),
+              pLogger);
         }
       }
     }
@@ -122,7 +123,8 @@ public class SeqValidator {
    * Ensures that the label {@code pc} in {@link SeqReturnValueAssignmentSwitchStatement} are at
    * some point assigned to the respective {@code RETURN_PC} in {@code pCaseClauses}.
    */
-  private static void checkReturnValueAssignmentLabelPc(ImmutableList<SeqCaseClause> pCaseClauses) {
+  private static void checkReturnValueAssignmentLabelPc(
+      ImmutableList<SeqCaseClause> pCaseClauses, LogManager pLogger) {
 
     // extract returnPcWrites and map variables to assigned values
     ImmutableList<SeqReturnPcWriteStatement> returnPcWrites =
@@ -139,19 +141,25 @@ public class SeqValidator {
     for (SeqReturnValueAssignmentSwitchStatement switchStatement : switchStatements) {
       // we switch over the return_pc: switch(return_pc) ...
       CIdExpression switchExpression = switchStatement.getReturnPc();
-      Verify.verify(
-          returnPcWriteMap.containsKey(switchExpression),
-          "return value assignment switch expression %s is not a written RETURN_PC in pCaseClauses",
-          switchExpression.toASTString());
+      if (!returnPcWriteMap.containsKey(switchExpression)) {
+        handleValidationException(
+            String.format(
+                "return value assignment switch expression %s is not a written RETURN_PC in"
+                    + " pCaseClauses",
+                switchExpression.toASTString()),
+            pLogger);
+      }
       for (FunctionReturnValueAssignment assignment : switchStatement.assignments) {
         CIdExpression assignmentReturnPc = assignment.returnPcWrite.variable;
         int assignmentLabel = assignment.returnPcWrite.value;
-        //
-        Verify.verify(
-            returnPcWriteMap.get(assignmentReturnPc).contains(assignmentLabel),
-            "the return pc %s is never assigned the label pc %s",
-            assignmentReturnPc.toASTString(),
-            assignmentLabel);
+        // ensure that each label pc is at some point assigned to the respective return_pc
+        if (!returnPcWriteMap.get(assignmentReturnPc).contains(assignmentLabel)) {
+          handleValidationException(
+              String.format(
+                  "the return pc %s is never assigned the label pc %s",
+                  assignmentReturnPc.toASTString(), assignmentLabel),
+              pLogger);
+        }
       }
     }
   }
@@ -167,6 +175,7 @@ public class SeqValidator {
     for (SeqReturnPcWriteStatement returnPcWrite : pReturnPcWrites) {
       Optional<Integer> targetPc = returnPcWrite.getTargetPc();
       Optional<CExpression> targetPcExpression = returnPcWrite.getTargetPcExpression();
+      // we want to ensure that we never write return_pc = return_pc
       Verify.verify(
           targetPc.isPresent()
               || targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression,
@@ -181,5 +190,10 @@ public class SeqValidator {
       }
     }
     return rMap.build();
+  }
+
+  private static void handleValidationException(String pMessage, LogManager pLogger) {
+    pLogger.log(Level.SEVERE, pMessage);
+    throw new IllegalArgumentException(pMessage);
   }
 }
