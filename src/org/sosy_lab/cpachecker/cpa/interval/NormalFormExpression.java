@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /**
@@ -37,17 +39,36 @@ public class NormalFormExpression {
   }
 
   public boolean isSyntacticallyLessThanOrEqualTo(NormalFormExpression other) {
-    if (!variable.equals(other.variable)) {
+    if (variable == null) {
+      if (other.variable != null) {
+        return false;
+      }
+    } else if (!variable.equals(other.variable)) {
       return false;
     }
     return constant <= other.constant;
   }
 
   public boolean isSyntacticallyGreaterThanOrEqualTo(NormalFormExpression other) {
-    if (!variable.equals(other.variable)) {
+    if (variable == null) {
+      if (other.variable != null) {
+        return false;
+      }
+    } else if (!variable.equals(other.variable)) {
       return false;
     }
     return constant >= other.constant;
+  }
+
+  public static boolean anyInSets(Set<NormalFormExpression> set, Set<NormalFormExpression> other, BiPredicate<NormalFormExpression, NormalFormExpression> predicate) {
+    for (NormalFormExpression a : set) {
+      for (NormalFormExpression b : other) {
+        if (predicate.test(a, b)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public NormalFormExpression add(Long add) {

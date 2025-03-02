@@ -2,6 +2,8 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.getIntegerExpression;
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementExpression;
+import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyGreaterThanOrEqualTo;
+import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyLessThanOrEqualTo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,7 +13,6 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
@@ -301,16 +302,14 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   }
 
   private static boolean isLessEqualThan(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
-    Interval intervalA;
-    Interval intervalB;
     try {
-      intervalA = a.accept(visitor);
-      intervalB = b.accept(visitor);
+      if (isSyntacticallyLessThanOrEqualTo(a, b, visitor)) {
+        return true;
+      }
+      return b.accept(visitor).isGreaterThan(a.accept(visitor));
     } catch (UnrecognizedCodeException pE) {
       return false;
     }
-
-    return intervalB.isGreaterThan(intervalA);
   }
 
   private int getLeastUpperBoundIndex(Set<CExpression> expressions, ExpressionValueVisitor visitor) {
@@ -335,16 +334,14 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   }
 
   private static boolean isGreaterEqualThan(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
-    Interval intervalA;
-    Interval intervalB;
     try {
-      intervalA = a.accept(visitor);
-      intervalB = b.accept(visitor);
+      if (isSyntacticallyGreaterThanOrEqualTo(a, b, visitor)) {
+        return true;
+      }
+      return a.accept(visitor).isGreaterOrEqualThan(b.accept(visitor));
     } catch (UnrecognizedCodeException pE) {
       return false;
     }
-
-    return intervalA.isGreaterOrEqualThan(intervalB);
   }
 
   /**

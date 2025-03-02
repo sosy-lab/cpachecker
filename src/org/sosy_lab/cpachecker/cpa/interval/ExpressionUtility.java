@@ -61,7 +61,7 @@ public class ExpressionUtility {
     } else if (expression instanceof CIdExpression idExpression) {
       return normalizeIdExpression(idExpression, visitor);
     } else if (expression instanceof CIntegerLiteralExpression literalExpression) {
-      return normalizeLiteralExpression(literalExpression, visitor);
+      return normalizeLiteralExpression(literalExpression);
     }
     // Normalization of other types of expressions not yet implemented
     return Set.of();
@@ -130,11 +130,35 @@ public class ExpressionUtility {
     return normalFormExpressions;
   }
 
-  public static Set<NormalFormExpression> normalizeLiteralExpression(CIntegerLiteralExpression expression, ExpressionValueVisitor visitor) {
+  public static Set<NormalFormExpression> normalizeLiteralExpression(CIntegerLiteralExpression expression) {
     return Set.of(new NormalFormExpression(expression.asLong()));
   }
 
   public static CExpression invertExpression(CExpression expression) {
     return new CUnaryExpression(expression.getFileLocation(), expression.getExpressionType(), expression, UnaryOperator.MINUS);
+  }
+
+  public static boolean isSyntacticallyGreaterThanOrEqualTo(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+    try {
+      return NormalFormExpression.anyInSets(
+          normalizeExpression(a, visitor),
+          normalizeExpression(b, visitor),
+          (normalA,normalB) -> normalA.isSyntacticallyGreaterThanOrEqualTo(normalB)
+      );
+    } catch (UnrecognizedCodeException pE) {
+      return false;
+    }
+  }
+
+  public static boolean isSyntacticallyLessThanOrEqualTo(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+    try {
+      return NormalFormExpression.anyInSets(
+          normalizeExpression(a, visitor),
+          normalizeExpression(b, visitor),
+          (normalA,normalB) -> normalA.isSyntacticallyLessThanOrEqualTo(normalB)
+      );
+    } catch (UnrecognizedCodeException pE) {
+      return false;
+    }
   }
 }
