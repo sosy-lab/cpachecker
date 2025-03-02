@@ -42,10 +42,10 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.pjbdd.api.Builders;
-import org.sosy_lab.pjbdd.api.Builders.ParallelizationType;
 import org.sosy_lab.pjbdd.api.Creator;
 import org.sosy_lab.pjbdd.api.CreatorBuilder;
 import org.sosy_lab.pjbdd.api.DD;
+import org.sosy_lab.pjbdd.api.IntCreatorBuilder;
 
 public class PJBDDRegionManager implements RegionManager {
 
@@ -210,13 +210,6 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
-    @IntegerOption(min = 1)
-    private int threads = Runtime.getRuntime().availableProcessors();
-
-    @Option(
-        secure = true,
-        description =
             "Initial size of the BDD node table in percentage of available Java heap memory (only"
                 + " used if initTableSize is 0).")
     private double initTableRatio = 0.001;
@@ -234,71 +227,63 @@ public class PJBDDRegionManager implements RegionManager {
                 + " cache size).")
     private double cacheRatio = 0.1;
 
-    @Option(secure = true, description = "Use internal a int based bdd representation.")
-    private boolean useInts = false;
-
     // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.
     private static final List<String> ALL_BDD_TYPES =
-        ImmutableList.of("BDD", "ChainedBDD", "TBDD", "TaggedDD");
+        ImmutableList.of("BDD", "CBDD", "TBDD", "TaggedDD", "IntDD");
 
     @Option(
         secure = true,
         description = "Type of BDD used in PJBDD.",
-        values = {"BDD", "ChainedBDD", "TBDD", "TaggedDD"})
+        values = {"BDD", "CBDD", "TBDD", "TaggedDD", "IntDD"})
     private String useDDType = "BDD";
 
-    @Option(secure = true, description = "Disable thread safe bdd operations.")
-    private boolean disableThreadSafety = false;
-
-    @Option(secure = true, description = "Enable Synchronized Reordering")
-    private boolean synchronizeReordering = false;
+    @Option(
+        secure = true,
+        description = "Type of Parallelization used in PJBDD",
+        values = {"ForkJoin", "CompletableFuture", "Future", "Guava", "Stream", "None"})
+    private String parallelizationType = "None";
 
     @Option(
         secure = true,
         description = "Type of Table used in PJBDD",
-        values = {"HashSet", "HashBucket", "CASArray", "Array"})
-    private String uniqueTableType = "Array";
+        values = {"ConcurrentHashBucket", "ConcurrentHashMap", "CASArray", "Array"})
+    private String tableType = "Array";
+
+    @Option(secure = true, description = "Enable Synchronized Reordering in PJBDD")
+    private boolean synchronizeReordering = false;
+
+    @Option(secure = true, description = "Enable Apply Algorithm in PJBDD")
+    private boolean useApply = true;
 
     @Option(
         secure = true,
-        description = "Type of Creator used in PJBDD",
-        values = {
-          "ForkJoin",
-          "ApplyOp",
-          "SerialApply",
-          "CompletableApply",
-          "CompletableFuture",
-          "Future",
-          "Stream",
-          "Serial",
-          "Guava",
-          "CBDD",
-          "ConcurrentCBDD"
-        })
-    private String creatorType = "ApplyOp";
+        description =
+            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
+    @IntegerOption(min = 1)
+    private int threads = Runtime.getRuntime().availableProcessors();
+
+    @Option(secure = true, description = "Thread safe bdd operations.")
+    private boolean threadSafety = true;
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
-    }
-
-    protected String getUseDDType() {
-      return useDDType;
     }
 
     protected List<String> getAllValidBDDTypes() {
       return ALL_BDD_TYPES;
     }
 
-    private Creator makeCreator() {
-      if (useInts) {
-        CreatorBuilder intBuilder = Builders.intBuilder();
-        resolveProperties(intBuilder);
-        return intBuilder.build();
-      }
+    protected String getUseDDType() {
+      return useDDType;
+    }
 
+    private Creator makeCreator() {
       CreatorBuilder builder;
       switch (useDDType) {
-        case "ChainedBDD":
+        case "BDD":
+          builder = Builders.bddBuilder();
+          break;
+        case "CBDD":
           builder = Builders.cbddBuilder();
           break;
         case "TaggedDD":
@@ -307,18 +292,22 @@ public class PJBDDRegionManager implements RegionManager {
         case "TBDD":
           builder = Builders.newTBDDBuilder();
           break;
-        case "BDD":
-          builder = Builders.bddBuilder();
+        case "IntDD":
+          builder = Builders.intBuilder();
+          if (synchronizeReordering) {
+            builder.disableThreadSafety();
+            builder = ((IntCreatorBuilder) builder).disableGC();
+          }
           break;
         default:
           throw new IllegalArgumentException("Unknown DD type");
       }
+
       resolveProperties(builder);
       return builder.build();
     }
 
     private void resolveProperties(CreatorBuilder pBuilder) {
-
       if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
         initTableSize = 100000;
       }
@@ -326,20 +315,38 @@ public class PJBDDRegionManager implements RegionManager {
         double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
         initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
       }
-
       if (cacheSize == 0) {
         cacheSize = (int) (initTableSize * cacheRatio);
         cacheSize = Math.max(cacheSize, 100000);
       }
 
-      if (disableThreadSafety) {
-        pBuilder.disableThreadSafety();
+      switch (parallelizationType) {
+        case "ForkJoin":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
+          break;
+        case "CompletableFuture":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.COMPLETABLE_FUTURE);
+          break;
+        case "Future":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.FUTURE);
+          break;
+        case "Guava":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.GUAVA_FUTURE);
+          break;
+        case "Stream":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.STREAM);
+          break;
+        case "NONE":
+          pBuilder.setParallelizationType(Builders.ParallelizationType.NONE);
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown Creator type");
       }
-      switch (uniqueTableType) {
-        case "HashSet":
+      switch (tableType) {
+        case "ConcurrentHashMap":
           pBuilder.setTableType(Builders.TableType.ConcurrentHashMap);
           break;
-        case "HashBucket":
+        case "ConcurrentHashBucket":
           pBuilder.setTableType(Builders.TableType.ConcurrentHashBucket);
           break;
         case "CASArray":
@@ -351,53 +358,13 @@ public class PJBDDRegionManager implements RegionManager {
         default:
           throw new IllegalArgumentException("Unknown Uniquetable type");
       }
-      switch (creatorType) {
-        case "ForkJoin":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
-          break;
-        case "ApplyOp":
-          pBuilder.setUseApply(true).setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
-          break;
-        case "SerialApply":
-          pBuilder.setUseApply(true).setParallelizationType(Builders.ParallelizationType.NONE);
-          break;
-        case "CompletableApply":
-          pBuilder
-              .setUseApply(true)
-              .setParallelizationType(Builders.ParallelizationType.COMPLETABLE_FUTURE);
-          break;
-        case "CompletableFuture":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.COMPLETABLE_FUTURE);
-          break;
-        case "Future":
-          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.FUTURE);
-          break;
-        case "Stream":
-          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.STREAM);
-          break;
-        case "Serial":
-          pBuilder.setUseApply(false).setParallelizationType(Builders.ParallelizationType.NONE);
-          break;
-        case "Guava":
-          pBuilder
-              .setUseApply(false)
-              .setParallelizationType(Builders.ParallelizationType.GUAVA_FUTURE);
-          break;
-        case "CBDD":
-          pBuilder.setParallelizationType(Builders.ParallelizationType.NONE);
-          break;
-        case "ConcurrentCBDD":
-          pBuilder.setParallelizationType(Builders.ParallelizationType.FORK_JOIN);
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown Creator type");
-      }
       if (synchronizeReordering) {
         pBuilder.synchronizeReorderingOperations();
+      }
+      pBuilder.setUseApply(useApply);
+      pBuilder.setThreads(threads);
+      if (!threadSafety) {
+        pBuilder.disableThreadSafety();
       }
 
       pBuilder
@@ -407,9 +374,6 @@ public class PJBDDRegionManager implements RegionManager {
           .setThreads(threads)
           .setTableSize(initTableSize)
           .setIncreaseFactor(increaseFactor);
-      if (threads == 1) {
-        pBuilder.setParallelizationType(ParallelizationType.NONE);
-      }
     }
   }
 
