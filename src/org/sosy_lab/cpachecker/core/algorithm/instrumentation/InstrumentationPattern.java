@@ -252,6 +252,9 @@ public class InstrumentationPattern {
   private String removeIndicesOfVariablesWithSameName(CExpression pOperand, CFAEdge pCFAEdge) {
     String rawStatement = pCFAEdge.getRawStatement();
     String operandWithoutIndex = pOperand.toASTString();
+    if (operandWithoutIndex.contains("__CPAchecker_TMP")) {
+      return operandWithoutIndex;
+    }
     if (!rawStatement.contains(operandWithoutIndex) && operandWithoutIndex.contains("__")) {
       return operandWithoutIndex.substring(0, operandWithoutIndex.lastIndexOf("__"));
     }
