@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,7 +38,16 @@ public class ExpressionUtility {
     return CIntegerLiteralExpression.createDummyLiteral(value, CONCRETE_INDEX_TYPE);
   }
 
-  public static CBinaryExpression incrementExpression(CExpression expression, long amount) {
+  public static CExpression incrementExpression(CExpression expression, long amount) {
+
+    if (expression instanceof CIntegerLiteralExpression literalExpression) {
+      return new CIntegerLiteralExpression(
+          expression.getFileLocation(),
+          expression.getExpressionType(),
+          literalExpression.getValue().add(BigInteger.valueOf(amount))
+      );
+    }
+
     return new CBinaryExpression(
         expression.getFileLocation(),
         expression.getExpressionType(),
