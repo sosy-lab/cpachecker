@@ -170,8 +170,13 @@ public class SeqDeclarationBuilder {
     }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
-    rFunctionDeclarations.add(
-        LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
+    if (pOptions.signedNextThread) {
+      rFunctionDeclarations.add(
+          LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
+    } else {
+      rFunctionDeclarations.add(
+          LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_UINT.toASTString()));
+    }
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ABORT.toASTString()));
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.REACH_ERROR.toASTString()));
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSUME.toASTString()));

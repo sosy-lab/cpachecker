@@ -21,6 +21,7 @@ int main() {
     pthread_t id1, id2;
     pthread_create(&id1, (void *) 0, task1, (void *) 0);
     pthread_create(&id2, (void *) 0, task2, (void *) 0);
+    typedef unsigned int typedef_inside_function;
     pthread_join(id1, (void *) 0);
     pthread_join(id2, (void *) 0);
     if (x < 2) {

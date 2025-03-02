@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -219,10 +218,9 @@ public class SeqCaseBlockStatementBuilder {
     // "leftover" declarations should be local variables with an initializer
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
     checkArgument(
-        declaration instanceof CVariableDeclaration || declaration instanceof CTypeDeclaration,
-        "pDeclarationEdge must declare variable");
+        declaration instanceof CVariableDeclaration, "pDeclarationEdge must declare variable");
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        declaration, pPcLeftHandSide, pTargetPc);
+        (CVariableDeclaration) declaration, pPcLeftHandSide, pTargetPc);
   }
 
   private static SeqReturnPcWriteStatement buildReturnPcWriteStatement(

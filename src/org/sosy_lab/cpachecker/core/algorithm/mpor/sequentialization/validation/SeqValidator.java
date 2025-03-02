@@ -36,7 +36,10 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class SeqValidator {
 
-  /** Returns {@code pSequentialization} as is if CPAchecker can parse it or reports an error. */
+  /**
+   * Returns {@code pSequentialization} as is if CPAchecker can parse it, reports an error
+   * otherwise.
+   */
   public static String validateProgramParsing(
       String pSequentialization, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
       throws InvalidConfigurationException, ParserException, InterruptedException {
