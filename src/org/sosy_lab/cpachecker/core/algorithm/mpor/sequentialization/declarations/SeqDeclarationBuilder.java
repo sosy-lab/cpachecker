@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -61,7 +62,11 @@ public class SeqDeclarationBuilder {
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalDeclarations();
-    rGlobalDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(globalDeclarations));
+    for (CVariableDeclaration globalDeclaration : globalDeclarations) {
+      if (!PthreadUtil.isPthreadObjectType(globalDeclaration.getType())) {
+        rGlobalDeclarations.add(LineOfCodeUtil.buildLineOfCode(globalDeclaration));
+      }
+    }
     if (pOptions.comments) {
       rGlobalDeclarations.add(LineOfCode.empty());
     }
@@ -78,13 +83,15 @@ public class SeqDeclarationBuilder {
     for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
-        if (localDeclaration.getInitializer() == null) {
-          // no initializer -> add declaration as is
-          rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
-        } else {
-          // initializer -> add declaration without initializer (and assign later in cases)
-          rLocalDeclarations.add(
-              LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));
+        if (!PthreadUtil.isPthreadObjectType(localDeclaration.getType())) {
+          if (localDeclaration.getInitializer() == null) {
+            // no initializer -> add declaration as is
+            rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
+          } else {
+            // initializer -> add declaration without initializer (and assign later in cases)
+            rLocalDeclarations.add(
+                LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));
+          }
         }
       }
     }
@@ -104,7 +111,11 @@ public class SeqDeclarationBuilder {
     for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarations();
-      rParameterDeclarations.addAll(LineOfCodeUtil.buildLinesOfCode(parameterDeclarations));
+      for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
+        if (!PthreadUtil.isPthreadObjectType(parameterDeclaration.getType())) {
+          rParameterDeclarations.add(LineOfCodeUtil.buildLineOfCode(parameterDeclaration));
+        }
+      }
     }
     if (pOptions.comments) {
       rParameterDeclarations.add(LineOfCode.empty());

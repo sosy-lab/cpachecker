@@ -160,6 +160,8 @@ public class Sequentialization {
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
     rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(options, threads));
+    // for variable declarations, we exclude pthread objects such as pthread_t
+    // they should only be used with pthread methods, all of which are not in the sequentialization
     rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(options, mainThreadSubstitution));
     rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(options, substitutions.values()));
     rProgram.addAll(

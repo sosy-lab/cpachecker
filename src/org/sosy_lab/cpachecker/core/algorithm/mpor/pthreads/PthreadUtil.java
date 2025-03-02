@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -104,7 +106,7 @@ public class PthreadUtil {
    * Returns true if {@code pCfaEdge} assigns a {@code PTHREAD_MUTEX_INITIALIZER}:
    *
    * <ul>
-   *   <li>{@code pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;}
+   *   <li>{@code pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;} or
    *   <li>{@code m = PTHREAD_MUTEX_INITIALIZER;} where m is a {@code pthread_mutex_t} declared
    *       beforehand
    * </ul>
@@ -138,6 +140,16 @@ public class PthreadUtil {
       // preprocessing yields initializer lists for PTHREAD_MUTEX_INITIALIZER
       // see e.g. goblint-regression/13-privatized_34-traces-minepp-L-needs-to-be-um_true
       return pVariableDeclaration.getInitializer() instanceof CInitializerList;
+    }
+    return false;
+  }
+
+  public static boolean isPthreadObjectType(CType pType) {
+    String typeName = SeqStringUtil.getTypeName(pType);
+    for (PthreadObjectType pthreadObjectType : PthreadObjectType.values()) {
+      if (typeName.equals(pthreadObjectType.name)) {
+        return true;
+      }
     }
     return false;
   }

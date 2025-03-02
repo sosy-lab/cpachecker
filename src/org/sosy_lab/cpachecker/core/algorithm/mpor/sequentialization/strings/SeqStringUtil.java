@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
@@ -74,6 +75,11 @@ public class SeqStringUtil {
 
   public static Iterable<String> splitOnNewline(String pString) {
     return newlineSplitter.split(pString);
+  }
+
+  /** {@link CType#toString()} yields a trailing white space, this function strips it. */
+  public static String getTypeName(CType pType) {
+    return pType.toString().strip();
   }
 
   /** Returns the number of lines, i.e. the amount of \n + 1 in pString. */

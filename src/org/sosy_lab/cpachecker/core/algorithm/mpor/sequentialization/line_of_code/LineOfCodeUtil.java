@@ -57,8 +57,13 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
     for (T astNode : pAstNodes) {
-      rLinesOfCode.addAll(buildLinesOfCode(astNode.toASTString()));
+      rLinesOfCode.add(buildLineOfCode(astNode));
     }
     return rLinesOfCode.build();
+  }
+
+  /** Return the single {@link LineOfCode} for pAstNode. */
+  public static <T extends CAstNode> LineOfCode buildLineOfCode(T pAstNode) {
+    return LineOfCode.of(0, pAstNode.toASTString());
   }
 }
