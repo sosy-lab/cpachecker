@@ -16,6 +16,7 @@ import com.google.common.primitives.Longs;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class Interval implements Serializable {
   @Serial private static final long serialVersionUID = 4223098080993616295L;
@@ -522,5 +523,19 @@ public final class Interval implements Serializable {
    */
   public static Interval createUpperBoundedInterval(Long upperBound) {
     return new Interval(Long.MIN_VALUE, upperBound);
+  }
+
+  /**
+   * Returns the unique concrete value that is abstracted by this interval, if upper bound is the
+   * same is the lower bound. Returns an empty optional otherwise. This is being used in normalizing
+   * expressions for FunArray.
+   *
+   * @return the unique concrete value abstracted by this interval.
+   */
+  public Optional<Long> getUniqueConcreteValue() {
+    if (low.equals(high)) {
+      return Optional.of(low);
+    }
+    return Optional.empty();
   }
 }

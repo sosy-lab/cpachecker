@@ -26,6 +26,16 @@ public class NormalFormExpression {
     constant = pConstant;
   }
 
+  public NormalFormExpression(long pConstant) {
+    variable = null;
+    constant = pConstant;
+  }
+
+  public NormalFormExpression(CIdExpression pVariable) {
+    variable = pVariable;
+    constant = 0;
+  }
+
   public boolean isSyntacticallyLessThanOrEqualTo(NormalFormExpression other) {
     if (!variable.equals(other.variable)) {
       return false;
@@ -38,6 +48,28 @@ public class NormalFormExpression {
       return false;
     }
     return constant >= other.constant;
+  }
+
+  public NormalFormExpression add(Long add) {
+    return new NormalFormExpression(variable, constant + add);
+  }
+
+  @Override
+  public String toString() {
+    if (variable == null) {
+      return Long.toString(constant);
+    }
+    StringBuilder sb = new StringBuilder();
+    sb.append(variable.getDeclaration().getQualifiedName());
+
+    if (constant == 0) {
+      return sb.toString();
+    }
+    if (constant > 0) {
+      sb.append("+");
+    }
+    sb.append(constant);
+    return sb.toString();
   }
 
 }
