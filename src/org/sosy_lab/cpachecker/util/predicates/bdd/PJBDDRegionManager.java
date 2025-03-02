@@ -371,7 +371,6 @@ public class PJBDDRegionManager implements RegionManager {
           .setParallelism(tableParallelism)
           .setVarCount(varCount)
           .setCacheSize(cacheSize)
-          .setThreads(threads)
           .setTableSize(initTableSize)
           .setIncreaseFactor(increaseFactor);
     }
