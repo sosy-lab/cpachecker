@@ -212,7 +212,6 @@ public enum PthreadFunctionType {
       Optional.empty());
 
   // TODO unsure about pthread_yield
-  //  pthread_mutex_t amutex = PTHREAD_MUTEX_INITIALIZER; // also used instead of mutex init
   //  pthread_barrier stuff
   //  etc. probably a lot more things
 
@@ -298,14 +297,14 @@ public enum PthreadFunctionType {
    * Tries to extract the {@link CFunctionCallStatement} from pEdge and returns true if it is a call
    * to pFuncType.
    */
-  public static boolean callsPthreadFunc(CFAEdge pEdge, PthreadFunctionType pFuncType) {
+  public static boolean callsPthreadFunction(CFAEdge pEdge, PthreadFunctionType pFuncType) {
     return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
         && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
   }
 
   public static boolean callsAnyPthreadFunc(CFAEdge pEdge) {
     for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (callsPthreadFunc(pEdge, funcType)) {
+      if (callsPthreadFunction(pEdge, funcType)) {
         return true;
       }
     }
@@ -315,7 +314,7 @@ public enum PthreadFunctionType {
   public static boolean callsAnyPthreadFuncWithPthreadT(CFAEdge pEdge) {
     for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.pthreadTIndex.isPresent()) {
-        if (callsPthreadFunc(pEdge, funcType)) {
+        if (callsPthreadFunction(pEdge, funcType)) {
           return true;
         }
       }
@@ -326,7 +325,7 @@ public enum PthreadFunctionType {
   public static boolean callsAnyPthreadFuncWithPthreadMutexT(CFAEdge pEdge) {
     for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.pthreadMutexTIndex.isPresent()) {
-        if (callsPthreadFunc(pEdge, funcType)) {
+        if (callsPthreadFunction(pEdge, funcType)) {
           return true;
         }
       }
@@ -337,7 +336,7 @@ public enum PthreadFunctionType {
   public static boolean callsAnyPthreadFuncWithStartRoutine(CFAEdge pEdge) {
     for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.startRoutineIndex.isPresent()) {
-        if (callsPthreadFunc(pEdge, funcType)) {
+        if (callsPthreadFunction(pEdge, funcType)) {
           return true;
         }
       }

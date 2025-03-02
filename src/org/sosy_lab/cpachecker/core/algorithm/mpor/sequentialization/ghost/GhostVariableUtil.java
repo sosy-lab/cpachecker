@@ -8,13 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost;
 
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType.PTHREAD_MUTEX_LOCK;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -110,28 +114,33 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
-      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+      ImmutableSet<MPORThread> pThreads,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
+    Set<CIdExpression> mutexes = new HashSet<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        assert pSubEdges.containsKey(threadEdge);
-        SubstituteEdge sub = pSubEdges.get(threadEdge);
-        assert sub != null;
-        // TODO mutexes can also be init with pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-        if (PthreadFunctionType.callsPthreadFunc(
-            sub.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_INIT)) {
+        assert pSubstituteEdges.containsKey(threadEdge);
+        SubstituteEdge substituteEdge = pSubstituteEdges.get(threadEdge);
+        assert substituteEdge != null;
+        CFAEdge cfaEdge = substituteEdge.cfaEdge;
+
+        // extract pthread_mutex_t based on function calls to pthread_mutex_lock
+        if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
-          CIdExpression subPthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-          String varName = SeqNameUtil.buildMutexLockedName(subPthreadMutexT.getName());
-          CIdExpression mutexLocked =
-              SeqIdExpression.buildIdExpressionWithIntegerInitializer(
-                  varName, SeqInitializer.INT_0);
-          rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
+          if (mutexes.add(pthreadMutexT)) { // add mutexes only once
+            CIdExpression substitutePthreadMutexT =
+                PthreadUtil.extractPthreadMutexT(substituteEdge.cfaEdge);
+            String varName = SeqNameUtil.buildMutexLockedName(substitutePthreadMutexT.getName());
+            CIdExpression mutexLocked =
+                SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                    varName, SeqInitializer.INT_0);
+            rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
+          }
         }
       }
     }
-    // if the same mutex is init twice (i.e. undefined behavior), this throws an exception
     return rVars.buildOrThrow();
   }
 
@@ -147,7 +156,7 @@ public class GhostVariableUtil {
         assert pSubEdges.containsKey(threadEdge);
         SubstituteEdge sub = pSubEdges.get(threadEdge);
         assert sub != null;
-        if (PthreadFunctionType.callsPthreadFunc(
+        if (PthreadFunctionType.callsPthreadFunction(
             sub.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
           CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
           // multiple lock calls within one thread to the same mutex are possible -> only need one
@@ -175,7 +184,7 @@ public class GhostVariableUtil {
       Map<MPORThread, ThreadJoinsThread> targetThreads = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFunctionType.callsPthreadFunc(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
+        if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
           MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
@@ -199,7 +208,7 @@ public class GhostVariableUtil {
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFunctionType.callsPthreadFunc(
+        if (PthreadFunctionType.callsPthreadFunction(
             cfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
           String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
           CIdExpression begin =

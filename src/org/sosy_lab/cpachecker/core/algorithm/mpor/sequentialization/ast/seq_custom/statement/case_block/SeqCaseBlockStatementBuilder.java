@@ -457,7 +457,13 @@ public class SeqCaseBlockStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
+    } else if (PthreadUtil.assignsPthreadMutexInitializer(pSubstituteEdge.cfaEdge)) {
+      // PTHREAD_MUTEX_INITIALIZER are similar to pthread_mutex_init, we exclude it
+      return true;
+
     } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
+      // IMPORTANT: this step (checking for declaration edges) must come after checking for
+      // PTHREAD_MUTEX_INITIALIZER (which may be inside a CDeclarationEdge too!)
       CDeclaration declaration = declarationEdge.getDeclaration();
       if (declaration instanceof CVariableDeclaration variableDeclaration) {
         // all variables, functions, structs... are declared outside the main function,
