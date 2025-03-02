@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcReadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -66,18 +68,32 @@ public class SeqPruner {
   private static ImmutableList<SeqCaseClause> pruneSingleThreadCaseClauses(
       ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqCaseClause> pruned = ImmutableList.builder();
     // map the original pc to pc that are found after pruning
     ImmutableMap<Integer, CExpression> pcUpdates = createPrunedPcUpdates(pCaseClauses);
+    // update each target pc so that it targets a non-blank case
+    ImmutableList<SeqCaseClause> updatedTargetPc =
+        updateTargetPcToNonPruned(pCaseClauses, pcUpdates);
+    // update all label pc in return value assignments to updated return_pc targets
+    ImmutableList<SeqCaseClause> rUpdatedLabelPc =
+        updateLabelPcToNonPruned(updatedTargetPc, pcUpdates);
+    Verify.verify(!isPrunable(rUpdatedLabelPc), "pruned case clauses are still prunable");
+    return rUpdatedLabelPc;
+  }
+
+  private static ImmutableList<SeqCaseClause> updateTargetPcToNonPruned(
+      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, CExpression> pPcUpdates)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqCaseClause> rUpdatedTargetPc = ImmutableList.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       if (!caseClause.onlyWritesPc()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement statement : caseClause.block.statements) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
-            if (pcUpdates.containsKey(targetPc)) {
+            if (pPcUpdates.containsKey(targetPc)) {
               // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(statement.cloneWithTargetPc(pcUpdates.get(targetPc)));
+              newStatements.add(statement.cloneWithTargetPc(pPcUpdates.get(targetPc)));
               continue;
             }
           }
@@ -85,12 +101,53 @@ public class SeqPruner {
           newStatements.add(statement);
         }
         SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
-        pruned.add(caseClause.cloneWithBlock(newBlock));
+        rUpdatedTargetPc.add(caseClause.cloneWithBlock(newBlock));
       }
     }
-    ImmutableList<SeqCaseClause> rPruned = pruned.build();
-    Verify.verify(!isPrunable(rPruned), "pruned case clauses are still prunable");
-    return rPruned;
+    return rUpdatedTargetPc.build();
+  }
+
+  private static ImmutableList<SeqCaseClause> updateLabelPcToNonPruned(
+      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, CExpression> pPcUpdates) {
+
+    ImmutableList.Builder<SeqCaseClause> rUpdatedLabelPc = ImmutableList.builder();
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      if (isSingleReturnValueAssignmentSwitchStatement(caseClause.block.statements)) {
+        SeqReturnValueAssignmentSwitchStatement switchStatement =
+            (SeqReturnValueAssignmentSwitchStatement) caseClause.block.statements.get(0);
+        ImmutableList.Builder<SeqCaseClause> newCaseClauses = ImmutableList.builder();
+        for (SeqCaseClause switchCaseClause : switchStatement.caseClauses) {
+          // if the pc for the return_pc that we switch over is updated, update labels
+          int label = switchCaseClause.label.value;
+          if (pPcUpdates.containsKey(label)) {
+            CExpression labelExpression = pPcUpdates.get(label);
+            Verify.verify(
+                labelExpression instanceof CIntegerLiteralExpression,
+                "updated label must be CIntegerLiteralExpression");
+            SeqCaseLabel newLabel =
+                new SeqCaseLabel((CIntegerLiteralExpression) requireNonNull(labelExpression));
+            newCaseClauses.add(switchCaseClause.cloneWithLabel(newLabel));
+          } else {
+            newCaseClauses.add(switchCaseClause);
+          }
+        }
+        SeqReturnValueAssignmentSwitchStatement clonedSwitch =
+            switchStatement.cloneWithCaseClauses(newCaseClauses.build());
+        SeqCaseBlock newBlock =
+            new SeqCaseBlock(ImmutableList.of(clonedSwitch), Terminator.CONTINUE);
+        rUpdatedLabelPc.add(caseClause.cloneWithBlock(newBlock));
+      } else {
+        rUpdatedLabelPc.add(caseClause);
+      }
+    }
+    return rUpdatedLabelPc.build();
+  }
+
+  private static boolean isSingleReturnValueAssignmentSwitchStatement(
+      ImmutableList<SeqCaseBlockStatement> pStatements) {
+
+    return pStatements.size() == 1
+        && pStatements.get(0) instanceof SeqReturnValueAssignmentSwitchStatement;
   }
 
   /**

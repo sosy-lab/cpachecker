@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
@@ -24,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadBeginsAtomic;
@@ -176,9 +178,10 @@ public class SeqAssumptionBuilder {
       int threadId = entry.getKey().id;
       for (SeqCaseClause caseClause : entry.getValue()) {
         if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
-          rAssumptions.add(
-              createPORAssumption(
-                  threadId, caseClause.label.value, pPcVariables, pBinaryExpressionBuilder));
+          SeqCaseLabel label = caseClause.label;
+          SeqFunctionCallExpression porAssumption =
+              createPORAssumption(threadId, label.value, pPcVariables, pBinaryExpressionBuilder);
+          rAssumptions.add(porAssumption);
         }
       }
     }
@@ -192,6 +195,17 @@ public class SeqAssumptionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    CExpression pcExpression = SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pPc);
+    return createPORAssumption(pThreadId, pcExpression, pPcVariables, pBinaryExpressionBuilder);
+  }
+
+  private static SeqFunctionCallExpression createPORAssumption(
+      int pThreadId,
+      CExpression pPcExpression,
+      PcVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
     CIntegerLiteralExpression threadId =
         SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pThreadId);
     CBinaryExpression prevEquals =
@@ -199,9 +213,7 @@ public class SeqAssumptionBuilder {
             SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
     CBinaryExpression pcEquals =
         pBinaryExpressionBuilder.buildBinaryExpression(
-            pPcVariables.get(pThreadId),
-            SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pPc),
-            BinaryOperator.EQUALS);
+            pPcVariables.get(pThreadId), pPcExpression, BinaryOperator.EQUALS);
     CToSeqExpression nextThread =
         new CToSeqExpression(
             pBinaryExpressionBuilder.buildBinaryExpression(

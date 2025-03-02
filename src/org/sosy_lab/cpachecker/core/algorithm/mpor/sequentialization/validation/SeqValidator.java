@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqValidator {
@@ -149,15 +148,13 @@ public class SeqValidator {
                 switchExpression.toASTString()),
             pLogger);
       }
-      for (FunctionReturnValueAssignment assignment : switchStatement.assignments) {
-        CIdExpression assignmentReturnPc = assignment.returnPcWrite.variable;
-        int assignmentLabel = assignment.returnPcWrite.value;
-        // ensure that each label pc is at some point assigned to the respective return_pc
-        if (!returnPcWriteMap.get(assignmentReturnPc).contains(assignmentLabel)) {
+      for (SeqCaseClause caseClause : switchStatement.caseClauses) {
+        int label = caseClause.label.value;
+        if (!returnPcWriteMap.get(switchExpression).contains(label)) {
           handleValidationException(
               String.format(
                   "the return pc %s is never assigned the label pc %s",
-                  assignmentReturnPc.toASTString(), assignmentLabel),
+                  switchExpression.toASTString(), label),
               pLogger);
         }
       }

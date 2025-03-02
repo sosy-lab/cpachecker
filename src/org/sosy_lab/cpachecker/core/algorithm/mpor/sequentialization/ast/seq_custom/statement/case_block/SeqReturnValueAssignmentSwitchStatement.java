@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -38,8 +39,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStatement {
 
-  public final ImmutableSet<FunctionReturnValueAssignment> assignments;
+  public final ImmutableList<SeqCaseClause> caseClauses;
 
+  /** The switch expression, e.g. {@code switch(RETURN_PC) { ... }}. */
   private final CIdExpression returnPc;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -50,50 +52,69 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
 
   protected SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
-      ImmutableSet<FunctionReturnValueAssignment> pAssigns,
+      ImmutableSet<FunctionReturnValueAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
-    assignments = pAssigns;
+    caseClauses = buildCaseClausesFromAssignments(pAssignments);
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
   }
 
-  protected SeqReturnValueAssignmentSwitchStatement(
+  private SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
-      ImmutableSet<FunctionReturnValueAssignment> pAssigns,
+      ImmutableList<SeqCaseClause> pCaseClauses,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPc) {
 
-    assignments = pAssigns;
+    caseClauses = pCaseClauses;
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
   }
 
+  private SeqReturnValueAssignmentSwitchStatement(
+      CIdExpression pReturnPc,
+      ImmutableList<SeqCaseClause> pCaseClauses,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
+
+    caseClauses = pCaseClauses;
+    returnPc = pReturnPc;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.of(pTargetPc);
+    targetPcExpression = Optional.empty();
+  }
+
   public CIdExpression getReturnPc() {
     return returnPc;
   }
 
-  @Override
-  public String toASTString() {
-    ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
-    for (FunctionReturnValueAssignment assignment : assignments) {
+  private ImmutableList<SeqCaseClause> buildCaseClausesFromAssignments(
+      ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
+
+    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
+    for (FunctionReturnValueAssignment assignment : pAssignments) {
       int caseLabelValue = assignment.returnPcWrite.value;
       SeqReturnValueAssignmentStatement assignmentStatement =
           new SeqReturnValueAssignmentStatement(assignment.statement);
-      caseClauses.add(
+      rCaseClauses.add(
           new SeqCaseClause(
-              anyGlobalAssign(assignments),
+              anyGlobalAssign(pAssignments),
               false,
               caseLabelValue,
               new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
     }
-    // TODO remove hardcoded int values?
-    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses.build(), 5);
+    return rCaseClauses.build();
+  }
+
+  @Override
+  public String toASTString() {
+    // TODO remove hardcoded int values for tabs?
+    SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses, 5);
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
             pcLeftHandSide, targetPc, targetPcExpression);
@@ -132,7 +153,20 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
   @Override
   public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqReturnValueAssignmentSwitchStatement(
-        returnPc, assignments, pcLeftHandSide, pTargetPc);
+        returnPc, caseClauses, pcLeftHandSide, pTargetPc);
+  }
+
+  public SeqReturnValueAssignmentSwitchStatement cloneWithCaseClauses(
+      ImmutableList<SeqCaseClause> pCaseClauses) {
+
+    if (targetPc.isPresent()) {
+      return new SeqReturnValueAssignmentSwitchStatement(
+          returnPc, pCaseClauses, pcLeftHandSide, targetPc.orElseThrow());
+    } else {
+      Verify.verify(targetPcExpression.isPresent());
+      return new SeqReturnValueAssignmentSwitchStatement(
+          returnPc, pCaseClauses, pcLeftHandSide, targetPcExpression.orElseThrow());
+    }
   }
 
   @Override
@@ -145,9 +179,9 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
     return false;
   }
 
-  private static class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
+  public static class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
 
-    private final CExpressionAssignmentStatement assignment;
+    public final CExpressionAssignmentStatement assignment;
 
     private SeqReturnValueAssignmentStatement(CExpressionAssignmentStatement pAssignment) {
       assignment = pAssignment;

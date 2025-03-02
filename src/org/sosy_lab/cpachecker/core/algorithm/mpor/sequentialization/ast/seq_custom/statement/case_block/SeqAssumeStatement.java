@@ -38,6 +38,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     targetPcExpression = Optional.empty();
   }
 
+  // TODO make all clone constructors private
   protected SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,

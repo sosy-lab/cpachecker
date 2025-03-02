@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -18,6 +19,10 @@ public class SeqCaseLabel implements SeqStatement {
 
   public SeqCaseLabel(int pValue) {
     value = pValue;
+  }
+
+  public SeqCaseLabel(CIntegerLiteralExpression pValueExpression) {
+    value = pValueExpression.getValue().intValue();
   }
 
   @Override

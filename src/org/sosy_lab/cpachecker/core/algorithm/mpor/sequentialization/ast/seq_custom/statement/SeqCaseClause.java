@@ -42,6 +42,15 @@ public class SeqCaseClause implements SeqStatement {
     block = pBlock;
   }
 
+  public SeqCaseClause(
+      boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
+    id = createNewId();
+    isGlobal = pIsGlobal;
+    isLoopStart = pIsLoopStart;
+    label = pLabel;
+    block = pBlock;
+  }
+
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqCaseClause(
       long pId, boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
@@ -59,7 +68,7 @@ public class SeqCaseClause implements SeqStatement {
 
   public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
     // id is not imported at this stage of pruning case clauses
-    return new SeqCaseClause(isGlobal, isLoopStart, label.value, pBlock);
+    return new SeqCaseClause(isGlobal, isLoopStart, label, pBlock);
   }
 
   private static long createNewId() {
