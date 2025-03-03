@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -73,7 +72,8 @@ public class IntervalAnalysisState
    * This method acts as constructor, which initializes the intervals, the reference counts and the
    * previous element to the respective objects.
    *
-   * @param intervals the intervals
+   * @param pIntervals the intervals
+   * @param pArrays the arrays
    * @param referencesMap the reference counts
    */
   public IntervalAnalysisState(
@@ -118,8 +118,7 @@ public class IntervalAnalysisState
     return arrays.containsKey(variableName);
   }
 
-  public Interval arrayAccess(String variableName, CExpression index, ExpressionValueVisitor visitor)
-      throws UnrecognizedCodeException {
+  public Interval arrayAccess(String variableName, CExpression index, ExpressionValueVisitor visitor) {
     return arrays.get(variableName).get(index, visitor);
   }
 
@@ -418,14 +417,14 @@ public class IntervalAnalysisState
     for (Entry<String, Interval> entry : intervals.entrySet()) {
       sb.append(
           String.format(
-              "%s = %s (%s), ",
+              "%s = %s (%s), \n",
               entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
 
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
       sb.append(
           String.format(
-              "%s = %s, ",
+              "%s = %s, \n",
               entry.getKey(), entry.getValue()));
     }
     sb.append("}");

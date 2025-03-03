@@ -187,7 +187,7 @@ public final class Interval implements Serializable {
    * @return true if they are definitely equal.
    */
   public boolean isEqualTo(Interval other) {
-    return !isEmpty() && !other.isEmpty() && low == other.low && high == other.high && low == high;
+    return !isEmpty() && !other.isEmpty() && low.equals(other.low) && high.equals(other.high) && low.equals(high);
   }
 
   /**

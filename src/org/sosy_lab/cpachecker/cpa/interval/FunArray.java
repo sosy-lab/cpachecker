@@ -125,22 +125,22 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
             .collect(Collectors.joining(" "));
   }
 
-  public FunArray insertExpression(String varRef, Set<CExpression> expressions) {
-    var newBounds = new ArrayList<>(bounds.stream()
-            .map(b -> b.adaptForChangedVariableValues(varRef, expressions))
-            .toList());
-    var newValues = new ArrayList<>(values);
-    var newEmptiness = new ArrayList<>(emptiness);
-
-    return new FunArray(newBounds, newValues, newEmptiness);
-  }
-
-  public FunArray removeVariableOccurrences(String varRef) {
-    return new FunArray(
-            bounds.stream().map(b -> b.removeVariableOccurrences(varRef)).toList(),
-            values, emptiness
-    ).removeEmptyBounds();
-  }
+//  public FunArray insertExpression(String varRef, Set<CExpression> expressions) {
+//    var newBounds = new ArrayList<>(bounds.stream()
+//            .map(b -> b.adaptForChangedVariableValues(varRef, expressions))
+//            .toList());
+//    var newValues = new ArrayList<>(values);
+//    var newEmptiness = new ArrayList<>(emptiness);
+//
+//    return new FunArray(newBounds, newValues, newEmptiness);
+//  }
+//
+//  public FunArray removeVariableOccurrences(String varRef) {
+//    return new FunArray(
+//            bounds.stream().map(b -> b.removeVariableOccurrences(varRef)).toList(),
+//            values, emptiness
+//    ).removeEmptyBounds();
+//  }
 
 
   public FunArray restrictExpressionOccurrences(Set<CExpression> allowedExpressions) {

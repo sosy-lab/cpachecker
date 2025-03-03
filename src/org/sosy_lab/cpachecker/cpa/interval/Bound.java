@@ -25,10 +25,10 @@ public record Bound(Set<CExpression> expressions) {
     this(Set.of(expression));
   }
 
-  public Bound adaptForChangedVariableValues(
-          String changedVariableRef,
-          Set<CExpression> newValues
-  ) {
+//  public Bound adaptForChangedVariableValues(
+//          String changedVariableRef,
+//          Set<CExpression> newValues
+//  ) {
 //    var modifiedExpressions = expressions.stream().flatMap(
 //            expression -> newValues.stream().flatMap(newValue -> {
 //              if (expression.containsVariable(newValue.varRef())) {
@@ -51,23 +51,23 @@ public record Bound(Set<CExpression> expressions) {
 //    ).collect(Collectors.toSet());
 //
 //    return new Bound(modifiedExpressions);
+//
+//    throw new RuntimeException("Not yet implemented");
+//  }
 
-    throw new RuntimeException("Not yet implemented");
-  }
-
-  /**
-   * Removes all expressions containing the specified variable.
-   *
-   * @param varRef the variable.
-   * @return the modified bound.
-   */
-  public Bound removeVariableOccurrences(String varRef) {
+//  /**
+//   * Removes all expressions containing the specified variable.
+//   *
+//   * @param varRef the variable.
+//   * @return the modified bound.
+//   */
+//  public Bound removeVariableOccurrences(String varRef) {
 //    var modifiedExpressions = expressions.stream()
 //            .filter(e -> !e.containsVariable(varRef))
 //            .collect(Collectors.toSet());
 //    return new Bound(modifiedExpressions);
-    throw new RuntimeException("Not yet implemented");
-  }
+//    throw new RuntimeException("Not yet implemented");
+//  }
 
   public boolean contains(CExpression expression) {
     return expressions().stream().anyMatch(e -> e.equals(expression));
@@ -83,7 +83,7 @@ public record Bound(Set<CExpression> expressions) {
 
   public Bound increase(long amount) {
     return new Bound(expressions.stream()
-            .map(e -> incrementExpression(e))
+            .map(e -> incrementExpression(e, amount))
             .collect(Collectors.toSet()));
   }
 

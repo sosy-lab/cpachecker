@@ -12,9 +12,7 @@ import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -35,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -276,9 +273,14 @@ public class IntervalAnalysisTransferRelation
           dynamicOperandValue.intersect(staticComparee),
           cfaEdge
       ));
-      case NOT_EQUALS -> dynamicOperandValue.getRelativeComplement(staticComparee).stream()
-          .map(comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge))
-          .collect(Collectors.toSet());
+      case NOT_EQUALS -> {
+        if (!splitIntervals) {
+          yield ImmutableSet.of(state);
+        }
+        yield dynamicOperandValue.getRelativeComplement(staticComparee).stream()
+            .map(comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge))
+            .collect(Collectors.toSet());
+      }
       default -> throw new UnrecognizedCodeException("Assume operator not implemented", cfaEdge);
     };
   }
