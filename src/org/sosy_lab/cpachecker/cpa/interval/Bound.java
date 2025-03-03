@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementExpression;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.BiPredicate;
@@ -18,11 +19,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public record Bound(Set<CExpression> expressions) {
   public Bound {
-    expressions = Set.copyOf(expressions);
+    expressions = ImmutableSet.copyOf(expressions);
   }
 
   public Bound(CExpression expression) {
-    this(Set.of(expression));
+    this(ImmutableSet.of(expression));
   }
 
 //  public Bound adaptForChangedVariableValues(
@@ -84,14 +85,14 @@ public record Bound(Set<CExpression> expressions) {
   public Bound increase(long amount) {
     return new Bound(expressions.stream()
             .map(e -> incrementExpression(e, amount))
-            .collect(Collectors.toSet()));
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
   public static Bound union(Collection<Bound> bounds) {
     return new Bound(
             bounds.stream()
                     .flatMap(e -> e.expressions().stream())
-                    .collect(Collectors.toSet())
+                    .collect(ImmutableSet.toImmutableSet())
     );
   }
 
@@ -103,7 +104,7 @@ public record Bound(Set<CExpression> expressions) {
     var newExpressions = Stream.concat(
             this.expressions.stream(),
             otherExpressions.stream()
-    ).collect(Collectors.toSet());
+    ).collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
   }
 
@@ -114,7 +115,7 @@ public record Bound(Set<CExpression> expressions) {
   public Bound intersection(Set<CExpression> otherExpressions) {
     var newExpressions = this.expressions.stream()
             .filter(otherExpressions::contains)
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
   }
 
@@ -125,7 +126,7 @@ public record Bound(Set<CExpression> expressions) {
   public Bound difference(Set<CExpression> otherExpressions) {
     var newExpressions = this.expressions.stream()
             .filter(o -> !otherExpressions.contains(o))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
   }
 
@@ -136,7 +137,7 @@ public record Bound(Set<CExpression> expressions) {
   public Bound relativeComplement(Set<CExpression> otherExpressions) {
     var newExpressions = otherExpressions.stream()
             .filter(o -> !this.expressions.contains(o))
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
   }
 

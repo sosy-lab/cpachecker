@@ -5,6 +5,8 @@ import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementEx
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyGreaterThanOrEqualTo;
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyLessThanOrEqualTo;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,9 +60,9 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
       );
     }
 
-    this.bounds = List.copyOf(bounds);
-    this.values = List.copyOf(values);
-    this.emptiness = List.copyOf(emptiness);
+    this.bounds = ImmutableList.copyOf(bounds);
+    this.values = ImmutableList.copyOf(values);
+    this.emptiness = ImmutableList.copyOf(emptiness);
   }
 
   public FunArray(CExpression length) {
@@ -69,12 +71,12 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
   public FunArray(Bound length) {
     this(
-            List.of(
-                    new Bound(getIntegerExpression(0)),
-                    length
-            ),
-            List.of(Interval.UNBOUND),
-            List.of(true)
+        ImmutableList.of(
+            new Bound(getIntegerExpression(0)),
+            length
+        ),
+        ImmutableList.of(Interval.UNBOUND),
+        ImmutableList.of(true)
     );
   }
 
@@ -171,7 +173,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   }
 
   public FunArray insert(CExpression index, Interval value, ExpressionValueVisitor visitor) {
-    return insert(Set.of(index), value, visitor);
+    return insert(ImmutableSet.of(index), value, visitor);
   }
 
   /**
@@ -187,7 +189,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     }
     var trailingIndeces = indeces.stream()
             .map(ExpressionUtility::incrementExpression)
-            .collect(Collectors.toSet());
+            .collect(ImmutableSet.toImmutableSet());
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
 
@@ -512,7 +514,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 // TODO
 
   public Set<CExpression> getExpressions() {
-    return bounds.stream().flatMap(e -> e.expressions().stream()).collect(Collectors.toSet());
+    return bounds.stream().flatMap(e -> e.expressions().stream()).collect(ImmutableSet.toImmutableSet());
   }
 
   public boolean isReachable() {

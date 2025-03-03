@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -236,7 +237,7 @@ public class IntervalAnalysisTransferRelation
             operator.getSwitchOperandsSidesLogicalOperator(),
             operand1.accept(visitor)
         ).stream()
-    ).collect(Collectors.toUnmodifiableSet());
+    ).collect(ImmutableList.toImmutableList());
   }
 
 
@@ -279,7 +280,7 @@ public class IntervalAnalysisTransferRelation
         }
         yield dynamicOperandValue.getRelativeComplement(staticComparee).stream()
             .map(comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge))
-            .collect(Collectors.toSet());
+            .collect(ImmutableList.toImmutableList());
       }
       default -> throw new UnrecognizedCodeException("Assume operator not implemented", cfaEdge);
     };

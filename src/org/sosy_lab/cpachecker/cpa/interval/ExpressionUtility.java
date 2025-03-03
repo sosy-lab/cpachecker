@@ -13,7 +13,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -76,7 +75,7 @@ public class ExpressionUtility {
       return normalizeLiteralExpression(literalExpression);
     }
     // Normalization of other types of expressions not yet implemented
-    return Set.of();
+    return ImmutableSet.of();
   }
 
   public static Set<NormalFormExpression> normalizeBinaryExpression(CBinaryExpression expression, ExpressionValueVisitor visitor)
@@ -90,7 +89,7 @@ public class ExpressionUtility {
       }
       case MINUS ->
          normalizeAndConcretize(expression.getOperand1(), invertExpression(expression.getOperand2()), visitor);
-      default -> Set.of();
+      default -> ImmutableSet.of();
     };
   }
 
@@ -111,11 +110,11 @@ public class ExpressionUtility {
           try {
             return normalizeExpression(normalize, visitor).stream()
                 .map(normalized -> normalized.add(concreteValue))
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
           } catch (UnrecognizedCodeException ignored) {
             return ImmutableSet.<NormalFormExpression>of();
           }
-        }).orElse(Set.of());
+        }).orElse(ImmutableSet.of());
   }
 
   public static Set<NormalFormExpression> normalizeUnaryExpression(CUnaryExpression expression, ExpressionValueVisitor visitor)
@@ -124,9 +123,9 @@ public class ExpressionUtility {
       return expression.getOperand().accept(visitor)
           .getUniqueConcreteValue()
           .map(e -> new NormalFormExpression(-e))
-          .stream().collect(Collectors.toSet());
+          .stream().collect(ImmutableSet.toImmutableSet());
     }
-    return Set.of(); // Other operators not yet implemented
+    return ImmutableSet.of(); // Other operators not yet implemented
   }
 
   public static Set<NormalFormExpression> normalizeIdExpression(CIdExpression expression, ExpressionValueVisitor visitor)
@@ -143,7 +142,7 @@ public class ExpressionUtility {
   }
 
   public static Set<NormalFormExpression> normalizeLiteralExpression(CIntegerLiteralExpression expression) {
-    return Set.of(new NormalFormExpression(expression.asLong()));
+    return ImmutableSet.of(new NormalFormExpression(expression.asLong()));
   }
 
   public static CExpression invertExpression(CExpression expression) {
