@@ -250,14 +250,15 @@ public class InstrumentationPattern {
   }
 
   private String removeIndicesOfVariablesWithSameName(CExpression pOperand, CFAEdge pCFAEdge) {
-    String rawStatement = pCFAEdge.getRawStatement();
+    String rawStatement = pCFAEdge.getRawStatement().replaceAll("[()\\s]", "");
+    String rawOperand = pOperand.toASTString().replaceAll("[()\\s]", "");
     String operandWithoutIndex = pOperand.toASTString();
     if (operandWithoutIndex.contains("__CPAchecker_TMP")
-        || operandWithoutIndex.contains("static__print_formatted__format_chars")) {
+        || operandWithoutIndex.contains("static__")) {
       return "__CPAchecker_TMP";
     }
-    if (!rawStatement.contains(operandWithoutIndex) && operandWithoutIndex.contains("__")) {
-      return operandWithoutIndex.replaceFirst("_(\\d)(?!.*__)", "");
+    if (!rawStatement.contains(rawOperand) && operandWithoutIndex.contains("__")) {
+      return operandWithoutIndex.replaceFirst("__(\\d)(?!.*__)", "");
     }
     return operandWithoutIndex;
   }
