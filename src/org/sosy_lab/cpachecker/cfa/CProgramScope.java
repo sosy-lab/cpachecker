@@ -416,7 +416,7 @@ public class CProgramScope implements Scope {
   public void addDeclarationToScope(CDeclaration pDeclaration) throws InvalidYAMLWitnessException {
 
     if (pDeclaration instanceof CVariableDeclaration) {
-      if (variableNames.contains(pDeclaration)) {
+      if (variableNames.contains(pDeclaration.getName())) {
         throw new InvalidYAMLWitnessException(
             "Variable declaration already in use: " + pDeclaration);
       }

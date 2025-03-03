@@ -140,7 +140,7 @@ public class InvariantExchangeFormatTransformer {
     try {
       return pPathFormulaManagerImpl.makeAnd(
           pPathFormulaManagerImpl.makeEmptyPathFormula(), expression);
-    } catch (CPATransferException pE) {
+    } catch (CPATransferException e) {
       throw new InterruptedException(
           "Could not create path formula from statement: " + pLemmaEntry.getValue());
     }
