@@ -39,7 +39,11 @@ public class PartialOrderReducer {
   private static SeqCaseClause cloneWithPcWriteReplacement(
       SeqCaseClause pPrefix, SeqCaseClause pReplacement, int pPc) {
     // TODO make use of statement cloning here
-    return null;
+    if (pPc == 0) {
+      return pPrefix;
+    } else {
+      return pReplacement;
+    }
   }
 
   /** Ensures that {@code pPrefix} and {@code pSuffix} can be concatenated. */

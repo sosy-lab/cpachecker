@@ -102,9 +102,9 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
 
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcLeftHandSide, targetPc, targetPcExpression);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
 
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
@@ -112,7 +112,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
                 + SeqSyntax.SPACE
                 + setLocksFalse.toASTString()
                 + SeqSyntax.SPACE
-                + pcWrite.toASTString());
+                + targetStatements);
 
     return ifLocked.toASTString()
         + SeqSyntax.SPACE

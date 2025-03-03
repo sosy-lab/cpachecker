@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -137,16 +138,16 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcLeftHandSide, targetPc, targetPcExpression);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
     return declaration.getCode()
         + SeqSyntax.SPACE
         + statementA.cfaEdge.getCode()
         + SeqSyntax.SPACE
         + statementB.cfaEdge.getCode()
         + SeqSyntax.SPACE
-        + pcWrite.toASTString();
+        + targetStatements;
   }
 
   @Override

@@ -96,14 +96,14 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
   public String toASTString() {
     // TODO remove hardcoded int values for tabs?
     SeqSwitchStatement switchStatement = new SeqSwitchStatement(returnPc, caseClauses, 5);
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcLeftHandSide, targetPc, targetPcExpression);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
     return SeqSyntax.NEWLINE
         + switchStatement.toASTString()
         + SeqSyntax.NEWLINE
         + SeqStringUtil.buildTab(5)
-        + pcWrite.toASTString();
+        + targetStatements;
   }
 
   @Override

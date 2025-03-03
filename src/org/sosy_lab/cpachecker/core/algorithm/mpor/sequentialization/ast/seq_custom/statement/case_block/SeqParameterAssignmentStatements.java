@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
@@ -77,10 +78,10 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     for (FunctionParameterAssignment assignment : assignments) {
       rString.append(assignment.statement.toASTString()).append(SeqSyntax.SPACE);
     }
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcLeftHandSide, targetPc, targetPcExpression);
-    rString.append(pcWrite.toASTString());
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
+    rString.append(targetStatements);
     return rString.toString();
   }
 

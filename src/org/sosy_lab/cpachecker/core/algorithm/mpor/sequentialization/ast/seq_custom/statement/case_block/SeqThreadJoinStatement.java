@@ -132,12 +132,12 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     CExpressionAssignmentStatement joinsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_0);
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcVariables.get(threadId), targetPc, targetPcExpression);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcVariables.get(threadId), targetPc, targetPcExpression, concatenatedStatements);
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
-            joinsFalse.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString());
+            joinsFalse.toASTString() + SeqSyntax.SPACE + targetStatements);
     return ifJoinedThreadActive.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(joinsTrue.toASTString())

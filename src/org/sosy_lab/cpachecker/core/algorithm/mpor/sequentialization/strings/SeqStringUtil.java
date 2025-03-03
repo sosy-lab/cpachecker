@@ -8,10 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
@@ -88,5 +95,41 @@ public class SeqStringUtil {
       return 0;
     }
     return newlineSplitter.splitToList(pString).size();
+  }
+
+  /** This returns either a {@code pc} write of the form:
+   * <ul>
+   *   <li>{@code pc[i] = n;}</li>
+   *   <li>{@code pc[i] = RETURN_PC}</li>
+   * </ul>
+   *
+   * Or the strings of concatenated statements, if present. */
+  public static String buildTargetStatements(
+      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      Optional<CExpression> pTargetPcExpression,
+      Optional<ImmutableList<SeqCaseBlockStatement>> pConcatenatedStatements) {
+
+    // TODO this logic could be expanded that only one is present
+    checkArgument(
+        pTargetPc.isPresent() || pTargetPcExpression.isPresent() || pConcatenatedStatements.isPresent(),
+        "either pTargetPc or pTargetPcExpression must be present");
+    checkArgument(
+        pTargetPc.isEmpty() || pTargetPcExpression.isEmpty() || pConcatenatedStatements.isPresent(),
+        "either pTargetPc or pTargetPcExpression must be empty");
+    if (pTargetPc.isPresent()) {
+      return SeqExpressionAssignmentStatement.buildPcWrite(
+          pPcLeftHandSide, pTargetPc.orElseThrow()).toASTString();
+    } else if (pTargetPcExpression.isPresent()) {
+      return SeqExpressionAssignmentStatement.buildPcWrite(pPcLeftHandSide, pTargetPcExpression.orElseThrow()).toASTString();
+    } else {
+      // TODO we should add some newlines here...
+      StringBuilder statements = new StringBuilder();
+      // this includes statements that were concatenated before
+      for (SeqCaseBlockStatement statement : pConcatenatedStatements.orElseThrow()) {
+        statements.append(statement.toASTString());
+      }
+      return statements.toString();
+    }
   }
 }

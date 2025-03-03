@@ -94,9 +94,9 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
 
-    CExpressionAssignmentStatement pcWrite =
-        SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
-            pcLeftHandSide, targetPc, targetPcExpression);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
 
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
@@ -104,7 +104,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
                 + SeqSyntax.SPACE
                 + setBeginsFalse.toASTString()
                 + SeqSyntax.SPACE
-                + pcWrite.toASTString());
+                + targetStatements);
 
     return ifAtomicLocked.toASTString()
         + SeqSyntax.SPACE
