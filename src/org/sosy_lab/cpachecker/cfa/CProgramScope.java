@@ -19,6 +19,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -169,9 +170,9 @@ public class CProgramScope implements Scope {
   @SuppressFBWarnings("SS_SHOULD_BE_STATIC") // TODO should this be implemented or removed?
   private final String currentFile = "";
 
-  private final Set<String> variableNames;
+  private Set<String> variableNames;
 
-  private final Multimap<String, CSimpleDeclaration> simpleDeclarations;
+  private Multimap<String, CSimpleDeclaration> simpleDeclarations;
 
   private Multimap<String, CFunctionDeclaration> functionDeclarations;
 
@@ -420,6 +421,11 @@ public class CProgramScope implements Scope {
         throw new InvalidYAMLWitnessException(
             "Variable declaration already in use: " + pDeclaration);
       }
+      ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
+      ImmutableMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
+          ImmutableMultimap.builder();
+      newVariableNames.add(pDeclaration.getName());
+      newSimpleDeclarations.put(pDeclaration.getName(), pDeclaration);
     } else if (pDeclaration instanceof CFunctionDeclaration) {
       if (lookupFunction(pDeclaration.getName()) != null) {
         throw new InvalidYAMLWitnessException(
