@@ -22,10 +22,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.Utility;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.Utility;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -76,6 +76,11 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private boolean parallelRefinement = true; // default
   @Option(
       secure = true,
+      description = "Set the refiner timeout per iteration in seconds.",
+      name = "timeout")
+  private int refinerTimeOut = 180; // default
+  @Option(
+      secure = true,
       description = "Enable formatter for the error condition.",
       name = "withFormatter")
   private boolean withFormatter = true; // default
@@ -119,7 +124,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       boolean foundNewCounterexamples;
       AbstractState initialState = Utility.getInitialState(cpa, context);
       CompositeRefiner refiner =
-          new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter);
+          new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter,
+              refinerTimeOut);
       PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
 
       do {
@@ -127,7 +133,8 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         foundNewCounterexamples = false;
 
         // Run reachability analysis
-        reachedSet = Utility.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
+        reachedSet =
+            Utility.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
         status = algorithm.run(reachedSet);
 
         // Collect counterexamples
@@ -148,10 +155,10 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           // update initial state with the exclusion formula
           initialState = Utility.updateInitialStateWithExclusions(initialState, errorCondition,
               currentIteration, context);
-        }
-        else {
+        } else {
           logger.log(Level.INFO,
-              String.format("Iteration %d: No Counterexamples Found. Finished Refinement.", currentIteration));
+              String.format("Iteration %d: No Counterexamples Found. Finished Refinement.",
+                  currentIteration));
         }
 
       } while (foundNewCounterexamples && (++currentIteration < maxIterations
