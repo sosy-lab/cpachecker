@@ -8,14 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 // TODO further divide this into thread, function, ... interfaces
+// TODO its probably better to use an abstract class here for default implementations and attributes
+//  (each statement has a target pc, expression, replacement, ...)
 /**
  * Please ensure that constructors are package-private (see {@link SeqCaseBlockStatementBuilder} and
  * constructors used for cloning are {@code private}.
@@ -26,15 +28,23 @@ public interface SeqCaseBlockStatement extends SeqStatement {
 
   Optional<CExpression> getTargetPcExpression();
 
+  Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements();
+
   /**
    * This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. The
    * target {@code pc} may be a {@code RETURN_PC}, thus we need a {@link CExpression} instead of an
    * {@code int}.
    */
-  @NonNull SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
+  SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc) throws UnrecognizedCodeException;
+
+  /**
+   * This function should be called when applying Partial Order Reduction to {@link SeqCaseClause}s,
+   * i.e. when concatenating statements and replacing {@code pc} writes.
+   */
+  SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
       throws UnrecognizedCodeException;
 
-  // TODO this can be removed later when getting rid of POR assumptions
   /**
    * Whether this statement is guaranteed to write a pc, e.g. {@code pc[i] = 42;} Used for POR
    * assumptions.

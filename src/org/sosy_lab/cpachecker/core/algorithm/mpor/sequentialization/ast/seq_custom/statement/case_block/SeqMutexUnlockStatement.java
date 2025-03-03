@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -31,6 +31,8 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
@@ -38,6 +40,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
   }
 
   private SeqMutexUnlockStatement(
@@ -49,6 +52,19 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+    concatenatedStatements = Optional.empty();
+  }
+
+  private SeqMutexUnlockStatement(
+      CExpressionAssignmentStatement pLockedFalse,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    lockedFalse = pLockedFalse;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
   }
 
   @Override
@@ -69,10 +85,21 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqMutexUnlockStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pConcatenatedStatements);
   }
 
   @Override

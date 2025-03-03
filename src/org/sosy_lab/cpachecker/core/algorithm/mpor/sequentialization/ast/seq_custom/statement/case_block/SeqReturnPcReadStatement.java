@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -52,11 +52,25 @@ public class SeqReturnPcReadStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  @NonNull
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    // if a return_pc is read, concatenation is not possible because the target is unknown
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have concatenated statements");
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException {
     // we never want to clone blank statements
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName()
+            + " do not have concatenated statements and cannot be cloned");
   }
 
   @Override

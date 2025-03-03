@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -48,6 +48,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   private final PcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -68,6 +70,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
@@ -89,6 +92,29 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+    concatenatedStatements = Optional.empty();
+    pcVariables = pPcVariables;
+    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    pcUnequalExitPc =
+        SeqBinaryExpression.buildPcUnequalExitPc(
+            pcVariables, joinedThreadId, binaryExpressionBuilder);
+  }
+
+  private SeqThreadJoinStatement(
+      int pJoinedThreadId,
+      CIdExpression pThreadJoins,
+      int pThreadId,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements,
+      PcVariables pPcVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    joinedThreadId = pJoinedThreadId;
+    threadJoins = pThreadJoins;
+    threadId = pThreadId;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
@@ -131,13 +157,30 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqThreadJoinStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException {
 
     return new SeqThreadJoinStatement(
         joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
+      throws UnrecognizedCodeException {
+    return new SeqThreadJoinStatement(
+        joinedThreadId,
+        threadJoins,
+        threadId,
+        pConcatenatedStatements,
+        pcVariables,
+        binaryExpressionBuilder);
   }
 
   @Override

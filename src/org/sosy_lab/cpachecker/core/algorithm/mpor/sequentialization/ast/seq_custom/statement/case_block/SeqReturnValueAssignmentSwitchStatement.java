@@ -10,20 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -33,9 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * fibNumber;} (where {@code x} is declared beforehand) in the sequentialization.
  *
  * <p>The function {@code fib} may be called multiple times by one thread, so we create a switch
- * statement with one or multiple {@link SeqReturnValueAssignmentStatement}s where only the original
- * calling context i.e. the {@code return_pc} of the function {@code fib} and the respective thread
- * is considered.
+ * statement with one or multiple {@link SeqReturnValueAssignmentCaseBlockStatement}s where only the
+ * original calling context i.e. the {@code return_pc} of the function {@code fib} and the
+ * respective thread is considered.
  */
 public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStatement {
 
@@ -50,17 +44,20 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
-      ImmutableSet<FunctionReturnValueAssignment> pAssignments,
+      ImmutableList<SeqCaseClause> pCaseClauses,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
-    caseClauses = buildCaseClausesFromAssignments(pAssignments);
+    caseClauses = pCaseClauses;
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
   }
 
   private SeqReturnValueAssignmentSwitchStatement(
@@ -74,41 +71,25 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+    concatenatedStatements = Optional.empty();
   }
 
   private SeqReturnValueAssignmentSwitchStatement(
       CIdExpression pReturnPc,
       ImmutableList<SeqCaseClause> pCaseClauses,
       CLeftHandSide pPcLeftHandSide,
-      int pTargetPc) {
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     caseClauses = pCaseClauses;
     returnPc = pReturnPc;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.of(pTargetPc);
+    targetPc = Optional.empty();
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
   }
 
   public CIdExpression getReturnPc() {
     return returnPc;
-  }
-
-  private ImmutableList<SeqCaseClause> buildCaseClausesFromAssignments(
-      ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
-
-    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
-    for (FunctionReturnValueAssignment assignment : pAssignments) {
-      int caseLabelValue = assignment.returnPcWrite.value;
-      SeqReturnValueAssignmentStatement assignmentStatement =
-          new SeqReturnValueAssignmentStatement(assignment.statement);
-      rCaseClauses.add(
-          new SeqCaseClause(
-              anyGlobalAssign(pAssignments),
-              false,
-              caseLabelValue,
-              new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
-    }
-    return rCaseClauses.build();
   }
 
   @Override
@@ -125,20 +106,6 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
         + pcWrite.toASTString();
   }
 
-  /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */
-  private boolean anyGlobalAssign(ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
-    for (FunctionReturnValueAssignment assignment : pAssignments) {
-      if (assignment.statement.getLeftHandSide() instanceof CIdExpression idExpr) {
-        if (idExpr.getDeclaration() instanceof CVariableDeclaration varDec) {
-          if (varDec.isGlobal()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
   @Override
   public Optional<Integer> getTargetPc() {
     return targetPc;
@@ -149,13 +116,27 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqReturnValueAssignmentSwitchStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqReturnValueAssignmentSwitchStatement(
         returnPc, caseClauses, pcLeftHandSide, pTargetPc);
   }
 
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    return new SeqReturnValueAssignmentSwitchStatement(
+        returnPc, caseClauses, pcLeftHandSide, pConcatenatedStatements);
+  }
+
+  // TODO it would be great to create a switch statement interface and let the main switch also use
+  //  this
   public SeqReturnValueAssignmentSwitchStatement cloneWithCaseClauses(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
@@ -179,11 +160,11 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
     return false;
   }
 
-  public static class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
+  public static class SeqReturnValueAssignmentCaseBlockStatement implements SeqCaseBlockStatement {
 
     public final CExpressionAssignmentStatement assignment;
 
-    private SeqReturnValueAssignmentStatement(CExpressionAssignmentStatement pAssignment) {
+    SeqReturnValueAssignmentCaseBlockStatement(CExpressionAssignmentStatement pAssignment) {
       assignment = pAssignment;
     }
 
@@ -202,11 +183,23 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
       return Optional.empty();
     }
 
-    @NonNull
     @Override
-    public SeqReturnValueAssignmentStatement cloneWithTargetPc(CExpression pTargetPc) {
+    public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " do not have concatenated statements");
+    }
+
+    @Override
+    public SeqReturnValueAssignmentCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc) {
       throw new UnsupportedOperationException(
           this.getClass().getSimpleName() + " do not have targetPcs");
+    }
+
+    @Override
+    public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+        ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " cannot be cloned with concatenated statements");
     }
 
     @Override

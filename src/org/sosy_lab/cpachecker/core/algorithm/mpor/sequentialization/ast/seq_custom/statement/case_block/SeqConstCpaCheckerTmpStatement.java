@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -55,6 +55,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   private void checkArguments(
       CDeclarationEdge pDeclaration, SubstituteEdge pStatementA, SubstituteEdge pStatementB) {
 
@@ -96,6 +98,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
   }
 
   private SeqConstCpaCheckerTmpStatement(
@@ -112,6 +115,24 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPcExpression);
+    concatenatedStatements = Optional.empty();
+  }
+
+  private SeqConstCpaCheckerTmpStatement(
+      CDeclarationEdge pDeclaration,
+      SubstituteEdge pStatementA,
+      SubstituteEdge pStatementB,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    checkArguments(pDeclaration, pStatementA, pStatementB);
+    statementA = pStatementA;
+    statementB = pStatementB;
+    declaration = pDeclaration;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
   }
 
   @Override
@@ -138,11 +159,23 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
         declaration, statementA, statementB, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    return new SeqConstCpaCheckerTmpStatement(
+        declaration, statementA, statementB, pcLeftHandSide, pConcatenatedStatements);
   }
 
   @Override

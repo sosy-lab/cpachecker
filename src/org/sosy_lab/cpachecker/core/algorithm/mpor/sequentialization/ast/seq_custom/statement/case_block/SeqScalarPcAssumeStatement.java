@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
@@ -43,9 +43,20 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
         this.getClass().getSimpleName() + " do not have a target pc");
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return Optional.empty();
+  }
+
   @Override
   public SeqScalarPcAssumeStatement cloneWithTargetPc(CExpression pTargetPc) {
+    // we do not clone this as it is not used for pruning, but just for the loop head assumption
+    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
     // we do not clone this as it is not used for pruning, but just for the loop head assumption
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
   }

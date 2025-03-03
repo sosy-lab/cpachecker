@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -32,6 +32,8 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   private final PcVariables pcVariables;
 
   SeqThreadCreationStatement(
@@ -41,6 +43,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
     pcVariables = pPcVariables;
   }
 
@@ -51,6 +54,21 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+    concatenatedStatements = Optional.empty();
+    pcVariables = pPcVariables;
+  }
+
+  private SeqThreadCreationStatement(
+      int pCreatedThreadId,
+      int pThreadId,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements,
+      PcVariables pPcVariables) {
+
+    createdThreadId = pCreatedThreadId;
+    threadId = pThreadId;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
     pcVariables = pPcVariables;
   }
 
@@ -75,10 +93,21 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+    return new SeqThreadCreationStatement(
+        createdThreadId, threadId, pConcatenatedStatements, pcVariables);
   }
 
   @Override

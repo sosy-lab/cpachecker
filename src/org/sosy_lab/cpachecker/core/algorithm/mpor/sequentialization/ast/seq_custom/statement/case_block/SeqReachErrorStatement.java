@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 
@@ -29,15 +29,22 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
+    // TODO test if we can also throw an exception here?
     return Optional.empty();
   }
 
   @Override
   public Optional<CExpression> getTargetPcExpression() {
+    // TODO test if we can also throw an exception here?
     return Optional.empty();
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have concatenated statements");
+  }
+
   @Override
   public SeqReachErrorStatement cloneWithTargetPc(CExpression pTargetPc) {
     throw new UnsupportedOperationException(
@@ -45,6 +52,15 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName()
+            + " do not have concatenated statements and cannot be cloned");
+  }
+
+  @Override
+  // TODO this should technically return false?
   public boolean alwaysWritesPc() {
     return true;
   }

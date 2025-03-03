@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -38,9 +37,9 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   private final Optional<CExpression> targetPcExpression;
 
   SeqReturnValueAssignmentStatement(
-      FunctionReturnValueAssignment pAssignment, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      CExpressionAssignmentStatement pAssignment, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
-    assignment = pAssignment.statement;
+    assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
@@ -76,9 +75,20 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   }
 
   @Override
-  public @NonNull SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return Optional.empty();
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
       throws UnrecognizedCodeException {
     return new SeqReturnValueAssignmentStatement(assignment, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+    return null;
   }
 
   @Override

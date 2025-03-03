@@ -39,9 +39,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement.SeqReturnValueAssignmentCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcWrite;
@@ -290,13 +294,41 @@ public class SeqCaseBlockStatementBuilder {
     } else if (assignments.size() == 1) {
       // if there is only one calling context for this thread, we don't need a switch statement
       FunctionReturnValueAssignment assignment = assignments.iterator().next();
-      return new SeqReturnValueAssignmentStatement(assignment, pPcLeftHandSide, pTargetPc);
+      return new SeqReturnValueAssignmentStatement(
+          assignment.statement, pPcLeftHandSide, pTargetPc);
     } else {
       // just get the first element in the set for the RETURN_PC
       CIdExpression returnPc = assignments.iterator().next().returnPcWrite.variable;
       return new SeqReturnValueAssignmentSwitchStatement(
-          returnPc, assignments, pPcLeftHandSide, pTargetPc);
+          returnPc,
+          buildCaseClausesFromReturnValueAssignments(assignments),
+          pPcLeftHandSide,
+          pTargetPc);
     }
+  }
+
+  private static ImmutableList<SeqCaseClause> buildCaseClausesFromReturnValueAssignments(
+      ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
+
+    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
+    for (FunctionReturnValueAssignment assignment : pAssignments) {
+      int caseLabelValue = assignment.returnPcWrite.value;
+      SeqReturnValueAssignmentCaseBlockStatement assignmentStatement =
+          buildSeqReturnValueCaseBlockStatement(assignment.statement);
+      rCaseClauses.add(
+          new SeqCaseClause(
+              anyGlobalAssign(pAssignments),
+              false,
+              caseLabelValue,
+              new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
+    }
+    return rCaseClauses.build();
+  }
+
+  private static SeqReturnValueAssignmentCaseBlockStatement buildSeqReturnValueCaseBlockStatement(
+      CExpressionAssignmentStatement pAssignment) {
+
+    return new SeqReturnValueAssignmentCaseBlockStatement(pAssignment);
   }
 
   private static SeqCaseBlockStatement buildStatementFromPthreadFunction(
@@ -520,6 +552,20 @@ public class SeqCaseBlockStatementBuilder {
         return true;
       } else if (MPORUtil.isReachErrorCall(functionSummaryEdge)) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */
+  private static boolean anyGlobalAssign(ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
+    for (FunctionReturnValueAssignment assignment : pAssignments) {
+      if (assignment.statement.getLeftHandSide() instanceof CIdExpression idExpr) {
+        if (idExpr.getDeclaration() instanceof CVariableDeclaration varDec) {
+          if (varDec.isGlobal()) {
+            return true;
+          }
+        }
       }
     }
     return false;

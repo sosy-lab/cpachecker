@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -34,6 +33,8 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final Optional<CExpression> targetPcExpression;
 
+  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+
   SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
@@ -43,6 +44,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.empty();
   }
 
   private SeqParameterAssignmentStatements(
@@ -54,6 +56,19 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
+    concatenatedStatements = Optional.empty();
+  }
+
+  private SeqParameterAssignmentStatements(
+      ImmutableList<FunctionParameterAssignment> pAssignments,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    assignments = pAssignments;
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = Optional.empty();
+    targetPcExpression = Optional.empty();
+    concatenatedStatements = Optional.of(pConcatenatedStatements);
   }
 
   @Override
@@ -79,10 +94,22 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     return targetPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    return concatenatedStatements;
+  }
+
   @Override
   public SeqParameterAssignmentStatements cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    return new SeqParameterAssignmentStatements(
+        assignments, pcLeftHandSide, pConcatenatedStatements);
   }
 
   @Override

@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -66,10 +66,24 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
     return returnPcExpression;
   }
 
-  @NonNull
+  @Override
+  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+    // a return pc write has no conca
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have concatenated statements");
+  }
+
   @Override
   public SeqReturnPcWriteStatement cloneWithTargetPc(CExpression pTargetPc) {
     return new SeqReturnPcWriteStatement(returnPcVariable, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+    // we do not want to clone the statements to
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have concatenated statements");
   }
 
   @Override
