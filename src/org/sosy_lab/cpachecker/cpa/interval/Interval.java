@@ -12,9 +12,12 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.math.LongMath.saturatedAdd;
 import static com.google.common.math.LongMath.saturatedMultiply;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Longs;
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -537,5 +540,29 @@ public final class Interval implements Serializable {
       return Optional.of(low);
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns a collection of intervals describing the relative complement or set difference with
+   * another interval.
+   *
+   * @param subtrahend the other interval.
+   * @return the relative complement.
+   */
+  public Collection<Interval> getRelativeComplement(Interval subtrahend) {
+    HashSet<Interval> result = new HashSet<>();
+
+    if (!intersects(subtrahend)) {
+      return ImmutableSet.of(this);
+    }
+
+    if (low < subtrahend.low) {
+      result.add(new Interval(low, subtrahend.low - 1));
+    }
+
+    if (high > subtrahend.high) {
+      result.add(new Interval(subtrahend.high + 1, high));
+    }
+    return ImmutableSet.copyOf(result);
   }
 }
