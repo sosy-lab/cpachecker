@@ -269,21 +269,25 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqCaseBlockStatement buildReturnValueAssignmentStatement(
       ThreadEdge pThreadEdge,
       int pTargetPc,
-      CLeftHandSide pcLeftHandSide,
+      CLeftHandSide pPcLeftHandSide,
       FunctionStatements pFunctionVariables) {
 
     // TODO add support and test for pthread_join(id, &start_routine_return)
     //  where start_routine_return is assigned the return value of the threads start routine
     // returning from non-start-routine function: assign return value to return vars
-    ImmutableSet<FunctionReturnValueAssignment> assigns =
+    ImmutableSet<FunctionReturnValueAssignment> assignments =
         Objects.requireNonNull(pFunctionVariables.returnValueAssignments.get(pThreadEdge));
-    if (assigns.isEmpty()) { // -> function does not return anything, i.e. return;
-      return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
+    if (assignments.isEmpty()) { // -> function does not return anything, i.e. return;
+      return new SeqBlankStatement(pPcLeftHandSide, pTargetPc);
+    } else if (assignments.size() == 1) {
+      // if there is only one calling context for this thread, we don't need a switch statement
+      FunctionReturnValueAssignment assignment = assignments.iterator().next();
+      return new SeqReturnValueAssignmentStatement(assignment, pPcLeftHandSide, pTargetPc);
     } else {
       // just get the first element in the set for the RETURN_PC
-      CIdExpression returnPc = assigns.iterator().next().returnPcWrite.variable;
+      CIdExpression returnPc = assignments.iterator().next().returnPcWrite.variable;
       return new SeqReturnValueAssignmentSwitchStatement(
-          returnPc, assigns, pcLeftHandSide, pTargetPc);
+          returnPc, assignments, pPcLeftHandSide, pTargetPc);
     }
   }
 

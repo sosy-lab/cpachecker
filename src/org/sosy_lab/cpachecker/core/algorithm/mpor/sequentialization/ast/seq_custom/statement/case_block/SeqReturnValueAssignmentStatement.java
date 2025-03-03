@@ -8,26 +8,28 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Standard C does not allow function declarations or definitions inside functions. Type
- * declarations are allowed, but CPAcheckers preprocessing puts them at the top, together with other
- * declarations. Thus, only (local) variable declarations inside functions have to handled
- * explicitly for the sequentialization.
+ * Handles the assignments of a <strong>single</strong> return value of functions, e.g. {@code int x
+ * = fib(5);} where {@code fib} has a return statement {@code return fibNumber;} then we create a
+ * statement {@code x = fibNumber;} (where {@code x} is declared beforehand) in the
+ * sequentialization.
+ *
+ * <p>If the function {@code fib} is called <strong>multiple</strong> times by one thread, we create
+ * a switch statement, see {@link SeqReturnValueAssignmentSwitchStatement}.
  */
-public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqCaseBlockStatement {
+public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
 
-  private final CVariableDeclaration variableDeclaration;
+  private final CExpressionAssignmentStatement assignment;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -35,30 +37,21 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
 
   private final Optional<CExpression> targetPcExpression;
 
-  private void checkArguments(CVariableDeclaration pVariableDeclaration) {
-    checkArgument(!pVariableDeclaration.isGlobal(), "pVariableDeclaration must be local");
-    checkArgument(
-        pVariableDeclaration.getInitializer() != null,
-        "pVariableDeclaration must have an initializer");
-  }
+  SeqReturnValueAssignmentStatement(
+      FunctionReturnValueAssignment pAssignment, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
-  SeqLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-
-    checkArguments(pVariableDeclaration);
-    variableDeclaration = pVariableDeclaration;
+    assignment = pAssignment.statement;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     targetPcExpression = Optional.empty();
   }
 
-  private SeqLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration,
+  private SeqReturnValueAssignmentStatement(
+      CExpressionAssignmentStatement pAssignment,
       CLeftHandSide pPcLeftHandSide,
       CExpression pTargetPc) {
 
-    checkArguments(pVariableDeclaration);
-    variableDeclaration = pVariableDeclaration;
+    assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.empty();
     targetPcExpression = Optional.of(pTargetPc);
@@ -69,9 +62,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
     CExpressionAssignmentStatement pcWrite =
         SeqExpressionAssignmentStatement.buildPcWriteByTargetPc(
             pcLeftHandSide, targetPc, targetPcExpression);
-    return variableDeclaration.toASTStringWithOnlyNameAndInitializer()
-        + SeqSyntax.SPACE
-        + pcWrite.toASTString();
+    return assignment.toASTString() + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
   @Override
@@ -85,12 +76,9 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   @Override
-  @NonNull
-  public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(
-      CExpression pTargetPc) {
-
-    return new SeqLocalVariableDeclarationWithInitializerStatement(
-        variableDeclaration, pcLeftHandSide, pTargetPc);
+  public @NonNull SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc)
+      throws UnrecognizedCodeException {
+    return new SeqReturnValueAssignmentStatement(assignment, pcLeftHandSide, pTargetPc);
   }
 
   @Override

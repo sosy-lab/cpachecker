@@ -160,7 +160,9 @@ public class SeqPruner {
     Set<Integer> visitedPrePrunePc = new HashSet<>();
     ImmutableMap.Builder<Integer, CExpression> rMap = ImmutableMap.builder();
     // TODO the current reason why we dont use the list directly is that the unpruned cases have
-    //  gaps in their label pcs -> try and refactor
+    //  gaps in their label pcs
+    //  -> try and refactor, possibly so that 0 to n - 1 represents the n cases for thread i
+    //  (might even be more efficient)
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
         mapCaseLabelValueToCaseClauses(pCaseClauses);
     for (SeqCaseClause caseClause : pCaseClauses) {

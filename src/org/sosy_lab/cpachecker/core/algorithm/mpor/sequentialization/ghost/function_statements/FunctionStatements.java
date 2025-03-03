@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class FunctionStatements {
 
+  // TODO it would be cleaner to map to the respective types of CFAEdges
+  //  so that we instantly know what kind of edge is relevant for the statements
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
