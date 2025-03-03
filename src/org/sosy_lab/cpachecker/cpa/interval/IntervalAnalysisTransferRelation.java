@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -415,26 +416,26 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
-    IntervalAnalysisState successor = state;
-    // expression is an assignment operation, e.g. a = b;
     if (expression instanceof CAssignment assignExpression) {
-      CExpression op1 = assignExpression.getLeftHandSide();
-      CRightHandSide op2 = assignExpression.getRightHandSide();
-
-      if (op1 instanceof CIdExpression id) {
-        successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
-      } else if (op1 instanceof CArraySubscriptExpression subscriptExpression) {
-        if (subscriptExpression.getArrayExpression() instanceof CIdExpression id) {
-          String arrayName = id.getDeclaration().getQualifiedName();
-          if (op2 instanceof CExpression rightHandSideExpression) {
-            successor = successor.assignArrayElement(arrayName, subscriptExpression.getSubscriptExpression(),
-                evaluateInterval(state, op2, cfaEdge), new ExpressionValueVisitor(state, cfaEdge));
-          }
-        }
-      }
-
+      CExpression assignee = assignExpression.getLeftHandSide();
+      Interval value = assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge));
+      return ImmutableSet.of(assign(assignee, value, cfaEdge));
     }
-    return soleSuccessor(successor);
+    return ImmutableSet.of();
+  }
+
+  private IntervalAnalysisState assign(CExpression assignee, Interval value, CStatementEdge cfaEdge) {
+    if (assignee instanceof CIdExpression id) {
+      return state.addInterval(id.getDeclaration().getQualifiedName(), value, threshold);
+    } else if (assignee instanceof CArraySubscriptExpression arraySubscript) {
+      if (arraySubscript.getArrayExpression() instanceof CIdExpression arrayId) {
+        String arrayName = arrayId.getDeclaration().getQualifiedName();
+        CExpression index = arraySubscript.getSubscriptExpression();
+        ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
+        return state.assignArrayElement(arrayName, index, value, visitor);
+      }
+    }
+    return state;
   }
 
   private Interval evaluateInterval(
