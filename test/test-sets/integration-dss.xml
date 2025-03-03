@@ -44,10 +44,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/float-benchs/filter_iir.yml</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
-    <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
     <exclude>../programs/benchmarks/neural-networks/*</exclude> <!-- only exceptions -->
   </tasks>
   <tasks>
@@ -55,8 +51,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout -->
-    <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
     <exclude>../programs/benchmarks/longjmp/*</exclude> <!-- only exceptions -->
   </tasks>
   <tasks>
@@ -64,13 +58,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/systemc/transmitter.*</exclude> <!-- mostly timeout -->
-    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeout -->
-    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
-    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
-    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-2.yml</exclude> <!-- flapping timeout/unknown -->
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
