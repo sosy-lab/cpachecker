@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
@@ -162,7 +161,7 @@ public class AutomatonWitnessV2ParserUtils {
 
   public static ImmutableSet<String> parseDeclarationsFromFile(
       List<LemmaSetEntry> pLemmaSetEntries) {
-    ImmutableSet.Builder<String> declarationStrings = new Builder<>();
+    ImmutableSet.Builder<String> declarationStrings = ImmutableSet.builder();
     for (LemmaSetEntry e : pLemmaSetEntries) {
       declarationStrings.addAll(e.getDeclarations());
     }
