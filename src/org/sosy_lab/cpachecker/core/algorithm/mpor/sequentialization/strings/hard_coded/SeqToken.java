@@ -85,8 +85,6 @@ public class SeqToken {
 
   public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
 
-  public static final String prev_thread = "prev_thread";
-
   public static final String reach_error = "reach_error";
 
   public static final String RETURN_PC = "RETURN_PC";

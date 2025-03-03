@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -89,13 +88,7 @@ public class SeqFunctionBuilder {
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
-    // optional: include POR assumptions
-    Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions =
-        pOptions.partialOrderReduction
-            ? Optional.of(
-                SeqAssumptionBuilder.createPORAssumptions(
-                    caseClauses, pPcVariables, pBinaryExpressionBuilder))
-            : Optional.empty();
+    // include assumptions over thread simulation variables
     ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
             pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder);
@@ -103,7 +96,6 @@ public class SeqFunctionBuilder {
         pOptions,
         pSubstitutions.size(),
         threadSimulationAssumptions,
-        porAssumptions,
         caseClauses,
         pPcVariables,
         pBinaryExpressionBuilder);

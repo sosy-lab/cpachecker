@@ -35,10 +35,6 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqArrayType.INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
-    public static final CVariableDeclaration PREV_THREAD =
-        buildVariableDeclaration(
-            false, SeqSimpleType.INT, SeqToken.prev_thread, SeqInitializer.INT_MINUS_1);
-
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(
             false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);

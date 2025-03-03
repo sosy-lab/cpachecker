@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -86,11 +84,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final SeqStatement pcNextThreadAssumption;
 
-  // optional: POR variables
-  private final Optional<ImmutableList<SeqFunctionCallExpression>> porAssumptions;
-
-  private final Optional<CExpressionAssignmentStatement> assignPrevThread;
-
   private final PcVariables pcVariables;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
@@ -99,7 +92,6 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       int pNumThreads,
       ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
-      Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -115,7 +107,6 @@ public class SeqMainFunction extends SeqFunction {
                 SeqInitializer.buildInitializerExpression(
                     SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pNumThreads))));
     threadAssumptions = pThreadAssumptions;
-    porAssumptions = pPORAssumptions;
     caseClauses = pCaseClauses;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -130,13 +121,6 @@ public class SeqMainFunction extends SeqFunction {
     nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNextThread);
     pcNextThreadAssumption =
         buildPcNextThreadAssumption(pNumThreads, pOptions.scalarPc, pcVariables);
-
-    assignPrevThread =
-        porAssumptions.isPresent()
-            ? Optional.of(
-                new CExpressionAssignmentStatement(
-                    FileLocation.DUMMY, SeqIdExpression.PREV_THREAD, SeqIdExpression.NEXT_THREAD))
-            : Optional.empty();
   }
 
   private ImmutableList<CVariableDeclaration> createPcDeclarations(
@@ -171,11 +155,8 @@ public class SeqMainFunction extends SeqFunction {
   @Override
   public ImmutableList<LineOfCode> buildBody() {
     ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
-    // declare main() local variables NUM_THREADS, pc, next_thread and optionally prev_thread
+    // declare main() local variables NUM_THREADS, pc, next_thread
     rBody.addAll(buildVariableDeclarations(numThreads.getDeclaration(), pcDeclarations));
-    if (assignPrevThread.isPresent()) {
-      rBody.add(LineOfCode.of(1, SeqVariableDeclaration.PREV_THREAD.toASTString()));
-    }
     rBody.add(LineOfCode.of(1, nextThreadDeclaration.toASTString()));
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
@@ -199,10 +180,7 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_ASSUMPTIONS));
     }
-    rBody.addAll(buildAssumptions(threadAssumptions, porAssumptions));
-    if (assignPrevThread.isPresent()) {
-      rBody.add(LineOfCode.of(2, assignPrevThread.orElseThrow().toASTString()));
-    }
+    rBody.addAll(buildAssumptions(threadAssumptions));
     // add all switch statements
     if (options.comments) {
       rBody.add(LineOfCode.empty());
@@ -270,22 +248,12 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private ImmutableList<LineOfCode> buildAssumptions(
-      ImmutableList<SeqFunctionCallExpression> pThreadAssumptions,
-      Optional<ImmutableList<SeqFunctionCallExpression>> pPORAssumptions) {
+      ImmutableList<SeqFunctionCallExpression> pThreadAssumptions) {
 
     ImmutableList.Builder<LineOfCode> rAssumptions = ImmutableList.builder();
     for (SeqFunctionCallExpression assumption : pThreadAssumptions) {
       String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
       rAssumptions.add(LineOfCode.of(2, assumeStatement));
-    }
-    if (pPORAssumptions.isPresent()) {
-      if (!pPORAssumptions.orElseThrow().isEmpty()) {
-        rAssumptions.add(LineOfCode.empty());
-      }
-      for (SeqFunctionCallExpression assumption : pPORAssumptions.orElseThrow()) {
-        String assumeStatement = assumption.toASTString() + SeqSyntax.SEMICOLON;
-        rAssumptions.add(LineOfCode.of(2, assumeStatement));
-      }
     }
     return rAssumptions.build();
   }

@@ -9,23 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadBeginsAtomic;
@@ -158,69 +150,5 @@ public class SeqAssumptionBuilder {
       rAtomicAssumptions.add(assumeCall);
     }
     return rAtomicAssumptions.build();
-  }
-
-  // Partial Order Reduction =======================================================================
-
-  // TODO remove this once we concatenate statements instead of using assumptions for POR
-  /**
-   * Creates the function calls for assumptions of the form {@code assume((prev_thread = i && pc[i]
-   * = 0) ==> next_thread = i)}.
-   */
-  public static ImmutableList<SeqFunctionCallExpression> createPORAssumptions(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pPrunedCaseClauses,
-      PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<SeqFunctionCallExpression> rAssumptions = ImmutableList.builder();
-    for (var entry : pPrunedCaseClauses.entrySet()) {
-      int threadId = entry.getKey().id;
-      for (SeqCaseClause caseClause : entry.getValue()) {
-        if (!caseClause.isGlobal && caseClause.alwaysUpdatesPc()) {
-          SeqCaseLabel label = caseClause.label;
-          SeqFunctionCallExpression porAssumption =
-              createPORAssumption(threadId, label.value, pPcVariables, pBinaryExpressionBuilder);
-          rAssumptions.add(porAssumption);
-        }
-      }
-    }
-    return rAssumptions.build();
-  }
-
-  private static SeqFunctionCallExpression createPORAssumption(
-      int pThreadId,
-      int pPc,
-      PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    CExpression pcExpression = SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pPc);
-    return createPORAssumption(pThreadId, pcExpression, pPcVariables, pBinaryExpressionBuilder);
-  }
-
-  private static SeqFunctionCallExpression createPORAssumption(
-      int pThreadId,
-      CExpression pPcExpression,
-      PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    CIntegerLiteralExpression threadId =
-        SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pThreadId);
-    CBinaryExpression prevEquals =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.PREV_THREAD, threadId, BinaryOperator.EQUALS);
-    CBinaryExpression pcEquals =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            pPcVariables.get(pThreadId), pPcExpression, BinaryOperator.EQUALS);
-    CToSeqExpression nextThread =
-        new CToSeqExpression(
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS));
-    SeqLogicalNotExpression notAnd =
-        new SeqLogicalNotExpression(new SeqLogicalAndExpression(prevEquals, pcEquals));
-    SeqLogicalOrExpression or = new SeqLogicalOrExpression(notAnd, nextThread);
-    return new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(or));
   }
 }

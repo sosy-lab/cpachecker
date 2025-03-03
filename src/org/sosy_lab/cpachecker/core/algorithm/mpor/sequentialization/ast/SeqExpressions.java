@@ -143,9 +143,6 @@ public class SeqExpressions {
     protected static final CIdExpression DUMMY_PC =
         buildIdExpression(SeqVariableDeclaration.DUMMY_PC);
 
-    public static final CIdExpression PREV_THREAD =
-        buildIdExpression(SeqVariableDeclaration.PREV_THREAD);
-
     public static final CIdExpression NEXT_THREAD =
         buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
 
