@@ -86,7 +86,7 @@ public class IntervalAnalysisTransferRelation
       newState = newState.dropFrame(functionName);
     }
 
-    return soleSuccessor(newState);
+    return ImmutableSet.of(newState);
   }
 
   /**
@@ -110,11 +110,7 @@ public class IntervalAnalysisTransferRelation
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcExp) {
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.orElseThrow().getQualifiedName())) {
-        newState =
-            addInterval(
-                newState,
-                funcExp.getLeftHandSide(),
-                state.getInterval(retVar.orElseThrow().getQualifiedName()));
+        newState = assign(funcExp.getLeftHandSide(), state.getInterval(retVar.orElseThrow().getQualifiedName()), cfaEdge);
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -123,7 +119,7 @@ public class IntervalAnalysisTransferRelation
       throw new UnrecognizedCodeException("on function return", cfaEdge, summaryExpr);
     }
 
-    return soleSuccessor(newState);
+    return ImmutableSet.of(newState);
   }
 
   /**
@@ -155,12 +151,12 @@ public class IntervalAnalysisTransferRelation
     // set the interval of each formal parameter to the interval of its respective actual parameter
     for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
-      Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
+      Interval interval = arguments.get(i).accept(new ExpressionValueVisitor(state, callEdge));
       String formalParameterName = parameters.get(i).getQualifiedName();
       newState = newState.addInterval(formalParameterName, interval, threshold);
     }
 
-    return soleSuccessor(newState);
+    return ImmutableSet.of(newState);
   }
 
   /**
@@ -181,11 +177,11 @@ public class IntervalAnalysisTransferRelation
       newState =
           newState.addInterval(
               ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-              evaluateInterval(state, ass.getRightHandSide(), returnEdge),
+              ass.getRightHandSide().accept(new ExpressionValueVisitor(state, returnEdge)),
               threshold);
     }
 
-    return soleSuccessor(newState);
+    return ImmutableSet.of(newState);
   }
 
   /**
@@ -202,12 +198,12 @@ public class IntervalAnalysisTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
 
-    Interval currentEvaluation = evaluateInterval(state, expression, cfaEdge);
+    Interval currentEvaluation = expression.accept(new ExpressionValueVisitor(state, cfaEdge));
     Interval truthValueInterval = truthValue ? ONE : ZERO;
 
     // test whether the assumption is unsatisfiable
     if (!currentEvaluation.intersects(truthValueInterval)) {
-      return noSuccessors();
+      return ImmutableSet.of();
     }
 
     if (expression instanceof CBinaryExpression binaryExpression) {
@@ -220,7 +216,7 @@ public class IntervalAnalysisTransferRelation
       return handleBinaryComparisonAssumption(cfaEdge, operand1, operator, operand2);
     } else {
       // Cannot handle assumptions that are not binary comparisons yet
-      return soleSuccessor(state);
+      return ImmutableSet.of(state);
     }
   }
 
@@ -287,15 +283,6 @@ public class IntervalAnalysisTransferRelation
     };
   }
 
-  private IntervalAnalysisState addInterval(
-      IntervalAnalysisState newState, CExpression lhs, Interval interval) {
-    // we currently only handle IdExpressions and ignore more complex Expressions
-    if (lhs instanceof CIdExpression id) {
-      return newState.addInterval(id.getDeclaration().getQualifiedName(), interval, threshold);
-    }
-    return newState;
-  }
-
   /**
    * This method handles variable declarations.
    *
@@ -307,15 +294,13 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
-
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
-      return handleVariableDeclarationEdge(declarationEdge, decl);
+      return ImmutableSet.of(handleVariableDeclarationEdge(declarationEdge, decl));
     }
-
-    return soleSuccessor(state);
+    return ImmutableSet.of(state);
   }
 
-  private Collection<IntervalAnalysisState> handleVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+  private IntervalAnalysisState handleVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
 
     if (decl.getType() instanceof CSimpleType) {
@@ -324,32 +309,31 @@ public class IntervalAnalysisTransferRelation
     if (decl.getType() instanceof CArrayType) {
       return handleArrayVariableDeclarationEdge(declarationEdge, decl);
     }
-    return soleSuccessor(state);
+    return state;
   }
 
-  private Collection<IntervalAnalysisState> handleSimpleTypeVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+  private IntervalAnalysisState handleSimpleTypeVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
     Interval interval;
 
     // variable may be initialized explicitly on the spot ...
     if (decl.getInitializer() instanceof CInitializerExpression initializerExpression) {
       CExpression expression = initializerExpression.getExpression();
-      interval = evaluateInterval(state, expression, declarationEdge);
+      interval = expression.accept(new ExpressionValueVisitor(state, declarationEdge));
     } else {
       interval = Interval.UNBOUND;
     }
 
-    return soleSuccessor(state.addInterval(decl.getQualifiedName(), interval, threshold));
+    return state.addInterval(decl.getQualifiedName(), interval, threshold);
   }
 
-  private Collection<IntervalAnalysisState> handleArrayVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
-      throws UnrecognizedCodeException {
+  private IntervalAnalysisState handleArrayVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl) {
     if (decl.getInitializer() instanceof CInitializerList initializerList) {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
-      return soleSuccessor(state.addArray(decl.getQualifiedName(), FunArray.ofInitializerList(initializerList.getInitializers(), visitor)));
+      return state.addArray(decl.getQualifiedName(), FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
     } else if (decl.getType() instanceof CArrayType arrayType) {
       FunArray simpleArray = new FunArray(arrayType.getLength());
-      return soleSuccessor(state.addArray(decl.getQualifiedName(), simpleArray));
+      return state.addArray(decl.getQualifiedName(), simpleArray);
     }
     throw new RuntimeException("Not yet implemented");
   }
@@ -384,19 +368,5 @@ public class IntervalAnalysisTransferRelation
       }
     }
     return state;
-  }
-
-  private Interval evaluateInterval(
-      IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge)
-      throws UnrecognizedCodeException {
-    return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
-  }
-
-  private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {
-    return Collections.singleton(successor);
-  }
-
-  private Collection<IntervalAnalysisState> noSuccessors() {
-    return ImmutableSet.of();
   }
 }
