@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
+import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,8 +18,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -198,145 +202,89 @@ public class IntervalAnalysisTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
 
-    if ((truthValue ? Interval.ZERO : Interval.ONE)
-        .equals(evaluateInterval(state, expression, cfaEdge))) {
-      // the assumption is unsatisfiable
+    Interval currentEvaluation = evaluateInterval(state, expression, cfaEdge);
+    Interval truthValueInterval = truthValue ? ONE : ZERO;
+
+    // test whether the assumption is unsatisfiable
+    if (!currentEvaluation.intersects(truthValueInterval)) {
       return noSuccessors();
     }
 
-    // otherwise the assumption is satisfiable or unknown
-    // --> we try to get additional information from the assumption
-
-    BinaryOperator operator = ((CBinaryExpression) expression).getOperator();
-    CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
-    CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
-
-    if (!truthValue) {
-      operator = operator.getOppositLogicalOperator();
-    }
-
-    // the following lines assume that one of the operands is an identifier
-    // and the other one represented with an interval (example "x<[3;5]").
-    // If none of the operands is an identifier, nothing is done.
-
-    IntervalAnalysisState newState = state;
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-    Interval interval1 = operand1.accept(visitor);
-    Interval interval2 = operand2.accept(visitor);
-
-    assert !interval1.isEmpty() : operand1;
-    assert !interval2.isEmpty() : operand2;
-
-    switch (operator) {
-      // a < b, a < 1
-      case LESS_THAN:
-        {
-          newState =
-              addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
-          return soleSuccessor(newState);
-        }
-
-      // a <= b, a <= 1
-      case LESS_EQUAL:
-        {
-          newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a > b, a > 1
-      case GREATER_THAN:
-        {
-          newState =
-              addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
-          return soleSuccessor(newState);
-        }
-
-      // a >= b, a >= 1
-      case GREATER_EQUAL:
-        {
-          newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a == b, a == 1
-      case EQUALS:
-        {
-          newState = addInterval(newState, operand1, interval1.intersect(interval2));
-          newState = addInterval(newState, operand2, interval2.intersect(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a != b, a != 1
-      case NOT_EQUALS:
-        {
-
-          // Splitting depends on the fact that one operand is a literal.
-          // Then we try to split into two intervals.
-          if (interval2.getLow().equals(interval2.getHigh())) {
-            return splitInterval(newState, operand1, interval1, interval2);
-
-          } else if (interval1.getLow().equals(interval1.getHigh())) {
-            return splitInterval(newState, operand2, interval2, interval1);
-
-          } else {
-            // we know nothing more than before
-            return soleSuccessor(newState);
-          }
-        }
-
-      default:
-        throw new UnrecognizedCodeException(
-            "unexpected operator in assumption", cfaEdge, expression);
+    if (expression instanceof CBinaryExpression binaryExpression) {
+      BinaryOperator operator = binaryExpression.getOperator();
+      if (!truthValue) {
+        operator = operator.getOppositLogicalOperator();
+      }
+      CExpression operand1 = binaryExpression.getOperand1();
+      CExpression operand2 = binaryExpression.getOperand2();
+      return handleBinaryComparisonAssumption(cfaEdge, operand1, operator, operand2);
+    } else {
+      // Cannot handle assumptions that are not binary comparisons yet
+      return soleSuccessor(state);
     }
   }
 
-  /**
-   * For an interval [2;5] and a splitPoint [3;3] we build two states with assignments for [2;2] and
-   * [4;5].
-   *
-   * @param newState where to store the new intervals
-   * @param lhs the left-hand-side of the assignment
-   * @param interval to be split
-   * @param splitPoint singular interval where to split
-   * @return two states
-   */
-  private Collection<IntervalAnalysisState> splitInterval(
-      IntervalAnalysisState newState, CExpression lhs, Interval interval, Interval splitPoint) {
+  private Collection<IntervalAnalysisState> handleBinaryComparisonAssumption(
+      CAssumeEdge cfaEdge, CExpression operand1, BinaryOperator operator, CExpression operand2)
+      throws UnrecognizedCodeException {
 
-    assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
 
-    // we split in following cases:
-    // - either always because of the option 'splitIntervals'
-    // - or if the splitPoint is the bound of the interval and thus we can shrink the interval.
-    if (splitIntervals
-        || interval.getLow().equals(splitPoint.getHigh())
-        || interval.getHigh().equals(splitPoint.getHigh())) {
+    return Stream.concat(
+        oneSidedAssume(
+            cfaEdge,
+            operand1,
+            operator,
+            operand2.accept(visitor)
+        ).stream(),
+        oneSidedAssume(
+            cfaEdge,
+            operand2,
+            operator.getSwitchOperandsSidesLogicalOperator(),
+            operand1.accept(visitor)
+        ).stream()
+    ).collect(Collectors.toUnmodifiableSet());
+  }
 
-      Collection<IntervalAnalysisState> successors = new ArrayList<>();
 
-      Interval part1 =
-          interval.intersect(Interval.createUpperBoundedInterval(splitPoint.getLow() - 1L));
-      Interval part2 =
-          interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
+  private Collection<IntervalAnalysisState> oneSidedAssume(
+      CAssumeEdge cfaEdge, CExpression dynamicOperand, BinaryOperator operator, Interval staticComparee)
+      throws UnrecognizedCodeException {
 
-      if (!part1.isEmpty()) {
-        successors.add(addInterval(newState, lhs, part1));
-      }
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
+    Interval dynamicOperandValue = dynamicOperand.accept(visitor);
 
-      if (!part2.isEmpty()) {
-        successors.add(addInterval(newState, lhs, part2));
-      }
-
-      return successors;
-    } else {
-      return soleSuccessor(newState);
-    }
+    return switch (operator) {
+      case LESS_THAN -> ImmutableSet.of(assign(
+          dynamicOperand,
+          dynamicOperandValue.limitUpperBoundBy(staticComparee.minus(1L)),
+          cfaEdge
+      ));
+      case LESS_EQUAL -> ImmutableSet.of(assign(
+          dynamicOperand,
+          dynamicOperandValue.limitUpperBoundBy(staticComparee),
+          cfaEdge
+      ));
+      case GREATER_THAN -> ImmutableSet.of(assign(
+          dynamicOperand,
+          dynamicOperandValue.limitLowerBoundBy(staticComparee.plus(1L)),
+          cfaEdge
+      ));
+      case GREATER_EQUAL -> ImmutableSet.of(assign(
+          dynamicOperand,
+          dynamicOperandValue.limitLowerBoundBy(staticComparee),
+          cfaEdge
+      ));
+      case EQUALS -> ImmutableSet.of(assign(
+          dynamicOperand,
+          dynamicOperandValue.intersect(staticComparee),
+          cfaEdge
+      ));
+      case NOT_EQUALS -> dynamicOperandValue.getRelativeComplement(staticComparee).stream()
+          .map(comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge))
+          .collect(Collectors.toSet());
+      default -> throw new UnrecognizedCodeException("Assume operator not implemented", cfaEdge);
+    };
   }
 
   private IntervalAnalysisState addInterval(
@@ -424,7 +372,7 @@ public class IntervalAnalysisTransferRelation
     return ImmutableSet.of();
   }
 
-  private IntervalAnalysisState assign(CExpression assignee, Interval value, CStatementEdge cfaEdge) {
+  private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge) {
     if (assignee instanceof CIdExpression id) {
       return state.addInterval(id.getDeclaration().getQualifiedName(), value, threshold);
     } else if (assignee instanceof CArraySubscriptExpression arraySubscript) {
