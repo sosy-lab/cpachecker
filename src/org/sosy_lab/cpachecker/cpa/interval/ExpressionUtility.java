@@ -111,7 +111,7 @@ public class ExpressionUtility {
                 .map(normalized -> normalized.add(concreteValue))
                 .collect(Collectors.toSet());
           } catch (UnrecognizedCodeException ignored) {
-            return new HashSet<NormalFormExpression>() {};
+            return new HashSet<NormalFormExpression>();
           }
         }).orElse(Set.of());
   }
