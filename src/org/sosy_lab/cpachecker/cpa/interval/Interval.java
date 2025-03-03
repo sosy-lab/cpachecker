@@ -16,8 +16,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Longs;
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -52,14 +54,12 @@ public final class Interval implements Serializable {
   /**
    * This method acts as constructor for a long-based interval.
    *
-   * @param low the lower bound
-   * @param high the upper bound
+   * @param pLow the lower bound
+   * @param pHigh the upper bound
    */
-  public Interval(Long low, Long high) {
-    this.low = low;
-
-    this.high = high;
-
+  public Interval(Long pLow, Long pHigh) {
+    this.low = pLow;
+    this.high = pHigh;
     isSane();
   }
 
@@ -550,7 +550,7 @@ public final class Interval implements Serializable {
    * @return the relative complement.
    */
   public Collection<Interval> getRelativeComplement(Interval subtrahend) {
-    HashSet<Interval> result = new HashSet<>();
+    List<Interval> result = new ArrayList<>();
 
     if (!intersects(subtrahend)) {
       return ImmutableSet.of(this);

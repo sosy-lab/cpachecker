@@ -83,7 +83,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
           if (e instanceof CInitializerExpression cInitializerExpression) {
             try {
               return cInitializerExpression.getExpression().accept(visitor);
-            } catch (UnrecognizedCodeException pE) {
+            } catch (UnrecognizedCodeException exception) {
               return Interval.UNBOUND;
             }
           }
@@ -197,14 +197,14 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     var leftAdjacent = indeces.stream().anyMatch(e -> {
       try {
         return greatestLowerBound.isEqualTo(e, visitor);
-      } catch (UnrecognizedCodeException pE) {
+      } catch (UnrecognizedCodeException exception) {
         return false;
       }
     });
     var rightAdjacent = trailingIndeces.stream().anyMatch(e -> {
       try {
         return leastUpperBound.isEqualTo(e, visitor);
-      } catch (UnrecognizedCodeException pE) {
+      } catch (UnrecognizedCodeException exception) {
         return false;
       }
     });
@@ -307,7 +307,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         return true;
       }
       return b.accept(visitor).isGreaterThan(a.accept(visitor));
-    } catch (UnrecognizedCodeException pE) {
+    } catch (UnrecognizedCodeException exception) {
       return false;
     }
   }
@@ -339,7 +339,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         return true;
       }
       return a.accept(visitor).isGreaterOrEqualThan(b.accept(visitor));
-    } catch (UnrecognizedCodeException pE) {
+    } catch (UnrecognizedCodeException exception) {
       return false;
     }
   }

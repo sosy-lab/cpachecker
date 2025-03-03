@@ -92,9 +92,4 @@ public class NormalFormExpression {
     sb.append(constant);
     return sb.toString();
   }
-
-  @Override
-  public int hashCode() {
-    return toString().hashCode();
-  }
 }

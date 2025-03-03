@@ -160,7 +160,7 @@ public record Bound(Set<CExpression> expressions) {
     return expressions.stream().map(e -> {
       try {
         return e.accept(visitor);
-      } catch (UnrecognizedCodeException pE) {
+      } catch (UnrecognizedCodeException exception) {
         return Interval.EMPTY;
       }
     }).anyMatch(e -> predicate.test(e, otherValue));
