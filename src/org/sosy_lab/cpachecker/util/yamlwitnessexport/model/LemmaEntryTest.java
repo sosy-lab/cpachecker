@@ -48,6 +48,17 @@ public class LemmaEntryTest {
     assertThat(lemmaSet.asList().get(0).getFormat().toString()).isEqualTo("c_expression");
   }
 
+  @Test
+  public void testParseDeclarations() throws IOException {
+    Path witnessFile = Path.of(TEST_DIR_PATH, "witness.yml");
+    List<LemmaSetEntry> lemmaSetEntries = AutomatonWitnessV2ParserUtils.readLemmaFile(witnessFile);
+    ImmutableSet<String> declarations =
+        AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries);
+    assertThat(declarations).hasSize(3);
+    assertThat(declarations.asList().get(0)).isEqualTo("int MaxArray(int* A, int I)");
+    assertThat(declarations.asList().get(1)).isEqualTo("int* A");
+  }
+
   private List<LemmaSetEntry> testLemmaFile(String filename) throws IOException {
     File lemmaFile = Path.of(TEST_DIR_PATH, filename).toFile();
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());

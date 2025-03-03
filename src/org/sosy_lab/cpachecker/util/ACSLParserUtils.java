@@ -160,7 +160,7 @@ public class ACSLParserUtils {
     }
   }
 
-  private static CType toCtype(String typeName) {
+  public static CType toCtype(String typeName) {
     return switch (typeName) {
       case "void" -> CVoidType.VOID;
       case "int" -> CNumericTypes.INT;
