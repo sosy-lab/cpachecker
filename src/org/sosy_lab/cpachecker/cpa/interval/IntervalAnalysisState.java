@@ -417,14 +417,14 @@ public class IntervalAnalysisState
     for (Entry<String, Interval> entry : intervals.entrySet()) {
       sb.append(
           String.format(
-              "%s = %s (%s), \n",
+              "%s = %s (%s),",
               entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
 
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
       sb.append(
           String.format(
-              "%s = %s, \n",
+              "%s = %s,",
               entry.getKey(), entry.getValue()));
     }
     sb.append("}");

@@ -7,6 +7,8 @@ import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntactic
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,7 +33,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * @param values    the FunArray's values.
  * @param emptiness a list determining whether a segment might be empty.
  */
-public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> emptiness) {
+public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> emptiness) implements Serializable {
+
+  @Serial
+  private static final long serialVersionUID = 7169472946910382516L;
 
   /**
    * Constructor for FunArray.

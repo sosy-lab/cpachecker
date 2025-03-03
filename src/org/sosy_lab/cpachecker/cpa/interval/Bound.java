@@ -7,7 +7,6 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
