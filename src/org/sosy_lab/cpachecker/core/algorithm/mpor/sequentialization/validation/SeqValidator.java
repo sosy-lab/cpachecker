@@ -146,14 +146,14 @@ public class SeqValidator {
       ImmutableList<SeqCaseClause> pCaseClauses, LogManager pLogger) {
 
     // extract returnPcWrites and map variables to assigned values
-    ImmutableList<SeqReturnPcWriteStatement> returnPcWrites =
-        SeqCaseClauseUtil.extractStatements(pCaseClauses, SeqReturnPcWriteStatement.class);
+    ImmutableSet<SeqReturnPcWriteStatement> returnPcWrites =
+        SeqCaseClauseUtil.getStatementsByClass(pCaseClauses, SeqReturnPcWriteStatement.class);
     ImmutableMultimap<CIdExpression, Integer> returnPcWriteMap =
         getReturnPcWriteMap(returnPcWrites);
 
     // extract returnValueAssignments (i.e. switch statements)
-    ImmutableList<SeqReturnValueAssignmentSwitchStatement> switchStatements =
-        SeqCaseClauseUtil.extractStatements(
+    ImmutableSet<SeqReturnValueAssignmentSwitchStatement> switchStatements =
+        SeqCaseClauseUtil.getStatementsByClass(
             pCaseClauses, SeqReturnValueAssignmentSwitchStatement.class);
 
     // for each switch statement, ensure that each label is a variable in a return pc write
@@ -186,7 +186,7 @@ public class SeqValidator {
    * pReturnPcWrites}.
    */
   private static ImmutableSetMultimap<CIdExpression, Integer> getReturnPcWriteMap(
-      ImmutableList<SeqReturnPcWriteStatement> pReturnPcWrites) {
+      ImmutableSet<SeqReturnPcWriteStatement> pReturnPcWrites) {
 
     ImmutableSetMultimap.Builder<CIdExpression, Integer> rMap = ImmutableSetMultimap.builder();
     for (SeqReturnPcWriteStatement returnPcWrite : pReturnPcWrites) {

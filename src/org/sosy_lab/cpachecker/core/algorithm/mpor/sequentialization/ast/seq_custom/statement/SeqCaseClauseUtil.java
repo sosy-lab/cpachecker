@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 
 public class SeqCaseClauseUtil {
@@ -17,10 +18,10 @@ public class SeqCaseClauseUtil {
    * From {@code pCaseClauses} extracts all statements that are instances of {@code
    * pStatementClass}.
    */
-  public static <T extends SeqCaseBlockStatement> ImmutableList<T> extractStatements(
+  public static <T extends SeqCaseBlockStatement> ImmutableSet<T> getStatementsByClass(
       ImmutableList<SeqCaseClause> pCaseClauses, Class<T> pStatementClass) {
 
-    ImmutableList.Builder<T> rStatements = ImmutableList.builder();
+    ImmutableSet.Builder<T> rStatements = ImmutableSet.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         if (pStatementClass.isInstance(statement)) {

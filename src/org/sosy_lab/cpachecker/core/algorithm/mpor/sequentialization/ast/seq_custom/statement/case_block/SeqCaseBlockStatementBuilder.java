@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -85,7 +86,9 @@ public class SeqCaseBlockStatementBuilder {
             SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
                 threadEdge, pPcLeftHandSide, pCoveredNodes, pSubstituteEdges));
 
-      } else if (!isFunctionSummaryReachErrorCall(threadEdge.cfaEdge)) {
+        // we exclude both reach_error and functions with only 1 call in a thread
+        // because they have no return_pc write
+      } else if (!isExcludedFunctionSummaryEdge(threadEdge, pGhostVariables)) {
         SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
         SeqCaseBlockStatement statement =
             SeqCaseBlockStatementBuilder.buildCaseBlockStatementFromEdge(
@@ -151,7 +154,7 @@ public class SeqCaseBlockStatementBuilder {
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     if (yieldsBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
-      return new SeqBlankStatement(pcLeftHandSide, targetPc);
+      return buildBlankStatement(pcLeftHandSide, targetPc);
 
     } else {
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
@@ -188,6 +191,11 @@ public class SeqCaseBlockStatementBuilder {
     assert pSubstituteEdge.cfaEdge instanceof CStatementEdge;
     return new SeqDefaultStatement(
         (CStatementEdge) pSubstituteEdge.cfaEdge, pcLeftHandSide, targetPc);
+  }
+
+  public static SeqBlankStatement buildBlankStatement(
+      CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    return new SeqBlankStatement(pPcLeftHandSide, pTargetPc);
   }
 
   private static SeqAssumeStatement buildAssumeStatement(
@@ -497,12 +505,22 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   /**
-   * {@code reach_error} never returns, so we don't want a {@code RETURN_PC} (which is extracted
-   * from the {@link CFunctionSummaryEdge}.
+   * Checks if {@code pThreadEdge} is a {@link FunctionSummaryEdge} that does not yield a {@link
+   * SeqReturnPcWriteStatement} because there is no need for a {@code RETURN_PC}:
+   *
+   * <ul>
+   *   <li>functions with only 1 call to them in a thread
+   *   <li>{@code reach_error} function calls (function never returns)
+   * </ul>
    */
-  private static boolean isFunctionSummaryReachErrorCall(CFAEdge pCfaEdge) {
-    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
-      return MPORUtil.isReachErrorCall(functionSummaryEdge);
+  private static boolean isExcludedFunctionSummaryEdge(
+      ThreadEdge pThreadEdge, GhostVariables pGhostVariables) {
+    if (pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+      if (!pGhostVariables.function.returnPcWrites.containsKey(pThreadEdge)) {
+        return true;
+      } else if (MPORUtil.isReachErrorCall(functionSummaryEdge)) {
+        return true;
+      }
     }
     return false;
   }

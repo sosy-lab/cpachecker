@@ -14,10 +14,10 @@ public class FunctionReturnPcRead {
 
   public final int threadId;
 
-  public final CIdExpression returnPcVar;
+  public final CIdExpression returnPcVariable;
 
-  public FunctionReturnPcRead(int pThreadId, CIdExpression pReturnPcVar) {
+  public FunctionReturnPcRead(int pThreadId, CIdExpression pReturnPcVariable) {
     threadId = pThreadId;
-    returnPcVar = pReturnPcVar;
+    returnPcVariable = pReturnPcVariable;
   }
 }

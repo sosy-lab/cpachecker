@@ -22,14 +22,12 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -109,18 +107,10 @@ public class ThreadBuilder {
     Set<CFANode> visitedNodes = new HashSet<>(); // using set to check if node is present already
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadEdge> threadEdges = ImmutableSet.builder();
-    ImmutableSet.Builder<CFunctionDeclaration> calledFunctions = ImmutableSet.builder();
 
     initThreadCfaVariables(
-        visitedNodes,
-        threadNodes,
-        threadEdges,
-        calledFunctions,
-        pEntryNode,
-        pFunctionCallMap,
-        pFuncReturnNode);
-    return new ThreadCFA(
-        pEntryNode, threadNodes.build(), threadEdges.build(), calledFunctions.build());
+        visitedNodes, threadNodes, threadEdges, pEntryNode, pFunctionCallMap, pFuncReturnNode);
+    return new ThreadCFA(pEntryNode, threadNodes.build(), threadEdges.build());
   }
 
   /**
@@ -131,7 +121,6 @@ public class ThreadBuilder {
       Set<CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<ThreadEdge> pThreadEdges,
-      ImmutableSet.Builder<CFunctionDeclaration> pCalledFunctions,
       CFANode pCurrentNode,
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       Optional<CFANode> pFuncReturnNode) {
@@ -148,14 +137,10 @@ public class ThreadBuilder {
           // exclude cFuncReturnEdges because their successors may be in other threads
           // the original, same-thread successor is included due to the FuncSummaryEdge
           if (!(cfaEdge instanceof CFunctionReturnEdge)) {
-            if (cfaEdge instanceof CFunctionCallEdge funcCallEdge) {
-              pCalledFunctions.add(funcCallEdge.getFunctionCallExpression().getDeclaration());
-            }
             initThreadCfaVariables(
                 pVisitedNodes,
                 pThreadNodes,
                 pThreadEdges,
-                pCalledFunctions,
                 cfaEdge.getSuccessor(),
                 pFunctionCallMap,
                 updateFuncReturnNode(pCurrentNode, pFunctionCallMap, pFuncReturnNode));

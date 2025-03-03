@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
@@ -36,19 +37,19 @@ public class ThreadCFA {
 
   public final ImmutableSet<ThreadEdge> threadEdges;
 
-  public final ImmutableSet<CFunctionDeclaration> calledFunctions;
+  /** Maps functions to the amount they are called by this thread. */
+  public final ImmutableMap<CFunctionDeclaration, Integer> functionCalls;
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
       ImmutableSet<ThreadNode> pThreadNodes,
-      ImmutableSet<ThreadEdge> pThreadEdges,
-      ImmutableSet<CFunctionDeclaration> pCalledFunctions) {
+      ImmutableSet<ThreadEdge> pThreadEdges) {
 
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
-    calledFunctions = pCalledFunctions;
+    functionCalls = ThreadUtil.getCalledFunctions(threadEdges);
     initPredecessors();
     initSuccessors();
     handleFunctionReturnEdges();

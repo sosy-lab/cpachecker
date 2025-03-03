@@ -263,16 +263,17 @@ public class SubstituteBuilder {
   private static ImmutableMap<CParameterDeclaration, CIdExpression> getParameterSubstitutes(
       MPORThread pThread) {
 
-    ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rThreadSubs = ImmutableMap.builder();
-    for (CFunctionDeclaration funcDec : pThread.cfa.calledFunctions) {
-      for (CParameterDeclaration paramDec : funcDec.getParameters()) {
-        String varName = SeqNameUtil.buildParameterName(paramDec, pThread.id);
+    ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rParameterSubstitutes =
+        ImmutableMap.builder();
+    for (CFunctionDeclaration functionDeclaration : pThread.cfa.functionCalls.keySet()) {
+      for (CParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
+        String varName = SeqNameUtil.buildParameterName(parameterDeclaration, pThread.id);
         CVariableDeclaration varDec =
-            substituteVarDeclaration(paramDec.asVariableDeclaration(), varName);
-        rThreadSubs.put(paramDec, SeqIdExpression.buildIdExpression(varDec));
+            substituteVarDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
+        rParameterSubstitutes.put(parameterDeclaration, SeqIdExpression.buildIdExpression(varDec));
       }
     }
-    return rThreadSubs.buildOrThrow();
+    return rParameterSubstitutes.buildOrThrow();
   }
 
   /**

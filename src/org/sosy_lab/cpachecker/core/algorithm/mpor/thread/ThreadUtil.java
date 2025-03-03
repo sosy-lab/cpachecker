@@ -9,13 +9,32 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 
 public class ThreadUtil {
+
+  protected static ImmutableMap<CFunctionDeclaration, Integer> getCalledFunctions(
+      ImmutableSet<ThreadEdge> pThreadEdges) {
+
+    Map<CFunctionDeclaration, Integer> rCalledFunctions = new HashMap<>();
+    for (ThreadEdge threadEdge : pThreadEdges) {
+      if (threadEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
+        CFunctionDeclaration functionDeclaration =
+            functionCall.getFunctionCallExpression().getDeclaration();
+        rCalledFunctions.merge(functionDeclaration, 1, Integer::sum);
+      }
+    }
+    return ImmutableMap.copyOf(rCalledFunctions);
+  }
 
   /**
    * Creates {@link LineOfCode}s for all non-variable declarations (e.g. function and struct

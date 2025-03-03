@@ -174,16 +174,23 @@ public class SeqCaseClauseBuilder {
       return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      // handle all CFunctionReturnEdges: exiting function -> pc not relevant, assign return pc
-      assert pGhostVariables.function.returnPcReads.containsKey(pThreadNode);
-      FunctionReturnPcRead read =
-          Objects.requireNonNull(pGhostVariables.function.returnPcReads.get(pThreadNode));
-      statements.add(
-          SeqCaseBlockStatementBuilder.buildReturnPcReadStatement(
-              pcLeftHandSide, read.returnPcVar));
+      if (pGhostVariables.function.returnPcReads.containsKey(pThreadNode)) {
+        // if there is a returnPcRead (pc = RETURN_PC) then the function is called numerous times
+        FunctionReturnPcRead read =
+            Objects.requireNonNull(pGhostVariables.function.returnPcReads.get(pThreadNode));
+        statements.add(
+            SeqCaseBlockStatementBuilder.buildReturnPcReadStatement(
+                pcLeftHandSide, read.returnPcVariable));
+      } else {
+        // if there is no returnPcRead, then the function is called only once -> use target pc
+        assert pThreadNode.leavingEdges().size() == 1;
+        int targetPc = pThreadNode.leavingEdges().get(0).getSuccessor().pc;
+        statements.add(SeqCaseBlockStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
+      }
 
     } else {
       boolean isAssume = leavingEdges.get(0).cfaEdge instanceof CAssumeEdge;
+      // TODO these assertions can be removed later, just checking if the CFA behaves as expected
       assert !isAssume || leavingEdges.size() == 2
           : "if there is an assume edge, the node must have exactly two assume edges";
       statements.addAll(

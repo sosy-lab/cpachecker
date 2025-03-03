@@ -73,13 +73,18 @@ public class GhostVariableUtil {
         ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
-      for (CFunctionDeclaration function : thread.cfa.calledFunctions) {
+      for (var entry : thread.cfa.functionCalls.entrySet()) {
+        CFunctionDeclaration functionDeclaration = entry.getKey();
         // no RETURN_PC for reach_error, the function never returns
-        if (!function.getOrigName().equals(SeqToken.reach_error)) {
-          CVariableDeclaration varDec =
-              SeqVariableDeclaration.buildReturnPcVariableDeclaration(
-                  thread.id, function.getName());
-          returnPc.put(function, SeqIdExpression.buildIdExpression(varDec));
+        if (!functionDeclaration.getOrigName().equals(SeqToken.reach_error)) {
+          // only create a RETURN_PC if the function is called more than once in this thread
+          if (entry.getValue() > 1) {
+            CVariableDeclaration returnPcDeclaration =
+                SeqVariableDeclaration.buildReturnPcVariableDeclaration(
+                    thread.id, functionDeclaration.getName());
+            returnPc.put(
+                functionDeclaration, SeqIdExpression.buildIdExpression(returnPcDeclaration));
+          }
         }
       }
       rVars.put(thread, returnPc.buildOrThrow());
@@ -334,10 +339,11 @@ public class GhostVariableUtil {
         if (!MPORUtil.isReachErrorCall(funcSummary)) {
           CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
           CIdExpression returnPc = pReturnPcVars.get(function);
-          assert returnPc != null;
-          FunctionReturnPcWrite returnPcWrite =
-              new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
-          rAssigns.put(threadEdge, returnPcWrite);
+          if (returnPc != null) {
+            FunctionReturnPcWrite returnPcWrite =
+                new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
+            rAssigns.put(threadEdge, returnPcWrite);
+          }
         }
       }
     }
@@ -361,9 +367,9 @@ public class GhostVariableUtil {
           Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
           if (funcExitNode.isPresent()) {
             CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
-            CIdExpression returnPc = pReturnPcVars.get(function);
             ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
-            if (!rAssigns.containsKey(threadNode)) {
+            if (pReturnPcVars.containsKey(function) && !rAssigns.containsKey(threadNode)) {
+              CIdExpression returnPc = pReturnPcVars.get(function);
               FunctionReturnPcRead returnPcRead = new FunctionReturnPcRead(pThread.id, returnPc);
               rAssigns.put(threadNode, returnPcRead);
             }
