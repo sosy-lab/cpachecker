@@ -19,7 +19,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -422,10 +421,12 @@ public class CProgramScope implements Scope {
             "Variable declaration already in use: " + pDeclaration);
       }
       ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
-      ImmutableMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
-          ImmutableMultimap.builder();
+      ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
+          ImmutableListMultimap.builder();
       newVariableNames.add(pDeclaration.getName());
       newSimpleDeclarations.put(pDeclaration.getName(), pDeclaration);
+      this.variableNames = newVariableNames.build();
+      this.simpleDeclarations = newSimpleDeclarations.build();
     } else if (pDeclaration instanceof CFunctionDeclaration) {
       if (lookupFunction(pDeclaration.getName()) != null) {
         throw new InvalidYAMLWitnessException(
