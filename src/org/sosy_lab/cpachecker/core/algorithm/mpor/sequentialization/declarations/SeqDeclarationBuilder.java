@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -41,9 +42,11 @@ public class SeqDeclarationBuilder {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           ThreadUtil.extractNonVariableDeclarations(thread);
       for (CDeclaration declaration : nonVariableDeclarations) {
-        // if it is a function declaration, add it only if the option is set
+        // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
-          rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
+          if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
+            rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
+          }
         }
       }
     }

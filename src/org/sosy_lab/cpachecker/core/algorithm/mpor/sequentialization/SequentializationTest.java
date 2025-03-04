@@ -46,7 +46,7 @@ public class SequentializationTest {
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(true, true, true, true, true, true);
+    MPOROptions options = MPOROptions.testInstance(true, true, true, true, true, true, true);
     testCompile(path, options);
   }
 
@@ -54,7 +54,7 @@ public class SequentializationTest {
   public void testCompileSeq_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(true, false, false, true, true, false);
+    MPOROptions options = MPOROptions.testInstance(false, true, true, false, true, true, false);
     testCompile(path, options);
   }
 
@@ -62,7 +62,7 @@ public class SequentializationTest {
   public void testCompileSeq_queue_longest() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(true, true, true, true, false, true);
+    MPOROptions options = MPOROptions.testInstance(true, true, true, true, true, false, true);
     testCompile(path, options);
   }
 
@@ -70,7 +70,7 @@ public class SequentializationTest {
   public void testCompileSeq_simple_two() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(false, false, false, true, false, false);
+    MPOROptions options = MPOROptions.testInstance(false, false, true, false, true, false, false);
     testCompile(path, options);
   }
 
@@ -79,7 +79,7 @@ public class SequentializationTest {
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(false, true, true, false, true, true);
+    MPOROptions options = MPOROptions.testInstance(true, false, true, true, false, true, true);
     testCompile(path, options);
   }
 
@@ -87,7 +87,7 @@ public class SequentializationTest {
   public void testCompileSeq_stack1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
-    MPOROptions options = MPOROptions.testInstance(false, false, false, false, true, false);
+    MPOROptions options = MPOROptions.testInstance(false, false, true, false, false, true, false);
     testCompile(path, options);
   }
 
@@ -99,7 +99,7 @@ public class SequentializationTest {
         new CFACreator(
             Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
             logger,
-            ShutdownNotifier.createDummy());
+            shutdownNotifier);
     CFA inputCfa =
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 

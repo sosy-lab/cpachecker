@@ -93,18 +93,20 @@ public class SeqCaseBlockStatementBuilder {
         // we exclude both reach_error and functions with only 1 call in a thread
         // because they have no return_pc write
       } else if (!isExcludedFunctionSummaryEdge(threadEdge, pGhostVariables)) {
-        SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-        SeqCaseBlockStatement statement =
-            SeqCaseBlockStatementBuilder.buildCaseBlockStatementFromEdge(
-                pThread,
-                pAllThreads,
-                i == 0,
-                i == leavingEdgesSize - 1,
-                threadEdge,
-                substitute,
-                pGhostVariables,
-                pBinaryExpressionBuilder);
-        rStatements.add(statement);
+        if (pSubstituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+          SeqCaseBlockStatement statement =
+              SeqCaseBlockStatementBuilder.buildCaseBlockStatementFromEdge(
+                  pThread,
+                  pAllThreads,
+                  i == 0,
+                  i == leavingEdgesSize - 1,
+                  threadEdge,
+                  substitute,
+                  pGhostVariables,
+                  pBinaryExpressionBuilder);
+          rStatements.add(statement);
+        }
       }
     }
     return rStatements.build();

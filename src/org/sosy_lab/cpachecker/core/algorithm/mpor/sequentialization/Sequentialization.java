@@ -147,8 +147,8 @@ public class Sequentialization {
       ImmutableList<LineOfCode> initProgram = initProgram();
       ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
       String program = LineOfCodeUtil.buildString(finalProgram);
-      return options.validateParse
-          ? SeqValidator.validateProgramParsing(program, shutdownNotifier, logger)
+      return options.validateParse && options.inputTypeDeclarations
+          ? SeqValidator.validateProgramParsing(program, options, shutdownNotifier, logger)
           : program;
 
     } catch (UnrecognizedCodeException
@@ -172,7 +172,7 @@ public class Sequentialization {
     ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVariables =
         GhostVariableUtil.buildReturnPcVariables(threads);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
-        SubstituteBuilder.substituteEdges(substitutions);
+        SubstituteBuilder.substituteEdges(options, substitutions);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 

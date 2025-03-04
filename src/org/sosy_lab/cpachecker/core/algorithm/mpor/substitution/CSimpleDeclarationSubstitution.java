@@ -81,7 +81,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
 
     if (pExpression instanceof CIdExpression idExpression) {
       if (isSubstitutable(idExpression.getDeclaration())) {
-        return getVarSubstitute(idExpression.getDeclaration());
+        return getVariableSubstitute(idExpression.getDeclaration());
       }
 
     } else if (pExpression instanceof CBinaryExpression binary) {
@@ -207,7 +207,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
   }
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
-  private CIdExpression getVarSubstitute(CSimpleDeclaration pSimpleDeclaration) {
+  private CIdExpression getVariableSubstitute(CSimpleDeclaration pSimpleDeclaration) {
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
         return localSubstitutes.get(variableDeclaration);
@@ -215,7 +215,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         assert globalSubstitutes.isPresent();
         checkArgument(
             globalSubstitutes.orElseThrow().containsKey(variableDeclaration),
-            "no substitute found for " + "%s",
+            "no substitute found for %s",
             pSimpleDeclaration.toASTString());
         return globalSubstitutes.orElseThrow().get(variableDeclaration);
       }
@@ -223,7 +223,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       assert parameterSubstitutes.isPresent();
       checkArgument(
           parameterSubstitutes.orElseThrow().containsKey(parameterDeclaration),
-          "no substitute found for " + "%s",
+          "no substitute found for %s",
           pSimpleDeclaration.toASTString());
       return parameterSubstitutes.orElseThrow().get(parameterDeclaration);
     }
@@ -231,8 +231,10 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
 
-  public CVariableDeclaration getVarDeclarationSubstitute(CSimpleDeclaration pSimpleDeclaration) {
-    CIdExpression idExpression = getVarSubstitute(pSimpleDeclaration);
+  public CVariableDeclaration getVariableDeclarationSubstitute(
+      CSimpleDeclaration pSimpleDeclaration) {
+
+    CIdExpression idExpression = getVariableSubstitute(pSimpleDeclaration);
     return (CVariableDeclaration) idExpression.getDeclaration();
   }
 

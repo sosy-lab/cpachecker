@@ -65,7 +65,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "include original function declarations from input file? true -> bigger file size")
   private boolean inputFunctionDeclarations = false;
 
-  // TODO option for inputTypeDeclarations (we don't need them and they take up a lot of space)
+  // TODO make this secure by checking if all types for all variables are included
+  @Option(
+      description = "include original type declarations from input file? true -> bigger file size")
+  private boolean inputTypeDeclarations = true;
 
   @Option(
       secure = true,
@@ -132,7 +135,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
     String outputProgram = sequentialization.toString();
-    SeqWriter seqWriter = new SeqWriter(logger, outputFileName, inputCfa.getFileNames(), options);
+    SeqWriter seqWriter =
+        new SeqWriter(shutdownNotifier, logger, outputFileName, inputCfa.getFileNames(), options);
     seqWriter.write(outputProgram);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -199,6 +203,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         new MPOROptions(
             comments,
             inputFunctionDeclarations,
+            inputTypeDeclarations,
             license,
             outputMetadata,
             outputPath,
@@ -223,7 +228,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableSet<CVariableDeclaration> globalVars =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
-        SubstituteBuilder.buildSubstitutions(globalVars, threads, binaryExpressionBuilder);
+        SubstituteBuilder.buildSubstitutions(options, globalVars, threads, binaryExpressionBuilder);
   }
 
   /** Use this constructor only for test purposes. */
@@ -246,7 +251,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
         SubstituteBuilder.buildSubstitutions(
-            globalVariableDeclarations, threads, binaryExpressionBuilder);
+            options, globalVariableDeclarations, threads, binaryExpressionBuilder);
   }
 
   public static MPORAlgorithm testInstance(

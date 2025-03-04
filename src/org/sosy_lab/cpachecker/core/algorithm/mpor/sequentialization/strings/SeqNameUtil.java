@@ -36,7 +36,7 @@ public class SeqNameUtil {
    * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
    * and {@code LOCAL_THREAD{threadId}_{varId}_{varName}} for thread local variables.
    */
-  public static String buildVarName(CVariableDeclaration pVarDec, int pThreadId) {
+  public static String buildVariableName(CVariableDeclaration pVarDec, int pThreadId) {
     String prefix =
         pVarDec.isGlobal()
             ? SeqToken.GLOBAL

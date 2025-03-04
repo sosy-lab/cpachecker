@@ -8,12 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -25,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
@@ -37,16 +43,56 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class SeqValidator {
 
   /**
+   * Checks whether CPAchecker can parse the output file {@code pSequentializationPath}.
+   *
+   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations} is disabled, because using
+   * preprocessors on source code (i.e. {@code String}s) is not allowed and we need to run it on the
+   * output file.
+   */
+  public static void validateProgramParsing(
+      Path pSequentializationPath,
+      MPOROptions pOptions,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger)
+      throws InvalidConfigurationException, ParserException, InterruptedException, IOException {
+
+    checkArgument(
+        !pOptions.inputTypeDeclarations,
+        "can only validate source code if inputTypeDeclaration is disabled");
+    // validate that seq can be parsed and cfa created -> code compiles
+    System.out.println("searching for program " + pSequentializationPath.toString());
+    CFACreator creator =
+        new CFACreator(
+            // we use a preprocessor so that missing type declarations do not cause an error
+            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
+            pLogger,
+            pShutdownNotifier);
+    List<String> files = ImmutableList.of(pSequentializationPath.toString());
+    Verify.verify(creator.parseFileAndCreateCFA(files) != null);
+  }
+
+  /**
    * Returns {@code pSequentialization} as is if CPAchecker can parse it, reports an error
    * otherwise.
+   *
+   * <p>Only use this method if {@link MPOROptions#inputTypeDeclarations} is enabled, because using
+   * preprocessors on source code (i.e. {@code String}s) is not allowed.
    */
   public static String validateProgramParsing(
-      String pSequentialization, ShutdownNotifier pShutdownNotifier, LogManager pLogger)
+      String pSequentialization,
+      MPOROptions pOptions,
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger)
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
+    checkArgument(
+        pOptions.inputTypeDeclarations,
+        "can only validate source code if inputTypeDeclaration is enabled");
     // validate that seq can be parsed and cfa created -> code compiles
     CFACreator creator =
-        new CFACreator(Configuration.builder().build(), pLogger, pShutdownNotifier);
+        new CFACreator(
+            // we use a preprocessor so that missing type declarations do not cause an error
+            Configuration.builder().build(), pLogger, pShutdownNotifier);
     Verify.verify(creator.parseSourceAndCreateCFA(pSequentialization) != null);
     return pSequentialization;
   }

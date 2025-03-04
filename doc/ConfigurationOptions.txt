@@ -261,6 +261,10 @@ analysis.algorithm.MPOR.comments = false
 # size
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
 
+# include original type declarations from input file? true -> bigger file
+# size
+analysis.algorithm.MPOR.inputTypeDeclarations = true
+
 # include CPAchecker license header in the sequentialization? true -> bigger
 # file size
 analysis.algorithm.MPOR.license = false

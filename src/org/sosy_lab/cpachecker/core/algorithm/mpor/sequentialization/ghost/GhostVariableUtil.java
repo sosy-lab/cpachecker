@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -126,22 +127,22 @@ public class GhostVariableUtil {
     Set<CIdExpression> mutexes = new HashSet<>();
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        assert pSubstituteEdges.containsKey(threadEdge);
-        SubstituteEdge substituteEdge = pSubstituteEdges.get(threadEdge);
-        assert substituteEdge != null;
-        CFAEdge cfaEdge = substituteEdge.cfaEdge;
+        if (pSubstituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+          CFAEdge cfaEdge = substituteEdge.cfaEdge;
 
-        // extract pthread_mutex_t based on function calls to pthread_mutex_lock
-        if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
-          if (mutexes.add(pthreadMutexT)) { // add mutexes only once
-            CIdExpression substitutePthreadMutexT =
-                PthreadUtil.extractPthreadMutexT(substituteEdge.cfaEdge);
-            String varName = SeqNameUtil.buildMutexLockedName(substitutePthreadMutexT.getName());
-            CIdExpression mutexLocked =
-                SeqIdExpression.buildIdExpressionWithIntegerInitializer(
-                    varName, SeqInitializer.INT_0);
-            rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
+          // extract pthread_mutex_t based on function calls to pthread_mutex_lock
+          if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
+            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
+            if (mutexes.add(pthreadMutexT)) { // add mutexes only once
+              CIdExpression substitutePthreadMutexT =
+                  PthreadUtil.extractPthreadMutexT(substituteEdge.cfaEdge);
+              String varName = SeqNameUtil.buildMutexLockedName(substitutePthreadMutexT.getName());
+              CIdExpression mutexLocked =
+                  SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                      varName, SeqInitializer.INT_0);
+              rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
+            }
           }
         }
       }
@@ -158,20 +159,20 @@ public class GhostVariableUtil {
     for (MPORThread thread : pThreads) {
       Map<CIdExpression, ThreadLocksMutex> awaitVars = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        assert pSubEdges.containsKey(threadEdge);
-        SubstituteEdge sub = pSubEdges.get(threadEdge);
-        assert sub != null;
-        if (PthreadFunctionType.callsPthreadFunction(
-            sub.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
-          CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(sub.cfaEdge);
-          // multiple lock calls within one thread to the same mutex are possible -> only need one
-          if (!awaitVars.containsKey(pthreadMutexT)) {
-            String varName =
-                SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
-            CIdExpression awaits =
-                SeqIdExpression.buildIdExpressionWithIntegerInitializer(
-                    varName, SeqInitializer.INT_0);
-            awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
+        if (pSubEdges.containsKey(threadEdge)) {
+          SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
+          if (PthreadFunctionType.callsPthreadFunction(
+              substitute.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
+            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(substitute.cfaEdge);
+            // multiple lock calls within one thread to the same mutex are possible -> only need one
+            if (!awaitVars.containsKey(pthreadMutexT)) {
+              String varName =
+                  SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
+              CIdExpression awaits =
+                  SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                      varName, SeqInitializer.INT_0);
+              awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
+            }
           }
         }
       }
@@ -245,27 +246,28 @@ public class GhostVariableUtil {
         ImmutableMap.builder();
 
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      SubstituteEdge sub = pSubEdges.get(threadEdge);
-      assert sub != null;
-      if (sub.cfaEdge instanceof CFunctionCallEdge funcCall) {
+      if (pSubEdges.containsKey(threadEdge)) {
+        SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
+        if (substitute.cfaEdge instanceof CFunctionCallEdge funcCall) {
 
-        ImmutableList.Builder<FunctionParameterAssignment> assigns = ImmutableList.builder();
-        List<CParameterDeclaration> paramDecs =
-            funcCall.getSuccessor().getFunctionDefinition().getParameters();
+          ImmutableList.Builder<FunctionParameterAssignment> assigns = ImmutableList.builder();
+          List<CParameterDeclaration> parameterDeclarations =
+              funcCall.getSuccessor().getFunctionDefinition().getParameters();
 
-        // for each parameter, assign the param substitute to the param expression in funcCall
-        for (int i = 0; i < paramDecs.size(); i++) {
-          CParameterDeclaration paramDec = paramDecs.get(i);
-          CExpression paramExpr =
-              funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-          CIdExpression paramSub = pSub.parameterSubstitutes.orElseThrow().get(paramDec);
-          assert paramSub != null;
-          FunctionParameterAssignment parameterAssignment =
-              new FunctionParameterAssignment(
-                  SeqExpressionAssignmentStatement.build(paramSub, paramExpr));
-          assigns.add(parameterAssignment);
+          // for each parameter, assign the param substitute to the param expression in funcCall
+          for (int i = 0; i < parameterDeclarations.size(); i++) {
+            CParameterDeclaration paramDec = parameterDeclarations.get(i);
+            CExpression paramExpr =
+                funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
+            CIdExpression paramSub =
+                Objects.requireNonNull(pSub.parameterSubstitutes.orElseThrow().get(paramDec));
+            FunctionParameterAssignment parameterAssignment =
+                new FunctionParameterAssignment(
+                    SeqExpressionAssignmentStatement.build(paramSub, paramExpr));
+            assigns.add(parameterAssignment);
+          }
+          rAssigns.put(threadEdge, assigns.build());
         }
-        rAssigns.put(threadEdge, assigns.build());
       }
     }
     return rAssigns.buildOrThrow();
@@ -287,37 +289,39 @@ public class GhostVariableUtil {
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
         rReturnStatements = ImmutableMap.builder();
     for (ThreadEdge threadEdgeA : pThread.cfa.threadEdges) {
-      SubstituteEdge substituteEdgeA = pSubEdges.get(threadEdgeA);
-      assert substituteEdgeA != null;
+      if (pSubEdges.containsKey(threadEdgeA)) {
+        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubEdges.get(threadEdgeA));
 
-      if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
-        ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
-        for (ThreadEdge threadEdgeB : pThread.cfa.threadEdges) {
-          SubstituteEdge substituteEdgeB = pSubEdges.get(threadEdgeB);
-          assert substituteEdgeB != null;
+        if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
+          ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
+          for (ThreadEdge threadEdgeB : pThread.cfa.threadEdges) {
+            if (pSubEdges.containsKey(threadEdgeB)) {
+              SubstituteEdge substituteEdgeB = Objects.requireNonNull(pSubEdges.get(threadEdgeB));
 
-          if (substituteEdgeB.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-            // if the summary edge is of the form value = func(); (i.e. an assignment)
-            if (functionSummary.getExpression()
-                instanceof CFunctionCallAssignmentStatement assignmentStatement) {
-              AFunctionDeclaration functionDeclarationA =
-                  returnStatementEdge.getSuccessor().getFunction();
-              AFunctionType functionTypeA = functionDeclarationA.getType();
-              AFunctionType functionTypeB =
-                  functionSummary.getFunctionEntry().getFunction().getType();
-              if (functionTypeA.equals(functionTypeB)) {
-                assert functionDeclarationA instanceof CFunctionDeclaration;
-                FunctionReturnValueAssignment assign =
-                    new FunctionReturnValueAssignment(
-                        pReturnPcWrites.get(threadEdgeB),
-                        assignmentStatement.getLeftHandSide(),
-                        returnStatementEdge.getExpression().orElseThrow());
-                assigns.add(assign);
+              if (substituteEdgeB.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
+                // if the summary edge is of the form value = func(); (i.e. an assignment)
+                if (functionSummary.getExpression()
+                    instanceof CFunctionCallAssignmentStatement assignmentStatement) {
+                  AFunctionDeclaration functionDeclarationA =
+                      returnStatementEdge.getSuccessor().getFunction();
+                  AFunctionType functionTypeA = functionDeclarationA.getType();
+                  AFunctionType functionTypeB =
+                      functionSummary.getFunctionEntry().getFunction().getType();
+                  if (functionTypeA.equals(functionTypeB)) {
+                    assert functionDeclarationA instanceof CFunctionDeclaration;
+                    FunctionReturnValueAssignment assign =
+                        new FunctionReturnValueAssignment(
+                            pReturnPcWrites.get(threadEdgeB),
+                            assignmentStatement.getLeftHandSide(),
+                            returnStatementEdge.getExpression().orElseThrow());
+                    assigns.add(assign);
+                  }
+                }
               }
             }
           }
+          rReturnStatements.put(threadEdgeA, assigns.build());
         }
-        rReturnStatements.put(threadEdgeA, assigns.build());
       }
     }
     return rReturnStatements.buildOrThrow();

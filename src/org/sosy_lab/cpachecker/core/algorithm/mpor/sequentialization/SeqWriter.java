@@ -17,8 +17,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /** A class to write the sequentialized program to a file. */
 public class SeqWriter {
@@ -51,29 +55,37 @@ public class SeqWriter {
 
   public static final String DEFAULT_OUTPUT_PATH = "output/";
 
-  private final LogManager logManager;
+  private final ShutdownNotifier shutdownNotifier;
+
+  private final LogManager logger;
 
   private final List<Path> inputFilePaths;
 
   private final MPOROptions options;
 
-  private final String seqProgramPath;
+  private final String sequentializationPath;
 
   private final String metadataPath;
 
   public SeqWriter(
-      LogManager pLogManager, String pSeqName, List<Path> pInputFilePaths, MPOROptions pOptions) {
+      ShutdownNotifier pShutdownNotifier,
+      LogManager pLogger,
+      String pSeqName,
+      List<Path> pInputFilePaths,
+      MPOROptions pOptions) {
 
-    logManager = pLogManager;
+    shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
     inputFilePaths = pInputFilePaths;
     options = pOptions;
-    seqProgramPath = pOptions.outputPath + pSeqName + FileExtension.I.suffix;
+    // TODO use .c suffix if both input function and type declarations are disabled
+    sequentializationPath = pOptions.outputPath + pSeqName + FileExtension.I.suffix;
     metadataPath = pOptions.outputPath + pSeqName + FileExtension.YML.suffix;
   }
 
   public void write(final String pFinalSeq) {
     try {
-      File seqProgramFile = new File(seqProgramPath);
+      File seqProgramFile = new File(sequentializationPath);
       File parentDir = seqProgramFile.getParentFile();
 
       handleDirectoryCreation(parentDir);
@@ -81,17 +93,21 @@ public class SeqWriter {
       handleOverwriting(seqProgramFile);
 
       // write sequentialized program to file
-      try (Writer writer =
-          Files.newBufferedWriter(seqProgramFile.toPath(), StandardCharsets.UTF_8)) {
+      Path filePath = seqProgramFile.toPath();
+      try (Writer writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8)) {
         writer.write(pFinalSeq);
-        logManager.log(Level.INFO, SUCCESS, seqProgramPath);
+        // option: create metadata file
+        handleMetadata(metadataPath);
+        // option: validate that CPAchecker can parse output
+        if (options.validateParse && !options.inputTypeDeclarations) {
+          handleParsing();
+        } else {
+          logger.log(Level.INFO, SUCCESS, sequentializationPath);
+        }
       }
 
-      // option: create metadata file
-      handleMetadata(metadataPath);
-
     } catch (IOException e) {
-      logManager.log(Level.SEVERE, OutputError.IO.message, e.getMessage());
+      logger.log(Level.SEVERE, OutputError.IO.message, e.getMessage());
       throw new RuntimeException();
     }
   }
@@ -99,9 +115,9 @@ public class SeqWriter {
   private void handleDirectoryCreation(File pParentDir) {
     if (!pParentDir.exists()) {
       if (pParentDir.mkdirs()) {
-        logManager.log(Level.INFO, "Directory created: " + options.outputPath);
+        logger.log(Level.INFO, "Directory created: " + options.outputPath);
       } else {
-        logManager.log(Level.SEVERE, OutputError.TARGET_DIR.message, options.outputPath);
+        logger.log(Level.SEVERE, OutputError.TARGET_DIR.message, options.outputPath);
         throw new RuntimeException();
       }
     }
@@ -110,9 +126,31 @@ public class SeqWriter {
   private void handleOverwriting(File pSeqProgramFile) throws IOException {
     // ensure the file does not exist already (if overwriteFiles is false)
     if (!pSeqProgramFile.createNewFile() && !options.overwriteFiles) {
-      logManager.log(
+      logger.log(
           Level.SEVERE, OutputError.NO_OVERWRITING.message, pSeqProgramFile.getAbsolutePath());
       throw new RuntimeException();
+    }
+  }
+
+  private void handleParsing() throws IOException {
+    // we only parse the output if type declarations are disabled
+    if (options.validateParse && !options.inputTypeDeclarations) {
+
+      Path seqPath = Path.of(sequentializationPath);
+      try {
+        SeqValidator.validateProgramParsing(seqPath, options, shutdownNotifier, logger);
+        logger.log(Level.INFO, SUCCESS, sequentializationPath);
+
+      } catch (InvalidConfigurationException | ParserException | InterruptedException e) {
+        // delete output again if parsing fails
+        Files.delete(seqPath);
+        Files.delete(Path.of(metadataPath));
+        logger.log(Level.SEVERE, "Error while parsing sequentialization:", e.getMessage());
+        throw new RuntimeException(e.getMessage());
+
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -123,7 +161,7 @@ public class SeqWriter {
           Files.newBufferedWriter(seqMetadataFile.toPath(), StandardCharsets.UTF_8)) {
         writer.write(createMetadata());
       } catch (IllegalAccessException e) {
-        logManager.log(Level.SEVERE, OutputError.OPTIONS_ILLEGAL_ACCESS.message, e);
+        logger.log(Level.SEVERE, OutputError.OPTIONS_ILLEGAL_ACCESS.message, e);
         throw new RuntimeException();
       } catch (IOException e) {
         throw new RuntimeException(e);

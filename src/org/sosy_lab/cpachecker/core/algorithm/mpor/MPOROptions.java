@@ -27,6 +27,8 @@ public class MPOROptions {
 
   public final boolean inputFunctionDeclarations;
 
+  public final boolean inputTypeDeclarations;
+
   public final boolean license;
 
   public final boolean outputMetadata;
@@ -46,6 +48,7 @@ public class MPOROptions {
   public MPOROptions(
       boolean pComments,
       boolean pInputFunctionDeclarations,
+      boolean pInputTypeDeclarations,
       boolean pLicense,
       boolean pOutputMetadata,
       String pOutputPath,
@@ -65,6 +68,7 @@ public class MPOROptions {
 
     comments = pComments;
     inputFunctionDeclarations = pInputFunctionDeclarations;
+    inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
@@ -79,6 +83,7 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pComments,
       boolean pInputFunctionDeclarations,
+      boolean pInputTypeDeclarations,
       boolean pLicense,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
@@ -87,6 +92,7 @@ public class MPOROptions {
     return new MPOROptions(
         pComments,
         pInputFunctionDeclarations,
+        pInputTypeDeclarations,
         pLicense,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
