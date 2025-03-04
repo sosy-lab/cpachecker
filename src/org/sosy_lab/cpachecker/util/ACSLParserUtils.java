@@ -91,12 +91,12 @@ public class ACSLParserUtils {
 
   public static List<CDeclaration> parseDeclarations(List<String> declarations)
       throws InvalidYAMLWitnessException {
-    ImmutableList.Builder<CDeclaration> functionDeclarations = new ImmutableList.Builder<>();
+    ImmutableList.Builder<CDeclaration> cDeclarations = new ImmutableList.Builder<>();
 
     for (String declaration : declarations) {
-      functionDeclarations.add(parseSingleDeclaration(declaration));
+      cDeclarations.add(parseSingleDeclaration(declaration));
     }
-    return functionDeclarations.build();
+    return cDeclarations.build();
   }
 
   public static CDeclaration parseSingleDeclaration(String assumeDeclaration)

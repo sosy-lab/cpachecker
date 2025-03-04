@@ -421,10 +421,12 @@ public class CProgramScope implements Scope {
             "Variable declaration already in use: " + pDeclaration);
       }
       ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
+      newVariableNames.addAll(this.variableNames).add(pDeclaration.getName());
       ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
           ImmutableListMultimap.builder();
-      newVariableNames.add(pDeclaration.getName());
-      newSimpleDeclarations.put(pDeclaration.getName(), pDeclaration);
+      newSimpleDeclarations
+          .putAll(this.simpleDeclarations)
+          .put(pDeclaration.getName(), pDeclaration);
       this.variableNames = newVariableNames.build();
       this.simpleDeclarations = newSimpleDeclarations.build();
     } else if (pDeclaration instanceof CFunctionDeclaration) {
