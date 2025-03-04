@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqConstCpaCheckerTmpStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -102,10 +103,16 @@ public class PartialOrderReducer {
 
     // TODO optimize by adding traces and checking if there is at least one global access
     return pStatement.isConcatenable()
-        && !(pTarget.block.statements.contains(pStatement)
-            || pTarget.isGlobal
+        // these are sorted by performance impact in descending order for short circuit evaluation
+        && !(pTarget.isGlobal
             || pTarget.isLoopStart
-            || !pTarget.alwaysUpdatesPc());
+            || !pTarget.alwaysUpdatesPc()
+            || pTarget.block.statements.contains(pStatement)
+            // TODO support for this can be added if we stop declaring const int CPAchecker
+            //  in cases but handle it similar to local variable declarations with initializers
+            || SeqCaseClauseUtil.getAllStatementsByClass(
+                    pTarget, SeqConstCpaCheckerTmpStatement.class)
+                .isEmpty());
   }
 
   private static boolean validIntTargetPc(Optional<Integer> pIntTargetPc) {

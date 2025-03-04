@@ -17,6 +17,7 @@ import java.time.ZoneId;
 import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -35,12 +36,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @SuppressWarnings("unused")
@@ -144,13 +147,14 @@ public class Sequentialization {
       ImmutableList<LineOfCode> initProgram = initProgram();
       ImmutableList<LineOfCode> finalProgram = finalProgram(initProgram);
       String program = LineOfCodeUtil.buildString(finalProgram);
-      return program;
-      /*return options.validateParse
-      ? SeqValidator.validateProgramParsing(program, shutdownNotifier, logger)
-      : program;*/
-    } catch (UnrecognizedCodeException /*| InvalidConfigurationException
+      return options.validateParse
+          ? SeqValidator.validateProgramParsing(program, shutdownNotifier, logger)
+          : program;
+
+    } catch (UnrecognizedCodeException
+        | InvalidConfigurationException
         | ParserException
-        | InterruptedException*/ e) {
+        | InterruptedException e) {
       // we convert to RuntimeExceptions for unit tests
       logger.log(Level.SEVERE, e);
       throw new RuntimeException(e);

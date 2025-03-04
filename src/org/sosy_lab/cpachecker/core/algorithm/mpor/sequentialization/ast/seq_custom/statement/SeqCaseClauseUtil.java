@@ -19,38 +19,52 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 
 public class SeqCaseClauseUtil {
 
-  /**
-   * From {@code pCaseClauses} extracts all statements that are instances of {@code
-   * pStatementClass}.
-   */
-  public static <T extends SeqCaseBlockStatement> ImmutableSet<T> getStatementsByClass(
+  public static <T extends SeqCaseBlockStatement> ImmutableSet<T> getAllStatementsByClass(
       ImmutableList<SeqCaseClause> pCaseClauses, Class<T> pStatementClass) {
 
-    ImmutableSet.Builder<T> rStatements = ImmutableSet.builder();
+    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
-      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        if (pStatementClass.isInstance(statement)) {
-          rStatements.add(pStatementClass.cast(statement));
-        }
+      rAllStatements.addAll(getAllStatementsByClass(caseClause, pStatementClass));
+    }
+    return rAllStatements.build();
+  }
+
+  public static <T extends SeqCaseBlockStatement> ImmutableSet<T> getAllStatementsByClass(
+      SeqCaseClause pCaseClause, Class<T> pStatementClass) {
+
+    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
+    for (SeqCaseBlockStatement statement : pCaseClause.block.statements) {
+      if (pStatementClass.isInstance(statement)) {
+        rAllStatements.addAll(getAllStatementsByClass(statement, pStatementClass));
       }
     }
-    return rStatements.build();
+    return rAllStatements.build();
   }
 
   /**
-   * Returns the set of {@code int} target pc in {@code pCaseClause}. Not factored in are {@link
-   * CIdExpression}s, e.g. {@code RETURN_PC} variables. Note that it is possible after POR that a
-   * {@link SeqCaseClause} targets the same {@code pc} multiple times in different branches.
+   * Searches all concatenated statements in {@code pStatement} for instances of {@code
+   * pStatementClass}, including {@code pStatement} itself.
    */
-  public static ImmutableSet<Integer> collectIntegerTargetPc(SeqCaseClause pCaseClause) {
-    ImmutableSet.Builder<Integer> rIntTargetPc = ImmutableSet.builder();
-    for (SeqCaseBlockStatement statement : pCaseClause.block.statements) {
-      Optional<Integer> targetPc = tryExtractIntTargetPc(statement);
-      if (targetPc.isPresent()) {
-        rIntTargetPc.add(targetPc.orElseThrow());
+  private static <T extends SeqCaseBlockStatement> ImmutableSet<T> getAllStatementsByClass(
+      SeqCaseBlockStatement pStatement, final Class<T> pStatementClass) {
+
+    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
+    if (pStatementClass.isInstance(pStatement)) {
+      rAllStatements.add(pStatementClass.cast(pStatement));
+    }
+    if (pStatement.isConcatenable()) {
+      Optional<ImmutableList<SeqCaseBlockStatement>> concatStatements =
+          pStatement.getConcatenatedStatements();
+      if (concatStatements.isPresent()) {
+        for (SeqCaseBlockStatement concatStatement : concatStatements.orElseThrow()) {
+          if (pStatementClass.isInstance(concatStatement)) {
+            // recursively search for target pc in concatenated statements
+            rAllStatements.addAll(getAllStatementsByClass(concatStatement, pStatementClass));
+          }
+        }
       }
     }
-    return rIntTargetPc.build();
+    return rAllStatements.build();
   }
 
   /**
@@ -71,6 +85,29 @@ public class SeqCaseClauseUtil {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Searches for all target {@code pc} in {@code pStatement}, including concatenated statements.
+   */
+  public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqCaseBlockStatement pStatement) {
+    ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
+    Optional<Integer> intTargetPc = tryExtractIntTargetPc(pStatement);
+    if (intTargetPc.isPresent()) {
+      // add the direct target pc, if present
+      rAllTargetPc.add(intTargetPc.orElseThrow());
+    }
+    if (pStatement.isConcatenable()) {
+      Optional<ImmutableList<SeqCaseBlockStatement>> concatStatements =
+          pStatement.getConcatenatedStatements();
+      if (concatStatements.isPresent()) {
+        for (SeqCaseBlockStatement concatStatement : concatStatements.orElseThrow()) {
+          // recursively search for target pc in concatenated statements
+          rAllTargetPc.addAll(collectAllIntegerTargetPc(concatStatement));
+        }
+      }
+    }
+    return rAllTargetPc.build();
   }
 
   // TODO becomes redundant if ensured that all int between 0 and numCases - 1 are labels (no gaps)

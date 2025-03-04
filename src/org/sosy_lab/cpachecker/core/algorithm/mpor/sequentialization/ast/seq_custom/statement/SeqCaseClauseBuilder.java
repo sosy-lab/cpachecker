@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.Pc
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -60,7 +61,7 @@ public class SeqCaseClauseBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    // initialize, prune, update initial labels and then validate case clauses.
+    // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
         initCaseClauses(
             pSubstitutions,
@@ -69,16 +70,20 @@ public class SeqCaseClauseBuilder {
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder);
+    // prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
+    // update initial case labels to INIT_PC
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updatedInitialLabelCaseClauses =
         updateInitialLabels(prunedCaseClauses);
+    // if enabled, apply partial order reduction by concatenating case clauses
     if (pOptions.partialOrderReduction) {
-      return PartialOrderReducer.concatenateCommutingClauses(updatedInitialLabelCaseClauses);
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenatedClauses =
+          PartialOrderReducer.concatenateCommutingClauses(updatedInitialLabelCaseClauses);
+      return SeqValidator.validateCaseClauses(concatenatedClauses, pLogger);
+    } else {
+      return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
     }
-    return updatedInitialLabelCaseClauses;
-    // TODO the validation needs to be refactored with concatenated clauses
-    // return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
   }
 
   /** Maps threads to the case clauses they potentially execute. */
@@ -255,6 +260,8 @@ public class SeqCaseClauseBuilder {
    * global variable.
    */
   private static boolean anyGlobalAccess(List<ThreadEdge> pThreadEdges) {
+    // TODO refactor global access checker so that CParameterDeclarations that are pointers
+    //  are considered global (or create 3 verdicts TRUE, FALSE, POSSIBLY)
     GlobalAccessChecker gac = new GlobalAccessChecker();
     for (ThreadEdge threadEdge : pThreadEdges) {
       if (!(threadEdge.cfaEdge instanceof CFunctionSummaryEdge)) {

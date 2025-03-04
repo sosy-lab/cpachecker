@@ -560,9 +560,10 @@ public class SeqCaseBlockStatementBuilder {
   /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */
   private static boolean anyGlobalAssign(ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
     for (FunctionReturnValueAssignment assignment : pAssignments) {
+      // TODO this also needs to factor in the other kind of left hand sides, arrays etc?
       if (assignment.statement.getLeftHandSide() instanceof CIdExpression idExpr) {
-        if (idExpr.getDeclaration() instanceof CVariableDeclaration varDec) {
-          if (varDec.isGlobal()) {
+        if (idExpr.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.isGlobal()) {
             return true;
           }
         }

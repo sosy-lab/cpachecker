@@ -65,6 +65,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "include original function declarations from input file? true -> bigger file size")
   private boolean inputFunctionDeclarations = false;
 
+  // TODO option for inputTypeDeclarations (we don't need them and they take up a lot of space)
+
   @Option(
       secure = true,
       description =
@@ -88,8 +90,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "overwrite files in the ./output directory when creating sequentializations?")
   private boolean overwriteFiles = true;
 
+  // TODO this is currently not secure because we assume parameters that are assigned global
+  //  variables to commute
   @Option(
-      secure = true,
       description =
           "add partial order reduction (grouping commuting statements) in the sequentialization"
               + " to reduce the state space?")
@@ -112,11 +115,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean signedNextThread = false;
 
   @Option(
-      secure = true,
       description =
           "test if CPAchecker can parse sequentialization? true -> less efficient, but more"
               + " correctness guarantees")
   private boolean validateParse = true;
+
+  // TODO add option to validatePc (for testing purposes only -> secure = false)
 
   private final MPOROptions options;
 
