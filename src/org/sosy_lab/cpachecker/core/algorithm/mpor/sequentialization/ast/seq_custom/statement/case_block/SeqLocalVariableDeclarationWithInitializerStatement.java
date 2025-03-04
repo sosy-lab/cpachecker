@@ -121,6 +121,11 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   @Override
+  public boolean isConcatenable() {
+    return true;
+  }
+
+  @Override
   public boolean alwaysWritesPc() {
     return true;
   }

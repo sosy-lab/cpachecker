@@ -73,6 +73,11 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public boolean isConcatenable() {
+    return false;
+  }
+
+  @Override
   public boolean alwaysWritesPc() {
     return true;
   }

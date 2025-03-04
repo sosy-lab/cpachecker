@@ -143,6 +143,11 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public boolean isConcatenable() {
+    return true;
+  }
+
+  @Override
   public boolean alwaysWritesPc() {
     return false;
   }

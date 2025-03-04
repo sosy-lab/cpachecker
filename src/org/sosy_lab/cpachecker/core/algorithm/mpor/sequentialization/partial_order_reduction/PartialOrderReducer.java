@@ -73,17 +73,8 @@ public class PartialOrderReducer {
       int targetPc = intTargetPc.orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(pCurrentStatement, newTarget)) {
-        // TODO it would be nice if we could remove the try-catch completely by
-        //  adding a bool to statement interface whether cloneable with concat
-        try {
-          // clone with concatenated statements, ensuring no duplicates
-          SeqCaseBlockStatement clone =
-              pCurrentStatement.cloneWithConcatenatedStatements(newTarget.block.statements);
-          pConcatenated.add(newTarget); // only add if cloning successful
-          return clone;
-        } catch (UnsupportedOperationException ignored) {
-          // some statements cannot be cloned with concatenated statements (e.g. return pc write)
-        }
+        pConcatenated.add(newTarget);
+        return pCurrentStatement.cloneWithConcatenatedStatements(newTarget.block.statements);
       }
     }
     return pCurrentStatement;
@@ -101,14 +92,15 @@ public class PartialOrderReducer {
    *       (must be directly reachable to continue simulation when thread halts)
    * </ul>
    */
-  private static boolean validConcatenation(SeqCaseBlockStatement pStatement, SeqCaseClause pTarget)
-      throws UnrecognizedCodeException {
+  private static boolean validConcatenation(
+      SeqCaseBlockStatement pStatement, SeqCaseClause pTarget) {
 
     // TODO optimize by adding traces and checking if there is at least one global access
-    return !(pTarget.block.statements.contains(pStatement)
-        || pTarget.isGlobal
-        || pTarget.isLoopStart
-        || !pTarget.alwaysUpdatesPc());
+    return pStatement.isConcatenable()
+        && !(pTarget.block.statements.contains(pStatement)
+            || pTarget.isGlobal
+            || pTarget.isLoopStart
+            || !pTarget.alwaysUpdatesPc());
   }
 
   private static boolean validIntTargetPc(Optional<Integer> pIntTargetPc) {

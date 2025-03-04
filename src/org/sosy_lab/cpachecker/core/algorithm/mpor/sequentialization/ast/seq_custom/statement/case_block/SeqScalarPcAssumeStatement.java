@@ -62,6 +62,11 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public boolean isConcatenable() {
+    return false;
+  }
+
+  @Override
   public boolean alwaysWritesPc() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " are not part of POR");

@@ -150,6 +150,11 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
   }
 
   @Override
+  public boolean isConcatenable() {
+    return true;
+  }
+
+  @Override
   public boolean alwaysWritesPc() {
     return true;
   }
@@ -199,6 +204,11 @@ public class SeqReturnValueAssignmentSwitchStatement implements SeqCaseBlockStat
         ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
       throw new UnsupportedOperationException(
           this.getClass().getSimpleName() + " cannot be cloned with concatenated statements");
+    }
+
+    @Override
+    public boolean isConcatenable() {
+      return false;
     }
 
     @Override
