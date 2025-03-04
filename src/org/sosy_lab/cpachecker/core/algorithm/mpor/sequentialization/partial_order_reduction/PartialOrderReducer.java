@@ -45,23 +45,14 @@ public class PartialOrderReducer {
     ImmutableList.Builder<SeqCaseClause> rNewCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
         SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
-    Set<SeqCaseClause> concatenatedCases = new HashSet<>();
+    Set<SeqCaseClause> concatenated = new HashSet<>();
     for (SeqCaseClause caseClause : pCaseClauses) {
-      // do not search for already concatenated clauses
-      if (concatenatedCases.add(caseClause)) {
+      // prevent start in already concatenated clauses, otherwise they are duplicated
+      if (concatenated.add(caseClause)) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-          Optional<Integer> intTargetPc = SeqCaseClauseUtil.tryExtractIntTargetPc(statement);
-          if (intTargetPc.isPresent()) {
-            int targetPc = intTargetPc.orElseThrow();
-            if (targetPc != Sequentialization.EXIT_PC) {
-              SeqCaseClause caseTarget =
-                  Objects.requireNonNull(labelValueMap.get(intTargetPc.orElseThrow()));
-              newStatements.add(
-                  recursivelyConcatenateStatements(
-                      statement, caseTarget, concatenatedCases, labelValueMap));
-            }
-          }
+          newStatements.add(
+              recursivelyConcatenateStatements(statement, concatenated, labelValueMap));
         }
         SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
         rNewCaseClauses.add(caseClause.cloneWithBlock(newBlock));
@@ -70,39 +61,29 @@ public class PartialOrderReducer {
     return rNewCaseClauses.build();
   }
 
+  // TODO this only allows a single concatenation right now, make recursive
   private static SeqCaseBlockStatement recursivelyConcatenateStatements(
       SeqCaseBlockStatement pCurrentStatement,
-      SeqCaseClause pCurrentTarget,
       Set<SeqCaseClause> pConcatenated,
       final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap)
       throws UnrecognizedCodeException {
 
-    // ensure we only process each case clause once
-    if (pConcatenated.add(pCurrentTarget)) {
-      ImmutableList.Builder<SeqCaseBlockStatement> collectedStatements = ImmutableList.builder();
-      for (SeqCaseBlockStatement statement : pCurrentTarget.block.statements) {
-        Optional<Integer> intTargetPc = SeqCaseClauseUtil.tryExtractIntTargetPc(statement);
-        if (intTargetPc.isPresent()) {
-          int targetPc = intTargetPc.get();
-          if (targetPc != Sequentialization.EXIT_PC) {
-            SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-            if (validConcatenation(statement, newTarget)) {
-              // recursively collect statements, replacing original to avoid duplication
-              SeqCaseBlockStatement recursiveResult =
-                  recursivelyConcatenateStatements(
-                      statement, newTarget, pConcatenated, pLabelValueMap);
-              collectedStatements.add(recursiveResult);
-              continue; // avoid adding statement again below
-            }
-          }
+    Optional<Integer> intTargetPc = SeqCaseClauseUtil.tryExtractIntTargetPc(pCurrentStatement);
+    if (validIntTargetPc(intTargetPc)) {
+      int targetPc = intTargetPc.orElseThrow();
+      SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
+      if (validConcatenation(pCurrentStatement, newTarget)) {
+        // TODO it would be nice if we could remove the try-catch completely by
+        //  adding a bool to statement interface whether cloneable with concat
+        try {
+          // clone with concatenated statements, ensuring no duplicates
+          SeqCaseBlockStatement clone =
+              pCurrentStatement.cloneWithConcatenatedStatements(newTarget.block.statements);
+          pConcatenated.add(newTarget); // only add if cloning successful
+          return clone;
+        } catch (UnsupportedOperationException ignored) {
+          // some statements cannot be cloned with concatenated statements (e.g. return pc write)
         }
-        collectedStatements.add(statement); // only add if not replaced in recursion
-      }
-      try {
-        // clone with concatenated statements, ensuring no duplicates
-        return pCurrentStatement.cloneWithConcatenatedStatements(collectedStatements.build());
-      } catch (UnsupportedOperationException ignored) {
-        // some statements cannot be cloned with concatenated statements (e.g. return pc write)
       }
     }
     return pCurrentStatement;
@@ -113,20 +94,30 @@ public class PartialOrderReducer {
    *
    * <ul>
    *   <li>{@code pTarget} contains {@code pStatement} as a statement in its {@link SeqCaseBlock}
-   *       (to prevent infinite loops when recursively concatenating)
+   *       (to prevent loops when recursively concatenating)
    *   <li>{@code pTarget} is global (its commutativity is not guaranteed)
    *   <li>{@code pTarget} is a loop head (it must be directly reachable)
    *   <li>{@code pTarget} is not guaranteed to update a {@code pc}, e.g. {@code pthread_mutex_lock}
    *       (must be directly reachable to continue simulation when thread halts)
    * </ul>
    */
-  private static boolean validConcatenation(
-      SeqCaseBlockStatement pStatement, SeqCaseClause pTarget) {
+  private static boolean validConcatenation(SeqCaseBlockStatement pStatement, SeqCaseClause pTarget)
+      throws UnrecognizedCodeException {
 
     // TODO optimize by adding traces and checking if there is at least one global access
     return !(pTarget.block.statements.contains(pStatement)
         || pTarget.isGlobal
         || pTarget.isLoopStart
         || !pTarget.alwaysUpdatesPc());
+  }
+
+  private static boolean validIntTargetPc(Optional<Integer> pIntTargetPc) {
+    if (pIntTargetPc.isPresent()) {
+      int targetPc = pIntTargetPc.orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC) {
+        return true;
+      }
+    }
+    return false;
   }
 }

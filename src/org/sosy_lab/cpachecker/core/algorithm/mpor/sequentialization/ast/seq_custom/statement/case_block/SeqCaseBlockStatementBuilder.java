@@ -263,13 +263,13 @@ public class SeqCaseBlockStatementBuilder {
       int pTargetPc,
       GhostVariables pGhostVariables) {
 
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pFunctionCallEdge)) {
       // inject non-inlined reach_error
-      return new SeqReachErrorStatement();
+      return new SeqReachErrorStatement(pcLeftHandSide);
     }
     assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
     ImmutableList<FunctionParameterAssignment> assignments =
         Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
     if (assignments.isEmpty()) {

@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
-  private final SeqControlFlowStatement controlFlowStatement;
+  public final SeqControlFlowStatement controlFlowStatement;
 
   private final CLeftHandSide pcLeftHandSide;
 

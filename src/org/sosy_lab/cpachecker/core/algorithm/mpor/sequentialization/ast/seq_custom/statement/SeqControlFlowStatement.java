@@ -30,7 +30,7 @@ public class SeqControlFlowStatement implements SeqStatement {
     }
   }
 
-  private final SeqControlFlowStatementType type;
+  public final SeqControlFlowStatementType type;
 
   private final Optional<CExpression> cExpression;
 

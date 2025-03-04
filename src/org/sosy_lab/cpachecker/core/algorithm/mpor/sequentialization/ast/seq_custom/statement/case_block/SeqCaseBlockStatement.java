@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -41,6 +42,7 @@ public interface SeqCaseBlockStatement extends SeqStatement {
    * This function should be called when applying Partial Order Reduction to {@link SeqCaseClause}s,
    * i.e. when concatenating statements and replacing {@code pc} writes.
    */
+  @CanIgnoreReturnValue
   SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
       throws UnrecognizedCodeException;

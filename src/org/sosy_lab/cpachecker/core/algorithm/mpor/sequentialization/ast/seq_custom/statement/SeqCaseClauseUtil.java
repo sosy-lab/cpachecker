@@ -73,6 +73,7 @@ public class SeqCaseClauseUtil {
     return Optional.empty();
   }
 
+  // TODO becomes redundant if ensured that all int between 0 and numCases - 1 are labels (no gaps)
   /**
    * A helper mapping {@link SeqCaseClause}s to their {@link SeqCaseLabel} values, which are always
    * {@code int} values in the sequentialization.

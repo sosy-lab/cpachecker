@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
  * Represents an injected call to {@code reach_error} so that the sequentialization actually adopts
@@ -20,17 +24,26 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
-  SeqReachErrorStatement() {}
+  private final CLeftHandSide pcLeftHandSide;
+
+  private final int targetPc;
+
+  SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide) {
+    pcLeftHandSide = pPcLeftHandSide;
+    // reach_error calls may not stop a thread, we enforce it
+    targetPc = Sequentialization.EXIT_PC;
+  }
 
   @Override
   public String toASTString() {
-    return Sequentialization.inputReachErrorDummy;
+    CExpressionAssignmentStatement pcWrite =
+        SeqExpressionAssignmentStatement.buildPcWrite(pcLeftHandSide, targetPc);
+    return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + pcWrite.toASTString();
   }
 
   @Override
   public Optional<Integer> getTargetPc() {
-    // TODO test if we can also throw an exception here?
-    return Optional.empty();
+    return Optional.of(targetPc);
   }
 
   @Override
@@ -60,7 +73,6 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  // TODO this should technically return false?
   public boolean alwaysWritesPc() {
     return true;
   }

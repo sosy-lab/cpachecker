@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -134,6 +136,13 @@ public class SeqStringUtil {
       StringBuilder statements = new StringBuilder();
       // this includes statements that were concatenated before
       for (SeqCaseBlockStatement statement : pConcatenatedStatements.orElseThrow()) {
+        if (statement instanceof SeqAssumeStatement assumeStatement) {
+          if (assumeStatement.controlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
+            // append additional space before 'else { ... }'
+            statements.append(SeqSyntax.SPACE).append(statement.toASTString());
+            continue; // other control flow statements are appended as is (see below)
+          }
+        }
         statements.append(statement.toASTString());
       }
       return statements.toString();
