@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult.RefinementStatus;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -30,7 +32,7 @@ public class AllSatRefiner implements Refiner {
   private final ErrorConditionFormatter formatter;
   private final Solver solver;
   private final Boolean withFormatter;
-  private PathFormula exclusionModelFormula;
+  private final RefinementResult exclusionModelFormula;
   private int currentRefinementIteration = 0;
 
   public AllSatRefiner(FormulaContext pContext, Boolean pWithFormatter)
@@ -38,13 +40,14 @@ public class AllSatRefiner implements Refiner {
     context = pContext;
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    exclusionModelFormula = context.getManager().makeEmptyPathFormula();
+    exclusionModelFormula =
+        new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(context);
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex)
+  public RefinementResult refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
@@ -104,15 +107,19 @@ public class AllSatRefiner implements Refiner {
       Utility.logWithIteration(currentRefinementIteration,
           Level.INFO, context, "Updating Exclusion Formula With Disjunct Combined Model...");
       // Update exclusion formula with the found models
-      exclusionModelFormula = exclusionModelFormula.withFormula(bmgr.not(combinedModels));
+
+      PathFormula negatedModelFormula =
+          exclusionModelFormula.getOptionalFormula().get().withFormula(bmgr.not(combinedModels));
+      exclusionModelFormula.updateFormula(negatedModelFormula);
+      exclusionModelFormula.updateStatus(RefinementStatus.SUCCESS);
 
       Utility.logWithIteration(currentRefinementIteration,
           Level.INFO, context, String.format("Exclusion Formula In This Iteration: \n%s",
-              exclusionModelFormula.getFormula()));
+              exclusionModelFormula.getBooleanFormula()));
 
       if (withFormatter) {
         formatter.setupSSAMap(cexPathFormula);
-        formatter.reformat(cexPathFormula, exclusionModelFormula.getFormula(),
+        formatter.reformat(cexPathFormula, exclusionModelFormula.getBooleanFormula(),
             currentRefinementIteration);
       }
 

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.CompositeRefiner;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult.RefinementStatus;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.Utility;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -36,7 +39,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -126,7 +128,9 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter,
               refinerTimeOut);
-      PathFormula errorCondition = context.getManager().makeEmptyPathFormula(); // initially empty
+      // initially empty
+      RefinementResult errorCondition =
+          new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -144,16 +148,19 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
         if (!counterExamples.isEmpty()) {
           foundNewCounterexamples = true;
           logger.log(Level.INFO, "Found Counterexamples");
+          // TODO: why is this a loop for counter examples? we get usually just one counter example
+          //  per iteration
           for (CounterexampleInfo cex : counterExamples) {
             // Refinement
             errorCondition = refiner.refine(cex);
           }
-          // do not continue if error condition is empty/unchanged
-          if (errorCondition.equals(context.getManager().makeEmptyPathFormula())) {
+          // do not continue if error condition is invalid (timed out or yielded an error)
+          if (!errorCondition.isSuccessful()) {
             break;
           }
           // update initial state with the exclusion formula
-          initialState = Utility.updateInitialStateWithExclusions(initialState, errorCondition,
+          initialState = Utility.updateInitialStateWithExclusions(initialState,
+              errorCondition.getOptionalFormula().get(),
               currentIteration, context);
         } else {
           logger.log(Level.INFO,

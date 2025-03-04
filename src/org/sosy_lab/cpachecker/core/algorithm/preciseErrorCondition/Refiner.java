@@ -11,12 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface Refiner {
 
-  PathFormula refine(CounterexampleInfo pCounterexample)
+  RefinementResult refine(CounterexampleInfo pCounterexample)
       throws CPATransferException, InterruptedException, InvalidConfigurationException,
              SolverException;
 

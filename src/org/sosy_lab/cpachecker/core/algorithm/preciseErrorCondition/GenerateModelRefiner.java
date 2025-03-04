@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult.RefinementStatus;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -28,40 +30,44 @@ public class GenerateModelRefiner implements Refiner {
   private final Solver solver;
   private final ErrorConditionFormatter formatter;
   private final Boolean withFormatter;
-  private PathFormula exclusionModelFormula;
+  private final RefinementResult exclusionModelFormula;
   private int currentRefinementIteration = 0;
 
   public GenerateModelRefiner(FormulaContext pContext, Boolean pWithFormatter)
       throws InvalidConfigurationException {
     context = pContext;
-    exclusionModelFormula = context.getManager().makeEmptyPathFormula();
+    exclusionModelFormula =
+        new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
     solver = pContext.getSolver();
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex)
+  public RefinementResult refine(CounterexampleInfo cex)
       throws SolverException, InterruptedException, CPATransferException {
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     BooleanFormula nondetModel = bmgr.makeTrue();
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      PathFormula cexFormula = exclusionModelFormula;
+      RefinementResult cexFormula = exclusionModelFormula;
       for (CFAEdge cfaEdge : cex.getTargetPath().getFullPath()) {
-        cexFormula = context.getManager().makeAnd(cexFormula, cfaEdge);
+        cexFormula.updateFormula(
+            context.getManager().makeAnd(cexFormula.getOptionalFormula().get(), cfaEdge));
       }
 
-      prover.push(cexFormula.getFormula());
+      prover.push(cexFormula.getBooleanFormula());
 
       if (prover.isUnsat()) {
         Utility.logWithIteration(currentRefinementIteration,
-            Level.WARNING, context, "Counterexample Is Infeasible. Returning An Empty Formula.");
+            Level.WARNING, context, "Counterexample Is Infeasible.");
+        exclusionModelFormula.updateStatus(RefinementStatus.FAILURE);
         return exclusionModelFormula; // empty
       }
 
       Utility.logWithIteration(currentRefinementIteration,
-          Level.FINE, context, String.format("Current CEX FORMULA:\n%s", cexFormula.getFormula()));
+          Level.FINE, context,
+          String.format("Current CEX FORMULA:\n%s", cexFormula.getBooleanFormula()));
 
 
       for (ValueAssignment assignment : prover.getModelAssignments()) {
@@ -77,18 +83,22 @@ public class GenerateModelRefiner implements Refiner {
       Utility.logWithIteration(currentRefinementIteration,
           Level.INFO, context, "Updating Exclusion Formula With Model...");
 
-      formatter.setupSSAMap(cexFormula);
+      formatter.setupSSAMap(cexFormula.getOptionalFormula().get());
       // Update exclusion formula
-      exclusionModelFormula = context.getManager()
-          .makeAnd(exclusionModelFormula, bmgr.not(nondetModel))
-          .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+      PathFormula updatedFormula = context.getManager()
+          .makeAnd(exclusionModelFormula.getOptionalFormula().get(), bmgr.not(nondetModel))
+          .withContext(formatter.getSsaBuilder().build(),
+              cexFormula.getOptionalFormula().get().getPointerTargetSet());
+      exclusionModelFormula.updateFormula(updatedFormula);
+      cexFormula.updateStatus(RefinementStatus.SUCCESS);
 
       Utility.logWithIteration(currentRefinementIteration,
           Level.INFO, context, String.format("Exclusion Formula In This Iteration: \n%s",
-              exclusionModelFormula.getFormula()));
+              exclusionModelFormula.getOptionalFormula()));
 
       if (withFormatter) {
-        formatter.reformat(cexFormula, exclusionModelFormula.getFormula(),
+        formatter.reformat(cexFormula.getOptionalFormula().get(),
+            exclusionModelFormula.getBooleanFormula(),
             currentRefinementIteration);
       }
     }

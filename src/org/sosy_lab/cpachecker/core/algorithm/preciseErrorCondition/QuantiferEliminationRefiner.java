@@ -13,10 +13,12 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult.RefinementStatus;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -37,7 +39,7 @@ public class QuantiferEliminationRefiner implements Refiner {
   private final ErrorConditionFormatter formatter;
   private final Boolean withFormatter;
   private final FormulaContext quantifierContext;
-  private PathFormula exclusionFormula;
+  private final RefinementResult exclusionFormula;
   private int currentRefinementIteration = 0;
 
   public QuantiferEliminationRefiner(
@@ -47,13 +49,13 @@ public class QuantiferEliminationRefiner implements Refiner {
     solver = pContext.getSolver();
     quantifierContext = context.createContextFromThis(pQuantifierSolver.name());
     quantifierSolver = quantifierContext.getSolver();
-    exclusionFormula = context.getManager().makeEmptyPathFormula();
+    exclusionFormula = new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
 
   @Override
-  public PathFormula refine(CounterexampleInfo cex)
+  public RefinementResult refine(CounterexampleInfo cex)
       throws CPATransferException, InterruptedException, SolverException {
 
     PathFormula cexFormula =
@@ -82,7 +84,8 @@ public class QuantiferEliminationRefiner implements Refiner {
     updateExclusionFormula(quantifierEliminationResult, cexFormula);
 
     if (withFormatter) {
-      formatter.reformat(cexFormula, exclusionFormula.getFormula(), currentRefinementIteration);
+      formatter.reformat(cexFormula, exclusionFormula.getBooleanFormula(),
+          currentRefinementIteration);
     }
     currentRefinementIteration++;
     return exclusionFormula;
@@ -214,19 +217,22 @@ public class QuantiferEliminationRefiner implements Refiner {
         Level.INFO, context, "Updating Exclusion Formula...");
 
     //update exclusion formula with the new quantified variables from this iteration.
-    exclusionFormula = context.getManager()
-        .makeAnd(exclusionFormula,
+    PathFormula updatedExclusionFormula = context.getManager()
+        .makeAnd(exclusionFormula.getOptionalFormula().get(),
             solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult))
         .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+    exclusionFormula.updateFormula(updatedExclusionFormula);
+    exclusionFormula.updateStatus(RefinementStatus.SUCCESS);
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
-        String.format("Exclusion Formula In This Iteration: \n%s", exclusionFormula.getFormula()));
+        String.format("Exclusion Formula In This Iteration: \n%s",
+            exclusionFormula.getBooleanFormula()));
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.FINE, context,
         String.format("Visited Updated Exclusion Formula: \n%s",
-            formatter.visitBooleanFormula(exclusionFormula.getFormula())));
+            formatter.visitBooleanFormula(exclusionFormula.getBooleanFormula())));
   }
 
 }
