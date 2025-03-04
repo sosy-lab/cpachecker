@@ -40,8 +40,9 @@ public class AllSatRefiner implements Refiner {
     context = pContext;
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
     exclusionModelFormula =
-        new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
+        new RefinementResult(RefinementStatus.EMPTY, Optional.of(emptyFormula));
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(context);
   }

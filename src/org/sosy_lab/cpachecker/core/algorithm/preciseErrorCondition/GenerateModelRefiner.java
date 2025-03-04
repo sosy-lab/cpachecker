@@ -36,8 +36,9 @@ public class GenerateModelRefiner implements Refiner {
   public GenerateModelRefiner(FormulaContext pContext, Boolean pWithFormatter)
       throws InvalidConfigurationException {
     context = pContext;
+    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
     exclusionModelFormula =
-        new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
+        new RefinementResult(RefinementStatus.EMPTY, Optional.of(emptyFormula));
     solver = pContext.getSolver();
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);

@@ -172,7 +172,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           || maxIterations == -1));
 
       context.getLogger()
-          .log(Level.INFO, "Final Error Condition:\n" + errorCondition);
+          .log(Level.INFO, "Final Error Condition:\n" + errorCondition.getBooleanFormula());
       //TODO: can add a visitor to make final Error Condition more user friendly and easier to read.
       return status;
 

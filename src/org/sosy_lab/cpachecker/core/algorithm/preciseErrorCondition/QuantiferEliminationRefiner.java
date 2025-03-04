@@ -49,7 +49,8 @@ public class QuantiferEliminationRefiner implements Refiner {
     solver = pContext.getSolver();
     quantifierContext = context.createContextFromThis(pQuantifierSolver.name());
     quantifierSolver = quantifierContext.getSolver();
-    exclusionFormula = new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
+    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
+    exclusionFormula = new RefinementResult(RefinementStatus.EMPTY, Optional.of(emptyFormula));
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
