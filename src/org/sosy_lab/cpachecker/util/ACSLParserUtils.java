@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,19 +128,21 @@ public class ACSLParserUtils {
     if (functionMatcher.find()) {
       ImmutableList.Builder<CParameterDeclaration> parameters = new ImmutableList.Builder<>();
       // The first match is the return type and the name of the function
-      CFunctionType returnType =
-          CFunctionType.functionTypeWithReturnType(toCtype(functionMatcher.group("type")));
+      CType returnType = toCtype(functionMatcher.group("type"));
       String functionName = functionMatcher.group("name");
+      List<CType> parameterTypes = new ArrayList<>();
 
       // Subsequent matches are the type and name of the function parameters
       while (functionMatcher.find()) {
         CType type = toCtype(functionMatcher.group("type"));
+        parameterTypes.add(type);
         String name = functionMatcher.group("name");
         CParameterDeclaration decl = new CParameterDeclaration(FileLocation.DUMMY, type, name);
         parameters.add(decl);
       }
+      CFunctionType functionType = new CFunctionType(returnType, parameterTypes, false);
       return new CFunctionDeclaration(
-          FileLocation.DUMMY, returnType, functionName, parameters.build(), ImmutableSet.of());
+          FileLocation.DUMMY, functionType, functionName, parameters.build(), ImmutableSet.of());
     } else {
       throw new InvalidYAMLWitnessException(
           "Statement is not a valid function declaration: " + assumeDeclaration);

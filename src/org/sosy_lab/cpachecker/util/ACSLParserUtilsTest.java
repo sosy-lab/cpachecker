@@ -22,7 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
@@ -38,16 +40,16 @@ public class ACSLParserUtilsTest {
         AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries).asList();
     List<CDeclaration> cDeclarations = ACSLParserUtils.parseDeclarations(declarations);
 
-    CFunctionType retType =
-        CFunctionType.functionTypeWithReturnType(ACSLParserUtils.toCtype("int"));
     CParameterDeclaration firstParameter =
         new CParameterDeclaration(FileLocation.DUMMY, ACSLParserUtils.toCtype("int*"), "A");
     CParameterDeclaration secondParameter =
         new CParameterDeclaration(FileLocation.DUMMY, ACSLParserUtils.toCtype("int"), "I");
+    List<CType> parameterTypes = Arrays.asList(firstParameter.getType(), secondParameter.getType());
+    CFunctionType functionType = new CFunctionType(CNumericTypes.INT, parameterTypes, false);
     List<CParameterDeclaration> parameters = Arrays.asList(firstParameter, secondParameter);
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
-            FileLocation.DUMMY, retType, "MaxArray", parameters, ImmutableSet.of());
+            FileLocation.DUMMY, functionType, "MaxArray", parameters, ImmutableSet.of());
 
     CVariableDeclaration variableDeclaration =
         new CVariableDeclaration(
