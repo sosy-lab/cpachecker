@@ -74,7 +74,12 @@ public class PartialOrderReducer {
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(pCurrentStatement, newTarget)) {
         pConcatenated.add(newTarget);
-        return pCurrentStatement.cloneWithConcatenatedStatements(newTarget.block.statements);
+        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+        for (SeqCaseBlockStatement targetStatement : newTarget.block.statements) {
+          newStatements.add(
+              recursivelyConcatenateStatements(targetStatement, pConcatenated, pLabelValueMap));
+        }
+        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
     }
     return pCurrentStatement;
