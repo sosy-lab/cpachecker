@@ -1083,9 +1083,10 @@ class WebInterface:
             logging.info("Cancelling run collections...")
             for run_collection_id in self._run_collection_ids:
                 try:
-                    state = self._is_finished(run_collection_id)
-                    logging.debug("State of run collection %s: %s", run_collection_id, state)
-                    if state == "FINISHED":
+                    state, _ = self._request(
+                        "GET", f"runs/collection/{run_collection_id}"
+                    )
+                    if state.decode("utf-8") == "COMPLETED":
                         logging.info(
                             "Skipping run collection %s as it is already completed",
                             run_collection_id,
