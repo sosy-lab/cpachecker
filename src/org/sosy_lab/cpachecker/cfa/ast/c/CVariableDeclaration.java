@@ -15,6 +15,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -97,6 +98,20 @@ public final class CVariableDeclaration extends AVariableDeclaration implements 
   public String toASTStringWithoutInitializer() {
     checkArgument(getInitializer() != null, "this instance does not have an initializer");
     return cStorageClass.toASTString() + getType().toASTString(getName()) + ";";
+  }
+
+  /**
+   * Only call this method when {@link CType} is {@link CSimpleType} and there is a {@link
+   * CInitializer}.
+   *
+   * <p>If {@link CVariableDeclaration#toASTString()} yields {@code const int x = 42;} then this
+   * method yields {@code int x;}.
+   */
+  public String toASTStringWithoutConstAndInitializer() {
+    checkArgument(getInitializer() != null, "this instance does not have an initializer");
+    checkArgument(getType() instanceof CSimpleType, "type must be CSimpleType");
+    CSimpleType simpleType = (CSimpleType) getType();
+    return simpleType.toASTStringWithoutConst(getName()) + ";";
   }
 
   /**

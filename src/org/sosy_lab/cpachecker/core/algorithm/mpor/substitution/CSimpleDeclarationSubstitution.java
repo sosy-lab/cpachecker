@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
@@ -269,9 +268,7 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     for (CIdExpression localVariable : localSubstitutes.values()) {
       CVariableDeclaration variableDeclaration =
           castTo(localVariable.getDeclaration(), CVariableDeclaration.class);
-      if (!MPORUtil.isConstCpaCheckerTmp(variableDeclaration)) {
-        rLocalDeclarations.add(variableDeclaration);
-      }
+      rLocalDeclarations.add(variableDeclaration);
     }
     return rLocalDeclarations.build();
   }

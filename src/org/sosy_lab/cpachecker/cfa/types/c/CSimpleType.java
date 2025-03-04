@@ -176,14 +176,10 @@ public final class CSimpleType implements CType {
     return toASTString("");
   }
 
-  @Override
-  public String toASTString(String pDeclarator) {
+  public String toASTStringWithoutConst(String pDeclarator) {
     checkNotNull(pDeclarator);
     List<String> parts = new ArrayList<>();
 
-    if (isConst()) {
-      parts.add("const");
-    }
     if (isVolatile()) {
       parts.add("volatile");
     }
@@ -213,6 +209,15 @@ public final class CSimpleType implements CType {
     parts.add(Strings.emptyToNull(pDeclarator));
 
     return Joiner.on(' ').skipNulls().join(parts);
+  }
+
+  @Override
+  public String toASTString(String pDeclarator) {
+    checkNotNull(pDeclarator);
+    if (isConst()) {
+      return "const " + toASTStringWithoutConst(pDeclarator);
+    }
+    return toASTStringWithoutConst(pDeclarator);
   }
 
   @Override

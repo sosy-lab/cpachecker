@@ -112,12 +112,7 @@ public class PartialOrderReducer {
         && !(pTarget.isGlobal
             || pTarget.isLoopStart
             || !pTarget.alwaysUpdatesPc()
-            || pTarget.block.statements.contains(pStatement)
-            // TODO support for this can be added if we stop declaring const int CPAchecker
-            //  in cases but handle it similar to local variable declarations with initializers
-            || !SeqCaseClauseUtil.getAllStatementsByClass(
-                    pTarget, SeqConstCpaCheckerTmpStatement.class)
-                .isEmpty());
+            || pTarget.block.statements.contains(pStatement));
   }
 
   private static boolean validIntTargetPc(Optional<Integer> pIntTargetPc) {

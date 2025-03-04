@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.Ghost
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -176,23 +175,23 @@ public class Sequentialization {
         GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
-    rProgram.addAll(LineOfCodeBuilder.buildOriginalDeclarations(options, threads));
+    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
     // for variable declarations, we exclude pthread objects such as pthread_t
     // they should only be used with pthread methods, all of which are not in the sequentialization
-    rProgram.addAll(LineOfCodeBuilder.buildGlobalDeclarations(options, mainThreadSubstitution));
-    rProgram.addAll(LineOfCodeBuilder.buildLocalDeclarations(options, substitutions.values()));
-    rProgram.addAll(LineOfCodeBuilder.buildParameterDeclarations(options, substitutions.values()));
+    rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainThreadSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions.values()));
+    rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions.values()));
 
     // add variable declarations for ghost variables: return_pc, thread simulation variables
-    rProgram.addAll(LineOfCodeBuilder.buildReturnPcDeclarations(options, returnPcVariables));
+    rProgram.addAll(LineOfCodeUtil.buildReturnPcDeclarations(options, returnPcVariables));
     rProgram.addAll(
-        LineOfCodeBuilder.buildThreadSimulationVariableDeclarations(
+        LineOfCodeUtil.buildThreadSimulationVariableDeclarations(
             options, threadSimulationVariables));
 
     // add custom function declarations and definitions
-    rProgram.addAll(LineOfCodeBuilder.buildFunctionDeclarations(options));
+    rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));
     rProgram.addAll(
-        LineOfCodeBuilder.buildFunctionDefinitions(
+        LineOfCodeUtil.buildFunctionDefinitions(
             options,
             substitutions,
             substituteEdges,

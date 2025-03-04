@@ -139,8 +139,14 @@ public class SeqCaseBlockStatementBuilder {
     SubstituteEdge subB = Objects.requireNonNull(pSubEdges.get(statementB));
     int newTargetPc = statementB.getSuccessor().pc;
 
+    // ensure that declaration is variable declaration and cast accordingly
+    CDeclarationEdge declarationEdge = (CDeclarationEdge) cfaEdge;
+    CDeclaration declaration = declarationEdge.getDeclaration();
+    assert declaration instanceof CVariableDeclaration : "declarationEdge must declare variable";
+    CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+
     return new SeqConstCpaCheckerTmpStatement(
-        (CDeclarationEdge) cfaEdge, subA, subB, pPcLeftHandSide, newTargetPc);
+        variableDeclaration, subA, subB, pPcLeftHandSide, newTargetPc);
   }
 
   private static SeqCaseBlockStatement buildCaseBlockStatementFromEdge(
