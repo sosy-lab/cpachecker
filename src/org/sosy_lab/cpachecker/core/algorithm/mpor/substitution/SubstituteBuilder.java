@@ -54,75 +54,76 @@ public class SubstituteBuilder {
       MPORThread thread = entry.getKey();
       CSimpleDeclarationSubstitution substitution = entry.getValue();
 
-      // TODO add extra function(s) here for better overview
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
           // if edge is not substituted: just use original edge
-          SubstituteEdge substitute = new SubstituteEdge(cfaEdge);
-
-          if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
-            // TODO what about structs?
-            if (SubstituteUtil.isExcludedDeclarationEdge(pOptions, declarationEdge)) {
-              // TODO use optional and separate function here instead of continue
-              continue;
-            } else {
-              CDeclaration declaration = declarationEdge.getDeclaration();
-              // we only substitute variables, not functions or types
-              if (declaration instanceof CVariableDeclaration) {
-                CVariableDeclaration variableDeclaration =
-                    substitution.getVariableDeclarationSubstitute(declaration);
-                substitute =
-                    new SubstituteEdge(
-                        substituteDeclarationEdge(declarationEdge, variableDeclaration));
-              }
-            }
-
-          } else if (cfaEdge instanceof CAssumeEdge assume) {
-            substitute =
-                new SubstituteEdge(
-                    substituteAssumeEdge(assume, substitution.substitute(assume.getExpression())));
-
-          } else if (cfaEdge instanceof CStatementEdge statement) {
-            substitute =
-                new SubstituteEdge(
-                    substituteStatementEdge(
-                        statement, substitution.substitute(statement.getStatement())));
-
-          } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-            // only substitute assignments (e.g. CPAchecker_TMP = func();)
-            if (functionSummary.getExpression()
-                instanceof CFunctionCallAssignmentStatement assignment) {
-              substitute =
-                  new SubstituteEdge(
-                      substituteFunctionSummaryEdge(
-                          functionSummary, substitution.substitute(assignment)));
-            }
-
-          } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
-            // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here
-            // too
-            substitute =
-                new SubstituteEdge(
-                    substituteFunctionCallEdge(
-                        functionCall,
-                        (CFunctionCall) substitution.substitute(functionCall.getFunctionCall())));
-
-          } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
-            substitute =
-                new SubstituteEdge(
-                    substituteReturnStatementEdge(
-                        returnStatement,
-                        substitution.substitute(returnStatement.getReturnStatement())));
-          }
-
-          // no substitution performed: add original input cfa edge
-          rSubstituteEdges.put(threadEdge, substitute);
+          Optional<SubstituteEdge> substitute = trySubstituteEdge(pOptions, substitution, cfaEdge);
+          rSubstituteEdges.put(
+              threadEdge,
+              substitute.isPresent() ? substitute.orElseThrow() : new SubstituteEdge(cfaEdge));
         }
       }
     }
     return ImmutableMap.copyOf(rSubstituteEdges);
+  }
+
+  private static Optional<SubstituteEdge> trySubstituteEdge(
+      MPOROptions pOptions, CSimpleDeclarationSubstitution pSubstitution, CFAEdge pCfaEdge) {
+
+    if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
+      // TODO what about structs?
+      if (SubstituteUtil.isExcludedDeclarationEdge(pOptions, declarationEdge)) {
+        return Optional.empty();
+      } else {
+        CDeclaration declaration = declarationEdge.getDeclaration();
+        // we only substitute variables, not functions or types
+        if (declaration instanceof CVariableDeclaration) {
+          CVariableDeclaration variableDeclaration =
+              pSubstitution.getVariableDeclarationSubstitute(declaration);
+          return Optional.of(
+              new SubstituteEdge(substituteDeclarationEdge(declarationEdge, variableDeclaration)));
+        }
+      }
+
+    } else if (pCfaEdge instanceof CAssumeEdge assume) {
+      return Optional.of(
+          new SubstituteEdge(
+              substituteAssumeEdge(assume, pSubstitution.substitute(assume.getExpression()))));
+
+    } else if (pCfaEdge instanceof CStatementEdge statement) {
+      return Optional.of(
+          new SubstituteEdge(
+              substituteStatementEdge(
+                  statement, pSubstitution.substitute(statement.getStatement()))));
+
+    } else if (pCfaEdge instanceof CFunctionSummaryEdge functionSummary) {
+      // only substitute assignments (e.g. CPAchecker_TMP = func();)
+      if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
+        return Optional.of(
+            new SubstituteEdge(
+                substituteFunctionSummaryEdge(
+                    functionSummary, pSubstitution.substitute(assignment))));
+      }
+
+    } else if (pCfaEdge instanceof CFunctionCallEdge functionCall) {
+      // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here
+      // too
+      return Optional.of(
+          new SubstituteEdge(
+              substituteFunctionCallEdge(
+                  functionCall,
+                  (CFunctionCall) pSubstitution.substitute(functionCall.getFunctionCall()))));
+
+    } else if (pCfaEdge instanceof CReturnStatementEdge returnStatement) {
+      return Optional.of(
+          new SubstituteEdge(
+              substituteReturnStatementEdge(
+                  returnStatement,
+                  pSubstitution.substitute(returnStatement.getReturnStatement()))));
+    }
+    return Optional.empty();
   }
 
   /**

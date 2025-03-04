@@ -60,7 +60,6 @@ public class SeqValidator {
         !pOptions.inputTypeDeclarations,
         "can only validate source code if inputTypeDeclaration is disabled");
     // validate that seq can be parsed and cfa created -> code compiles
-    System.out.println("searching for program " + pSequentializationPath.toString());
     CFACreator creator =
         new CFACreator(
             // we use a preprocessor so that missing type declarations do not cause an error
