@@ -27,7 +27,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Visitor that get's the interval from an expression, */
-public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
+public class ExpressionValueVisitor
+    extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 
   private final IntervalAnalysisState readableState;
@@ -62,8 +63,10 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, 
   }
 
   @Override
-  public Interval visit(CArraySubscriptExpression arraySubscriptExpression) throws UnrecognizedCodeException {
-    if (arraySubscriptExpression.getArrayExpression() instanceof CIdExpression arrayNameExpression) {
+  public Interval visit(CArraySubscriptExpression arraySubscriptExpression)
+      throws UnrecognizedCodeException {
+    if (arraySubscriptExpression.getArrayExpression()
+        instanceof CIdExpression arrayNameExpression) {
       CExpression indexExpression = arraySubscriptExpression.getSubscriptExpression();
       String arrayName = arrayNameExpression.getDeclaration().getQualifiedName();
       return readableState.arrayAccess(arrayName, indexExpression, this);

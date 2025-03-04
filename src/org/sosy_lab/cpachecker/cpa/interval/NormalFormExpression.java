@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
  * For more details see: Patrick Cousot, Radhia Cousot, and Francesco Logozzo. 2011. A parametric
  * segmentation functor for fully automatic and scalable array content analysis. SIGPLAN Not. 46, 1
  * (January 2011), 105–118. <a href="https://doi.org/10.1145/1925844.1926399">
- *   https://doi.org/10.1145/1925844.1926399</a>
+ * https://doi.org/10.1145/1925844.1926399</a>
  */
 public class NormalFormExpression {
   private final CIdExpression variable;
@@ -60,7 +60,10 @@ public class NormalFormExpression {
     return constant >= other.constant;
   }
 
-  public static boolean anyInSets(Set<NormalFormExpression> set, Set<NormalFormExpression> other, BiPredicate<NormalFormExpression, NormalFormExpression> predicate) {
+  public static boolean anyInSets(
+      Set<NormalFormExpression> set,
+      Set<NormalFormExpression> other,
+      BiPredicate<NormalFormExpression, NormalFormExpression> predicate) {
     for (NormalFormExpression a : set) {
       for (NormalFormExpression b : other) {
         if (predicate.test(a, b)) {

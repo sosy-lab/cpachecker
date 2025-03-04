@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementExpression;
 
 import com.google.common.collect.ImmutableSet;
@@ -33,49 +34,50 @@ public record Bound(Set<CExpression> expressions) {
     this(ImmutableSet.of(expression));
   }
 
-//  public Bound adaptForChangedVariableValues(
-//          String changedVariableRef,
-//          Set<CExpression> newValues
-//  ) {
-//    var modifiedExpressions = expressions.stream().flatMap(
-//            expression -> newValues.stream().flatMap(newValue -> {
-//              if (expression.containsVariable(newValue.varRef())) {
-//                if (expression.containsVariable(changedVariableRef)) {
-//                  return Stream.of(expression.increase(-newValue.constant()));
-//                } else {
-//                  return Stream.of(
-//                          expression,
-//                          new CExpression(changedVariableRef, expression.constant() - newValue.constant())
-//                  );
-//                }
-//              } else {
-//                if (expression.containsVariable(changedVariableRef)) {
-//                  return Stream.of();
-//                } else {
-//                  return Stream.of(expression);
-//                }
-//              }
-//            })
-//    ).collect(Collectors.toSet());
-//
-//    return new Bound(modifiedExpressions);
-//
-//    throw new RuntimeException("Not yet implemented");
-//  }
+  //  public Bound adaptForChangedVariableValues(
+  //          String changedVariableRef,
+  //          Set<CExpression> newValues
+  //  ) {
+  //    var modifiedExpressions = expressions.stream().flatMap(
+  //            expression -> newValues.stream().flatMap(newValue -> {
+  //              if (expression.containsVariable(newValue.varRef())) {
+  //                if (expression.containsVariable(changedVariableRef)) {
+  //                  return Stream.of(expression.increase(-newValue.constant()));
+  //                } else {
+  //                  return Stream.of(
+  //                          expression,
+  //                          new CExpression(changedVariableRef, expression.constant() -
+  // newValue.constant())
+  //                  );
+  //                }
+  //              } else {
+  //                if (expression.containsVariable(changedVariableRef)) {
+  //                  return Stream.of();
+  //                } else {
+  //                  return Stream.of(expression);
+  //                }
+  //              }
+  //            })
+  //    ).collect(Collectors.toSet());
+  //
+  //    return new Bound(modifiedExpressions);
+  //
+  //    throw new RuntimeException("Not yet implemented");
+  //  }
 
-//  /**
-//   * Removes all expressions containing the specified variable.
-//   *
-//   * @param varRef the variable.
-//   * @return the modified bound.
-//   */
-//  public Bound removeVariableOccurrences(String varRef) {
-//    var modifiedExpressions = expressions.stream()
-//            .filter(e -> !e.containsVariable(varRef))
-//            .collect(Collectors.toSet());
-//    return new Bound(modifiedExpressions);
-//    throw new RuntimeException("Not yet implemented");
-//  }
+  //  /**
+  //   * Removes all expressions containing the specified variable.
+  //   *
+  //   * @param varRef the variable.
+  //   * @return the modified bound.
+  //   */
+  //  public Bound removeVariableOccurrences(String varRef) {
+  //    var modifiedExpressions = expressions.stream()
+  //            .filter(e -> !e.containsVariable(varRef))
+  //            .collect(Collectors.toSet());
+  //    return new Bound(modifiedExpressions);
+  //    throw new RuntimeException("Not yet implemented");
+  //  }
 
   public boolean contains(CExpression expression) {
     return expressions().stream().anyMatch(e -> e.equals(expression));
@@ -90,17 +92,14 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound increase(long amount) {
-    return new Bound(expressions.stream()
-            .map(e -> incrementExpression(e, amount))
-            .collect(ImmutableSet.toImmutableSet()));
+    return new Bound(transformedImmutableSetCopy(expressions, e -> incrementExpression(e, amount)));
   }
 
   public static Bound union(Collection<Bound> bounds) {
     return new Bound(
-            bounds.stream()
-                    .flatMap(e -> e.expressions().stream())
-                    .collect(ImmutableSet.toImmutableSet())
-    );
+        bounds.stream()
+            .flatMap(e -> e.expressions().stream())
+            .collect(ImmutableSet.toImmutableSet()));
   }
 
   public Bound union(Bound other) {
@@ -108,10 +107,9 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound union(Set<CExpression> otherExpressions) {
-    var newExpressions = Stream.concat(
-            this.expressions.stream(),
-            otherExpressions.stream()
-    ).collect(ImmutableSet.toImmutableSet());
+    var newExpressions =
+        Stream.concat(this.expressions.stream(), otherExpressions.stream())
+            .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
   }
 
@@ -120,7 +118,8 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound intersection(Set<CExpression> otherExpressions) {
-    var newExpressions = this.expressions.stream()
+    var newExpressions =
+        this.expressions.stream()
             .filter(otherExpressions::contains)
             .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
@@ -131,7 +130,8 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound difference(Set<CExpression> otherExpressions) {
-    var newExpressions = this.expressions.stream()
+    var newExpressions =
+        this.expressions.stream()
             .filter(o -> !otherExpressions.contains(o))
             .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
@@ -142,7 +142,8 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound relativeComplement(Set<CExpression> otherExpressions) {
-    var newExpressions = otherExpressions.stream()
+    var newExpressions =
+        otherExpressions.stream()
             .filter(o -> !this.expressions.contains(o))
             .collect(ImmutableSet.toImmutableSet());
     return new Bound(newExpressions);
@@ -163,20 +164,26 @@ public record Bound(Set<CExpression> expressions) {
     return compare(other, visitor, (u, v) -> u.isEqualTo(v));
   }
 
-  private boolean compare(CExpression other, ExpressionValueVisitor visitor, BiPredicate<Interval, Interval> predicate) throws UnrecognizedCodeException {
+  private boolean compare(
+      CExpression other, ExpressionValueVisitor visitor, BiPredicate<Interval, Interval> predicate)
+      throws UnrecognizedCodeException {
     Interval otherValue = other.accept(visitor);
-    return expressions.stream().map(e -> {
-      try {
-        return e.accept(visitor);
-      } catch (UnrecognizedCodeException exception) {
-        return Interval.EMPTY;
-      }
-    }).anyMatch(e -> predicate.test(e, otherValue));
+    return expressions.stream()
+        .map(
+            e -> {
+              try {
+                return e.accept(visitor);
+              } catch (UnrecognizedCodeException exception) {
+                return Interval.EMPTY;
+              }
+            })
+        .anyMatch(e -> predicate.test(e, otherValue));
   }
 
   @Override
   public String toString() {
-    return "{%s}".formatted(
+    return "{%s}"
+        .formatted(
             String.join(" ", expressions.stream().map(CExpression::toASTString).sorted().toList()));
   }
 }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -25,13 +27,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Utility class for working with expression.
- */
+/** Utility class for working with expression. */
 public class ExpressionUtility {
 
-  private static final CType CONCRETE_INDEX_TYPE = new CSimpleType(
-      false, false, CBasicType.INT, false, false, true, false, false, false, false);
+  private static final CType CONCRETE_INDEX_TYPE =
+      new CSimpleType(false, false, CBasicType.INT, false, false, true, false, false, false, false);
 
   private ExpressionUtility() {}
 
@@ -45,8 +45,7 @@ public class ExpressionUtility {
       return new CIntegerLiteralExpression(
           expression.getFileLocation(),
           expression.getExpressionType(),
-          literalExpression.getValue().add(BigInteger.valueOf(amount))
-      );
+          literalExpression.getValue().add(BigInteger.valueOf(amount)));
     }
 
     return new CBinaryExpression(
@@ -55,19 +54,18 @@ public class ExpressionUtility {
         expression.getExpressionType(),
         expression,
         getIntegerExpression(amount),
-        BinaryOperator.PLUS
-    );
+        BinaryOperator.PLUS);
   }
 
   public static CExpression incrementExpression(CExpression expression) {
     return incrementExpression(expression, 1);
   }
 
-  public static Set<NormalFormExpression> normalizeExpression(CExpression expression, ExpressionValueVisitor visitor)
-      throws UnrecognizedCodeException {
+  public static Set<NormalFormExpression> normalizeExpression(
+      CExpression expression, ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
     if (expression instanceof CBinaryExpression binaryExpression) {
       return normalizeBinaryExpression(binaryExpression, visitor);
-    }  else if (expression instanceof CUnaryExpression unaryExpression) {
+    } else if (expression instanceof CUnaryExpression unaryExpression) {
       return normalizeUnaryExpression(unaryExpression, visitor);
     } else if (expression instanceof CIdExpression idExpression) {
       return normalizeIdExpression(idExpression, visitor);
@@ -78,17 +76,23 @@ public class ExpressionUtility {
     return ImmutableSet.of();
   }
 
-  public static Set<NormalFormExpression> normalizeBinaryExpression(CBinaryExpression expression, ExpressionValueVisitor visitor)
+  public static Set<NormalFormExpression> normalizeBinaryExpression(
+      CBinaryExpression expression, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     return switch (expression.getOperator()) {
       case PLUS -> {
-        List<NormalFormExpression> result = new ArrayList<>();
-        result.addAll(normalizeAndConcretize(expression.getOperand1(), expression.getOperand2(), visitor));
-        result.addAll(normalizeAndConcretize(expression.getOperand2(), expression.getOperand1(), visitor));
+        List<NormalFormExpression> result =
+            new ArrayList<>(
+                normalizeAndConcretize(
+                    expression.getOperand1(), expression.getOperand2(), visitor));
+
+        result.addAll(
+            normalizeAndConcretize(expression.getOperand2(), expression.getOperand1(), visitor));
         yield ImmutableSet.copyOf(result);
       }
       case MINUS ->
-         normalizeAndConcretize(expression.getOperand1(), invertExpression(expression.getOperand2()), visitor);
+          normalizeAndConcretize(
+              expression.getOperand1(), invertExpression(expression.getOperand2()), visitor);
       default -> ImmutableSet.of();
     };
   }
@@ -98,41 +102,51 @@ public class ExpressionUtility {
    *
    * @param normalize normalizes this operand.
    * @param concretize concretizes this operand if possible and adds its value to all possible
-   *                   normalizations.
+   *     normalizations.
    * @param visitor the expression visitor.
    * @return a set of normalizations.
    * @throws UnrecognizedCodeException if there is unrecognized code.
    */
-  private static Set<NormalFormExpression> normalizeAndConcretize(CExpression normalize, CExpression concretize, ExpressionValueVisitor visitor)
+  private static Set<NormalFormExpression> normalizeAndConcretize(
+      CExpression normalize, CExpression concretize, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
-    return concretize.accept(visitor).getUniqueConcreteValue()
-        .map(concreteValue -> {
-          try {
-            return normalizeExpression(normalize, visitor).stream()
-                .map(normalized -> normalized.add(concreteValue))
-                .collect(ImmutableSet.toImmutableSet());
-          } catch (UnrecognizedCodeException ignored) {
-            return ImmutableSet.<NormalFormExpression>of();
-          }
-        }).orElse(ImmutableSet.of());
+    return concretize
+        .accept(visitor)
+        .getUniqueConcreteValue()
+        .map(
+            concreteValue -> {
+              try {
+                return transformedImmutableSetCopy(
+                    normalizeExpression(normalize, visitor),
+                    normalized -> normalized.add(concreteValue));
+              } catch (UnrecognizedCodeException ignored) {
+                return ImmutableSet.<NormalFormExpression>of();
+              }
+            })
+        .orElse(ImmutableSet.of());
   }
 
-  public static Set<NormalFormExpression> normalizeUnaryExpression(CUnaryExpression expression, ExpressionValueVisitor visitor)
+  public static Set<NormalFormExpression> normalizeUnaryExpression(
+      CUnaryExpression expression, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     if (expression.getOperator() == UnaryOperator.MINUS) {
-      return expression.getOperand().accept(visitor)
+      return expression
+          .getOperand()
+          .accept(visitor)
           .getUniqueConcreteValue()
           .map(e -> new NormalFormExpression(-e))
-          .stream().collect(ImmutableSet.toImmutableSet());
+          .stream()
+          .collect(ImmutableSet.toImmutableSet());
     }
     return ImmutableSet.of(); // Other operators not yet implemented
   }
 
-  public static Set<NormalFormExpression> normalizeIdExpression(CIdExpression expression, ExpressionValueVisitor visitor)
-      throws UnrecognizedCodeException {
+  public static Set<NormalFormExpression> normalizeIdExpression(
+      CIdExpression expression, ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
     List<NormalFormExpression> normalFormExpressions = new ArrayList<>();
 
-    expression.accept(visitor)
+    expression
+        .accept(visitor)
         .getUniqueConcreteValue()
         .map(e -> new NormalFormExpression(e))
         .ifPresent(normalFormExpressions::add);
@@ -141,33 +155,38 @@ public class ExpressionUtility {
     return ImmutableSet.copyOf(normalFormExpressions);
   }
 
-  public static Set<NormalFormExpression> normalizeLiteralExpression(CIntegerLiteralExpression expression) {
+  public static Set<NormalFormExpression> normalizeLiteralExpression(
+      CIntegerLiteralExpression expression) {
     return ImmutableSet.of(new NormalFormExpression(expression.asLong()));
   }
 
   public static CExpression invertExpression(CExpression expression) {
-    return new CUnaryExpression(expression.getFileLocation(), expression.getExpressionType(), expression, UnaryOperator.MINUS);
+    return new CUnaryExpression(
+        expression.getFileLocation(),
+        expression.getExpressionType(),
+        expression,
+        UnaryOperator.MINUS);
   }
 
-  public static boolean isSyntacticallyGreaterThanOrEqualTo(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+  public static boolean isSyntacticallyGreaterThanOrEqualTo(
+      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
     try {
       return NormalFormExpression.anyInSets(
           normalizeExpression(a, visitor),
           normalizeExpression(b, visitor),
-          (normalA, normalB) -> normalA.isSyntacticallyGreaterThanOrEqualTo(normalB)
-      );
+          (normalA, normalB) -> normalA.isSyntacticallyGreaterThanOrEqualTo(normalB));
     } catch (UnrecognizedCodeException exception) {
       return false;
     }
   }
 
-  public static boolean isSyntacticallyLessThanOrEqualTo(CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+  public static boolean isSyntacticallyLessThanOrEqualTo(
+      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
     try {
       return NormalFormExpression.anyInSets(
           normalizeExpression(a, visitor),
           normalizeExpression(b, visitor),
-          (normalA, normalB) -> normalA.isSyntacticallyLessThanOrEqualTo(normalB)
-      );
+          (normalA, normalB) -> normalA.isSyntacticallyLessThanOrEqualTo(normalB));
     } catch (UnrecognizedCodeException exception) {
       return false;
     }

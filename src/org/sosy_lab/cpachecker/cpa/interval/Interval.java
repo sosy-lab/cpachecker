@@ -123,7 +123,6 @@ public final class Interval implements Serializable {
       newLow = other.low;
     }
 
-
     Long newHigh;
     if (this.high != null) {
       if (other.high != null) {
@@ -186,7 +185,11 @@ public final class Interval implements Serializable {
    * @return true if they are definitely equal.
    */
   public boolean isEqualTo(Interval other) {
-    return !isEmpty() && !other.isEmpty() && low.equals(other.low) && high.equals(other.high) && low.equals(high);
+    return !isEmpty()
+        && !other.isEmpty()
+        && low.equals(other.low)
+        && high.equals(other.high)
+        && low.equals(high);
   }
 
   /**

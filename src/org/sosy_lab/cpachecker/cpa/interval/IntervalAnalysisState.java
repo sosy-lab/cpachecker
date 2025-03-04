@@ -77,7 +77,9 @@ public class IntervalAnalysisState
    * @param referencesMap the reference counts
    */
   public IntervalAnalysisState(
-      PersistentMap<String, Interval> pIntervals, PersistentMap<String, Integer> referencesMap, PersistentMap<String, FunArray> pArrays) {
+      PersistentMap<String, Interval> pIntervals,
+      PersistentMap<String, Integer> referencesMap,
+      PersistentMap<String, FunArray> pArrays) {
     this.intervals = pIntervals;
     referenceCounts = referencesMap;
     this.arrays = pArrays;
@@ -118,7 +120,8 @@ public class IntervalAnalysisState
     return arrays.containsKey(variableName);
   }
 
-  public Interval arrayAccess(String variableName, CExpression index, ExpressionValueVisitor visitor) {
+  public Interval arrayAccess(
+      String variableName, CExpression index, ExpressionValueVisitor visitor) {
     return arrays.get(variableName).get(index, visitor);
   }
 
@@ -143,8 +146,7 @@ public class IntervalAnalysisState
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1),
-            arrays
-        );
+            arrays);
       } else {
         return removeInterval(variableName);
       }
@@ -154,19 +156,16 @@ public class IntervalAnalysisState
 
   public IntervalAnalysisState addArray(String variableName, FunArray funArray) {
     return new IntervalAnalysisState(
-        intervals,
-        referenceCounts,
-        arrays.putAndCopy(variableName, funArray)
-    );
+        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray));
   }
 
-  public IntervalAnalysisState assignArrayElement(String arrayName, CExpression index, Interval interval, ExpressionValueVisitor visitor) {
+  public IntervalAnalysisState assignArrayElement(
+      String arrayName, CExpression index, Interval interval, ExpressionValueVisitor visitor) {
     if (arrays.containsKey(arrayName)) {
       return new IntervalAnalysisState(
           intervals,
           referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor))
-      );
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)));
     }
     return this;
   }
@@ -180,7 +179,8 @@ public class IntervalAnalysisState
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
-      return new IntervalAnalysisState(intervals.removeAndCopy(variableName), referenceCounts, arrays);
+      return new IntervalAnalysisState(
+          intervals.removeAndCopy(variableName), referenceCounts, arrays);
     }
 
     return this;
@@ -204,7 +204,7 @@ public class IntervalAnalysisState
    */
   @Override
   public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
-    //TODO: Join arrays as well
+    // TODO: Join arrays as well
     boolean changed = false;
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
@@ -422,10 +422,7 @@ public class IntervalAnalysisState
     }
 
     for (Entry<String, FunArray> entry : arrays.entrySet()) {
-      sb.append(
-          String.format(
-              "%s = %s,",
-              entry.getKey(), entry.getValue()));
+      sb.append(String.format("%s = %s,", entry.getKey(), entry.getValue()));
     }
     sb.append("}");
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
 
@@ -107,7 +108,11 @@ public class IntervalAnalysisTransferRelation
     if (summaryExpr instanceof CFunctionCallAssignmentStatement funcExp) {
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.orElseThrow().getQualifiedName())) {
-        newState = assign(funcExp.getLeftHandSide(), state.getInterval(retVar.orElseThrow().getQualifiedName()), cfaEdge);
+        newState =
+            assign(
+                funcExp.getLeftHandSide(),
+                state.getInterval(retVar.orElseThrow().getQualifiedName()),
+                cfaEdge);
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -224,62 +229,57 @@ public class IntervalAnalysisTransferRelation
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
 
     return Stream.concat(
-        oneSidedAssume(
-            cfaEdge,
-            operand1,
-            operator,
-            operand2.accept(visitor)
-        ).stream(),
-        oneSidedAssume(
-            cfaEdge,
-            operand2,
-            operator.getSwitchOperandsSidesLogicalOperator(),
-            operand1.accept(visitor)
-        ).stream()
-    ).collect(ImmutableList.toImmutableList());
+            oneSidedAssume(cfaEdge, operand1, operator, operand2.accept(visitor)).stream(),
+            oneSidedAssume(
+                cfaEdge,
+                operand2,
+                operator.getSwitchOperandsSidesLogicalOperator(),
+                operand1.accept(visitor))
+                .stream())
+        .collect(ImmutableList.toImmutableList());
   }
 
-
   private Collection<IntervalAnalysisState> oneSidedAssume(
-      CAssumeEdge cfaEdge, CExpression dynamicOperand, BinaryOperator operator, Interval staticComparee)
+      CAssumeEdge cfaEdge,
+      CExpression dynamicOperand,
+      BinaryOperator operator,
+      Interval staticComparee)
       throws UnrecognizedCodeException {
 
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
     Interval dynamicOperandValue = dynamicOperand.accept(visitor);
 
     return switch (operator) {
-      case LESS_THAN -> ImmutableSet.of(assign(
-          dynamicOperand,
-          dynamicOperandValue.limitUpperBoundBy(staticComparee.minus(1L)),
-          cfaEdge
-      ));
-      case LESS_EQUAL -> ImmutableSet.of(assign(
-          dynamicOperand,
-          dynamicOperandValue.limitUpperBoundBy(staticComparee),
-          cfaEdge
-      ));
-      case GREATER_THAN -> ImmutableSet.of(assign(
-          dynamicOperand,
-          dynamicOperandValue.limitLowerBoundBy(staticComparee.plus(1L)),
-          cfaEdge
-      ));
-      case GREATER_EQUAL -> ImmutableSet.of(assign(
-          dynamicOperand,
-          dynamicOperandValue.limitLowerBoundBy(staticComparee),
-          cfaEdge
-      ));
-      case EQUALS -> ImmutableSet.of(assign(
-          dynamicOperand,
-          dynamicOperandValue.intersect(staticComparee),
-          cfaEdge
-      ));
+      case LESS_THAN ->
+          ImmutableSet.of(
+              assign(
+                  dynamicOperand,
+                  dynamicOperandValue.limitUpperBoundBy(staticComparee.minus(1L)),
+                  cfaEdge));
+      case LESS_EQUAL ->
+          ImmutableSet.of(
+              assign(
+                  dynamicOperand, dynamicOperandValue.limitUpperBoundBy(staticComparee), cfaEdge));
+      case GREATER_THAN ->
+          ImmutableSet.of(
+              assign(
+                  dynamicOperand,
+                  dynamicOperandValue.limitLowerBoundBy(staticComparee.plus(1L)),
+                  cfaEdge));
+      case GREATER_EQUAL ->
+          ImmutableSet.of(
+              assign(
+                  dynamicOperand, dynamicOperandValue.limitLowerBoundBy(staticComparee), cfaEdge));
+      case EQUALS ->
+          ImmutableSet.of(
+              assign(dynamicOperand, dynamicOperandValue.intersect(staticComparee), cfaEdge));
       case NOT_EQUALS -> {
         if (!splitIntervals) {
           yield ImmutableSet.of(state);
         }
-        yield dynamicOperandValue.getRelativeComplement(staticComparee).stream()
-            .map(comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge))
-            .collect(ImmutableList.toImmutableList());
+        yield transformedImmutableListCopy(
+            dynamicOperandValue.getRelativeComplement(staticComparee),
+            comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge));
       }
       default -> throw new UnrecognizedCodeException("Assume operator not implemented", cfaEdge);
     };
@@ -302,7 +302,8 @@ public class IntervalAnalysisTransferRelation
     return ImmutableSet.of(state);
   }
 
-  private IntervalAnalysisState handleVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+  private IntervalAnalysisState handleVariableDeclarationEdge(
+      CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
 
     if (decl.getType() instanceof CSimpleType) {
@@ -314,7 +315,8 @@ public class IntervalAnalysisTransferRelation
     return state;
   }
 
-  private IntervalAnalysisState handleSimpleTypeVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+  private IntervalAnalysisState handleSimpleTypeVariableDeclarationEdge(
+      CDeclarationEdge declarationEdge, CVariableDeclaration decl)
       throws UnrecognizedCodeException {
     Interval interval;
 
@@ -329,10 +331,13 @@ public class IntervalAnalysisTransferRelation
     return state.addInterval(decl.getQualifiedName(), interval, threshold);
   }
 
-  private IntervalAnalysisState handleArrayVariableDeclarationEdge(CDeclarationEdge declarationEdge, CVariableDeclaration decl) {
+  private IntervalAnalysisState handleArrayVariableDeclarationEdge(
+      CDeclarationEdge declarationEdge, CVariableDeclaration decl) {
     if (decl.getInitializer() instanceof CInitializerList initializerList) {
       ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
-      return state.addArray(decl.getQualifiedName(), FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
+      return state.addArray(
+          decl.getQualifiedName(),
+          FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
     } else if (decl.getType() instanceof CArrayType arrayType) {
       FunArray simpleArray = new FunArray(arrayType.getLength());
       return state.addArray(decl.getQualifiedName(), simpleArray);
@@ -352,7 +357,8 @@ public class IntervalAnalysisTransferRelation
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
     if (expression instanceof CAssignment assignExpression) {
       CExpression assignee = assignExpression.getLeftHandSide();
-      Interval value = assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge));
+      Interval value =
+          assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge));
       return ImmutableSet.of(assign(assignee, value, cfaEdge));
     }
     return ImmutableSet.of();
