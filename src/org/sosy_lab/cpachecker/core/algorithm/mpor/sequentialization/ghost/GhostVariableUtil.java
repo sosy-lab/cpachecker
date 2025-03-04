@@ -37,10 +37,10 @@ import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcRead;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcWrite;
@@ -81,10 +81,10 @@ public class GhostVariableUtil {
           // only create a RETURN_PC if the function is called more than once in this thread
           if (entry.getValue() > 1) {
             CVariableDeclaration returnPcDeclaration =
-                SeqVariableDeclaration.buildReturnPcVariableDeclaration(
+                SeqDeclarationBuilder.buildReturnPcVariableDeclaration(
                     thread.id, functionDeclaration.getName());
             returnPc.put(
-                functionDeclaration, SeqIdExpression.buildIdExpression(returnPcDeclaration));
+                functionDeclaration, SeqExpressionBuilder.buildIdExpression(returnPcDeclaration));
           }
         }
       }
@@ -139,7 +139,7 @@ public class GhostVariableUtil {
                   PthreadUtil.extractPthreadMutexT(substituteEdge.cfaEdge);
               String varName = SeqNameUtil.buildMutexLockedName(substitutePthreadMutexT.getName());
               CIdExpression mutexLocked =
-                  SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                  SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       varName, SeqInitializer.INT_0);
               rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
             }
@@ -169,7 +169,7 @@ public class GhostVariableUtil {
               String varName =
                   SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
               CIdExpression awaits =
-                  SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                  SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       varName, SeqInitializer.INT_0);
               awaitVars.put(pthreadMutexT, new ThreadLocksMutex(awaits));
             }
@@ -196,7 +196,7 @@ public class GhostVariableUtil {
           if (!targetThreads.containsKey(targetThread)) {
             String varName = SeqNameUtil.buildThreadJoinsThreadName(thread.id, targetThread.id);
             CIdExpression joins =
-                SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+                SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                     varName, SeqInitializer.INT_0);
             targetThreads.put(targetThread, new ThreadJoinsThread(joins));
           }
@@ -218,7 +218,7 @@ public class GhostVariableUtil {
             cfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
           String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
           CIdExpression begin =
-              SeqIdExpression.buildIdExpressionWithIntegerInitializer(
+              SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                   varName, SeqInitializer.INT_0);
           rVars.put(thread, new ThreadBeginsAtomic(begin));
           break; // only need one call to atomic_begin -> break inner loop
@@ -263,7 +263,7 @@ public class GhostVariableUtil {
                 Objects.requireNonNull(pSub.parameterSubstitutes.orElseThrow().get(paramDec));
             FunctionParameterAssignment parameterAssignment =
                 new FunctionParameterAssignment(
-                    SeqExpressionAssignmentStatement.build(paramSub, paramExpr));
+                    SeqStatementBuilder.buildExpressionAssignmentStatement(paramSub, paramExpr));
             assigns.add(parameterAssignment);
           }
           rAssigns.put(threadEdge, assigns.build());

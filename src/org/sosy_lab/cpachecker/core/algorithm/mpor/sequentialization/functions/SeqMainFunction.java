@@ -28,14 +28,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
@@ -99,13 +101,13 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     numThreads =
-        SeqIdExpression.buildIdExpression(
-            SeqVariableDeclaration.buildVariableDeclaration(
+        SeqExpressionBuilder.buildIdExpression(
+            SeqDeclarationBuilder.buildVariableDeclaration(
                 false,
                 SeqSimpleType.CONST_INT,
                 SeqToken.NUM_THREADS,
-                SeqInitializer.buildInitializerExpression(
-                    SeqIntegerLiteralExpression.buildIntegerLiteralExpression(pNumThreads))));
+                SeqInitializerBuilder.buildInitializerExpression(
+                    SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));
     threadAssumptions = pThreadAssumptions;
     caseClauses = pCaseClauses;
     pcVariables = pPcVariables;
@@ -131,7 +133,7 @@ public class SeqMainFunction extends SeqFunction {
       // declare scalar int for each thread: pc0 = 0; pc1 = -1; ...
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
-            SeqVariableDeclaration.buildVariableDeclaration(
+            SeqDeclarationBuilder.buildVariableDeclaration(
                 false,
                 SeqSimpleType.INT,
                 pcVariables.get(i).toASTString(),
@@ -146,7 +148,7 @@ public class SeqMainFunction extends SeqFunction {
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
-          SeqVariableDeclaration.buildVariableDeclaration(
+          SeqDeclarationBuilder.buildVariableDeclaration(
               false, SeqArrayType.INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
@@ -266,7 +268,7 @@ public class SeqMainFunction extends SeqFunction {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       CIntegerLiteralExpression threadId =
-          SeqIntegerLiteralExpression.buildIntegerLiteralExpression(thread.id);
+          SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id);
       try {
         CBinaryExpression nextThreadEqualsThreadId =
             binaryExpressionBuilder.buildBinaryExpression(
@@ -353,7 +355,7 @@ public class SeqMainFunction extends SeqFunction {
               ImmutableList.of(
                   new CToSeqExpression(
                       binaryExpressionBuilder.buildBinaryExpression(
-                          SeqArraySubscriptExpression.buildPcSubscriptExpression(
+                          SeqExpressionBuilder.buildPcSubscriptExpression(
                               SeqIdExpression.NEXT_THREAD),
                           SeqIntegerLiteralExpression.INT_EXIT_PC,
                           BinaryOperator.NOT_EQUALS)))));

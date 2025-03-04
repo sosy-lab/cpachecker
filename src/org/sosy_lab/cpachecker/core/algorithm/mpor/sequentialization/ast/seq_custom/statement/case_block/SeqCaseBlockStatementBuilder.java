@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -416,7 +416,7 @@ public class SeqCaseBlockStatementBuilder {
     assert pThreadVariables.locked.containsKey(unlockedMutexT);
     // assign 0 to locked variable
     CExpressionAssignmentStatement lockedFalse =
-        SeqExpressionAssignmentStatement.build(
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
             Objects.requireNonNull(pThreadVariables.locked.get(unlockedMutexT)).idExpression,
             SeqIntegerLiteralExpression.INT_0);
     return new SeqMutexUnlockStatement(lockedFalse, pPcLeftHandSide, pTargetPc);
@@ -470,7 +470,7 @@ public class SeqCaseBlockStatementBuilder {
     assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable
     CExpressionAssignmentStatement atomicLockedFalse =
-        SeqExpressionAssignmentStatement.build(
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
             Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression),
             SeqIntegerLiteralExpression.INT_0);
     return new SeqAtomicEndStatement(atomicLockedFalse, pPcVariables.get(pThread.id), pTargetPc);

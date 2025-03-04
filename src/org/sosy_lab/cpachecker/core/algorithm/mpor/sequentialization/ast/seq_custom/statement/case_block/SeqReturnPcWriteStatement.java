@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -13,7 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 
 /**
  * Represents a {@code return_pc} write, i.e. assigning the successor {@code pc} to the {@code
@@ -50,7 +50,7 @@ public class SeqReturnPcWriteStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     CExpressionAssignmentStatement assignment =
-        SeqExpressionAssignmentStatement.buildReturnPcWriteByTargetPc(
+        SeqStatementBuilder.buildReturnPcWriteByTargetPc(
             returnPcVariable, returnPc, returnPcExpression);
     return assignment.toASTString();
   }

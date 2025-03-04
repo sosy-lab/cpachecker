@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
@@ -73,7 +73,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
-        SeqBinaryExpression.buildPcUnequalExitPc(
+        SeqExpressionBuilder.buildPcUnequalExitPc(
             pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
@@ -95,7 +95,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
-        SeqBinaryExpression.buildPcUnequalExitPc(
+        SeqExpressionBuilder.buildPcUnequalExitPc(
             pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
@@ -117,7 +117,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     pcUnequalExitPc =
-        SeqBinaryExpression.buildPcUnequalExitPc(
+        SeqExpressionBuilder.buildPcUnequalExitPc(
             pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 

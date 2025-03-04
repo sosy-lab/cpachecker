@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqBinaryExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
@@ -74,7 +74,7 @@ public class SeqAssumptionBuilder {
                     new SeqLogicalAndExpression(locked.idExpression, awaits.idExpression));
             CToSeqExpression nextThreadNotId =
                 new CToSeqExpression(
-                    SeqBinaryExpression.buildNextThreadUnequal(
+                    SeqExpressionBuilder.buildNextThreadUnequal(
                         thread.id, pBinaryExpressionBuilder));
             SeqLogicalOrExpression assumption =
                 new SeqLogicalOrExpression(notLockedAndAwaits, nextThreadNotId);
@@ -105,12 +105,12 @@ public class SeqAssumptionBuilder {
         SeqLogicalNotExpression notActiveAndJoins =
             new SeqLogicalNotExpression(
                 new SeqLogicalAndExpression(
-                    SeqBinaryExpression.buildPcUnequalExitPc(
+                    SeqExpressionBuilder.buildPcUnequalExitPc(
                         pPcVariables, iThread.id, pBinaryExpressionBuilder),
                     joinVar.idExpression));
         CToSeqExpression nextThreadNotId =
             new CToSeqExpression(
-                SeqBinaryExpression.buildNextThreadUnequal(jThread.id, pBinaryExpressionBuilder));
+                SeqExpressionBuilder.buildNextThreadUnequal(jThread.id, pBinaryExpressionBuilder));
         SeqLogicalOrExpression assumption =
             new SeqLogicalOrExpression(notActiveAndJoins, nextThreadNotId);
         SeqFunctionCallExpression assumeCall =
@@ -142,7 +142,7 @@ public class SeqAssumptionBuilder {
                   begins.idExpression));
       CToSeqExpression nextThreadNotId =
           new CToSeqExpression(
-              SeqBinaryExpression.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder));
+              SeqExpressionBuilder.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder));
       SeqLogicalOrExpression assumption =
           new SeqLogicalOrExpression(notAtomicLockedAndBegins, nextThreadNotId);
       SeqFunctionCallExpression assumeCall =

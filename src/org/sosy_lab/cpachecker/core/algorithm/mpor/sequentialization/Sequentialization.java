@@ -25,14 +25,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqFunctionCallExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqLeftHandSides;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.declarations.SeqDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -87,13 +86,13 @@ public class Sequentialization {
           LineOfCode.empty());
 
   public static final String inputReachErrorDummy =
-      SeqFunctionCallExpressionBuilder.buildReachError(
+      SeqExpressionBuilder.buildReachError(
                   SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__PRETTY_FUNCTION__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
   public static final String outputReachErrorDummy =
-      SeqFunctionCallExpressionBuilder.buildReachError(
+      SeqExpressionBuilder.buildReachError(
                   SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
@@ -138,7 +137,7 @@ public class Sequentialization {
     logger = pLogger;
     pcVariables =
         new PcVariables(
-            SeqLeftHandSides.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
+            SeqLeftHandSideBuilder.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
   }
 
   @Override
@@ -177,24 +176,23 @@ public class Sequentialization {
         GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
-    rProgram.addAll(SeqDeclarationBuilder.buildOriginalDeclarations(options, threads));
+    rProgram.addAll(LineOfCodeBuilder.buildOriginalDeclarations(options, threads));
     // for variable declarations, we exclude pthread objects such as pthread_t
     // they should only be used with pthread methods, all of which are not in the sequentialization
-    rProgram.addAll(SeqDeclarationBuilder.buildGlobalDeclarations(options, mainThreadSubstitution));
-    rProgram.addAll(SeqDeclarationBuilder.buildLocalDeclarations(options, substitutions.values()));
-    rProgram.addAll(
-        SeqDeclarationBuilder.buildParameterDeclarations(options, substitutions.values()));
+    rProgram.addAll(LineOfCodeBuilder.buildGlobalDeclarations(options, mainThreadSubstitution));
+    rProgram.addAll(LineOfCodeBuilder.buildLocalDeclarations(options, substitutions.values()));
+    rProgram.addAll(LineOfCodeBuilder.buildParameterDeclarations(options, substitutions.values()));
 
     // add variable declarations for ghost variables: return_pc, thread simulation variables
-    rProgram.addAll(SeqDeclarationBuilder.buildReturnPcDeclarations(options, returnPcVariables));
+    rProgram.addAll(LineOfCodeBuilder.buildReturnPcDeclarations(options, returnPcVariables));
     rProgram.addAll(
-        SeqDeclarationBuilder.buildThreadSimulationVariableDeclarations(
+        LineOfCodeBuilder.buildThreadSimulationVariableDeclarations(
             options, threadSimulationVariables));
 
     // add custom function declarations and definitions
-    rProgram.addAll(SeqDeclarationBuilder.buildFunctionDeclarations(options));
+    rProgram.addAll(LineOfCodeBuilder.buildFunctionDeclarations(options));
     rProgram.addAll(
-        SeqFunctionBuilder.buildFunctionDefinitions(
+        LineOfCodeBuilder.buildFunctionDefinitions(
             options,
             substitutions,
             substituteEdges,
@@ -241,7 +239,7 @@ public class Sequentialization {
     if (code.contains(inputReachErrorDummy)) {
       // reach_error calls from the input program
       CFunctionCallExpression reachErrorCall =
-          SeqFunctionCallExpressionBuilder.buildReachError(
+          SeqExpressionBuilder.buildReachError(
               inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
       String replacement =
           code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
@@ -250,7 +248,7 @@ public class Sequentialization {
     } else if (code.contains(outputReachErrorDummy)) {
       // reach_error calls injected by the sequentialization
       CFunctionCallExpression reachErrorCall =
-          SeqFunctionCallExpressionBuilder.buildReachError(
+          SeqExpressionBuilder.buildReachError(
               outputFileName + FileExtension.I.suffix,
               pLineNumber,
               SeqToken.__SEQUENTIALIZATION_ERROR__);

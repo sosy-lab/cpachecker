@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -31,42 +29,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqFunctionBuilder {
 
-  public static ImmutableList<LineOfCode> buildFunctionDefinitions(
-      MPOROptions pOptions,
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables,
-      PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<LineOfCode> rFunctionDefinitions = ImmutableList.builder();
-    if (pOptions.comments) {
-      rFunctionDefinitions.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
-    }
-    // custom function definitions: reach_error(), assume(), main()
-    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
-    rFunctionDefinitions.addAll(reachError.buildDefinition());
-    SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
-    rFunctionDefinitions.addAll(assume.buildDefinition());
-    SeqMainFunction mainFunction =
-        buildMainFunction(
-            pOptions,
-            pSubstitutions,
-            pSubstituteEdges,
-            pReturnPcVariables,
-            pPcVariables,
-            pThreadSimulationVariables,
-            pBinaryExpressionBuilder,
-            pLogger);
-    rFunctionDefinitions.addAll(mainFunction.buildDefinition());
-    return rFunctionDefinitions.build();
-  }
-
-  private static SeqMainFunction buildMainFunction(
+  public static SeqMainFunction buildMainFunction(
       MPOROptions pOptions,
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,

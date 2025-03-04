@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -289,7 +289,8 @@ public class SubstituteBuilder {
         // we use variable declarations for parameters in the sequentialization
         CVariableDeclaration varDec =
             substituteVarDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
-        rParameterSubstitutes.put(parameterDeclaration, SeqIdExpression.buildIdExpression(varDec));
+        rParameterSubstitutes.put(
+            parameterDeclaration, SeqExpressionBuilder.buildIdExpression(varDec));
       }
     }
     return rParameterSubstitutes.buildOrThrow();
@@ -318,7 +319,7 @@ public class SubstituteBuilder {
         String substituteName = SeqNameUtil.buildVariableName(variableDeclaration, pThreadId);
         CVariableDeclaration substitute =
             substituteVarDeclaration(variableDeclaration, substituteName);
-        dummyVarSubsB.put(variableDeclaration, SeqIdExpression.buildIdExpression(substitute));
+        dummyVarSubsB.put(variableDeclaration, SeqExpressionBuilder.buildIdExpression(substitute));
       }
     }
     ImmutableMap<CVariableDeclaration, CIdExpression> dummyLocalVarSubs =
@@ -345,7 +346,7 @@ public class SubstituteBuilder {
                 initializerExpression,
                 dummySubstitution.substitute(initializerExpression.getExpression()));
         CVariableDeclaration finalSub = substituteVarDeclaration(varDeclaration, initExprSub);
-        rFinalSubs.put(entry.getKey(), SeqIdExpression.buildIdExpression(finalSub));
+        rFinalSubs.put(entry.getKey(), SeqExpressionBuilder.buildIdExpression(finalSub));
         continue;
       }
       rFinalSubs.put(entry);

@@ -6,12 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.declarations;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -19,16 +21,22 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqDeclarationBuilder {
+public class LineOfCodeBuilder {
 
   public static ImmutableList<LineOfCode> buildOriginalDeclarations(
       MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
@@ -189,5 +197,40 @@ public class SeqDeclarationBuilder {
       rFunctionDeclarations.add(LineOfCode.empty());
     }
     return rFunctionDeclarations.build();
+  }
+
+  public static ImmutableList<LineOfCode> buildFunctionDefinitions(
+      MPOROptions pOptions,
+      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
+          pReturnPcVariables,
+      PcVariables pPcVariables,
+      ThreadSimulationVariables pThreadSimulationVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rFunctionDefinitions = ImmutableList.builder();
+    if (pOptions.comments) {
+      rFunctionDefinitions.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
+    }
+    // custom function definitions: reach_error(), assume(), main()
+    SeqReachErrorFunction reachError = new SeqReachErrorFunction();
+    rFunctionDefinitions.addAll(reachError.buildDefinition());
+    SeqAssumeFunction assume = new SeqAssumeFunction(pBinaryExpressionBuilder);
+    rFunctionDefinitions.addAll(assume.buildDefinition());
+    SeqMainFunction mainFunction =
+        SeqFunctionBuilder.buildMainFunction(
+            pOptions,
+            pSubstitutions,
+            pSubstituteEdges,
+            pReturnPcVariables,
+            pPcVariables,
+            pThreadSimulationVariables,
+            pBinaryExpressionBuilder,
+            pLogger);
+    rFunctionDefinitions.addAll(mainFunction.buildDefinition());
+    return rFunctionDefinitions.build();
   }
 }

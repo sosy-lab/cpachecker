@@ -6,14 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqArraySubscriptExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIdExpression;
 
-public class SeqLeftHandSides {
+public class SeqLeftHandSideBuilder {
 
   public static ImmutableList<CLeftHandSide> buildPcLeftHandSides(
       int pNumThreads, boolean pScalarPc) {
@@ -21,8 +19,8 @@ public class SeqLeftHandSides {
     ImmutableList.Builder<CLeftHandSide> rPcExpressions = ImmutableList.builder();
     rPcExpressions.addAll(
         pScalarPc
-            ? SeqIdExpression.buildScalarPcExpressions(pNumThreads)
-            : SeqArraySubscriptExpression.buildArrayPcExpressions(pNumThreads));
+            ? SeqExpressionBuilder.buildScalarPcExpressions(pNumThreads)
+            : SeqExpressionBuilder.buildArrayPcExpressions(pNumThreads));
     return rPcExpressions.build();
   }
 }

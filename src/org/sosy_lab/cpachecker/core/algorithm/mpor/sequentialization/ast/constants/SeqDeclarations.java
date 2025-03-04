@@ -2,28 +2,27 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants;
+
+import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder.buildVariableDeclaration;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration.FunctionAttribute;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqInitializers.SeqInitializerList;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqArrayType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqPointerType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializerList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -42,33 +41,6 @@ public class SeqDeclarations {
     public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
-
-    // TODO SubstituteBuilder.substituteVarDec also uses CVariableDeclaration constructor
-    public static CVariableDeclaration buildVariableDeclaration(
-        boolean pIsGlobal, CType pCType, String pName, CInitializer pInitializer) {
-
-      return new CVariableDeclaration(
-          FileLocation.DUMMY,
-          pIsGlobal,
-          CStorageClass.AUTO,
-          pCType,
-          pName,
-          pName,
-          SeqNameUtil.buildQualifiedName(pName),
-          pInitializer);
-    }
-
-    /**
-     * Creates a {@link CVariableDeclaration} of the form {@code int
-     * __return_pc_t{pThreadId}_{pFuncName};}.
-     */
-    public static CVariableDeclaration buildReturnPcVariableDeclaration(
-        int pThreadId, String pFuncName) {
-
-      String varName = SeqNameUtil.buildReturnPcName(pThreadId, pFuncName);
-      // init -1 -> when initially reading before writing (to int >= 0) then -1 is faulty
-      return buildVariableDeclaration(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
-    }
   }
 
   public static class SeqParameterDeclaration {

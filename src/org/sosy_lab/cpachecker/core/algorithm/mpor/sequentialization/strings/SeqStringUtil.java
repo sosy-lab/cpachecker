@@ -17,7 +17,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
@@ -125,11 +125,10 @@ public class SeqStringUtil {
         pTargetPc.isEmpty() || pTargetPcExpression.isEmpty() || pConcatenatedStatements.isPresent(),
         "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be empty");
     if (pTargetPc.isPresent()) {
-      return SeqExpressionAssignmentStatement.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow())
+      return SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow())
           .toASTString();
     } else if (pTargetPcExpression.isPresent()) {
-      return SeqExpressionAssignmentStatement.buildPcWrite(
-              pPcLeftHandSide, pTargetPcExpression.orElseThrow())
+      return SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPcExpression.orElseThrow())
           .toASTString();
     } else {
       // TODO we should add some newlines here...

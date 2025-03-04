@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.func
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqStatements.SeqExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 
 /**
  * A class to keep track of function return value assignments (e.g. {@code CPAchecker_TMP = retval;}
@@ -30,6 +30,7 @@ public class FunctionReturnValueAssignment {
       CExpression pReturnExpression) {
 
     returnPcWrite = pReturnPcWrite;
-    statement = SeqExpressionAssignmentStatement.build(pLeftHandSide, pReturnExpression);
+    statement =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(pLeftHandSide, pReturnExpression);
   }
 }

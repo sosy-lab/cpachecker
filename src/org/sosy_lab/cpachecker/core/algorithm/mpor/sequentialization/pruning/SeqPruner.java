@@ -20,7 +20,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
@@ -218,12 +218,12 @@ public class SeqPruner {
       int nonBlankTargetPc = pNonBlank.block.statements.get(0).getTargetPc().orElseThrow();
       Verify.verify(nonBlankTargetPc == Sequentialization.EXIT_PC);
       // if the found non-blank is still blank, it must be an exit location
-      return SeqIntegerLiteralExpression.buildIntegerLiteralExpression(nonBlankTargetPc);
+      return SeqExpressionBuilder.buildIntegerLiteralExpression(nonBlankTargetPc);
     }
 
     int nonBlankLabelPc = pNonBlank.label.value;
     // otherwise return label pc of the found non-blank as target pc
-    return SeqIntegerLiteralExpression.buildIntegerLiteralExpression(nonBlankLabelPc);
+    return SeqExpressionBuilder.buildIntegerLiteralExpression(nonBlankLabelPc);
   }
 
   private static SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
