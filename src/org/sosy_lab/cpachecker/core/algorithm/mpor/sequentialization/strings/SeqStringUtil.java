@@ -97,13 +97,16 @@ public class SeqStringUtil {
     return newlineSplitter.splitToList(pString).size();
   }
 
-  /** This returns either a {@code pc} write of the form:
+  /**
+   * This returns either a {@code pc} write of the form:
+   *
    * <ul>
-   *   <li>{@code pc[i] = n;}</li>
-   *   <li>{@code pc[i] = RETURN_PC}</li>
+   *   <li>{@code pc[i] = n;}
+   *   <li>{@code pc[i] = RETURN_PC}
    * </ul>
    *
-   * Or the strings of concatenated statements, if present. */
+   * Or the strings of concatenated statements, if present.
+   */
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -112,16 +115,20 @@ public class SeqStringUtil {
 
     // TODO this logic could be expanded that only one is present
     checkArgument(
-        pTargetPc.isPresent() || pTargetPcExpression.isPresent() || pConcatenatedStatements.isPresent(),
-        "either pTargetPc or pTargetPcExpression must be present");
+        pTargetPc.isPresent()
+            || pTargetPcExpression.isPresent()
+            || pConcatenatedStatements.isPresent(),
+        "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be present");
     checkArgument(
         pTargetPc.isEmpty() || pTargetPcExpression.isEmpty() || pConcatenatedStatements.isPresent(),
-        "either pTargetPc or pTargetPcExpression must be empty");
+        "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be empty");
     if (pTargetPc.isPresent()) {
-      return SeqExpressionAssignmentStatement.buildPcWrite(
-          pPcLeftHandSide, pTargetPc.orElseThrow()).toASTString();
+      return SeqExpressionAssignmentStatement.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow())
+          .toASTString();
     } else if (pTargetPcExpression.isPresent()) {
-      return SeqExpressionAssignmentStatement.buildPcWrite(pPcLeftHandSide, pTargetPcExpression.orElseThrow()).toASTString();
+      return SeqExpressionAssignmentStatement.buildPcWrite(
+              pPcLeftHandSide, pTargetPcExpression.orElseThrow())
+          .toASTString();
     } else {
       // TODO we should add some newlines here...
       StringBuilder statements = new StringBuilder();

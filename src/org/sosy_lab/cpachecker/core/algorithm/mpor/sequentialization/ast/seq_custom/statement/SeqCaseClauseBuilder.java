@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
@@ -35,8 +36,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.funct
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -48,6 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqCaseClauseBuilder {
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> buildCaseClauses(
+      MPOROptions pOptions,
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
@@ -71,7 +73,12 @@ public class SeqCaseClauseBuilder {
         SeqPruner.pruneCaseClauses(initialCaseClauses);
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updatedInitialLabelCaseClauses =
         updateInitialLabels(prunedCaseClauses);
-    return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
+    if (pOptions.partialOrderReduction) {
+      return PartialOrderReducer.concatenateCommutingClauses(updatedInitialLabelCaseClauses);
+    }
+    return updatedInitialLabelCaseClauses;
+    // TODO the validation needs to be refactored with concatenated clauses
+    // return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
   }
 
   /** Maps threads to the case clauses they potentially execute. */

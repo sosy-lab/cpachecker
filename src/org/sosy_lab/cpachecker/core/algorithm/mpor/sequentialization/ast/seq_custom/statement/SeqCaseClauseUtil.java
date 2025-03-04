@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -55,20 +55,35 @@ public class SeqCaseClauseUtil {
 
   /**
    * Tries to extract the {@code int} target {@code pc} from {@code pStatement}. If the target
-   * {@code pc} is a {@link CIdExpression} ({@code RETURN_PC}), returns {@link Optional#empty()}.
+   * {@code pc} is a {@link CIdExpression} ({@code RETURN_PC}) or there is none (cf. concatenated
+   * statements), returns {@link Optional#empty()}.
    */
   public static Optional<Integer> tryExtractIntTargetPc(SeqCaseBlockStatement pStatement) {
-    Optional<CExpression> targetPcExpression = pStatement.getTargetPcExpression();
-    if (targetPcExpression.isPresent()) {
-      if (targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression intExpression) {
-        return Optional.of(intExpression.getValue().intValue());
+    Optional<Integer> targetPc = pStatement.getTargetPc();
+    if (targetPc.isPresent()) {
+      return Optional.of(targetPc.orElseThrow());
+    } else {
+      Optional<CExpression> targetPcExpression = pStatement.getTargetPcExpression();
+      if (targetPcExpression.isPresent()) {
+        if (targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression intExpression) {
+          return Optional.of(intExpression.getValue().intValue());
+        }
       }
-    } else if (pStatement.getTargetPc().isPresent()) {
-      return Optional.of(pStatement.getTargetPc().orElseThrow());
     }
-    Verify.verify(
-        targetPcExpression.orElseThrow() instanceof CIdExpression,
-        "if no int is found, then target pc expression must be CIdExpression");
     return Optional.empty();
+  }
+
+  /**
+   * A helper mapping {@link SeqCaseClause}s to their {@link SeqCaseLabel} values, which are always
+   * {@code int} values in the sequentialization.
+   */
+  public static ImmutableMap<Integer, SeqCaseClause> mapCaseLabelValueToCaseClause(
+      ImmutableList<SeqCaseClause> pCaseClauses) {
+
+    ImmutableMap.Builder<Integer, SeqCaseClause> rOriginPcs = ImmutableMap.builder();
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      rOriginPcs.put(caseClause.label.value, caseClause);
+    }
+    return rOriginPcs.buildOrThrow();
   }
 }

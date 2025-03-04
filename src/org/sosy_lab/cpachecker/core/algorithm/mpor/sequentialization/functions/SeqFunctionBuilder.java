@@ -81,6 +81,7 @@ public class SeqFunctionBuilder {
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(
+            pOptions,
             pSubstitutions,
             pSubstituteEdges,
             pReturnPcVariables,

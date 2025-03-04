@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.SeqExpr
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
@@ -168,7 +169,7 @@ public class SeqPruner {
     //  -> try and refactor, possibly so that 0 to n - 1 represents the n cases for thread i
     //  (might even be more efficient)
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
-        mapCaseLabelValueToCaseClauses(pCaseClauses);
+        SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
     for (SeqCaseClause caseClause : pCaseClauses) {
       if (!caseClause.onlyWritesPc()) {
         for (SeqCaseBlockStatement statement : caseClause.block.statements) {
@@ -223,20 +224,6 @@ public class SeqPruner {
     int nonBlankLabelPc = pNonBlank.label.value;
     // otherwise return label pc of the found non-blank as target pc
     return SeqIntegerLiteralExpression.buildIntegerLiteralExpression(nonBlankLabelPc);
-  }
-
-  /**
-   * A helper mapping {@link SeqCaseClause}s to their {@link SeqCaseLabel} values, which are always
-   * {@code int} values in the sequentialization.
-   */
-  private static ImmutableMap<Integer, SeqCaseClause> mapCaseLabelValueToCaseClauses(
-      ImmutableList<SeqCaseClause> pCaseClauses) {
-
-    ImmutableMap.Builder<Integer, SeqCaseClause> rOriginPcs = ImmutableMap.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      rOriginPcs.put(caseClause.label.value, caseClause);
-    }
-    return rOriginPcs.buildOrThrow();
   }
 
   private static SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {
