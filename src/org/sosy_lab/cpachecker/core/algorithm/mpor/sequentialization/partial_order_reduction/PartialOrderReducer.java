@@ -62,7 +62,6 @@ public class PartialOrderReducer {
     return rNewCaseClauses.build();
   }
 
-  // TODO this only allows a single concatenation right now, make recursive
   private static SeqCaseBlockStatement recursivelyConcatenateStatements(
       SeqCaseBlockStatement pCurrentStatement,
       Set<SeqCaseClause> pConcatenated,
@@ -110,7 +109,7 @@ public class PartialOrderReducer {
             || pTarget.block.statements.contains(pStatement)
             // TODO support for this can be added if we stop declaring const int CPAchecker
             //  in cases but handle it similar to local variable declarations with initializers
-            || SeqCaseClauseUtil.getAllStatementsByClass(
+            || !SeqCaseClauseUtil.getAllStatementsByClass(
                     pTarget, SeqConstCpaCheckerTmpStatement.class)
                 .isEmpty());
   }

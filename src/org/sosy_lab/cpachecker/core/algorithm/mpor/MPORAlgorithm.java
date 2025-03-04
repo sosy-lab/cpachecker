@@ -93,8 +93,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "overwrite files in the ./output directory when creating sequentializations?")
   private boolean overwriteFiles = true;
 
-  // TODO this is currently not secure because we assume parameters that are assigned global
-  //  variables to commute
+  // TODO this is currently not secure because we assume pointer parameters that are assigned global
+  //  variable addresses to commute
   @Option(
       description =
           "add partial order reduction (grouping commuting statements) in the sequentialization"
