@@ -462,13 +462,13 @@ public class CProgramScope implements Scope {
         ImmutableListMultimap.builder();
     ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
     for (String name : variableNames) {
-      if (!(name.equals(pDeclaration.getName()))) {
+      if (!name.equals(pDeclaration.getName())) {
         newVariableNames.add(name);
       }
     }
     this.variableNames = newVariableNames.build();
     for (Map.Entry<String, CSimpleDeclaration> decl : simpleDeclarations.entries()) {
-      if (!(decl.getKey().equals(pDeclaration.getName()))) {
+      if (!decl.getKey().equals(pDeclaration.getName())) {
         newSimpleDeclarations.put(decl);
       }
     }
