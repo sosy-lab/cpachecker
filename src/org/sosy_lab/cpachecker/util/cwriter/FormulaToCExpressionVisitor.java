@@ -115,13 +115,13 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
         break;
       case FP_IS_NAN:
         // NaN is not a number, so it is unequal to itself.
-        var nanArg = cache.get(newArgs.get(0));
+        String nanArg = cache.get(newArgs.get(0));
         result = nanArg + " != " + nanArg;
         break;
       case FP_IS_INF:
         // C99 standard for positive infinity is "1 / 0",
         // see https://www.gnu.org/software/libc/manual/html_node/Infinity-and-NaN.html
-        var infArg = cache.get(newArgs.get(0));
+        String infArg = cache.get(newArgs.get(0));
         result = infArg + " == (1 / 0)" + " || " + infArg + " == -(1 / 0)";
         break;
       case ITE:
