@@ -225,8 +225,7 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
             remaining_futures, timeout=1, return_when=FIRST_COMPLETED
         )
         if not _webclient:
-            logging.error("WebClient connection was lost or is unavailable during result handling.")
-            raise UserAbortError
+            raise UserAbortError("User interrupt detected during _handle_results")
         for result_future in completed_futures:
             run = result_futures[result_future]
             try:
