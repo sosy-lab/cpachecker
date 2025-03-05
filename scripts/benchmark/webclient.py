@@ -1086,7 +1086,7 @@ class WebInterface:
                     state, _ = self._request(
                         "GET", f"runs/collection/{run_collection_id}/state"
                     )
-                    logging.debug("run collection state: " + state.decode("utf-8"))
+                    logging.debug("run collection state: %s", state.decode("utf-8"))
                     if state.decode("utf-8") == "FINISHED":
                         logging.info(
                             "Skipping run collection %s as it is already completed",
