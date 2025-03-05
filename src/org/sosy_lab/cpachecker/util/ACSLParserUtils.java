@@ -89,7 +89,7 @@ public class ACSLParserUtils {
               null);
       try {
         scope.addDeclarationToScope(tmpDeclaration);
-      } catch (InvalidYAMLWitnessException pE) {
+      } catch (InvalidYAMLWitnessException e) {
         throw new RuntimeException("This should not happen");
       }
       tmpDeclarations.add(tmpDeclaration);
