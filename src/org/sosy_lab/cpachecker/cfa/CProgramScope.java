@@ -415,30 +415,41 @@ public class CProgramScope implements Scope {
 
   public void addDeclarationToScope(CDeclaration pDeclaration) throws InvalidYAMLWitnessException {
 
+    ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
+        ImmutableListMultimap.builder();
+    newSimpleDeclarations.putAll(this.simpleDeclarations).put(pDeclaration.getName(), pDeclaration);
+    ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
+    newVariableNames.addAll(this.variableNames);
+
     if (pDeclaration instanceof CVariableDeclaration) {
-      if (variableNames.contains(pDeclaration.getName())) {
+      if (variableNames.contains(pDeclaration.getName())
+          || simpleDeclarations.containsKey(pDeclaration.getName())) {
         throw new InvalidYAMLWitnessException(
-            "Variable declaration already in use: " + pDeclaration);
+            "Variable name is already in use: " + pDeclaration.getName());
       }
-      ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
-      newVariableNames.addAll(this.variableNames).add(pDeclaration.getName());
-      ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
-          ImmutableListMultimap.builder();
-      newSimpleDeclarations
-          .putAll(this.simpleDeclarations)
-          .put(pDeclaration.getName(), pDeclaration);
-      this.variableNames = newVariableNames.build();
-      this.simpleDeclarations = newSimpleDeclarations.build();
+      this.variableNames = newVariableNames.add(pDeclaration.getName()).build();
+      this.simpleDeclarations =
+          newSimpleDeclarations.put(pDeclaration.getName(), pDeclaration).build();
+
     } else if (pDeclaration instanceof CFunctionDeclaration) {
-      if (lookupFunction(pDeclaration.getName()) != null) {
+      CSimpleDeclaration artRetVal =
+          getArtificialFunctionReturnVariable((CFunctionDeclaration) pDeclaration);
+      if (variableNames.contains(artRetVal.getName())
+          || simpleDeclarations.containsKey(artRetVal.getName())
+          || functionDeclarations.containsKey(pDeclaration.getName())) {
         throw new InvalidYAMLWitnessException(
-            "Function declaration already in use: " + pDeclaration.getName());
+            "Function name is already in use: " + pDeclaration.getName());
       }
+      this.variableNames = newVariableNames.add(artRetVal.getName()).build();
+      this.simpleDeclarations = newSimpleDeclarations.put(artRetVal.getName(), artRetVal).build();
       ImmutableListMultimap.Builder<String, CFunctionDeclaration> newFunctionDeclarations =
           ImmutableListMultimap.builder();
-      newFunctionDeclarations.putAll(functionDeclarations);
-      newFunctionDeclarations.put(pDeclaration.getName(), (CFunctionDeclaration) pDeclaration);
-      this.functionDeclarations = newFunctionDeclarations.build();
+      this.functionDeclarations =
+          newFunctionDeclarations
+              .putAll(functionDeclarations)
+              .put(pDeclaration.getName(), (CFunctionDeclaration) pDeclaration)
+              .build();
+
     } else {
       throw new UnsupportedOperationException(
           "Declaration must be a function declaration or a variable declaration." + pDeclaration);
