@@ -127,7 +127,7 @@ public class InvariantExchangeFormatTransformer {
   }
 
   public PathFormula parseLemmaEntry(
-      LemmaEntry pLemmaEntry, PathFormulaManagerImpl pPathFormulaManagerImpl, Scope pScope)
+      LemmaEntry pLemmaEntry, PathFormulaManagerImpl pPathFormulaManagerImpl, CProgramScope pScope)
       throws InterruptedException {
     CExpression expression;
 

@@ -17,8 +17,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.ACSLTemporaryDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -56,8 +58,11 @@ public class ACSLParserUtils {
     return new ACSLFunctionCall(fExp);
   }
 
-  public static CExpression parseACSLExpression(String lAssumeCode, CParser parser, Scope scope)
+  public static CExpression parseACSLExpression(
+      String lAssumeCode, CParser parser, CProgramScope scope)
       throws InterruptedException, InvalidAutomatonException {
+
+    List<ACSLTemporaryDeclaration> tmpDeclarations = new ArrayList<>();
 
     String lString = lAssumeCode;
     Map<String, ACSLFunctionCall> replacements = new HashMap<>();
@@ -71,6 +76,23 @@ public class ACSLParserUtils {
       String key = tmp + replacements.size();
       replacements.put(key, lFuncCall);
       lString = lm.replaceFirst(key);
+      // We need to add lemma_tmp_i as a variable to the scope
+      ACSLTemporaryDeclaration tmpDeclaration =
+          new ACSLTemporaryDeclaration(
+              lFuncCall.getFileLocation(),
+              false,
+              CStorageClass.AUTO,
+              lFuncCall.getExpressionType(),
+              key,
+              key,
+              key,
+              null);
+      try {
+        scope.addDeclarationToScope(tmpDeclaration);
+      } catch (InvalidYAMLWitnessException pE) {
+        throw new RuntimeException("This should not happen");
+      }
+      tmpDeclarations.add(tmpDeclaration);
       lm = lp.matcher(lString);
     }
 
@@ -86,6 +108,9 @@ public class ACSLParserUtils {
     }
     CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new ACSLVisitor(replacements));
+    for (ACSLTemporaryDeclaration tmpDecl : tmpDeclarations) {
+      scope.removeTemporaryDeclaration(tmpDecl);
+    }
     return exp;
   }
 
