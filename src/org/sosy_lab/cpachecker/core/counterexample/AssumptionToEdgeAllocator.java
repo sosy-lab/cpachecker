@@ -1398,7 +1398,7 @@ public class AssumptionToEdgeAllocator {
 
       // Check that no precision was lost
       Optional<BigInteger> maybeInteger = floatValue.toInteger();
-      if (maybeInteger.isEmpty() || !maybeInteger.get().equals(integerValue)) {
+      if (maybeInteger.isEmpty() || !maybeInteger.orElseThrow().equals(integerValue)) {
         return pNumber;
       } else {
         return floatValue;
