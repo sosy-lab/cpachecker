@@ -66,7 +66,7 @@ public class ACSLParserUtils {
 
     String lString = lAssumeCode;
     Map<String, ACSLFunctionCall> replacements = new HashMap<>();
-    Pattern lp = Pattern.compile("ACSL\\((?<function>.*)\\)");
+    Pattern lp = Pattern.compile("ACSL\\((?<function>\\w+\\([^()]*\\))\\)");
     Matcher lm = lp.matcher(lString);
     String tmp = "lemma_tmp_";
 
