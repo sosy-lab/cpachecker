@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -363,19 +364,22 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula makeNumber(
       BigInteger exponent, BigInteger mantissa, boolean signBit, FloatingPointType type) {
-    FloatingPointNumber number =
-        FloatingPointNumber.of(
-            signBit, exponent, mantissa, type.getExponentSize(), type.getMantissaSize());
-    if (type.equals(FormulaType.getSinglePrecisionFloatingPointType())
-        || type.equals(FormulaType.getDoublePrecisionFloatingPointType())) {
-      return makeNumber(number.doubleValue(), type);
-    } else {
-      throw new UnsupportedOperationException(
-          String.format(
-              "Unsupported floating point type `%s`. Currently only single and double precision are"
-                  + " allowed.",
-              type));
+    // Create a FloatValue from the individual fields
+    FloatValue value =
+        FloatValue.fromFloatingPointNumber(
+            FloatingPointNumber.of(
+                signBit, exponent, mantissa, type.getExponentSize(), type.getMantissaSize()));
+
+    // Cover special cases for Infinity and NaN
+    if (value.isInfinite()) {
+      return value.isNegative() ? makeMinusInfinity(type) : makePlusInfinity(type);
+    } else if (value.isNan()) {
+      return makeNaN(type);
     }
+
+    // Otherwise, we have a value that can be represented as a rational number:
+    // Convert to Rational and call makeNumber() aith the rational value
+    return makeNumber(value.toRational().orElseThrow(), type);
   }
 
   @Override
