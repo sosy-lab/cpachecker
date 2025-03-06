@@ -271,6 +271,10 @@ public class InvariantsCPA
     return compoundIntervalManagerFactory;
   }
 
+  public AbstractionStrategyFactories getAbstractionStrategy() {
+    return options.abstractionStateFactory;
+  }
+
   @Override
   public MergeOperator getMergeOperator() {
     return mergeOperator;

@@ -30,10 +30,7 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
   private final FormulaManagerView formulaManager;
 
   public SerializeValueAnalysisStateOperator(
-      ValueAnalysisCPA pValueAnalysisCPA,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier shutdownNotifier)
+      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
     solver = Solver.create(config, pLogger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();

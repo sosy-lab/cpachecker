@@ -53,8 +53,7 @@ public class DistributedValueAnalysisCPA
     valueAnalysisCPA = pValueAnalysisCPA;
     variableTypes = new HashMap<>(pVariableTypes);
     serializeOperator =
-        new SerializeValueAnalysisStateOperator(
-            valueAnalysisCPA, pConfig, pLogManager, shutdownNotifier);
+        new SerializeValueAnalysisStateOperator(pConfig, pLogManager, shutdownNotifier);
     deserializeOperator =
         new DeserializeValueAnalysisStateOperator(
             pCFA, variableTypes, pConfig, pLogManager, shutdownNotifier);

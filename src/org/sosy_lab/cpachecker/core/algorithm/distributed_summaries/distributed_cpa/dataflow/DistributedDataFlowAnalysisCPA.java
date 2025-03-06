@@ -54,8 +54,7 @@ public class DistributedDataFlowAnalysisCPA
     blockNode = pNode;
     variableTypes = new HashMap<>(pVariableTypes);
     serializeOperator =
-        new SerializeDataflowAnalysisStateOperator(
-            invariantsCPA, pConfig, pLogManager, shutdownNotifier);
+        new SerializeDataflowAnalysisStateOperator(pConfig, pLogManager, shutdownNotifier);
     deserializeOperator =
         new DeserializeDataflowAnalysisStateOperator(
             invariantsCPA, pCFA, pNode, variableTypes, pConfig, pLogManager, shutdownNotifier);

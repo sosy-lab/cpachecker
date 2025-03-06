@@ -33,17 +33,12 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
 
-  private final InvariantsCPA invariantsCPA;
   private final Solver solver;
   private final FormulaManagerView formulaManager;
 
   public SerializeDataflowAnalysisStateOperator(
-      InvariantsCPA pInvariantsCPA,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier shutdownNotifier)
+      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
-    invariantsCPA = pInvariantsCPA;
     solver = Solver.create(config, pLogger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
   }
