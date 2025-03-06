@@ -1971,6 +1971,15 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** The exponential function e^x */
   public FloatValue exp() {
+    // Note that the results returned by this function may be different from what is returned in C
+    // or Java. We always return the correctly rounded result, that is, the floating-point number
+    // that is closest to the actual (real-valued) result of the function. C and Java on the other
+    // hand use SEE, which does not guarantee correct rounding for transcendental functions. If we
+    // want to use this function in CPAchecker we may have to consider using error intervals to make
+    // sure that the values we calculate always match the behavior in C/Java.
+    //
+    // See https://www.gnu.org/software/libc/manual/html_node/Errors-in-Math-Functions.html for more
+    // information on the error bounds of transcendental functions in gnu libc
     return expWithStats(null);
   }
 
@@ -2103,6 +2112,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** The natural logarithm ln(x) */
   public FloatValue ln() {
+    // Note that the results returned by this function may be different from what is returned in C
+    // or Java. See the comment for exp() for more details.
     return lnWithStats(null);
   }
 
@@ -2191,6 +2202,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
   /** The power function a^x */
   public FloatValue pow(FloatValue pExponent) {
+    // Note that the results returned by this function may be different from what is returned in C
+    // or Java. See the comment for exp() for more details.
     return powWithStats(pExponent, null);
   }
 
