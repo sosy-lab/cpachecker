@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.ACSLTemporaryDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -62,9 +61,9 @@ public class ACSLParserUtils {
       String lAssumeCode, CParser parser, CProgramScope scope)
       throws InterruptedException, InvalidAutomatonException {
 
-    List<ACSLTemporaryDeclaration> tmpDeclarations = new ArrayList<>();
-
     String lString = lAssumeCode;
+    CProgramScope tmpScope = scope;
+
     Map<String, ACSLFunctionCall> replacements = new HashMap<>();
     Pattern lp = Pattern.compile("ACSL\\((?<function>\\w+\\([^()]*\\))\\)");
     Matcher lm = lp.matcher(lString);
@@ -77,8 +76,11 @@ public class ACSLParserUtils {
       replacements.put(key, lFuncCall);
       lString = lm.replaceFirst(key);
       // We need to add lemma_tmp_i as a variable to the scope
-      ACSLTemporaryDeclaration tmpDeclaration =
-          new ACSLTemporaryDeclaration(
+      // Better: Create a new temporary scope, that is a copy of the program scopa and add the
+      // declarations to that one
+
+      CVariableDeclaration tmpDeclaration =
+          new CVariableDeclaration(
               lFuncCall.getFileLocation(),
               false,
               CStorageClass.AUTO,
@@ -88,17 +90,16 @@ public class ACSLParserUtils {
               key,
               null);
       try {
-        scope.addDeclarationToScope(tmpDeclaration);
+        tmpScope.addDeclarationToScope(tmpDeclaration);
       } catch (InvalidYAMLWitnessException e) {
         throw new RuntimeException("This should not happen");
       }
-      tmpDeclarations.add(tmpDeclaration);
       lm = lp.matcher(lString);
     }
 
     CStatement statement;
     try {
-      statement = CParserUtils.parseSingleStatement(lString, parser, scope);
+      statement = CParserUtils.parseSingleStatement(lString, parser, tmpScope);
     } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Not a valid statement: " + lString);
     }
@@ -108,9 +109,6 @@ public class ACSLParserUtils {
     }
     CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new ACSLVisitor(replacements));
-    for (ACSLTemporaryDeclaration tmpDecl : tmpDeclarations) {
-      scope.removeTemporaryDeclaration(tmpDecl);
-    }
     return exp;
   }
 

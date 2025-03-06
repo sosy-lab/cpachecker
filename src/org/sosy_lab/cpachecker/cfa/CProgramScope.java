@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.ACSLTemporaryDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -456,25 +455,7 @@ public class CProgramScope implements Scope {
           "Declaration must be a function declaration or a variable declaration." + pDeclaration);
     }
   }
-
-  public void removeTemporaryDeclaration(ACSLTemporaryDeclaration pDeclaration) {
-    ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =
-        ImmutableListMultimap.builder();
-    ImmutableSet.Builder<String> newVariableNames = ImmutableSet.builder();
-    for (String name : variableNames) {
-      if (!name.equals(pDeclaration.getName())) {
-        newVariableNames.add(name);
-      }
-    }
-    this.variableNames = newVariableNames.build();
-    for (Map.Entry<String, CSimpleDeclaration> decl : simpleDeclarations.entries()) {
-      if (!decl.getKey().equals(pDeclaration.getName())) {
-        newSimpleDeclarations.put(decl);
-      }
-    }
-    this.simpleDeclarations = newSimpleDeclarations.build();
-  }
-
+  
   @Override
   public String createScopedNameOf(String pName) {
     if (!isGlobalScope()) {
