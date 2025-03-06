@@ -1481,7 +1481,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   /**
    * Calculate the power function a^x where x is an integer.
    *
-   * <p>Uses fast exponentiation to calculate the result.
+   * <p>Uses fast exponentiation to calculate the result. The note about rounding from {@link
+   * #powInt(BigInteger)} also applies to this function.
    */
   private FloatValue powFast(BigInteger x) {
     if (x.compareTo(BigInteger.ZERO) < 0) {
