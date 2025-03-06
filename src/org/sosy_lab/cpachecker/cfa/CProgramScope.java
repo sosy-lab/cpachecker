@@ -455,7 +455,7 @@ public class CProgramScope implements Scope {
           "Declaration must be a function declaration or a variable declaration." + pDeclaration);
     }
   }
-  
+
   @Override
   public String createScopedNameOf(String pName) {
     if (!isGlobalScope()) {
