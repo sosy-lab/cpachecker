@@ -23,6 +23,9 @@ public interface DeserializeOperator {
   AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException;
 
   default AbstractState deserializeFromFormula(org.sosy_lab.java_smt.api.BooleanFormula pFormula) {
+    if (pFormula == null) {
+      return null;
+    }
     throw new UnsupportedOperationException("deserializeFromFormula not implemented yet");
   }
 }

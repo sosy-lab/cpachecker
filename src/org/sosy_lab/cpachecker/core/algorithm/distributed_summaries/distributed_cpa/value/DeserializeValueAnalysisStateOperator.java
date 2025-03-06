@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToValueVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -46,7 +45,6 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
   private final Map<MemoryLocation, CType> variableTypes;
   private final Solver solver;
   private final FormulaManagerView formulaManager;
-  private final BooleanFormulaManagerView booleanFormulaManager;
 
   public DeserializeValueAnalysisStateOperator(
       CFA pCFA,
@@ -59,7 +57,6 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     variableTypes = pVariableTypes;
     solver = Solver.create(config, pLogger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
-    booleanFormulaManager = formulaManager.getBooleanFormulaManager();
   }
 
   @Override
@@ -98,12 +95,18 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
               Optional.of(cfa.getMachineModel()),
               PathCopyingPersistentTreeMap.copyOf(constantsMap));
 
-      BooleanFormula formula = state.getFormulaApproximation(formulaManager);
-      FormulaToValueVisitor visitor = new FormulaToValueVisitor(variableTypes, formulaManager);
-      formulaManager.visit(formula, visitor);
-      Map<MemoryLocation, ValueAndType> constants = visitor.getConstantsMap();
       return state;
     }
+  }
+
+  @Override
+  public ValueAnalysisState deserializeFromFormula(BooleanFormula pFormula) {
+    FormulaToValueVisitor visitor = new FormulaToValueVisitor(variableTypes, formulaManager);
+    formulaManager.visit(pFormula, visitor);
+    Map<MemoryLocation, ValueAndType> constantsMap = visitor.getConstantsMap();
+
+    return new ValueAnalysisState(
+        Optional.of(cfa.getMachineModel()), PathCopyingPersistentTreeMap.copyOf(constantsMap));
   }
 
   private Value extractValueFromString(String valueString) {
@@ -207,15 +210,5 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
       default:
         return CBasicType.UNSPECIFIED;
     }
-  }
-
-  @Override
-  public ValueAnalysisState deserializeFromFormula(BooleanFormula pFormula) {
-    FormulaToValueVisitor visitor = new FormulaToValueVisitor(variableTypes, formulaManager);
-    formulaManager.visit(pFormula, visitor);
-    Map<MemoryLocation, ValueAndType> constantsMap = visitor.getConstantsMap();
-
-    return new ValueAnalysisState(
-        Optional.of(cfa.getMachineModel()), PathCopyingPersistentTreeMap.copyOf(constantsMap));
   }
 }

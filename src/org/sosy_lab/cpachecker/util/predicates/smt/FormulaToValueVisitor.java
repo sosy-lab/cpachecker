@@ -1,3 +1,10 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Sara Ruckstuhl <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.math.BigInteger;
@@ -84,7 +91,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
   }
 
   @Override
-  public Boolean visitFreeVariable(Formula pArg0, String pArg1) {
+  public Boolean visitFreeVariable(Formula pF, String pName) {
     throw new UnsupportedOperationException("Unimplemented method 'visitFreeVariable'");
   }
 
@@ -100,6 +107,22 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
           }
           return true;
         }
+      case OR:
+        {
+          PersistentMap<MemoryLocation, ValueAndType> previousConstantsMap = constantsMap;
+          for (Formula arg : pArgs) {
+            PersistentMap<MemoryLocation, ValueAndType> tempConstantsMap = constantsMap;
+            constantsMap = previousConstantsMap;
+            fmgr.visit(arg, this);
+            for (MemoryLocation var : tempConstantsMap.keySet()) {
+              if (!constantsMap.containsKey(var)
+                  || !constantsMap.get(var).equals(tempConstantsMap.get(var))) {
+                constantsMap = constantsMap.removeAndCopy(var);
+              }
+            }
+          }
+          return true;
+        }
       case EQ:
         {
           String varName = pArgs.get(0).toString();
@@ -108,7 +131,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
           return true;
         }
       default:
-        throw new UnsupportedOperationException("Unsupported function: " + kind);
+        return true;
     }
   }
 

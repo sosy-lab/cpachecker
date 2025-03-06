@@ -14,7 +14,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
  *
  * @param <ConstantType> the type of the constants used in the formulae.
  */
-final class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
+public final class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
     implements NumeralFormula<ConstantType> {
 
   /*
@@ -68,7 +68,7 @@ final class ShiftLeft<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @return an invariants formula representing the left shift of the first given operand by the
    *     second given operand.
    */
-  static <ConstantType> ShiftLeft<ConstantType> of(
+  public static <ConstantType> ShiftLeft<ConstantType> of(
       NumeralFormula<ConstantType> pToShift, NumeralFormula<ConstantType> pShiftDistance) {
     return new ShiftLeft<>(pToShift, pShiftDistance);
   }

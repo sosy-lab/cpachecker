@@ -141,7 +141,8 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
             collectVarsVariableSelection,
             invariantsCPA.getCompoundIntervalFormulaManagerFactory(),
             cfa.getMachineModel(),
-            AbstractionStrategyFactories.ENTERING_EDGES
+            invariantsCPA
+                .getAbstractionStrategy()
                 .createStrategy(
                     invariantsCPA.getCompoundIntervalFormulaManagerFactory(), cfa.getMachineModel())
                 .getAbstractionState(),
