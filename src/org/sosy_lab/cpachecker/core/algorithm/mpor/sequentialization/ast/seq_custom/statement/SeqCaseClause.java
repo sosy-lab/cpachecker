@@ -19,11 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqCaseClause implements SeqStatement {
 
-  // TODO the id can be removed entirely with the refactored case pruning
-  private static long currentId = 0;
-
-  public final long id;
-
   public final boolean isGlobal;
 
   public final boolean isLoopStart;
@@ -36,27 +31,17 @@ public class SeqCaseClause implements SeqStatement {
 
   public SeqCaseClause(
       boolean pIsGlobal, boolean pIsLoopStart, int pLabelValue, SeqCaseBlock pBlock) {
-    id = createNewId();
+
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     label = new SeqCaseLabel(pLabelValue);
     block = pBlock;
   }
 
-  public SeqCaseClause(
-      boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
-    id = createNewId();
-    isGlobal = pIsGlobal;
-    isLoopStart = pIsLoopStart;
-    label = pLabel;
-    block = pBlock;
-  }
-
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqCaseClause(
-      long pId, boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
+      boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
 
-    id = pId;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     label = pLabel;
@@ -64,19 +49,15 @@ public class SeqCaseClause implements SeqStatement {
   }
 
   public SeqCaseClause cloneWithLabelAndBlock(SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
-    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, pBlock);
+    return new SeqCaseClause(isGlobal, isLoopStart, pLabel, pBlock);
   }
 
   public SeqCaseClause cloneWithLabel(SeqCaseLabel pLabel) {
-    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, block);
+    return new SeqCaseClause(isGlobal, isLoopStart, pLabel, block);
   }
 
   public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
     return new SeqCaseClause(isGlobal, isLoopStart, label, pBlock);
-  }
-
-  private static long createNewId() {
-    return currentId++;
   }
 
   /**

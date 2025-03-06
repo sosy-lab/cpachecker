@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -47,7 +46,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  */
 @Options(prefix = "analysis.algorithm.MPOR")
 @SuppressWarnings("unused")
-@SuppressFBWarnings({"UUF_UNUSED_FIELD", "URF_UNREAD_FIELD"})
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO remove all @SuppressWarnings once finished

@@ -222,35 +222,6 @@ public class SeqCaseClauseBuilder {
             new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
   }
 
-  /**
-   * Ensures that the initial label {@code pc} for all threads is {@link Sequentialization#INIT_PC}.
-   */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updateInitialLabels(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rUpdated =
-        ImmutableMap.builder();
-    boolean singleCaseClause = pCaseClauses.size() == 1;
-    for (var entry : pCaseClauses.entrySet()) {
-      boolean firstCase = true;
-      ImmutableList.Builder<SeqCaseClause> updatedCases = ImmutableList.builder();
-      // this approach (just taking the first case) is sound because the path up to the first
-      //  non-blank case is deterministic (i.e. only 1 leaving edge)
-      for (SeqCaseClause caseClause : entry.getValue()) {
-        assert !singleCaseClause || !caseClause.onlyWritesPc()
-            : "case clause is still prunable. did you use the pruned case clauses?";
-        if (firstCase) {
-          updatedCases.add(caseClause.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC)));
-          firstCase = false;
-        } else {
-          updatedCases.add(caseClause);
-        }
-      }
-      rUpdated.put(entry.getKey(), updatedCases.build());
-    }
-    return rUpdated.buildOrThrow();
-  }
-
   // Helpers =====================================================================================
 
   /**
