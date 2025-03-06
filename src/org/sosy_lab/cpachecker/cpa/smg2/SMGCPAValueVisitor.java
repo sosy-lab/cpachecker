@@ -1466,9 +1466,7 @@ public class SMGCPAValueVisitor
             result = FloatValue.fromInteger(target, numericValue.bigIntegerValue());
           } else if (numericValue.getNumber() instanceof Rational rationalValue) {
             // Casting from a rational
-            FloatValue num = FloatValue.fromInteger(target, rationalValue.getNum());
-            FloatValue den = FloatValue.fromInteger(target, rationalValue.getDen());
-            result = num.divide(den);
+            result = FloatValue.fromRational(target, rationalValue);
           } else {
             // Unsupported value type
             throw new AssertionError(

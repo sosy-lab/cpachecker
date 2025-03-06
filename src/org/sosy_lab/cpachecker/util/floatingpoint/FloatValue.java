@@ -29,6 +29,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -2774,6 +2775,48 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     long sigBits = significand.longValue() & Format.FLOAT64_SIGNIFICAND_MASK;
 
     return Double.longBitsToDouble(signBit | expBits | sigBits);
+  }
+
+  /**
+   * Cast an {@link Rational} value to a {@link FloatValue}
+   *
+   * <p>Will return +/- infinity if the rational value is too large for the chosen float type. Very
+   * small numbers may flush to zero, depending on the chosen precision. This method is generally
+   * imprecise as most rational values can not be represented by a finite number of (binary) digits
+   * and will need to be rounded down to the target precision.
+   */
+  public static FloatValue fromRational(Format pFormat, Rational pRational) {
+    // FIXME This will likely suffer from rounding issues. Maybe we can use something similar to
+    //   fromDecimal() to handle the conversion?
+    FloatValue num = FloatValue.fromInteger(pFormat, pRational.getNum());
+    FloatValue den = FloatValue.fromInteger(pFormat, pRational.getDen());
+    return num.divide(den);
+  }
+
+  /**
+   * Convert this {@link FloatValue} to {@link Rational}
+   *
+   * <p>If the value is NaN or an infinity this method will return {@link Optional#empty()}.
+   */
+  public Optional<Rational> toRational() {
+    if (isInfinite() || isNan()) {
+      return Optional.empty();
+    } else {
+      // Shift the exponent to turn the significand into an integer value
+      FloatValue unlimited = withPrecision(format.withUnlimitedExponent());
+      int shiftedExponent = (int) unlimited.exponent - format.sigBits;
+
+      // Construct the fraction
+      Rational rationalValue;
+      if (shiftedExponent >= 0) {
+        // If the exponent is >=0 we return a*2^k/1
+        rationalValue = Rational.of(significand.shiftLeft(shiftedExponent), BigInteger.ONE);
+      } else {
+        // Otherwise, the fraction is a/2^k
+        rationalValue = Rational.of(significand, BigInteger.ONE.shiftLeft(-shiftedExponent));
+      }
+      return Optional.of(rationalValue);
+    }
   }
 
   /**

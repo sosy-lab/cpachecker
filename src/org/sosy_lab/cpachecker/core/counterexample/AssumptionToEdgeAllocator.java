@@ -1428,9 +1428,8 @@ public class AssumptionToEdgeAllocator {
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
       if (pValue instanceof Rational rationalValue) {
         FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
-        FloatValue n = FloatValue.fromInteger(format, rationalValue.getNum());
-        FloatValue d = FloatValue.fromInteger(format, rationalValue.getDen());
-        return ExplicitValueLiteral.valueOf(n.divide(d), machineModel, pType);
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromRational(format, rationalValue), machineModel, pType);
       } else if (pValue instanceof Double doubleValue) {
         return ExplicitValueLiteral.valueOf(
             FloatValue.fromDouble(doubleValue), machineModel, pType);

@@ -88,10 +88,8 @@ public record NumericValue(Number number) implements Value {
       return getFloatValue().withPrecision(format);
     } else if (hasIntegerType()) {
       return FloatValue.fromInteger(format, bigIntegerValue());
-    } else if (number instanceof Rational rat) {
-      FloatValue n = FloatValue.fromInteger(format, rat.getNum());
-      FloatValue d = FloatValue.fromInteger(format, rat.getDen());
-      return n.divide(d);
+    } else if (number instanceof Rational rationalValue) {
+      return FloatValue.fromRational(format, rationalValue);
     } else {
       throw new UnsupportedOperationException("Should be unreachable.");
     }
