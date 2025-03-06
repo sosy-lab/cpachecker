@@ -1383,6 +1383,28 @@ public class AssumptionToEdgeAllocator {
       return valueLiterals;
     }
 
+    /**
+     * Convert an integer value to floating point
+     *
+     * <p>Will fail and return the original value if converting would lose precision.
+     */
+    private Number convertToFloat(Number pNumber, CType pType) {
+      // Calculate the target precision
+      Format precision = FloatValue.Format.fromCType(machineModel, pType);
+
+      // Convert to floating-point
+      BigInteger integerValue = new NumericValue(pNumber).bigIntegerValue();
+      FloatValue floatValue = FloatValue.fromInteger(precision, integerValue);
+
+      // Check that no precision was lost
+      Optional<BigInteger> maybeInteger = floatValue.toInteger();
+      if (maybeInteger.isEmpty() || !maybeInteger.get().equals(integerValue)) {
+        return pNumber;
+      } else {
+        return floatValue;
+      }
+    }
+
     protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
       CBasicType basicType = pSimpleType.getCanonicalType().getType();
       if (pValue instanceof FloatingPointNumber pFloatingPointNumber) {
@@ -1407,11 +1429,21 @@ public class AssumptionToEdgeAllocator {
           case FLOAT:
           case DOUBLE:
           case FLOAT128:
+            // The value may have any type that implements the Number interface. We accept integers,
+            // floats and rationals. The type check here makes sure that the class is known to our
+            // implementation
             Preconditions.checkArgument(
-                numericValue.hasFloatType() || numericValue.getNumber() instanceof Rational,
-                "Expecting a floating-point value, but `%s` has type `%s`.",
+                numericValue.hasFloatType()
+                    || numericValue.hasIntegerType()
+                    || numericValue.getNumber() instanceof Rational,
+                "Expecting a floating-point value, but `%s` has unknown type `%s`.",
                 pNumber,
                 pNumber.getClass().getSimpleName());
+
+            // If we were handed an integer, try converting it to float first
+            if (numericValue.hasIntegerType()) {
+              pNumber = convertToFloat(pNumber, pSimpleType);
+            }
             return handleFloatingPointNumbers(pNumber, pSimpleType);
 
           default:
