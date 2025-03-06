@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
+    <require cpuModel="Intel Core i7-6700 @ 3.40 GHz" />
+    <option name="--benchmark"/>
+    <option name="--heap" />
+    <option name="10000M" />
+    <option name="--timelimit" />
+    <option name="900 s" />
+
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <option name="--predicateAnalysis"/>
+    <option name="--option">analysis.algorithm.findErrorCondition=true</option>
+    <option name="--option">findErrorCondition.refiners=GENERATE_MODEL</option>
+    <option name="--option">findErrorCondition.withFormatter=false</option>
+
+    <rundefinition name="ErrorCondition-GenerateModel">
+        <tasks name="Correct-False">
+            <includesfile>../../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
+            <propertyfile expectedverdict="false">../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+        </tasks>
+
+    </rundefinition>
+</benchmark>

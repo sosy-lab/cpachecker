@@ -21,13 +21,14 @@
     <option name="--option">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <option name="--predicateAnalysis"/>
     <option name="--option">analysis.algorithm.findErrorCondition=true</option>
-    <option name="--option">findErrorCondition.refiners=ALLSAT</option>
+    <option name="--option">findErrorCondition.refiners=GENERATE_MODEL,QUANTIFIER_ELIMINATION,ALLSAT</option>
     <option name="--option">findErrorCondition.withFormatter=false</option>
+    <option name="--option">findErrorCondition.parallel=true</option>
 
-    <rundefinition name="ErrorCondition-AllSat">
+    <rundefinition name="ErrorCondition-ALL-REFINERS-PARALLEL">
         <tasks name="Correct-False">
-            <includesfile>../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
-            <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+            <includesfile>../../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
+            <propertyfile expectedverdict="false">../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
         </tasks>
 
     </rundefinition>

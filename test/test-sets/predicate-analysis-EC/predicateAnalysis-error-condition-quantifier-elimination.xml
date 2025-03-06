@@ -26,8 +26,8 @@
 
   <rundefinition name="ErrorCondition-QuantifierElimination">
     <tasks name="Correct-False">
-      <includesfile>../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
-      <propertyfile expectedverdict="false">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+      <includesfile>../../programs/benchmarks/PredicateAnalysisCorrectFalse.set</includesfile>
+      <propertyfile expectedverdict="false">../../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     </tasks>
 
   </rundefinition>

@@ -73,7 +73,7 @@ public class ErrorConditionFormatter {
 
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
-        String.format("Formatted Exclusion Formula: %s\n", visitedFormula));
+        String.format("Formatted Exclusion Formula: %s", visitedFormula));
     Utility.logWithIteration(currentRefinementIteration,
         Level.INFO, context,
         String.format("Formatted Exclusion Formula Represented As C Expression : \n%s", cExpr));
