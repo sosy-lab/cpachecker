@@ -1975,7 +1975,7 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
     // Note that the results returned by this function may be different from what is returned in C
     // or Java. We always return the correctly rounded result, that is, the floating-point number
     // that is closest to the actual (real-valued) result of the function. C and Java on the other
-    // hand use SEE, which does not guarantee correct rounding for transcendental functions. If we
+    // hand use SSE, which does not guarantee correct rounding for transcendental functions. If we
     // want to use this function in CPAchecker we may have to consider using error intervals to make
     // sure that the values we calculate always match the behavior in C/Java.
     //
