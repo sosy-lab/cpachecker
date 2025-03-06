@@ -81,7 +81,7 @@ SPDX-License-Identifier: Apache-2.0
         <property name="annotation" value="@javax.annotation.processing.Generated(&quot;CUP&quot;)${line.separator}"/>
         <replace file="${dir.parser}/${parser.target}.java"
             token="@SuppressWarnings({&quot;rawtypes&quot;})"
-            value="${annotation}@SuppressWarnings({&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
+            value="${annotation}@SuppressWarnings({&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({&quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
         <replace file="${dir.parser}/${symbols.target}.java"
             token="public interface "
             value="${annotation}public interface "
