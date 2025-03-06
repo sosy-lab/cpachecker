@@ -71,19 +71,17 @@ public class SeqCaseClauseBuilder {
             pThreadSimulationVariables,
             pBinaryExpressionBuilder);
     // prune case clauses so that no case clause has only pc writes
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCaseClauses =
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
-    // update initial case labels to INIT_PC
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> updatedInitialLabelCaseClauses =
-        updateInitialLabels(prunedCaseClauses);
-    // if enabled, apply partial order reduction by concatenating case clauses
-    if (pOptions.partialOrderReduction) {
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenatedClauses =
-          PartialOrderReducer.concatenateCommutingClauses(updatedInitialLabelCaseClauses);
-      return SeqValidator.validateCaseClauses(concatenatedClauses, pLogger);
-    } else {
-      return SeqValidator.validateCaseClauses(updatedInitialLabelCaseClauses, pLogger);
-    }
+    // if enabled, apply partial order reduction by concatenating commuting clauses
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenatedCases =
+        pOptions.partialOrderReduction
+            ? PartialOrderReducer.concatenateCommutingCases(prunedCases)
+            : prunedCases;
+    // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
+        SeqCaseClauseUtil.cloneWithConsecutiveLabels(concatenatedCases);
+    return SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger);
   }
 
   /** Maps threads to the case clauses they potentially execute. */

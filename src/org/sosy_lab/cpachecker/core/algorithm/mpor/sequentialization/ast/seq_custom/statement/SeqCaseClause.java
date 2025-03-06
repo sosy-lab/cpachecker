@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqCaseClause implements SeqStatement {
 
+  // TODO the id can be removed entirely with the refactored case pruning
   private static long currentId = 0;
 
   public final long id;
@@ -62,12 +63,15 @@ public class SeqCaseClause implements SeqStatement {
     block = pBlock;
   }
 
+  public SeqCaseClause cloneWithLabelAndBlock(SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
+    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, pBlock);
+  }
+
   public SeqCaseClause cloneWithLabel(SeqCaseLabel pLabel) {
     return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, block);
   }
 
   public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
-    // id is not imported at this stage of pruning case clauses
     return new SeqCaseClause(isGlobal, isLoopStart, label, pBlock);
   }
 

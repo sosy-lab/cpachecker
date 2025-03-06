@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqConstCpaCheckerTmpStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -33,19 +32,19 @@ public class PartialOrderReducer {
   //  stack-longest-1
   //  stack-1
 
-  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenateCommutingClauses(
+  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenateCommutingCases(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rConcatenated =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
-      rConcatenated.put(entry.getKey(), concatenateCommutingClauses(entry.getValue()));
+      rConcatenated.put(entry.getKey(), concatenateCommutingCases(entry.getValue()));
     }
     return rConcatenated.buildOrThrow();
   }
 
-  private static ImmutableList<SeqCaseClause> concatenateCommutingClauses(
+  private static ImmutableList<SeqCaseClause> concatenateCommutingCases(
       ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqCaseClause> rNewCaseClauses = ImmutableList.builder();
@@ -106,7 +105,18 @@ public class PartialOrderReducer {
       SeqCaseBlockStatement pStatement, SeqCaseClause pTarget) {
 
     // TODO optimize by adding traces and checking if there is at least one global access
+
     // TODO think about: do mutex unlocks always commute, even to global mutex objects?
+    //  technically no if we also consider stuff like pthread_mutex_trylock != 0 etc.
+
+    // TODO think about: must function entries be directly reachable? what if there are two calling
+    //  contexts, one can concatenate, the other can't?
+
+    // TODO currently, we do not concatenate if a return_pc is assigned due to the target being
+    //  nondet. it would be best to clone functions and rid of all return_pc, including switching
+    //  over calling contexts to assign return values. additionally, if we check for parameter vars
+    //  we can actually find out if the assigned value is global or local -> less interleavings
+
     return pStatement.isConcatenable()
         // these are sorted by performance impact in descending order for short circuit evaluation
         && !(pTarget.isGlobal

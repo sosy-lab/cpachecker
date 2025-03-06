@@ -52,6 +52,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   // TODO remove all @SuppressWarnings once finished
 
+  // TODO with more benchmarks, find out which settings work best for which verifier
+  //  then create an enum with preferred verifier, overriding all options, but output a warning
+
   @Option(
       secure = true,
       description =
