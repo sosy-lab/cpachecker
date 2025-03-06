@@ -8,31 +8,29 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Represents the result of a refinement operation.
  *
- * <p>A refinement result consists of a {@link RefinementStatus} and an {@link Optional}
- * containing a {@link PathFormula}. The formula is present when the refinement operation
- * is successful. For instance, if the refinement fails or times out, the result should be
- * created with {@code Optional.empty()} as the formula.</p>
+ * <p>A refinement result consists of a {@link RefinementStatus} and a {@link PathFormula}. The formula is present when the refinement operation
+ * is successful. For instance, if the refinement fails or times out, the result can be updated with
+ * {@link RefinementResult#updateFormula(PathFormula)} method.</p>
  */
 public class RefinementResult {
 
   private RefinementStatus status;
-  private Optional<PathFormula> formula;
+  private PathFormula formula;
 
   /**
    * Creates a new instance of {@code RefinementResult}.
    *
    * @param pRefinementStatus the status of the refinement
-   * @param pFormula          an {@link Optional} containing the {@link PathFormula} if available;
-   *                          use {@link Optional#empty()} to indicate absence of a formula (e.g., in failure cases)
+   * @param pFormula          contains the {@link PathFormula};
+   *                          use an empty formula to indicate cases of failures or timeouts.
    */
-  public RefinementResult(RefinementStatus pRefinementStatus, Optional<PathFormula> pFormula) {
+  public RefinementResult(RefinementStatus pRefinementStatus, PathFormula pFormula) {
     this.status = pRefinementStatus;
     this.formula = pFormula;
   }
@@ -59,22 +57,19 @@ public class RefinementResult {
    * Returns the formula resulting from the refinement.
    *
    * <p>If the refinement did not produce a valid formula (e.g., due to failure or timeout),
-   * this will return {@link Optional#empty()}.</p>
-   *
-   * @return an {@link Optional} containing the {@link PathFormula}, or {@link Optional#empty()}
-   * if no formula is available
+   * this will return an empty {@link PathFormula}.</p>
    */
-  public Optional<PathFormula> getOptionalFormula() {
+  public PathFormula getFormula() {
     return formula;
   }
 
   /**
-   * Returns the BooleanFormula from the FormulaPath (if exists)
+   * Returns the BooleanFormula from the FormulaPath.
    *
    * @return BooleanFormula
    */
   public BooleanFormula getBooleanFormula() {
-    return formula.get().getFormula();
+    return formula.getFormula();
   }
 
   /**
@@ -83,7 +78,7 @@ public class RefinementResult {
    * @param pFormula new formula.
    */
   public void updateFormula(PathFormula pFormula) {
-    formula = Optional.of(pFormula);
+    formula = pFormula;
   }
 
   /**
@@ -102,7 +97,8 @@ public class RefinementResult {
     EMPTY,
     SUCCESS,
     FAILURE,
-    TIMEOUT
+    TIMEOUT,
+    INTERRUPTED
   }
 }
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -130,7 +129,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
               refinerTimeOut);
       // initially empty
       RefinementResult errorCondition =
-          new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
+          new RefinementResult(RefinementStatus.EMPTY, context.getManager().makeEmptyPathFormula());
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
@@ -160,7 +159,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
           }
           // update initial state with the exclusion formula
           initialState = Utility.updateInitialStateWithExclusions(initialState,
-              errorCondition.getOptionalFormula().get(),
+              errorCondition.getFormula(),
               currentIteration, context);
         } else {
           logger.log(Level.INFO,

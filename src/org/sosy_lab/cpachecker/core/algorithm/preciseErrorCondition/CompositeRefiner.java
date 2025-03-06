@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -34,7 +33,7 @@ public class CompositeRefiner implements Refiner {
   private final Map<RefinementStrategy, Refiner> refiners = new EnumMap<>(RefinementStrategy.class);
   private final Boolean parallelRefinement;
   private final int refinerTimeout; // timeout for each refiner in seconds
-  private RefinementResult exclusionFormula;
+  private RefinementResult refinementResult;
 
   public CompositeRefiner(
       FormulaContext pContext,
@@ -45,7 +44,8 @@ public class CompositeRefiner implements Refiner {
       int pRefinerTimeout)
       throws InvalidConfigurationException, CPATransferException, InterruptedException {
     context = pContext;
-    exclusionFormula = new RefinementResult(RefinementStatus.EMPTY, Optional.empty());
+    refinementResult =
+        new RefinementResult(RefinementStatus.EMPTY, context.getManager().makeEmptyPathFormula());
     parallelRefinement = pParallelRefinement;
     refinerTimeout = pRefinerTimeout;
     initializeRefiners(pRefiners, pQuantifierSolver, pWithFormatter);
@@ -70,8 +70,8 @@ public class CompositeRefiner implements Refiner {
 
     context.getLogger()
         .log(Level.SEVERE, "All Refiners Failed.");
-    exclusionFormula.updateStatus(RefinementStatus.FAILURE);
-    return exclusionFormula;
+    refinementResult.updateStatus(RefinementStatus.FAILURE);
+    return refinementResult;
   }
 
   private RefinementResult singleRefinement(CounterexampleInfo pCounterexample) {
@@ -79,16 +79,14 @@ public class CompositeRefiner implements Refiner {
     try {
       // update exclusion formula with result
       Refiner singleRefiner = refiners.values().stream().toList().get(0);
-      exclusionFormula = refineWith(singleRefiner, pCounterexample);
-      return exclusionFormula;
+      return refineWith(singleRefiner, pCounterexample);
     } catch (Exception e) {
       context.getLogger().logfUserException(Level.SEVERE, e, "Error During Refinement.");
-      exclusionFormula.updateStatus(RefinementStatus.FAILURE);
     }
     context.getLogger()
         .log(Level.SEVERE, "Error During Refinement.");
-    exclusionFormula.updateStatus(RefinementStatus.FAILURE);
-    return exclusionFormula;
+    refinementResult.updateStatus(RefinementStatus.FAILURE);
+    return refinementResult;
   }
 
   private RefinementResult sequentialRefinement(CounterexampleInfo pCounterexample) {
@@ -102,9 +100,9 @@ public class CompositeRefiner implements Refiner {
 
       try {
         // Wait for result of the refiner with a timeout
-        exclusionFormula = future.get(refinerTimeout, TimeUnit.SECONDS);
-        if (exclusionFormula.isSuccessful()) {
-          return exclusionFormula;
+        refinementResult = future.get(refinerTimeout, TimeUnit.SECONDS);
+        if (refinementResult.isSuccessful()) {
+          return refinementResult;
         }
         tryNextRefiner = true;
 
@@ -113,12 +111,14 @@ public class CompositeRefiner implements Refiner {
             "Refiner " + refiner.getClass().getSimpleName() + " timed out after " + refinerTimeout
                 + "s");
         future.cancel(true); // interrupt the refiner in case of timeout
+        refinementResult.updateStatus(RefinementStatus.TIMEOUT);
         tryNextRefiner = true;
 
       } catch (Exception e) {
         context.getLogger().log(Level.WARNING,
             "Refiner Failed: " + refiner.getClass().getSimpleName());
         context.getLogger().logfUserException(Level.WARNING, e, "Error During Refinement.");
+        refinementResult.updateStatus(RefinementStatus.FAILURE);
         tryNextRefiner = true;
 
       } finally {
@@ -131,8 +131,7 @@ public class CompositeRefiner implements Refiner {
 
     context.getLogger().log(Level.SEVERE,
         "All refiners failed during sequential refinement.");
-    exclusionFormula.updateStatus(RefinementStatus.FAILURE);
-    return exclusionFormula;
+    return refinementResult;
   }
 
 
@@ -155,6 +154,7 @@ public class CompositeRefiner implements Refiner {
       final long timeoutNanos = TimeUnit.SECONDS.toNanos(refinerTimeout);
 
       while (remainingTasks > 0) {
+        // TODO: remove this calculation and just use the refinerTimeout instead
         // Calculate remaining time
         final long elapsedNanos = System.nanoTime() - startTime;
         final long remainingNanos = timeoutNanos - elapsedNanos;
@@ -175,11 +175,11 @@ public class CompositeRefiner implements Refiner {
         remainingTasks--;
 
         try {
-          exclusionFormula = future.get();
-          if (exclusionFormula.isSuccessful()) {
+          refinementResult = future.get();
+          if (refinementResult.isSuccessful()) {
             // Valid result found -> cancel other tasks and return
             cancelAllFutures(futures);
-            return exclusionFormula;
+            return refinementResult;
           }
         } catch (ExecutionException e) {
           context.getLogger().log(Level.WARNING,
@@ -189,21 +189,23 @@ public class CompositeRefiner implements Refiner {
 
       context.getLogger().log(Level.SEVERE,
           "All parallel refiners failed or timed out");
-      exclusionFormula.updateStatus(RefinementStatus.FAILURE);
-      return exclusionFormula;
+      refinementResult.updateStatus(RefinementStatus.FAILURE);
+      return refinementResult;
 
     } catch (TimeoutException e) {
       context.getLogger().logfUserException(Level.SEVERE, e, "Parallel Refinement timed out.");
+      refinementResult.updateStatus(RefinementStatus.TIMEOUT);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       context.getLogger().log(Level.SEVERE, "Parallel refinement interrupted");
+      refinementResult.updateStatus(RefinementStatus.INTERRUPTED);
     } finally {
       // clean-up
       cancelAllFutures(futures);
       executor.shutdownNow();
     }
-    exclusionFormula.updateStatus(RefinementStatus.FAILURE);
-    return exclusionFormula;
+    refinementResult.updateStatus(RefinementStatus.FAILURE);
+    return refinementResult;
   }
 
   private void cancelAllFutures(List<Future<RefinementResult>> futures) {

@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import javax.annotation.Nonnull;
@@ -49,8 +48,8 @@ public class QuantiferEliminationRefiner implements Refiner {
     solver = pContext.getSolver();
     quantifierContext = context.createContextFromThis(pQuantifierSolver.name());
     quantifierSolver = quantifierContext.getSolver();
-    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
-    exclusionFormula = new RefinementResult(RefinementStatus.EMPTY, Optional.of(emptyFormula));
+    exclusionFormula =
+        new RefinementResult(RefinementStatus.EMPTY, context.getManager().makeEmptyPathFormula());
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(pContext);
   }
@@ -219,9 +218,10 @@ public class QuantiferEliminationRefiner implements Refiner {
 
     //update exclusion formula with the new quantified variables from this iteration.
     PathFormula updatedExclusionFormula = context.getManager()
-        .makeAnd(exclusionFormula.getOptionalFormula().get(),
+        .makeAnd(exclusionFormula.getFormula(),
             solver.getFormulaManager().getBooleanFormulaManager().not(quantifierEliminationResult))
         .withContext(formatter.getSsaBuilder().build(), cexFormula.getPointerTargetSet());
+
     exclusionFormula.updateFormula(updatedExclusionFormula);
     exclusionFormula.updateStatus(RefinementStatus.SUCCESS);
 

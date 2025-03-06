@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.preciseErrorCondition.RefinementResult.RefinementStatus;
@@ -40,9 +39,8 @@ public class AllSatRefiner implements Refiner {
     context = pContext;
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    PathFormula emptyFormula = context.getManager().makeEmptyPathFormula();
     exclusionModelFormula =
-        new RefinementResult(RefinementStatus.EMPTY, Optional.of(emptyFormula));
+        new RefinementResult(RefinementStatus.EMPTY, context.getManager().makeEmptyPathFormula());
     withFormatter = pWithFormatter;
     formatter = new ErrorConditionFormatter(context);
   }
@@ -109,9 +107,10 @@ public class AllSatRefiner implements Refiner {
           Level.INFO, context, "Updating Exclusion Formula With Disjunct Combined Model...");
       // Update exclusion formula with the found models
 
-      PathFormula negatedModelFormula =
-          exclusionModelFormula.getOptionalFormula().get().withFormula(bmgr.not(combinedModels));
-      exclusionModelFormula.updateFormula(negatedModelFormula);
+
+      PathFormula updatedModelFormula =
+          exclusionModelFormula.getFormula().withFormula(bmgr.not(combinedModels));
+      exclusionModelFormula.updateFormula(updatedModelFormula);
       exclusionModelFormula.updateStatus(RefinementStatus.SUCCESS);
 
       Utility.logWithIteration(currentRefinementIteration,
