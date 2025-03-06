@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  *
  * <p>int x = 0; struct s { ... } st;
  */
-public sealed class CVariableDeclaration extends AVariableDeclaration implements CDeclaration
-    permits ACSLTemporaryDeclaration {
+public final class CVariableDeclaration extends AVariableDeclaration implements CDeclaration {
 
   @Serial private static final long serialVersionUID = 8303959164064236061L;
   private final CStorageClass cStorageClass;

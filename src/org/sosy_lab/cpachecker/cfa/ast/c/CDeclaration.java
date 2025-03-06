@@ -16,7 +16,4 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
  * struct members. It includes local and global variables and types, as well as functions.
  */
 public sealed interface CDeclaration extends CSimpleDeclaration, ADeclaration
-    permits ACSLTemporaryDeclaration,
-        CFunctionDeclaration,
-        CTypeDeclaration,
-        CVariableDeclaration {}
+    permits CFunctionDeclaration, CTypeDeclaration, CVariableDeclaration {}
