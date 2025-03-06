@@ -128,10 +128,10 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
         new SMTToNumeralIntervalFormulaVisitor(
             formulaManager, variableTypes, cfa.getMachineModel());
 
-    SMTToBooleanIntervalFormulaVisitor SMTToBooleanIntervalFormulaVisitor =
+    SMTToBooleanIntervalFormulaVisitor smtToBooleanIntervalFormulaVisitor =
         new SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
     BooleanFormula<CompoundInterval> compoundInterval =
-        formulaManager.visit(pFormula, SMTToBooleanIntervalFormulaVisitor);
+        formulaManager.visit(pFormula, smtToBooleanIntervalFormulaVisitor);
     AcceptSpecifiedVariableSelection<CompoundInterval> collectVarsVariableSelection =
         new AcceptSpecifiedVariableSelection<>(compoundInterval.accept(new CollectVarsVisitor<>()));
     List<BooleanFormula<CompoundInterval>> assumptionParts =
