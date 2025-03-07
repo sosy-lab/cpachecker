@@ -117,8 +117,6 @@ class CommandLineArgumentError(Exception):
 
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
-        self._unfinished_runs = set()
-        self._unfinished_runs_lock = threading.Lock()
         self._web_interface = web_interface
         self._result_poll_interval = result_poll_interval
         self._state_poll_executor = ThreadPoolExecutor(
