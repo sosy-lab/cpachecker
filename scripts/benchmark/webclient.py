@@ -1050,7 +1050,6 @@ class WebInterface:
 
         try:
             (state, _) = self._request("GET", path, headers=headers)
-            logging.debug("run collection state is: " + state.decode("utf-8"))
             return state.decode("utf-8")
         except requests.HTTPError as e:
             logging.warning(
