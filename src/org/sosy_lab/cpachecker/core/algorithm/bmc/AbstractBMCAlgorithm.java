@@ -145,17 +145,22 @@ abstract class AbstractBMCAlgorithm
 
   @Option(
       secure = true,
-      description = "get candidate invariants from a predicate precision file",
+      description =
+          "File with predicate precisions "
+              + "that should be used as candidate invariants in k-induction",
       name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
 
   @Option(
       secure = true,
-      description = "get candidate invariants from a witness 2.0 invariant file",
-      name = "kinduction.reuse.invariantWitnessFile")
+      description =
+          "Correctness witness in 2.x format (for previous program version) "
+              + "that should be used in regression verification"
+              + "to get candidate invariants for k-induction",
+      name = "kinduction.regression.witnessFile")
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path initialWitnessInvariantsFile = null;
+  private @Nullable Path witnessFileForRegressionVerification = null;
 
   @Option(
       secure = true,
@@ -249,8 +254,7 @@ abstract class AbstractBMCAlgorithm
   private final ImmutableSet<CandidateInvariant> predicatePrecisionCandidates;
   private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
 
-  private ImmutableSet<CandidateInvariant> initialWitnessInvariants = null;
-  private @Nullable WitnessToInitialInvariantsConverter witnessConverter;
+  private ImmutableSet<CandidateInvariant> candidateInvariantsFromWitness = null;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -388,13 +392,12 @@ abstract class AbstractBMCAlgorithm
       predicatePrecisionCandidates = ImmutableSet.of();
     }
 
-    if (initialWitnessInvariantsFile != null) {
-      witnessConverter =
-          new WitnessToInitialInvariantsConverter(
-              config, logger, shutdownNotifier, fmgr, pmgr, cfa);
-      initialWitnessInvariants = witnessConverter.witnessConverter(initialWitnessInvariantsFile);
+    if (witnessFileForRegressionVerification != null) {
+      candidateInvariantsFromWitness =
+          new WitnessToInitialInvariantsConverter(config, logger, shutdownNotifier, fmgr, pmgr, cfa)
+              .witnessConverter(witnessFileForRegressionVerification);
     } else {
-      initialWitnessInvariants = ImmutableSet.of();
+      candidateInvariantsFromWitness = ImmutableSet.of();
     }
   }
 
@@ -434,8 +437,8 @@ abstract class AbstractBMCAlgorithm
     }
 
     // suggest candidates from Witness 2.0 file
-    if (!initialWitnessInvariants.isEmpty()) {
-      candidateGenerator.suggestCandidates(initialWitnessInvariants);
+    if (!candidateInvariantsFromWitness.isEmpty()) {
+      candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {

@@ -777,11 +777,14 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get candidate invariants from a predicate precision file
+# File with predicate precisions that should be used as candidate invariants
+# in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
 
-# get candidate invariants from a witness 2.0 invariant file
-bmc.kinduction.reuse.invariantWitnessFile = no default value
+# Correctness witness in 2.x format (for previous program version) that
+# should be used in regression verificationto get candidate invariants for
+# k-induction
+bmc.kinduction.regression.witnessFile = no default value
 
 # Matches function names to the ones in the witness
 bmc.kinduction.reuse.matchFunctionNames = false
