@@ -132,6 +132,7 @@ class PollingResultDownloader:
         while not self._shutdown.is_set():
             start = time()
             states = {}
+            collection_states = {}
 
             with self._web_interface._unfinished_runs_lock:
                 for run_id in self._web_interface._unfinished_runs.keys():
@@ -139,6 +140,13 @@ class PollingResultDownloader:
                         self._web_interface._is_finished, run_id
                     )
                     states[state_future] = run_id
+
+                for collection_id in list(
+                        self._web_interface._run_collection_ids):
+                    collection_state_future = self._state_poll_executor.submit(
+                        self._web_interface._get_run_collection_state, collection_id
+                    )
+                    collection_states[collection_state_future] = collection_id
 
             # Collect states of runs
             for state_future in as_completed(states.keys()):
@@ -150,6 +158,26 @@ class PollingResultDownloader:
 
                 elif state == "ERROR":
                     self._web_interface._run_failed(run_id)
+
+            # Collect states of run collections
+            for collection_state_future in as_completed(collection_states.keys()):
+                collection_id = collection_states[collection_state_future]
+                try:
+                    collection_state = collection_state_future.result()
+
+                    if collection_state == "FINISHED":
+                        logging.info(
+                            "Skipping run collection %s as it is already completed",
+                            collection_id,
+                        )
+                        self._web_interface._run_collection_ids.remove(collection_id)
+
+                except Exception as e:
+                    logging.warning(
+                        "Failed to get state for run collection %s: %s",
+                        collection_id,
+                        str(e),
+                    )
 
             end = time()
             duration = end - start
@@ -1014,6 +1042,23 @@ class WebInterface:
             )
             return False
 
+    def _get_run_collection_state(self, collection_id):
+        """
+        Retrieve the state of the given run collection by ID.
+        """
+        headers = {"Accept": "text/plain"}
+        path = f"runs/collection/{collection_id}/state"
+
+        try:
+            (state, _) = self._request("GET", path, headers=headers)
+            logging.debug("run collection state is: " + state.decode("utf-8"))
+            return state.decode("utf-8")
+        except requests.HTTPError as e:
+            logging.warning(
+                "Could not get state for run collection %s: %s", collection_id, e
+            )
+            return "UNKNOWN"
+
     def _download_result(self, run_id):
         # download result as zip file
         headers = {"Accept": "application/zip"}
@@ -1081,17 +1126,6 @@ class WebInterface:
             logging.info("Cancelling run collections...")
             for run_collection_id in self._run_collection_ids:
                 try:
-                    state, _ = self._request(
-                        "GET", f"runs/collection/{run_collection_id}/state"
-                    )
-                    logging.debug("run collection state: %s", state.decode("utf-8"))
-                    if state.decode("utf-8") == "FINISHED":
-                        logging.info(
-                            "Skipping run collection %s as it is already completed",
-                            run_collection_id,
-                        )
-                        continue
-
                     with self._unfinished_runs_lock:
                         logging.info("Deleting run collection %s", run_collection_id)
                         server_reply, _ = self._request(
