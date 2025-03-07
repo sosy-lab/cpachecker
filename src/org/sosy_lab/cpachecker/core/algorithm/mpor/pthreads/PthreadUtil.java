@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -30,10 +31,10 @@ public class PthreadUtil {
 
   public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
-        PthreadFunctionType.callsAnyPthreadFuncWithPthreadT(pEdge),
+        callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
     CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     if (funcType.isPthreadTPointer()) {
@@ -45,10 +46,10 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFunctionType.callsAnyPthreadFuncWithPthreadT(pEdge),
+        callsAnyPthreadFuncWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
     CExpression param = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     if (funcType.isPthreadTPointer()) {
@@ -66,10 +67,10 @@ public class PthreadUtil {
 
   public static CIdExpression extractPthreadMutexT(CFAEdge pEdge) {
     checkArgument(
-        PthreadFunctionType.callsAnyPthreadFuncWithPthreadMutexT(pEdge),
+        callsAnyPthreadFuncWithPthreadMutexT(pEdge),
         "pEdge must be call to a pthread method with a pthread_mutex_t param");
 
-    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
     CExpression pthreadMutexT =
         CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadMutexTIndex());
 
@@ -82,10 +83,10 @@ public class PthreadUtil {
 
   public static CFunctionType extractStartRoutine(CFAEdge pEdge) {
     checkArgument(
-        PthreadFunctionType.callsAnyPthreadFuncWithStartRoutine(pEdge),
+        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
         "pEdge must be call to a pthread method with a start_routine param");
 
-    PthreadFunctionType funcType = PthreadFunctionType.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
     return CFAUtils.getCFunctionTypeFromCExpression(
         CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineIndex()));
   }
@@ -134,6 +135,7 @@ public class PthreadUtil {
 
   private static boolean isPthreadMutexTWithInitializerList(
       CVariableDeclaration pVariableDeclaration) {
+
     // if the type yields a trailing white space (from declaration edge), we strip it
     String typeName = pVariableDeclaration.getType().toString().strip();
     if (typeName.equals(PthreadObjectType.PTHREAD_MUTEX_T.name)) {
@@ -150,6 +152,80 @@ public class PthreadUtil {
       if (typeName.equals(pthreadObjectType.name)) {
         return true;
       }
+    }
+    return false;
+  }
+
+  /**
+   * Tries to extract the {@link CFunctionCallStatement} from pEdge and returns true if it is a call
+   * to pFuncType.
+   */
+  public static boolean callsPthreadFunction(CFAEdge pEdge, PthreadFunctionType pFuncType) {
+    return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
+        && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
+  }
+
+  public static boolean callsAnyPthreadFunction(CFAEdge pEdge) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
+      if (callsPthreadFunction(pEdge, funcType)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static boolean callsAnyPthreadFuncWithPthreadT(CFAEdge pEdge) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
+      if (funcType.pthreadTIndex.isPresent()) {
+        if (callsPthreadFunction(pEdge, funcType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean callsAnyPthreadFuncWithPthreadMutexT(CFAEdge pEdge) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
+      if (funcType.pthreadMutexTIndex.isPresent()) {
+        if (callsPthreadFunction(pEdge, funcType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean callsAnyPthreadFunctionWithStartRoutineParameter(CFAEdge pEdge) {
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
+      if (funcType.startRoutineIndex.isPresent()) {
+        if (callsPthreadFunction(pEdge, funcType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static PthreadFunctionType getPthreadFuncType(CFAEdge pEdge) {
+    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
+    String funcName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
+    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
+      if (funcType.name.equals(funcName)) {
+        return funcType;
+      }
+    }
+    throw new IllegalArgumentException("unrecognized pthread method: " + pEdge.getRawAST());
+  }
+
+  /**
+   * Returns true if the semantics of the pthread method in pEdge is considered in the
+   * sequentialization, i.e. the case block contains code. A function may be supported by MPOR but
+   * not considered in the sequentialization.
+   */
+  public static boolean isExplicitlyHandledPthreadFunction(CFAEdge pEdge) {
+    if (PthreadUtil.callsAnyPthreadFunction(pEdge)) {
+      return PthreadUtil.getPthreadFuncType(pEdge).isExplicitlyHandled;
     }
     return false;
   }

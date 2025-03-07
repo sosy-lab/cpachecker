@@ -132,7 +132,7 @@ public class GhostVariableUtil {
           CFAEdge cfaEdge = substituteEdge.cfaEdge;
 
           // extract pthread_mutex_t based on function calls to pthread_mutex_lock
-          if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
+          if (PthreadUtil.callsPthreadFunction(cfaEdge, PTHREAD_MUTEX_LOCK)) {
             CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
             if (mutexes.add(pthreadMutexT)) { // add mutexes only once
               CIdExpression substitutePthreadMutexT =
@@ -161,7 +161,7 @@ public class GhostVariableUtil {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         if (pSubEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
-          if (PthreadFunctionType.callsPthreadFunction(
+          if (PthreadUtil.callsPthreadFunction(
               substitute.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
             CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(substitute.cfaEdge);
             // multiple lock calls within one thread to the same mutex are possible -> only need one
@@ -190,7 +190,7 @@ public class GhostVariableUtil {
       Map<MPORThread, ThreadJoinsThread> targetThreads = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFunctionType.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
+        if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
           MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
@@ -214,7 +214,7 @@ public class GhostVariableUtil {
     for (MPORThread thread : pThreads) {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadFunctionType.callsPthreadFunction(
+        if (PthreadUtil.callsPthreadFunction(
             cfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
           String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
           CIdExpression begin =

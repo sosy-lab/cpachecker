@@ -30,6 +30,9 @@ public class PartialOrderReducer {
   //  stack-longest-1
   //  stack-1
 
+  // TODO add bit vectors for each thread store which global variables (up to 128 supported) are
+  //  accessed in the next case
+
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenateCommutingCases(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
       throws UnrecognizedCodeException {
@@ -118,6 +121,7 @@ public class PartialOrderReducer {
     return pStatement.isConcatenable()
         // these are sorted by performance impact in descending order for short circuit evaluation
         && !(pTarget.isGlobal
+            // TODO add support for loop heads by adding goto loop_heads
             || pTarget.isLoopStart
             || !pTarget.alwaysUpdatesPc()
             || pTarget.block.statements.contains(pStatement));

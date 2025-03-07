@@ -11,9 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Contains mostly methods from the pthread standard, though we also include e.g. {@code
@@ -226,14 +223,14 @@ public enum PthreadFunctionType {
   public final boolean isExplicitlyHandled;
 
   /** The index of the pthread_t param if present. */
-  private final Optional<Integer> pthreadTIndex;
+  public final Optional<Integer> pthreadTIndex;
 
-  private final Optional<Boolean> isPthreadTPointer;
+  public final Optional<Boolean> isPthreadTPointer;
 
   /** The index of the pthread_mutex_t param if present. */
-  private final Optional<Integer> pthreadMutexTIndex;
+  public final Optional<Integer> pthreadMutexTIndex;
 
-  private final Optional<Integer> startRoutineIndex;
+  public final Optional<Integer> startRoutineIndex;
 
   // TODO maybe its best to create a class that states the type of the pthread object, the index /
   //  indices and whether it is never / always / sometimes a pointer
@@ -291,67 +288,5 @@ public enum PthreadFunctionType {
   public int getStartRoutineIndex() {
     checkArgument(startRoutineIndex.isPresent(), "this PthreadFuncType has no start_routine param");
     return startRoutineIndex.orElseThrow();
-  }
-
-  /**
-   * Tries to extract the {@link CFunctionCallStatement} from pEdge and returns true if it is a call
-   * to pFuncType.
-   */
-  public static boolean callsPthreadFunction(CFAEdge pEdge, PthreadFunctionType pFuncType) {
-    return CFAUtils.isCfaEdgeCFunctionCall(pEdge)
-        && CFAUtils.getFunctionNameFromCfaEdge(pEdge).equals(pFuncType.name);
-  }
-
-  public static boolean callsAnyPthreadFunc(CFAEdge pEdge) {
-    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (callsPthreadFunction(pEdge, funcType)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public static boolean callsAnyPthreadFuncWithPthreadT(CFAEdge pEdge) {
-    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (funcType.pthreadTIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, funcType)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  public static boolean callsAnyPthreadFuncWithPthreadMutexT(CFAEdge pEdge) {
-    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (funcType.pthreadMutexTIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, funcType)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  public static boolean callsAnyPthreadFuncWithStartRoutine(CFAEdge pEdge) {
-    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (funcType.startRoutineIndex.isPresent()) {
-        if (callsPthreadFunction(pEdge, funcType)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  public static PthreadFunctionType getPthreadFuncType(CFAEdge pEdge) {
-    checkArgument(CFAUtils.isCfaEdgeCFunctionCall(pEdge));
-    String funcName = CFAUtils.getFunctionNameFromCfaEdge(pEdge);
-    for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
-      if (funcType.name.equals(funcName)) {
-        return funcType;
-      }
-    }
-    throw new IllegalArgumentException("unrecognized pthread method: " + pEdge.getRawAST());
   }
 }

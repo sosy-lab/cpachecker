@@ -45,8 +45,10 @@ public interface SeqCaseBlockStatement extends SeqStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
       throws UnrecognizedCodeException;
 
+  // TODO this is equivalent to whether cloneWithConcatenatedStatements throws an Exception
   boolean isConcatenable();
 
+  // TODO rename this to something more concise like entersCriticalSection
   /**
    * Whether this statement is guaranteed to write a pc, e.g. {@code pc[i] = 42;} Used for POR
    * assumptions.

@@ -187,7 +187,7 @@ public class SeqCaseBlockStatementBuilder {
         return buildReturnValueAssignmentStatement(
             pThreadEdge, targetPc, pcLeftHandSide, pGhostVariables.function);
 
-      } else if (isExplicitlyHandledPthreadFunction(edge)) {
+      } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
         return buildStatementFromPthreadFunction(
             pThread,
             pAllThreads,
@@ -351,7 +351,7 @@ public class SeqCaseBlockStatementBuilder {
       throws UnrecognizedCodeException {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
-    PthreadFunctionType pthreadFunctionType = PthreadFunctionType.getPthreadFuncType(cfaEdge);
+    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFuncType(cfaEdge);
     CLeftHandSide pcLeftHandSide = pPcVariables.get(pThread.id);
 
     return switch (pthreadFunctionType) {
@@ -524,22 +524,9 @@ public class SeqCaseBlockStatementBuilder {
       }
       return true;
 
-    } else if (PthreadFunctionType.callsAnyPthreadFunc(pSubstituteEdge.cfaEdge)) {
+    } else if (PthreadUtil.callsAnyPthreadFunction(pSubstituteEdge.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
-      return !isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
-    }
-    return false;
-  }
-
-  // TODO move to PthreadUtil?
-  /**
-   * Returns true if the semantics of the pthread method in pEdge is considered in the
-   * sequentialization, i.e. the case block contains code. A function may be supported by MPOR but
-   * not considered in the sequentialization.
-   */
-  private static boolean isExplicitlyHandledPthreadFunction(CFAEdge pEdge) {
-    if (PthreadFunctionType.callsAnyPthreadFunc(pEdge)) {
-      return PthreadFunctionType.getPthreadFuncType(pEdge).isExplicitlyHandled;
+      return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
     }
     return false;
   }

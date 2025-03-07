@@ -21,12 +21,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
+// TODO refactor this so that we only set locked = 1 and locks = 0 here, the locks variable is set
+//  to true in statements targeting locks, atomic begins, thread joins etc. (everything total order)
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
  *
- * <p>{@code if (__MPOR_SEQ__GLOBAL_14_m_LOCKED) { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 1; }}
+ * <p>{@code if (__MPOR_SEQ__GLOBAL_14_m_LOCKED) { __MPOR_SEQ__THREAD1_LOCKS_GLOBAL_14_m = 1; }}
  *
- * <p>{@code else { __MPOR_SEQ__THREAD1_AWAITS_GLOBAL_14_m = 0; __MPOR_SEQ__GLOBAL_14_m_LOCKED = 1;
+ * <p>{@code else { __MPOR_SEQ__THREAD1_LOCKS_GLOBAL_14_m = 0; __MPOR_SEQ__GLOBAL_14_m_LOCKED = 1;
  * pc[...] = ...; }}
  */
 public class SeqMutexLockStatement implements SeqCaseBlockStatement {
