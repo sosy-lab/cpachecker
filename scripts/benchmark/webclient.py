@@ -141,8 +141,7 @@ class PollingResultDownloader:
                     )
                     states[state_future] = run_id
 
-                for collection_id in list(
-                        self._web_interface._run_collection_ids):
+                for collection_id in list(self._web_interface._run_collection_ids):
                     collection_state_future = self._state_poll_executor.submit(
                         self._web_interface._get_run_collection_state, collection_id
                     )
