@@ -394,8 +394,9 @@ abstract class AbstractBMCAlgorithm
 
     if (witnessFileForRegressionVerification != null) {
       candidateInvariantsFromWitness =
-          new WitnessToInitialInvariantsConverter(config, logger, shutdownNotifier, fmgr, pmgr, cfa)
-              .witnessConverter(witnessFileForRegressionVerification);
+          new RegressionVerificationWitnessToCandidateInvariantsConverter(
+                  config, logger, shutdownNotifier, fmgr, pmgr, cfa)
+              .getCandidateInvariantsFromWitness(witnessFileForRegressionVerification);
     } else {
       candidateInvariantsFromWitness = ImmutableSet.of();
     }

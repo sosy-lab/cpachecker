@@ -781,21 +781,26 @@ bmc.invariantsExport = no default value
 # in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
 
+# Maximum number of invariants candidates that are generated for a witness
+# invariants when ignoring the function information of the witness and only
+# using the line number. The option has no effect if the heuristic is not
+# NEAREST_N_LOOPS and option enableSecondaryHeuristic is disabled.
+bmc.kinduction.regression.witness.allowedLineMappings = 3
+
+# Enable to use NEAREST_N_LOOPS heuristic for witness invariants for which
+# the primary heuristic did not generate candidate invariants
+bmc.kinduction.regression.witness.enableSecondaryMappingHeuristic = false
+
+# Heuristic for generating candidate invariants from witness invariants,which
+# determines how witness invariants are mapped to loops 
+bmc.kinduction.regression.witness.mappingHeuristic = ALL_LOOPS_IN_FUNCTION
+  enum:     [ALL_LOOPS_IN_FUNCTION, NEAREST_LOOP_IN_FUNCTION_WITHOUT_CANDIDATE,
+             LOOPS_IN_FUNCTION_IN_ORDER, NEAREST_N_LOOPS]
+
 # Correctness witness in 2.x format (for previous program version) that
 # should be used in regression verificationto get candidate invariants for
 # k-induction
 bmc.kinduction.regression.witnessFile = no default value
-
-# Matches function names to the ones in the witness
-bmc.kinduction.reuse.matchFunctionNames = false
-
-# Matches witness invariants to near loopheads. If matchFunctionNames, then
-# only unmatched leftovers
-bmc.kinduction.reuse.matchNearLoopheads = false
-
-# How many Candidates should be generated out of invariant to nearest
-# loophead pairings. No effect when matchNearLoophead = false
-bmc.kinduction.reuse.numberLoopheadMatches = 3
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant
