@@ -301,7 +301,7 @@ public class AutomatonState
       }
       return (automaton != null ? automaton.getName() + ": " : "")
           + internalState.getName()
-          + prettyPrintAsmpts;
+          + prettyPrintAsmpts + (this.isTarget()?"Target":"safe");
     }
     return "";
   }

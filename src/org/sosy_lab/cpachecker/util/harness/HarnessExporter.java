@@ -341,7 +341,8 @@ public class HarnessExporter {
       if (AbstractStates.isTargetState(previous.argState())) {
         assert lastEdge != null
             : "Expected target state to be different from root state, but was not";
-        return Optional.of(new TargetTestVector(lastEdge, previous.testVector()));
+        return Optional.empty();
+        //return Optional.of(new TargetTestVector(lastEdge, previous.testVector()));
       }
       ARGState parent = previous.argState();
       for (ARGState child : parent.getChildren()) {

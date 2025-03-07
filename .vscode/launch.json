@@ -55,6 +55,43 @@
         },
         {
             "type": "java",
+            "name": "Benchmark witness test",
+            "request": "launch",
+            "mainClass": "",
+            "args": ["--violation-witness-validation",
+                    "--option",
+                    "witness.checkProgramHash=false",
+                    "--option",
+                    "analysis.algorithm.errorcondition=true",
+                    "--option",
+                    "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
+                    "--timelimit",
+                    "900s",
+                    "--spec",
+                    "sv-comp-reachability",
+                    "--witness",
+                    "/home/tim/codetests/test1.yml",
+                    "/home/tim/codetests/test.c"
+                    ]
+        },
+        {
+            "type": "java",
+            "name": "predicate analyse",
+            "request": "launch",
+            "mainClass": "",
+            "args": [
+                    "--option",
+                    "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
+                    "--timelimit",
+                    "900s",
+                    "--predicateAnalysis",
+                    "--spec",
+                    "sv-comp-reachability",
+                    "/home/tim/codetests/basiccode.c"
+                    ]
+        },
+        {
+            "type": "java",
             "name": "Generate Witness",
             "request": "launch",
             "mainClass": "",
@@ -66,7 +103,7 @@
                     "900s",
                     "--32",
                     "--stats",
-                    "/home/tim/codetests/test.c"
+                    "/home/tim/codetests/neuertest.c"
                     ]
         },
         {

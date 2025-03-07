@@ -18,10 +18,12 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.TestAlgorithmFactory.AnalysisComponents;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -59,7 +61,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
       throw new CPAException(
           "Error in CPA analysis: precise: " + status.isPrecise() + " sound: " + status.isSound());
     }
-    /*for (AbstractState state : pcomp.reached()) {
+    for (AbstractState state : pcomp.reached()) {
       FluentIterable<AutomatonState> states = AbstractStates.asIterable(state).filter(AutomatonState.class);
       if (states.size() != 2) {
         throw new CPAException("More than two automaton states in reached set: " + states.toList());
@@ -69,8 +71,8 @@ public class ErrorConditionAlgorithm implements Algorithm {
         return false;
       }
     }
-    return true;*/
-    return FluentIterable.from(pcomp.reached()).filter(AbstractStates::isTargetState).isEmpty();
+    return true;
+    //return FluentIterable.from(pcomp.reached()).filter(AbstractStates::isTargetState).isEmpty();
   }
 
   @Override
@@ -113,6 +115,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
         logger.log(Level.INFO, "Witness incomplete");
       }
 
+
       ImmutableList.Builder<ConfigurableProgramAnalysis> obscpalist = ImmutableList.builder();
       for (ConfigurableProgramAnalysis c : CPAs.asIterable(cpa)) {
         if (!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)) {
@@ -144,6 +147,13 @@ public class ErrorConditionAlgorithm implements Algorithm {
       } else {
         logger.log(Level.INFO, "Witness unsound");
       }
+      if(true){
+        pReachedSet.clear();
+        aWitness.reached().forEach(s -> pReachedSet.add(s, aWitness.reached().getPrecision(s)));
+        pReachedSet.clearWaitlist();
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
+
     } catch (CPATransferException e) {
       throw new CPAException("Transfer not possible", e);
     } catch (InvalidConfigurationException e) {
