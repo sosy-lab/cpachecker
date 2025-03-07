@@ -81,7 +81,11 @@ public class SeqCaseClauseBuilder {
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
         SeqCaseClauseUtil.cloneWithConsecutiveLabels(concatenatedCases);
-    return SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger);
+    if (pOptions.validatePc) {
+      return SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger);
+    } else {
+      return consecutiveLabelCases;
+    }
   }
 
   /** Maps threads to the case clauses they potentially execute. */

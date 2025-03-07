@@ -124,7 +124,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " correctness guarantees")
   private boolean validateParse = true;
 
-  // TODO add option to validatePc (for testing purposes only -> secure = false)
+  @Option(
+      description =
+          "test if all label pc (except 0) are target pc and all target pc (except -1) are label pc"
+              + " within a thread switch? true -> less efficient, but more correctness guarantees")
+  private boolean validatePc = true;
 
   private final MPOROptions options;
 
@@ -212,7 +216,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             partialOrderReduction,
             scalarPc,
             signedNextThread,
-            validateParse);
+            validateParse,
+            validatePc);
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;

@@ -299,6 +299,11 @@ analysis.algorithm.MPOR.signedNextThread = false
 # more correctness guarantees
 analysis.algorithm.MPOR.validateParse = true
 
+# test if all label pc (except 0) are target pc and all target pc (except -1)
+# are label pc within a thread switch? true -> less efficient, but more
+# correctness guarantees
+analysis.algorithm.MPOR.validatePc = true
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 

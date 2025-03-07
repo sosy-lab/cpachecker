@@ -45,6 +45,8 @@ public class MPOROptions {
 
   public final boolean validateParse;
 
+  public final boolean validatePc;
+
   public MPOROptions(
       boolean pComments,
       boolean pInputFunctionDeclarations,
@@ -56,7 +58,8 @@ public class MPOROptions {
       boolean pPartialOrderReduction,
       boolean pScalarPc,
       boolean pSignedNextThread,
-      boolean pValidateParse) {
+      boolean pValidateParse,
+      boolean pValidatePc) {
 
     checkArgument(
         correctParamAmount(),
@@ -77,6 +80,7 @@ public class MPOROptions {
     scalarPc = pScalarPc;
     signedNextThread = pSignedNextThread;
     validateParse = pValidateParse;
+    validatePc = pValidatePc;
   }
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
@@ -101,7 +105,8 @@ public class MPOROptions {
         pScalarPc,
         pSignedNextThread,
         // no parse validation in unit tests -> tests are independent of implementation
-        false);
+        false,
+        true);
   }
 
   private boolean correctParamAmount() {
