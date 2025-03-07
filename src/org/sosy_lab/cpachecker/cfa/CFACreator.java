@@ -233,7 +233,7 @@ public class CFACreator {
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = Path.of("cfaPixel");
+  private Path exportCfaPixelFile = null;
 
   @Option(
       secure = true,

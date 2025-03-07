@@ -111,9 +111,17 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
+    }
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
-      loopHeads = ImmutableSet.of(loopHead);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
+      this(ImmutableSet.of(loopHead), pNodes);
+    }
+
+    public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      return new Loop(pLoopHeads, pNodes);
     }
 
     private void computeSets() {
@@ -460,6 +468,10 @@ public final class LoopStructure {
       loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
+  }
+
+  public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
+    return new LoopStructure(pLoops);
   }
 
   /**

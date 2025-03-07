@@ -53,9 +53,6 @@ public class CEGARAlgorithm
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    @SuppressFBWarnings(
-        value = "VO_VOLATILE_INCREMENT",
-        justification = "only one thread writes, others read")
     private volatile int countRefinements = 0;
 
     private int countSuccessfulRefinements = 0;

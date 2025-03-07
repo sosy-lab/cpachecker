@@ -24,7 +24,6 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
 import com.google.common.io.CharStreams;
 import com.google.common.io.MoreFiles;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -191,8 +190,6 @@ public final class AutomatonGraphmlCommon {
       this(pId, pKeyFor, pAttrName, pAttrType, null);
     }
 
-    // because of https://github.com/spotbugs/spotbugs/issues/616
-    @SuppressFBWarnings("NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE")
     KeyDef(
         String pId,
         ElementType pKeyFor,
