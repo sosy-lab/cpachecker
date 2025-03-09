@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -170,11 +171,11 @@ public class ThreadBuilder {
   }
 
   /** Extracts all local variable declarations from pThreadEdges. */
-  private static ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>>
+  private static ImmutableListMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>>
       getLocalVariableDeclarations(ImmutableSet<ThreadEdge> pThreadEdges) {
 
-    ImmutableMultimap.Builder<CVariableDeclaration, Optional<CFunctionCallEdge>> rLocalVars =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CVariableDeclaration, Optional<CFunctionCallEdge>> rLocalVars =
+        ImmutableListMultimap.builder();
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge edge = threadEdge.cfaEdge;
       if (edge instanceof CDeclarationEdge declarationEdge) {

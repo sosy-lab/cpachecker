@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -295,9 +296,9 @@ public class SubstituteBuilder {
   private static <K, V> ImmutableMultimap<K, Optional<V>> mapKeysToOptionalEmpty(
       ImmutableSet<K> pDeclarations) {
 
-    ImmutableMultimap.Builder<K, Optional<V>> r = ImmutableMultimap.builder();
-    pDeclarations.forEach(key -> r.put(key, Optional.empty()));
-    return r.build();
+    ImmutableListMultimap.Builder<K, Optional<V>> rMap = ImmutableListMultimap.builder();
+    pDeclarations.forEach(key -> rMap.put(key, Optional.empty()));
+    return rMap.build();
   }
 
   // TODO refactor
