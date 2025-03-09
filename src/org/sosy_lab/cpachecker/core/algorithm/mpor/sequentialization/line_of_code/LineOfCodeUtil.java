@@ -141,26 +141,6 @@ public class LineOfCodeUtil {
     return rParameterDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildReturnPcDeclarations(
-      MPOROptions pOptions,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables) {
-
-    ImmutableList.Builder<LineOfCode> rReturnPcDeclarations = ImmutableList.builder();
-    if (pOptions.comments) {
-      rReturnPcDeclarations.add(LineOfCode.of(0, SeqComment.RETURN_PCS));
-    }
-    for (ImmutableMap<CFunctionDeclaration, CIdExpression> map : pReturnPcVariables.values()) {
-      for (CIdExpression returnPc : map.values()) {
-        rReturnPcDeclarations.add(LineOfCode.of(0, returnPc.getDeclaration().toASTString()));
-      }
-    }
-    if (pOptions.comments) {
-      rReturnPcDeclarations.add(LineOfCode.empty());
-    }
-    return rReturnPcDeclarations.build();
-  }
-
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions, ThreadSimulationVariables pThreadSimulationVariables) {
 
@@ -210,8 +190,6 @@ public class LineOfCodeUtil {
       MPOROptions pOptions,
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -232,7 +210,6 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             pSubstituteEdges,
-            pReturnPcVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,

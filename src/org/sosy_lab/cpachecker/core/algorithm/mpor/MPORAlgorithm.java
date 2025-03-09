@@ -45,13 +45,14 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * sequential C programs, hence modular.
  */
 @Options(prefix = "analysis.algorithm.MPOR")
-@SuppressWarnings("unused")
+@SuppressWarnings("unused") // this is necessary because we don't use the cpa and config
 public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
-
-  // TODO remove all @SuppressWarnings once finished
 
   // TODO with more benchmarks, find out which settings work best for which verifier
   //  then create an enum with preferred verifier, overriding all options, but output a warning
+
+  // TODO add shortVariables Option (e.g. P_T0_x instead of PARAM_THREAD0_x)
+  // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume
 
   @Option(
       secure = true,

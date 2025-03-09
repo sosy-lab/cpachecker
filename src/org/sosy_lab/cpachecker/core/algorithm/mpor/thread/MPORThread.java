@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
@@ -28,8 +29,8 @@ public class MPORThread {
   /** The {@link CFunctionType} of the startRoutine (pthreads) or main function (main thread). */
   public final CFunctionType startRoutine;
 
-  /** The set of local variable declarations of this thread, used to identify variables. */
-  public final ImmutableSet<CVariableDeclaration> localVars;
+  /** The set of context-sensitive local variable declarations of this thread. */
+  public final ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>> localVars;
 
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
@@ -38,8 +39,9 @@ public class MPORThread {
       int pId,
       CFunctionType pStartRoutine,
       Optional<CIdExpression> pThreadObject,
-      ImmutableSet<CVariableDeclaration> pLocalVars,
+      ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>> pLocalVars,
       ThreadCFA pCfa) {
+
     id = pId;
     startRoutine = pStartRoutine;
     threadObject = pThreadObject;

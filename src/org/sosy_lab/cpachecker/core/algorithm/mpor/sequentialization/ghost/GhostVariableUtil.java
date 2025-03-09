@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -26,24 +25,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcRead;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.MutexLocked;
@@ -52,61 +44,20 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.threa
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class GhostVariableUtil {
-
-  /**
-   * Maps {@link CFunctionDeclaration}s to {@code return_pc} {@link CIdExpression}s for all threads.
-   *
-   * <p>E.g. the function {@code fib} in thread 0 is mapped to the expression of {@code int
-   * __return_pc_t0_fib}.
-   */
-  public static ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-      buildReturnPcVariables(ImmutableSet<MPORThread> pThreads) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> rVars =
-        ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      ImmutableMap.Builder<CFunctionDeclaration, CIdExpression> returnPc = ImmutableMap.builder();
-      for (var entry : thread.cfa.functionCalls.entrySet()) {
-        CFunctionDeclaration functionDeclaration = entry.getKey();
-        // no RETURN_PC for reach_error, the function never returns
-        if (!functionDeclaration.getOrigName().equals(SeqToken.reach_error)) {
-          // only create a RETURN_PC if the function is called more than once in this thread
-          if (entry.getValue() > 1) {
-            CVariableDeclaration returnPcDeclaration =
-                SeqDeclarationBuilder.buildReturnPcVariableDeclaration(
-                    thread.id, functionDeclaration.getName());
-            returnPc.put(
-                functionDeclaration, SeqExpressionBuilder.buildIdExpression(returnPcDeclaration));
-          }
-        }
-      }
-      rVars.put(thread, returnPc.buildOrThrow());
-    }
-    return rVars.buildOrThrow();
-  }
 
   public static FunctionStatements buildFunctionVariables(
       MPORThread pThread,
       CSimpleDeclarationSubstitution pSubstitution,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
-    ImmutableMap<ThreadEdge, FunctionReturnPcWrite> returnPcWrites =
-        buildReturnPcWrites(pThread, pReturnPcVariables.get(pThread));
     return new FunctionStatements(
-        buildParameterAssignments(pThread, pSubEdges, pSubstitution),
-        buildReturnValueAssignments(pThread, pSubEdges, returnPcWrites),
-        returnPcWrites,
-        buildReturnPcReads(pThread, pReturnPcVariables.get(pThread)));
+        buildParameterAssignments(pSubstitution), buildReturnValueAssignments(pThread, pSubEdges));
   }
 
   public static ThreadSimulationVariables buildThreadSimulationVariables(
@@ -233,44 +184,38 @@ public class GhostVariableUtil {
    * {@link FunctionParameterAssignment}s.
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
-   * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution vars are declared in {@link
+   * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
    * CSimpleDeclarationSubstitution#parameterSubstitutes}.
    */
-  private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
-      buildParameterAssignments(
-          MPORThread pThread,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-          CSimpleDeclarationSubstitution pSub) {
+  private static ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
+      buildParameterAssignments(CSimpleDeclarationSubstitution pSubstitution) {
 
-    ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssigns =
-        ImmutableMap.builder();
+    ImmutableMap.Builder<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
+        rAssignments = ImmutableMap.builder();
 
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (pSubEdges.containsKey(threadEdge)) {
-        SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
-        if (substitute.cfaEdge instanceof CFunctionCallEdge funcCall) {
+    // for each function call edge (= calling context)
+    for (var entryA : pSubstitution.parameterSubstitutes.orElseThrow().entrySet()) {
+      CFunctionCallEdge functionCallEdge = entryA.getKey();
+      ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes = entryA.getValue();
 
-          ImmutableList.Builder<FunctionParameterAssignment> assigns = ImmutableList.builder();
-          List<CParameterDeclaration> parameterDeclarations =
-              funcCall.getSuccessor().getFunctionDefinition().getParameters();
+      ImmutableList.Builder<FunctionParameterAssignment> assignments = ImmutableList.builder();
+      List<CParameterDeclaration> parameterDeclarations =
+          functionCallEdge.getSuccessor().getFunctionDefinition().getParameters();
 
-          // for each parameter, assign the param substitute to the param expression in funcCall
-          for (int i = 0; i < parameterDeclarations.size(); i++) {
-            CParameterDeclaration paramDec = parameterDeclarations.get(i);
-            CExpression paramExpr =
-                funcCall.getFunctionCallExpression().getParameterExpressions().get(i);
-            CIdExpression paramSub =
-                Objects.requireNonNull(pSub.parameterSubstitutes.orElseThrow().get(paramDec));
-            FunctionParameterAssignment parameterAssignment =
-                new FunctionParameterAssignment(
-                    SeqStatementBuilder.buildExpressionAssignmentStatement(paramSub, paramExpr));
-            assigns.add(parameterAssignment);
-          }
-          rAssigns.put(threadEdge, assigns.build());
-        }
+      // for each parameter, assign the param substitute to the param expression in funcCall
+      for (int i = 0; i < parameterDeclarations.size(); i++) {
+        CParameterDeclaration paramDec = parameterDeclarations.get(i);
+        CExpression paramExpr =
+            functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
+        CIdExpression paramSub = Objects.requireNonNull(parameterSubstitutes.get(paramDec));
+        FunctionParameterAssignment parameterAssignment =
+            new FunctionParameterAssignment(
+                SeqStatementBuilder.buildExpressionAssignmentStatement(paramSub, paramExpr));
+        assignments.add(parameterAssignment);
       }
+      rAssignments.put(functionCallEdge, assignments.build());
     }
-    return rAssigns.buildOrThrow();
+    return rAssignments.buildOrThrow();
   }
 
   /**
@@ -282,9 +227,7 @@ public class GhostVariableUtil {
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       buildReturnValueAssignments(
-          MPORThread pThread,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-          ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites) {
+          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
         rReturnStatements = ImmutableMap.builder();
@@ -311,7 +254,6 @@ public class GhostVariableUtil {
                     assert functionDeclarationA instanceof CFunctionDeclaration;
                     FunctionReturnValueAssignment assign =
                         new FunctionReturnValueAssignment(
-                            pReturnPcWrites.get(threadEdgeB),
                             assignmentStatement.getLeftHandSide(),
                             returnStatementEdge.getExpression().orElseThrow());
                     assigns.add(assign);
@@ -325,62 +267,5 @@ public class GhostVariableUtil {
       }
     }
     return rReturnStatements.buildOrThrow();
-  }
-
-  /**
-   * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CFunctionSummaryEdge}s to {@link
-   * FunctionReturnPcWrite}s.
-   *
-   * <p>E.g. a {@link CFunctionSummaryEdge} going from pc 5 to 10 for the function {@code fib} in
-   * thread 0 is mapped to the return pc write with the assignment {@code __return_pc_t0_fib = 10;}.
-   */
-  private static ImmutableMap<ThreadEdge, FunctionReturnPcWrite> buildReturnPcWrites(
-      MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
-
-    ImmutableMap.Builder<ThreadEdge, FunctionReturnPcWrite> rAssigns = ImmutableMap.builder();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-        if (!MPORUtil.isReachErrorCall(funcSummary)) {
-          CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
-          CIdExpression returnPc = pReturnPcVars.get(function);
-          if (returnPc != null) {
-            FunctionReturnPcWrite returnPcWrite =
-                new FunctionReturnPcWrite(returnPc, threadEdge.getSuccessor().pc);
-            rAssigns.put(threadEdge, returnPcWrite);
-          }
-        }
-      }
-    }
-    return rAssigns.buildOrThrow();
-  }
-
-  /**
-   * Maps {@link ThreadNode}s whose {@link CFANode} is a {@link FunctionExitNode} to {@link
-   * FunctionReturnPcRead}s.
-   *
-   * <p>E.g. a {@link FunctionExitNode} for the function {@code fib} in thread 0 is mapped to the
-   * assignment {@code pc[0] = __return_pc_t0_fib;}.
-   */
-  private static ImmutableMap<ThreadNode, FunctionReturnPcRead> buildReturnPcReads(
-      MPORThread pThread, ImmutableMap<CFunctionDeclaration, CIdExpression> pReturnPcVars) {
-
-    Map<ThreadNode, FunctionReturnPcRead> rAssigns = new HashMap<>();
-    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionSummaryEdge funcSummary) {
-        if (!MPORUtil.isReachErrorCall(funcSummary)) {
-          Optional<FunctionExitNode> funcExitNode = funcSummary.getFunctionEntry().getExitNode();
-          if (funcExitNode.isPresent()) {
-            CFunctionDeclaration function = funcSummary.getFunctionEntry().getFunctionDefinition();
-            ThreadNode threadNode = pThread.cfa.getThreadNodeByCfaNode(funcExitNode.orElseThrow());
-            if (pReturnPcVars.containsKey(function) && !rAssigns.containsKey(threadNode)) {
-              CIdExpression returnPc = pReturnPcVars.get(function);
-              FunctionReturnPcRead returnPcRead = new FunctionReturnPcRead(pThread.id, returnPc);
-              rAssigns.put(threadNode, returnPcRead);
-            }
-          }
-        }
-      }
-    }
-    return ImmutableMap.copyOf(rAssigns);
   }
 }

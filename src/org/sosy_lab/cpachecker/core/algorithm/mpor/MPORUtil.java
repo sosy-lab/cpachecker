@@ -39,12 +39,6 @@ public final class MPORUtil {
    * returned. If not, we take the previous pPrevFuncReturnNode or reset it to {@link
    * Optional#empty()} if pCurrentNode is a FunctionExitNode, i.e. the previous pPrevFuncReturnNode
    * is not relevant anymore in the next iteration.
-   *
-   * @param pCurrentNode in recursive functions that search the leaving CFAEdges of the current
-   *     node, the previous node of the analyzed node should be used here
-   * @param pPrevFuncReturnNode the previous FunctionReturnNode
-   * @return the previous or new FunctionReturnNode or {@link Optional#empty()} if pCurrentNode
-   *     exits a function
    */
   public static Optional<CFANode> updateFunctionReturnNode(
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,

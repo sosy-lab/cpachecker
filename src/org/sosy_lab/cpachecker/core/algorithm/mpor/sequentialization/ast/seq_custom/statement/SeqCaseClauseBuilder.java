@@ -18,8 +18,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -30,9 +28,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexLockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcRead;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
@@ -53,8 +52,6 @@ public class SeqCaseClauseBuilder {
       MPOROptions pOptions,
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -66,7 +63,6 @@ public class SeqCaseClauseBuilder {
         initCaseClauses(
             pSubstitutions,
             pSubstituteEdges,
-            pReturnPcVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder);
@@ -92,8 +88,6 @@ public class SeqCaseClauseBuilder {
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>>
-          pReturnPcVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -108,8 +102,7 @@ public class SeqCaseClauseBuilder {
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       FunctionStatements functionVariables =
-          GhostVariableUtil.buildFunctionVariables(
-              thread, substitution, pSubstituteEdges, pReturnPcVariables);
+          GhostVariableUtil.buildFunctionVariables(thread, substitution, pSubstituteEdges);
       GhostVariables ghostVariables =
           new GhostVariables(functionVariables, pPcVariables, pThreadSimulationVariables);
 
@@ -156,7 +149,7 @@ public class SeqCaseClauseBuilder {
         }
       }
     }
-    return rCaseClauses.build();
+    return injectThreadSimulationGhosts(rCaseClauses.build());
   }
 
   /**
@@ -188,19 +181,10 @@ public class SeqCaseClauseBuilder {
       return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      if (pGhostVariables.function.returnPcReads.containsKey(pThreadNode)) {
-        // if there is a returnPcRead (pc = RETURN_PC) then the function is called numerous times
-        FunctionReturnPcRead read =
-            Objects.requireNonNull(pGhostVariables.function.returnPcReads.get(pThreadNode));
-        statements.add(
-            SeqCaseBlockStatementBuilder.buildReturnPcReadStatement(
-                pcLeftHandSide, read.returnPcVariable));
-      } else {
-        // if there is no returnPcRead, then the function is called only once -> use target pc
-        assert pThreadNode.leavingEdges().size() == 1;
-        int targetPc = pThreadNode.leavingEdges().get(0).getSuccessor().pc;
-        statements.add(SeqCaseBlockStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
-      }
+      // if there is no returnPcRead, then the function is called only once -> use target pc
+      assert pThreadNode.leavingEdges().size() == 1;
+      int targetPc = pThreadNode.leavingEdges().get(0).getSuccessor().pc;
+      statements.add(SeqCaseBlockStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
 
     } else {
       boolean isAssume = leavingEdges.get(0).cfaEdge instanceof CAssumeEdge;
@@ -224,6 +208,49 @@ public class SeqCaseClauseBuilder {
             pThreadNode.cfaNode.isLoopStart(),
             labelPc,
             new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
+  }
+
+  private static ImmutableList<SeqCaseClause> injectThreadSimulationGhosts(
+      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
+    ImmutableMap<Integer, SeqCaseClause> labelValueMap =
+        SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+        ImmutableList.Builder<SeqCaseBlockInjectedStatement> injectedStatements =
+            ImmutableList.builder();
+
+        if (statement.getTargetPc().isPresent()) {
+          int targetPc = statement.getTargetPc().orElseThrow();
+          if (targetPc != Sequentialization.EXIT_PC) {
+            SeqCaseClause target = Objects.requireNonNull(labelValueMap.get(targetPc));
+            // validation enforces that total strict order entries are direct targets (= first stmt)
+            SeqCaseBlockStatement firstStatement = target.block.statements.get(0);
+            // TODO also handle AtomicBegin, ThreadJoin,
+            if (firstStatement instanceof SeqMutexLockStatement mutexLockStatement) {
+              injectedStatements.add(
+                  SeqCaseBlockStatementBuilder.buildThreadLocksMutexStatement(
+                      mutexLockStatement.threadLocksMutex));
+            }
+          }
+        }
+        ImmutableList<SeqCaseBlockInjectedStatement> injected = injectedStatements.build();
+        if (injected.isEmpty()) {
+          // no injections -> add all previous statements (we only inject, no replacing)
+          newStatements.add(statement);
+        } else {
+          // injections -> add cloned statement with injections
+          newStatements.add(statement.cloneWithInjectedStatements(injected));
+        }
+      }
+      SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
+      rCaseClauses.add(caseClause.cloneWithBlock(newBlock));
+    }
+    return rCaseClauses.build();
   }
 
   // Helpers =====================================================================================

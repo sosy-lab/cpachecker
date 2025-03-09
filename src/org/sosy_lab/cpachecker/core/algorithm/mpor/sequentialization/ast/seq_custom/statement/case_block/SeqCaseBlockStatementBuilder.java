@@ -39,16 +39,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement.SeqReturnValueAssignmentCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqThreadLocksMutexStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnPcWrite;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
@@ -61,12 +57,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCaseBlockStatementBuilder {
-
-  public static SeqReturnPcReadStatement buildReturnPcReadStatement(
-      CLeftHandSide pPcLeftHandSide, CIdExpression pReturnPcVariable) {
-
-    return new SeqReturnPcReadStatement(pPcLeftHandSide, pReturnPcVariable);
-  }
 
   public static ImmutableList<SeqCaseBlockStatement> buildStatementsFromThreadNode(
       MPORThread pThread,
@@ -92,7 +82,7 @@ public class SeqCaseBlockStatementBuilder {
 
         // we exclude both reach_error and functions with only 1 call in a thread
         // because they have no return_pc write
-      } else if (!isExcludedFunctionSummaryEdge(threadEdge, pGhostVariables)) {
+      } else if (!isExcludedFunctionSummaryEdge(threadEdge)) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
           SeqCaseBlockStatement statement =
@@ -176,9 +166,6 @@ public class SeqCaseBlockStatementBuilder {
         return buildLocalVariableDeclarationWithInitializerStatement(
             declarationEdge, pcLeftHandSide, targetPc);
 
-      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
-        return handleFunctionSummaryEdge(functionSummary, pThreadEdge, pGhostVariables);
-
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
         return handleFunctionCallEdge(
             pThread.id, functionCall, pThreadEdge, targetPc, pGhostVariables);
@@ -243,27 +230,6 @@ public class SeqCaseBlockStatementBuilder {
         (CVariableDeclaration) declaration, pPcLeftHandSide, pTargetPc);
   }
 
-  private static SeqReturnPcWriteStatement buildReturnPcWriteStatement(
-      ThreadEdge pThreadEdge, FunctionStatements pFunctionVariables) {
-
-    assert pFunctionVariables.returnPcWrites.containsKey(pThreadEdge);
-    FunctionReturnPcWrite write =
-        Objects.requireNonNull(pFunctionVariables.returnPcWrites.get(pThreadEdge));
-    return new SeqReturnPcWriteStatement(write.variable, write.value);
-  }
-
-  private static SeqReturnPcWriteStatement handleFunctionSummaryEdge(
-      CFunctionSummaryEdge pFunctionSummaryEdge,
-      ThreadEdge pThreadEdge,
-      GhostVariables pGhostVariables) {
-
-    // function summaries -> store calling context in return_pc (none for reach_error)
-    checkArgument(
-        !MPORUtil.isReachErrorCall(pFunctionSummaryEdge),
-        "pFunctionSummaryEdge is call to reach_error");
-    return buildReturnPcWriteStatement(pThreadEdge, pGhostVariables.function);
-  }
-
   private static SeqCaseBlockStatement handleFunctionCallEdge(
       int pThreadId,
       CFunctionCallEdge pFunctionCallEdge,
@@ -277,9 +243,10 @@ public class SeqCaseBlockStatementBuilder {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(pcLeftHandSide);
     }
-    assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
+    CFunctionCallEdge callingContext = pThreadEdge.callingContext.orElseThrow();
+    assert pGhostVariables.function.parameterAssignments.containsKey(callingContext);
     ImmutableList<FunctionParameterAssignment> assignments =
-        Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
+        Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(callingContext));
     if (assignments.isEmpty()) {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }
@@ -299,44 +266,11 @@ public class SeqCaseBlockStatementBuilder {
         Objects.requireNonNull(pFunctionVariables.returnValueAssignments.get(pThreadEdge));
     if (assignments.isEmpty()) { // -> function does not return anything, i.e. return;
       return new SeqBlankStatement(pPcLeftHandSide, pTargetPc);
-    } else if (assignments.size() == 1) {
-      // if there is only one calling context for this thread, we don't need a switch statement
+    } else {
       FunctionReturnValueAssignment assignment = assignments.iterator().next();
       return new SeqReturnValueAssignmentStatement(
           assignment.statement, pPcLeftHandSide, pTargetPc);
-    } else {
-      // just get the first element in the set for the RETURN_PC
-      CIdExpression returnPc = assignments.iterator().next().returnPcWrite.variable;
-      return new SeqReturnValueAssignmentSwitchStatement(
-          returnPc,
-          buildCaseClausesFromReturnValueAssignments(assignments),
-          pPcLeftHandSide,
-          pTargetPc);
     }
-  }
-
-  private static ImmutableList<SeqCaseClause> buildCaseClausesFromReturnValueAssignments(
-      ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
-
-    ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
-    for (FunctionReturnValueAssignment assignment : pAssignments) {
-      int caseLabelValue = assignment.returnPcWrite.value;
-      SeqReturnValueAssignmentCaseBlockStatement assignmentStatement =
-          buildSeqReturnValueCaseBlockStatement(assignment.statement);
-      rCaseClauses.add(
-          new SeqCaseClause(
-              anyGlobalAssign(pAssignments),
-              false,
-              caseLabelValue,
-              new SeqCaseBlock(ImmutableList.of(assignmentStatement), Terminator.BREAK)));
-    }
-    return rCaseClauses.build();
-  }
-
-  private static SeqReturnValueAssignmentCaseBlockStatement buildSeqReturnValueCaseBlockStatement(
-      CExpressionAssignmentStatement pAssignment) {
-
-    return new SeqReturnValueAssignmentCaseBlockStatement(pAssignment);
   }
 
   private static SeqCaseBlockStatement buildStatementFromPthreadFunction(
@@ -392,6 +326,12 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqThreadCreationStatement(createdThread.id, pThread.id, pTargetPc, pPcVariables);
   }
 
+  public static SeqThreadLocksMutexStatement buildThreadLocksMutexStatement(
+      CIdExpression pThreadLocksMutex) {
+
+    return new SeqThreadLocksMutexStatement(pThreadLocksMutex);
+  }
+
   private static SeqMutexLockStatement buildMutexLockStatement(
       MPORThread pThread,
       ThreadEdge pThreadEdge,
@@ -401,15 +341,15 @@ public class SeqCaseBlockStatementBuilder {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(lockedMutexT);
-    CIdExpression lockedVar =
+    CIdExpression mutexLocked =
         Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT)).idExpression;
     assert pThreadVariables.locks.containsKey(pThread);
     assert Objects.requireNonNull(pThreadVariables.locks.get(pThread)).containsKey(lockedMutexT);
-    CIdExpression mutexAwaits =
+    CIdExpression threadLocksMutex =
         Objects.requireNonNull(
                 Objects.requireNonNull(pThreadVariables.locks.get(pThread)).get(lockedMutexT))
             .idExpression;
-    return new SeqMutexLockStatement(lockedVar, mutexAwaits, pPcLeftHandSide, pTargetPc);
+    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pPcLeftHandSide, pTargetPc);
   }
 
   private static SeqMutexUnlockStatement buildMutexUnlockStatement(
@@ -509,6 +449,10 @@ public class SeqCaseBlockStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
+    } else if (pSubstituteEdge.cfaEdge instanceof FunctionSummaryEdge) {
+      // function summaries (representing the calling context) are handled when exiting functions
+      return true;
+
     } else if (PthreadUtil.assignsPthreadMutexInitializer(pSubstituteEdge.cfaEdge)) {
       // PTHREAD_MUTEX_INITIALIZER are similar to pthread_mutex_init, we exclude it
       return true;
@@ -532,22 +476,12 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   /**
-   * Checks if {@code pThreadEdge} is a {@link FunctionSummaryEdge} that does not yield a {@link
-   * SeqReturnPcWriteStatement} because there is no need for a {@code RETURN_PC}:
-   *
-   * <ul>
-   *   <li>functions with only 1 call to them in a thread
-   *   <li>{@code reach_error} function calls (function never returns)
-   * </ul>
+   * Checks if {@code pThreadEdge} is a {@link FunctionSummaryEdge} that calls {@code reach_error}.
    */
-  private static boolean isExcludedFunctionSummaryEdge(
-      ThreadEdge pThreadEdge, GhostVariables pGhostVariables) {
+  private static boolean isExcludedFunctionSummaryEdge(ThreadEdge pThreadEdge) {
+
     if (pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
-      if (!pGhostVariables.function.returnPcWrites.containsKey(pThreadEdge)) {
-        return true;
-      } else if (MPORUtil.isReachErrorCall(functionSummaryEdge)) {
-        return true;
-      }
+      return MPORUtil.isReachErrorCall(functionSummaryEdge);
     }
     return false;
   }

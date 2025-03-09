@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -33,9 +33,9 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CExpression> targetPcExpression;
+  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
-  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+  private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
@@ -47,36 +47,24 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
     threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.empty();
+    injectedStatements = ImmutableList.of();
+    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqAtomicBeginStatement(
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,
-      CExpression pTargetPcExpression) {
-
-    atomicLocked = pAtomicLocked;
-    threadBeginsAtomic = pThreadBeginsAtomic;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.of(pTargetPcExpression);
-    concatenatedStatements = Optional.empty();
-  }
-
-  private SeqAtomicBeginStatement(
-      CIdExpression pAtomicLocked,
-      CIdExpression pThreadBeginsAtomic,
-      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.of(pConcatenatedStatements);
+    targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
+    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
@@ -95,7 +83,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
+            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
 
     String elseStatements =
         SeqStringUtil.wrapInCurlyInwards(
@@ -120,18 +108,30 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    return targetPcExpression;
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    return injectedStatements;
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     return concatenatedStatements;
   }
 
   @Override
-  public SeqAtomicBeginStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+    return new SeqAtomicBeginStatement(
+        atomicLocked,
+        threadBeginsAtomic,
+        pcLeftHandSide,
+        targetPc,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -139,7 +139,12 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqAtomicBeginStatement(
-        atomicLocked, threadBeginsAtomic, pcLeftHandSide, pConcatenatedStatements);
+        atomicLocked,
+        threadBeginsAtomic,
+        pcLeftHandSide,
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

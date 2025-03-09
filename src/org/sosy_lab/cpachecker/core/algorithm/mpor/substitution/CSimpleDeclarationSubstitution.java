@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -35,12 +36,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.ExpressionSubstitution.Substitution;
 
-// TODO try around with Visitors, this should make all of this redundant
-public class CSimpleDeclarationSubstitution implements Substitution {
+public class CSimpleDeclarationSubstitution {
 
   /**
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
@@ -48,21 +48,31 @@ public class CSimpleDeclarationSubstitution implements Substitution {
    */
   public final Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> globalSubstitutes;
 
-  /** The map of thread local variable declarations to their substitutes. */
-  public final ImmutableMap<CVariableDeclaration, CIdExpression> localSubstitutes;
+  /**
+   * The map of thread local variable declarations to their substitutes. Not every local variable
+   * declaration has a calling context, hence {@link Optional}s.
+   */
+  public final ImmutableMap<
+          CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
+      localSubstitutes;
 
   /**
    * The map of parameter to variable declaration substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  public final Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> parameterSubstitutes;
+  public final Optional<
+          ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>>
+      parameterSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public CSimpleDeclarationSubstitution(
+      // TODO for optionals, just use empty map
       Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
-      ImmutableMap<CVariableDeclaration, CIdExpression> pLocalSubstitutes,
-      Optional<ImmutableMap<CParameterDeclaration, CIdExpression>> pParameterSubstitutes,
+      ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
+          pLocalSubstitutes,
+      Optional<ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>>
+          pParameterSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     globalSubstitutes = pGlobalSubstitutes;
@@ -71,22 +81,21 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
-  // TODO take a look at ExpressionSubstitution.applySubstitution()
+  public CExpression substitute(
+      final CExpression pExpression, final Optional<CFunctionCallEdge> pCallingContext) {
 
-  @Override
-  public CExpression substitute(CExpression pExpression) {
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
 
     if (pExpression instanceof CIdExpression idExpression) {
       if (isSubstitutable(idExpression.getDeclaration())) {
-        return getVariableSubstitute(idExpression.getDeclaration());
+        return getVariableSubstitute(idExpression.getDeclaration(), pCallingContext);
       }
 
     } else if (pExpression instanceof CBinaryExpression binary) {
       // recursively substitute operands of binary expressions
-      CExpression op1 = substitute(binary.getOperand1());
-      CExpression op2 = substitute(binary.getOperand2());
+      CExpression op1 = substitute(binary.getOperand1(), pCallingContext);
+      CExpression op2 = substitute(binary.getOperand2(), pCallingContext);
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
         try {
@@ -100,8 +109,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
     } else if (pExpression instanceof CArraySubscriptExpression arraySubscript) {
       CExpression arrayExpression = arraySubscript.getArrayExpression();
       CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
-      CExpression arraySubstitute = substitute(arrayExpression);
-      CExpression subscriptSubstitute = substitute(subscriptExpression);
+      CExpression arraySubstitute = substitute(arrayExpression, pCallingContext);
+      CExpression subscriptSubstitute = substitute(subscriptExpression, pCallingContext);
       // only create a new expression if any expr was substituted (compare references)
       if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
         return new CArraySubscriptExpression(
@@ -109,7 +118,8 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       }
 
     } else if (pExpression instanceof CFieldReference fieldReference) {
-      CExpression fieldOwnerSubstitute = substitute(fieldReference.getFieldOwner());
+      CExpression fieldOwnerSubstitute =
+          substitute(fieldReference.getFieldOwner(), pCallingContext);
       // only create a new expression if any expr was substituted (compare references)
       if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
         return new CFieldReference(
@@ -124,64 +134,75 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       return new CUnaryExpression(
           unary.getFileLocation(),
           unary.getExpressionType(),
-          substitute(unary.getOperand()),
+          substitute(unary.getOperand(), pCallingContext),
           unary.getOperator());
 
     } else if (pExpression instanceof CPointerExpression pointer) {
       return new CPointerExpression(
-          pointer.getFileLocation(), pointer.getExpressionType(), substitute(pointer.getOperand()));
+          pointer.getFileLocation(),
+          pointer.getExpressionType(),
+          substitute(pointer.getOperand(), pCallingContext));
     }
 
     return pExpression;
   }
 
-  public CStatement substitute(CStatement pStatement) {
+  public CStatement substitute(CStatement pStatement, Optional<CFunctionCallEdge> pCallingContext) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
+    // e.g. n = fib(42); or arr[n] = fib(42);
     if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
       CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
       if (leftHandSide instanceof CIdExpression idExpression) {
-        CExpression substitute = substitute(idExpression);
+        CExpression substitute = substitute(idExpression, pCallingContext);
         if (substitute instanceof CIdExpression idExpressionSubstitute) {
           CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
           return new CFunctionCallAssignmentStatement(
-              fileLocation, idExpressionSubstitute, substitute(rightHandSide));
+              fileLocation, idExpressionSubstitute, substitute(rightHandSide, pCallingContext));
         }
       } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
-        CExpression substitute = substitute(arraySubscriptExpression);
+        CExpression substitute = substitute(arraySubscriptExpression, pCallingContext);
         if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
           CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
           return new CFunctionCallAssignmentStatement(
-              fileLocation, arraySubscriptExpressionSubstitute, substitute(rightHandSide));
+              fileLocation,
+              arraySubscriptExpressionSubstitute,
+              substitute(rightHandSide, pCallingContext));
         }
       }
 
+      // e.g. fib(42);
     } else if (pStatement instanceof CFunctionCallStatement functionCall) {
       return new CFunctionCallStatement(
-          functionCall.getFileLocation(), substitute(functionCall.getFunctionCallExpression()));
+          functionCall.getFileLocation(),
+          substitute(functionCall.getFunctionCallExpression(), pCallingContext));
 
     } else if (pStatement instanceof CExpressionAssignmentStatement expressionAssignment) {
       CLeftHandSide leftHandSide = expressionAssignment.getLeftHandSide();
       CExpression rightHandSide = expressionAssignment.getRightHandSide();
-      CExpression substitute = substitute(leftHandSide);
+      CExpression substitute = substitute(leftHandSide, pCallingContext);
       if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
         return new CExpressionAssignmentStatement(
-            fileLocation, leftHandSideSubstitute, substitute(rightHandSide));
+            fileLocation, leftHandSideSubstitute, substitute(rightHandSide, pCallingContext));
       }
 
     } else if (pStatement instanceof CExpressionStatement expression) {
-      return new CExpressionStatement(fileLocation, substitute(expression.getExpression()));
+      return new CExpressionStatement(
+          fileLocation, substitute(expression.getExpression(), pCallingContext));
     }
 
     return pStatement;
   }
 
-  public CFunctionCallExpression substitute(CFunctionCallExpression pFunctionCallExpression) {
+  public CFunctionCallExpression substitute(
+      CFunctionCallExpression pFunctionCallExpression,
+      Optional<CFunctionCallEdge> pCallingContext) {
+
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
     for (CExpression expression : pFunctionCallExpression.getParameterExpressions()) {
-      parameters.add(substitute(expression));
+      parameters.add(substitute(expression, pCallingContext));
     }
     return new CFunctionCallExpression(
         pFunctionCallExpression.getFileLocation(),
@@ -191,7 +212,9 @@ public class CSimpleDeclarationSubstitution implements Substitution {
         pFunctionCallExpression.getDeclaration());
   }
 
-  public CReturnStatement substitute(CReturnStatement pReturnStatement) {
+  public CReturnStatement substitute(
+      CReturnStatement pReturnStatement, Optional<CFunctionCallEdge> pCallingContext) {
+
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute
       return pReturnStatement;
@@ -200,16 +223,19 @@ public class CSimpleDeclarationSubstitution implements Substitution {
       // TODO it would be cleaner to also substitute the assignment...
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
-          Optional.of(substitute(expression)),
+          Optional.of(substitute(expression, pCallingContext)),
           pReturnStatement.asAssignment());
     }
   }
 
-  /** Returns the global, local or param {@link CIdExpression} substitute of pDec. */
-  private CIdExpression getVariableSubstitute(CSimpleDeclaration pSimpleDeclaration) {
+  /** Returns the global, local or param {@link CIdExpression} substitute of pSimpleDeclaration. */
+  private CIdExpression getVariableSubstitute(
+      CSimpleDeclaration pSimpleDeclaration, Optional<CFunctionCallEdge> pCallingContext) {
+
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
-        return localSubstitutes.get(variableDeclaration);
+        return Objects.requireNonNull(localSubstitutes.get(variableDeclaration))
+            .get(pCallingContext);
       } else {
         assert globalSubstitutes.isPresent();
         checkArgument(
@@ -218,22 +244,28 @@ public class CSimpleDeclarationSubstitution implements Substitution {
             pSimpleDeclaration.toASTString());
         return globalSubstitutes.orElseThrow().get(variableDeclaration);
       }
+
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
+      assert pCallingContext.isPresent();
       assert parameterSubstitutes.isPresent();
+      CFunctionCallEdge callingContext = pCallingContext.orElseThrow();
       checkArgument(
-          parameterSubstitutes.orElseThrow().containsKey(parameterDeclaration),
+          parameterSubstitutes.orElseThrow().containsKey(callingContext),
           "no substitute found for %s",
           pSimpleDeclaration.toASTString());
-      return parameterSubstitutes.orElseThrow().get(parameterDeclaration);
+      ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
+          Objects.requireNonNull(parameterSubstitutes.orElseThrow().get(callingContext));
+      return substitutes.get(parameterDeclaration);
     }
+
     throw new IllegalArgumentException(
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
 
   public CVariableDeclaration getVariableDeclarationSubstitute(
-      CSimpleDeclaration pSimpleDeclaration) {
+      CSimpleDeclaration pSimpleDeclaration, Optional<CFunctionCallEdge> pCallingContext) {
 
-    CIdExpression idExpression = getVariableSubstitute(pSimpleDeclaration);
+    CIdExpression idExpression = getVariableSubstitute(pSimpleDeclaration, pCallingContext);
     return (CVariableDeclaration) idExpression.getDeclaration();
   }
 
@@ -265,10 +297,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
 
   public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
-    for (CIdExpression localVariable : localSubstitutes.values()) {
-      CVariableDeclaration variableDeclaration =
-          castTo(localVariable.getDeclaration(), CVariableDeclaration.class);
-      rLocalDeclarations.add(variableDeclaration);
+    for (ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression> localVariables :
+        localSubstitutes.values()) {
+      for (CIdExpression localVariable : localVariables.values()) {
+        CVariableDeclaration variableDeclaration =
+            castTo(localVariable.getDeclaration(), CVariableDeclaration.class);
+        rLocalDeclarations.add(variableDeclaration);
+      }
     }
     return rLocalDeclarations.build();
   }
@@ -279,10 +314,13 @@ public class CSimpleDeclarationSubstitution implements Substitution {
    */
   public ImmutableList<CVariableDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
-    for (CIdExpression parameter : parameterSubstitutes.orElseThrow().values()) {
-      CVariableDeclaration parameterDeclaration =
-          castTo(parameter.getDeclaration(), CVariableDeclaration.class);
-      rParameterDeclarations.add(parameterDeclaration);
+    for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
+        parameterSubstitutes.orElseThrow().values()) {
+      for (CIdExpression parameter : substitutes.values()) {
+        CVariableDeclaration declaration =
+            castTo(parameter.getDeclaration(), CVariableDeclaration.class);
+        rParameterDeclarations.add(declaration);
+      }
     }
     return rParameterDeclarations.build();
   }

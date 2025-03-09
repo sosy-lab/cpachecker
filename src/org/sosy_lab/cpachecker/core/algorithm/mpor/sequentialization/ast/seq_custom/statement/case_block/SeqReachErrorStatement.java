@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
@@ -47,21 +47,27 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    // TODO test if we can also throw an exception here?
-    return Optional.empty();
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have injected statements");
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have concatenated statements");
   }
 
   @Override
-  public SeqReachErrorStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
+    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have targetPcs and cannot be cloned");
+        this.getClass().getSimpleName() + " do not have injected statements and cannot be cloned");
   }
 
   @Override

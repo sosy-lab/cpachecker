@@ -12,12 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -59,14 +54,12 @@ public class SeqCaseClauseUtil {
       rAllStatements.add(pStatementClass.cast(pStatement));
     }
     if (pStatement.isConcatenable()) {
-      Optional<ImmutableList<SeqCaseBlockStatement>> concatStatements =
+      ImmutableList<SeqCaseBlockStatement> concatStatements =
           pStatement.getConcatenatedStatements();
-      if (concatStatements.isPresent()) {
-        for (SeqCaseBlockStatement concatStatement : concatStatements.orElseThrow()) {
-          if (pStatementClass.isInstance(concatStatement)) {
-            // recursively search for target pc in concatenated statements
-            rAllStatements.addAll(getAllStatementsByClass(concatStatement, pStatementClass));
-          }
+      for (SeqCaseBlockStatement concatStatement : concatStatements) {
+        if (pStatementClass.isInstance(concatStatement)) {
+          // recursively search for target pc in concatenated statements
+          rAllStatements.addAll(getAllStatementsByClass(concatStatement, pStatementClass));
         }
       }
     }
@@ -74,43 +67,20 @@ public class SeqCaseClauseUtil {
   }
 
   /**
-   * Tries to extract the {@code int} target {@code pc} from {@code pStatement}. If the target
-   * {@code pc} is a {@link CIdExpression} ({@code RETURN_PC}) or there is none (cf. concatenated
-   * statements), returns {@link Optional#empty()}.
-   */
-  public static Optional<Integer> tryExtractIntTargetPc(SeqCaseBlockStatement pStatement) {
-    Optional<Integer> targetPc = pStatement.getTargetPc();
-    if (targetPc.isPresent()) {
-      return Optional.of(targetPc.orElseThrow());
-    } else {
-      Optional<CExpression> targetPcExpression = pStatement.getTargetPcExpression();
-      if (targetPcExpression.isPresent()) {
-        if (targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression intExpression) {
-          return Optional.of(intExpression.getValue().intValue());
-        }
-      }
-    }
-    return Optional.empty();
-  }
-
-  /**
    * Searches for all target {@code pc} in {@code pStatement}, including concatenated statements.
    */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqCaseBlockStatement pStatement) {
     ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
-    Optional<Integer> intTargetPc = tryExtractIntTargetPc(pStatement);
-    if (intTargetPc.isPresent()) {
+    if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
-      rAllTargetPc.add(intTargetPc.orElseThrow());
+      rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());
     }
     if (pStatement.isConcatenable()) {
-      Optional<ImmutableList<SeqCaseBlockStatement>> concatStatements =
+      ImmutableList<SeqCaseBlockStatement> concatStatements =
           pStatement.getConcatenatedStatements();
-      if (concatStatements.isPresent()) {
-        for (SeqCaseBlockStatement concatStatement : concatStatements.orElseThrow()) {
-          // recursively search for target pc in concatenated statements
-          rAllTargetPc.addAll(collectAllIntegerTargetPc(concatStatement));
-        }
+      for (SeqCaseBlockStatement concatStatement : concatStatements) {
+        // recursively search for target pc in concatenated statements
+        rAllTargetPc.addAll(collectAllIntegerTargetPc(concatStatement));
       }
     }
     return rAllTargetPc.build();
@@ -184,26 +154,23 @@ public class SeqCaseClauseUtil {
 
     // if there are concatenated statements, replace target pc there too
     if (pCurrentStatement.isConcatenable()) {
-      Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements =
+      ImmutableList<SeqCaseBlockStatement> concatenatedStatements =
           pCurrentStatement.getConcatenatedStatements();
-      if (concatenatedStatements.isPresent()) {
+      if (!concatenatedStatements.isEmpty()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-        for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements.orElseThrow()) {
+        for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
           newStatements.add(recursivelyReplaceTargetPc(concatenatedStatement, rLabelToIndexMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
     }
 
-    Optional<Integer> intTargetPc = tryExtractIntTargetPc(pCurrentStatement);
-    if (intTargetPc.isPresent()) {
+    if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present and there are no concatenated statements -> clone with targetIndex
-      int targetPc = intTargetPc.orElseThrow();
+      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         int index = Objects.requireNonNull(rLabelToIndexMap.get(targetPc));
-        CIntegerLiteralExpression targetPcExpression =
-            SeqExpressionBuilder.buildIntegerLiteralExpression(index);
-        return pCurrentStatement.cloneWithTargetPc(targetPcExpression);
+        return pCurrentStatement.cloneWithTargetPc(index);
       }
     }
     // no int target pc -> no replacement

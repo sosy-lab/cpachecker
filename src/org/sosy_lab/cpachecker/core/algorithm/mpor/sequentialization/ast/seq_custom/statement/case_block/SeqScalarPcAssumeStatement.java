@@ -10,8 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Only used with {@code scalarPc} when assuming that the next thread is still active, e.g.
@@ -38,18 +39,26 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have a target pc");
+        this.getClass().getSimpleName() + " do not have injected statements");
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
-    return Optional.empty();
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have concatenated statements");
   }
 
   @Override
-  public SeqScalarPcAssumeStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
+    // we do not clone this as it is not used for pruning, but just for the loop head assumption
+    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
     // we do not clone this as it is not used for pruning, but just for the loop head assumption
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
   }

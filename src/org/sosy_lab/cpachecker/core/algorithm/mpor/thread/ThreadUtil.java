@@ -9,31 +9,26 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 
 public class ThreadUtil {
 
-  protected static ImmutableMap<CFunctionDeclaration, Integer> getCalledFunctions(
-      ImmutableSet<ThreadEdge> pThreadEdges) {
+  protected static <T extends CFAEdge> ImmutableList<T> getEdgesByClass(
+      ImmutableSet<ThreadEdge> pThreadEdges, Class<T> pEdgeClass) {
 
-    Map<CFunctionDeclaration, Integer> rCalledFunctions = new HashMap<>();
+    ImmutableList.Builder<T> rEdges = ImmutableList.builder();
     for (ThreadEdge threadEdge : pThreadEdges) {
-      if (threadEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
-        CFunctionDeclaration functionDeclaration =
-            functionCall.getFunctionCallExpression().getDeclaration();
-        rCalledFunctions.merge(functionDeclaration, 1, Integer::sum);
+      CFAEdge cfaEdge = threadEdge.cfaEdge;
+      if (pEdgeClass.isInstance(cfaEdge)) {
+        rEdges.add(pEdgeClass.cast(cfaEdge));
       }
     }
-    return ImmutableMap.copyOf(rCalledFunctions);
+    return rEdges.build();
   }
 
   /**

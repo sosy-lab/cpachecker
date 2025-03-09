@@ -13,8 +13,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 
 public class SeqDeclarationBuilder {
@@ -32,17 +30,5 @@ public class SeqDeclarationBuilder {
         pName,
         SeqNameUtil.buildQualifiedName(pName),
         pInitializer);
-  }
-
-  /**
-   * Creates a {@link CVariableDeclaration} of the form {@code int
-   * __return_pc_t{pThreadId}_{pFuncName};}.
-   */
-  public static CVariableDeclaration buildReturnPcVariableDeclaration(
-      int pThreadId, String pFuncName) {
-
-    String varName = SeqNameUtil.buildReturnPcName(pThreadId, pFuncName);
-    // init -1 -> when initially reading before writing (to int >= 0) then -1 is faulty
-    return buildVariableDeclaration(true, SeqSimpleType.INT, varName, SeqInitializer.INT_MINUS_1);
   }
 }

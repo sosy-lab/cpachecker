@@ -38,6 +38,8 @@ public class SeqToken {
 
   public static final String _break = "break";
 
+  public static final String CALL = "CALL";
+
   public static final String _case = "case";
 
   public static final String cond = "cond";

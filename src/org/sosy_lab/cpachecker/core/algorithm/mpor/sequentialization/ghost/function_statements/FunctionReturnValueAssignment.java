@@ -15,21 +15,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 
 /**
  * A class to keep track of function return value assignments (e.g. {@code CPAchecker_TMP = retval;}
- * to the respective calling context, i.e. the {@link FunctionReturnPcWrite} (e.g. {@code RETURN_PC
- * = 42;}
+ * to the respective calling context.
  */
 public class FunctionReturnValueAssignment {
 
-  public final FunctionReturnPcWrite returnPcWrite;
-
   public final CExpressionAssignmentStatement statement;
 
-  public FunctionReturnValueAssignment(
-      FunctionReturnPcWrite pReturnPcWrite,
-      CLeftHandSide pLeftHandSide,
-      CExpression pReturnExpression) {
+  public FunctionReturnValueAssignment(CLeftHandSide pLeftHandSide, CExpression pReturnExpression) {
 
-    returnPcWrite = pReturnPcWrite;
     statement =
         SeqStatementBuilder.buildExpressionAssignmentStatement(pLeftHandSide, pReturnExpression);
   }

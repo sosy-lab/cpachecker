@@ -10,32 +10,35 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 // TODO further divide this into thread, function, ... interfaces
 // TODO its probably better to use an abstract class here for default implementations and attributes
 //  (each statement has a target pc, expression, replacement, ...)
+// TODO also add CloneableStatement so that we dont always throw an Exception
 /**
  * Please ensure that constructors are package-private (see {@link SeqCaseBlockStatementBuilder} and
  * constructors used for cloning are {@code private}.
  */
 public interface SeqCaseBlockStatement extends SeqStatement {
 
+  /** After concatenation, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();
 
-  Optional<CExpression> getTargetPcExpression();
+  /** The list of statements injected to the {@code pc} write. */
+  ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements();
 
-  Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements();
+  ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements();
 
-  /**
-   * This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. The
-   * target {@code pc} may be a {@code RETURN_PC}, thus we need a {@link CExpression} instead of an
-   * {@code int}.
-   */
-  SeqCaseBlockStatement cloneWithTargetPc(CExpression pTargetPc) throws UnrecognizedCodeException;
+  /** This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. */
+  SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException;
+
+  SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements)
+      throws UnrecognizedCodeException;
 
   /**
    * This function should be called when applying Partial Order Reduction to {@link SeqCaseClause}s,

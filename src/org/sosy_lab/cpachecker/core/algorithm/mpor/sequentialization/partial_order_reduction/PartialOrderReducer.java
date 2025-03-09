@@ -73,9 +73,8 @@ public class PartialOrderReducer {
       final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap)
       throws UnrecognizedCodeException {
 
-    Optional<Integer> intTargetPc = SeqCaseClauseUtil.tryExtractIntTargetPc(pCurrentStatement);
-    if (validIntTargetPc(intTargetPc)) {
-      int targetPc = intTargetPc.orElseThrow();
+    if (validIntTargetPc(pCurrentStatement.getTargetPc())) {
+      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(pCurrentStatement, newTarget)) {
         pConcatenated.add(newTarget);
@@ -127,9 +126,9 @@ public class PartialOrderReducer {
             || pTarget.block.statements.contains(pStatement));
   }
 
-  private static boolean validIntTargetPc(Optional<Integer> pIntTargetPc) {
-    if (pIntTargetPc.isPresent()) {
-      int targetPc = pIntTargetPc.orElseThrow();
+  private static boolean validIntTargetPc(Optional<Integer> pTargetPc) {
+    if (pTargetPc.isPresent()) {
+      int targetPc = pTargetPc.orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         return true;
       }

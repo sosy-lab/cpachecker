@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
 /**
@@ -26,25 +26,16 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CExpression> targetPcExpression;
-
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
-    targetPcExpression = Optional.empty();
-  }
-
-  private SeqBlankStatement(CLeftHandSide pPcLeftHandSide, CExpression pTargetPcExpression) {
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.of(pTargetPcExpression);
   }
 
   @Override
   public String toASTString() {
     return SeqStringUtil.buildTargetStatements(
-        pcLeftHandSide, targetPc, targetPcExpression, Optional.empty());
+        pcLeftHandSide, targetPc, ImmutableList.of(), ImmutableList.of());
   }
 
   @Override
@@ -53,20 +44,30 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    return targetPcExpression;
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    // this should never be called because we inject after pruning (no blanks left)
+    throw new UnsupportedOperationException(
+        this.getClass().getName() + " do not have injected statements");
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     // this should never be called because we concatenate after pruning (no blanks left)
     throw new UnsupportedOperationException(
         this.getClass().getName() + " do not have concatenated statements");
   }
 
   @Override
-  public SeqBlankStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+    // this should never be called because we inject after pruning (no blanks left)
+    throw new UnsupportedOperationException(
+        this.getClass().getName() + " do not have injected statements");
   }
 
   @Override

@@ -11,32 +11,24 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.func
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 
 public class FunctionStatements {
 
-  // TODO it would be cleaner to map to the respective types of CFAEdges
-  //  so that we instantly know what kind of edge is relevant for the statements
-  public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
+  public final ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 
-  public final ImmutableMap<ThreadEdge, FunctionReturnPcWrite> returnPcWrites;
-
-  public final ImmutableMap<ThreadNode, FunctionReturnPcRead> returnPcReads;
-
   public FunctionStatements(
-      ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
-      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
-      ImmutableMap<ThreadEdge, FunctionReturnPcWrite> pReturnPcWrites,
-      ImmutableMap<ThreadNode, FunctionReturnPcRead> pReturnPcReads) {
+      ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
+          pParameterAssignments,
+      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
+          pReturnValueAssignments) {
 
     parameterAssignments = pParameterAssignments;
     returnValueAssignments = pReturnValueAssignments;
-    returnPcWrites = pReturnPcWrites;
-    returnPcReads = pReturnPcReads;
   }
 }

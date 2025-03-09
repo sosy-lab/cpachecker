@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -21,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -52,9 +52,9 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CExpression> targetPcExpression;
+  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
-  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+  private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   private void checkArguments(
       CVariableDeclaration pVariableDeclaration,
@@ -94,8 +94,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.empty();
+    injectedStatements = ImmutableList.of();
+    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqConstCpaCheckerTmpStatement(
@@ -103,23 +103,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
       CLeftHandSide pPcLeftHandSide,
-      CExpression pTargetPcExpression) {
-
-    checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
-    statementA = pStatementA;
-    statementB = pStatementB;
-    constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.of(pTargetPcExpression);
-    concatenatedStatements = Optional.empty();
-  }
-
-  private SeqConstCpaCheckerTmpStatement(
-      CVariableDeclaration pConstCpaCheckerTmpDeclaration,
-      SubstituteEdge pStatementA,
-      SubstituteEdge pStatementB,
-      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
@@ -127,16 +112,16 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.of(pConcatenatedStatements);
+    targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
+    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
+            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
     // we only want name and initializer here, the declaration is done beforehand
     return constCpaCheckerTmpDeclaration.toASTStringWithOnlyNameAndInitializer()
         + SeqSyntax.SPACE
@@ -153,19 +138,32 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    return targetPcExpression;
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    return injectedStatements;
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     return concatenatedStatements;
   }
 
   @Override
-  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
         constCpaCheckerTmpDeclaration, statementA, statementB, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+    return new SeqConstCpaCheckerTmpStatement(
+        constCpaCheckerTmpDeclaration,
+        statementA,
+        statementB,
+        pcLeftHandSide,
+        targetPc,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -177,6 +175,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        Optional.empty(),
+        injectedStatements,
         pConcatenatedStatements);
   }
 

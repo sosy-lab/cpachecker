@@ -117,7 +117,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.ASSUME,
-            SeqNameUtil.buildFuncName(SeqToken.assume),
+            SeqNameUtil.buildFunctionName(SeqToken.assume),
             ImmutableList.of(SeqParameterDeclaration.COND),
             ImmutableSet.of());
 

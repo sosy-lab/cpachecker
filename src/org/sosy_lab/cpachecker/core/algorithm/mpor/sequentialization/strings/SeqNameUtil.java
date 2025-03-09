@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 
 import java.nio.file.Path;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -17,6 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 public class SeqNameUtil {
 
   private static int varId = 0;
+
+  // TODO use var ids only for local variables, both param and globals are always unique
 
   private static String createVarId() {
     return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
@@ -27,38 +30,61 @@ public class SeqNameUtil {
     return SeqToken.__MPOR_SEQ__ + SeqToken.THREAD + pThreadId + SeqSyntax.UNDERSCORE;
   }
 
-  /** Returns {@code "__MPOR_SEQ__{pFuncName}"}. */
-  public static String buildFuncName(String pFuncName) {
-    return SeqToken.__MPOR_SEQ__ + pFuncName;
+  /** Returns {@code "__MPOR_SEQ__{pFunctionName}"}. */
+  public static String buildFunctionName(String pFunctionName) {
+    return SeqToken.__MPOR_SEQ__ + pFunctionName;
   }
 
   /**
    * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
-   * and {@code LOCAL_THREAD{threadId}_{varId}_{varName}} for thread local variables.
+   * and {@code LOCAL_THREAD{threadId}_CALL{pCallingContext}_{varId}_{varName}} for thread local
+   * variables.
    */
-  public static String buildVariableName(CVariableDeclaration pVarDec, int pThreadId) {
+  public static String buildVariableName(
+      CVariableDeclaration pVarDec,
+      int pThreadId,
+      int pCallingContext,
+      Optional<String> pFunctionName) {
+
+    String functionName =
+        pFunctionName.isPresent()
+            ? pFunctionName.orElseThrow() + SeqSyntax.UNDERSCORE
+            : SeqSyntax.EMPTY_STRING;
     String prefix =
         pVarDec.isGlobal()
             ? SeqToken.GLOBAL
-            : SeqToken.LOCAL + SeqSyntax.UNDERSCORE + SeqToken.THREAD + pThreadId;
+            : SeqToken.LOCAL
+                + SeqSyntax.UNDERSCORE
+                + functionName
+                + SeqToken.THREAD
+                + pThreadId
+                + SeqSyntax.UNDERSCORE
+                + SeqToken.CALL
+                + pCallingContext;
     return prefix + createVarId() + pVarDec.getName();
   }
 
   /**
-   * Returns a var name of the form {@code PARAM_THREAD{pThreadId}_{varId}_{pParamDec.getName()}}.
+   * Returns a var name of the form {@code
+   * PARAM_THREAD{pThreadId}_{varId}_{pParameterDeclaration.getName()}}.
    */
-  public static String buildParameterName(CParameterDeclaration pParamDec, int pThreadId) {
+  public static String buildParameterName(
+      CParameterDeclaration pParameterDeclaration,
+      int pThreadId,
+      String pFunctionName,
+      int pCallNumber) {
+
     return SeqToken.PARAM
+        + SeqSyntax.UNDERSCORE
+        + pFunctionName
         + SeqSyntax.UNDERSCORE
         + SeqToken.THREAD
         + pThreadId
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.CALL
+        + pCallNumber
         + createVarId()
-        + pParamDec.getName();
-  }
-
-  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_RETURN_PC_{pFuncName}}. */
-  public static String buildReturnPcName(int pThreadId, String pFuncName) {
-    return buildThreadPrefix(pThreadId) + SeqToken.RETURN_PC + SeqSyntax.UNDERSCORE + pFuncName;
+        + pParameterDeclaration.getName();
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */

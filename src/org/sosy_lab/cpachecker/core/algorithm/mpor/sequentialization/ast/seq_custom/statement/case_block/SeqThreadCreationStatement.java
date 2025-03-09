@@ -10,13 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
@@ -29,48 +30,39 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final int threadId;
 
+  private final PcVariables pcVariables;
+
   private final Optional<Integer> targetPc;
 
-  private final Optional<CExpression> targetPcExpression;
+  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
-  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
-
-  private final PcVariables pcVariables;
+  private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadCreationStatement(
       int pCreatedThreadId, int pThreadId, int pTargetPc, PcVariables pPcVariables) {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
+    pcVariables = pPcVariables;
     targetPc = Optional.of(pTargetPc);
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.empty();
-    pcVariables = pPcVariables;
-  }
-
-  private SeqThreadCreationStatement(
-      int pCreatedThreadId, int pThreadId, CExpression pTargetPc, PcVariables pPcVariables) {
-
-    createdThreadId = pCreatedThreadId;
-    threadId = pThreadId;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.of(pTargetPc);
-    concatenatedStatements = Optional.empty();
-    pcVariables = pPcVariables;
+    injectedStatements = ImmutableList.of();
+    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqThreadCreationStatement(
       int pCreatedThreadId,
       int pThreadId,
-      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements,
-      PcVariables pPcVariables) {
+      PcVariables pPcVariables,
+      Optional<Integer> pTargetPc,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.of(pConcatenatedStatements);
     pcVariables = pPcVariables;
+    targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
+    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
@@ -80,7 +72,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
             pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcVariables.get(threadId), targetPc, targetPcExpression, concatenatedStatements);
+            pcVariables.get(threadId), targetPc, injectedStatements, concatenatedStatements);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
@@ -90,25 +82,45 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    return targetPcExpression;
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    return injectedStatements;
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     return concatenatedStatements;
   }
 
   @Override
-  public SeqThreadCreationStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements)
+      throws UnrecognizedCodeException {
+
+    return new SeqThreadCreationStatement(
+        createdThreadId,
+        threadId,
+        pcVariables,
+        targetPc,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
     return new SeqThreadCreationStatement(
-        createdThreadId, threadId, pConcatenatedStatements, pcVariables);
+        createdThreadId,
+        threadId,
+        pcVariables,
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

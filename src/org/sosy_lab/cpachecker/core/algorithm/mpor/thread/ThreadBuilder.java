@@ -10,15 +10,16 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -87,7 +89,7 @@ public class ThreadBuilder {
         pEntryNode.getFunction().getType() instanceof CFunctionType,
         "pEntryNode function must be CFunctionType");
     currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
-    ThreadCFA threadCfa = buildThreadCfa(pEntryNode, pFunctionCallMap, Optional.empty());
+    ThreadCFA threadCfa = buildThreadCfa(pEntryNode, pFunctionCallMap);
     return new MPORThread(
         currentThreadId++,
         (CFunctionType) pEntryNode.getFunction().getType(),
@@ -97,16 +99,21 @@ public class ThreadBuilder {
   }
 
   private static ThreadCFA buildThreadCfa(
-      FunctionEntryNode pEntryNode,
-      ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      Optional<CFANode> pFuncReturnNode) {
+      FunctionEntryNode pEntryNode, ImmutableMap<CFANode, CFANode> pFunctionCallMap) {
 
-    Set<CFANode> visitedNodes = new HashSet<>(); // using set to check if node is present already
+    // check if node is present already in a specific calling context
+    Multimap<Optional<CFunctionCallEdge>, CFANode> visitedNodes = ArrayListMultimap.create();
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadEdge> threadEdges = ImmutableSet.builder();
 
     initThreadCfaVariables(
-        visitedNodes, threadNodes, threadEdges, pEntryNode, pFunctionCallMap, pFuncReturnNode);
+        visitedNodes,
+        threadNodes,
+        threadEdges,
+        pEntryNode,
+        pFunctionCallMap,
+        Optional.empty(),
+        Optional.empty());
     return new ThreadCFA(pEntryNode, threadNodes.build(), threadEdges.build());
   }
 
@@ -115,51 +122,67 @@ public class ThreadBuilder {
    * and pExitNode.
    */
   private static void initThreadCfaVariables(
-      Set<CFANode> pVisitedNodes,
+      Multimap<Optional<CFunctionCallEdge>, CFANode> pVisitedNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableSet.Builder<ThreadEdge> pThreadEdges,
       CFANode pCurrentNode,
       ImmutableMap<CFANode, CFANode> pFunctionCallMap,
+      // TODO maybe we can add a CallingContext class that combines both:
+      Optional<CFunctionCallEdge> pCallingContext,
       Optional<CFANode> pFuncReturnNode) {
 
-    if (pVisitedNodes.add(pCurrentNode)) {
-      FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
-      List<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges);
-      pThreadEdges.addAll(threadEdges);
-      if (leavingCfaEdges.isEmpty()) {
-        pThreadNodes.add(new ThreadNode(pCurrentNode, Sequentialization.EXIT_PC, threadEdges));
-      } else {
-        pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
-        for (CFAEdge cfaEdge : leavingCfaEdges) {
-          // exclude cFuncReturnEdges because their successors may be in other threads
-          // the original, same-thread successor is included due to the FuncSummaryEdge
-          if (!(cfaEdge instanceof CFunctionReturnEdge)) {
-            initThreadCfaVariables(
-                pVisitedNodes,
-                pThreadNodes,
-                pThreadEdges,
-                cfaEdge.getSuccessor(),
-                pFunctionCallMap,
-                updateFuncReturnNode(pCurrentNode, pFunctionCallMap, pFuncReturnNode));
+    // if node was visited in this context already, return
+    if (pVisitedNodes.containsKey(pCallingContext)) {
+      if (pVisitedNodes.get(pCallingContext).contains(pCurrentNode)) {
+        return;
+      }
+    }
+    pVisitedNodes.put(pCallingContext, pCurrentNode);
+
+    // otherwise recursively build cfa nodes and edges
+    FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
+    List<ThreadEdge> threadEdges = createThreadEdgesFromCfaEdges(leavingCfaEdges, pCallingContext);
+    pThreadEdges.addAll(threadEdges);
+    if (leavingCfaEdges.isEmpty()) {
+      pThreadNodes.add(new ThreadNode(pCurrentNode, Sequentialization.EXIT_PC, threadEdges));
+    } else {
+      pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, threadEdges));
+      for (CFAEdge cfaEdge : leavingCfaEdges) {
+        // exclude function return edges, their successors may be in other threads.
+        // the original, same-thread successor is included due to the function summary edge.
+        if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+          // update the calling context, if a function call is encountered.
+          // this does not 'overwrite' calling contexts due to function summary edges.
+          if (cfaEdge instanceof CFunctionCallEdge) {
+            pCallingContext = Optional.of((CFunctionCallEdge) cfaEdge);
           }
+          initThreadCfaVariables(
+              pVisitedNodes,
+              pThreadNodes,
+              pThreadEdges,
+              cfaEdge.getSuccessor(),
+              pFunctionCallMap,
+              pCallingContext,
+              MPORUtil.updateFunctionReturnNode(pFunctionCallMap, pCurrentNode, pFuncReturnNode));
         }
       }
     }
   }
 
   /** Extracts all local variable declarations from pThreadEdges. */
-  private static ImmutableSet<CVariableDeclaration> getLocalVariableDeclarations(
-      ImmutableSet<ThreadEdge> pThreadEdges) {
+  private static ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>>
+      getLocalVariableDeclarations(ImmutableSet<ThreadEdge> pThreadEdges) {
 
-    ImmutableSet.Builder<CVariableDeclaration> rLocalVars = ImmutableSet.builder();
+    ImmutableMultimap.Builder<CVariableDeclaration, Optional<CFunctionCallEdge>> rLocalVars =
+        ImmutableMultimap.builder();
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge edge = threadEdge.cfaEdge;
       if (edge instanceof CDeclarationEdge declarationEdge) {
         if (!declarationEdge.getDeclaration().isGlobal()) {
           AAstNode aAstNode = declarationEdge.getRawAST().orElseThrow();
           // exclude FunctionDeclarations
-          if (aAstNode instanceof CVariableDeclaration cVarDec) {
-            rLocalVars.add(cVarDec);
+          if (aAstNode instanceof CVariableDeclaration variableDeclaration) {
+            rLocalVars.put(variableDeclaration, threadEdge.callingContext);
           }
         }
       }
@@ -172,18 +195,12 @@ public class ThreadBuilder {
 
   // (Private) Helpers =============================================================================
 
-  private static Optional<CFANode> updateFuncReturnNode(
-      CFANode pCurrentNode,
-      ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      Optional<CFANode> pPrevFuncReturnNode) {
+  private static List<ThreadEdge> createThreadEdgesFromCfaEdges(
+      FluentIterable<CFAEdge> pCfaEdges, Optional<CFunctionCallEdge> pCallingContext) {
 
-    return MPORUtil.updateFunctionReturnNode(pFunctionCallMap, pCurrentNode, pPrevFuncReturnNode);
-  }
-
-  private static List<ThreadEdge> createThreadEdgesFromCfaEdges(FluentIterable<CFAEdge> pCfaEdges) {
     List<ThreadEdge> rThreadEdges = new ArrayList<>();
     for (CFAEdge cfaEdge : pCfaEdges) {
-      rThreadEdges.add(new ThreadEdge(cfaEdge));
+      rThreadEdges.add(new ThreadEdge(cfaEdge, pCallingContext));
     }
     return rThreadEdges;
   }

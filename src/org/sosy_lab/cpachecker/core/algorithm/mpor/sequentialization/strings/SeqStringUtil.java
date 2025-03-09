@@ -14,13 +14,14 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
@@ -100,41 +101,40 @@ public class SeqStringUtil {
   }
 
   /**
-   * This returns either a {@code pc} write of the form:
-   *
-   * <ul>
-   *   <li>{@code pc[i] = n;}
-   *   <li>{@code pc[i] = RETURN_PC}
-   * </ul>
-   *
-   * Or the strings of concatenated statements, if present.
+   * This returns either a {@code pc} write of the form {@code pc[i] = n;} including injected
+   * statements, if present, or the strings of concatenated statements, if present.
    */
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      Optional<CExpression> pTargetPcExpression,
-      Optional<ImmutableList<SeqCaseBlockStatement>> pConcatenatedStatements) {
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
-    // TODO this logic could be expanded that only one is present
     checkArgument(
-        pTargetPc.isPresent()
-            || pTargetPcExpression.isPresent()
-            || pConcatenatedStatements.isPresent(),
+        pTargetPc.isPresent() || !pConcatenatedStatements.isEmpty(),
         "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be present");
     checkArgument(
-        pTargetPc.isEmpty() || pTargetPcExpression.isEmpty() || pConcatenatedStatements.isPresent(),
+        pTargetPc.isPresent() || pInjectedStatements.isEmpty(),
+        "if there is no pTargetPc, there cannot be any pInjectedStatements");
+    checkArgument(
+        pTargetPc.isEmpty() || pConcatenatedStatements.isEmpty(),
         "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be empty");
+
+    // TODO we should add some newlines here...
+    StringBuilder statements = new StringBuilder();
+
     if (pTargetPc.isPresent()) {
-      return SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow())
-          .toASTString();
-    } else if (pTargetPcExpression.isPresent()) {
-      return SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPcExpression.orElseThrow())
-          .toASTString();
+      // we only add injected statements if there is a target pc
+      for (SeqCaseBlockInjectedStatement injectedStatement : pInjectedStatements) {
+        statements.append(injectedStatement.toASTString()).append(SeqSyntax.SPACE);
+      }
+      CExpressionAssignmentStatement pcWrite =
+          SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow());
+      statements.append(pcWrite.toASTString());
+
     } else {
-      // TODO we should add some newlines here...
-      StringBuilder statements = new StringBuilder();
       // this includes statements that were concatenated before
-      for (SeqCaseBlockStatement statement : pConcatenatedStatements.orElseThrow()) {
+      for (SeqCaseBlockStatement statement : pConcatenatedStatements) {
         if (statement instanceof SeqAssumeStatement assumeStatement) {
           if (assumeStatement.controlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
             // append additional space before 'else { ... }'
@@ -144,7 +144,7 @@ public class SeqStringUtil {
         }
         statements.append(statement.toASTString());
       }
-      return statements.toString();
     }
+    return statements.toString();
   }
 }

@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadCFA {
@@ -37,8 +37,7 @@ public class ThreadCFA {
 
   public final ImmutableSet<ThreadEdge> threadEdges;
 
-  /** Maps functions to the amount they are called by this thread. */
-  public final ImmutableMap<CFunctionDeclaration, Integer> functionCalls;
+  public final ImmutableList<CFunctionCallEdge> functionCallEdges;
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
@@ -49,7 +48,7 @@ public class ThreadCFA {
     exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;
     threadEdges = pThreadEdges;
-    functionCalls = ThreadUtil.getCalledFunctions(threadEdges);
+    functionCallEdges = ThreadUtil.getEdgesByClass(threadEdges, CFunctionCallEdge.class);
     initPredecessors();
     initSuccessors();
     handleFunctionReturnEdges();

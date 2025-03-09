@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -25,9 +25,9 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<CExpression> targetPcExpression;
+  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
-  private final Optional<ImmutableList<SeqCaseBlockStatement>> concatenatedStatements;
+  private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -35,39 +35,33 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.empty();
+    injectedStatements = ImmutableList.of();
+    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqAssumeStatement(
       SeqControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
-      CExpression pTargetPcExpression) {
-
-    controlFlowStatement = pControlFlowStatement;
-    pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.of(pTargetPcExpression);
-    concatenatedStatements = Optional.empty();
-  }
-
-  private SeqAssumeStatement(
-      SeqControlFlowStatement pControlFlowStatement,
-      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    // TODO add a checkArguments that checks (for all statements): (= equivalence)
+    //  if there are concatenated statements, pTargetPc must be empty
+    //  if pTargetPc is present, pConcatenatedStatements must be empty
+
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
-    targetPc = Optional.empty();
-    targetPcExpression = Optional.empty();
-    concatenatedStatements = Optional.of(pConcatenatedStatements);
+    targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
+    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetPcExpression, concatenatedStatements);
+            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
     return controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(targetStatements);
@@ -79,25 +73,41 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public Optional<CExpression> getTargetPcExpression() {
-    return targetPcExpression;
+  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+    return injectedStatements;
   }
 
   @Override
-  public Optional<ImmutableList<SeqCaseBlockStatement>> getConcatenatedStatements() {
+  public ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements() {
     return concatenatedStatements;
   }
 
   @Override
-  public SeqAssumeStatement cloneWithTargetPc(CExpression pTargetPc) {
+  public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(controlFlowStatement, pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+    return new SeqAssumeStatement(
+        controlFlowStatement,
+        pcLeftHandSide,
+        targetPc,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
-    return new SeqAssumeStatement(controlFlowStatement, pcLeftHandSide, pConcatenatedStatements);
+    return new SeqAssumeStatement(
+        controlFlowStatement,
+        pcLeftHandSide,
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

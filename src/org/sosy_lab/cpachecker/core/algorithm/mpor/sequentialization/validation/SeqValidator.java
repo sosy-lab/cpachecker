@@ -13,13 +13,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -27,16 +24,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnPcWriteStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqReturnValueAssignmentSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -111,6 +103,9 @@ public class SeqValidator {
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validateCaseClauses(
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
 
+    // TODO validate that if there is a ThreadJoin, AtomicBegin, MutexLock etc. that it MUST be the
+    //  first statement in the clause so that total strict orders can be enforced
+
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
@@ -121,7 +116,6 @@ public class SeqValidator {
         checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
         checkTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
-      checkReturnValueAssignmentLabelPc(entry.getValue(), pLogger);
     }
     return pCaseClauses;
   }
@@ -174,77 +168,6 @@ public class SeqValidator {
         }
       }
     }
-  }
-
-  /**
-   * Ensures that the label {@code pc} in {@link SeqReturnValueAssignmentSwitchStatement} are at
-   * some point assigned to the respective {@code RETURN_PC} in {@code pCaseClauses}.
-   */
-  private static void checkReturnValueAssignmentLabelPc(
-      ImmutableList<SeqCaseClause> pCaseClauses, LogManager pLogger) {
-
-    // extract returnPcWrites and map variables to assigned values
-    ImmutableSet<SeqReturnPcWriteStatement> returnPcWrites =
-        SeqCaseClauseUtil.getAllStatementsByClass(pCaseClauses, SeqReturnPcWriteStatement.class);
-    ImmutableMultimap<CIdExpression, Integer> returnPcWriteMap =
-        getReturnPcWriteMap(returnPcWrites);
-
-    // extract returnValueAssignments (i.e. switch statements)
-    ImmutableSet<SeqReturnValueAssignmentSwitchStatement> switchStatements =
-        SeqCaseClauseUtil.getAllStatementsByClass(
-            pCaseClauses, SeqReturnValueAssignmentSwitchStatement.class);
-
-    // for each switch statement, ensure that each label is a variable in a return pc write
-    for (SeqReturnValueAssignmentSwitchStatement switchStatement : switchStatements) {
-      // we switch over the return_pc: switch(return_pc) ...
-      CIdExpression switchExpression = switchStatement.getReturnPc();
-      if (!returnPcWriteMap.containsKey(switchExpression)) {
-        handleValidationException(
-            String.format(
-                "return value assignment switch expression %s is not a written RETURN_PC in"
-                    + " pCaseClauses",
-                switchExpression.toASTString()),
-            pLogger);
-      }
-      for (SeqCaseClause caseClause : switchStatement.caseClauses) {
-        int label = caseClause.label.value;
-        if (!returnPcWriteMap.get(switchExpression).contains(label)) {
-          handleValidationException(
-              String.format(
-                  "the return pc %s is never assigned the label pc %s",
-                  switchExpression.toASTString(), label),
-              pLogger);
-        }
-      }
-    }
-  }
-
-  /**
-   * Maps the variables {@code RETURN_PC} to their assigned {@code int} values based on {@code
-   * pReturnPcWrites}.
-   */
-  private static ImmutableSetMultimap<CIdExpression, Integer> getReturnPcWriteMap(
-      ImmutableSet<SeqReturnPcWriteStatement> pReturnPcWrites) {
-
-    ImmutableSetMultimap.Builder<CIdExpression, Integer> rMap = ImmutableSetMultimap.builder();
-    for (SeqReturnPcWriteStatement returnPcWrite : pReturnPcWrites) {
-      Optional<Integer> targetPc = returnPcWrite.getTargetPc();
-      Optional<CExpression> targetPcExpression = returnPcWrite.getTargetPcExpression();
-      // we want to ensure that we never write return_pc = return_pc
-      Verify.verify(
-          targetPc.isPresent()
-              || targetPcExpression.orElseThrow() instanceof CIntegerLiteralExpression,
-          "either int targetPc must pe present or targetPcExpression must be integer expression");
-      CIdExpression returnPcVariable = returnPcWrite.getReturnPcVariable();
-      if (targetPc.isPresent()) {
-        rMap.put(returnPcVariable, targetPc.orElseThrow());
-      } else {
-        CIntegerLiteralExpression intExpression =
-            (CIntegerLiteralExpression) targetPcExpression.orElseThrow();
-        rMap.put(returnPcVariable, intExpression.getValue().intValue());
-      }
-    }
-    return rMap.build();
   }
 
   private static void handleValidationException(String pMessage, LogManager pLogger) {

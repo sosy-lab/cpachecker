@@ -20,8 +20,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -164,8 +162,6 @@ public class Sequentialization {
     ImmutableSet<MPORThread> threads = substitutions.keySet();
     CSimpleDeclarationSubstitution mainThreadSubstitution =
         Objects.requireNonNull(substitutions.get(ThreadUtil.extractMainThread(threads)));
-    ImmutableMap<MPORThread, ImmutableMap<CFunctionDeclaration, CIdExpression>> returnPcVariables =
-        GhostVariableUtil.buildReturnPcVariables(threads);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteBuilder.substituteEdges(options, substitutions);
     ThreadSimulationVariables threadSimulationVariables =
@@ -179,8 +175,7 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions.values()));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions.values()));
 
-    // add variable declarations for ghost variables: return_pc, thread simulation variables
-    rProgram.addAll(LineOfCodeUtil.buildReturnPcDeclarations(options, returnPcVariables));
+    // add variable declarations for ghost variables
     rProgram.addAll(
         LineOfCodeUtil.buildThreadSimulationVariableDeclarations(
             options, threadSimulationVariables));
@@ -192,7 +187,6 @@ public class Sequentialization {
             options,
             substitutions,
             substituteEdges,
-            returnPcVariables,
             pcVariables,
             threadSimulationVariables,
             binaryExpressionBuilder,
