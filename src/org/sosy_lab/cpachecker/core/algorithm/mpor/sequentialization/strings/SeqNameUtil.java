@@ -19,8 +19,6 @@ public class SeqNameUtil {
 
   private static int varId = 0;
 
-  // TODO use var ids only for local variables, both param and globals are always unique
-
   private static String createVarId() {
     return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
   }
@@ -52,7 +50,7 @@ public class SeqNameUtil {
             : SeqSyntax.EMPTY_STRING;
     String prefix =
         pVarDec.isGlobal()
-            ? SeqToken.GLOBAL
+            ? SeqToken.GLOBAL + SeqSyntax.UNDERSCORE
             : SeqToken.LOCAL
                 + SeqSyntax.UNDERSCORE
                 + functionName
@@ -60,8 +58,9 @@ public class SeqNameUtil {
                 + pThreadId
                 + SeqSyntax.UNDERSCORE
                 + SeqToken.CALL
-                + pCallingContext;
-    return prefix + createVarId() + pVarDec.getName();
+                + pCallingContext
+                + createVarId();
+    return prefix + pVarDec.getName();
   }
 
   /**
@@ -83,7 +82,7 @@ public class SeqNameUtil {
         + SeqSyntax.UNDERSCORE
         + SeqToken.CALL
         + pCallNumber
-        + createVarId()
+        + SeqSyntax.UNDERSCORE
         + pParameterDeclaration.getName();
   }
 

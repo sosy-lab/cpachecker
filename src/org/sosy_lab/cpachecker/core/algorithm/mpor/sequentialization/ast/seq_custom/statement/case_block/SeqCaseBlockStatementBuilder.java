@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -74,15 +73,15 @@ public class SeqCaseBlockStatementBuilder {
     int leavingEdgesSize = pThreadNode.leavingEdges().size();
     for (int i = 0; i < leavingEdgesSize; i++) {
       ThreadEdge threadEdge = pThreadNode.leavingEdges().get(i);
+
+      // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
-        // handle const CPAchecker_TMP first because it requires successor nodes and edges
         rStatements.add(
             SeqCaseBlockStatementBuilder.buildConstCpaCheckerTmpStatement(
                 threadEdge, pPcLeftHandSide, pCoveredNodes, pSubstituteEdges));
 
-        // we exclude both reach_error and functions with only 1 call in a thread
-        // because they have no return_pc write
-      } else if (!isExcludedFunctionSummaryEdge(threadEdge)) {
+        // we exclude all function summaries, the calling context is handled by return edges
+      } else if (!(threadEdge.cfaEdge instanceof FunctionSummaryEdge)) {
         if (pSubstituteEdges.containsKey(threadEdge)) {
           SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
           SeqCaseBlockStatement statement =
@@ -167,8 +166,7 @@ public class SeqCaseBlockStatementBuilder {
             declarationEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
-        return handleFunctionCallEdge(
-            pThread.id, functionCall, pThreadEdge, targetPc, pGhostVariables);
+        return handleFunctionCallEdge(pThread.id, functionCall, targetPc, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
         return buildReturnValueAssignmentStatement(
@@ -233,7 +231,6 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqCaseBlockStatement handleFunctionCallEdge(
       int pThreadId,
       CFunctionCallEdge pFunctionCallEdge,
-      ThreadEdge pThreadEdge,
       int pTargetPc,
       GhostVariables pGhostVariables) {
 
@@ -243,10 +240,10 @@ public class SeqCaseBlockStatementBuilder {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(pcLeftHandSide);
     }
-    CFunctionCallEdge callingContext = pThreadEdge.callingContext.orElseThrow();
-    assert pGhostVariables.function.parameterAssignments.containsKey(callingContext);
+    assert pGhostVariables.function.parameterAssignments.containsKey(pFunctionCallEdge);
     ImmutableList<FunctionParameterAssignment> assignments =
-        Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(callingContext));
+        Objects.requireNonNull(
+            pGhostVariables.function.parameterAssignments.get(pFunctionCallEdge));
     if (assignments.isEmpty()) {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }
@@ -449,10 +446,6 @@ public class SeqCaseBlockStatementBuilder {
       assert pSubstituteEdge.cfaEdge.getCode().isEmpty();
       return true;
 
-    } else if (pSubstituteEdge.cfaEdge instanceof FunctionSummaryEdge) {
-      // function summaries (representing the calling context) are handled when exiting functions
-      return true;
-
     } else if (PthreadUtil.assignsPthreadMutexInitializer(pSubstituteEdge.cfaEdge)) {
       // PTHREAD_MUTEX_INITIALIZER are similar to pthread_mutex_init, we exclude it
       return true;
@@ -471,32 +464,6 @@ public class SeqCaseBlockStatementBuilder {
     } else if (PthreadUtil.callsAnyPthreadFunction(pSubstituteEdge.cfaEdge)) {
       // not explicitly handled PthreadFunc -> empty case code
       return !PthreadUtil.isExplicitlyHandledPthreadFunction(pSubstituteEdge.cfaEdge);
-    }
-    return false;
-  }
-
-  /**
-   * Checks if {@code pThreadEdge} is a {@link FunctionSummaryEdge} that calls {@code reach_error}.
-   */
-  private static boolean isExcludedFunctionSummaryEdge(ThreadEdge pThreadEdge) {
-
-    if (pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
-      return MPORUtil.isReachErrorCall(functionSummaryEdge);
-    }
-    return false;
-  }
-
-  /** Returns {@code true} if any {@link CLeftHandSide} in pAssignments is a global variable. */
-  private static boolean anyGlobalAssign(ImmutableSet<FunctionReturnValueAssignment> pAssignments) {
-    for (FunctionReturnValueAssignment assignment : pAssignments) {
-      // TODO this also needs to factor in the other kind of left hand sides, arrays etc?
-      if (assignment.statement.getLeftHandSide() instanceof CIdExpression idExpr) {
-        if (idExpr.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-          if (variableDeclaration.isGlobal()) {
-            return true;
-          }
-        }
-      }
     }
     return false;
   }

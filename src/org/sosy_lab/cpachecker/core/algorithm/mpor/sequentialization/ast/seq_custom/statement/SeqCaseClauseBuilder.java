@@ -181,8 +181,6 @@ public class SeqCaseClauseBuilder {
       return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      // if there is no returnPcRead, then the function is called only once -> use target pc
-      assert pThreadNode.leavingEdges().size() == 1;
       int targetPc = pThreadNode.leavingEdges().get(0).getSuccessor().pc;
       statements.add(SeqCaseBlockStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
 
