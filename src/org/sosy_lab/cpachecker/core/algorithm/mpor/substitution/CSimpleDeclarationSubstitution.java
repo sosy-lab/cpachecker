@@ -46,7 +46,7 @@ public class CSimpleDeclarationSubstitution {
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  public final Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> globalSubstitutes;
+  public final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
 
   /**
    * The map of thread local variable declarations to their substitutes. Not every local variable
@@ -60,18 +60,16 @@ public class CSimpleDeclarationSubstitution {
    * The map of parameter to variable declaration substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  public final Optional<
-          ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>>
+  public final ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       parameterSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public CSimpleDeclarationSubstitution(
-      // TODO for optionals, just use empty map
-      Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
+      ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
       ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
           pLocalSubstitutes,
-      Optional<ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>>
+      ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
@@ -237,24 +235,22 @@ public class CSimpleDeclarationSubstitution {
         return Objects.requireNonNull(localSubstitutes.get(variableDeclaration))
             .get(pCallingContext);
       } else {
-        assert globalSubstitutes.isPresent();
         checkArgument(
-            globalSubstitutes.orElseThrow().containsKey(variableDeclaration),
+            globalSubstitutes.containsKey(variableDeclaration),
             "no substitute found for %s",
             pSimpleDeclaration.toASTString());
-        return globalSubstitutes.orElseThrow().get(variableDeclaration);
+        return globalSubstitutes.get(variableDeclaration);
       }
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       assert pCallingContext.isPresent();
-      assert parameterSubstitutes.isPresent();
       CFunctionCallEdge callingContext = pCallingContext.orElseThrow();
       checkArgument(
-          parameterSubstitutes.orElseThrow().containsKey(callingContext),
+          parameterSubstitutes.containsKey(callingContext),
           "no substitute found for %s",
           pSimpleDeclaration.toASTString());
       ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
-          Objects.requireNonNull(parameterSubstitutes.orElseThrow().get(callingContext));
+          Objects.requireNonNull(parameterSubstitutes.get(callingContext));
       return substitutes.get(parameterDeclaration);
     }
 
@@ -287,7 +283,7 @@ public class CSimpleDeclarationSubstitution {
 
   public ImmutableList<CVariableDeclaration> getGlobalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rGlobalDeclarations = ImmutableList.builder();
-    for (CIdExpression globalVariable : globalSubstitutes.orElseThrow().values()) {
+    for (CIdExpression globalVariable : globalSubstitutes.values()) {
       CVariableDeclaration variableDeclaration =
           castTo(globalVariable.getDeclaration(), CVariableDeclaration.class);
       rGlobalDeclarations.add(variableDeclaration);
@@ -315,7 +311,7 @@ public class CSimpleDeclarationSubstitution {
   public ImmutableList<CVariableDeclaration> getParameterDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rParameterDeclarations = ImmutableList.builder();
     for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
-        parameterSubstitutes.orElseThrow().values()) {
+        parameterSubstitutes.values()) {
       for (CIdExpression parameter : substitutes.values()) {
         CVariableDeclaration declaration =
             castTo(parameter.getDeclaration(), CVariableDeclaration.class);

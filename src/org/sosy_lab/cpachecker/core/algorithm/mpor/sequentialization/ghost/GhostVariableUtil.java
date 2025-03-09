@@ -194,7 +194,7 @@ public class GhostVariableUtil {
         rAssignments = ImmutableMap.builder();
 
     // for each function call edge (= calling context)
-    for (var entryA : pSubstitution.parameterSubstitutes.orElseThrow().entrySet()) {
+    for (var entryA : pSubstitution.parameterSubstitutes.entrySet()) {
       CFunctionCallEdge functionCallEdge = entryA.getKey();
       ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes = entryA.getValue();
 

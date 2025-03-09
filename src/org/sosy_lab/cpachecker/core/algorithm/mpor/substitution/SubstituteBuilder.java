@@ -261,8 +261,8 @@ public class SubstituteBuilder {
         globalVarSubstitutes =
             buildVariableDeclarationSubstitutes(
                 pOptions,
-                Optional.empty(),
-                Optional.empty(),
+                ImmutableMap.of(),
+                ImmutableMap.of(),
                 0,
                 // global variables have empty calling contexts, they are never inside functions
                 mapKeysToOptionalEmpty(pGlobalVariableDeclarations),
@@ -275,17 +275,17 @@ public class SubstituteBuilder {
           localVarSubstitutes =
               buildVariableDeclarationSubstitutes(
                   pOptions,
-                  Optional.of(mapKeysToSingleValue(globalVarSubstitutes)),
-                  Optional.of(parameterSubstitutes),
+                  mapKeysToSingleValue(globalVarSubstitutes),
+                  parameterSubstitutes,
                   thread.id,
                   thread.localVars,
                   pBinaryExpressionBuilder);
       rDeclarationSubstitutions.put(
           thread,
           new CSimpleDeclarationSubstitution(
-              Optional.of(mapKeysToSingleValue(globalVarSubstitutes)),
+              mapKeysToSingleValue(globalVarSubstitutes),
               localVarSubstitutes,
-              Optional.of(parameterSubstitutes),
+              parameterSubstitutes,
               pBinaryExpressionBuilder));
     }
     return rDeclarationSubstitutions.buildOrThrow();
@@ -407,10 +407,8 @@ public class SubstituteBuilder {
           CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
       buildVariableDeclarationSubstitutes(
           MPOROptions pOptions,
-          Optional<ImmutableMap<CVariableDeclaration, CIdExpression>> pGlobalSubstitutes,
-          Optional<
-                  ImmutableMap<
-                      CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>>
+          ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
+          ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
               pParameterSubstitutes,
           int pThreadId,
           ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>>
