@@ -20,15 +20,15 @@ public class ThreadEdge {
   public final CFAEdge cfaEdge;
 
   /** Not all edges have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<CFunctionCallEdge> callingContext;
+  public final Optional<CFunctionCallEdge> callContext;
 
   private ThreadNode predecessor = null;
 
   private ThreadNode successor = null;
 
-  public ThreadEdge(CFAEdge pCfaEdge, Optional<CFunctionCallEdge> pCallingContext) {
+  public ThreadEdge(CFAEdge pCfaEdge, Optional<CFunctionCallEdge> pCallContext) {
     cfaEdge = pCfaEdge;
-    callingContext = pCallingContext;
+    callContext = pCallContext;
   }
 
   public ThreadNode getPredecessor() {

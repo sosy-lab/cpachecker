@@ -35,13 +35,13 @@ public class SeqNameUtil {
 
   /**
    * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
-   * and {@code LOCAL_THREAD{threadId}_CALL{pCallingContext}_{varId}_{varName}} for thread local
+   * and {@code LOCAL_THREAD{threadId}_CALL{pCallContext}_{varId}_{varName}} for thread local
    * variables.
    */
   public static String buildVariableName(
       CVariableDeclaration pVarDec,
       int pThreadId,
-      int pCallingContext,
+      int pCallContext,
       Optional<String> pFunctionName) {
 
     String functionName =
@@ -58,7 +58,7 @@ public class SeqNameUtil {
                 + pThreadId
                 + SeqSyntax.UNDERSCORE
                 + SeqToken.CALL
-                + pCallingContext
+                + pCallContext
                 + createVarId();
     return prefix + pVarDec.getName();
   }

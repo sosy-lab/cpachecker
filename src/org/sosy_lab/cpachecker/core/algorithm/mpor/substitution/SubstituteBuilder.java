@@ -78,7 +78,7 @@ public class SubstituteBuilder {
       MPOROptions pOptions, CSimpleDeclarationSubstitution pSubstitution, ThreadEdge pThreadEdge) {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
-    Optional<CFunctionCallEdge> callingContext = pThreadEdge.callingContext;
+    Optional<CFunctionCallEdge> callContext = pThreadEdge.callContext;
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?
       if (SubstituteUtil.isExcludedDeclarationEdge(pOptions, declarationEdge)) {
@@ -88,7 +88,7 @@ public class SubstituteBuilder {
         // we only substitute variables, not functions or types
         if (declaration instanceof CVariableDeclaration) {
           CVariableDeclaration variableDeclaration =
-              pSubstitution.getVariableDeclarationSubstitute(declaration, callingContext);
+              pSubstitution.getVariableDeclarationSubstitute(declaration, callContext);
           return Optional.of(
               new SubstituteEdge(substituteDeclarationEdge(declarationEdge, variableDeclaration)));
         }
@@ -98,13 +98,13 @@ public class SubstituteBuilder {
       return Optional.of(
           new SubstituteEdge(
               substituteAssumeEdge(
-                  assume, pSubstitution.substitute(assume.getExpression(), callingContext))));
+                  assume, pSubstitution.substitute(assume.getExpression(), callContext))));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       return Optional.of(
           new SubstituteEdge(
               substituteStatementEdge(
-                  statement, pSubstitution.substitute(statement.getStatement(), callingContext))));
+                  statement, pSubstitution.substitute(statement.getStatement(), callContext))));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
@@ -112,7 +112,7 @@ public class SubstituteBuilder {
         return Optional.of(
             new SubstituteEdge(
                 substituteFunctionSummaryEdge(
-                    functionSummary, pSubstitution.substitute(assignment, callingContext))));
+                    functionSummary, pSubstitution.substitute(assignment, callContext))));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
@@ -123,14 +123,14 @@ public class SubstituteBuilder {
               substituteFunctionCallEdge(
                   functionCall,
                   (CFunctionCall)
-                      pSubstitution.substitute(functionCall.getFunctionCall(), callingContext))));
+                      pSubstitution.substitute(functionCall.getFunctionCall(), callContext))));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
       return Optional.of(
           new SubstituteEdge(
               substituteReturnStatementEdge(
                   returnStatement,
-                  pSubstitution.substitute(returnStatement.getReturnStatement(), callingContext))));
+                  pSubstitution.substitute(returnStatement.getReturnStatement(), callContext))));
     }
     return Optional.empty();
   }
@@ -443,15 +443,14 @@ public class SubstituteBuilder {
         CInitializer initializer = variableDeclaration.getInitializer();
         // TODO handle CInitializerList
         if (initializer instanceof CInitializerExpression initializerExpression) {
-          Optional<CFunctionCallEdge> callingContext = entryB.getKey();
+          Optional<CFunctionCallEdge> callContext = entryB.getKey();
           CInitializerExpression initExprSub =
               substituteInitializerExpression(
                   initializerExpression,
-                  dummySubstitution.substitute(
-                      initializerExpression.getExpression(), callingContext));
+                  dummySubstitution.substitute(initializerExpression.getExpression(), callContext));
           CVariableDeclaration finalSub =
               substituteVarDeclaration(variableDeclaration, initExprSub);
-          substitutes.put(callingContext, SeqExpressionBuilder.buildIdExpression(finalSub));
+          substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSub));
           continue;
         }
         substitutes.put(entryB);
