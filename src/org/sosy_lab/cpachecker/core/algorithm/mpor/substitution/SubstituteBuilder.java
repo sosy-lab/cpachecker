@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -140,7 +139,7 @@ public class SubstituteBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVarDeclaration(
+  private static CVariableDeclaration substituteVariableDeclaration(
       CVariableDeclaration pOriginal, String pName) {
 
     return new CVariableDeclaration(
@@ -159,7 +158,7 @@ public class SubstituteBuilder {
    *
    * @param pOriginal the variable declaration to substitute
    */
-  private static CVariableDeclaration substituteVarDeclaration(
+  private static CVariableDeclaration substituteVariableDeclaration(
       CVariableDeclaration pOriginal, CInitializerExpression pInitExpression) {
 
     return new CVariableDeclaration(
@@ -254,21 +253,15 @@ public class SubstituteBuilder {
       ImmutableList<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
+    // step 1: create global variable substitutes, their initializer cannot be local/param variables
+    ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
+        getGlobalVariableSubstitutes(
+            pOptions, pGlobalVariableDeclarations, pBinaryExpressionBuilder);
+
     ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDeclarationSubstitutions =
         ImmutableMap.builder();
 
-    // step 1: create global variable substitutes, their initializer cannot contain local variables
-    ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
-        globalVarSubstitutes =
-            buildVariableDeclarationSubstitutes(
-                pOptions,
-                ImmutableMap.of(),
-                ImmutableMap.of(),
-                0,
-                // global variables have empty calling contexts, they are never inside functions
-                mapKeysToOptionalEmpty(pGlobalVariableDeclarations),
-                pBinaryExpressionBuilder);
-
+    // step 2: for each thread, create substitution
     for (MPORThread thread : pThreads) {
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           parameterSubstitutes = getParameterSubstitutes(pOptions, thread);
@@ -276,7 +269,7 @@ public class SubstituteBuilder {
           localVarSubstitutes =
               buildVariableDeclarationSubstitutes(
                   pOptions,
-                  mapKeysToSingleValue(globalVarSubstitutes),
+                  globalVarSubstitutes,
                   parameterSubstitutes,
                   thread.id,
                   thread.localVars,
@@ -284,7 +277,7 @@ public class SubstituteBuilder {
       rDeclarationSubstitutions.put(
           thread,
           new CSimpleDeclarationSubstitution(
-              mapKeysToSingleValue(globalVarSubstitutes),
+              globalVarSubstitutes,
               localVarSubstitutes,
               parameterSubstitutes,
               pBinaryExpressionBuilder));
@@ -292,27 +285,64 @@ public class SubstituteBuilder {
     return rDeclarationSubstitutions.buildOrThrow();
   }
 
-  // TODO maybe place this in Util? though it is very specific.
-  private static <K, V> ImmutableMultimap<K, Optional<V>> mapKeysToOptionalEmpty(
-      ImmutableSet<K> pDeclarations) {
+  private static ImmutableMap<CVariableDeclaration, CIdExpression> getGlobalVariableSubstitutes(
+      MPOROptions pOptions,
+      ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    ImmutableListMultimap.Builder<K, Optional<V>> rMap = ImmutableListMultimap.builder();
-    pDeclarations.forEach(key -> rMap.put(key, Optional.empty()));
-    return rMap.build();
+    // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
+    ImmutableMap<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
+        initGlobalSubstitutes(pOptions, pGlobalVariableDeclarations);
+
+    // create dummy substitution. we can use empty maps for local and parameter substitutions
+    // because initializers of global variables are always global variables, if present
+    CSimpleDeclarationSubstitution dummySubstitution =
+        new CSimpleDeclarationSubstitution(
+            dummyGlobalSubstitutes, ImmutableMap.of(), ImmutableMap.of(), pBinaryExpressionBuilder);
+
+    // step 2: replace initializers of CVariableDeclarations with substitutes
+    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
+        ImmutableMap.builder();
+
+    for (var entry : dummyGlobalSubstitutes.entrySet()) {
+      CVariableDeclaration variableDeclaration = entry.getKey();
+      CIdExpression idExpression = entry.getValue();
+      CInitializer initializer = variableDeclaration.getInitializer();
+      // TODO handle CInitializerList
+      if (initializer instanceof CInitializerExpression initializerExpression) {
+        CInitializerExpression initExprSub =
+            substituteInitializerExpression(
+                initializerExpression,
+                dummySubstitution.substitute(
+                    // no call context for global variables
+                    initializerExpression.getExpression(), Optional.empty()));
+        CVariableDeclaration finalSub =
+            substituteVariableDeclaration(variableDeclaration, initExprSub);
+        rFinalSubstitutes.put(finalSub, idExpression);
+      } else {
+        rFinalSubstitutes.put(variableDeclaration, idExpression);
+      }
+    }
+    return rFinalSubstitutes.buildOrThrow();
   }
 
-  // TODO refactor
-  private static ImmutableMap<CVariableDeclaration, CIdExpression> mapKeysToSingleValue(
-      ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
-          pVariableSubstitutes) {
+  private static ImmutableMap<CVariableDeclaration, CIdExpression> initGlobalSubstitutes(
+      MPOROptions pOptions, ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations) {
 
-    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rExtract = ImmutableMap.builder();
-    for (var entry : pVariableSubstitutes.entrySet()) {
-      assert entry.getValue().size() == 1;
-      assert entry.getValue().containsKey(Optional.empty());
-      rExtract.put(entry.getKey(), entry.getValue().get(Optional.empty()));
+    ImmutableMap.Builder<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
+        ImmutableMap.builder();
+    for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclarations) {
+      CStorageClass storageClass = variableDeclaration.getCStorageClass();
+      // if type declarations are not included, the storage class cannot be extern
+      if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+        String substituteName = SeqNameUtil.buildGlobalVariableName(pOptions, variableDeclaration);
+        CVariableDeclaration substitute =
+            substituteVariableDeclaration(variableDeclaration, substituteName);
+        CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
+        dummyGlobalSubstitutes.put(variableDeclaration, substituteExpression);
+      }
     }
-    return rExtract.buildOrThrow();
+    return dummyGlobalSubstitutes.buildOrThrow();
   }
 
   /**
@@ -348,7 +378,7 @@ public class SubstituteBuilder {
                   call);
           // we use variable declarations for parameters in the sequentialization
           CVariableDeclaration variableDeclaration =
-              substituteVarDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
+              substituteVariableDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
           substitutes.put(
               parameterDeclaration, SeqExpressionBuilder.buildIdExpression(variableDeclaration));
         }
@@ -356,53 +386,6 @@ public class SubstituteBuilder {
       }
     }
     return rParameterSubstitutes.buildOrThrow();
-  }
-
-  private static ImmutableMap<
-          CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
-      initSubstitutes(
-          MPOROptions pOptions,
-          int pThreadId,
-          ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pVariableDeclarations) {
-
-    ImmutableMap.Builder<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
-        dummySubstitutes = ImmutableMap.builder();
-    Set<CVariableDeclaration> visitedKeys = new HashSet<>();
-    for (var entry : pVariableDeclarations.entries()) {
-      CVariableDeclaration variableDeclaration = entry.getKey();
-      if (visitedKeys.add(variableDeclaration)) {
-        ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
-            ImmutableMap.builder();
-        int call = 0;
-        for (Optional<ThreadEdge> callContext : pVariableDeclarations.get(entry.getKey())) {
-          CStorageClass storageClass = variableDeclaration.getCStorageClass();
-          // if type declarations are not included, the storage class cannot be extern
-          if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
-            Optional<String> functionName = getFunctionNameByCallContext(callContext);
-            String substituteName =
-                SeqNameUtil.buildVariableName(
-                    pOptions, variableDeclaration, pThreadId, call++, functionName);
-            CVariableDeclaration substitute =
-                substituteVarDeclaration(variableDeclaration, substituteName);
-            CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
-            substitutes.put(callContext, substituteExpression);
-          }
-        }
-        dummySubstitutes.put(variableDeclaration, substitutes.buildOrThrow());
-      }
-    }
-    return dummySubstitutes.buildOrThrow();
-  }
-
-  private static Optional<String> getFunctionNameByCallContext(Optional<ThreadEdge> pCallContext) {
-
-    if (pCallContext.isPresent()) {
-      assert pCallContext.orElseThrow().cfaEdge instanceof CFunctionCallEdge;
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.orElseThrow().cfaEdge;
-      return Optional.of(
-          functionCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
-    }
-    return Optional.empty();
   }
 
   // TODO split into functions and improve overview
@@ -453,7 +436,7 @@ public class SubstituteBuilder {
                   initializerExpression,
                   dummySubstitution.substitute(initializerExpression.getExpression(), callContext));
           CVariableDeclaration finalSub =
-              substituteVarDeclaration(variableDeclaration, initExprSub);
+              substituteVariableDeclaration(variableDeclaration, initExprSub);
           substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSub));
           continue;
         }
@@ -463,5 +446,53 @@ public class SubstituteBuilder {
       rFinalSubstitutes.put(variableDeclaration, substitutes.buildOrThrow());
     }
     return rFinalSubstitutes.buildOrThrow();
+  }
+
+  private static ImmutableMap<
+          CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
+      initSubstitutes(
+          MPOROptions pOptions,
+          int pThreadId,
+          ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pVariableDeclarations) {
+
+    ImmutableMap.Builder<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
+        dummySubstitutes = ImmutableMap.builder();
+    Set<CVariableDeclaration> visitedKeys = new HashSet<>();
+    for (var entry : pVariableDeclarations.entries()) {
+      CVariableDeclaration variableDeclaration = entry.getKey();
+      if (visitedKeys.add(variableDeclaration)) {
+        ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
+            ImmutableMap.builder();
+        int call = 1;
+        for (Optional<ThreadEdge> callContext : pVariableDeclarations.get(entry.getKey())) {
+          CStorageClass storageClass = variableDeclaration.getCStorageClass();
+
+          // if type declarations are not included, the storage class cannot be extern
+          if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+            Optional<String> functionName = getFunctionNameByCallContext(callContext);
+            String substituteName =
+                SeqNameUtil.buildLocalVariableName(
+                    pOptions, variableDeclaration, pThreadId, call++, functionName);
+            CVariableDeclaration substitute =
+                substituteVariableDeclaration(variableDeclaration, substituteName);
+            CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
+            substitutes.put(callContext, substituteExpression);
+          }
+        }
+        dummySubstitutes.put(variableDeclaration, substitutes.buildOrThrow());
+      }
+    }
+    return dummySubstitutes.buildOrThrow();
+  }
+
+  private static Optional<String> getFunctionNameByCallContext(Optional<ThreadEdge> pCallContext) {
+
+    if (pCallContext.isPresent()) {
+      assert pCallContext.orElseThrow().cfaEdge instanceof CFunctionCallEdge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.orElseThrow().cfaEdge;
+      return Optional.of(
+          functionCallEdge.getFunctionCallExpression().getDeclaration().getOrigName());
+    }
+    return Optional.empty();
   }
 }

@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -53,18 +52,12 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
-        initCaseClauses(
-            pSubstitutions,
-            pSubstituteEdges,
-            pPcVariables,
-            pThreadSimulationVariables,
-            pBinaryExpressionBuilder);
+        initCaseClauses(pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
     // prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
@@ -88,8 +81,7 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
         ImmutableMap.builder();
@@ -106,12 +98,7 @@ public class SeqCaseClauseBuilder {
 
       caseClauses.addAll(
           initCaseClauses(
-              thread,
-              pSubstitutions.keySet(),
-              coveredNodes,
-              pSubstituteEdges,
-              ghostVariables,
-              pBinaryExpressionBuilder));
+              thread, pSubstitutions.keySet(), coveredNodes, pSubstituteEdges, ghostVariables));
       rCaseClauses.put(thread, caseClauses.build());
     }
     // modified reach_error result in unreachable statements of that function
@@ -125,8 +112,7 @@ public class SeqCaseClauseBuilder {
       ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
 
@@ -134,13 +120,7 @@ public class SeqCaseClauseBuilder {
       if (pCoveredNodes.add(threadNode)) {
         Optional<SeqCaseClause> caseClause =
             buildCaseClauseFromThreadNode(
-                pThread,
-                pAllThreads,
-                pCoveredNodes,
-                threadNode,
-                pSubstituteEdges,
-                pGhostVariables,
-                pBinaryExpressionBuilder);
+                pThread, pAllThreads, pCoveredNodes, threadNode, pSubstituteEdges, pGhostVariables);
         if (caseClause.isPresent()) {
           rCaseClauses.add(caseClause.orElseThrow());
         }
@@ -160,8 +140,7 @@ public class SeqCaseClauseBuilder {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -193,8 +172,7 @@ public class SeqCaseClauseBuilder {
               pcLeftHandSide,
               pCoveredNodes,
               pSubEdges,
-              pGhostVariables,
-              pBinaryExpressionBuilder));
+              pGhostVariables));
     }
     return Optional.of(
         new SeqCaseClause(

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqPruner {
 
@@ -37,8 +36,7 @@ public class SeqPruner {
   //  -> identify assume edges that map to the same input expression and merge into single case
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pruneCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
-      throws UnrecognizedCodeException {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rPruned = ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
@@ -68,7 +66,7 @@ public class SeqPruner {
   }
 
   private static ImmutableList<SeqCaseClause> pruneSingleThreadCaseClauses(
-      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseClause> pCaseClauses) {
 
     // map the original pc to pc that are found after pruning
     ImmutableMap<Integer, Integer> pcUpdates = createPrunedPcUpdates(pCaseClauses);
@@ -80,8 +78,7 @@ public class SeqPruner {
   }
 
   private static ImmutableList<SeqCaseClause> updateTargetPcToNonPruned(
-      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, Integer> pPcUpdates)
-      throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, Integer> pPcUpdates) {
 
     ImmutableList.Builder<SeqCaseClause> rUpdatedTargetPc = ImmutableList.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {

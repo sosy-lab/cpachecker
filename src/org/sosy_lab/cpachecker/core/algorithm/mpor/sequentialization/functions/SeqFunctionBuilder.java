@@ -45,7 +45,6 @@ public class SeqFunctionBuilder {
             pSubstituteEdges,
             pPcVariables,
             pThreadSimulationVariables,
-            pBinaryExpressionBuilder,
             pLogger);
     // include assumptions over thread simulation variables
     ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =

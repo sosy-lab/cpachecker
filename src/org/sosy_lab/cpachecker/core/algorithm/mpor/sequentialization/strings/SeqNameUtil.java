@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.nio.file.Path;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -35,11 +37,16 @@ public class SeqNameUtil {
     return SeqToken.__MPOR_SEQ__ + pFunctionName;
   }
 
-  /**
-   * Returns a var name of the form {@code GLOBAL_{...}_variable} for global variables and {@code
-   * LOCAL_{...}_variable} for thread local variables.
-   */
-  public static String buildVariableName(
+  public static String buildGlobalVariableName(
+      MPOROptions pOptions, CVariableDeclaration pVariableDeclaration) {
+
+    checkArgument(pVariableDeclaration.isGlobal(), "variable declaration must be global");
+    return buildGlobalVariablePrefix(pOptions)
+        + createVariableId()
+        + pVariableDeclaration.getName();
+  }
+
+  public static String buildLocalVariableName(
       MPOROptions pOptions,
       CVariableDeclaration pVariableDeclaration,
       int pThreadId,
@@ -50,12 +57,7 @@ public class SeqNameUtil {
         pFunctionName.isPresent()
             ? pFunctionName.orElseThrow() + SeqSyntax.UNDERSCORE
             : SeqSyntax.EMPTY_STRING;
-    String prefix;
-    if (pVariableDeclaration.isGlobal()) {
-      prefix = buildGlobalVariablePrefix(pOptions);
-    } else {
-      prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
-    }
+    String prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
     return prefix + createVariableId() + pVariableDeclaration.getName();
   }
 

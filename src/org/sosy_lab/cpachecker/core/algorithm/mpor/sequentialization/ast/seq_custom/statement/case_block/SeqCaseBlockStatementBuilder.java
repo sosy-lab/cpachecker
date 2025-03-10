@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -66,8 +65,7 @@ public class SeqCaseBlockStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     ImmutableList.Builder<SeqCaseBlockStatement> rStatements = ImmutableList.builder();
 
@@ -93,8 +91,7 @@ public class SeqCaseBlockStatementBuilder {
                   i == leavingEdgesSize - 1,
                   threadEdge,
                   substitute,
-                  pGhostVariables,
-                  pBinaryExpressionBuilder);
+                  pGhostVariables);
           rStatements.add(statement);
         }
       }
@@ -146,8 +143,7 @@ public class SeqCaseBlockStatementBuilder {
       boolean pLastEdge,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
