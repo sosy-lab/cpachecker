@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -111,13 +110,7 @@ public class ThreadBuilder {
     Map<ThreadEdge, CFAEdge> threadEdges = new HashMap<>();
 
     initThreadCfaVariables(
-        visitedNodes,
-        threadNodes,
-        threadEdges,
-        pEntryNode,
-        pFunctionCallMap,
-        Optional.empty(),
-        Optional.empty());
+        visitedNodes, threadNodes, threadEdges, pEntryNode, pFunctionCallMap, Optional.empty());
     return new ThreadCFA(
         pEntryNode, threadNodes.build(), ImmutableSet.copyOf(threadEdges.keySet()));
   }
@@ -132,9 +125,7 @@ public class ThreadBuilder {
       Map<ThreadEdge, CFAEdge> pThreadEdges,
       final CFANode pCurrentNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      // TODO maybe we can add a CallContext class that combines both:
-      Optional<ThreadEdge> pCallContext,
-      final Optional<CFANode> pFuncReturnNode) {
+      Optional<ThreadEdge> pCallContext) {
 
     // if node was visited in this context already, return
     if (pVisitedCfaNodes.containsKey(pCurrentNode)) {
@@ -170,8 +161,7 @@ public class ThreadBuilder {
               pThreadEdges,
               cfaEdge.getSuccessor(),
               pFunctionCallMap,
-              pCallContext,
-              MPORUtil.updateFunctionReturnNode(pFunctionCallMap, pCurrentNode, pFuncReturnNode));
+              pCallContext);
         }
       }
     }
