@@ -38,6 +38,8 @@ public class SeqToken {
 
   public static final String _break = "break";
 
+  public static final String C = "C";
+
   public static final String CALL = "CALL";
 
   public static final String _case = "case";
@@ -58,13 +60,15 @@ public class SeqToken {
 
   public static final String __function = "__function";
 
-  public static final String GLOBAL = "GLOBAL";
+  public static final String G = "G";
 
-  public static final String IN = "IN";
+  public static final String GLOBAL = "GLOBAL";
 
   public static final String JOINS = "JOINS";
 
   public static final String __line = "__line";
+
+  public static final String L = "L";
 
   public static final String LOCAL = "LOCAL";
 
@@ -81,7 +85,9 @@ public class SeqToken {
   /** Constant, hence uppercase. */
   public static final String NUM_THREADS = "NUM_THREADS";
 
-  public static final String PARAM = "PARAM";
+  public static final String P = "P";
+
+  public static final String PARAMETER = "PARAMETER";
 
   public static final String pc = "pc";
 
@@ -89,9 +95,9 @@ public class SeqToken {
 
   public static final String reach_error = "reach_error";
 
-  public static final String RETURN_PC = "RETURN_PC";
-
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
+
+  public static final String T = "T";
 
   public static final String THREAD = "THREAD";
 

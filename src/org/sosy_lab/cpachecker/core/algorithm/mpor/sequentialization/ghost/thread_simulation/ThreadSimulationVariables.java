@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -39,6 +40,7 @@ public class ThreadSimulationVariables {
   public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
 
   public ThreadSimulationVariables(
+      MPOROptions pOptions,
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
       ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,
@@ -53,7 +55,7 @@ public class ThreadSimulationVariables {
     } else {
       CIdExpression var =
           SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              SeqNameUtil.buildAtomicLockedName(), SeqInitializer.INT_0);
+              SeqNameUtil.buildAtomicLockedName(pOptions), SeqInitializer.INT_0);
       atomicLocked = Optional.of(new AtomicLocked(var));
     }
   }

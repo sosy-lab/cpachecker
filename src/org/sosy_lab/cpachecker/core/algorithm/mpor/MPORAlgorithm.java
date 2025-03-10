@@ -51,7 +51,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO with more benchmarks, find out which settings work best for which verifier
   //  then create an enum with preferred verifier, overriding all options, but output a warning
 
-  // TODO add shortVariables Option (e.g. P_T0_x instead of PARAM_THREAD0_x)
   // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume
 
   @Option(
@@ -110,6 +109,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " int arrays? may slow down or improve verification depending on the verifier and"
               + " input program")
   private boolean scalarPc = false;
+
+  @Option(secure = true, description = "use shortened variable names? e.g. THREAD0 -> T0")
+  private boolean shortVariables = false;
 
   @Option(
       secure = true,
@@ -216,6 +218,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             overwriteFiles,
             partialOrderReduction,
             scalarPc,
+            shortVariables,
             signedNextThread,
             validateParse,
             validatePc);

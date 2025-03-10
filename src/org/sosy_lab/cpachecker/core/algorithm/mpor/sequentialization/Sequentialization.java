@@ -165,7 +165,7 @@ public class Sequentialization {
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteBuilder.substituteEdges(options, substitutions);
     ThreadSimulationVariables threadSimulationVariables =
-        GhostVariableUtil.buildThreadSimulationVariables(threads, substituteEdges);
+        GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 
     // add function, struct, variable declarations in the order: original, global, local, parameters
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));

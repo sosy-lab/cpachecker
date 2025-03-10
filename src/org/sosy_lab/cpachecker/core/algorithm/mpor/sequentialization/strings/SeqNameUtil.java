@@ -12,20 +12,22 @@ import java.nio.file.Path;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqNameUtil {
 
-  private static int varId = 0;
+  private static int variableId = 0;
 
-  private static String createVarId() {
-    return SeqSyntax.UNDERSCORE + varId++ + SeqSyntax.UNDERSCORE;
+  private static String createVariableId() {
+    return SeqSyntax.UNDERSCORE + variableId++ + SeqSyntax.UNDERSCORE;
   }
 
-  /** Returns {@code "__MPOR_SEQ__THREAD{pThreadId}_"}. */
-  private static String buildThreadPrefix(int pThreadId) {
-    return SeqToken.__MPOR_SEQ__ + SeqToken.THREAD + pThreadId + SeqSyntax.UNDERSCORE;
+  private static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
+    return (pOptions.shortVariables ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
+        + pThreadId
+        + SeqSyntax.UNDERSCORE;
   }
 
   /** Returns {@code "__MPOR_SEQ__{pFunctionName}"}. */
@@ -34,12 +36,12 @@ public class SeqNameUtil {
   }
 
   /**
-   * Returns a var name of the form {@code GLOBAL_{varId}_{pVarDec.getName()}} for global variables
-   * and {@code LOCAL_THREAD{threadId}_CALL{pCallContext}_{varId}_{varName}} for thread local
-   * variables.
+   * Returns a var name of the form {@code GLOBAL_{...}_variable} for global variables and {@code
+   * LOCAL_{...}_variable} for thread local variables.
    */
   public static String buildVariableName(
-      CVariableDeclaration pVarDec,
+      MPOROptions pOptions,
+      CVariableDeclaration pVariableDeclaration,
       int pThreadId,
       int pCallContext,
       Optional<String> pFunctionName) {
@@ -48,72 +50,97 @@ public class SeqNameUtil {
         pFunctionName.isPresent()
             ? pFunctionName.orElseThrow() + SeqSyntax.UNDERSCORE
             : SeqSyntax.EMPTY_STRING;
-    String prefix =
-        pVarDec.isGlobal()
-            ? SeqToken.GLOBAL + SeqSyntax.UNDERSCORE
-            : SeqToken.LOCAL
-                + SeqSyntax.UNDERSCORE
-                + functionName
-                + SeqToken.THREAD
-                + pThreadId
-                + SeqSyntax.UNDERSCORE
-                + SeqToken.CALL
-                + pCallContext
-                + createVarId();
-    return prefix + pVarDec.getName();
+    String prefix;
+    if (pVariableDeclaration.isGlobal()) {
+      prefix = buildGlobalVariablePrefix(pOptions);
+    } else {
+      prefix = buildLocalVariablePrefix(pOptions, functionName, pThreadId, pCallContext);
+    }
+    return prefix + createVariableId() + pVariableDeclaration.getName();
   }
 
-  /**
-   * Returns a var name of the form {@code
-   * PARAM_THREAD{pThreadId}_{varId}_{pParameterDeclaration.getName()}}.
-   */
+  private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
+    return pOptions.shortVariables ? SeqToken.G : SeqToken.GLOBAL;
+  }
+
+  private static String buildLocalVariablePrefix(
+      MPOROptions pOptions, String pFunctionName, int pThreadId, int pCallContext) {
+
+    return (pOptions.shortVariables ? SeqToken.L : SeqToken.LOCAL)
+        + SeqSyntax.UNDERSCORE
+        + pFunctionName
+        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + pThreadId
+        + SeqSyntax.UNDERSCORE
+        + (pOptions.shortVariables ? SeqToken.C : SeqToken.CALL)
+        + pCallContext;
+  }
+
+  /** Returns a var name of the form {@code PARAM_{...}_variable}. */
   public static String buildParameterName(
+      MPOROptions pOptions,
       CParameterDeclaration pParameterDeclaration,
       int pThreadId,
       String pFunctionName,
       int pCallNumber) {
 
-    return SeqToken.PARAM
+    return (pOptions.shortVariables ? SeqToken.P : SeqToken.PARAMETER)
         + SeqSyntax.UNDERSCORE
         + pFunctionName
         + SeqSyntax.UNDERSCORE
-        + SeqToken.THREAD
+        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
         + SeqSyntax.UNDERSCORE
-        + SeqToken.CALL
+        + (pOptions.shortVariables ? SeqToken.C : SeqToken.CALL)
         + pCallNumber
-        + SeqSyntax.UNDERSCORE
+        + createVariableId()
         + pParameterDeclaration.getName();
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
-  public static String buildMutexLockedName(String pMutexName) {
-    return SeqToken.__MPOR_SEQ__ + pMutexName + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
+  public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
+    return (pOptions.shortVariables ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.LOCKED;
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_AWAITS_{pMutexName}} */
-  public static String buildThreadLocksMutexName(int pThreadId, String pMutexName) {
-    return buildThreadPrefix(pThreadId) + SeqToken.LOCKS + SeqSyntax.UNDERSCORE + pMutexName;
+  public static String buildThreadLocksMutexName(
+      MPOROptions pOptions, int pThreadId, String pMutexName) {
+
+    return buildThreadPrefix(pOptions, pThreadId)
+        + SeqToken.LOCKS
+        + SeqSyntax.UNDERSCORE
+        + pMutexName;
   }
 
   /**
    * Returns a var name of the form {@code __MPOR_SEQ__THREAD{pWaitingId}_JOINS_TARGET{pTargetId}}
    */
-  public static String buildThreadJoinsThreadName(int pWaitingId, int pTargetId) {
-    return buildThreadPrefix(pWaitingId)
+  public static String buildThreadJoinsThreadName(
+      MPOROptions pOptions, int pWaitingId, int pTargetId) {
+
+    return buildThreadPrefix(pOptions, pWaitingId)
         + SeqToken.JOINS
         + SeqSyntax.UNDERSCORE
-        + SeqToken.THREAD
+        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
         + pTargetId;
   }
 
-  public static String buildAtomicLockedName() {
-    return SeqToken.__MPOR_SEQ__ + SeqToken.ATOMIC + SeqSyntax.UNDERSCORE + SeqToken.LOCKED;
+  public static String buildAtomicLockedName(MPOROptions pOptions) {
+    return (pOptions.shortVariables
+            ? SeqToken.__MPOR_SEQ__ + SeqToken.ATOMIC
+            : SeqToken.__MPOR_SEQ__)
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.LOCKED;
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_BEGINS_ATOMIC} */
-  public static String buildThreadBeginsAtomicName(int pThreadId) {
-    return buildThreadPrefix(pThreadId) + SeqToken.BEGINS + SeqSyntax.UNDERSCORE + SeqToken.ATOMIC;
+  public static String buildThreadBeginsAtomicName(MPOROptions pOptions, int pThreadId) {
+    return buildThreadPrefix(pOptions, pThreadId)
+        + SeqToken.BEGINS
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.ATOMIC;
   }
 
   public static String buildQualifiedName(String pVarName) {
