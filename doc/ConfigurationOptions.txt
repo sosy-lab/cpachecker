@@ -290,6 +290,9 @@ analysis.algorithm.MPOR.partialOrderReduction = false
 # input program
 analysis.algorithm.MPOR.scalarPc = false
 
+# use shortened variable names? e.g. THREAD0 -> T0
+analysis.algorithm.MPOR.shortVariables = false
+
 # use signed __VERIFIER_nondet_int() instead of unsigned
 # __VERIFIER_nondet_uint() when assigning next_thread at the loop head. may
 # slow down or improve verification depending on the verifier and input

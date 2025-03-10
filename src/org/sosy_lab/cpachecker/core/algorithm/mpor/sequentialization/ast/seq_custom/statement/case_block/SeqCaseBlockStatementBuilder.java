@@ -180,8 +180,7 @@ public class SeqCaseBlockStatementBuilder {
             pSubstituteEdge,
             targetPc,
             pGhostVariables.pc,
-            pGhostVariables.thread,
-            pBinaryExpressionBuilder);
+            pGhostVariables.thread);
       }
     }
     // "leftover" edges should be statement edges
@@ -273,8 +272,7 @@ public class SeqCaseBlockStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ThreadSimulationVariables pThreadVariables) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFuncType(cfaEdge);
@@ -293,7 +291,7 @@ public class SeqCaseBlockStatementBuilder {
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(pThread, pTargetPc, pcLeftHandSide, pThreadVariables);
       case __VERIFIER_ATOMIC_END ->
-          buildAtomicEndStatement(pThread, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildAtomicEndStatement(pTargetPc, pcLeftHandSide, pThreadVariables);
       default ->
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
@@ -412,10 +410,7 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   private static SeqAtomicEndStatement buildAtomicEndStatement(
-      MPORThread pThread,
-      int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
+      int pTargetPc, CLeftHandSide pPcLeftHandSide, ThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable

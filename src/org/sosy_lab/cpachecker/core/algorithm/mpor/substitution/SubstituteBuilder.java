@@ -271,7 +271,7 @@ public class SubstituteBuilder {
 
     for (MPORThread thread : pThreads) {
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-          parameterSubstitutes = getParameterSubstitutes(thread);
+          parameterSubstitutes = getParameterSubstitutes(pOptions, thread);
       ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
           localVarSubstitutes =
               buildVariableDeclarationSubstitutes(
@@ -320,7 +320,7 @@ public class SubstituteBuilder {
    * the created parameter variable.
    */
   private static ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-      getParameterSubstitutes(MPORThread pThread) {
+      getParameterSubstitutes(MPOROptions pOptions, MPORThread pThread) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
         rParameterSubstitutes = ImmutableMap.builder();
@@ -341,7 +341,11 @@ public class SubstituteBuilder {
         for (CParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
           String varName =
               SeqNameUtil.buildParameterName(
-                  parameterDeclaration, pThread.id, functionDeclaration.getOrigName(), call);
+                  pOptions,
+                  parameterDeclaration,
+                  pThread.id,
+                  functionDeclaration.getOrigName(),
+                  call);
           // we use variable declarations for parameters in the sequentialization
           CVariableDeclaration variableDeclaration =
               substituteVarDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
@@ -376,7 +380,8 @@ public class SubstituteBuilder {
           if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
             Optional<String> functionName = getFunctionNameByCallContext(callContext);
             String substituteName =
-                SeqNameUtil.buildVariableName(variableDeclaration, pThreadId, call++, functionName);
+                SeqNameUtil.buildVariableName(
+                    pOptions, variableDeclaration, pThreadId, call++, functionName);
             CVariableDeclaration substitute =
                 substituteVarDeclaration(variableDeclaration, substituteName);
             CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);

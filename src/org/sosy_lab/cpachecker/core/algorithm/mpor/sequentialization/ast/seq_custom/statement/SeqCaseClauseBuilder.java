@@ -89,8 +89,7 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
         ImmutableMap.builder();
@@ -127,8 +126,7 @@ public class SeqCaseClauseBuilder {
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
 
@@ -163,8 +161,7 @@ public class SeqCaseClauseBuilder {
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
       GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     pCoveredNodes.add(pThreadNode);
 

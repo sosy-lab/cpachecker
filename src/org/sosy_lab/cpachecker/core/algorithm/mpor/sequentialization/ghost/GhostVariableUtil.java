@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -61,16 +62,20 @@ public class GhostVariableUtil {
   }
 
   public static ThreadSimulationVariables buildThreadSimulationVariables(
-      ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+      MPOROptions pOptions,
+      ImmutableSet<MPORThread> pThreads,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     return new ThreadSimulationVariables(
-        buildMutexLockedVariables(pThreads, pSubEdges),
-        buildThreadAwaitsMutexVariables(pThreads, pSubEdges),
-        buildThreadJoinsThreadVariables(pThreads),
-        buildThreadBeginsAtomicVariables(pThreads));
+        pOptions,
+        buildMutexLockedVariables(pOptions, pThreads, pSubEdges),
+        buildThreadAwaitsMutexVariables(pOptions, pThreads, pSubEdges),
+        buildThreadJoinsThreadVariables(pOptions, pThreads),
+        buildThreadBeginsAtomicVariables(pOptions, pThreads));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
+      MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
@@ -88,7 +93,8 @@ public class GhostVariableUtil {
             if (mutexes.add(pthreadMutexT)) { // add mutexes only once
               CIdExpression substitutePthreadMutexT =
                   PthreadUtil.extractPthreadMutexT(substituteEdge.cfaEdge);
-              String varName = SeqNameUtil.buildMutexLockedName(substitutePthreadMutexT.getName());
+              String varName =
+                  SeqNameUtil.buildMutexLockedName(pOptions, substitutePthreadMutexT.getName());
               CIdExpression mutexLocked =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       varName, SeqInitializer.INT_0);
@@ -103,7 +109,9 @@ public class GhostVariableUtil {
 
   private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       buildThreadAwaitsMutexVariables(
-          ImmutableSet<MPORThread> pThreads, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+          MPOROptions pOptions,
+          ImmutableSet<MPORThread> pThreads,
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
         ImmutableMap.builder();
@@ -118,7 +126,8 @@ public class GhostVariableUtil {
             // multiple lock calls within one thread to the same mutex are possible -> only need one
             if (!awaitVars.containsKey(pthreadMutexT)) {
               String varName =
-                  SeqNameUtil.buildThreadLocksMutexName(thread.id, pthreadMutexT.getName());
+                  SeqNameUtil.buildThreadLocksMutexName(
+                      pOptions, thread.id, pthreadMutexT.getName());
               CIdExpression awaits =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       varName, SeqInitializer.INT_0);
@@ -133,7 +142,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
-      buildThreadJoinsThreadVariables(ImmutableSet<MPORThread> pThreads) {
+      buildThreadJoinsThreadVariables(MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> rVars =
         ImmutableMap.builder();
@@ -145,7 +154,8 @@ public class GhostVariableUtil {
           MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
-            String varName = SeqNameUtil.buildThreadJoinsThreadName(thread.id, targetThread.id);
+            String varName =
+                SeqNameUtil.buildThreadJoinsThreadName(pOptions, thread.id, targetThread.id);
             CIdExpression joins =
                 SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                     varName, SeqInitializer.INT_0);
@@ -159,7 +169,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ThreadBeginsAtomic> buildThreadBeginsAtomicVariables(
-      ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
@@ -167,7 +177,7 @@ public class GhostVariableUtil {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.callsPthreadFunction(
             cfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
-          String varName = SeqNameUtil.buildThreadBeginsAtomicName(thread.id);
+          String varName = SeqNameUtil.buildThreadBeginsAtomicName(pOptions, thread.id);
           CIdExpression begin =
               SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                   varName, SeqInitializer.INT_0);
