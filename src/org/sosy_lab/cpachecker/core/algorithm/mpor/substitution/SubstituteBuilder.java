@@ -417,32 +417,34 @@ public class SubstituteBuilder {
     ImmutableMap.Builder<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
         rFinalSubstitutes = ImmutableMap.builder();
 
-    for (var entryA : dummySubstitutes.entrySet()) {
-      CVariableDeclaration variableDeclaration = entryA.getKey();
+    for (var variableToSubstitutesEntry : dummySubstitutes.entrySet()) {
+      CVariableDeclaration variableDeclaration = variableToSubstitutesEntry.getKey();
       ImmutableMap.Builder<Optional<ThreadEdge>, CIdExpression> substitutes =
           ImmutableMap.builder();
 
-      for (var entryB : entryA.getValue().entrySet()) {
-        CIdExpression idExpression = entryB.getValue();
-        assert idExpression.getDeclaration() instanceof CVariableDeclaration
-            : "id expression declaration must be variable declaration";
-
+      for (var callContextToSubstituteEntry : variableToSubstitutesEntry.getValue().entrySet()) {
         CInitializer initializer = variableDeclaration.getInitializer();
         // TODO handle CInitializerList
         if (initializer instanceof CInitializerExpression initializerExpression) {
-          Optional<ThreadEdge> callContext = entryB.getKey();
-          CInitializerExpression initExprSub =
+          CIdExpression substituteExpression = callContextToSubstituteEntry.getValue();
+          assert substituteExpression.getDeclaration() instanceof CVariableDeclaration
+              : "substitute expression declaration must be variable declaration";
+          CVariableDeclaration substituteDeclaration =
+              (CVariableDeclaration) substituteExpression.getDeclaration();
+
+          Optional<ThreadEdge> callContext = callContextToSubstituteEntry.getKey();
+          CInitializerExpression initializerSubstitute =
               substituteInitializerExpression(
                   initializerExpression,
                   dummySubstitution.substitute(initializerExpression.getExpression(), callContext));
-          CVariableDeclaration finalSub =
-              substituteVariableDeclaration(variableDeclaration, initExprSub);
-          substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSub));
-          continue;
-        }
-        substitutes.put(entryB);
-      }
+          CVariableDeclaration finalSubstitute =
+              substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
 
+          substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSubstitute));
+        } else {
+          substitutes.put(callContextToSubstituteEntry);
+        }
+      }
       rFinalSubstitutes.put(variableDeclaration, substitutes.buildOrThrow());
     }
     return rFinalSubstitutes.buildOrThrow();
