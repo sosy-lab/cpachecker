@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -106,13 +105,13 @@ public class ThreadBuilder {
     // check if node is present already in a specific calling context
     Multimap<CFANode, Optional<ThreadEdge>> visitedNodes = ArrayListMultimap.create();
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
-    // we use a linked hash map to preserve ordering (important when declaring types)
-    LinkedHashMap<ThreadEdge, CFAEdge> threadEdges = new LinkedHashMap<>();
+    // we use an immutable map to preserve ordering (important when declaring types)
+    ImmutableMap.Builder<ThreadEdge, CFAEdge> threadEdges = ImmutableMap.builder();
 
     initThreadCfaVariables(
         visitedNodes, threadNodes, threadEdges, pEntryNode, pFunctionCallMap, Optional.empty());
     return new ThreadCFA(
-        pEntryNode, threadNodes.build(), ImmutableList.copyOf(threadEdges.keySet()));
+        pEntryNode, threadNodes.build(), ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
   /**
@@ -122,7 +121,7 @@ public class ThreadBuilder {
   private static void initThreadCfaVariables(
       Multimap<CFANode, Optional<ThreadEdge>> pVisitedCfaNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
-      LinkedHashMap<ThreadEdge, CFAEdge> pThreadEdges,
+      ImmutableMap.Builder<ThreadEdge, CFAEdge> pThreadEdges,
       final CFANode pCurrentNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       Optional<ThreadEdge> pCallContext) {
