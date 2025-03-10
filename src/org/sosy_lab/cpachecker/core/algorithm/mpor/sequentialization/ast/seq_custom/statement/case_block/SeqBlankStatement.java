@@ -26,16 +26,29 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
+
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    injectedStatements = ImmutableList.of();
+  }
+
+  private SeqBlankStatement(
+      CLeftHandSide pPcLeftHandSide,
+      Optional<Integer> pTargetPc,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
   }
 
   @Override
   public String toASTString() {
     return SeqStringUtil.buildTargetStatements(
-        pcLeftHandSide, targetPc, ImmutableList.of(), ImmutableList.of());
+        pcLeftHandSide, targetPc, injectedStatements, ImmutableList.of());
   }
 
   @Override
@@ -45,9 +58,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
-    // this should never be called because we inject after pruning (no blanks left)
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have injected statements");
+    return injectedStatements;
   }
 
   @Override
@@ -59,15 +70,14 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
+    return new SeqBlankStatement(pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
-    // this should never be called because we inject after pruning (no blanks left)
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have injected statements");
+
+    return new SeqBlankStatement(pcLeftHandSide, targetPc, pInjectedStatements);
   }
 
   @Override
@@ -90,6 +100,6 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public boolean onlyWritesPc() {
-    return true;
+    return injectedStatements.isEmpty();
   }
 }

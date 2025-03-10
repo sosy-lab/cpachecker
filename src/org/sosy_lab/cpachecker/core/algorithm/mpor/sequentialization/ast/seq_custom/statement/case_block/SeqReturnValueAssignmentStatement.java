@@ -85,7 +85,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   @Override
   public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
 
-    return new SeqReturnValueAssignmentStatement(assignment, pcLeftHandSide, pTargetPc);
+    return new SeqReturnValueAssignmentStatement(assignment, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

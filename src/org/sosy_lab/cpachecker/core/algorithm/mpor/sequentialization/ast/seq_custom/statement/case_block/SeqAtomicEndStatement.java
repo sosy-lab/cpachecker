@@ -79,7 +79,8 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAtomicEndStatement(atomicLockedFalse, pcLeftHandSide, pTargetPc);
+    return new SeqAtomicEndStatement(
+        atomicLockedFalse, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

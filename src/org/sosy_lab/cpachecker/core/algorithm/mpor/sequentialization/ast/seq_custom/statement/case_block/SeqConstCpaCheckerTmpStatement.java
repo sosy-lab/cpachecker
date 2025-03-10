@@ -150,7 +150,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
-        constCpaCheckerTmpDeclaration, statementA, statementB, pcLeftHandSide, pTargetPc);
+        constCpaCheckerTmpDeclaration, statementA, statementB, pcLeftHandSide,
+        Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

@@ -59,8 +59,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       int pJoinedThreadId,
       CIdExpression pThreadJoins,
       int pThreadId,
-      int pTargetPc,
       PcVariables pPcVariables,
+      int pTargetPc,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -82,10 +82,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       CIdExpression pThreadJoins,
       int pThreadId,
       Optional<Integer> pTargetPc,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements,
       PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
       throws UnrecognizedCodeException {
 
     joinedThreadId = pJoinedThreadId;
@@ -145,7 +145,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
 
     return new SeqThreadJoinStatement(
-        joinedThreadId, threadJoins, threadId, pTargetPc, pcVariables, binaryExpressionBuilder);
+        joinedThreadId, threadJoins, threadId, Optional.of(pTargetPc), pcVariables, binaryExpressionBuilder, injectedStatements, concatenatedStatements);
   }
 
   @Override
@@ -158,10 +158,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         threadJoins,
         threadId,
         targetPc,
-        pInjectedStatements,
-        concatenatedStatements,
         pcVariables,
-        binaryExpressionBuilder);
+        binaryExpressionBuilder,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -174,10 +174,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         threadJoins,
         threadId,
         Optional.empty(),
-        injectedStatements,
-        pConcatenatedStatements,
         pcVariables,
-        binaryExpressionBuilder);
+        binaryExpressionBuilder,
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

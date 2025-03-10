@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import io.github.cvc5.Op;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -82,7 +83,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, pTargetPc);
+    return new SeqMutexUnlockStatement(lockedFalse, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

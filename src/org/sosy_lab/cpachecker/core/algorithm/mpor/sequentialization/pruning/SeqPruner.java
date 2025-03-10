@@ -15,6 +15,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -91,7 +92,8 @@ public class SeqPruner {
             int targetPc = statement.getTargetPc().orElseThrow();
             if (pPcUpdates.containsKey(targetPc)) {
               // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(statement.cloneWithTargetPc(pPcUpdates.get(targetPc)));
+              newStatements.add(statement.cloneWithTargetPc(
+                  Objects.requireNonNull(pPcUpdates.get(targetPc))));
               continue;
             }
           }

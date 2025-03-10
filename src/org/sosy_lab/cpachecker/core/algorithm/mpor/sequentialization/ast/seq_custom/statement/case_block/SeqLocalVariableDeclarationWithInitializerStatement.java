@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import io.github.cvc5.Op;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -98,7 +99,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(int pTargetPc) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        variableDeclaration, pcLeftHandSide, pTargetPc);
+        variableDeclaration, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

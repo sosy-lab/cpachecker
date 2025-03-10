@@ -316,7 +316,7 @@ public class SeqCaseBlockStatementBuilder {
 
     CExpression pthreadT = PthreadUtil.extractPthreadT(pCfaEdge);
     MPORThread createdThread = PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-    return new SeqThreadCreationStatement(createdThread.id, pThread.id, pTargetPc, pPcVariables);
+    return new SeqThreadCreationStatement(createdThread.id, pThread.id, pPcVariables, pTargetPc);
   }
 
   public static SeqThreadLocksMutexStatement buildThreadLocksMutexStatement(
@@ -379,8 +379,8 @@ public class SeqCaseBlockStatementBuilder {
         targetThread.id,
         threadJoins,
         pThread.id,
-        pTargetPc,
         pPcVariables,
+        pTargetPc,
         pBinaryExpressionBuilder);
   }
 

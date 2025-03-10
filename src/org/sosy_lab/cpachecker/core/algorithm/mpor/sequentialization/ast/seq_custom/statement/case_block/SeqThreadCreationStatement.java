@@ -39,7 +39,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadCreationStatement(
-      int pCreatedThreadId, int pThreadId, int pTargetPc, PcVariables pPcVariables) {
+      int pCreatedThreadId, int pThreadId, PcVariables pPcVariables, int pTargetPc) {
 
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
@@ -93,7 +93,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(createdThreadId, threadId, pTargetPc, pcVariables);
+    return new SeqThreadCreationStatement(createdThreadId, threadId, pcVariables, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

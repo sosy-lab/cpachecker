@@ -119,7 +119,13 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqAtomicBeginStatement(atomicLocked, threadBeginsAtomic, pcLeftHandSide, pTargetPc);
+    return new SeqAtomicBeginStatement(
+        atomicLocked,
+        threadBeginsAtomic,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override

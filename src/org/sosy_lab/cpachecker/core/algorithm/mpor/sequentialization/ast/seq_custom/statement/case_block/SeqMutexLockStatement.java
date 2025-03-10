@@ -107,7 +107,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pcLeftHandSide, pTargetPc);
+    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override
