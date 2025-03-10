@@ -11,20 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.func
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 public class FunctionStatements {
 
-  public final ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
+  public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 
   public FunctionStatements(
-      ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
-          pParameterAssignments,
+      ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
       ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
           pReturnValueAssignments) {
 

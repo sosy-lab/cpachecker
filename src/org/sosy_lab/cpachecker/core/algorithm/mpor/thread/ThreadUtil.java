@@ -18,14 +18,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 
 public class ThreadUtil {
 
-  protected static <T extends CFAEdge> ImmutableList<T> getEdgesByClass(
+  protected static <T extends CFAEdge> ImmutableList<ThreadEdge> getEdgesByClass(
       ImmutableSet<ThreadEdge> pThreadEdges, Class<T> pEdgeClass) {
 
-    ImmutableList.Builder<T> rEdges = ImmutableList.builder();
+    ImmutableList.Builder<ThreadEdge> rEdges = ImmutableList.builder();
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
       if (pEdgeClass.isInstance(cfaEdge)) {
-        rEdges.add(pEdgeClass.cast(cfaEdge));
+        rEdges.add(threadEdge);
       }
     }
     return rEdges.build();

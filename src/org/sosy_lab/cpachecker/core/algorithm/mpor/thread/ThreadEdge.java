@@ -13,20 +13,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 
 public class ThreadEdge {
 
   public final CFAEdge cfaEdge;
 
   /** Not all edges have a calling context, e.g. {@code main()} function statements. */
-  public final Optional<CFunctionCallEdge> callContext;
+  public final Optional<ThreadEdge> callContext;
 
   private ThreadNode predecessor = null;
 
   private ThreadNode successor = null;
 
-  public ThreadEdge(CFAEdge pCfaEdge, Optional<CFunctionCallEdge> pCallContext) {
+  public ThreadEdge(CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
     cfaEdge = pCfaEdge;
     callContext = pCallContext;
   }

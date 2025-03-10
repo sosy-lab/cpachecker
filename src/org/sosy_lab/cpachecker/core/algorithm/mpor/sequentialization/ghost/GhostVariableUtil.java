@@ -187,15 +187,17 @@ public class GhostVariableUtil {
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
    * CSimpleDeclarationSubstitution#parameterSubstitutes}.
    */
-  private static ImmutableMap<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
+  private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       buildParameterAssignments(CSimpleDeclarationSubstitution pSubstitution) {
 
-    ImmutableMap.Builder<CFunctionCallEdge, ImmutableList<FunctionParameterAssignment>>
-        rAssignments = ImmutableMap.builder();
+    ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssignments =
+        ImmutableMap.builder();
 
     // for each function call edge (= calling context)
     for (var entryA : pSubstitution.parameterSubstitutes.entrySet()) {
-      CFunctionCallEdge functionCallEdge = entryA.getKey();
+      ThreadEdge threadEdge = entryA.getKey();
+      assert threadEdge.cfaEdge instanceof CFunctionCallEdge;
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) entryA.getKey().cfaEdge;
       ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes = entryA.getValue();
 
       ImmutableList.Builder<FunctionParameterAssignment> assignments = ImmutableList.builder();
@@ -204,16 +206,19 @@ public class GhostVariableUtil {
 
       // for each parameter, assign the param substitute to the param expression in funcCall
       for (int i = 0; i < parameterDeclarations.size(); i++) {
-        CParameterDeclaration paramDec = parameterDeclarations.get(i);
-        CExpression paramExpr =
+        CParameterDeclaration parameterDeclaration = parameterDeclarations.get(i);
+        CExpression rightHandSide =
             functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
-        CIdExpression paramSub = Objects.requireNonNull(parameterSubstitutes.get(paramDec));
+        CIdExpression parameterSubstitute =
+            Objects.requireNonNull(parameterSubstitutes.get(parameterDeclaration));
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(
-                SeqStatementBuilder.buildExpressionAssignmentStatement(paramSub, paramExpr));
+                SeqStatementBuilder.buildExpressionAssignmentStatement(
+                    parameterSubstitute,
+                    pSubstitution.substitute(rightHandSide, threadEdge.callContext)));
         assignments.add(parameterAssignment);
       }
-      rAssignments.put(functionCallEdge, assignments.build());
+      rAssignments.put(threadEdge, assignments.build());
     }
     return rAssignments.buildOrThrow();
   }

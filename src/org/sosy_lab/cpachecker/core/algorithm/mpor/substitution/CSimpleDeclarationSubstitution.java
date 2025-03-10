@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class CSimpleDeclarationSubstitution {
@@ -52,24 +52,23 @@ public class CSimpleDeclarationSubstitution {
    * The map of thread local variable declarations to their substitutes. Not every local variable
    * declaration has a calling context, hence {@link Optional}s.
    */
-  public final ImmutableMap<
-          CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
+  public final ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
       localSubstitutes;
 
   /**
    * The map of parameter to variable declaration substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  public final ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+  public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       parameterSubstitutes;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public CSimpleDeclarationSubstitution(
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
-      ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression>>
+      ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
           pLocalSubstitutes,
-      ImmutableMap<CFunctionCallEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
@@ -80,7 +79,7 @@ public class CSimpleDeclarationSubstitution {
   }
 
   public CExpression substitute(
-      final CExpression pExpression, final Optional<CFunctionCallEdge> pCallContext) {
+      final CExpression pExpression, final Optional<ThreadEdge> pCallContext) {
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
@@ -144,7 +143,7 @@ public class CSimpleDeclarationSubstitution {
     return pExpression;
   }
 
-  public CStatement substitute(CStatement pStatement, Optional<CFunctionCallEdge> pCallContext) {
+  public CStatement substitute(CStatement pStatement, Optional<ThreadEdge> pCallContext) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
@@ -193,7 +192,7 @@ public class CSimpleDeclarationSubstitution {
   }
 
   public CFunctionCallExpression substitute(
-      CFunctionCallExpression pFunctionCallExpression, Optional<CFunctionCallEdge> pCallContext) {
+      CFunctionCallExpression pFunctionCallExpression, Optional<ThreadEdge> pCallContext) {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
@@ -209,7 +208,7 @@ public class CSimpleDeclarationSubstitution {
   }
 
   public CReturnStatement substitute(
-      CReturnStatement pReturnStatement, Optional<CFunctionCallEdge> pCallContext) {
+      CReturnStatement pReturnStatement, Optional<ThreadEdge> pCallContext) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute
@@ -226,7 +225,7 @@ public class CSimpleDeclarationSubstitution {
 
   /** Returns the global, local or param {@link CIdExpression} substitute of pSimpleDeclaration. */
   private CIdExpression getVariableSubstitute(
-      CSimpleDeclaration pSimpleDeclaration, Optional<CFunctionCallEdge> pCallContext) {
+      CSimpleDeclaration pSimpleDeclaration, Optional<ThreadEdge> pCallContext) {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
@@ -241,7 +240,7 @@ public class CSimpleDeclarationSubstitution {
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
       assert pCallContext.isPresent();
-      CFunctionCallEdge callContext = pCallContext.orElseThrow();
+      ThreadEdge callContext = pCallContext.orElseThrow();
       checkArgument(
           parameterSubstitutes.containsKey(callContext),
           "no substitute found for %s",
@@ -256,7 +255,7 @@ public class CSimpleDeclarationSubstitution {
   }
 
   public CVariableDeclaration getVariableDeclarationSubstitute(
-      CSimpleDeclaration pSimpleDeclaration, Optional<CFunctionCallEdge> pCallContext) {
+      CSimpleDeclaration pSimpleDeclaration, Optional<ThreadEdge> pCallContext) {
 
     CIdExpression idExpression = getVariableSubstitute(pSimpleDeclaration, pCallContext);
     return (CVariableDeclaration) idExpression.getDeclaration();
@@ -290,7 +289,7 @@ public class CSimpleDeclarationSubstitution {
 
   public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
-    for (ImmutableMap<Optional<CFunctionCallEdge>, CIdExpression> localVariables :
+    for (ImmutableMap<Optional<ThreadEdge>, CIdExpression> localVariables :
         localSubstitutes.values()) {
       for (CIdExpression localVariable : localVariables.values()) {
         CVariableDeclaration variableDeclaration =

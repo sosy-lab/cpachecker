@@ -165,8 +165,8 @@ public class SeqCaseBlockStatementBuilder {
         return buildLocalVariableDeclarationWithInitializerStatement(
             declarationEdge, pcLeftHandSide, targetPc);
 
-      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge functionCall) {
-        return handleFunctionCallEdge(pThread.id, functionCall, targetPc, pGhostVariables);
+      } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge) {
+        return handleFunctionCallEdge(pThread.id, pThreadEdge, targetPc, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
         return buildReturnValueAssignmentStatement(
@@ -229,21 +229,17 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   private static SeqCaseBlockStatement handleFunctionCallEdge(
-      int pThreadId,
-      CFunctionCallEdge pFunctionCallEdge,
-      int pTargetPc,
-      GhostVariables pGhostVariables) {
+      int pThreadId, ThreadEdge pThreadEdge, int pTargetPc, GhostVariables pGhostVariables) {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
     // function calls -> store parameters in ghost variables
-    if (MPORUtil.isReachErrorCall(pFunctionCallEdge)) {
+    if (MPORUtil.isReachErrorCall(pThreadEdge)) {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(pcLeftHandSide);
     }
-    assert pGhostVariables.function.parameterAssignments.containsKey(pFunctionCallEdge);
+    assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
     ImmutableList<FunctionParameterAssignment> assignments =
-        Objects.requireNonNull(
-            pGhostVariables.function.parameterAssignments.get(pFunctionCallEdge));
+        Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
     if (assignments.isEmpty()) {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }

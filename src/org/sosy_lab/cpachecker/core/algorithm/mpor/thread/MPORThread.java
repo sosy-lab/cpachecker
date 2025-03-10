@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMultimap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
@@ -30,7 +29,7 @@ public class MPORThread {
   public final CFunctionType startRoutine;
 
   /** The set of context-sensitive local variable declarations of this thread. */
-  public final ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>> localVars;
+  public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVars;
 
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
@@ -39,7 +38,7 @@ public class MPORThread {
       int pId,
       CFunctionType pStartRoutine,
       Optional<CIdExpression> pThreadObject,
-      ImmutableMultimap<CVariableDeclaration, Optional<CFunctionCallEdge>> pLocalVars,
+      ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVars,
       ThreadCFA pCfa) {
 
     id = pId;

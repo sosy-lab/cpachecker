@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -187,6 +188,15 @@ public final class MPORUtil {
       }
     }
     return foundPath;
+  }
+
+  public static boolean isReachErrorCall(ThreadEdge pThreadEdge) {
+    if (pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+      return isReachErrorCall(functionSummaryEdge);
+    } else if (pThreadEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+      return isReachErrorCall(functionCallEdge);
+    }
+    return false;
   }
 
   public static boolean isReachErrorCall(CFunctionSummaryEdge pFunctionSummaryEdge) {
