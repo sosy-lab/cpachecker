@@ -21,21 +21,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class PartialOrderReducer {
-
-  // TODO
-  //  stack-2
-  //  stack-longest-1
-  //  stack-1
 
   // TODO add bit vectors for each thread store which global variables (up to 128 supported) are
   //  accessed in the next case
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenateCommutingCases(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
-      throws UnrecognizedCodeException {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rConcatenated =
         ImmutableMap.builder();
@@ -46,42 +39,53 @@ public class PartialOrderReducer {
   }
 
   private static ImmutableList<SeqCaseClause> concatenateCommutingCases(
-      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqCaseClause> rNewCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
         SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
-    Set<SeqCaseClause> concatenated = new HashSet<>();
+    Set<Integer> concatenated = new HashSet<>();
+    Set<Integer> duplicated = new HashSet<>();
     for (SeqCaseClause caseClause : pCaseClauses) {
       // prevent start in already concatenated clauses, otherwise they are duplicated
-      if (concatenated.add(caseClause)) {
+      if (concatenated.add(caseClause.id)) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement statement : caseClause.block.statements) {
           newStatements.add(
-              recursivelyConcatenateStatements(statement, concatenated, labelValueMap));
+              recursivelyConcatenateStatements(statement, concatenated, duplicated, labelValueMap));
         }
         SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
-        rNewCaseClauses.add(caseClause.cloneWithBlock(newBlock));
+        SeqCaseClause clone = caseClause.cloneWithBlock(newBlock);
+        rNewCaseClauses.add(clone);
       }
     }
-    return rNewCaseClauses.build();
+    // we filter out case clauses that were visited twice during concatenation
+    return rNewCaseClauses.build().stream()
+        .filter(
+            caseClause ->
+                concatenated.contains(caseClause.id) && !duplicated.contains(caseClause.id))
+        .collect(ImmutableList.toImmutableList());
   }
 
   private static SeqCaseBlockStatement recursivelyConcatenateStatements(
       SeqCaseBlockStatement pCurrentStatement,
-      Set<SeqCaseClause> pConcatenated,
-      final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap)
-      throws UnrecognizedCodeException {
+      Set<Integer> pConcatenated,
+      Set<Integer> pDuplicated,
+      final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
 
     if (validIntTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(pCurrentStatement, newTarget)) {
-        pConcatenated.add(newTarget);
+        // if the target id was seen before, add it to duplicate
+        if (!pConcatenated.add(newTarget.id)) {
+          pDuplicated.add(newTarget.id);
+        }
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement targetStatement : newTarget.block.statements) {
           newStatements.add(
-              recursivelyConcatenateStatements(targetStatement, pConcatenated, pLabelValueMap));
+              recursivelyConcatenateStatements(
+                  targetStatement, pConcatenated, pDuplicated, pLabelValueMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }

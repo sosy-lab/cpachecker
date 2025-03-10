@@ -19,6 +19,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqCaseClause implements SeqStatement {
 
+  private static int currentId = 0;
+
+  public final int id;
+
   public final boolean isGlobal;
 
   public final boolean isLoopStart;
@@ -32,6 +36,7 @@ public class SeqCaseClause implements SeqStatement {
   public SeqCaseClause(
       boolean pIsGlobal, boolean pIsLoopStart, int pLabelValue, SeqCaseBlock pBlock) {
 
+    id = currentId++;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     label = new SeqCaseLabel(pLabelValue);
@@ -40,8 +45,9 @@ public class SeqCaseClause implements SeqStatement {
 
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqCaseClause(
-      boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
+      int pId, boolean pIsGlobal, boolean pIsLoopStart, SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
 
+    id = pId;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     label = pLabel;
@@ -49,15 +55,15 @@ public class SeqCaseClause implements SeqStatement {
   }
 
   public SeqCaseClause cloneWithLabelAndBlock(SeqCaseLabel pLabel, SeqCaseBlock pBlock) {
-    return new SeqCaseClause(isGlobal, isLoopStart, pLabel, pBlock);
+    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, pBlock);
   }
 
   public SeqCaseClause cloneWithLabel(SeqCaseLabel pLabel) {
-    return new SeqCaseClause(isGlobal, isLoopStart, pLabel, block);
+    return new SeqCaseClause(id, isGlobal, isLoopStart, pLabel, block);
   }
 
   public SeqCaseClause cloneWithBlock(SeqCaseBlock pBlock) {
-    return new SeqCaseClause(isGlobal, isLoopStart, label, pBlock);
+    return new SeqCaseClause(id, isGlobal, isLoopStart, label, pBlock);
   }
 
   /**

@@ -208,11 +208,13 @@ public class SeqPruner {
   private static boolean validPrunableCaseClause(SeqCaseClause pCaseClause) {
     checkArgument(
         pCaseClause.block.statements.size() == 1,
-        "prunable case clauses must contain exactly 1 statement: " + pCaseClause.toASTString());
+        "prunable case clauses must contain exactly 1 statement: %s",
+        pCaseClause.toASTString());
     SeqCaseBlockStatement statement = pCaseClause.block.statements.get(0);
     checkArgument(
         statement.onlyWritesPc(),
-        "prunable statement must only write pc: " + statement.toASTString());
+        "prunable statement must only write pc: %s",
+        statement.toASTString());
     checkArgument(
         statement.getTargetPc().isPresent(), "prunable statement must contain a target pc");
     return true;

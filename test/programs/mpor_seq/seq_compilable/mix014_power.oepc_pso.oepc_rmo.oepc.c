@@ -1,3 +1,10 @@
+// This file is part of the SV-Benchmarks collection of verification tasks:
+// https://github.com/sosy-lab/sv-benchmarks
+//
+// SPDX-FileCopyrightText: 2011-2020 The SV-Benchmarks community
+//
+// SPDX-License-Identifier: Apache-2.0
+
 extern void abort(void);
 void assume_abort_if_not(int cond) {
   if(!cond) {abort();}
