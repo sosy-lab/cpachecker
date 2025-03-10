@@ -91,7 +91,17 @@ public class SequentializationTest {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
-        MPOROptions.testInstance(false, false, true, false, false, true, true, false);
+        MPOROptions.testInstance(false, false, true, false, true, true, true, false);
+    testCompile(path, options);
+  }
+
+  @Test
+  public void testCompileSeq_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(true, false, true, false, true, false, true, true);
     testCompile(path, options);
   }
 
