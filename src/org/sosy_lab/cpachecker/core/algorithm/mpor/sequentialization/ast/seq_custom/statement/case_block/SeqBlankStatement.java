@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
 /**
- * Represents a blank case block which only has a {@code pc} update. All blank statements are later
- * pruned from the sequentialization.
+ * Represents a blank case block which only has a {@code pc} update.
  *
  * <p>E.g. {@code case m: pc[thread_id] = n; continue;}
  */

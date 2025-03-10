@@ -153,12 +153,15 @@ public class SeqPruner {
   private static int extractTargetPc(SeqCaseClause pNonBlank) {
     SeqCaseBlockStatement nonBlankSingleStatement = pNonBlank.block.statements.get(0);
 
-    if (nonBlankSingleStatement instanceof SeqBlankStatement) {
-      Verify.verify(validPrunableCaseClause(pNonBlank));
-      int nonBlankTargetPc = nonBlankSingleStatement.getTargetPc().orElseThrow();
-      // if the found non-blank is still blank, it must be an exit location
-      Verify.verify(nonBlankTargetPc == Sequentialization.EXIT_PC);
-      return nonBlankTargetPc;
+    if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
+      // the blank could have injected statements -> treat it as non-blank
+      if (blankStatement.onlyWritesPc()) {
+        Verify.verify(validPrunableCaseClause(pNonBlank));
+        int nonBlankTargetPc = nonBlankSingleStatement.getTargetPc().orElseThrow();
+        // if the found non-blank is still blank, it must be an exit location
+        Verify.verify(nonBlankTargetPc == Sequentialization.EXIT_PC);
+        return nonBlankTargetPc;
+      }
     }
 
     // otherwise return label pc of the found non-blank
@@ -205,11 +208,13 @@ public class SeqPruner {
   private static boolean validPrunableCaseClause(SeqCaseClause pCaseClause) {
     checkArgument(
         pCaseClause.block.statements.size() == 1,
-        "prunable case clauses must contain exactly 1 statement");
+        "prunable case clauses must contain exactly 1 statement: " + pCaseClause.toASTString());
     SeqCaseBlockStatement statement = pCaseClause.block.statements.get(0);
-    checkArgument(statement.onlyWritesPc(), "prunable case clauses must only write pc");
     checkArgument(
-        statement.getTargetPc().isPresent(), "prunable case clauses must contain a target pc");
+        statement.onlyWritesPc(),
+        "prunable statement must only write pc: " + statement.toASTString());
+    checkArgument(
+        statement.getTargetPc().isPresent(), "prunable statement must contain a target pc");
     return true;
   }
 
