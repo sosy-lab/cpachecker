@@ -20,9 +20,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -107,12 +106,13 @@ public class ThreadBuilder {
     // check if node is present already in a specific calling context
     Multimap<CFANode, Optional<ThreadEdge>> visitedNodes = ArrayListMultimap.create();
     ImmutableSet.Builder<ThreadNode> threadNodes = ImmutableSet.builder();
-    Map<ThreadEdge, CFAEdge> threadEdges = new HashMap<>();
+    // we use a linked hash map to preserve ordering (important when declaring types)
+    LinkedHashMap<ThreadEdge, CFAEdge> threadEdges = new LinkedHashMap<>();
 
     initThreadCfaVariables(
         visitedNodes, threadNodes, threadEdges, pEntryNode, pFunctionCallMap, Optional.empty());
     return new ThreadCFA(
-        pEntryNode, threadNodes.build(), ImmutableSet.copyOf(threadEdges.keySet()));
+        pEntryNode, threadNodes.build(), ImmutableList.copyOf(threadEdges.keySet()));
   }
 
   /**
@@ -122,7 +122,7 @@ public class ThreadBuilder {
   private static void initThreadCfaVariables(
       Multimap<CFANode, Optional<ThreadEdge>> pVisitedCfaNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
-      Map<ThreadEdge, CFAEdge> pThreadEdges,
+      LinkedHashMap<ThreadEdge, CFAEdge> pThreadEdges,
       final CFANode pCurrentNode,
       final ImmutableMap<CFANode, CFANode> pFunctionCallMap,
       Optional<ThreadEdge> pCallContext) {
@@ -169,7 +169,7 @@ public class ThreadBuilder {
 
   /** Extracts all local variable declarations from pThreadEdges. */
   private static ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>>
-      getLocalVariableDeclarations(ImmutableSet<ThreadEdge> pThreadEdges) {
+      getLocalVariableDeclarations(ImmutableList<ThreadEdge> pThreadEdges) {
 
     ImmutableListMultimap.Builder<CVariableDeclaration, Optional<ThreadEdge>> rLocalVars =
         ImmutableListMultimap.builder();

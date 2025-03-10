@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
@@ -36,12 +37,12 @@ public class ThreadCFA {
   /** The (sub)set of CFANodes from the original input CFA that this thread can reach. */
   public final ImmutableSet<ThreadNode> threadNodes;
 
-  public final ImmutableSet<ThreadEdge> threadEdges;
+  public final ImmutableList<ThreadEdge> threadEdges;
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
       ImmutableSet<ThreadNode> pThreadNodes,
-      ImmutableSet<ThreadEdge> pThreadEdges) {
+      ImmutableList<ThreadEdge> pThreadEdges) {
 
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
@@ -102,7 +103,7 @@ public class ThreadCFA {
    * handled in {@link ThreadCFA#handleFunctionReturnEdges()}.
    */
   private static void initSuccessors(
-      ImmutableSet<ThreadEdge> pThreadEdges, ImmutableSet<ThreadNode> pThreadNodes) {
+      ImmutableList<ThreadEdge> pThreadEdges, ImmutableSet<ThreadNode> pThreadNodes) {
 
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
