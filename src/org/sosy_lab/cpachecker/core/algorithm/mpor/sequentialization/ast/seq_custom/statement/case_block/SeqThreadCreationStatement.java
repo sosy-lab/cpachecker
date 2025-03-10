@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
@@ -93,13 +92,18 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqThreadCreationStatement(createdThreadId, threadId, pcVariables, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+    return new SeqThreadCreationStatement(
+        createdThreadId,
+        threadId,
+        pcVariables,
+        Optional.of(pTargetPc),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements)
-      throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadCreationStatement(
         createdThreadId,

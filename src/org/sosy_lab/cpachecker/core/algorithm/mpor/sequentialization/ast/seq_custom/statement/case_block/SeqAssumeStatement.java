@@ -85,12 +85,17 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   @Override
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
-        controlFlowStatement, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+        controlFlowStatement,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+
     return new SeqAssumeStatement(
         controlFlowStatement,
         pcLeftHandSide,

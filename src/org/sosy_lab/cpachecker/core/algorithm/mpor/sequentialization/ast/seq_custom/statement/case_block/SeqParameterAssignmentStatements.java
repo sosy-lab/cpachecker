@@ -90,7 +90,12 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   @Override
   public SeqParameterAssignmentStatements cloneWithTargetPc(int pTargetPc) {
-    return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+    return new SeqParameterAssignmentStatements(
+        assignments,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override

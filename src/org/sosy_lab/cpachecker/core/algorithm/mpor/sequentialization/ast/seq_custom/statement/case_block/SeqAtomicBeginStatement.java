@@ -15,19 +15,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
-  private static final SeqControlFlowStatement elseNotLocked = new SeqControlFlowStatement();
-
   private final CIdExpression atomicLocked;
 
-  private final CIdExpression threadBeginsAtomic;
+  public final CIdExpression threadBeginsAtomic;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -69,11 +65,6 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifAtomicLocked =
-        new SeqControlFlowStatement(atomicLocked, SeqControlFlowStatementType.IF);
-    CExpressionAssignmentStatement setBeginsTrue =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_1);
     CExpressionAssignmentStatement setAtomicLockedTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, atomicLocked, SeqIntegerLiteralExpression.INT_1);
@@ -85,21 +76,11 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
 
-    String elseStatements =
-        SeqStringUtil.wrapInCurlyInwards(
-            setAtomicLockedTrue.toASTString()
-                + SeqSyntax.SPACE
-                + setBeginsFalse.toASTString()
-                + SeqSyntax.SPACE
-                + targetStatements);
-
-    return ifAtomicLocked.toASTString()
+    return setAtomicLockedTrue.toASTString()
         + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(setBeginsTrue.toASTString())
+        + setBeginsFalse.toASTString()
         + SeqSyntax.SPACE
-        + elseNotLocked.toASTString()
-        + SeqSyntax.SPACE
-        + elseStatements;
+        + targetStatements;
   }
 
   @Override

@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexLockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
@@ -209,7 +208,7 @@ public class SeqCaseClauseBuilder {
   }
 
   private static ImmutableList<SeqCaseClause> injectThreadSimulationGhosts(
-      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqCaseClause> rCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
@@ -228,11 +227,10 @@ public class SeqCaseClauseBuilder {
             SeqCaseClause target = Objects.requireNonNull(labelValueMap.get(targetPc));
             // validation enforces that total strict order entries are direct targets (= first stmt)
             SeqCaseBlockStatement firstStatement = target.block.statements.get(0);
-            // TODO also handle AtomicBegin, ThreadJoin,
-            if (firstStatement instanceof SeqMutexLockStatement mutexLockStatement) {
-              injectedStatements.add(
-                  SeqCaseBlockStatementBuilder.buildThreadLocksMutexStatement(
-                      mutexLockStatement.threadLocksMutex));
+            Optional<SeqCaseBlockInjectedStatement> injectedStatement =
+                SeqCaseBlockStatementBuilder.tryBuildInjectedStatement(firstStatement);
+            if (injectedStatement.isPresent()) {
+              injectedStatements.add(injectedStatement.orElseThrow());
             }
           }
         }

@@ -92,8 +92,8 @@ public class SeqPruner {
             int targetPc = statement.getTargetPc().orElseThrow();
             if (pPcUpdates.containsKey(targetPc)) {
               // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(statement.cloneWithTargetPc(
-                  Objects.requireNonNull(pPcUpdates.get(targetPc))));
+              newStatements.add(
+                  statement.cloneWithTargetPc(Objects.requireNonNull(pPcUpdates.get(targetPc))));
               continue;
             }
           }

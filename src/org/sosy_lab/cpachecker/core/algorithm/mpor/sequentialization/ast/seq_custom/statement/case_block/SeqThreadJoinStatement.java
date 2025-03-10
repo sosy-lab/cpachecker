@@ -11,19 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_join} of the form:
@@ -34,14 +28,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
-  private static final SeqControlFlowStatement elseJoinedThreadNotActive =
-      new SeqControlFlowStatement();
+  public final CIdExpression threadJoinsThread;
 
-  private final int joinedThreadId;
-
-  private final CIdExpression threadJoins;
-
-  private final int threadId;
+  private final CLeftHandSide pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
 
@@ -49,81 +38,40 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
-  private final PcVariables pcVariables;
+  SeqThreadJoinStatement(CIdExpression pThreadJoins, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
 
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
-
-  private final CBinaryExpression pcUnequalExitPc;
-
-  SeqThreadJoinStatement(
-      int pJoinedThreadId,
-      CIdExpression pThreadJoins,
-      int pThreadId,
-      PcVariables pPcVariables,
-      int pTargetPc,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    joinedThreadId = pJoinedThreadId;
-    threadJoins = pThreadJoins;
-    threadId = pThreadId;
+    threadJoinsThread = pThreadJoins;
+    pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
-    pcVariables = pPcVariables;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    pcUnequalExitPc =
-        SeqExpressionBuilder.buildPcUnequalExitPc(
-            pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
   private SeqThreadJoinStatement(
-      int pJoinedThreadId,
       CIdExpression pThreadJoins,
-      int pThreadId,
+      CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
-      throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
-    joinedThreadId = pJoinedThreadId;
-    threadJoins = pThreadJoins;
-    threadId = pThreadId;
+    threadJoinsThread = pThreadJoins;
     targetPc = pTargetPc;
+    pcLeftHandSide = pPcLeftHandSide;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
-    pcVariables = pPcVariables;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
-    pcUnequalExitPc =
-        SeqExpressionBuilder.buildPcUnequalExitPc(
-            pcVariables, joinedThreadId, binaryExpressionBuilder);
   }
 
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifJoinedThreadActive =
-        new SeqControlFlowStatement(pcUnequalExitPc, SeqControlFlowStatementType.IF);
-    CExpressionAssignmentStatement joinsTrue =
+    CExpressionAssignmentStatement setJoinsFalse =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement joinsFalse =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadJoins, SeqIntegerLiteralExpression.INT_0);
+            FileLocation.DUMMY, threadJoinsThread, SeqIntegerLiteralExpression.INT_0);
+
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcVariables.get(threadId), targetPc, injectedStatements, concatenatedStatements);
-    String elseStatements =
-        SeqStringUtil.wrapInCurlyInwards(
-            joinsFalse.toASTString() + SeqSyntax.SPACE + targetStatements);
-    return ifJoinedThreadActive.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(joinsTrue.toASTString())
-        + SeqSyntax.SPACE
-        + elseJoinedThreadNotActive.toASTString()
-        + SeqSyntax.SPACE
-        + elseStatements;
+            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+
+    return setJoinsFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
   @Override
@@ -142,40 +90,32 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
+  public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
 
     return new SeqThreadJoinStatement(
-        joinedThreadId, threadJoins, threadId, Optional.of(pTargetPc), pcVariables, binaryExpressionBuilder, injectedStatements, concatenatedStatements);
-  }
-
-  @Override
-  public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements)
-      throws UnrecognizedCodeException {
-
-    return new SeqThreadJoinStatement(
-        joinedThreadId,
-        threadJoins,
-        threadId,
-        targetPc,
-        pcVariables,
-        binaryExpressionBuilder,
-        pInjectedStatements,
+        threadJoinsThread,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        injectedStatements,
         concatenatedStatements);
   }
 
   @Override
-  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
-      throws UnrecognizedCodeException {
+  public SeqCaseBlockStatement cloneWithInjectedStatements(
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
-        joinedThreadId,
-        threadJoins,
-        threadId,
+        threadJoinsThread, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithConcatenatedStatements(
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
+
+    return new SeqThreadJoinStatement(
+        threadJoinsThread,
+        pcLeftHandSide,
         Optional.empty(),
-        pcVariables,
-        binaryExpressionBuilder,
         injectedStatements,
         pConcatenatedStatements);
   }

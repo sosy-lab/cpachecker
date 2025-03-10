@@ -13,7 +13,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 // TODO further divide this into thread, function, ... interfaces
 // TODO its probably better to use an abstract class here for default implementations and attributes
@@ -34,19 +33,17 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements();
 
   /** This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. */
-  SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException;
+  SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc);
 
   SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements)
-      throws UnrecognizedCodeException;
+      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements);
 
   /**
    * This function should be called when applying Partial Order Reduction to {@link SeqCaseClause}s,
    * i.e. when concatenating statements and replacing {@code pc} writes.
    */
   SeqCaseBlockStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements)
-      throws UnrecognizedCodeException;
+      ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements);
 
   // TODO this is equivalent to whether cloneWithConcatenatedStatements throws an Exception
   boolean isConcatenable();

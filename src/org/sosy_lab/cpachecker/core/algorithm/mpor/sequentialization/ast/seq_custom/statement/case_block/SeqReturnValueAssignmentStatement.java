@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Handles the assignments of a <strong>single</strong> return value of functions, e.g. {@code int x
@@ -83,9 +82,14 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   }
 
   @Override
-  public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) throws UnrecognizedCodeException {
+  public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
 
-    return new SeqReturnValueAssignmentStatement(assignment, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+    return new SeqReturnValueAssignmentStatement(
+        assignment,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override

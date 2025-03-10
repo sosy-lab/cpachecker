@@ -81,7 +81,8 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqDefaultStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqDefaultStatement(edge, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+    return new SeqDefaultStatement(
+        edge, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
   }
 
   @Override

@@ -13,19 +13,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 
-public class SeqThreadLocksMutexStatement implements SeqCaseBlockInjectedStatement {
+public class SeqThreadBeginsAtomicStatement implements SeqCaseBlockInjectedStatement {
 
-  private final CIdExpression threadLocksMutex;
+  private final CIdExpression threadBeginsAtomic;
 
-  public SeqThreadLocksMutexStatement(CIdExpression pThreadLocksMutex) {
-    threadLocksMutex = pThreadLocksMutex;
+  public SeqThreadBeginsAtomicStatement(CIdExpression pThreadBeginsAtomic) {
+    threadBeginsAtomic = pThreadBeginsAtomic;
   }
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement setLocksTrue =
+    CExpressionAssignmentStatement setBeginsTrue =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_1);
-    return setLocksTrue.toASTString();
+            FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_1);
+    return setBeginsTrue.toASTString();
   }
 }
