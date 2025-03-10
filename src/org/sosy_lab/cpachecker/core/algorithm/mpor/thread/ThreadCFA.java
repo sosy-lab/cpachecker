@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -41,16 +43,16 @@ public class ThreadCFA {
 
   protected ThreadCFA(
       FunctionEntryNode pEntryNode,
-      ImmutableSet<ThreadNode> pThreadNodes,
+      ImmutableMap<ThreadNode, Optional<CFunctionCallEdge>> pThreadNodes,
       ImmutableSet<ThreadEdge> pThreadEdges) {
 
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
-    threadNodes = pThreadNodes;
+    threadNodes = pThreadNodes.keySet();
     threadEdges = pThreadEdges;
     functionCallEdges = ThreadUtil.getEdgesByClass(threadEdges, CFunctionCallEdge.class);
     initPredecessors();
-    initSuccessors();
+    initSuccessors(pThreadNodes);
     handleFunctionReturnEdges();
   }
 
@@ -101,11 +103,31 @@ public class ThreadCFA {
    * Initializes all successor ThreadNodes for each ThreadEdge except CFunctionReturnEdges which are
    * handled in {@link ThreadCFA#handleFunctionReturnEdges()}.
    */
-  private void initSuccessors() {
+  private void initSuccessors(ImmutableMap<ThreadNode, Optional<CFunctionCallEdge>> pThreadNodes) {
     for (ThreadEdge threadEdge : threadEdges) {
-      if (!(threadEdge.cfaEdge instanceof CFunctionReturnEdge)) {
-        ThreadNode successor = getThreadNodeByCfaNode(threadEdge.cfaEdge.getSuccessor());
-        threadEdge.setSuccessor(successor);
+      CFAEdge cfaEdge = threadEdge.cfaEdge;
+      if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+        CFANode edgeSuccessor = cfaEdge.getSuccessor();
+        for (var entry : pThreadNodes.entrySet()) {
+          ThreadNode threadNode = entry.getKey();
+          // check if predecessor node of edge is same as node
+          if (threadNode.cfaNode.equals(edgeSuccessor)) {
+            Optional<CFunctionCallEdge> callContext = entry.getValue();
+            if (cfaEdge instanceof CFunctionCallEdge) {
+              // for call edges, we use the edge as the call context
+              if (callContext.equals(Optional.of(cfaEdge))) {
+                threadEdge.setSuccessor(threadNode);
+                break;
+              }
+            } else {
+              // for all other edges, we use the edges call context
+              if (callContext.equals(threadEdge.callContext)) {
+                threadEdge.setSuccessor(threadNode);
+                break;
+              }
+            }
+          }
+        }
       }
     }
   }

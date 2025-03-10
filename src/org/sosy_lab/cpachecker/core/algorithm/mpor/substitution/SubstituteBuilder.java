@@ -374,19 +374,9 @@ public class SubstituteBuilder {
           CStorageClass storageClass = variableDeclaration.getCStorageClass();
           // if type declarations are not included, the storage class cannot be extern
           if (pOptions.inputTypeDeclarations || !storageClass.equals(CStorageClass.EXTERN)) {
+            Optional<String> functionName = getFunctionNameByCallContext(callContext);
             String substituteName =
-                SeqNameUtil.buildVariableName(
-                    variableDeclaration,
-                    pThreadId,
-                    call++,
-                    callContext.isEmpty()
-                        ? Optional.empty()
-                        : Optional.of(
-                            callContext
-                                .orElseThrow()
-                                .getFunctionCallExpression()
-                                .getDeclaration()
-                                .getOrigName()));
+                SeqNameUtil.buildVariableName(variableDeclaration, pThreadId, call++, functionName);
             CVariableDeclaration substitute =
                 substituteVarDeclaration(variableDeclaration, substituteName);
             CIdExpression substituteExpression = SeqExpressionBuilder.buildIdExpression(substitute);
@@ -397,6 +387,15 @@ public class SubstituteBuilder {
       }
     }
     return dummySubstitutes.buildOrThrow();
+  }
+
+  private static Optional<String> getFunctionNameByCallContext(
+      Optional<CFunctionCallEdge> pCallContext) {
+
+    return pCallContext.isEmpty()
+        ? Optional.empty()
+        : Optional.of(
+            pCallContext.orElseThrow().getFunctionCallExpression().getDeclaration().getOrigName());
   }
 
   // TODO split into functions and improve overview
