@@ -41,6 +41,8 @@ public class MPOROptions {
 
   public final boolean scalarPc;
 
+  public final boolean sequentializationErrors;
+
   public final boolean shortVariables;
 
   public final boolean signedNextThread;
@@ -59,6 +61,7 @@ public class MPOROptions {
       boolean pOverwriteFiles,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
+      boolean pSequentializationErrors,
       boolean pShortVariables,
       boolean pSignedNextThread,
       boolean pValidateParse,
@@ -81,6 +84,7 @@ public class MPOROptions {
     overwriteFiles = pOverwriteFiles;
     partialOrderReduction = pPartialOrderReduction;
     scalarPc = pScalarPc;
+    sequentializationErrors = pSequentializationErrors;
     shortVariables = pShortVariables;
     signedNextThread = pSignedNextThread;
     validateParse = pValidateParse;
@@ -95,6 +99,7 @@ public class MPOROptions {
       boolean pLicense,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
+      boolean pSequentializationErrors,
       boolean pShortVariables,
       boolean pSignedNextThread) {
 
@@ -108,6 +113,7 @@ public class MPOROptions {
         false,
         pPartialOrderReduction,
         pScalarPc,
+        pSequentializationErrors,
         pShortVariables,
         pSignedNextThread,
         // no parse validation in unit tests -> tests are independent of implementation

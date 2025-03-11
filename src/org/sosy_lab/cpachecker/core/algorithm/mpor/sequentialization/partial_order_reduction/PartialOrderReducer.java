@@ -114,7 +114,7 @@ public class PartialOrderReducer {
 
     return pStatement.isConcatenable()
         // these are sorted by performance impact in descending order for short circuit evaluation
-        && !(!(canIgnoreGlobal(pTarget) || !pTarget.isGlobal) // only consider global if not ignored
+        && !((!canIgnoreGlobal(pTarget) && pTarget.isGlobal) // only consider global if not ignored
             // TODO add support for loop heads by adding goto loop_heads
             || pTarget.isLoopStart
             || !pTarget.isCriticalSectionStart()

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -25,6 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqSwitchStatement implements SeqStatement {
 
+  private final MPOROptions options;
+
   private final SeqControlFlowStatement switchExpression;
 
   private final ImmutableList<SeqCaseClause> caseClauses;
@@ -32,8 +35,12 @@ public class SeqSwitchStatement implements SeqStatement {
   private final int tabs;
 
   public SeqSwitchStatement(
-      CExpression pExpression, ImmutableList<SeqCaseClause> pCaseClauses, int pTabs) {
+      MPOROptions pOptions,
+      CExpression pExpression,
+      ImmutableList<SeqCaseClause> pCaseClauses,
+      int pTabs) {
 
+    options = pOptions;
     switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
     caseClauses = pCaseClauses;
     tabs = pTabs;
@@ -55,7 +62,9 @@ public class SeqSwitchStatement implements SeqStatement {
         + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
-        + SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+        + (options.sequentializationErrors
+            ? SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+            : SeqSyntax.EMPTY_STRING)
         + SeqStringUtil.buildTab(tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }

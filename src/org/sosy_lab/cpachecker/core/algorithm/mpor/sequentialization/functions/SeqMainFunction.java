@@ -188,12 +188,14 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_SWITCHES));
     }
-    rBody.addAll(buildSwitchStatements(caseClauses));
+    rBody.addAll(buildSwitchStatements(options, caseClauses));
     rBody.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
-    // end of main function, only reachable if thread simulation finished incorrectly -> error
-    rBody.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
+    if (options.sequentializationErrors) {
+      // end of main function, only reachable if thread simulation finished incorrectly -> error
+      rBody.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
+    }
     return rBody.build();
   }
 
@@ -261,7 +263,7 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private ImmutableList<LineOfCode> buildSwitchStatements(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+      MPOROptions pOptions, ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableList.Builder<LineOfCode> rSwitches = ImmutableList.builder();
     int i = 0;
@@ -288,7 +290,8 @@ public class SeqMainFunction extends SeqFunction {
         throw new RuntimeException(e);
       }
       CExpression pcExpr = pcVariables.get(thread.id);
-      SeqSwitchStatement switchStatement = new SeqSwitchStatement(pcExpr, entry.getValue(), 3);
+      SeqSwitchStatement switchStatement =
+          new SeqSwitchStatement(pOptions, pcExpr, entry.getValue(), 3);
       rSwitches.addAll(LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString()));
       i++;
     }
@@ -346,7 +349,8 @@ public class SeqMainFunction extends SeqFunction {
                         SeqCaseBlockStatementBuilder.buildScalarPcAssumeStatement(assumeCall)),
                     Terminator.BREAK)));
       }
-      return new SeqSwitchStatement(SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);
+      return new SeqSwitchStatement(
+          options, SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);
     } else {
       // pc array: single assume(pc[next_thread] != -1);
       return new SeqFunctionCallStatement(

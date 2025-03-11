@@ -290,6 +290,10 @@ analysis.algorithm.MPOR.partialOrderReduction = false
 # input program
 analysis.algorithm.MPOR.scalarPc = false
 
+# include additional reach_error marking sequentialization locations only
+# reachable when transformation is erroneous?
+analysis.algorithm.MPOR.sequentializationErrors = false
+
 # use shortened variable names? e.g. THREAD0 -> T0
 analysis.algorithm.MPOR.shortVariables = false
 
