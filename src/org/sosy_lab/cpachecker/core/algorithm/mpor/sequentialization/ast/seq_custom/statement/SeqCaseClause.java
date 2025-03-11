@@ -21,6 +21,10 @@ public class SeqCaseClause implements SeqStatement {
 
   private static int currentId = 0;
 
+  private static int getNewId() {
+    return currentId++;
+  }
+
   public final int id;
 
   public final boolean isGlobal;
@@ -36,7 +40,7 @@ public class SeqCaseClause implements SeqStatement {
   public SeqCaseClause(
       boolean pIsGlobal, boolean pIsLoopStart, int pLabelValue, SeqCaseBlock pBlock) {
 
-    id = currentId++;
+    id = getNewId();
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     label = new SeqCaseLabel(pLabelValue);

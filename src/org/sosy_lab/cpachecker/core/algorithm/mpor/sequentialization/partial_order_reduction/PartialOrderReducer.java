@@ -41,7 +41,7 @@ public class PartialOrderReducer {
   private static ImmutableList<SeqCaseClause> concatenateCommutingCases(
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
-    ImmutableList.Builder<SeqCaseClause> rNewCaseClauses = ImmutableList.builder();
+    ImmutableList.Builder<SeqCaseClause> newCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqCaseClause> labelValueMap =
         SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
     Set<Integer> concatenated = new HashSet<>();
@@ -56,11 +56,12 @@ public class PartialOrderReducer {
         }
         SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
         SeqCaseClause clone = caseClause.cloneWithBlock(newBlock);
-        rNewCaseClauses.add(clone);
+        newCaseClauses.add(clone);
       }
     }
+    ImmutableList<SeqCaseClause> rNewCaseClauses = newCaseClauses.build();
     // we filter out case clauses that were visited twice during concatenation
-    return rNewCaseClauses.build().stream()
+    return rNewCaseClauses.stream()
         .filter(
             caseClause ->
                 concatenated.contains(caseClause.id) && !duplicated.contains(caseClause.id))
