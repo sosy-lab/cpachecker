@@ -120,13 +120,14 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
     return pNode.getFunction().getOrigName();
   }
 
-  private Set<Invariant> readInvariantEntriesFromWitness(final Path pWitnessFile) {
+  private Set<Invariant> readInvariantEntriesFromWitness(final Path pWitnessFile)
+      throws InterruptedException, InvalidConfigurationException {
     try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream(); ) {
       List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
       return new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa)
           .generateInvariantsFromEntries(entries);
-    } catch (IOException | InvalidConfigurationException | InterruptedException e) {
-      logger.logUserException(Level.INFO, e, "Could not parse witness file");
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read witness from file.");
       return ImmutableSet.of();
     }
   }
@@ -321,8 +322,8 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
     return candidates.build();
   }
 
-  public ImmutableSet<CandidateInvariant> getCandidateInvariantsFromWitness(
-      final Path pWitnessFile) {
+  public ImmutableSet<CandidateInvariant> getCandidateInvariantsFromWitness(final Path pWitnessFile)
+      throws InterruptedException, InvalidConfigurationException {
     if (!cfa.getAllLoopHeads().isPresent()) {
       logger.log(
           Level.INFO,
