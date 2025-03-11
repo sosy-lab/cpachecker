@@ -95,7 +95,6 @@ public class MPOROptions {
   public static MPOROptions testInstance(
       boolean pComments,
       boolean pInputFunctionDeclarations,
-      boolean pInputTypeDeclarations,
       boolean pLicense,
       boolean pPartialOrderReduction,
       boolean pScalarPc,
@@ -106,7 +105,8 @@ public class MPOROptions {
     return new MPOROptions(
         pComments,
         pInputFunctionDeclarations,
-        pInputTypeDeclarations,
+        // always include type declarations at the moment, excluding them is unsafe
+        true,
         pLicense,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
