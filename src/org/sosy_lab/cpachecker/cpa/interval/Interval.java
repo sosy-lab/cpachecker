@@ -505,7 +505,24 @@ public final class Interval implements Serializable {
     if (isUnbound()) {
       return "⊤";
     }
-    return "[" + (low == null ? "" : low) + "; " + (high == null ? "" : high) + "]";
+    String lowString;
+    if (low == null) {
+      lowString = "?";
+    } else if (low == Long.MIN_VALUE) {
+      lowString = "-∞";
+    } else {
+      lowString = Long.toString(low);
+    }
+
+    String highString;
+    if (high == null) {
+      highString = "?";
+    } else if (high == Long.MAX_VALUE) {
+      highString = "∞";
+    } else {
+      highString = Long.toString(high);
+    }
+    return "[%s; %s]".formatted(lowString, highString);
   }
 
   /**
