@@ -32,7 +32,7 @@ public final class JRunTimeTypeEqualsType extends AbstractExpression implements 
       FileLocation pFileLocation,
       JRunTimeTypeExpression pRunTimeTypeExpression,
       JReferenceType pTypeDef) {
-    super(pFileLocation, JSimpleType.getBoolean());
+    super(pFileLocation, JSimpleType.BOOLEAN);
 
     runTimeTypeExpression = pRunTimeTypeExpression;
     typeDef = pTypeDef;

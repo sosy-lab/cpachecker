@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 public class SLABCPA extends AbstractSingleWrapperCPA {
 
-  private SLABDomain domain;
-  private Configuration config;
-  private LogManager logger;
-  private ShutdownNotifier shutdownNotifier;
-  private PredicateCPA predicateCpa;
-  private CFA cfa;
-  private Specification specification;
+  private final SLABDomain domain;
+  private final Configuration config;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final PredicateCPA predicateCpa;
+  private final CFA cfa;
+  private final Specification specification;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SLABCPA.class); // .withOptions(BlockOperator.class);

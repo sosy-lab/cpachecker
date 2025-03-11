@@ -368,7 +368,6 @@ enum CexTraceAnalysisDirection {
       // so decrease the actLevelStack
       if (actCFANode == null || !isNodePartOfLoop(lastLoopNode, actCFANode, loopStructure)) {
         it.remove();
-        continue;
 
         // we have a valid path to the function of the lastLoopNode
       } else {

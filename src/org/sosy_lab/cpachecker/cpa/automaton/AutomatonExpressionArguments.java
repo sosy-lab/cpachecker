@@ -41,11 +41,11 @@ class AutomatonExpressionArguments {
   // Variables that are only valid for one transition ($1,$2,...)
   // these will be set in a MATCH statement, and are erased when the transitions actions are
   // executed.
-  private Map<Integer, AAstNode> transitionVariables = new HashMap<>();
-  private List<AbstractState> abstractStates;
-  private AutomatonState state;
-  private CFAEdge cfaEdge;
-  private LogManager logger;
+  private final Map<Integer, AAstNode> transitionVariables = new HashMap<>();
+  private final List<AbstractState> abstractStates;
+  private final AutomatonState state;
+  private final CFAEdge cfaEdge;
+  private final LogManager logger;
 
   /**
    * In this String all print messages of the Transition are collected. They are logged (INFO-level)

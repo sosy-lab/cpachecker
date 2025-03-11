@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
@@ -36,7 +36,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
       final SSAMap pIndices,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
-    for (Map.Entry<String, SIGN> entry : pRequirement.getSignMapView().entrySet()) {
+    for (Map.Entry<String, Sign> entry : pRequirement.getSignMapView().entrySet()) {
       String var = entry.getKey();
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
         list.add(getRequirement(getVarWithIndex(var, pIndices), entry.getValue()));
@@ -45,10 +45,10 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     return list;
   }
 
-  private String getRequirement(final String var, final SIGN sign) {
+  private String getRequirement(final String var, final Sign sign) {
     StringBuilder sb = new StringBuilder();
-    Preconditions.checkArgument(sign != SIGN.EMPTY);
-    Preconditions.checkArgument(sign != SIGN.ALL);
+    Preconditions.checkArgument(sign != Sign.EMPTY);
+    Preconditions.checkArgument(sign != Sign.ALL);
 
     switch (sign) {
       case PLUS:

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 
 import com.google.common.base.Joiner;
@@ -43,6 +44,7 @@ import org.sosy_lab.common.time.TimeSpan;
 public final class ResourceLimitChecker {
 
   private final Thread thread;
+  // Limits must be used in a single-threaded manner, we basically only call them from our thread
   private final List<ResourceLimit> limits;
 
   /**
@@ -51,8 +53,14 @@ public final class ResourceLimitChecker {
    * empty list of limits, limits that have already been exceeded, or a shutdown notifier that has
    * already been triggered.
    *
+   * <p>The given {@link ResourceLimit} instances must be fresh instances and not started yet.
+   * Callers should only create them and pass them to this constructor, but not use them in any
+   * other way before or afterwards.
+   *
+   * <p>Note that {@link #start()} needs to be called in order to actually start the limits.
+   *
    * @param shutdownManager A non-null shutdown notifier instance.
-   * @param limits A (possibly empty) list without null entries of resource limits.
+   * @param limits A (possibly empty) list without null entries of not-yet-started resource limits.
    */
   public ResourceLimitChecker(ShutdownManager shutdownManager, List<ResourceLimit> limits) {
     checkNotNull(shutdownManager);
@@ -69,17 +77,18 @@ public final class ResourceLimitChecker {
   }
 
   /**
-   * Actually start enforcing the limits. May be called only once. Only a {@link ThreadCpuTimeLimit}
-   * started with this method associates the current {@link Thread} with the {@link
-   * ThreadCpuTimeLimit} and starts its tracking from the point of calling this method. All other
-   * time-limits start from the moment of their creation.
+   * Actually start enforcing the limits and use the current point in time as the start time of the
+   * limit. May be called only once. In order to support per-thread limits, this should be called
+   * from the thread that will do the work and should be limited.
    */
   public void start() {
     if (thread != null) {
+      checkState(!thread.isAlive());
       for (ResourceLimit limit : limits) {
-        if (limit instanceof ThreadCpuTimeLimit pThreadCpuTimeLimit) {
-          pThreadCpuTimeLimit.setThread(Thread.currentThread());
-        }
+        // This is the only place where we call a limit from a different thread than the usual
+        // thread, which is fine because it happens before thread.start(), so there is a happens-
+        // before relationship.
+        limit.start(Thread.currentThread());
       }
       thread.start();
     }
@@ -92,13 +101,9 @@ public final class ResourceLimitChecker {
     }
   }
 
-  public List<ResourceLimit> getResourceLimits() {
-    return limits;
-  }
-
   /**
    * Create an instance of this class from some configuration options. The returned instance is not
-   * started yet.
+   * started yet, {@link #start()} still needs to be called.
    */
   public static ResourceLimitChecker fromConfiguration(
       Configuration config, LogManager logger, ShutdownManager shutdownManager)
@@ -109,7 +114,7 @@ public final class ResourceLimitChecker {
 
     ImmutableList.Builder<ResourceLimit> limits = ImmutableList.builder();
     if (options.walltime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(WalltimeLimit.fromNowOn(options.walltime));
+      limits.add(WalltimeLimit.create(options.walltime));
     }
     boolean cpuTimeLimitSet = options.cpuTime.compareTo(TimeSpan.empty()) >= 0;
     if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
@@ -131,7 +136,7 @@ public final class ResourceLimitChecker {
     }
     if (cpuTimeLimitSet) {
       try {
-        limits.add(ProcessCpuTimeLimit.fromNowOn(options.cpuTime));
+        limits.add(ProcessCpuTimeLimit.create(options.cpuTime));
       } catch (JMException e) {
         logger.logDebugException(e, "Querying cpu time failed");
         logger.log(
@@ -140,7 +145,7 @@ public final class ResourceLimitChecker {
       }
     }
     if (options.threadTime.compareTo(TimeSpan.empty()) >= 0) {
-      limits.add(ThreadCpuTimeLimit.withTimeSpan(options.threadTime));
+      limits.add(ThreadCpuTimeLimit.create(options.threadTime));
     }
 
     ImmutableList<ResourceLimit> limitsList = limits.build();
@@ -165,7 +170,7 @@ public final class ResourceLimitChecker {
     }
 
     try {
-      ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.fromNowOn(cpuTime);
+      ResourceLimit cpuTimeLimitChecker = ProcessCpuTimeLimit.create(cpuTime);
       logger.log(Level.INFO, "Using " + cpuTimeLimitChecker.getName());
       return new ResourceLimitChecker(shutdownManager, ImmutableList.of(cpuTimeLimitChecker));
     } catch (JMException e) {
@@ -256,9 +261,8 @@ public final class ResourceLimitChecker {
           }
 
           // Check if expired
-          final long currentValue = limit.getCurrentValue();
+          final long currentValue = limit.getCurrentMeasurementValue();
           if (limit.isExceeded(currentValue)) {
-            updateCurrentValuesOfAllLimits();
             String reason = String.format("The %s has elapsed.", limit.getName());
             shutdownManager.requestShutdown(reason);
             return;
@@ -281,24 +285,10 @@ public final class ResourceLimitChecker {
         try {
           Thread.sleep(millisToSleep);
         } catch (InterruptedException e) {
-          updateCurrentValuesOfAllLimits();
           // Cancel requested by ResourceLimitChecker#cancel()
           shutdownManager.getNotifier().unregister(interruptThreadOnShutdown);
           return;
         }
-      }
-    }
-
-    /**
-     * For each limit call getCurrentValue() a last time, to (possibly) update the last used value
-     * in the resource limit, this is especially important for ThreadCPULimits as the used cpu time
-     * of a thread can only be determined while it is running, afterwards this is not possible any
-     * more so this limit needs to cache the amount time in order to be able to return it to the
-     * user
-     */
-    private void updateCurrentValuesOfAllLimits() {
-      for (ResourceLimit l : limits) {
-        l.getCurrentValue();
       }
     }
   }

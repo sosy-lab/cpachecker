@@ -56,9 +56,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @Option(secure = true, description = "configure when to export loop invariants")
   private LoopInvExport exportLoopInvariants = LoopInvExport.IF_TRUE;
 
-  private LongAdder iterations = new LongAdder();
-  private StatCounter assumptions = new StatCounter("Number of assumptions");
-  private StatCounter deterministicAssumptions =
+  private final LongAdder iterations = new LongAdder();
+  private final StatCounter assumptions = new StatCounter("Number of assumptions");
+  private final StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
   private final LogManager logger;
@@ -112,18 +112,22 @@ public class ValueAnalysisCPAStatistics implements Statistics {
       exportPrecision(reached);
     }
 
-    if (loopInvariantsFile != null && shouldExportLoopInvariants(result)) {
-      try (Writer w = IO.openOutputFile(loopInvariantsFile, Charset.defaultCharset())) {
-        loopInvGenExporter.generateAndExportLoopInvariantsAsPredicatePrecision(reached, w);
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
-      }
-    }
-
     writer
         .put(assumptions)
         .put(deterministicAssumptions)
         .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+
+    if (loopInvariantsFile != null && shouldExportLoopInvariants(result)) {
+      try (Writer w = IO.openOutputFile(loopInvariantsFile, Charset.defaultCharset())) {
+        loopInvGenExporter.generateAndExportLoopInvariantsAsPredicatePrecision(reached, w);
+        out.println();
+        out.print("Invariant Generation Statistics");
+        out.println();
+        loopInvGenExporter.writeInvariantStatistics(StatisticsWriter.writingStatisticsTo(out));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
+      }
+    }
   }
 
   private boolean shouldExportLoopInvariants(final Result result) {
