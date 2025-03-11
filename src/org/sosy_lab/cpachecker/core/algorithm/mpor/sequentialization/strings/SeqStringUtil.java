@@ -114,9 +114,6 @@ public class SeqStringUtil {
         pTargetPc.isPresent() || !pConcatenatedStatements.isEmpty(),
         "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be present");
     checkArgument(
-        pTargetPc.isPresent() || pInjectedStatements.isEmpty(),
-        "if there is no pTargetPc, there cannot be any pInjectedStatements");
-    checkArgument(
         pTargetPc.isEmpty() || pConcatenatedStatements.isEmpty(),
         "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be empty");
 

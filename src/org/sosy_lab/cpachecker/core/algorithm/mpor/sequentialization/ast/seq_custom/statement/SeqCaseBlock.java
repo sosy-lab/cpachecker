@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -37,8 +39,9 @@ public class SeqCaseBlock implements SeqStatement {
     terminator = pTerminator;
   }
 
-  public SeqCaseBlock cloneWithStatements(ImmutableList<SeqCaseBlockStatement> pStatements) {
-    return new SeqCaseBlock(pStatements, terminator);
+  public SeqCaseBlockStatement getFirstStatement() {
+    checkArgument(!statements.isEmpty(), "there are no statements, cannot get first");
+    return statements.get(0);
   }
 
   @Override

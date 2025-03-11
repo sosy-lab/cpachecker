@@ -83,16 +83,10 @@ public class SeqCaseClause implements SeqStatement {
     return true;
   }
 
-  /**
-   * Returns {@code true} if the {@code pc} of the thread this case clause belongs to is guaranteed
-   * to be updated when this case clause is executed.
-   *
-   * <p>E.g. {@code pthread_mutex_lock} simulation code only updates the pc if the mutex is
-   * unlocked.
-   */
-  public boolean alwaysUpdatesPc() {
+  /** Returns {@code true} if any statement in this case clause is a start to a critical section. */
+  public boolean isCriticalSectionStart() {
     for (SeqCaseBlockStatement statement : block.statements) {
-      if (!statement.alwaysWritesPc()) {
+      if (!statement.isCriticalSectionStart()) {
         return false;
       }
     }

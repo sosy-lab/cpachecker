@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class PartialOrderReducer {
@@ -111,16 +112,23 @@ public class PartialOrderReducer {
 
     // TODO optimize by adding traces and checking if there is at least one global access
 
-    // TODO think about: do mutex unlocks always commute, even to global mutex objects?
-    //  technically no if we also consider stuff like pthread_mutex_trylock != 0 etc.
-
     return pStatement.isConcatenable()
         // these are sorted by performance impact in descending order for short circuit evaluation
-        && !(pTarget.isGlobal
+        && !(!(canIgnoreGlobal(pTarget) || !pTarget.isGlobal) // only consider global if not ignored
             // TODO add support for loop heads by adding goto loop_heads
             || pTarget.isLoopStart
-            || !pTarget.alwaysUpdatesPc()
+            || !pTarget.isCriticalSectionStart()
             || pTarget.block.statements.contains(pStatement));
+  }
+
+  // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute anymore)
+  //  -> remove if adding pthread_mutex_trylock support
+  /**
+   * Whether we can ignore the local/global property of {@code pCaseClause}, e.g. unlocks of global
+   * mutexes.
+   */
+  private static boolean canIgnoreGlobal(SeqCaseClause pCaseClause) {
+    return pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement;
   }
 
   private static boolean validIntTargetPc(Optional<Integer> pTargetPc) {

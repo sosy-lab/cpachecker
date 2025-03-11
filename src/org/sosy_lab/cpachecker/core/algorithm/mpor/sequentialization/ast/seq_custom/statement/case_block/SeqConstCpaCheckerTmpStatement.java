@@ -192,7 +192,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysWritesPc() {
+  public boolean isCriticalSectionStart() {
     return true;
   }
 

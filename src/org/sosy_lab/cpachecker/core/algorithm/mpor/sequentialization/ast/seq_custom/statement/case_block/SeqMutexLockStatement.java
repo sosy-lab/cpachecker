@@ -148,7 +148,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysWritesPc() {
+  public boolean isCriticalSectionStart() {
     return false;
   }
 

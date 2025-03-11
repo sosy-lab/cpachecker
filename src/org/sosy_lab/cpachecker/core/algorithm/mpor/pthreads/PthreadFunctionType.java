@@ -135,6 +135,14 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.of(0),
       Optional.empty()),
+  PTHREAD_MUTEX_TRYLOCK(
+      "pthread_mutex_trylock",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.of(0),
+      Optional.empty()),
   PTHREAD_MUTEX_UNLOCK(
       "pthread_mutex_unlock",
       true,

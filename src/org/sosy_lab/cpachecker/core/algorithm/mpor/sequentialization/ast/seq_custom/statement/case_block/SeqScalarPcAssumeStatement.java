@@ -77,7 +77,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public boolean alwaysWritesPc() {
+  public boolean isCriticalSectionStart() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " are not part of POR");
   }

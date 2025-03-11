@@ -131,7 +131,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   @Override
-  public boolean alwaysWritesPc() {
+  public boolean isCriticalSectionStart() {
     return true;
   }
 
