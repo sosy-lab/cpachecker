@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -28,10 +30,10 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
-  SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide) {
+  SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
     // reach_error calls may not stop a thread, we enforce it
-    targetPc = Sequentialization.EXIT_PC;
+    targetPc = pTargetPc;
   }
 
   @Override
@@ -60,7 +62,11 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
-    throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");
+    checkArgument(
+        pTargetPc == Sequentialization.EXIT_PC,
+        "reach_errors should only be clone with exit pc %s",
+        Sequentialization.EXIT_PC);
+    return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
   }
 
   @Override

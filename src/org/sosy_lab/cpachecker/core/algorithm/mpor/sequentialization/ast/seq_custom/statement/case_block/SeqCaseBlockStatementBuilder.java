@@ -230,7 +230,7 @@ public class SeqCaseBlockStatementBuilder {
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge)) {
       // inject non-inlined reach_error
-      return new SeqReachErrorStatement(pcLeftHandSide);
+      return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
     }
     assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
     ImmutableList<FunctionParameterAssignment> assignments =

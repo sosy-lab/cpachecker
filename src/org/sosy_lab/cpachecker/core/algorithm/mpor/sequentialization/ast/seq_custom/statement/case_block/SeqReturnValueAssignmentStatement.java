@@ -110,7 +110,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
 
   @Override
   public boolean isConcatenable() {
-    return false;
+    return true;
   }
 
   @Override

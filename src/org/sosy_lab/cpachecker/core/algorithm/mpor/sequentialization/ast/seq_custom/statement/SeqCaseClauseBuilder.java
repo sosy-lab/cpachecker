@@ -101,8 +101,7 @@ public class SeqCaseClauseBuilder {
               thread, pSubstitutions.keySet(), coveredNodes, pSubstituteEdges, ghostVariables));
       rCaseClauses.put(thread, caseClauses.build());
     }
-    // modified reach_error result in unreachable statements of that function
-    //  -> no validation of case clauses here
+    // TODO add optional pc validation here
     return rCaseClauses.buildOrThrow();
   }
 

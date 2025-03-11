@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCaseClauseUtil {
 
@@ -108,8 +107,7 @@ public class SeqCaseClauseUtil {
    * accordingly.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> cloneWithConsecutiveLabels(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses)
-      throws UnrecognizedCodeException {
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rConsecutiveLabels =
         ImmutableMap.builder();
@@ -120,7 +118,7 @@ public class SeqCaseClauseUtil {
   }
 
   private static ImmutableList<SeqCaseClause> cloneWithConsecutiveLabels(
-      ImmutableList<SeqCaseClause> pCaseClauses) throws UnrecognizedCodeException {
+      ImmutableList<SeqCaseClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqCaseClause> rConsecutiveLabels = ImmutableList.builder();
     ImmutableMap<Integer, Integer> labelToIndexMap = mapLabelToIndex(pCaseClauses);
@@ -149,8 +147,7 @@ public class SeqCaseClauseUtil {
 
   private static SeqCaseBlockStatement recursivelyReplaceTargetPc(
       SeqCaseBlockStatement pCurrentStatement,
-      final ImmutableMap<Integer, Integer> rLabelToIndexMap)
-      throws UnrecognizedCodeException {
+      final ImmutableMap<Integer, Integer> rLabelToIndexMap) {
 
     // if there are concatenated statements, replace target pc there too
     if (pCurrentStatement.isConcatenable()) {

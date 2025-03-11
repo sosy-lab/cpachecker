@@ -15,6 +15,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 
 public class SeqThreadLocksMutexStatement implements SeqCaseBlockInjectedStatement {
 
+  // TODO we need to check when the very first statement in a thread is mutex_lock, then do we have
+  //  to inject an entire case clause, not just a statement?
+
   private final CIdExpression threadLocksMutex;
 
   public SeqThreadLocksMutexStatement(CIdExpression pThreadLocksMutex) {
