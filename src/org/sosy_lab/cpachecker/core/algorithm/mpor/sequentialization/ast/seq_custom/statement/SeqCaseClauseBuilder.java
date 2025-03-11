@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCaseClauseBuilder {
 
@@ -52,8 +51,7 @@ public class SeqCaseClauseBuilder {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
-      LogManager pLogger)
-      throws UnrecognizedCodeException {
+      LogManager pLogger) {
 
     // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
