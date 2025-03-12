@@ -155,7 +155,7 @@ class Benchmark(VcloudBenchmarkBase):
                 if local_commit != upstream_commit:
                     logging.warning(
                         "Warning: Current branch and upstream branch differ. "
-                        "Benchmarking may fail if the local revision has not been pushed."
+                        "Benchmarking won't work if the local revision has not been pushed to the CPAchecker repository."
                     )
 
             revision_result = subprocess.run(
