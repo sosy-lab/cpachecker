@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.resources;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -137,6 +138,11 @@ public class MemoryStatistics implements Runnable {
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE",
+      justification =
+          "synchronization guaranteed externally, "
+              + "printStatistics is called only after thread is stopped")
   public void run() {
     while (true) { // no stop condition, call Thread#interrupt() to stop it
       count++;

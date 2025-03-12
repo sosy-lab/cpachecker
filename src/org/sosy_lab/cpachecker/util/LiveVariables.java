@@ -359,7 +359,7 @@ public class LiveVariables {
     if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(liveVarConfig.overallLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -406,7 +406,7 @@ public class LiveVariables {
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(config.partwiseLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {

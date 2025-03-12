@@ -13,15 +13,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.EnumerationFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
+import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.StringFormula;
 
 /**
  * This is a class that allows to use a different SMT solver for interpolation than for the rest.
@@ -30,13 +41,13 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class SeparateInterpolatingProverEnvironment<T>
     implements InterpolatingProverEnvironment<T> {
 
-  private final FormulaManager mainFmgr;
-  private final FormulaManager itpFmgr;
+  private final FormulaManagerView mainFmgr;
+  private final FormulaManagerView itpFmgr;
   private final InterpolatingProverEnvironment<T> itpEnv;
 
   public SeparateInterpolatingProverEnvironment(
-      FormulaManager pMainFmgr,
-      FormulaManager pItpFmgr,
+      FormulaManagerView pMainFmgr,
+      FormulaManagerView pItpFmgr,
       InterpolatingProverEnvironment<T> pItpEnv) {
     mainFmgr = checkNotNull(pMainFmgr);
     itpFmgr = checkNotNull(pItpFmgr);
@@ -45,8 +56,7 @@ public class SeparateInterpolatingProverEnvironment<T>
 
   @Override
   public T push(BooleanFormula mainF) throws InterruptedException {
-    BooleanFormula itpF = itpFmgr.parse(mainFmgr.dumpFormula(mainF).toString());
-    return itpEnv.push(itpF);
+    return itpEnv.push(convertToItp(mainF));
   }
 
   @Override
@@ -109,21 +119,97 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   private BooleanFormula convertToItp(BooleanFormula f) {
-    return itpFmgr.parse(mainFmgr.dumpFormula(f).toString());
+    return itpFmgr.translateFrom(f, mainFmgr);
+  }
+
+  private Formula convertToItp(Formula f) {
+    return itpFmgr.parseArbitraryFormula(mainFmgr.dumpArbitraryFormula(f));
   }
 
   private BooleanFormula convertToMain(BooleanFormula f) {
-    return mainFmgr.parse(itpFmgr.dumpFormula(f).toString());
+    return mainFmgr.translateFrom(f, itpFmgr);
+  }
+
+  private Formula convertToMain(Formula f) {
+    return mainFmgr.parseArbitraryFormula(itpFmgr.dumpArbitraryFormula(f));
   }
 
   @Override
   public Model getModel() throws SolverException {
-    return itpEnv.getModel();
+    Model itpModel = itpEnv.getModel();
+    return new Model() {
+
+      @Override
+      public ImmutableList<ValueAssignment> asList() {
+        return ImmutableList.copyOf(
+            Lists.transform(
+                itpModel.asList(),
+                valueAssignment ->
+                    new ValueAssignment(
+                        convertToMain(valueAssignment.getKey()),
+                        convertToMain(valueAssignment.getValueAsFormula()),
+                        convertToMain(valueAssignment.getAssignmentAsFormula()),
+                        valueAssignment.getName(),
+                        valueAssignment.getValue(),
+                        valueAssignment.getArgumentsInterpretation())));
+      }
+
+      @Override
+      @SuppressWarnings("unchecked")
+      public <S extends Formula> @Nullable S eval(S formula) {
+        return (S) convertToMain(itpModel.eval(convertToItp(formula)));
+      }
+
+      @Override
+      public @Nullable Object evaluate(Formula formula) {
+        return itpModel.evaluate(convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable BigInteger evaluate(IntegerFormula formula) {
+        return itpModel.evaluate((IntegerFormula) convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable Rational evaluate(RationalFormula formula) {
+        return itpModel.evaluate((RationalFormula) convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable Boolean evaluate(BooleanFormula formula) {
+        return itpModel.evaluate(convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable BigInteger evaluate(BitvectorFormula formula) {
+        return itpModel.evaluate((BitvectorFormula) convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable String evaluate(StringFormula formula) {
+        return itpModel.evaluate((StringFormula) convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable String evaluate(EnumerationFormula formula) {
+        return itpModel.evaluate((EnumerationFormula) convertToItp(formula));
+      }
+
+      @Override
+      public @Nullable FloatingPointNumber evaluate(FloatingPointFormula formula) {
+        return itpModel.evaluate((FloatingPointFormula) convertToItp(formula));
+      }
+
+      @Override
+      public void close() {
+        itpModel.close();
+      }
+    };
   }
 
   @Override
   public ImmutableList<ValueAssignment> getModelAssignments() throws SolverException {
-    return itpEnv.getModelAssignments();
+    return getModel().asList();
   }
 
   @Override
@@ -136,16 +222,25 @@ public class SeparateInterpolatingProverEnvironment<T>
       Collection<BooleanFormula> pAssumptions) throws SolverException, InterruptedException {
     Optional<List<BooleanFormula>> opt =
         itpEnv.unsatCoreOverAssumptions(Collections2.transform(pAssumptions, this::convertToItp));
-    if (opt.isPresent()) {
-      return Optional.of(Lists.transform(opt.orElseThrow(), this::convertToMain));
-    } else {
-      return opt;
-    }
+    return opt.map(value -> Lists.transform(value, this::convertToMain));
   }
 
   @Override
   public <R> R allSat(AllSatCallback<R> pCallback, List<BooleanFormula> pImportant)
       throws InterruptedException, SolverException {
-    return itpEnv.allSat(pCallback, Lists.transform(pImportant, this::convertToItp));
+    AllSatCallback<R> itpCallback =
+        new AllSatCallback<>() {
+          @Override
+          public void apply(List<BooleanFormula> model) {
+            pCallback.apply(
+                Lists.transform(model, SeparateInterpolatingProverEnvironment.this::convertToMain));
+          }
+
+          @Override
+          public R getResult() throws InterruptedException {
+            return pCallback.getResult();
+          }
+        };
+    return itpEnv.allSat(itpCallback, Lists.transform(pImportant, this::convertToItp));
   }
 }

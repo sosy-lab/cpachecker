@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -198,5 +199,11 @@ public class TestDataTools {
    */
   private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
     return Path.of(pTempFolder.getRoot().toString(), pFileName).toFile();
+  }
+
+  /** Get the edge from the CFA that contains the given string. */
+  public static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
+    return Iterables.getOnlyElement(
+        CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
   }
 }

@@ -12,7 +12,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -239,11 +238,6 @@ public class ARGPathTest {
     path.reversePathIterator().getSuffixExclusive();
   }
 
-  @SuppressFBWarnings(
-      value = "DE_MIGHT_IGNORE",
-      justification =
-          "We want the the excpetions to be thrown in the unit test,"
-              + " and we are sure that we can continue afterwards.")
   @Test
   public void testFullPathIterator() {
     // test fullPath iterator
@@ -430,11 +424,6 @@ public class ARGPathTest {
     }
   }
 
-  @SuppressFBWarnings(
-      value = "DE_MIGHT_IGNORE",
-      justification =
-          "We want the the excpetions to be thrown in the unit test,"
-              + " and we are sure that we can continue afterwards.")
   @Test
   public void testReverseFullPathIterator2() {
     // go to the end of the reverse full iterator and then test rewind functionality

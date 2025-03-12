@@ -9,82 +9,67 @@
 package org.sosy_lab.cpachecker.util.resources;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.TimeSpan;
 
+/**
+ * A limit that is based on how much CPU time is spent for one particular thread. This includes our
+ * code, code in native libraries, the JVM and maybe parts of its garbage collector, etc., if
+ * executed within our thread.
+ *
+ * <p>Which thread is measured is determined later on, it is the thread that calls {@link
+ * ResourceLimitChecker#start()}. Which thread creates the instance does not matter.
+ *
+ * <p>This limit might not be available on all JVMs.
+ *
+ * <p>Created instances should be passed to {@link
+ * ResourceLimitChecker#ResourceLimitChecker(org.sosy_lab.common.ShutdownManager, java.util.List)},
+ * but not used in any other way.
+ */
 public class ThreadCpuTimeLimit implements ResourceLimit {
 
   private final long duration;
   private long endTime;
   private Thread thread;
-  private long overallUsedTime = 0;
 
   private ThreadCpuTimeLimit(long pLimit, TimeUnit pUnit) {
     checkArgument(pLimit > 0);
     duration = TimeUnit.NANOSECONDS.convert(pLimit, pUnit);
-    endTime = -1;
-    thread = null;
   }
 
-  /**
-   * This creates a not yet started {@link ThreadCpuTimeLimit} with the given {@link TimeSpan}, but
-   * no thread associated. You need to set a thread via {@link #setThread(Thread)} before starting
-   * this time limit!
-   *
-   * @param timeSpan any {@link TimeSpan} with arbitrary {@link TimeUnit}.
-   * @return a not started {@link ThreadCpuTimeLimit} with a set time-span, but not thread
-   *     associated.
-   */
-  public static ThreadCpuTimeLimit withTimeSpan(TimeSpan timeSpan) {
+  public static ThreadCpuTimeLimit create(TimeSpan timeSpan) {
     return new ThreadCpuTimeLimit(timeSpan.asNanos(), TimeUnit.NANOSECONDS);
   }
 
-  /**
-   * This associates a {@link Thread} with the {@link ThreadCpuTimeLimit}, making it ready to track
-   * and limit the time of the one thread associated once {@link ResourceLimitChecker#start()} is
-   * called.
-   *
-   * @param pThread the {@link Thread} who's time is to be tracked/limited.
-   */
-  public synchronized void setThread(Thread pThread) {
-    endTime = getCurrentThreadTime(pThread) + duration;
+  @Override
+  public void start(Thread pThread) {
+    checkState(thread == null);
     thread = pThread;
+    endTime = getCurrentMeasurementValue() + duration;
   }
 
   @Override
-  public synchronized long getCurrentValue() {
+  public long getCurrentMeasurementValue() {
     Preconditions.checkState(thread != null);
-    long currentValue = getCurrentThreadTime(thread);
-    if (currentValue != -1) {
-      overallUsedTime = currentValue;
-    }
-    return currentValue;
-  }
-
-  private static long getCurrentThreadTime(Thread pThread) {
     @SuppressWarnings("deprecation") // Replacement Thread.threadId() is only available on Java 19+
-    final long threadId = pThread.getId();
+    final long threadId = thread.getId();
     return ManagementFactory.getThreadMXBean().getThreadCpuTime(threadId);
   }
 
   @Override
-  public synchronized boolean isExceeded(long pCurrentValue) {
+  public boolean isExceeded(long pCurrentValue) {
     Preconditions.checkState(thread != null);
     return pCurrentValue >= endTime;
   }
 
   @Override
-  public synchronized long nanoSecondsToNextCheck(long pCurrentValue) {
+  public long nanoSecondsToNextCheck(long pCurrentValue) {
     Preconditions.checkState(thread != null);
     return (endTime - pCurrentValue) / 2;
-  }
-
-  public synchronized TimeSpan getOverallUsedTime() {
-    Preconditions.checkState(thread != null);
-    return TimeSpan.of(overallUsedTime, TimeUnit.NANOSECONDS);
   }
 
   @Override

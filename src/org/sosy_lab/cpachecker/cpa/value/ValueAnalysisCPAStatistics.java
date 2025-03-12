@@ -56,9 +56,9 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @Option(secure = true, description = "configure when to export loop invariants")
   private LoopInvExport exportLoopInvariants = LoopInvExport.IF_TRUE;
 
-  private LongAdder iterations = new LongAdder();
-  private StatCounter assumptions = new StatCounter("Number of assumptions");
-  private StatCounter deterministicAssumptions =
+  private final LongAdder iterations = new LongAdder();
+  private final StatCounter assumptions = new StatCounter("Number of assumptions");
+  private final StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
   private final LogManager logger;

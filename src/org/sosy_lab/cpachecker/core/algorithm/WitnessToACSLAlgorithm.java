@@ -210,7 +210,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         writeToFile(file, output);
       } catch (IOException e) {
         logger.logfUserException(Level.WARNING, e, "Could not write annotations for file %s", file);
-        continue;
       }
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;

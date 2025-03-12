@@ -28,7 +28,7 @@ public class BDDExistsTest {
 
   private NamedRegionManager nrm;
   private Configuration config;
-  private LogManager logger = LogManager.createTestLogManager();
+  private final LogManager logger = LogManager.createTestLogManager();
 
   @Parameter(0)
   public String bddPackage;
