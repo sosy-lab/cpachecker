@@ -185,8 +185,7 @@ class Benchmark(VcloudBenchmarkBase):
             )
 
         if not self.config.revision:
-            latest_commit = self.validate_local_checkout()
-            self.config.revision = latest_commit
+            self.config.revision = self.validate_local_checkout()
 
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
