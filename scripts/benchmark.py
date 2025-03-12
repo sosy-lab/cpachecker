@@ -50,7 +50,7 @@ def download_required_jars():
 class Benchmark(VcloudBenchmarkBase):
     """
     An extension of BenchExec for use with CPAchecker
-    that supports executing the benchmarks in the VerifierCloud.
+    that supports executing the benchmarks in the BenchCloud.
     """
 
     DEFAULT_OUTPUT_PATH = "test/results/"
@@ -60,14 +60,14 @@ class Benchmark(VcloudBenchmarkBase):
             "--cloud",
             dest="cloud",
             action="store_true",
-            help="Use VerifierCloud to execute benchmarks.",
+            help="Use BenchCloud to execute benchmarks.",
         )
 
         vcloud_args.add_argument(
             "--cloudUser",
             dest="cloudUser",
             metavar="USER[:PWD]",
-            help="The user (and password) for the VerifierCloud (if using the web interface).",
+            help="The user (and password) for the BenchCloud (if using the web interface).",
         )
 
         vcloud_args.add_argument(
@@ -75,7 +75,7 @@ class Benchmark(VcloudBenchmarkBase):
             dest="revision",
             metavar="(tags/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
             default="main:HEAD",
-            help="The revision of CPAchecker to use (if using the web interface of the VerifierCloud).",
+            help="The revision of CPAchecker to use (if using the web interface of the BenchCloud).",
         )
 
         vcloud_args.add_argument(
@@ -83,7 +83,7 @@ class Benchmark(VcloudBenchmarkBase):
             dest="cloud_threads",
             default=5,
             type=int,
-            help="The number of threads used for parallel run submission (if using the web interface of the VerifierCloud).",
+            help="The number of threads used for parallel run submission (if using the web interface of the BenchCloud).",
         )
 
         vcloud_args.add_argument(
@@ -92,7 +92,7 @@ class Benchmark(VcloudBenchmarkBase):
             metavar="SECONDS",
             default=5,
             type=int,
-            help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).",
+            help="The interval in seconds for polling results from the server (if using the web interface of the BenchCloud).",
         )
         # add arguments from the base class.
         super(Benchmark, self).add_vcloud_args(vcloud_args)
@@ -202,7 +202,7 @@ class Benchmark(VcloudBenchmarkBase):
 
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
-                "using the VerifierCloud %s API.",
+                "using the BenchCloud %s API.",
                 __version__,
                 "HTTP" if webclient else "internal",
             )
