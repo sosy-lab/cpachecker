@@ -226,6 +226,20 @@ public class CProgramScope implements Scope {
     locationDescriptor = pLocationDescriptor;
   }
 
+  /** Copy constructor */
+  public CProgramScope(CProgramScope pScope) {
+    variableNames = pScope.variableNames;
+    simpleDeclarations = pScope.simpleDeclarations;
+    functionDeclarations = pScope.functionDeclarations;
+    qualifiedDeclarations = pScope.qualifiedDeclarations;
+    qualifiedTypes = pScope.qualifiedTypes;
+    qualifiedTypeDefs = pScope.qualifiedTypeDefs;
+    retValDeclarations = pScope.retValDeclarations;
+    uses = pScope.uses;
+    functionName = pScope.functionName;
+    locationDescriptor = pScope.locationDescriptor;
+  }
+
   /**
    * Creates an object of this class.
    *

@@ -62,7 +62,7 @@ public class ACSLParserUtils {
       throws InterruptedException, InvalidAutomatonException {
 
     String lString = lAssumeCode;
-    CProgramScope tmpScope = scope;
+    CProgramScope tmpScope = new CProgramScope(scope);
 
     Map<String, ACSLFunctionCall> replacements = new HashMap<>();
     Pattern lp = Pattern.compile("ACSL\\((?<function>\\w+\\([^()]*\\))\\)");
