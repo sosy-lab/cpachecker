@@ -29,7 +29,7 @@ public final class ACSLFunctionCall extends CFunctionCallExpression implements C
   public ACSLFunctionCall(CFunctionCallExpression pFunctionCall) {
     this(
         pFunctionCall.getFileLocation(),
-        pFunctionCall.getExpressionType(),
+        pFunctionCall.getDeclaration().getType().getReturnType(),
         pFunctionCall.getFunctionNameExpression(),
         pFunctionCall.getParameterExpressions(),
         pFunctionCall.getDeclaration());
