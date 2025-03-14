@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.Pc
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -68,7 +67,7 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildGlobalDeclarations(
-      MPOROptions pOptions, CSimpleDeclarationSubstitution pMainThreadSubstitution) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
@@ -88,13 +87,13 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildLocalDeclarations(
-      MPOROptions pOptions, ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rLocalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
       rLocalDeclarations.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
     }
-    for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
+    for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(localDeclaration.getType())) {
@@ -120,13 +119,13 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildParameterDeclarations(
-      MPOROptions pOptions, ImmutableCollection<CSimpleDeclarationSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rParameterDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
       rParameterDeclarations.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
     }
-    for (CSimpleDeclarationSubstitution substitution : pSubstitutions) {
+    for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
           substitution.getParameterDeclarations();
       for (CVariableDeclaration parameterDeclaration : parameterDeclarations) {
@@ -188,7 +187,7 @@ public class LineOfCodeUtil {
 
   public static ImmutableList<LineOfCode> buildFunctionDefinitions(
       MPOROptions pOptions,
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,

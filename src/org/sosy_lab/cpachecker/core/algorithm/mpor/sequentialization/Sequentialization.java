@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.time.Year;
 import java.time.ZoneId;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -32,9 +31,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
@@ -97,7 +97,7 @@ public class Sequentialization {
 
   private static final int FIRST_LINE = 1;
 
-  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
+  private final ImmutableList<MPORSubstitution> substitutions;
 
   private final MPOROptions options;
 
@@ -114,7 +114,7 @@ public class Sequentialization {
   private final PcVariables pcVariables;
 
   public Sequentialization(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableList<MPORSubstitution> pSubstitutions,
       MPOROptions pOptions,
       String pInputFileName,
       String pOutputFileName,
@@ -159,9 +159,10 @@ public class Sequentialization {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
 
     // first initialize some variables needed for the declarations and definitions
-    ImmutableSet<MPORThread> threads = substitutions.keySet();
-    CSimpleDeclarationSubstitution mainThreadSubstitution =
-        Objects.requireNonNull(substitutions.get(ThreadUtil.extractMainThread(threads)));
+    ImmutableSet<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
+    MPORThread mainThread = ThreadUtil.extractMainThread(threads);
+    MPORSubstitution mainThreadSubstitution =
+        substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteBuilder.substituteEdges(options, substitutions);
     ThreadSimulationVariables threadSimulationVariables =
@@ -172,8 +173,8 @@ public class Sequentialization {
     // for variable declarations, we exclude pthread objects such as pthread_t
     // they should only be used with pthread methods, all of which are not in the sequentialization
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainThreadSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions.values()));
-    rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions.values()));
+    rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
 
     // add variable declarations for ghost variables
     rProgram.addAll(

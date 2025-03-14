@@ -37,11 +37,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-// TODO rename MPORSubstitution and add MPORThread as parameter, making the map redundant
-public class CSimpleDeclarationSubstitution {
+public class MPORSubstitution {
+
+  public final MPORThread thread;
 
   /**
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
@@ -65,7 +67,8 @@ public class CSimpleDeclarationSubstitution {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public CSimpleDeclarationSubstitution(
+  public MPORSubstitution(
+      MPORThread pThread,
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
       ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
           pLocalSubstitutes,
@@ -73,6 +76,7 @@ public class CSimpleDeclarationSubstitution {
           pParameterSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
+    thread = pThread;
     globalSubstitutes = pGlobalSubstitutes;
     localSubstitutes = pLocalSubstitutes;
     parameterSubstitutes = pParameterSubstitutes;
@@ -316,5 +320,9 @@ public class CSimpleDeclarationSubstitution {
       }
     }
     return rParameterDeclarations.build();
+  }
+
+  public MPORThread getThread() {
+    return thread;
   }
 }

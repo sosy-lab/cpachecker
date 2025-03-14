@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
@@ -206,10 +206,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private final ImmutableList<MPORThread> threads;
 
   /**
-   * The map of thread specific variable declaration substitutions. The main thread (0) handles
-   * global variables.
+   * The list of thread specific variable declaration substitutions. The substitution for the main
+   * thread (0) handles global variables.
    */
-  private final ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> substitutions;
+  private final ImmutableList<MPORSubstitution> substitutions;
 
   public MPORAlgorithm(
       ConfigurableProgramAnalysis pCpa,

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -49,13 +51,11 @@ public class SubstituteBuilder {
   // Edge Substitutes ============================================================================
 
   public static ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges(
-      MPOROptions pOptions,
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions) {
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     Map<ThreadEdge, SubstituteEdge> rSubstituteEdges = new HashMap<>();
-    for (var entry : pSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      CSimpleDeclarationSubstitution substitution = entry.getValue();
+    for (MPORSubstitution substitution : pSubstitutions) {
+      MPORThread thread = substitution.thread;
 
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         // prevent duplicate keys by excluding parallel edges
@@ -74,7 +74,7 @@ public class SubstituteBuilder {
   }
 
   private static Optional<SubstituteEdge> trySubstituteEdge(
-      MPOROptions pOptions, CSimpleDeclarationSubstitution pSubstitution, ThreadEdge pThreadEdge) {
+      MPOROptions pOptions, MPORSubstitution pSubstitution, ThreadEdge pThreadEdge) {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<ThreadEdge> callContext = pThreadEdge.callContext;
@@ -247,19 +247,19 @@ public class SubstituteBuilder {
 
   // Thread Substitutions ========================================================================
 
-  public static ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> buildSubstitutions(
+  public static ImmutableList<MPORSubstitution> buildSubstitutions(
       MPOROptions pOptions,
       ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
       ImmutableList<MPORThread> pThreads,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
+    MPORThread mainThread = pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
         getGlobalVariableSubstitutes(
-            pOptions, pGlobalVariableDeclarations, pBinaryExpressionBuilder);
+            pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder);
 
-    ImmutableMap.Builder<MPORThread, CSimpleDeclarationSubstitution> rDeclarationSubstitutions =
-        ImmutableMap.builder();
+    ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
 
     // step 2: for each thread, create substitution
     for (MPORThread thread : pThreads) {
@@ -269,26 +269,30 @@ public class SubstituteBuilder {
           localVarSubstitutes =
               buildVariableDeclarationSubstitutes(
                   pOptions,
+                  thread,
                   globalVarSubstitutes,
                   parameterSubstitutes,
                   thread.id,
                   thread.localVars,
                   pBinaryExpressionBuilder);
-      rDeclarationSubstitutions.put(
-          thread,
-          new CSimpleDeclarationSubstitution(
+      rSubstitutions.add(
+          new MPORSubstitution(
+              thread,
               globalVarSubstitutes,
               localVarSubstitutes,
               parameterSubstitutes,
               pBinaryExpressionBuilder));
     }
-    return rDeclarationSubstitutions.buildOrThrow();
+    return rSubstitutions.build();
   }
 
   private static ImmutableMap<CVariableDeclaration, CIdExpression> getGlobalVariableSubstitutes(
       MPOROptions pOptions,
+      MPORThread pThread,
       ImmutableSet<CVariableDeclaration> pGlobalVariableDeclarations,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+
+    checkArgument(pThread.isMain(), "thread must be main for global variable substitution");
 
     // step 1: create dummy CVariableDeclaration substitutes which may be adjusted in step 2
     ImmutableMap<CVariableDeclaration, CIdExpression> dummyGlobalSubstitutes =
@@ -296,9 +300,13 @@ public class SubstituteBuilder {
 
     // create dummy substitution. we can use empty maps for local and parameter substitutions
     // because initializers of global variables are always global variables, if present
-    CSimpleDeclarationSubstitution dummySubstitution =
-        new CSimpleDeclarationSubstitution(
-            dummyGlobalSubstitutes, ImmutableMap.of(), ImmutableMap.of(), pBinaryExpressionBuilder);
+    MPORSubstitution dummySubstitution =
+        new MPORSubstitution(
+            pThread,
+            dummyGlobalSubstitutes,
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            pBinaryExpressionBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, CIdExpression> rFinalSubstitutes =
@@ -397,6 +405,7 @@ public class SubstituteBuilder {
           CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
       buildVariableDeclarationSubstitutes(
           MPOROptions pOptions,
+          MPORThread pThread,
           ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
           ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
               pParameterSubstitutes,
@@ -409,9 +418,13 @@ public class SubstituteBuilder {
         dummySubstitutes = initSubstitutes(pOptions, pThreadId, pVariableDeclarations);
 
     // create dummy substitution
-    CSimpleDeclarationSubstitution dummySubstitution =
-        new CSimpleDeclarationSubstitution(
-            pGlobalSubstitutes, dummySubstitutes, pParameterSubstitutes, pBinaryExpressionBuilder);
+    MPORSubstitution dummySubstitution =
+        new MPORSubstitution(
+            pThread,
+            pGlobalSubstitutes,
+            dummySubstitutes,
+            pParameterSubstitutes,
+            pBinaryExpressionBuilder);
 
     // step 2: replace initializers of CVariableDeclarations with substitutes
     ImmutableMap.Builder<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>

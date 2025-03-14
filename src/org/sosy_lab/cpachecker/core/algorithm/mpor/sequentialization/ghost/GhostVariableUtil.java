@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.threa
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -54,7 +54,7 @@ public class GhostVariableUtil {
 
   public static FunctionStatements buildFunctionVariables(
       MPORThread pThread,
-      CSimpleDeclarationSubstitution pSubstitution,
+      MPORSubstitution pSubstitution,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
 
     return new FunctionStatements(
@@ -192,10 +192,10 @@ public class GhostVariableUtil {
    *
    * <p>E.g. {@code func(&paramA, paramB);} in thread 0 is linked to {@code __t0_0_paramA = &paramA
    * ;} and {@code __t0_1_paramB = paramB ;}. Both substitution variables are declared in {@link
-   * CSimpleDeclarationSubstitution#parameterSubstitutes}.
+   * MPORSubstitution#parameterSubstitutes}.
    */
   private static ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
-      buildParameterAssignments(CSimpleDeclarationSubstitution pSubstitution) {
+      buildParameterAssignments(MPORSubstitution pSubstitution) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableList<FunctionParameterAssignment>> rAssignments =
         ImmutableMap.builder();

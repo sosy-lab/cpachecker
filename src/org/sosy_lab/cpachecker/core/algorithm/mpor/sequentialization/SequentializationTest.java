@@ -65,7 +65,7 @@ public class SequentializationTest {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
-        MPOROptions.testInstance(false, true, true, true, true, true, false, true, true);
+        MPOROptions.testInstance(false, true, true, true, true, true, false, true, false);
     testCompile(path, options);
   }
 
@@ -74,7 +74,7 @@ public class SequentializationTest {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
-        MPOROptions.testInstance(false, false, false, true, false, true, false, false, false);
+        MPOROptions.testInstance(false, false, false, true, false, true, false, false, true);
     testCompile(path, options);
   }
 
@@ -103,7 +103,7 @@ public class SequentializationTest {
         Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
-        MPOROptions.testInstance(false, true, false, true, false, true, false, true, true);
+        MPOROptions.testInstance(false, true, false, true, false, true, false, true, false);
     testCompile(path, options);
   }
 

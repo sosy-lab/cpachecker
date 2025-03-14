@@ -50,13 +50,7 @@ public class ThreadUtil {
     return rNonVariableDeclarations.build();
   }
 
-  /** Returns the MPORThread in pThreads whose pthread_t object is empty i.e. the main thread. */
   public static MPORThread extractMainThread(ImmutableSet<MPORThread> pThreads) {
-    for (MPORThread thread : pThreads) {
-      if (thread.isMain()) {
-        return thread;
-      }
-    }
-    throw new IllegalArgumentException("pThreads does not contain the main thread");
+    return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
   }
 }

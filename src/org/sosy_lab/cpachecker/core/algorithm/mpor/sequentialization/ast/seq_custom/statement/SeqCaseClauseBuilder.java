@@ -36,8 +36,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.threa
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.CSimpleDeclarationSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
@@ -47,7 +48,7 @@ public class SeqCaseClauseBuilder {
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> buildCaseClauses(
       MPOROptions pOptions,
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -76,16 +77,15 @@ public class SeqCaseClauseBuilder {
 
   /** Maps threads to the case clauses they potentially execute. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
-      ImmutableMap<MPORThread, CSimpleDeclarationSubstitution> pSubstitutions,
+      ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rCaseClauses =
         ImmutableMap.builder();
-    for (var entry : pSubstitutions.entrySet()) {
-      MPORThread thread = entry.getKey();
-      CSimpleDeclarationSubstitution substitution = entry.getValue();
+    for (MPORSubstitution substitution : pSubstitutions) {
+      MPORThread thread = substitution.thread;
       ImmutableList.Builder<SeqCaseClause> caseClauses = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
@@ -96,7 +96,11 @@ public class SeqCaseClauseBuilder {
 
       caseClauses.addAll(
           initCaseClauses(
-              thread, pSubstitutions.keySet(), coveredNodes, pSubstituteEdges, ghostVariables));
+              thread,
+              SubstituteUtil.extractThreads(pSubstitutions),
+              coveredNodes,
+              pSubstituteEdges,
+              ghostVariables));
       rCaseClauses.put(thread, caseClauses.build());
     }
     // TODO add optional pc validation here
