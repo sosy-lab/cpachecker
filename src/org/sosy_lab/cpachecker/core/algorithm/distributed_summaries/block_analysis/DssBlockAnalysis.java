@@ -511,35 +511,39 @@ public class DssBlockAnalysis {
     DssBlockAnalysisResult result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
 
     status = status.update(result.getStatus());
-
-    ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
-    Set<String> originPrefixes = updateSeenPrefixes(pViolationCondition);
-    boolean matched = false;
-    for (Set<String> seenPrefix : previouslySeenPrefixes) {
-      if (originPrefixes.containsAll(seenPrefix)) {
-        matched = true;
-        break;
-      }
-    }
-
     ImmutableSet.Builder<DssMessage> messages = ImmutableSet.builder();
     if (!result.getSummaries().isEmpty()
         && block.isAbstractionPossible()
         && result.getViolations().isEmpty()) {
       messages.addAll(reportBlockPostConditions(result.getSummaries(), false));
     }
-    boolean restoreAll = !matched && !loopPredecessors.isEmpty();
-    if (restoreAll) {
-      reachedSet.clear();
-      reachedSet.add(makeStartState(), makeStartPrecision());
-      reachedSet.forEach(
-          abstractState ->
-              Objects.requireNonNull(
-                      AbstractStates.extractStateByType(abstractState, BlockState.class))
-                  .setViolationCondition(violationCondition));
 
-      result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
-      status = status.update(result.getStatus());
+    if (!loopPredecessors.isEmpty()) {
+      // FIXME: Document what this if-branch does and why it is necessary
+      ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
+      Set<String> originPrefixes = updateSeenPrefixes(pViolationCondition);
+      boolean matched = false;
+      for (Set<String> seenPrefix : previouslySeenPrefixes) {
+        if (originPrefixes.containsAll(seenPrefix)) {
+          matched = true;
+          break;
+        }
+      }
+
+      boolean restoreAll = !matched;
+      if (restoreAll) {
+        reachedSet.clear();
+        reachedSet.add(makeStartState(), makeStartPrecision());
+        reachedSet.forEach(
+            abstractState ->
+                Objects.requireNonNull(
+                        AbstractStates.extractStateByType(abstractState, BlockState.class))
+                    .setViolationCondition(violationCondition));
+
+        result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
+        status = status.update(result.getStatus());
+
+      }
     }
     messages.addAll(
         reportViolationConditions(
