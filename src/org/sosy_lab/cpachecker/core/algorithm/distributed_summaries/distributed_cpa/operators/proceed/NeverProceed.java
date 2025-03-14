@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
@@ -21,7 +22,8 @@ public class NeverProceed implements ProceedOperator {
   }
 
   @Override
-  public DssMessageProcessing processBackward(AbstractState pState) {
+  public DssMessageProcessing processBackward(
+      AbstractState pState, Collection<AbstractState> pKnownStates) {
     return DssMessageProcessing.stop();
   }
 }

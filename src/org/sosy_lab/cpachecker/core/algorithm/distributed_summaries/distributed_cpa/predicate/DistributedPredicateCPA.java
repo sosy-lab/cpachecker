@@ -65,7 +65,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
             predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
-    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver(), pConfiguration);
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
@@ -74,6 +74,8 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
                 pLogManager,
                 pShutdownNotifier,
                 pCFA,
+                // FIXME: Make it possible to use AnalysisDirection.FORWARD
+                // so that we can use pointer aliasing.
                 AnalysisDirection.BACKWARD),
             predicateCPA,
             pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root")));

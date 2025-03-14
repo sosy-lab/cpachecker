@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import java.util.Collection;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
@@ -45,12 +46,14 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public DssMessageProcessing processBackward(AbstractState pState)
+  public DssMessageProcessing processBackward(
+      AbstractState pState, Collection<AbstractState> pKnownStates)
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
     DssMessageProcessing processing = DssMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().processBackward(pState), true);
+      processing =
+          processing.merge(value.getProceedOperator().processBackward(pState, pKnownStates), true);
     }
     stats.getProceedTime().stop();
     return processing;

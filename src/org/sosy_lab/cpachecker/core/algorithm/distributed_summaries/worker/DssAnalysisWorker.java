@@ -112,8 +112,7 @@ public class DssAnalysisWorker extends DssWorker {
       case VIOLATION_CONDITION -> {
         try {
           backwardAnalysisTime.start();
-          return dssBlockAnalysis.runAnalysisUnderCondition(
-              (DssViolationConditionMessage) message, true);
+          return dssBlockAnalysis.reactToViolationCondition((DssViolationConditionMessage) message);
         } catch (Exception | Error e) {
           return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
@@ -123,7 +122,7 @@ public class DssAnalysisWorker extends DssWorker {
       case BLOCK_POSTCONDITION -> {
         try {
           forwardAnalysisTime.start();
-          return dssBlockAnalysis.runAnalysis((DssPostConditionMessage) message);
+          return dssBlockAnalysis.reactToPostcondition((DssPostConditionMessage) message);
         } catch (Exception | Error e) {
           return ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
         } finally {
@@ -147,7 +146,7 @@ public class DssAnalysisWorker extends DssWorker {
       case VIOLATION_CONDITION -> {
         DssViolationConditionMessage errorCond = (DssViolationConditionMessage) message;
         dssBlockAnalysis.updateViolationCondition(errorCond);
-        dssBlockAnalysis.updateSeenPrefixes(errorCond);
+        dssBlockAnalysis.updateSeenPrefixes(errorCond.getOrigin());
       }
       case BLOCK_POSTCONDITION -> {
         //noinspection ResultOfMethodCallIgnored

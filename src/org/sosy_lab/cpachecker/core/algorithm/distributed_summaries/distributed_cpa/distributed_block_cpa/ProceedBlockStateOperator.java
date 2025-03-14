@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
+import java.util.Collection;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -34,7 +35,8 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public DssMessageProcessing processBackward(AbstractState pState) {
+  public DssMessageProcessing processBackward(
+      AbstractState pState, Collection<AbstractState> pKnownStates) {
     CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
     if (!(node.equals(block.getFinalLocation())
         || (!node.equals(block.getInitialLocation()) && block.getNodes().contains(node)))) {

@@ -4205,6 +4205,10 @@ distributedSummaries.newConditions = []
 # Where to write responses
 distributedSummaries.outputMessages = "messages/"
 
+# Check if the new state is already covered by the known postcondition or
+# violation-condition states
+distributedSummaries.predicate.considerConditionCoverage = true
+
 # Change the queue type. VIOLATION_CONDITION prioritizes the processing of
 # ViolationConditionMessages. DEFAULT does not differ between PostCondition
 # and ViolationCondition messages.

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -33,12 +34,13 @@ public interface ProceedOperator {
    * AbstractState}.
    *
    * @param pState Incoming state
+   * @param knownStates already known states
    * @return a {@link DssMessageProcessing} that contains a decision whether to proceed and
    *     potential messages that were generated during processing
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  DssMessageProcessing processBackward(AbstractState pState)
+  DssMessageProcessing processBackward(AbstractState pState, Collection<AbstractState> knownStates)
       throws InterruptedException, SolverException;
 
   static ProceedOperator always() {

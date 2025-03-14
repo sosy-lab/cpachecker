@@ -256,13 +256,11 @@ public class DssBlockAnalysis {
     PredicateAbstractState msg1 =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage1),
-                PredicateAbstractState.class));
+                deserialize(pMessage1), PredicateAbstractState.class));
     PredicateAbstractState msg2 =
         Objects.requireNonNull(
             AbstractStates.extractStateByType(
-                dcpa.getDeserializeOperator().deserialize(pMessage2),
-                PredicateAbstractState.class));
+                deserialize(pMessage2), PredicateAbstractState.class));
     return predicateCPA
         .getSolver()
         .implies(msg1.getPathFormula().getFormula(), msg2.getPathFormula().getFormula());
@@ -350,7 +348,7 @@ public class DssBlockAnalysis {
 
   public DssMessageProcessing shouldRepeatAnalysis(DssPostConditionMessage pReceived)
       throws InterruptedException, SolverException {
-    AbstractState deserialized = dcpa.getDeserializeOperator().deserialize(pReceived);
+    AbstractState deserialized = deserialize(pReceived);
     DssMessageProcessing processing = dcpa.getProceedOperator().processForward(deserialized);
     if (!processing.shouldProceed()) {
       if (predecessors.contains(pReceived.getBlockId())) {
@@ -368,12 +366,12 @@ public class DssBlockAnalysis {
     if (pReceived.isReachable()) {
       boolean receivedMessageHasNewInformation = hasNewInformation(pReceived);
       // reset all loop predecessors if non-loop predecessor updates
-      if (!loopPredecessors.isEmpty() && !loopPredecessors.contains(pReceived.getBlockId())) {
-        if (receivedMessageHasNewInformation) {
-          repeat = true;
-          loopPredecessors.forEach(id -> states.put(id, null));
-          soundPredecessors.clear();
-        }
+      if (receivedMessageHasNewInformation
+          && !loopPredecessors.isEmpty()
+          && !loopPredecessors.contains(pReceived.getBlockId())) {
+        repeat = true;
+        loopPredecessors.forEach(id -> states.put(id, null));
+        soundPredecessors.clear();
       }
       if (loopPredecessors.contains(pReceived.getBlockId()) && dcpa.isTop(deserialized)) {
         states.put(pReceived.getBlockId(), null);
@@ -417,7 +415,7 @@ public class DssBlockAnalysis {
    * @param pReceived Current message to process
    * @return All violations and/or abstractions that occurred while running the forward analysis.
    */
-  public Collection<DssMessage> runAnalysis(DssPostConditionMessage pReceived)
+  public Collection<DssMessage> reactToPostcondition(DssPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException, InvalidConfigurationException {
     logger.log(Level.INFO, "Running forward analysis with new precondition");
     // check if message is meant for this block
@@ -431,7 +429,8 @@ public class DssBlockAnalysis {
 
     ImmutableSet.Builder<DssMessage> fixpointIteration = ImmutableSet.builder();
     for (DssViolationConditionMessage value : errors.values()) {
-      for (DssMessage dssMessage : runAnalysisUnderCondition(value, false)) {
+      for (DssMessage dssMessage :
+          runAnalysisUnderCondition(deserialize(value), value.getOrigin())) {
         if ((dssMessage.getType() == MessageType.BLOCK_POSTCONDITION
                 || dssMessage.getType() == MessageType.VIOLATION_CONDITION)
             && soundPredecessors.containsAll(loopPredecessors)) {
@@ -467,9 +466,9 @@ public class DssBlockAnalysis {
     }
   }
 
-  public Set<String> updateSeenPrefixes(DssViolationConditionMessage errorCond) {
+  public Set<String> updateSeenPrefixes(String conditionOrigin) {
     ImmutableSet<String> originPrefixes =
-        ImmutableSet.copyOf(Splitter.on(",").splitToList(errorCond.getOrigin()));
+        ImmutableSet.copyOf(Splitter.on(",").splitToList(conditionOrigin));
     seenPrefixes.add(originPrefixes);
     return originPrefixes;
   }
@@ -485,21 +484,29 @@ public class DssBlockAnalysis {
    * @throws CPAException thrown if CPA runs into an error
    * @throws InterruptedException thrown if thread is interrupted unexpectedly
    */
-  public Collection<DssMessage> runAnalysisUnderCondition(
-      DssViolationConditionMessage pViolationCondition, boolean put)
+  public Collection<DssMessage> reactToViolationCondition(
+      DssViolationConditionMessage pViolationCondition)
       throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     logger.log(Level.INFO, "Running forward analysis with respect to error condition");
     // merge all states into the reached set
-    AbstractState violationCondition =
-        dcpa.getDeserializeOperator().deserialize(pViolationCondition);
-    DssMessageProcessing processing = dcpa.getProceedOperator().processBackward(violationCondition);
+    AbstractState violationCondition = deserialize(pViolationCondition);
+    DssMessageProcessing processing =
+        dcpa.getProceedOperator()
+            .processBackward(violationCondition, getViolationConditions(errors.values()));
     if (!processing.shouldProceed()) {
       return processing;
     }
+    updateViolationCondition(pViolationCondition);
+    return runAnalysisUnderCondition(violationCondition, pViolationCondition.getOrigin());
+  }
 
-    if (put) {
-      updateViolationCondition(pViolationCondition);
-    }
+  private AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
+    return dcpa.getDeserializeOperator().deserialize(pMessage);
+  }
+
+  private ImmutableSet<DssMessage> runAnalysisUnderCondition(
+      AbstractState violationCondition, String conditionOrigin)
+      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
     prepareReachedSet();
 
     reachedSet.forEach(
@@ -521,7 +528,7 @@ public class DssBlockAnalysis {
     if (!loopPredecessors.isEmpty()) {
       // FIXME: Document what this if-branch does and why it is necessary
       ImmutableSet<Set<String>> previouslySeenPrefixes = ImmutableSet.copyOf(seenPrefixes);
-      Set<String> originPrefixes = updateSeenPrefixes(pViolationCondition);
+      Set<String> originPrefixes = updateSeenPrefixes(conditionOrigin);
       boolean matched = false;
       for (Set<String> seenPrefix : previouslySeenPrefixes) {
         if (originPrefixes.containsAll(seenPrefix)) {
@@ -542,7 +549,6 @@ public class DssBlockAnalysis {
 
         result = DssBlockAnalyses.runAlgorithm(algorithm, reachedSet, block);
         status = status.update(result.getStatus());
-
       }
     }
     messages.addAll(
@@ -550,9 +556,18 @@ public class DssBlockAnalysis {
             result.getViolations(),
             ((ARGState) violationCondition),
             false,
-            pViolationCondition.getOrigin(),
+            conditionOrigin,
             false));
     return messages.build();
+  }
+
+  private List<AbstractState> getViolationConditions(
+      Collection<DssViolationConditionMessage> pViolationConditions) throws InterruptedException {
+    List<AbstractState> conditionsAsStates = new ArrayList<>();
+    for (DssViolationConditionMessage condition : pViolationConditions) {
+      conditionsAsStates.add(deserialize(condition));
+    }
+    return conditionsAsStates;
   }
 
   private ARGState resetCallstack(AbstractState state) throws InvalidConfigurationException {
@@ -593,7 +608,7 @@ public class DssBlockAnalysis {
       if (message == null) {
         continue;
       }
-      deserializedStates.add(dcpa.getDeserializeOperator().deserialize(message));
+      deserializedStates.add(deserialize(message));
     }
     DssBlockAnalyses.performCpaAlgorithmWithStates(reachedSet, cpa, deserializedStates.build());
     if (reachedSet.isEmpty()) {
