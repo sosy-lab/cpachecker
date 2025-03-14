@@ -49,8 +49,8 @@
                     "--spec",
                     "sv-comp-reachability",
                     "--witness",
-                    "/home/tim/codetests/test1.yml",
-                    "/home/tim/codetests/test.c"
+                    "/home/tim/codetests/basicviolationwitness.yml",
+                    "/home/tim/codetests/basiccode.c"
                     ]
         },
         {
@@ -103,7 +103,7 @@
                     "900s",
                     "--32",
                     "--stats",
-                    "/home/tim/codetests/neuertest.c"
+                    "/home/tim/codetests/basiccode.c"
                     ]
         },
         {

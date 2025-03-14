@@ -549,4 +549,39 @@ public class AutomatonState
     a.setOriginal(this);
     return a;
   }
+
+  public AutomatonState addselfloop() {
+    if (targetInformation != null) {
+    AutomatonState a =
+        new AutomatonState(
+            vars,
+            internalState.addselfloop(),
+            automaton,
+            assumptions,
+            candidateInvariants,
+            areDefaultCandidateInvariants,
+            matches,
+            failedMatches,
+            targetInformation,
+            treatErrorAsTarget);
+    a.setOriginal(this);
+    return a;
+    } else {
+      AutomatonState a =
+        new AutomatonState(
+            vars,
+            internalState,
+            automaton,
+            assumptions,
+            candidateInvariants,
+            areDefaultCandidateInvariants,
+            matches,
+            failedMatches,
+            targetInformation,
+            treatErrorAsTarget);
+    a.setOriginal(this);
+    return a;
+    }
+  }
+
 }

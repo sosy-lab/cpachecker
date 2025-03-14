@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownState;
 import org.sosy_lab.cpachecker.cpa.automaton.instruments.InvertedAutomatonTransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.instruments.SelfloopAutomatonTransferRelation;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -471,5 +472,9 @@ public class AutomatonTransferRelation implements TransferRelation {
 
   public AutomatonTransferRelation invert() {
     return new InvertedAutomatonTransferRelation(cpa, logger, machineModel, stats);
+  }
+
+  public AutomatonTransferRelation addselfloop(){
+    return new SelfloopAutomatonTransferRelation(cpa, logger, machineModel, stats);
   }
 }

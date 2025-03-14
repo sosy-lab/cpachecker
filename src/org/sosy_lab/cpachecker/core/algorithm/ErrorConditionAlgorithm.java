@@ -88,7 +88,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
             if (ctrlcpa.getAutomatonName().startsWith("SVCOMP")) {
               ctrlcpalist.add(ctrlcpa.invert());
             } else {
-              ctrlcpalist.add(ctrlcpa);
+              ctrlcpalist.add(ctrlcpa.addselfloop());
             }
           } else {
             ctrlcpalist.add(c);
@@ -123,7 +123,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
             if (obscpa.getAutomatonName().startsWith("WitnessAutomaton")) {
               obscpalist.add(obscpa.invert());
             } else {
-              obscpalist.add(obscpa);
+              obscpalist.add(obscpa.addselfloop());
             }
           } else {
             obscpalist.add(c);

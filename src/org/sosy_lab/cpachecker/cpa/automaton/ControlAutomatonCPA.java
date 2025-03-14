@@ -139,6 +139,12 @@ public class ControlAutomatonCPA
       description = "Whether the TransferRelation should be inverted or not")
   private boolean invertTransferRelation = false;
 
+  @Option(
+    secure = true,
+    name = "addselfloop",
+    description = "Adds a selfloop for error states instead of a transition to BOTTOM")
+private boolean addselfloop = false;
+
   private final Automaton automaton;
   private final AutomatonState topState;
   private final AutomatonState bottomState;
@@ -324,6 +330,8 @@ public class ControlAutomatonCPA
         new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
     if (invertTransferRelation) {
       return transferRelation.invert();
+    } else if(addselfloop){
+      return transferRelation.addselfloop();
     }
     return transferRelation;
   }
@@ -372,6 +380,19 @@ public class ControlAutomatonCPA
         Configuration.builder()
             .copyFrom(config)
             .setOption("cpa.automaton.invertTransferRelation", "true")
+            .build(),
+        logger,
+        cfa,
+        shutdownNotifier);
+  }
+
+  public ControlAutomatonCPA addselfloop()
+      throws InvalidConfigurationException {
+    return new ControlAutomatonCPA(
+        automaton,
+        Configuration.builder()
+            .copyFrom(config)
+            .setOption("cpa.automaton.addselfloop", "true")
             .build(),
         logger,
         cfa,
