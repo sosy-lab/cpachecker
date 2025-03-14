@@ -298,10 +298,9 @@ analysis.algorithm.MPOR.sequentializationErrors = false
 analysis.algorithm.MPOR.shortVariables = false
 
 # use signed __VERIFIER_nondet_int() instead of unsigned
-# __VERIFIER_nondet_uint() when assigning next_thread at the loop head. may
-# slow down or improve verification depending on the verifier and input
-# program
-analysis.algorithm.MPOR.signedNextThread = false
+# __VERIFIER_nondet_uint()? may slow down or improve verification depending
+# on the verifier and input program
+analysis.algorithm.MPOR.signedNondet = false
 
 # use thread modular loops to reduce the amount of evaluated assume
 # expressions? may slow down or improve verification depending on the

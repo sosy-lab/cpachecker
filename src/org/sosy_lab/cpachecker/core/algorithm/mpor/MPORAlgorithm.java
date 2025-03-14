@@ -119,14 +119,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(secure = true, description = "use shortened variable names? e.g. THREAD0 -> T0")
   private boolean shortVariables = false;
 
-  // TODO generalize this to signedNondet for thread loops
   @Option(
       secure = true,
       description =
-          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint() when"
-              + " assigning next_thread at the loop head. may slow down or improve verification"
+          "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?"
+              + " may slow down or improve verification"
               + " depending on the verifier and input program")
-  private boolean signedNextThread = false;
+  private boolean signedNondet = false;
 
   @Option(
       secure = true,
@@ -235,7 +234,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             scalarPc,
             sequentializationErrors,
             shortVariables,
-            signedNextThread,
+            signedNondet,
             threadLoops,
             validateParse,
             validatePc);

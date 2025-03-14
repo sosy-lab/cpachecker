@@ -116,8 +116,8 @@ public class SeqMainFunction extends SeqFunction {
 
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
-    nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNextThread);
-    nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNextThread);
+    nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNondet);
+    nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNondet);
     pcNextThreadAssumption =
         buildPcNextThreadAssumption(pNumThreads, pOptions.scalarPc, pcVariables);
   }
@@ -239,7 +239,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // next_thread
-    if (pOptions.signedNextThread) {
+    if (pOptions.signedNondet) {
       rVariableDeclarations.add(
           LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
     } else {
@@ -249,7 +249,7 @@ public class SeqMainFunction extends SeqFunction {
 
     // if enabled: max_iterations and iteration (for thread loops)
     if (pOptions.threadLoops) {
-      if (pOptions.signedNextThread) {
+      if (pOptions.signedNondet) {
         rVariableDeclarations.add(
             LineOfCode.of(1, SeqVariableDeclaration.MAX_ITERATIONS_SIGNED.toASTString()));
       } else {
@@ -315,7 +315,7 @@ public class SeqMainFunction extends SeqFunction {
     CFunctionCallAssignmentStatement maxIterationsNondet =
         SeqStatementBuilder.buildFunctionCallAssignmentStatement(
             SeqIdExpression.MAX_ITERATIONS,
-            pOptions.signedNextThread
+            pOptions.signedNondet
                 ? SeqExpressionBuilder.buildVerifierNondetInt()
                 : SeqExpressionBuilder.buildVerifierNondetUint());
     CExpressionAssignmentStatement iterationReset =

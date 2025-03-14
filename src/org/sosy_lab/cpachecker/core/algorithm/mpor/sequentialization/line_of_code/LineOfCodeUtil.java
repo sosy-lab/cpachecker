@@ -168,7 +168,7 @@ public class LineOfCodeUtil {
     }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
-    if (pOptions.signedNextThread) {
+    if (pOptions.signedNondet) {
       rFunctionDeclarations.add(
           LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
     } else {
