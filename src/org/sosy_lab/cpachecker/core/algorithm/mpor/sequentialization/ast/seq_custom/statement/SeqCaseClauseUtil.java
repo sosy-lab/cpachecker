@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -129,7 +128,7 @@ public class SeqCaseClauseUtil {
       }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.label.value));
       SeqCaseLabel newLabel = new SeqCaseLabel(index);
-      SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
+      SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
       rConsecutiveLabels.add(caseClause.cloneWithLabelAndBlock(newLabel, newBlock));
     }
     return rConsecutiveLabels.build();

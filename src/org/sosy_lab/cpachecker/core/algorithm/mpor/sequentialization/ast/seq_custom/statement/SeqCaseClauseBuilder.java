@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
@@ -180,7 +179,7 @@ public class SeqCaseClauseBuilder {
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
             labelPc,
-            new SeqCaseBlock(statements.build(), Terminator.CONTINUE)));
+            new SeqCaseBlock(statements.build())));
   }
 
   private static ImmutableList<SeqCaseClause> injectThreadSimulationGhosts(
@@ -219,7 +218,7 @@ public class SeqCaseClauseBuilder {
           newStatements.add(statement.cloneWithInjectedStatements(injected));
         }
       }
-      SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
+      SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
       rCaseClauses.add(caseClause.cloneWithBlock(newBlock));
     }
     return rCaseClauses.build();

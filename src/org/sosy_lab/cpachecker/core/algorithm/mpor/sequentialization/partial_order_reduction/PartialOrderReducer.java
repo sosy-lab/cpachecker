@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock.Terminator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
@@ -55,7 +54,7 @@ public class PartialOrderReducer {
           newStatements.add(
               recursivelyConcatenateStatements(statement, concatenated, duplicated, labelValueMap));
         }
-        SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build(), Terminator.CONTINUE);
+        SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
         SeqCaseClause clone = caseClause.cloneWithBlock(newBlock);
         newCaseClauses.add(clone);
       }

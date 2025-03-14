@@ -46,8 +46,6 @@ public class SeqToken {
 
   public static final String cond = "cond";
 
-  public static final String _continue = "continue";
-
   public static final String __CPAchecker_TMP_ = "__CPAchecker_TMP_";
 
   public static final String _default = "default";

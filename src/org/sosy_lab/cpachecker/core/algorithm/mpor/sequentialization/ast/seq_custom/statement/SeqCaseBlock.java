@@ -18,25 +18,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 /** A case block follows a {@link SeqCaseLabel} and has a list of {@link SeqCaseBlockStatement}s. */
 public class SeqCaseBlock implements SeqStatement {
 
-  /** The suffix that ends the case block. */
-  public enum Terminator {
-    BREAK(SeqToken._break),
-    CONTINUE(SeqToken._continue);
-
-    private final String asString;
-
-    Terminator(String pAsString) {
-      asString = pAsString;
-    }
-  }
-
   public final ImmutableList<SeqCaseBlockStatement> statements;
 
-  private final Terminator terminator;
-
-  public SeqCaseBlock(ImmutableList<SeqCaseBlockStatement> pStatements, Terminator pTerminator) {
+  public SeqCaseBlock(ImmutableList<SeqCaseBlockStatement> pStatements) {
     statements = pStatements;
-    terminator = pTerminator;
   }
 
   public SeqCaseBlockStatement getFirstStatement() {
@@ -50,6 +35,7 @@ public class SeqCaseBlock implements SeqStatement {
     for (SeqCaseBlockStatement statement : this.statements) {
       statementsString.append(statement.toASTString()).append(SeqSyntax.SPACE);
     }
-    return statementsString + terminator.asString + SeqSyntax.SEMICOLON;
+    // tests showed that using break is more efficient than continue, despite the loop
+    return statementsString + SeqToken._break + SeqSyntax.SEMICOLON;
   }
 }
