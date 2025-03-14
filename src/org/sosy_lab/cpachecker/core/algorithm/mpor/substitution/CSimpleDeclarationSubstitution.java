@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+// TODO rename MPORSubstitution and add MPORThread as parameter, making the map redundant
 public class CSimpleDeclarationSubstitution {
 
   /**

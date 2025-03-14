@@ -9,12 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumption;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
@@ -47,7 +48,7 @@ public class SeqFunctionBuilder {
             pThreadSimulationVariables,
             pLogger);
     // include assumptions over thread simulation variables
-    ImmutableList<SeqFunctionCallExpression> threadSimulationAssumptions =
+    ImmutableListMultimap<MPORThread, SeqAssumption> threadSimulationAssumptions =
         SeqAssumptionBuilder.createThreadSimulationAssumptions(
             pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder);
     return new SeqMainFunction(

@@ -37,6 +37,8 @@ public class SeqExpressions {
 
   public static class SeqIdExpression {
 
+    // parameters:
+
     public static final CIdExpression COND = buildIdExpression(SeqParameterDeclaration.COND);
 
     public static final CIdExpression FILE = buildIdExpression(SeqParameterDeclaration.FILE);
@@ -46,10 +48,21 @@ public class SeqExpressions {
     public static final CIdExpression FUNCTION =
         buildIdExpression(SeqParameterDeclaration.FUNCTION);
 
+    // variables:
+
     public static final CIdExpression DUMMY_PC = buildIdExpression(SeqVariableDeclaration.DUMMY_PC);
 
+    // TODO we should use the separate signed/unsigned declarations here
     public static final CIdExpression NEXT_THREAD =
         buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
+
+    public static final CIdExpression MAX_ITERATIONS =
+        buildIdExpression(SeqVariableDeclaration.MAX_ITERATIONS_SIGNED);
+
+    public static final CIdExpression ITERATION =
+        buildIdExpression(SeqVariableDeclaration.ITERATION);
+
+    // functions:
 
     public static final CIdExpression REACH_ERROR =
         buildIdExpression(SeqFunctionDeclaration.REACH_ERROR);

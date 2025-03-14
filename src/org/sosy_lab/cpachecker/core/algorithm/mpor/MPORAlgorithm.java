@@ -119,6 +119,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(secure = true, description = "use shortened variable names? e.g. THREAD0 -> T0")
   private boolean shortVariables = false;
 
+  // TODO generalize this to signedNondet for thread loops
   @Option(
       secure = true,
       description =
@@ -126,6 +127,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " assigning next_thread at the loop head. may slow down or improve verification"
               + " depending on the verifier and input program")
   private boolean signedNextThread = false;
+
+  @Option(
+      secure = true,
+      description =
+          "use thread modular loops to reduce the amount of evaluated assume expressions?"
+              + " may slow down or improve verification"
+              + " depending on the verifier and input program")
+  private boolean threadLoops = true;
 
   @Option(
       description =
@@ -227,6 +236,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             sequentializationErrors,
             shortVariables,
             signedNextThread,
+            threadLoops,
             validateParse,
             validatePc);
     cpa = pCpa;

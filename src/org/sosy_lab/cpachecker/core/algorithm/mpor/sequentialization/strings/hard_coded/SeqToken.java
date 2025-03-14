@@ -64,6 +64,8 @@ public class SeqToken {
 
   public static final String GLOBAL = "GLOBAL";
 
+  public static final String iteration = "iteration";
+
   public static final String JOINS = "JOINS";
 
   public static final String __line = "__line";
@@ -77,6 +79,8 @@ public class SeqToken {
   public static final String LOCKS = "LOCKS";
 
   public static final String main = "main";
+
+  public static final String max_iterations = "max_iterations";
 
   public static final String __MPOR_SEQ__ = "__MPOR_SEQ__";
 

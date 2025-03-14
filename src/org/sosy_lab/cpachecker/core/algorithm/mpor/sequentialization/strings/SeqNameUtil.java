@@ -106,7 +106,7 @@ public class SeqNameUtil {
         + SeqToken.LOCKED;
   }
 
-  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_AWAITS_{pMutexName}} */
+  // TODO this should be more distinct from LOCKED, maybe T0_REQUESTS_lock?
   public static String buildThreadLocksMutexName(
       MPOROptions pOptions, int pThreadId, String pMutexName) {
 

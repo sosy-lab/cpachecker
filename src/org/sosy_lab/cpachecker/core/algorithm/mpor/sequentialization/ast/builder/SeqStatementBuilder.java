@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
 public class SeqStatementBuilder {
@@ -26,6 +24,13 @@ public class SeqStatementBuilder {
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLeftHandSide, pRightHandSide);
   }
 
+  public static CFunctionCallAssignmentStatement buildFunctionCallAssignmentStatement(
+      CLeftHandSide pLeftHandSide, CFunctionCallExpression pFunctionCallExpression) {
+
+    return new CFunctionCallAssignmentStatement(
+        FileLocation.DUMMY, pLeftHandSide, pFunctionCallExpression);
+  }
+
   /**
    * Returns the {@link CExpressionAssignmentStatement} of {@code pc[pThreadId] = pTargetPc;} or
    * {@code pc{pThreadId} = pTargetPc;} for scalarPc.
@@ -35,30 +40,5 @@ public class SeqStatementBuilder {
 
     return buildExpressionAssignmentStatement(
         pPcLeftHandSide, SeqExpressionBuilder.buildIntegerLiteralExpression(pTargetPc));
-  }
-
-  public static CExpressionAssignmentStatement buildPcWrite(
-      CLeftHandSide pPcLeftHandSide, CExpression pRightHandSide) {
-
-    return buildExpressionAssignmentStatement(pPcLeftHandSide, pRightHandSide);
-  }
-
-  public static CExpressionAssignmentStatement buildReturnPcWriteByTargetPc(
-      CIdExpression pReturnPcVariable,
-      Optional<Integer> pReturnPc,
-      Optional<CExpression> pReturnPcExpression) {
-
-    // this is XOR, not (true, true) and not (false, false)
-    checkArgument(
-        pReturnPc.isPresent() || pReturnPcExpression.isPresent(),
-        "either pReturnPc or pReturnPcExpression must be present");
-    checkArgument(
-        pReturnPc.isEmpty() || pReturnPcExpression.isEmpty(),
-        "either pReturnPc or pReturnPcExpression must be empty");
-    return pReturnPc.isPresent()
-        ? buildExpressionAssignmentStatement(
-            pReturnPcVariable,
-            SeqExpressionBuilder.buildIntegerLiteralExpression(pReturnPc.orElseThrow()))
-        : buildExpressionAssignmentStatement(pReturnPcVariable, pReturnPcExpression.orElseThrow());
   }
 }

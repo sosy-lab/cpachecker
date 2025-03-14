@@ -303,6 +303,11 @@ analysis.algorithm.MPOR.shortVariables = false
 # program
 analysis.algorithm.MPOR.signedNextThread = false
 
+# use thread modular loops to reduce the amount of evaluated assume
+# expressions? may slow down or improve verification depending on the
+# verifier and input program
+analysis.algorithm.MPOR.threadLoops = true
+
 # test if CPAchecker can parse sequentialization? true -> less efficient, but
 # more correctness guarantees
 analysis.algorithm.MPOR.validateParse = true

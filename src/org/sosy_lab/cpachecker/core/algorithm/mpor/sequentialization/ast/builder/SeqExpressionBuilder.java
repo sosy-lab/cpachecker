@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builde
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -17,12 +18,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
@@ -93,12 +96,37 @@ public class SeqExpressionBuilder {
     CStringLiteralExpression function =
         buildStringLiteralExpression(SeqStringUtil.wrapInQuotationMarks(pFunction));
 
-    return new CFunctionCallExpression(
-        FileLocation.DUMMY,
+    return buildFunctionCallExpression(
         SeqVoidType.VOID,
         SeqIdExpression.REACH_ERROR,
         ImmutableList.of(file, line, function),
         SeqFunctionDeclaration.REACH_ERROR);
+  }
+
+  public static CFunctionCallExpression buildVerifierNondetInt() {
+    return buildFunctionCallExpression(
+        SeqSimpleType.INT,
+        SeqIdExpression.VERIFIER_NONDET_INT,
+        ImmutableList.of(),
+        SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+  }
+
+  public static CFunctionCallExpression buildVerifierNondetUint() {
+    return buildFunctionCallExpression(
+        SeqSimpleType.UNSIGNED_INT,
+        SeqIdExpression.VERIFIER_NONDET_UINT,
+        ImmutableList.of(),
+        SeqFunctionDeclaration.VERIFIER_NONDET_UINT);
+  }
+
+  private static CFunctionCallExpression buildFunctionCallExpression(
+      CType pType,
+      CExpression pFunctionName,
+      List<CExpression> pParameters,
+      CFunctionDeclaration pDeclaration) {
+
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY, pType, pFunctionName, pParameters, pDeclaration);
   }
 
   // CIntegerLiteralExpression =====================================================================
