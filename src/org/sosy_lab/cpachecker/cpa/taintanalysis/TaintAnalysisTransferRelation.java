@@ -269,28 +269,35 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
       String functionName = callExpr.getFunctionNameExpression().toString();
 
-      if ("__VERIFIER_assert_taint".equals(functionName)) {
+      if ("__VERIFIER_is_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
         if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToCheck) {
           CExpression taintCheck = params.get(1);
 
           try {
-            int expectedTaint = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
+            int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
 
             boolean isCurrentlyTainted = pState.getTaintedVariables().contains(variableToCheck);
 
-            if ((expectedTaint == 1 && !isCurrentlyTainted)
-                || (expectedTaint == 0 && isCurrentlyTainted)) {
+            if (expectedPublicity == 1 && isCurrentlyTainted) {
               logger.log(
                   Level.WARNING,
                   String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be %s tainted but"
-                          + " is %s tainted.",
-                      pCfaEdge.getFileLocation(),
-                      variableToCheck.getName(),
-                      expectedTaint == 1 ? "" : "not",
-                      isCurrentlyTainted ? "" : "not"));
+                      "Assertion violation at %s: Variable '%s' was expected to be public but is tainted.",
+                      pCfaEdge.getFileLocation(), variableToCheck.getName()));
+
+              TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+              newState.setViolatesProperty();
+              return newState;
+            }
+
+            if (expectedPublicity == 0 && !isCurrentlyTainted) {
+              logger.log(
+                  Level.WARNING,
+                  String.format(
+                      "Assertion violation at %s: Variable '%s' was expected to be tainted but is public.",
+                      pCfaEdge.getFileLocation(), variableToCheck.getName()));
 
               TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
               newState.setViolatesProperty();
@@ -298,8 +305,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             }
 
           } catch (CPATransferException e) {
-            logger.log(Level.WARNING, "Invalid taint assertion detected: " + e.getMessage());
-            throw new CPATransferException("Error processing taint assertion", e);
+            logger.log(Level.WARNING, "Invalid public assertion detected: " + e.getMessage());
+            throw new CPATransferException("Error processing public assertion", e);
           }
         }
       }
