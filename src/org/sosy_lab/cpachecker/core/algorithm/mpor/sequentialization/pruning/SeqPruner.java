@@ -76,33 +76,6 @@ public class SeqPruner {
     return rUpdatedTargetPc;
   }
 
-  private static ImmutableList<SeqCaseClause> updateTargetPcToNonPruned(
-      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, Integer> pPcUpdates) {
-
-    ImmutableList.Builder<SeqCaseClause> rUpdatedTargetPc = ImmutableList.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      if (!caseClause.onlyWritesPc()) {
-        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-        for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-          if (statement.getTargetPc().isPresent()) {
-            int targetPc = statement.getTargetPc().orElseThrow();
-            if (pPcUpdates.containsKey(targetPc)) {
-              // if pc was updated in prune, clone statement with new target pc
-              newStatements.add(
-                  statement.cloneWithTargetPc(Objects.requireNonNull(pPcUpdates.get(targetPc))));
-              continue;
-            }
-          }
-          // otherwise add unchanged statement
-          newStatements.add(statement);
-        }
-        SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
-        rUpdatedTargetPc.add(caseClause.cloneWithBlock(newBlock));
-      }
-    }
-    return rUpdatedTargetPc.build();
-  }
-
   /**
    * Maps pre prune {@code int pc} to post prune {@link CExpression}. Not all target {@code pc} are
    * present as keys.
@@ -128,6 +101,33 @@ public class SeqPruner {
       }
     }
     return rMap.buildOrThrow();
+  }
+
+  private static ImmutableList<SeqCaseClause> updateTargetPcToNonPruned(
+      ImmutableList<SeqCaseClause> pCaseClauses, ImmutableMap<Integer, Integer> pPcUpdates) {
+
+    ImmutableList.Builder<SeqCaseClause> rUpdatedTargetPc = ImmutableList.builder();
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      if (!caseClause.onlyWritesPc()) {
+        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+        for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+          if (statement.getTargetPc().isPresent()) {
+            int targetPc = statement.getTargetPc().orElseThrow();
+            if (pPcUpdates.containsKey(targetPc)) {
+              // if pc was updated in prune, clone statement with new target pc
+              newStatements.add(
+                  statement.cloneWithTargetPc(Objects.requireNonNull(pPcUpdates.get(targetPc))));
+              continue;
+            }
+          }
+          // otherwise add unchanged statement
+          newStatements.add(statement);
+        }
+        SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
+        rUpdatedTargetPc.add(caseClause.cloneWithBlock(newBlock));
+      }
+    }
+    return rUpdatedTargetPc.build();
   }
 
   private static Optional<Integer> findTargetPc(

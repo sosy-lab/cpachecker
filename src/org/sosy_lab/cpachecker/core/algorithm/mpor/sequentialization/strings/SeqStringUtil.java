@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
@@ -108,7 +108,7 @@ public class SeqStringUtil {
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     // TODO add some restrictions here
@@ -116,7 +116,7 @@ public class SeqStringUtil {
     // TODO we should add some newlines here...
     StringBuilder statements = new StringBuilder();
 
-    for (SeqCaseBlockInjectedStatement injectedStatement : pInjectedStatements) {
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       statements.append(injectedStatement.toASTString()).append(SeqSyntax.SPACE);
     }
 

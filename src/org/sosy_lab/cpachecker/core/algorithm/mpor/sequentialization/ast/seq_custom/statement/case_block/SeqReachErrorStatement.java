@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
@@ -48,7 +48,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have injected statements");
   }
@@ -76,7 +76,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have injected statements and cannot be cloned");
   }

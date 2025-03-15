@@ -8,14 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 
-public class SeqThreadJoinsThreadStatement implements SeqCaseBlockInjectedStatement {
+public class SeqThreadJoinsThreadStatement implements SeqInjectedStatement {
 
-  private final CIdExpression threadJoinsThread;
+  public final CIdExpression threadJoinsThread;
 
   public SeqThreadJoinsThreadStatement(CIdExpression pThreadJoinsThread) {
     threadJoinsThread = pThreadJoinsThread;
@@ -27,5 +28,15 @@ public class SeqThreadJoinsThreadStatement implements SeqCaseBlockInjectedStatem
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoinsThread, SeqIntegerLiteralExpression.INT_1);
     return setJoinsTrue.toASTString();
+  }
+
+  @Override
+  public boolean marksCriticalSection() {
+    return true;
+  }
+
+  @Override
+  public Optional<CIdExpression> getIdExpression() {
+    return Optional.of(threadJoinsThread);
   }
 }

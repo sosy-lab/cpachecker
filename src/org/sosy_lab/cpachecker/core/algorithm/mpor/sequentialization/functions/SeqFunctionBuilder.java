@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumption;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
@@ -38,10 +39,14 @@ public class SeqFunctionBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    // use to store which injected variables are initialized with 1
+    ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
+
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(
             pOptions,
+            updatedVariables,
             pSubstitutions,
             pSubstituteEdges,
             pPcVariables,
@@ -53,6 +58,7 @@ public class SeqFunctionBuilder {
             pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder);
     return new SeqMainFunction(
         pOptions,
+        updatedVariables.build(),
         pSubstitutions.size(),
         threadSimulationAssumptions,
         caseClauses,

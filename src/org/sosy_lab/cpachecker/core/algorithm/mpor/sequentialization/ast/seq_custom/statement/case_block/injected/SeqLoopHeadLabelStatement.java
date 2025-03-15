@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected;
 
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqLoopHeadLabelStatement implements SeqCaseBlockInjectedStatement {
+public class SeqLoopHeadLabelStatement implements SeqInjectedStatement {
 
   public final String labelName;
 
@@ -21,5 +23,15 @@ public class SeqLoopHeadLabelStatement implements SeqCaseBlockInjectedStatement 
   @Override
   public String toASTString() {
     return labelName + SeqSyntax.COLON;
+  }
+
+  @Override
+  public boolean marksCriticalSection() {
+    return false;
+  }
+
+  @Override
+  public Optional<CIdExpression> getIdExpression() {
+    return Optional.empty();
   }
 }

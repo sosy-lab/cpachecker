@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -54,7 +54,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final Optional<String> targetGoto;
 
-  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
+  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
@@ -108,7 +108,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
@@ -143,7 +143,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
 
@@ -180,7 +180,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqConstCpaCheckerTmpStatement(
         constCpaCheckerTmpDeclaration,
         statementA,

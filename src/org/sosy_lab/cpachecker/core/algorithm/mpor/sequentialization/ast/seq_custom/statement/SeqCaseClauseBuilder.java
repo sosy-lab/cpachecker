@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
@@ -47,6 +48,7 @@ public class SeqCaseClauseBuilder {
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> buildCaseClauses(
       MPOROptions pOptions,
+      ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
@@ -59,14 +61,14 @@ public class SeqCaseClauseBuilder {
     // prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
         SeqPruner.pruneCaseClauses(initialCaseClauses);
-    // if enabled, apply partial order reduction by concatenating commuting clauses
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenatedCases =
+    // if enabled, apply partial order reduction and reduce number of cases
+    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
         pOptions.partialOrderReduction
-            ? PartialOrderReducer.concatenateCommutingCases(pOptions, prunedCases)
+            ? PartialOrderReducer.reduceCaseClauses(pOptions, pUpdatedVariables, prunedCases)
             : prunedCases;
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
-        SeqCaseClauseUtil.cloneWithConsecutiveLabels(concatenatedCases);
+        SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases);
     // if enabled, ensure that all label and target pc are valid
     if (pOptions.validatePc) {
       return SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger);
@@ -194,8 +196,7 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
 
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        ImmutableList.Builder<SeqCaseBlockInjectedStatement> injectedStatements =
-            ImmutableList.builder();
+        ImmutableList.Builder<SeqInjectedStatement> injectedStatements = ImmutableList.builder();
 
         if (statement.getTargetPc().isPresent()) {
           int targetPc = statement.getTargetPc().orElseThrow();
@@ -203,14 +204,14 @@ public class SeqCaseClauseBuilder {
             SeqCaseClause target = Objects.requireNonNull(labelValueMap.get(targetPc));
             // validation enforces that total strict order entries are direct targets (= first stmt)
             SeqCaseBlockStatement firstStatement = target.block.statements.get(0);
-            Optional<SeqCaseBlockInjectedStatement> injectedStatement =
+            Optional<SeqInjectedStatement> injectedStatement =
                 SeqCaseBlockStatementBuilder.tryBuildInjectedStatement(firstStatement);
             if (injectedStatement.isPresent()) {
               injectedStatements.add(injectedStatement.orElseThrow());
             }
           }
         }
-        ImmutableList<SeqCaseBlockInjectedStatement> injected = injectedStatements.build();
+        ImmutableList<SeqInjectedStatement> injected = injectedStatements.build();
         if (injected.isEmpty()) {
           // no injections -> add all previous statements (we only inject, no replacing)
           newStatements.add(statement);

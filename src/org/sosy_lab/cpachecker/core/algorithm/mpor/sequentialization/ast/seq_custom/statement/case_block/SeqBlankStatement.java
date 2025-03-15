@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
 /**
@@ -25,7 +25,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
+  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
@@ -37,7 +37,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   private SeqBlankStatement(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -56,7 +56,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
 
@@ -79,7 +79,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqBlankStatement(pcLeftHandSide, targetPc, pInjectedStatements);
   }

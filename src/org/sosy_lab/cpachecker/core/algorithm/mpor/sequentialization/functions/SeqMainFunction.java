@@ -71,6 +71,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private final MPOROptions options;
 
+  private final ImmutableList<CIdExpression> updatedVariables;
+
   private final CIdExpression numThreads;
 
   private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
@@ -92,6 +94,7 @@ public class SeqMainFunction extends SeqFunction {
 
   public SeqMainFunction(
       MPOROptions pOptions,
+      ImmutableList<CIdExpression> pUpdatedVariables,
       int pNumThreads,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
@@ -100,6 +103,7 @@ public class SeqMainFunction extends SeqFunction {
       throws UnrecognizedCodeException {
 
     options = pOptions;
+    updatedVariables = pUpdatedVariables;
     numThreads =
         SeqExpressionBuilder.buildIdExpression(
             SeqDeclarationBuilder.buildVariableDeclaration(
@@ -156,6 +160,8 @@ public class SeqMainFunction extends SeqFunction {
     // declare main() local variables NUM_THREADS, pc, next_thread
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(buildVariableDeclarations(options, numThreads.getDeclaration(), pcDeclarations));
+    // add updated injected variables that were pruned in partial order reduction
+    rBody.addAll(buildVariableUpdates(updatedVariables));
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     if (options.comments) {
@@ -215,6 +221,19 @@ public class SeqMainFunction extends SeqFunction {
   @Override
   public ImmutableList<CParameterDeclaration> getParameters() {
     return ImmutableList.of();
+  }
+
+  private ImmutableList<LineOfCode> buildVariableUpdates(
+      ImmutableList<CIdExpression> pUpdatedVariables) {
+
+    ImmutableList.Builder<LineOfCode> rVariableUpdates = ImmutableList.builder();
+    for (CIdExpression variable : pUpdatedVariables) {
+      CExpressionAssignmentStatement assignment =
+          SeqStatementBuilder.buildExpressionAssignmentStatement(
+              variable, SeqIntegerLiteralExpression.INT_1);
+      rVariableUpdates.add(LineOfCode.of(1, assignment.toASTString()));
+    }
+    return rVariableUpdates.build();
   }
 
   /** Returns {@link LineOfCode} for {@code NUM_THREADS} and {@code pc} declarations. */

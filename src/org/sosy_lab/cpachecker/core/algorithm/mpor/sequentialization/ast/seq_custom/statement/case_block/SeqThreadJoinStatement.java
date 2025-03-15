@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -36,7 +36,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final Optional<String> targetGoto;
 
-  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
+  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
@@ -54,7 +54,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     threadJoinsThread = pThreadJoins;
@@ -84,7 +84,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
 
@@ -118,7 +118,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
         threadJoinsThread,

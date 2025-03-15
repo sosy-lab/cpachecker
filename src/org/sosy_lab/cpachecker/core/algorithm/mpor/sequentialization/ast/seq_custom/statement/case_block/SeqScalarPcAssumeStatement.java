@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 
 /**
  * Only used with {@code scalarPc} when assuming that the next thread is still active, e.g.
@@ -38,7 +38,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have injected statements");
   }
@@ -63,7 +63,7 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     // we do not clone this as it is not used for pruning, but just for the loop head assumption
     throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be cloned");

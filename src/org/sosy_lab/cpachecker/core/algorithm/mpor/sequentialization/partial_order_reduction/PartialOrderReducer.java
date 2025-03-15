@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -33,16 +36,20 @@ public class PartialOrderReducer {
   // TODO add bit vectors for each thread store which global variables (up to 128 supported) are
   //  accessed in the next case
 
-  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatenateCommutingCases(
-      MPOROptions pOptions, ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduceCaseClauses(
+      MPOROptions pOptions,
+      ImmutableList.Builder<CIdExpression> pUpdatedVariables,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rConcatenated =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       // map label pc to loop head labels created at their start, used later for injecting gotos
       Map<Integer, SeqLoopHeadLabelStatement> loopHeadLabels = new HashMap<>();
+      ImmutableList<SeqCaseClause> removedInjections =
+          removeUnnecessaryInjections(pUpdatedVariables, entry.getValue());
       ImmutableList<SeqCaseClause> concatenatedCases =
-          concatenateCommutingCases(pOptions, entry.getKey(), entry.getValue(), loopHeadLabels);
+          concatenateCommutingCases(pOptions, entry.getKey(), removedInjections, loopHeadLabels);
       ImmutableList<SeqCaseClause> withGoto =
           replaceLoopHeadTargetPcWithGoto(ImmutableMap.copyOf(loopHeadLabels), concatenatedCases);
       rConcatenated.put(entry.getKey(), withGoto);
@@ -170,7 +177,7 @@ public class PartialOrderReducer {
     // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute
     //  anymore) -> remove if adding pthread_mutex_trylock support
     if (pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
-      return false;
+      return true;
     }
     // the first concatenation in the thread can also concatenate global, if it is not global itself
     return pIsFirstConcat && !pIsGlobal;
@@ -229,6 +236,32 @@ public class PartialOrderReducer {
       rWithGoto.add(caseClause.cloneWithBlock(newBlock));
     }
     return rWithGoto.build();
+  }
+
+  // Injections ====================================================================================
+
+  private static ImmutableList<SeqCaseClause> removeUnnecessaryInjections(
+      final ImmutableList.Builder<CIdExpression> pUpdatedVariables,
+      ImmutableList<SeqCaseClause> pCaseClauses) {
+
+    Builder<SeqCaseClause> rPrunedInjections = ImmutableList.builder();
+    SeqCaseClause firstCase = pCaseClauses.get(0);
+    if (firstCase.block.statements.size() == 1) {
+      SeqCaseBlockStatement firstStatement = firstCase.block.getFirstStatement();
+      if (firstStatement.getInjectedStatements().size() == 1) {
+        SeqInjectedStatement injected = firstStatement.getInjectedStatements().get(0);
+        if (injected.marksCriticalSection()) {
+          pUpdatedVariables.add(injected.getIdExpression().orElseThrow());
+          return rPrunedInjections
+              .addAll(
+                  pCaseClauses.stream()
+                      .filter(c -> !c.equals(firstCase))
+                      .collect(ImmutableList.toImmutableList()))
+              .build();
+        }
+      }
+    }
+    return pCaseClauses;
   }
 
   // Helpers =======================================================================================

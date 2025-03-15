@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqThreadBeginsAtomicStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqThreadJoinsThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqThreadLocksMutexStatement;
@@ -306,7 +306,7 @@ public class SeqCaseBlockStatementBuilder {
     return new SeqThreadCreationStatement(createdThread.id, pThread.id, pPcVariables, pTargetPc);
   }
 
-  public static Optional<SeqCaseBlockInjectedStatement> tryBuildInjectedStatement(
+  public static Optional<SeqInjectedStatement> tryBuildInjectedStatement(
       SeqCaseBlockStatement pStatement) {
 
     if (pStatement instanceof SeqAtomicBeginStatement atomicBeginStatement) {

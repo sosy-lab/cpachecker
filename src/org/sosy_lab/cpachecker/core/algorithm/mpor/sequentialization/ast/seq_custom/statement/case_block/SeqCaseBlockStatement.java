@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 
 // TODO further divide this into thread, function, ... interfaces
 // TODO its probably better to use an abstract class here for default implementations and attributes
@@ -28,7 +28,7 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   Optional<Integer> getTargetPc();
 
   /** The list of statements injected to the {@code pc} write. */
-  ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements();
+  ImmutableList<SeqInjectedStatement> getInjectedStatements();
 
   ImmutableList<SeqCaseBlockStatement> getConcatenatedStatements();
 
@@ -38,7 +38,7 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   SeqCaseBlockStatement cloneWithTargetGoto(String pLabel);
 
   SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements);
+      ImmutableList<SeqInjectedStatement> pInjectedStatements);
 
   /**
    * This function should be called when applying Partial Order Reduction to {@link SeqCaseClause}s,

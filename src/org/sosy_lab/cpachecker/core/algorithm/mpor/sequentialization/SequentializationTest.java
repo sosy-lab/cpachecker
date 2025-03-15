@@ -40,6 +40,9 @@ public class SequentializationTest {
   // weaver/popl120-send-receive.wvr
   // 28-race_reach_46-escape_racefree
 
+  // TODO substitute assertion error
+  // pthread-divine/tls-basic.i
+
   @Test
   public void testCompileSeq_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.

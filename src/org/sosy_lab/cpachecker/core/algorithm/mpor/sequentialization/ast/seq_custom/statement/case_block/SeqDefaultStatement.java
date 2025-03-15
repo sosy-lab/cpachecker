@@ -13,7 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
@@ -31,7 +31,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final Optional<String> targetGoto;
 
-  private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
+  private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
@@ -49,7 +49,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     edge = pEdge;
@@ -74,7 +74,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public ImmutableList<SeqCaseBlockInjectedStatement> getInjectedStatements() {
+  public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
 
@@ -107,7 +107,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
-      ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqDefaultStatement(
         edge, pcLeftHandSide, targetPc, targetGoto, pInjectedStatements, concatenatedStatements);
   }

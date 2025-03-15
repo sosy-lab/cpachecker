@@ -8,6 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected;
 
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
-public interface SeqCaseBlockInjectedStatement extends SeqStatement {}
+public interface SeqInjectedStatement extends SeqStatement {
+
+  boolean marksCriticalSection();
+
+  Optional<CIdExpression> getIdExpression();
+}
