@@ -35,6 +35,8 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   /** This function should only be called when finalizing (i.e. pruning) {@link SeqCaseClause}s. */
   SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc);
 
+  SeqCaseBlockStatement cloneWithTargetGoto(String pLabel);
+
   SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements);
 

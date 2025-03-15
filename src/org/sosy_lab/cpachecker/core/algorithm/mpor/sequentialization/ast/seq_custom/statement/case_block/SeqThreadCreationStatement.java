@@ -33,6 +33,8 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
@@ -44,6 +46,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     pcVariables = pPcVariables;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -53,6 +56,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
       int pThreadId,
       PcVariables pPcVariables,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
@@ -60,6 +64,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     threadId = pThreadId;
     pcVariables = pPcVariables;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -71,7 +76,11 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
             pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcVariables.get(threadId), targetPc, injectedStatements, concatenatedStatements);
+            pcVariables.get(threadId),
+            targetPc,
+            targetGoto,
+            injectedStatements,
+            concatenatedStatements);
     return createdPcWrite.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
@@ -97,8 +106,14 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         threadId,
         pcVariables,
         Optional.of(pTargetPc),
+        Optional.empty(),
         injectedStatements,
         concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return null;
   }
 
   @Override
@@ -110,6 +125,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         threadId,
         pcVariables,
         targetPc,
+        targetGoto,
         pInjectedStatements,
         concatenatedStatements);
   }
@@ -122,6 +138,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        Optional.empty(),
         Optional.empty(),
         injectedStatements,
         pConcatenatedStatements);

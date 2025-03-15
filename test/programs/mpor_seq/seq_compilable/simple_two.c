@@ -31,5 +31,11 @@ int main() {
     } else {
         x--;
     }
+    for (int i = 0; i < 5; i++) {
+        i++;
+        for (int j = 0; j < 5; j++) {
+            j++;
+        }
+    }
     return 0;
 }

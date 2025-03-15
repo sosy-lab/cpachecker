@@ -34,15 +34,17 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadJoinStatement(CIdExpression pThreadJoins, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
-
     threadJoinsThread = pThreadJoins;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -51,11 +53,13 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       CIdExpression pThreadJoins,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     threadJoinsThread = pThreadJoins;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     pcLeftHandSide = pPcLeftHandSide;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
@@ -69,7 +73,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
     return setJoinsFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
@@ -96,6 +100,18 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         threadJoinsThread,
         pcLeftHandSide,
         Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqThreadJoinStatement(
+        threadJoinsThread,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
         injectedStatements,
         concatenatedStatements);
   }
@@ -105,7 +121,12 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
-        threadJoinsThread, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+        threadJoinsThread,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -115,6 +136,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
     return new SeqThreadJoinStatement(
         threadJoinsThread,
         pcLeftHandSide,
+        Optional.empty(),
         Optional.empty(),
         injectedStatements,
         pConcatenatedStatements);

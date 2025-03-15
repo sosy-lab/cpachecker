@@ -32,7 +32,6 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     pcLeftHandSide = pPcLeftHandSide;
-    // reach_error calls may not stop a thread, we enforce it
     targetPc = pTargetPc;
   }
 
@@ -67,6 +66,12 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
         "reach_errors should only be clone with exit pc %s",
         Sequentialization.EXIT_PC);
     return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override

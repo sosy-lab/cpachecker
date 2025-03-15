@@ -12,8 +12,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
- * A case clause features a {@link SeqCaseLabel}, a {@link SeqCaseBlock} and a {@link
- * SeqCaseBlock.Terminator}.
+ * A case clause features a {@link SeqCaseLabel} and a {@link SeqCaseBlock}.
  *
  * <p>Example: {@code case 42: fib(42); break;}
  */
@@ -21,6 +20,7 @@ public class SeqCaseClause implements SeqStatement {
 
   private static int currentId = 0;
 
+  /** This method is required, otherwise some checks fail. */
   private static int getNewId() {
     return currentId++;
   }

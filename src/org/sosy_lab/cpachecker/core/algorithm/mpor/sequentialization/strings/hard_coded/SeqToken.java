@@ -62,6 +62,8 @@ public class SeqToken {
 
   public static final String GLOBAL = "GLOBAL";
 
+  public static final String _goto = "goto";
+
   public static final String iteration = "iteration";
 
   public static final String JOINS = "JOINS";
@@ -75,6 +77,8 @@ public class SeqToken {
   public static final String LOCKED = "LOCKED";
 
   public static final String LOCKS = "LOCKS";
+
+  public static final String LOOP_HEAD = "LOOP_HEAD";
 
   public static final String main = "main";
 

@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqCaseClauseUtil {
@@ -124,7 +125,7 @@ public class SeqCaseClauseUtil {
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        newStatements.add(recursivelyReplaceTargetPc(statement, labelToIndexMap));
+        newStatements.add(replaceTargetPc(statement, labelToIndexMap));
       }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.label.value));
       SeqCaseLabel newLabel = new SeqCaseLabel(index);
@@ -144,7 +145,7 @@ public class SeqCaseClauseUtil {
     return rLabelToIndex.buildOrThrow();
   }
 
-  private static SeqCaseBlockStatement recursivelyReplaceTargetPc(
+  private static SeqCaseBlockStatement replaceTargetPc(
       SeqCaseBlockStatement pCurrentStatement,
       final ImmutableMap<Integer, Integer> rLabelToIndexMap) {
 
@@ -155,7 +156,7 @@ public class SeqCaseClauseUtil {
       if (!concatenatedStatements.isEmpty()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
-          newStatements.add(recursivelyReplaceTargetPc(concatenatedStatement, rLabelToIndexMap));
+          newStatements.add(replaceTargetPc(concatenatedStatement, rLabelToIndexMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
@@ -167,6 +168,35 @@ public class SeqCaseClauseUtil {
       if (targetPc != Sequentialization.EXIT_PC) {
         int index = Objects.requireNonNull(rLabelToIndexMap.get(targetPc));
         return pCurrentStatement.cloneWithTargetPc(index);
+      }
+    }
+    // no int target pc -> no replacement
+    return pCurrentStatement;
+  }
+
+  public static SeqCaseBlockStatement replaceTargetPcWithGoto(
+      SeqCaseBlockStatement pCurrentStatement,
+      final ImmutableMap<Integer, SeqLoopHeadLabelStatement> rLabelToLabelMap) {
+
+    // if there are concatenated statements, replace target pc there too
+    if (pCurrentStatement.isConcatenable()) {
+      ImmutableList<SeqCaseBlockStatement> concatenatedStatements =
+          pCurrentStatement.getConcatenatedStatements();
+      if (!concatenatedStatements.isEmpty()) {
+        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+        for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
+          newStatements.add(replaceTargetPcWithGoto(concatenatedStatement, rLabelToLabelMap));
+        }
+        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
+      }
+    }
+
+    if (pCurrentStatement.getTargetPc().isPresent()) {
+      // int target is present and there are no concatenated statements -> clone with targetIndex
+      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC && rLabelToLabelMap.containsKey(targetPc)) {
+        SeqLoopHeadLabelStatement label = Objects.requireNonNull(rLabelToLabelMap.get(targetPc));
+        return pCurrentStatement.cloneWithTargetGoto(label.labelName);
       }
     }
     // no int target pc -> no replacement

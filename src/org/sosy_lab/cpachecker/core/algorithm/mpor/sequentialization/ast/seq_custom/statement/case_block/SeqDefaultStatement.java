@@ -29,15 +29,17 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqDefaultStatement(CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -46,12 +48,14 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       CStatementEdge pEdge,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -60,7 +64,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     return edge.getCode() + SeqSyntax.SPACE + targetStatements;
   }
 
@@ -82,14 +86,30 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   @Override
   public SeqDefaultStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements, concatenatedStatements);
+        edge,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqDefaultStatement(
+        edge,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+        edge, pcLeftHandSide, targetPc, targetGoto, pInjectedStatements, concatenatedStatements);
   }
 
   @Override
@@ -97,7 +117,12 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, Optional.empty(), injectedStatements, pConcatenatedStatements);
+        edge,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

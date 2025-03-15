@@ -30,6 +30,8 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
@@ -42,6 +44,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -50,12 +53,14 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -68,7 +73,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     }
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     rString.append(targetStatements);
     return rString.toString();
   }
@@ -94,6 +99,18 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         assignments,
         pcLeftHandSide,
         Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqParameterAssignmentStatements(
+        assignments,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
         injectedStatements,
         concatenatedStatements);
   }
@@ -102,7 +119,12 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
     return new SeqParameterAssignmentStatements(
-        assignments, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+        assignments,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -110,7 +132,12 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqParameterAssignmentStatements(
-        assignments, pcLeftHandSide, Optional.empty(), injectedStatements, pConcatenatedStatements);
+        assignments,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

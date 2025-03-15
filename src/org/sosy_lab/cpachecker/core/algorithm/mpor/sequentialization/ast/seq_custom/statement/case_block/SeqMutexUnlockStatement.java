@@ -29,6 +29,8 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
@@ -39,6 +41,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -47,12 +50,14 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
       CExpressionAssignmentStatement pLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -61,7 +66,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     return lockedFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
@@ -86,6 +91,18 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         lockedFalse,
         pcLeftHandSide,
         Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqMutexUnlockStatement(
+        lockedFalse,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
         injectedStatements,
         concatenatedStatements);
   }
@@ -95,7 +112,12 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexUnlockStatement(
-        lockedFalse, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+        lockedFalse,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -103,7 +125,12 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqMutexUnlockStatement(
-        lockedFalse, pcLeftHandSide, Optional.empty(), injectedStatements, pConcatenatedStatements);
+        lockedFalse,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.empty(),
+        injectedStatements,
+        pConcatenatedStatements);
   }
 
   @Override

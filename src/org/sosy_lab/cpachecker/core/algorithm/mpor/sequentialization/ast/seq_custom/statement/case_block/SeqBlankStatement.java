@@ -47,7 +47,7 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     return SeqStringUtil.buildTargetStatements(
-        pcLeftHandSide, targetPc, injectedStatements, ImmutableList.of());
+        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, ImmutableList.of());
   }
 
   @Override
@@ -70,6 +70,11 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqBlankStatement(pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
   @Override

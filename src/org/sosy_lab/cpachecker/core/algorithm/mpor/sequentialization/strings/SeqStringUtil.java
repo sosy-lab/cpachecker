@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqCaseBlockInjectedStatement;
@@ -107,27 +108,27 @@ public class SeqStringUtil {
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
-    checkArgument(
-        pTargetPc.isPresent() || !pConcatenatedStatements.isEmpty(),
-        "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be present");
-    checkArgument(
-        pTargetPc.isEmpty() || pConcatenatedStatements.isEmpty(),
-        "either pTargetPc or pTargetPcExpression or pConcatenatedStatements must be empty");
+    // TODO add some restrictions here
 
     // TODO we should add some newlines here...
     StringBuilder statements = new StringBuilder();
 
+    for (SeqCaseBlockInjectedStatement injectedStatement : pInjectedStatements) {
+      statements.append(injectedStatement.toASTString()).append(SeqSyntax.SPACE);
+    }
+
     if (pTargetPc.isPresent()) {
-      // we only add injected statements if there is a target pc
-      for (SeqCaseBlockInjectedStatement injectedStatement : pInjectedStatements) {
-        statements.append(injectedStatement.toASTString()).append(SeqSyntax.SPACE);
-      }
       CExpressionAssignmentStatement pcWrite =
           SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow());
       statements.append(pcWrite.toASTString());
+
+    } else if (pTargetGoto.isPresent()) {
+      SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.orElseThrow());
+      statements.append(gotoStatement.toASTString());
 
     } else {
       // this includes statements that were concatenated before

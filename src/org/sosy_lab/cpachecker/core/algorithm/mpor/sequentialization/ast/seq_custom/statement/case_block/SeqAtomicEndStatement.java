@@ -24,6 +24,8 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
@@ -36,6 +38,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -44,12 +47,14 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -58,7 +63,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     return atomicLockedFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
@@ -83,6 +88,18 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         atomicLockedFalse,
         pcLeftHandSide,
         Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqAtomicEndStatement(
+        atomicLockedFalse,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
         injectedStatements,
         concatenatedStatements);
   }
@@ -92,7 +109,12 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicEndStatement(
-        atomicLockedFalse, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
+        atomicLockedFalse,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        pInjectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -102,6 +124,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
     return new SeqAtomicEndStatement(
         atomicLockedFalse,
         pcLeftHandSide,
+        Optional.empty(),
         Optional.empty(),
         injectedStatements,
         pConcatenatedStatements);

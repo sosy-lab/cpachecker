@@ -56,6 +56,12 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have a target goto");
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements) {
 

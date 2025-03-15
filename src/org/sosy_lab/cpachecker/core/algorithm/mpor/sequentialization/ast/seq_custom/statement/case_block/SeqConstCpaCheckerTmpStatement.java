@@ -52,6 +52,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final Optional<Integer> targetPc;
 
+  private final Optional<String> targetGoto;
+
   private final ImmutableList<SeqCaseBlockInjectedStatement> injectedStatements;
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
@@ -94,6 +96,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
     concatenatedStatements = ImmutableList.of();
   }
@@ -104,6 +107,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       SubstituteEdge pStatementB,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqCaseBlockInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
@@ -113,6 +117,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
     concatenatedStatements = pConcatenatedStatements;
   }
@@ -121,7 +126,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     // we only want name and initializer here, the declaration is done beforehand
     return constCpaCheckerTmpDeclaration.toASTStringWithOnlyNameAndInitializer()
         + SeqSyntax.SPACE
@@ -155,6 +160,20 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementB,
         pcLeftHandSide,
         Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
+    return new SeqConstCpaCheckerTmpStatement(
+        constCpaCheckerTmpDeclaration,
+        statementA,
+        statementB,
+        pcLeftHandSide,
+        Optional.empty(),
+        Optional.of(pLabel),
         injectedStatements,
         concatenatedStatements);
   }
@@ -168,6 +187,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementB,
         pcLeftHandSide,
         targetPc,
+        targetGoto,
         pInjectedStatements,
         concatenatedStatements);
   }
@@ -181,6 +201,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        Optional.empty(),
         Optional.empty(),
         injectedStatements,
         pConcatenatedStatements);
