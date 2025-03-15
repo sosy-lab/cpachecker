@@ -9,5 +9,5 @@
 // Variable is not tainted, but the assertion says otherwise
 int main() {
     int x = 5;
-    __VERIFIER_assert_taint(x,1);
+    __VERIFIER_is_public(x,0);
 }
