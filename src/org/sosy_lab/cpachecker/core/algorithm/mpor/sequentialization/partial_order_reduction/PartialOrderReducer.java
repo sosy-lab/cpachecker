@@ -63,6 +63,8 @@ public class PartialOrderReducer {
         SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
     Set<Integer> concatenated = new HashSet<>();
     Set<Integer> duplicated = new HashSet<>();
+
+    boolean firstConcat = true;
     for (SeqCaseClause caseClause : pCaseClauses) {
       // prevent start in already concatenated clauses, otherwise they are duplicated
       if (concatenated.add(caseClause.id)) {
@@ -71,12 +73,15 @@ public class PartialOrderReducer {
           newStatements.add(
               recursivelyConcatenateStatements(
                   pOptions,
+                  firstConcat,
+                  caseClause.isGlobal,
                   pThread,
                   statement,
                   concatenated,
                   duplicated,
                   pLoopHeadLabels,
                   labelValueMap));
+          firstConcat = false;
         }
         SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
         SeqCaseClause clone = caseClause.cloneWithBlock(newBlock);
@@ -94,6 +99,8 @@ public class PartialOrderReducer {
 
   private static SeqCaseBlockStatement recursivelyConcatenateStatements(
       final MPOROptions pOptions,
+      final boolean pIsFirstConcat,
+      final boolean pIsGlobal,
       final MPORThread pThread,
       SeqCaseBlockStatement pCurrentStatement,
       Set<Integer> pConcatenated,
@@ -104,7 +111,8 @@ public class PartialOrderReducer {
     if (validIntTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-      if (validConcatenation(pCurrentStatement, newTarget, pLoopHeadLabels)) {
+      if (validConcatenation(
+          pIsFirstConcat, pIsGlobal, pCurrentStatement, newTarget, pLoopHeadLabels)) {
         // if the target id was seen before, add it to duplicate
         if (!pConcatenated.add(newTarget.id)) {
           pDuplicated.add(newTarget.id);
@@ -115,6 +123,8 @@ public class PartialOrderReducer {
           newStatements.add(
               recursivelyConcatenateStatements(
                   pOptions,
+                  false,
+                  pIsGlobal,
                   pThread,
                   statement,
                   pConcatenated,
@@ -130,32 +140,39 @@ public class PartialOrderReducer {
 
   /** Checks if {@code pStatement} and {@code pTarget} can be concatenated. */
   private static boolean validConcatenation(
+      final boolean pIsFirstConcat,
+      final boolean pIsGlobal,
       SeqCaseBlockStatement pStatement,
       SeqCaseClause pTarget,
       Map<Integer, SeqLoopHeadLabelStatement> pLoopHeadLabels) {
 
-    // TODO optimize by adding traces and checking if there is at least one global access.
-    //  do this by still concatenating globals if it is the first global found.
-    //  however, first globals that are loop starts can not be concat, they must be reachable as pcs
-    //  so that we can interleave the loops.
-
     return pStatement.isConcatenable()
         // label injected before -> return to loop head, no concat to prevent infinite loop
         && !pLoopHeadLabels.containsKey(pTarget.label.value)
-        // these are sorted by performance impact in descending order for short circuit evaluation
-        && !((!canIgnoreGlobal(pTarget) && pTarget.isGlobal) // only consider global if not ignored
+        // only consider global if not ignored
+        && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
             || !pTarget.isCriticalSectionStart()
             || pTarget.block.statements.contains(pStatement));
   }
 
-  // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute anymore)
-  //  -> remove if adding pthread_mutex_trylock support
   /**
    * Whether we can ignore the local/global property of {@code pCaseClause}, e.g. unlocks of global
    * mutexes.
    */
-  private static boolean canIgnoreGlobal(SeqCaseClause pCaseClause) {
-    return pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement;
+  private static boolean canIgnoreGlobal(
+      SeqCaseClause pCaseClause, boolean pIsFirstConcat, boolean pIsGlobal) {
+
+    // global loop heads are not concat but must be directly reachable -> loops can be interleaved
+    if (pCaseClause.isLoopStart) {
+      return false;
+    }
+    // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute
+    //  anymore) -> remove if adding pthread_mutex_trylock support
+    if (pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
+      return false;
+    }
+    // the first concatenation in the thread can also concatenate global, if it is not global itself
+    return pIsFirstConcat && !pIsGlobal;
   }
 
   /**

@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
@@ -60,7 +59,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 public class SeqCaseBlockStatementBuilder {
 
   public static ImmutableList<SeqCaseBlockStatement> buildStatementsFromThreadNode(
-      MPOROptions pOptions,
       MPORThread pThread,
       ImmutableSet<MPORThread> pAllThreads,
       ThreadNode pThreadNode,
