@@ -269,7 +269,41 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
       String functionName = callExpr.getFunctionNameExpression().toString();
 
-      if ("__VERIFIER_is_public".equals(functionName)) {
+      if ("__VERIFIER_set_public".equals(functionName)) {
+        List<CExpression> params = callExpr.getParameterExpressions();
+
+        if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToSanitize) {
+          CExpression sanitizationFlag = params.get(1);
+
+          try {
+            int shouldBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(sanitizationFlag);
+
+            if (shouldBePublic == 1) {
+              if (pState.getTaintedVariables().contains(variableToSanitize)) {
+                logger.log(
+                    Level.INFO,
+                    String.format(
+                        "Sanitizing variable '%s' at %s: Marking as public.",
+                        variableToSanitize.getName(), pCfaEdge.getFileLocation()));
+                killedVars.add(variableToSanitize);
+              }
+            } else {
+              if (!pState.getTaintedVariables().contains(variableToSanitize)) {
+                logger.log(
+                    Level.INFO,
+                    String.format(
+                        "Marking variable '%s' as tainted at %s.",
+                        variableToSanitize.getName(), pCfaEdge.getFileLocation()));
+                generatedVars.add(variableToSanitize);
+              }
+            }
+
+          } catch (CPATransferException e) {
+            logger.log(Level.WARNING, "Invalid sanitization request: " + e.getMessage());
+            throw new CPATransferException("Error processing sanitization call", e);
+          }
+        }
+      } else if ("__VERIFIER_is_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
         if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToCheck) {
