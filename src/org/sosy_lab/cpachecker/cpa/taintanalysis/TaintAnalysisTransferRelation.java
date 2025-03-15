@@ -284,7 +284,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               logger.log(
                   Level.WARNING,
                   String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be public but is tainted.",
+                      "Assertion violation at %s: Variable '%s' was expected to be public but is"
+                          + " tainted.",
                       pCfaEdge.getFileLocation(), variableToCheck.getName()));
 
               TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
@@ -296,7 +297,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               logger.log(
                   Level.WARNING,
                   String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be tainted but is public.",
+                      "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
+                          + " public.",
                       pCfaEdge.getFileLocation(), variableToCheck.getName()));
 
               TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
