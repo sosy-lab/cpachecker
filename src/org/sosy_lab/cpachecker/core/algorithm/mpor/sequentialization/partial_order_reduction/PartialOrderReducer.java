@@ -123,7 +123,8 @@ public class PartialOrderReducer {
           newStatements.add(
               recursivelyConcatenateStatements(
                   pOptions,
-                  false,
+                  // encounter global in first concat -> set first concat to false
+                  pIsFirstConcat && !newTarget.isGlobal,
                   pIsGlobal,
                   pThread,
                   statement,

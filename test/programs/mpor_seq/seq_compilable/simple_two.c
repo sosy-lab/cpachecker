@@ -11,6 +11,11 @@ int x = 0;
 extern void __assert_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function);
 void *task1(void *arg) {
     int hello = 42;
+    if (hello == 21 + 21) {
+        x = 0;
+    } else {
+        x++;
+    }
     x = 0;
     x++;
 }
