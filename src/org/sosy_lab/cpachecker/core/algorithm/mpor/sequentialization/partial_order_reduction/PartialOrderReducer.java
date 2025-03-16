@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -245,7 +244,7 @@ public class PartialOrderReducer {
       final ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<SeqCaseClause> pCaseClauses) {
 
-    Builder<SeqCaseClause> rPrunedInjections = ImmutableList.builder();
+    ImmutableList.Builder<SeqCaseClause> rPrunedInjections = ImmutableList.builder();
     SeqCaseClause firstCase = pCaseClauses.get(0);
     if (firstCase.block.statements.size() == 1) {
       SeqCaseBlockStatement firstStatement = firstCase.block.getFirstStatement();
