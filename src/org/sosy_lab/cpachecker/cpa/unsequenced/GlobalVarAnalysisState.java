@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -31,7 +33,12 @@ public class GlobalVarAnalysisState implements AbstractState, Graphable {
     detectedAssignedVars = pDetectedAssignedVars;
   }
 
-
+  public GlobalVarAnalysisState() {
+    globalVars = new HashSet<>();
+    waitReturn = false;
+    waitingVar = null;
+    detectedAssignedVars = new ArrayList<>();
+  }
 
   public Set<String> getGlobalVars() {
     return globalVars;
