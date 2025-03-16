@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
@@ -248,7 +249,8 @@ public class PartialOrderReducer {
     SeqCaseClause firstCase = pCaseClauses.get(0);
     if (firstCase.block.statements.size() == 1) {
       SeqCaseBlockStatement firstStatement = firstCase.block.getFirstStatement();
-      if (firstStatement.getInjectedStatements().size() == 1) {
+      if (firstStatement instanceof SeqBlankStatement
+          && firstStatement.getInjectedStatements().size() == 1) {
         SeqInjectedStatement injected = firstStatement.getInjectedStatements().get(0);
         if (injected.marksCriticalSection()) {
           pUpdatedVariables.add(injected.getIdExpression().orElseThrow());
