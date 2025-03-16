@@ -212,6 +212,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -1916,6 +1917,14 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# which merge operator to use for GlobalVarAnalysisCPA
+cpa.globalvar.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for GlobalVarAnalysisCPA
+cpa.globalvar.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"

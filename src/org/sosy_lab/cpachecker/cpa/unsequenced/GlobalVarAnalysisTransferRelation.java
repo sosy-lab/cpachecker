@@ -14,12 +14,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -28,8 +30,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -40,11 +45,13 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class GlobalVarAnalysisTransferRelation
     extends ForwardingTransferRelation<GlobalVarAnalysisState, GlobalVarAnalysisState, Precision> {
 
+
+  private Set<String> formalParameters;
   private final LogManager logger;
-  private Set<String> formalParameters = new HashSet<>();
 
 
   public GlobalVarAnalysisTransferRelation(LogManager pLogger) {
+    formalParameters = new HashSet<>();
     logger = pLogger;
   }
 
@@ -65,11 +72,13 @@ public class GlobalVarAnalysisTransferRelation
       if(decl.getInitializer() instanceof CInitializerExpression init){
         if(init.getExpression() instanceof CBinaryExpression binaryExpr && isGlobalPair(binaryExpr)){ // int x = y + z
           newDetectedAssignedVars.add(decl.getQualifiedName());
-        }else if ((CRightHandSide)init.getExpression() instanceof CFunctionCallExpression){ // int x = add()
+        }else if ((CRightHandSide)init.getExpression() instanceof CFunctionCallExpression){// int x = add()
           newWaitReturn = true;
           newWaitingVar = decl.getQualifiedName();
+          logger.log(
+              Level.INFO,
+              newWaitingVar + "waiting return");
         }
-
       }
     }
 
@@ -82,22 +91,25 @@ public class GlobalVarAnalysisTransferRelation
   }
 
   @Override
-  protected GlobalVarAnalysisState handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
+  protected GlobalVarAnalysisState handleStatementEdge(CStatementEdge cfaEdge, CStatement stat)
       throws UnrecognizedCodeException {
     boolean newWaitReturn = state.isWaitReturn();
     String newWaitingVar = state.getWaitingVar();
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
 
-    if (expression instanceof CExpressionAssignmentStatement exprAssign) { //y = y + z
+    if (stat instanceof CExpressionAssignmentStatement exprAssign) { //y = y + z
       if (exprAssign.getRightHandSide() instanceof CBinaryExpression binaryExpr && isGlobalPair(binaryExpr)) {
         if (exprAssign.getLeftHandSide() instanceof CIdExpression idExpr ) {
           newDetectedAssignedVars.add(idExpr.getDeclaration().getQualifiedName());
         }
       }
-    }else if(expression instanceof CFunctionCallAssignmentStatement fCallAssign){  //y = add()
+    }else if(stat instanceof CFunctionCallAssignmentStatement fCallAssign){  //y = add()
       if(fCallAssign.getLeftHandSide() instanceof CIdExpression idExpr){
         newWaitReturn = true;
         newWaitingVar = idExpr.getDeclaration().getQualifiedName();
+        logger.log(
+            Level.INFO,
+            newWaitingVar + "waiting return");
       }
     }
 
@@ -107,7 +119,6 @@ public class GlobalVarAnalysisTransferRelation
         newWaitingVar,
         newDetectedAssignedVars
     );
-
   }
 
   @Override
@@ -168,21 +179,39 @@ public class GlobalVarAnalysisTransferRelation
       );
   }
 
-
-
   private boolean isGlobalPair(CBinaryExpression binaryExpr) {
     if (binaryExpr.getOperator() == BinaryOperator.PLUS || binaryExpr.getOperator() == BinaryOperator.MINUS) {
       CExpression operand1 = binaryExpr.getOperand1();
       CExpression operand2 = binaryExpr.getOperand2();
 
       if (operand1 instanceof CIdExpression var1 && operand2 instanceof CIdExpression var2) {
-        if (!var1.equals(var2) && state.getGlobalVars().contains(var1) && state.getGlobalVars()
-            .contains(var2)) {
+        if (!var1.equals(var2) &&
+            state.getGlobalVars().contains(var1.getDeclaration().getQualifiedName()) &&
+            state.getGlobalVars().contains(var2.getDeclaration().getQualifiedName())) {
           return true;
         }
       }
     }
     return false;
+  }
+
+  @Override
+  protected GlobalVarAnalysisState handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
+      throws UnrecognizedCodeException {
+    return state;
+  }
+
+  @Override
+  protected GlobalVarAnalysisState handleFunctionReturnEdge(
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
+      throws UnrecognizedCodeException {
+    return state;
+  }
+
+  @Override
+  protected GlobalVarAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
+    return state;
   }
 
 }
