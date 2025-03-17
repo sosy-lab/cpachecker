@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeExpression;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ONE;
 import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
 
@@ -279,7 +280,13 @@ public class IntervalAnalysisTransferRelation
         }
         yield transformedImmutableListCopy(
             dynamicOperandValue.getRelativeComplement(staticComparee),
-            comparandPart -> assign(dynamicOperand, comparandPart, cfaEdge));
+            comparandPart -> {
+              try {
+                return assign(dynamicOperand, comparandPart, cfaEdge);
+              } catch (UnrecognizedCodeException e) {
+                throw new RuntimeException(e); // TODO: Introduce correct error handling
+              }
+            });
       }
       default -> throw new UnrecognizedCodeException("Assume operator not implemented", cfaEdge);
     };
@@ -332,14 +339,15 @@ public class IntervalAnalysisTransferRelation
   }
 
   private IntervalAnalysisState handleArrayVariableDeclarationEdge(
-      CDeclarationEdge declarationEdge, CVariableDeclaration decl) {
+      CDeclarationEdge declarationEdge, CVariableDeclaration decl)
+      throws UnrecognizedCodeException {
+    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
     if (decl.getInitializer() instanceof CInitializerList initializerList) {
-      ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, declarationEdge);
       return state.addArray(
           decl.getQualifiedName(),
           FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
     } else if (decl.getType() instanceof CArrayType arrayType) {
-      FunArray simpleArray = new FunArray(arrayType.getLength());
+      FunArray simpleArray = new FunArray(normalizeExpression(arrayType.getLength(), visitor));
       return state.addArray(decl.getQualifiedName(), simpleArray);
     }
     throw new RuntimeException("Not yet implemented");
@@ -364,7 +372,8 @@ public class IntervalAnalysisTransferRelation
     return ImmutableSet.of();
   }
 
-  private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge) {
+  private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
     if (assignee instanceof CIdExpression id) {
       return state.addInterval(id.getDeclaration().getQualifiedName(), value, threshold);
     } else if (assignee instanceof CArraySubscriptExpression arraySubscript) {
@@ -372,7 +381,7 @@ public class IntervalAnalysisTransferRelation
         String arrayName = arrayId.getDeclaration().getQualifiedName();
         CExpression index = arraySubscript.getSubscriptExpression();
         ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-        return state.assignArrayElement(arrayName, index, value, visitor);
+        return state.assignArrayElement(arrayName, normalizeExpression(index, visitor).stream().findAny().orElseThrow(), value, visitor); //TODO: Dont just pick any normalization at random
       }
     }
     return state;

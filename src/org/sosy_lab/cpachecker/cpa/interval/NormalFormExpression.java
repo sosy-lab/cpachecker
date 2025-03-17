@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * An expression in the normal form v + k. Allows for easy syntactical comparison of expressions.
@@ -94,5 +95,12 @@ public class NormalFormExpression {
     }
     sb.append(constant);
     return sb.toString();
+  }
+
+  public Interval toInterval(ExpressionValueVisitor visitor) throws UnrecognizedCodeException {
+    if (variable == null) {
+      return new Interval(constant);
+    }
+    return variable.accept(visitor).plus(constant);
   }
 }

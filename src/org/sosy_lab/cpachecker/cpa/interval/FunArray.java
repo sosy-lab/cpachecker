@@ -9,10 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.getIntegerExpression;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementExpression;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyGreaterThanOrEqualTo;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.isSyntacticallyLessThanOrEqualTo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,7 +22,6 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -72,13 +67,13 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     this.emptiness = ImmutableList.copyOf(emptiness);
   }
 
-  public FunArray(CExpression length) {
-    this(new Bound(length));
+  public FunArray(Set<NormalFormExpression> lengthExpressions) {
+    this(new Bound(lengthExpressions));
   }
 
   public FunArray(Bound length) {
     this(
-        ImmutableList.of(new Bound(getIntegerExpression(0)), length),
+        ImmutableList.of(new Bound(new NormalFormExpression(0)), length),
         ImmutableList.of(Interval.UNBOUND),
         ImmutableList.of(true));
   }
@@ -102,7 +97,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
 
     List<Bound> bounds =
         IntStream.range(0, initializers.size() + 1)
-            .mapToObj(e -> getIntegerExpression(e))
+            .mapToObj(e -> new NormalFormExpression(e))
             .map(e -> new Bound(e))
             .toList();
 
@@ -145,7 +140,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   //    ).removeEmptyBounds();
   //  }
 
-  public FunArray restrictExpressionOccurrences(Set<CExpression> allowedExpressions) {
+  public FunArray restrictExpressionOccurrences(Set<NormalFormExpression> allowedExpressions) {
     var newBounds = bounds.stream().map(b -> b.intersection(allowedExpressions)).toList();
     return new FunArray(newBounds, values, emptiness).removeEmptyBounds();
   }
@@ -169,7 +164,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
-  public FunArray insert(CExpression index, Interval value, ExpressionValueVisitor visitor) {
+  public FunArray insert(NormalFormExpression index, Interval value, ExpressionValueVisitor visitor) {
     return insert(ImmutableSet.of(index), value, visitor);
   }
 
@@ -180,13 +175,13 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param value the value to be inserted.
    * @return the modified Segmentation.
    */
-  public FunArray insert(Set<CExpression> indeces, Interval value, ExpressionValueVisitor visitor) {
+  public FunArray insert(Set<NormalFormExpression> indeces, Interval value, ExpressionValueVisitor visitor) {
     if (indeces.isEmpty()) {
       return this;
     }
     var trailingIndeces =
         indeces.stream()
-            .map(ExpressionUtility::incrementExpression)
+            .map(e -> e.add(1L))
             .collect(ImmutableSet.toImmutableSet());
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(indeces, visitor);
     int leastUpperBoundIndex = getLeastUpperBoundIndex(trailingIndeces, visitor);
@@ -277,14 +272,14 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return new FunArray(newBounds, newValues, newEmptiness);
   }
 
-  public Interval get(CExpression abstractIndex, ExpressionValueVisitor visitor) {
+  public Interval get(NormalFormExpression abstractIndex, ExpressionValueVisitor visitor) {
     int greatestLowerBoundIndex = getRightmostLowerBoundIndex(abstractIndex, visitor);
-    int leastUpperBoundIndex = getLeastUpperBoundIndex(incrementExpression(abstractIndex), visitor);
+    int leastUpperBoundIndex = getLeastUpperBoundIndex(abstractIndex.add(1L), visitor);
     return getJointValue(greatestLowerBoundIndex, leastUpperBoundIndex);
   }
 
   private int getRightmostLowerBoundIndex(
-      Set<CExpression> expressions, ExpressionValueVisitor visitor) {
+      Set<NormalFormExpression> expressions, ExpressionValueVisitor visitor) {
     return expressions.stream()
         .mapToInt(e -> getRightmostLowerBoundIndex(e, visitor))
         .max()
@@ -298,7 +293,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param expression the expression
    * @return the calculated index
    */
-  private int getRightmostLowerBoundIndex(CExpression expression, ExpressionValueVisitor visitor) {
+  private int getRightmostLowerBoundIndex(NormalFormExpression expression, ExpressionValueVisitor visitor) {
     int greatestLowerBoundIndex = 0;
     for (int i = 0; i <= bounds.size() - 1; i++) {
       if (bounds.get(i).contains(e -> isLessEqualThan(e, expression, visitor))) {
@@ -309,19 +304,19 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   }
 
   private static boolean isLessEqualThan(
-      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+      NormalFormExpression a, NormalFormExpression b, ExpressionValueVisitor visitor) {
     try {
-      if (isSyntacticallyLessThanOrEqualTo(a, b, visitor)) {
+      if (a.isSyntacticallyLessThanOrEqualTo(b)) {
         return true;
       }
-      return b.accept(visitor).isGreaterThan(a.accept(visitor));
+      return b.toInterval(visitor).isGreaterThan(a.toInterval(visitor));
     } catch (UnrecognizedCodeException exception) {
       return false;
     }
   }
 
   private int getLeastUpperBoundIndex(
-      Set<CExpression> expressions, ExpressionValueVisitor visitor) {
+      Set<NormalFormExpression> expressions, ExpressionValueVisitor visitor) {
     return expressions.stream()
         .mapToInt(e -> getLeastUpperBoundIndex(e, visitor))
         .max()
@@ -335,7 +330,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
    * @param expression the expression
    * @return the calculated index
    */
-  private int getLeastUpperBoundIndex(CExpression expression, ExpressionValueVisitor visitor) {
+  private int getLeastUpperBoundIndex(NormalFormExpression expression, ExpressionValueVisitor visitor) {
     int leastUpperBoundIndex = bounds.size() - 1;
     for (int i = bounds.size() - 1; i >= 0; i--) {
       if (bounds.get(i).contains(e -> isGreaterEqualThan(e, expression, visitor))) {
@@ -346,12 +341,12 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   }
 
   private static boolean isGreaterEqualThan(
-      CExpression a, CExpression b, ExpressionValueVisitor visitor) {
+      NormalFormExpression a, NormalFormExpression b, ExpressionValueVisitor visitor) {
     try {
-      if (isSyntacticallyGreaterThanOrEqualTo(a, b, visitor)) {
+      if (a.isSyntacticallyGreaterThanOrEqualTo(b)) {
         return true;
       }
-      return a.accept(visitor).isGreaterOrEqualThan(b.accept(visitor));
+      return a.toInterval(visitor).isGreaterOrEqualThan(b.toInterval(visitor));
     } catch (UnrecognizedCodeException exception) {
       return false;
     }
@@ -495,7 +490,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return new FunArray(thisUnified.bounds, modifiedValues, modifiedEmptiness);
   }
 
-  public int findIndex(CExpression expression) {
+  public int findIndex(NormalFormExpression expression) {
     for (int i = 0; i < bounds.size(); i++) {
       if (bounds.get(i).contains(expression)) {
         return i;
@@ -521,7 +516,7 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   //    return unifyOperation(Interval::narrow, other, unknown, unknown);
   // TODO
 
-  public Set<CExpression> getExpressions() {
+  public Set<NormalFormExpression> getExpressions() {
     return bounds.stream()
         .flatMap(e -> e.expressions().stream())
         .collect(ImmutableSet.toImmutableSet());

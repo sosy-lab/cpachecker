@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeExpression;
 
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -121,8 +123,9 @@ public class IntervalAnalysisState
   }
 
   public Interval arrayAccess(
-      String variableName, CExpression index, ExpressionValueVisitor visitor) {
-    return arrays.get(variableName).get(index, visitor);
+      String variableName, CExpression index, ExpressionValueVisitor visitor)
+      throws UnrecognizedCodeException {
+    return arrays.get(variableName).get(normalizeExpression(index, visitor).stream().findAny().orElseThrow(), visitor); //TODO: Don't just pick any random normalization, but rather the one that results in the least abstract result
   }
 
   /**
@@ -160,7 +163,7 @@ public class IntervalAnalysisState
   }
 
   public IntervalAnalysisState assignArrayElement(
-      String arrayName, CExpression index, Interval interval, ExpressionValueVisitor visitor) {
+      String arrayName, NormalFormExpression index, Interval interval, ExpressionValueVisitor visitor) {
     if (arrays.containsKey(arrayName)) {
       return new IntervalAnalysisState(
           intervals,

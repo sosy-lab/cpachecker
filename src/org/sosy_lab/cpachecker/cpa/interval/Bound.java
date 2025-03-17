@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.incrementExpression;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -17,7 +16,6 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -25,12 +23,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * @param expressions the expressions contained within.
  */
-public record Bound(Set<CExpression> expressions) {
+public record Bound(Set<NormalFormExpression> expressions) {
   public Bound {
     expressions = ImmutableSet.copyOf(expressions);
   }
 
-  public Bound(CExpression expression) {
+  public Bound(NormalFormExpression expression) {
     this(ImmutableSet.of(expression));
   }
 
@@ -79,11 +77,11 @@ public record Bound(Set<CExpression> expressions) {
   //    throw new RuntimeException("Not yet implemented");
   //  }
 
-  public boolean contains(CExpression expression) {
+  public boolean contains(NormalFormExpression expression) {
     return expressions().stream().anyMatch(e -> e.equals(expression));
   }
 
-  public boolean contains(Predicate<CExpression> predicate) {
+  public boolean contains(Predicate<NormalFormExpression> predicate) {
     return expressions().stream().anyMatch(predicate);
   }
 
@@ -92,7 +90,7 @@ public record Bound(Set<CExpression> expressions) {
   }
 
   public Bound increase(long amount) {
-    return new Bound(transformedImmutableSetCopy(expressions, e -> incrementExpression(e, amount)));
+    return new Bound(transformedImmutableSetCopy(expressions, e -> e.add(amount)));
   }
 
   public static Bound union(Collection<Bound> bounds) {
@@ -106,7 +104,7 @@ public record Bound(Set<CExpression> expressions) {
     return union(other.expressions);
   }
 
-  public Bound union(Set<CExpression> otherExpressions) {
+  public Bound union(Set<NormalFormExpression> otherExpressions) {
     var newExpressions =
         Stream.concat(this.expressions.stream(), otherExpressions.stream())
             .collect(ImmutableSet.toImmutableSet());
@@ -117,7 +115,7 @@ public record Bound(Set<CExpression> expressions) {
     return intersection(other.expressions);
   }
 
-  public Bound intersection(Set<CExpression> otherExpressions) {
+  public Bound intersection(Set<NormalFormExpression> otherExpressions) {
     var newExpressions =
         this.expressions.stream()
             .filter(otherExpressions::contains)
@@ -129,7 +127,7 @@ public record Bound(Set<CExpression> expressions) {
     return difference(other.expressions);
   }
 
-  public Bound difference(Set<CExpression> otherExpressions) {
+  public Bound difference(Set<NormalFormExpression> otherExpressions) {
     var newExpressions =
         this.expressions.stream()
             .filter(o -> !otherExpressions.contains(o))
@@ -141,7 +139,7 @@ public record Bound(Set<CExpression> expressions) {
     return relativeComplement(other.expressions);
   }
 
-  public Bound relativeComplement(Set<CExpression> otherExpressions) {
+  public Bound relativeComplement(Set<NormalFormExpression> otherExpressions) {
     var newExpressions =
         otherExpressions.stream()
             .filter(o -> !this.expressions.contains(o))
@@ -149,30 +147,30 @@ public record Bound(Set<CExpression> expressions) {
     return new Bound(newExpressions);
   }
 
-  public boolean isGreaterThan(CExpression other, ExpressionValueVisitor visitor)
+  public boolean isGreaterThan(NormalFormExpression other, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     return compare(other, visitor, (u, v) -> u.isGreaterThan(v));
   }
 
-  public boolean isGreaterOrEqualThan(CExpression other, ExpressionValueVisitor visitor)
+  public boolean isGreaterOrEqualThan(NormalFormExpression other, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     return compare(other, visitor, (u, v) -> u.isGreaterOrEqualThan(v));
   }
 
-  public boolean isEqualTo(CExpression other, ExpressionValueVisitor visitor)
+  public boolean isEqualTo(NormalFormExpression other, ExpressionValueVisitor visitor)
       throws UnrecognizedCodeException {
     return compare(other, visitor, (u, v) -> u.isEqualTo(v));
   }
 
   private boolean compare(
-      CExpression other, ExpressionValueVisitor visitor, BiPredicate<Interval, Interval> predicate)
+      NormalFormExpression other, ExpressionValueVisitor visitor, BiPredicate<Interval, Interval> predicate)
       throws UnrecognizedCodeException {
-    Interval otherValue = other.accept(visitor);
+    Interval otherValue = other.toInterval(visitor);
     return expressions.stream()
         .map(
             e -> {
               try {
-                return e.accept(visitor);
+                return e.toInterval(visitor);
               } catch (UnrecognizedCodeException exception) {
                 return Interval.EMPTY;
               }
@@ -184,6 +182,6 @@ public record Bound(Set<CExpression> expressions) {
   public String toString() {
     return "{%s}"
         .formatted(
-            String.join(" ", expressions.stream().map(CExpression::toASTString).sorted().toList()));
+            String.join(" ", expressions.stream().map(NormalFormExpression::toString).sorted().toList()));
   }
 }
