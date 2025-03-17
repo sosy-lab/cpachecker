@@ -11,6 +11,6 @@ int main() {
     int y = 5;
     // RHS taints the LHS
     y = y + x;
-    // false positive
+    // assertion violation/failure expected
     __VERIFIER_is_public(y,1);
 }

@@ -9,6 +9,6 @@
 // Variable is tainted, but the assertion says otherwise
 int main() {
     int x = 5;
-    // false negative
+    // assertion violation/failure expected
     __VERIFIER_is_public(x,0);
 }

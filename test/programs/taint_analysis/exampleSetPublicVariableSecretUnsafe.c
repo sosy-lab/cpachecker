@@ -10,6 +10,6 @@ int main() {
     int x = 1;
     // assume that some operation made x to be secret/tainted
     __VERIFIER_set_public(x,0);
-    // false positive
+    // assertion violation/failure expected
     __VERIFIER_is_public(x,1);
 }

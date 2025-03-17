@@ -10,6 +10,6 @@ int main() {
     int x = __VERIFIER_nondet_int();
     // fully override x
     x = 1;
-    // false negative
+    // assertion violation/failure expected
     __VERIFIER_is_public(x,0);
 }

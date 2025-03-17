@@ -9,6 +9,6 @@
 // The variable x is not public, but the assertion says otherwise
 int main() {
     int x = __VERIFIER_nondet_int();
-    // false positive
+    // assertion violation/failure expected
     __VERIFIER_is_public(x,1);
 }
