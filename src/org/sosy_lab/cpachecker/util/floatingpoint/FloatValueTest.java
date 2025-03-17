@@ -41,6 +41,7 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.kframework.mpfr.BigFloat;
 import org.kframework.mpfr.BinaryMathContext;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CFloatType;
 import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI.CIntegerType;
 import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
@@ -519,6 +520,10 @@ public class FloatValueTest {
 
   private static String printTestHeader(String name, Format fmt, BigFloat arg1, Integer arg2) {
     return String.format("Testcase %s(%s, %s): ", name, printValue(fmt, arg1), arg2);
+  }
+
+  private static String printTestHeader(String name, Integer arg1, Integer arg2) {
+    return String.format("Testcase %s(%s, %s): ", name, arg1, arg2);
   }
 
   /**
@@ -1119,6 +1124,66 @@ public class FloatValueTest {
   @Test
   public void castToLongTest() {
     testIntegerFunction("castToLongTest", (CFloat a) -> a.castToOther(CIntegerType.LONG).orElse(0));
+  }
+
+  @Test
+  public void fromRationalTest() {
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
+
+    for (Integer arg1 : integerTestValues()) {
+      for (Integer arg2 : integerTestValues()) {
+        if (arg2 != 0) {
+          try {
+            // Build a fraction from two randomly chosen integers
+            Rational rational = Rational.ofLongs(arg1, arg2);
+
+            // Convert the fraction to floating-point, once with Rational.floatValue and once with
+            // FloatValue.fromRational
+            FloatValue expected = FloatValue.fromFloat(rational.floatValue());
+            FloatValue result = FloatValue.fromRational(FloatValue.Format.Float32, rational);
+
+            // Check that the results are the same
+            if (!result.equals(expected)) {
+              String testHeader = printTestHeader("fromRational", arg1, arg2);
+              expect
+                  .withMessage(testHeader)
+                  .that(printValue(FloatValue.Format.Float32, toBigFloat(result)))
+                  .isEqualTo(printValue(FloatValue.Format.Float32, toBigFloat(expected)));
+            }
+          } catch (Throwable t) {
+            throw new RuntimeException(printTestHeader("fromRational", arg1, arg2));
+          }
+        }
+      }
+    }
+  }
+
+  @Test
+  public void toRationalTest() {
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
+
+    for (BigFloat arg : unaryTestValues()) {
+      if (!arg.isInfinite() && !arg.isNaN()) {
+        try {
+          // Randomly choose a floating-point value. Convert the value to rational, and then back to
+          // floating-point again
+          FloatValue expected = FloatValue.fromFloat(arg.floatValue());
+          FloatValue result =
+              FloatValue.fromFloat(expected.toRational().orElseThrow().floatValue());
+
+          // The result should be the same as the initial value
+          if (!result.equals(expected)) {
+            String testHeader = printTestHeader("fromRational", floatTestOptions.format, arg);
+            expect
+                .withMessage(testHeader)
+                .that(printValue(FloatValue.Format.Float32, toBigFloat(result)))
+                .isEqualTo(printValue(FloatValue.Format.Float32, toBigFloat(expected)));
+          }
+        } catch (Throwable t) {
+          throw new RuntimeException(printTestHeader("fromRational", floatTestOptions.format, arg));
+        }
+      }
+    }
   }
 
   @Test
