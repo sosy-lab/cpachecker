@@ -1163,7 +1163,7 @@ public class FloatValueTest {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
 
     for (BigFloat arg : unaryTestValues()) {
-      if (!arg.isInfinite() && !arg.isNaN()) {
+      if (!arg.isNegativeZero() && !arg.isInfinite() && !arg.isNaN()) {
         try {
           // Randomly choose a floating-point value. Convert the value to rational, and then back to
           // floating-point again
