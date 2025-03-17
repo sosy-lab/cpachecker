@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Variable is not tainted, but the assertion says otherwise
+// Variable x is not public and the assertion agrees
 int main() {
-    int x = 5;
+    int x = __VERIFIER_nondet_int();
     __VERIFIER_is_public(x,0);
 }

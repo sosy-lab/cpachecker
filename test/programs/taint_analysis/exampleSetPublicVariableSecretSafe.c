@@ -7,12 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int main() {
-    int x = __VERIFIER_nondet_int();
+    int x = 1;
+    // assume that some operation made x to be secret/tainted
+    __VERIFIER_set_public(x,0);
     __VERIFIER_is_public(x,0);
-    int y = 5;
-    __VERIFIER_is_public(y,1);
-    y = y + x;
-    __VERIFIER_is_public(y,0);
-    y = y - x;
-    __VERIFIER_is_public(y,1);
 }
