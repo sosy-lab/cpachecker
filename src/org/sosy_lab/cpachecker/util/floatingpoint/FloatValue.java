@@ -3106,8 +3106,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Build a term for the exponent in decimal representation
     MathContext rm = new MathContext(precision, java.math.RoundingMode.HALF_EVEN);
-    BigDecimal termExponent
-        = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
+    BigDecimal termExponent =
+        new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
 
     // Convert the significand to BigDecimal and multiply with the decimal exponent term
     BigDecimal termSignificand = new BigDecimal(resultSignificand);
