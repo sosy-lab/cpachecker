@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -45,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class GlobalVarAnalysisTransferRelation
     extends ForwardingTransferRelation<GlobalVarAnalysisState, GlobalVarAnalysisState, Precision> {
 
-
   private Set<String> formalParameters;
   private final LogManager logger;
 
@@ -60,8 +60,6 @@ public class GlobalVarAnalysisTransferRelation
       throws UnrecognizedCodeException {
     Set<String> newGlobalVars = state.getGlobalVars();
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
-    boolean newWaitReturn = state.isWaitReturn();
-    String newWaitingVar = state.getWaitingVar();
 
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
       boolean isGlobal = decl.isGlobal();
@@ -72,20 +70,39 @@ public class GlobalVarAnalysisTransferRelation
       if(decl.getInitializer() instanceof CInitializerExpression init){
         if(init.getExpression() instanceof CBinaryExpression binaryExpr && isGlobalPair(binaryExpr)){ // int x = y + z
           newDetectedAssignedVars.add(decl.getQualifiedName());
-        }else if ((CRightHandSide)init.getExpression() instanceof CFunctionCallExpression){// int x = add()
-          newWaitReturn = true;
-          newWaitingVar = decl.getQualifiedName();
-          logger.log(
-              Level.INFO,
-              newWaitingVar + "waiting return");
         }
       }
     }
 
     return new GlobalVarAnalysisState(
         newGlobalVars,
-        newWaitReturn,
-        newWaitingVar,
+        state.isValidReturn(),
+        newDetectedAssignedVars
+    );
+  }
+
+  @Override
+  protected GlobalVarAnalysisState handleFunctionReturnEdge(
+      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
+      throws UnrecognizedCodeException {
+    logger.log(Level.INFO,
+        "valid return:" + state.isValidReturn() + " summaryExpr:" + summaryExpr.toASTString()
+    );
+    List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
+
+    if(state.isValidReturn()){
+      if (summaryExpr instanceof CFunctionCallAssignmentStatement fCallAssign) { //y = add() or int y = add()
+        CLeftHandSide lhs = fCallAssign.getLeftHandSide();
+        if (lhs instanceof CIdExpression idExpr) {
+          String assignedVar = idExpr.getDeclaration().getQualifiedName();
+          newDetectedAssignedVars.add(assignedVar);
+        }
+      }
+    }
+
+    return new GlobalVarAnalysisState(
+        state.getGlobalVars(),
+        state.isValidReturn(),
         newDetectedAssignedVars
     );
   }
@@ -93,8 +110,6 @@ public class GlobalVarAnalysisTransferRelation
   @Override
   protected GlobalVarAnalysisState handleStatementEdge(CStatementEdge cfaEdge, CStatement stat)
       throws UnrecognizedCodeException {
-    boolean newWaitReturn = state.isWaitReturn();
-    String newWaitingVar = state.getWaitingVar();
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
 
     if (stat instanceof CExpressionAssignmentStatement exprAssign) { //y = y + z
@@ -103,20 +118,11 @@ public class GlobalVarAnalysisTransferRelation
           newDetectedAssignedVars.add(idExpr.getDeclaration().getQualifiedName());
         }
       }
-    }else if(stat instanceof CFunctionCallAssignmentStatement fCallAssign){  //y = add()
-      if(fCallAssign.getLeftHandSide() instanceof CIdExpression idExpr){
-        newWaitReturn = true;
-        newWaitingVar = idExpr.getDeclaration().getQualifiedName();
-        logger.log(
-            Level.INFO,
-            newWaitingVar + "waiting return");
-      }
     }
 
     return new GlobalVarAnalysisState(
         state.getGlobalVars(),
-        newWaitReturn,
-        newWaitingVar,
+        false,
         newDetectedAssignedVars
     );
   }
@@ -125,27 +131,25 @@ public class GlobalVarAnalysisTransferRelation
   protected GlobalVarAnalysisState handleReturnStatementEdge(
       CReturnStatementEdge returnEdge) throws UnrecognizedCodeException {
 
-    List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
+    boolean newValidReturn = state.isValidReturn();
     Optional<CExpression> expressionOptional = returnEdge.getExpression();
 
     if(expressionOptional.isPresent()) {
       CExpression returnExpression = expressionOptional.get();
       if (returnExpression instanceof CBinaryExpression returnExpr) {
-        if (state.isWaitReturn() && isGlobalPair(returnExpr)) {
-          newDetectedAssignedVars.add(state.getWaitingVar());
-        }
+        newValidReturn = isGlobalPair(returnExpr);
       }
     }
 
+    //delete formal vars from global var set
     Set<String> newGlobalVars = new HashSet<>(state.getGlobalVars());
     newGlobalVars.removeAll(formalParameters);
     formalParameters.clear();
 
     return new GlobalVarAnalysisState(
         newGlobalVars,
-        false,
-        null,
-        newDetectedAssignedVars
+        newValidReturn,
+        state.getDetectedAssignedVars()
     );
   }
 
@@ -173,8 +177,7 @@ public class GlobalVarAnalysisTransferRelation
 
       return new GlobalVarAnalysisState(
           newGlobalVars,
-          state.isWaitReturn(),
-          state.getWaitingVar(),
+          state.isValidReturn(),
           state.getDetectedAssignedVars()
       );
   }
@@ -202,12 +205,6 @@ public class GlobalVarAnalysisTransferRelation
     return state;
   }
 
-  @Override
-  protected GlobalVarAnalysisState handleFunctionReturnEdge(
-      CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
-      throws UnrecognizedCodeException {
-    return state;
-  }
 
   @Override
   protected GlobalVarAnalysisState handleBlankEdge(BlankEdge cfaEdge) {

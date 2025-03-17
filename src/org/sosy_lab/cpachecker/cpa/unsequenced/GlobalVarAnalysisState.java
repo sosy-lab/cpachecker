@@ -18,25 +18,21 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
 public class GlobalVarAnalysisState implements AbstractState, Graphable {
   private final Set<String> globalVars;
-  private final boolean waitReturn;      // Flag to detect if function return is awaited (x = f())
-  private final String waitingVar;
+  private final boolean validReturn;
   private final List<String> detectedAssignedVars;
 
   public GlobalVarAnalysisState(
       Set<String> pGlobalVars,
-      boolean pWaitReturn,
-      String pWaitingVar,
+      boolean pValidReturn,
       List<String> pDetectedAssignedVars) {
     globalVars = pGlobalVars;
-    waitReturn = pWaitReturn;
-    waitingVar = pWaitingVar;
+    validReturn = pValidReturn;
     detectedAssignedVars = pDetectedAssignedVars;
   }
 
   public GlobalVarAnalysisState() {
     globalVars = new HashSet<>();
-    waitReturn = false;
-    waitingVar = null;
+    validReturn = false;
     detectedAssignedVars = new ArrayList<>();
   }
 
@@ -44,12 +40,8 @@ public class GlobalVarAnalysisState implements AbstractState, Graphable {
     return globalVars;
   }
 
-  public boolean isWaitReturn() {
-    return waitReturn;
-  }
-
-  public String getWaitingVar() {
-    return waitingVar;
+  public boolean isValidReturn() {
+    return validReturn;
   }
 
   public List<String> getDetectedAssignedVars() {
@@ -59,8 +51,7 @@ public class GlobalVarAnalysisState implements AbstractState, Graphable {
   @Override
   public String toDOTLabel() {
     return "global vars = " + globalVars.toString()
-        + ", waitReturn = " + waitReturn
-        + ", waitingVar = " + waitingVar
+        + ", validReturn = " + validReturn
         + ", detectedAssignedVars = " + detectedAssignedVars.toString();
   }
 
