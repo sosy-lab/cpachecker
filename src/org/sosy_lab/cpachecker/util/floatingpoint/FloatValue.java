@@ -3106,18 +3106,21 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
 
     // Build a term for the exponent in decimal representation
     MathContext rm = new MathContext(precision, java.math.RoundingMode.HALF_EVEN);
-    BigDecimal r = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
-    if (resultExponent < 0) {
-      r = BigDecimal.ONE.divide(r, rm);
-    }
+    BigDecimal termExponent
+        = new BigDecimal(BigInteger.ONE.shiftLeft(Math.abs((int) resultExponent)));
 
     // Convert the significand to BigDecimal and multiply with the decimal exponent term
-    BigDecimal a = new BigDecimal(resultSignificand);
-    BigDecimal b = a.multiply(r);
+    BigDecimal termSignificand = new BigDecimal(resultSignificand);
+    BigDecimal termResult;
+    if (resultExponent >= 0) {
+      termResult = termSignificand.multiply(termExponent, rm);
+    } else {
+      termResult = termSignificand.divide(termExponent, rm);
+    }
 
     // Round the result down to p significand digits
     BigDecimal rounded =
-        b.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN)).stripTrailingZeros();
+        termResult.plus(new MathContext(p, java.math.RoundingMode.HALF_EVEN)).stripTrailingZeros();
 
     // Print the output string
     String repr = String.format("%." + (p - 1) + "e", rounded);
