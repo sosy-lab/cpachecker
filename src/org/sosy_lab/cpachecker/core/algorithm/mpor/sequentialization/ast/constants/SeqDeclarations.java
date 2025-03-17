@@ -42,17 +42,16 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
-    public static final CVariableDeclaration MAX_ITERATIONS_SIGNED =
-        buildVariableDeclaration(
-            false, SeqSimpleType.INT, SeqToken.max_iterations, SeqInitializer.INT_MINUS_1);
+    public static final CVariableDeclaration K_SIGNED =
+        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_MINUS_1);
 
-    public static final CVariableDeclaration MAX_ITERATIONS_UNSIGNED =
+    public static final CVariableDeclaration K_UNSIGNED =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.max_iterations, SeqInitializer.INT_0);
+            false, SeqSimpleType.UNSIGNED_INT, SeqToken.K, SeqInitializer.INT_0);
 
-    public static final CVariableDeclaration ITERATION =
+    public static final CVariableDeclaration R =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.iteration, SeqInitializer.INT_0);
+            false, SeqSimpleType.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
   }
 
   public static class SeqParameterDeclaration {

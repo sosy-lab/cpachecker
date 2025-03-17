@@ -56,11 +56,9 @@ public class SeqExpressions {
     public static final CIdExpression NEXT_THREAD =
         buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
 
-    public static final CIdExpression MAX_ITERATIONS =
-        buildIdExpression(SeqVariableDeclaration.MAX_ITERATIONS_SIGNED);
+    public static final CIdExpression K = buildIdExpression(SeqVariableDeclaration.K_SIGNED);
 
-    public static final CIdExpression ITERATION =
-        buildIdExpression(SeqVariableDeclaration.ITERATION);
+    public static final CIdExpression R = buildIdExpression(SeqVariableDeclaration.R);
 
     // functions:
 

@@ -66,9 +66,9 @@ public class SeqToken {
 
   public static final String _goto = "goto";
 
-  public static final String iteration = "iteration";
-
   public static final String JOINS = "JOINS";
+
+  public static final String K = "K";
 
   public static final String __line = "__line";
 
@@ -84,8 +84,6 @@ public class SeqToken {
 
   public static final String main = "main";
 
-  public static final String max_iterations = "max_iterations";
-
   public static final String __MPOR_SEQ__ = "__MPOR_SEQ__";
 
   public static final String next_thread = "next_thread";
@@ -100,6 +98,8 @@ public class SeqToken {
   public static final String pc = "pc";
 
   public static final String __PRETTY_FUNCTION__ = "__PRETTY_FUNCTION__";
+
+  public static final String r = "r";
 
   public static final String reach_error = "reach_error";
 

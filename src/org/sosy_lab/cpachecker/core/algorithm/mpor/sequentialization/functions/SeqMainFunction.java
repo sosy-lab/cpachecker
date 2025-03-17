@@ -269,16 +269,15 @@ public class SeqMainFunction extends SeqFunction {
           LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
     }
 
-    // if enabled: max_iterations and iteration (for thread loops)
+    // if enabled: K and r (for thread loops iterations)
     if (pOptions.threadLoops) {
+      rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.R.toASTString()));
       if (pOptions.signedNondet) {
-        rVariableDeclarations.add(
-            LineOfCode.of(1, SeqVariableDeclaration.MAX_ITERATIONS_SIGNED.toASTString()));
+        rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_SIGNED.toASTString()));
       } else {
         rVariableDeclarations.add(
-            LineOfCode.of(1, SeqVariableDeclaration.MAX_ITERATIONS_UNSIGNED.toASTString()));
+            LineOfCode.of(1, SeqVariableDeclaration.K_UNSIGNED.toASTString()));
       }
-      rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.ITERATION.toASTString()));
     }
 
     return rVariableDeclarations.build();
@@ -335,39 +334,37 @@ public class SeqMainFunction extends SeqFunction {
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
 
     // TODO option for shorter names like i < max_i
-    CFunctionCallAssignmentStatement maxIterationsNondet =
+    CFunctionCallAssignmentStatement kNondet =
         SeqStatementBuilder.buildFunctionCallAssignmentStatement(
-            SeqIdExpression.MAX_ITERATIONS,
+            SeqIdExpression.K,
             pOptions.signedNondet
                 ? SeqExpressionBuilder.buildVerifierNondetInt()
                 : SeqExpressionBuilder.buildVerifierNondetUint());
-    CExpressionAssignmentStatement iterationReset =
+    CExpressionAssignmentStatement rReset =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpression.ITERATION, SeqIntegerLiteralExpression.INT_0);
-    CBinaryExpression maxGreaterZero =
+            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_0);
+    CBinaryExpression kGreaterZero =
         binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.MAX_ITERATIONS,
-            SeqIntegerLiteralExpression.INT_0,
-            BinaryOperator.GREATER_THAN);
-    CExpressionAssignmentStatement iterationIncrement =
+            SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+    CExpressionAssignmentStatement rIncrement =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpression.ITERATION,
+            SeqIdExpression.R,
             binaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.ITERATION, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
+                SeqIdExpression.R, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqCaseClause> cases = entry.getValue();
       // choose nondet iterations and reset current iteration before each loop
-      rThreadLoops.add(LineOfCode.of(2, maxIterationsNondet.toASTString()));
+      rThreadLoops.add(LineOfCode.of(2, kNondet.toASTString()));
       rThreadLoops.addAll(
           buildThreadLoop(
               pOptions,
               thread,
-              maxGreaterZero,
-              iterationReset,
+              kGreaterZero,
+              rReset,
               pThreadAssumptions.get(thread),
-              iterationIncrement,
+              rIncrement,
               cases));
     }
 
@@ -377,10 +374,10 @@ public class SeqMainFunction extends SeqFunction {
   private ImmutableList<LineOfCode> buildThreadLoop(
       MPOROptions pOptions,
       MPORThread pThread,
-      CBinaryExpression pMaxGreaterZero,
-      CExpressionAssignmentStatement pIterationReset,
+      CBinaryExpression pKGreaterZero,
+      CExpressionAssignmentStatement pRReset,
       ImmutableList<SeqAssumption> pThreadAssumptions,
-      CExpressionAssignmentStatement pIterationIncrement,
+      CExpressionAssignmentStatement pRIncrement,
       ImmutableList<SeqCaseClause> pCaseClauses)
       throws UnrecognizedCodeException {
 
@@ -390,11 +387,12 @@ public class SeqMainFunction extends SeqFunction {
     CBinaryExpression pcUnequalExitPc =
         SeqExpressionBuilder.buildPcUnequalExitPc(pcVariables, pThread.id, binaryExpressionBuilder);
     SeqLogicalAndExpression loopCondition =
-        new SeqLogicalAndExpression(pcUnequalExitPc, pMaxGreaterZero);
+        new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
     SeqControlFlowStatement ifStatement =
         new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
 
     // create assumption and switch labels
+    // TODO maybe add per-variable labels so that even less assumes are evaluated?
     SeqThreadLoopLabelStatement assumeLabel =
         new SeqThreadLoopLabelStatement(
             SeqNameUtil.buildThreadAssumeLabelName(pOptions, pThread.id));
@@ -408,11 +406,11 @@ public class SeqMainFunction extends SeqFunction {
 
     // add all lines of code: loop head, assumptions, iteration increment, switch statement
     rThreadLoop.add(LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
-    rThreadLoop.add(LineOfCode.of(3, pIterationReset.toASTString()));
-    rThreadLoop.add((LineOfCode.of(3, assumeLabel.toASTString())));
+    rThreadLoop.add(LineOfCode.of(3, pRReset.toASTString()));
+    rThreadLoop.add(LineOfCode.of(3, assumeLabel.toASTString()));
     rThreadLoop.addAll(buildThreadLoopAssumptions(pThreadAssumptions));
-    rThreadLoop.add((LineOfCode.of(3, switchLabel.toASTString())));
-    rThreadLoop.add(LineOfCode.of(3, pIterationIncrement.toASTString()));
+    rThreadLoop.add(LineOfCode.of(3, switchLabel.toASTString()));
+    rThreadLoop.add(LineOfCode.of(3, pRIncrement.toASTString()));
     rThreadLoop.addAll(switchStatement);
     rThreadLoop.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
 
@@ -476,7 +474,7 @@ public class SeqMainFunction extends SeqFunction {
     CExpression pcExpression = pcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
         binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ITERATION, SeqIdExpression.MAX_ITERATIONS, BinaryOperator.LESS_THAN);
+            SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
     ImmutableList.Builder<SeqCaseClause> pUpdatedCases = ImmutableList.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
