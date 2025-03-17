@@ -2817,17 +2817,19 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
       return Optional.empty();
     } else {
       // Shift the exponent to turn the significand into an integer value
-      FloatValue unlimited = withPrecision(format.withUnlimitedExponent());
-      int shiftedExponent = (int) unlimited.exponent - format.sigBits;
+      FloatValue normalized = withPrecision(format.withUnlimitedExponent());
+      int shiftedExponent = (int) normalized.exponent - format.sigBits;
 
       // Construct the fraction
       Rational rationalValue;
       if (shiftedExponent >= 0) {
         // If the exponent is >=0 we return a*2^k/1
-        rationalValue = Rational.of(significand.shiftLeft(shiftedExponent), BigInteger.ONE);
+        rationalValue =
+            Rational.of(normalized.significand.shiftLeft(shiftedExponent), BigInteger.ONE);
       } else {
         // Otherwise, the fraction is a/2^k
-        rationalValue = Rational.of(significand, BigInteger.ONE.shiftLeft(-shiftedExponent));
+        rationalValue =
+            Rational.of(normalized.significand, BigInteger.ONE.shiftLeft(-shiftedExponent));
       }
 
       // Set the sign
