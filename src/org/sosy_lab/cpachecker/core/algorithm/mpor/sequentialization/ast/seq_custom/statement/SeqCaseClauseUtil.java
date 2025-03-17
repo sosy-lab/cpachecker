@@ -12,9 +12,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqGotoThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqCaseClauseUtil {
@@ -174,7 +178,7 @@ public class SeqCaseClauseUtil {
     return pCurrentStatement;
   }
 
-  public static SeqCaseBlockStatement replaceTargetPcWithGoto(
+  public static SeqCaseBlockStatement replaceTargetPcWithGotoLoopHead(
       SeqCaseBlockStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqLoopHeadLabelStatement> rLabelToLabelMap) {
 
@@ -185,7 +189,8 @@ public class SeqCaseClauseUtil {
       if (!concatenatedStatements.isEmpty()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
         for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
-          newStatements.add(replaceTargetPcWithGoto(concatenatedStatement, rLabelToLabelMap));
+          newStatements.add(
+              replaceTargetPcWithGotoLoopHead(concatenatedStatement, rLabelToLabelMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
@@ -201,5 +206,52 @@ public class SeqCaseClauseUtil {
     }
     // no int target pc -> no replacement
     return pCurrentStatement;
+  }
+
+  public static SeqCaseBlockStatement injectGotoThreadLoop(
+      CBinaryExpression pIterationSmallerMax,
+      SeqThreadLoopLabelStatement pAssumeLabel,
+      SeqThreadLoopLabelStatement pSwitchLabel,
+      SeqCaseBlockStatement pCurrentStatement) {
+
+    // if there are concatenated statements, replace target pc there too
+    if (pCurrentStatement.isConcatenable()) {
+      ImmutableList<SeqCaseBlockStatement> concatenatedStatements =
+          pCurrentStatement.getConcatenatedStatements();
+      if (!concatenatedStatements.isEmpty()) {
+        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+        for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
+          newStatements.add(
+              injectGotoThreadLoop(
+                  pIterationSmallerMax, pAssumeLabel, pSwitchLabel, concatenatedStatement));
+        }
+        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
+      }
+    }
+
+    if (pCurrentStatement.getTargetPc().isPresent()) {
+      // int target is present and there are no concatenated statements -> clone with targetIndex
+      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC) {
+        ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
+        // add previous injections BEFORE (otherwise undefined behavior in seq!)
+        newInjections.addAll(pCurrentStatement.getInjectedStatements());
+        if (priorCriticalSection(pCurrentStatement)) {
+          // for statements targeting starts of critical sections, assumes have to be reevaluated
+          newInjections.add(
+              new SeqGotoThreadLoopLabelStatement(pIterationSmallerMax, pAssumeLabel));
+        } else {
+          newInjections.add(
+              new SeqGotoThreadLoopLabelStatement(pIterationSmallerMax, pSwitchLabel));
+        }
+        return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
+      }
+    }
+    // no int target pc -> no replacement
+    return pCurrentStatement;
+  }
+
+  private static boolean priorCriticalSection(SeqCaseBlockStatement pStatement) {
+    return pStatement.getInjectedStatements().stream().anyMatch(i -> i.priorCriticalSection());
   }
 }

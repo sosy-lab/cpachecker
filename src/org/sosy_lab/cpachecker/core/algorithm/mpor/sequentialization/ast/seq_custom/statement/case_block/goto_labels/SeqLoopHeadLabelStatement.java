@@ -6,13 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels;
 
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqLoopHeadLabelStatement implements SeqInjectedStatement {
+public class SeqLoopHeadLabelStatement implements SeqLabelStatement {
 
   public final String labelName;
 
@@ -23,15 +21,5 @@ public class SeqLoopHeadLabelStatement implements SeqInjectedStatement {
   @Override
   public String toASTString() {
     return labelName + SeqSyntax.COLON;
-  }
-
-  @Override
-  public boolean marksCriticalSection() {
-    return false;
-  }
-
-  @Override
-  public Optional<CIdExpression> getIdExpression() {
-    return Optional.empty();
   }
 }

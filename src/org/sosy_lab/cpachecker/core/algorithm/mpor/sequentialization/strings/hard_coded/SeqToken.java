@@ -32,6 +32,8 @@ public class SeqToken {
 
   public static final String assume = "assume";
 
+  public static final String ASSUME = "ASSUME";
+
   public static final String ATOMIC = "ATOMIC";
 
   public static final String BEGINS = "BEGINS";
@@ -102,6 +104,8 @@ public class SeqToken {
   public static final String reach_error = "reach_error";
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
+
+  public static final String SWITCH = "SWITCH";
 
   public static final String T = "T";
 

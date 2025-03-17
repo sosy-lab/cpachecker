@@ -47,15 +47,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -330,6 +334,7 @@ public class SeqMainFunction extends SeqFunction {
 
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
 
+    // TODO option for shorter names like i < max_i
     CFunctionCallAssignmentStatement maxIterationsNondet =
         SeqStatementBuilder.buildFunctionCallAssignmentStatement(
             SeqIdExpression.MAX_ITERATIONS,
@@ -339,9 +344,11 @@ public class SeqMainFunction extends SeqFunction {
     CExpressionAssignmentStatement iterationReset =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpression.ITERATION, SeqIntegerLiteralExpression.INT_0);
-    CBinaryExpression iterationSmallerMax =
+    CBinaryExpression maxGreaterZero =
         binaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.ITERATION, SeqIdExpression.MAX_ITERATIONS, BinaryOperator.LESS_THAN);
+            SeqIdExpression.MAX_ITERATIONS,
+            SeqIntegerLiteralExpression.INT_0,
+            BinaryOperator.GREATER_THAN);
     CExpressionAssignmentStatement iterationIncrement =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpression.ITERATION,
@@ -353,12 +360,12 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<SeqCaseClause> cases = entry.getValue();
       // choose nondet iterations and reset current iteration before each loop
       rThreadLoops.add(LineOfCode.of(2, maxIterationsNondet.toASTString()));
-      rThreadLoops.add(LineOfCode.of(2, iterationReset.toASTString()));
       rThreadLoops.addAll(
           buildThreadLoop(
               pOptions,
               thread,
-              iterationSmallerMax,
+              maxGreaterZero,
+              iterationReset,
               pThreadAssumptions.get(thread),
               iterationIncrement,
               cases));
@@ -370,7 +377,8 @@ public class SeqMainFunction extends SeqFunction {
   private ImmutableList<LineOfCode> buildThreadLoop(
       MPOROptions pOptions,
       MPORThread pThread,
-      CBinaryExpression pIterationSmallerMax,
+      CBinaryExpression pMaxGreaterZero,
+      CExpressionAssignmentStatement pIterationReset,
       ImmutableList<SeqAssumption> pThreadAssumptions,
       CExpressionAssignmentStatement pIterationIncrement,
       ImmutableList<SeqCaseClause> pCaseClauses)
@@ -382,16 +390,30 @@ public class SeqMainFunction extends SeqFunction {
     CBinaryExpression pcUnequalExitPc =
         SeqExpressionBuilder.buildPcUnequalExitPc(pcVariables, pThread.id, binaryExpressionBuilder);
     SeqLogicalAndExpression loopCondition =
-        new SeqLogicalAndExpression(pcUnequalExitPc, pIterationSmallerMax);
-    SeqControlFlowStatement whileStatement =
-        new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.WHILE);
+        new SeqLogicalAndExpression(pcUnequalExitPc, pMaxGreaterZero);
+    SeqControlFlowStatement ifStatement =
+        new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
+
+    // create assumption and switch labels
+    SeqThreadLoopLabelStatement assumeLabel =
+        new SeqThreadLoopLabelStatement(
+            SeqNameUtil.buildThreadAssumeLabelName(pOptions, pThread.id));
+    SeqThreadLoopLabelStatement switchLabel =
+        new SeqThreadLoopLabelStatement(
+            SeqNameUtil.buildThreadSwitchLabelName(pOptions, pThread.id));
+
+    ImmutableList<LineOfCode> switchStatement =
+        buildThreadLoopSwitchStatement(
+            pOptions, pThread, assumeLabel, switchLabel, pCaseClauses, 3);
 
     // add all lines of code: loop head, assumptions, iteration increment, switch statement
-    rThreadLoop.add(
-        LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(whileStatement.toASTString())));
+    rThreadLoop.add(LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
+    rThreadLoop.add(LineOfCode.of(3, pIterationReset.toASTString()));
+    rThreadLoop.add((LineOfCode.of(3, assumeLabel.toASTString())));
     rThreadLoop.addAll(buildThreadLoopAssumptions(pThreadAssumptions));
+    rThreadLoop.add((LineOfCode.of(3, switchLabel.toASTString())));
     rThreadLoop.add(LineOfCode.of(3, pIterationIncrement.toASTString()));
-    rThreadLoop.addAll(buildSwitchStatement(pOptions, pThread, pCaseClauses, 3));
+    rThreadLoop.addAll(switchStatement);
     rThreadLoop.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
 
     return rThreadLoop.build();
@@ -424,13 +446,13 @@ public class SeqMainFunction extends SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      rSwitches.addAll(buildSwitchStatement(pOptions, thread, entry.getValue(), 3));
+      rSwitches.addAll(buildSingleLoopSwitchStatement(pOptions, thread, entry.getValue(), 3));
       i++;
     }
     return rSwitches.build();
   }
 
-  private ImmutableList<LineOfCode> buildSwitchStatement(
+  private ImmutableList<LineOfCode> buildSingleLoopSwitchStatement(
       MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<SeqCaseClause> pCaseClauses,
@@ -439,6 +461,35 @@ public class SeqMainFunction extends SeqFunction {
     CExpression pcExpression = pcVariables.get(pThread.id);
     SeqSwitchStatement switchStatement =
         new SeqSwitchStatement(pOptions, pcExpression, pCaseClauses, pTabs);
+    return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
+  }
+
+  private ImmutableList<LineOfCode> buildThreadLoopSwitchStatement(
+      MPOROptions pOptions,
+      MPORThread pThread,
+      SeqThreadLoopLabelStatement pAssumeLabel,
+      SeqThreadLoopLabelStatement pSwitchLabel,
+      ImmutableList<SeqCaseClause> pCaseClauses,
+      int pTabs)
+      throws UnrecognizedCodeException {
+
+    CExpression pcExpression = pcVariables.get(pThread.id);
+    CBinaryExpression iterationSmallerMax =
+        binaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.ITERATION, SeqIdExpression.MAX_ITERATIONS, BinaryOperator.LESS_THAN);
+    ImmutableList.Builder<SeqCaseClause> pUpdatedCases = ImmutableList.builder();
+    for (SeqCaseClause caseClause : pCaseClauses) {
+      ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+        SeqCaseBlockStatement newStatement =
+            SeqCaseClauseUtil.injectGotoThreadLoop(
+                iterationSmallerMax, pAssumeLabel, pSwitchLabel, statement);
+        newStatements.add(newStatement);
+      }
+      pUpdatedCases.add(caseClause.cloneWithBlock(new SeqCaseBlock(newStatements.build())));
+    }
+    SeqSwitchStatement switchStatement =
+        new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);
     return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
   }
 

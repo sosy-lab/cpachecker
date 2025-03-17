@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -230,7 +230,8 @@ public class PartialOrderReducer {
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        newStatements.add(SeqCaseClauseUtil.replaceTargetPcWithGoto(statement, pLoopHeadLabels));
+        newStatements.add(
+            SeqCaseClauseUtil.replaceTargetPcWithGotoLoopHead(statement, pLoopHeadLabels));
       }
       SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
       rWithGoto.add(caseClause.cloneWithBlock(newBlock));
@@ -251,15 +252,13 @@ public class PartialOrderReducer {
       if (firstStatement instanceof SeqBlankStatement
           && firstStatement.getInjectedStatements().size() == 1) {
         SeqInjectedStatement injected = firstStatement.getInjectedStatements().get(0);
-        if (injected.marksCriticalSection()) {
-          pUpdatedVariables.add(injected.getIdExpression().orElseThrow());
-          return rPrunedInjections
-              .addAll(
-                  pCaseClauses.stream()
-                      .filter(c -> !c.equals(firstCase))
-                      .collect(ImmutableList.toImmutableList()))
-              .build();
-        }
+        pUpdatedVariables.add(injected.getIdExpression().orElseThrow());
+        return rPrunedInjections
+            .addAll(
+                pCaseClauses.stream()
+                    .filter(c -> !c.equals(firstCase))
+                    .collect(ImmutableList.toImmutableList()))
+            .build();
       }
     }
     return pCaseClauses;

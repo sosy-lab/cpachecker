@@ -39,6 +39,14 @@ public class SeqNameUtil {
     return SeqToken.__MPOR_SEQ__ + pFunctionName;
   }
 
+  public static String buildThreadAssumeLabelName(MPOROptions pOptions, int pThreadId) {
+    return buildThreadPrefix(pOptions, pThreadId) + SeqToken.ASSUME;
+  }
+
+  public static String buildThreadSwitchLabelName(MPOROptions pOptions, int pThreadId) {
+    return buildThreadPrefix(pOptions, pThreadId) + SeqToken.SWITCH;
+  }
+
   public static String buildLoopHeadLabelName(MPOROptions pOptions, int pThreadId) {
     return buildThreadPrefix(pOptions, pThreadId)
         + SeqToken.LOOP_HEAD

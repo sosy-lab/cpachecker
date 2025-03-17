@@ -19,6 +19,7 @@ public class SeqThreadBeginsAtomicStatement implements SeqInjectedStatement {
   public final CIdExpression threadBeginsAtomic;
 
   public SeqThreadBeginsAtomicStatement(CIdExpression pThreadBeginsAtomic) {
+
     threadBeginsAtomic = pThreadBeginsAtomic;
   }
 
@@ -31,7 +32,7 @@ public class SeqThreadBeginsAtomicStatement implements SeqInjectedStatement {
   }
 
   @Override
-  public boolean marksCriticalSection() {
+  public boolean priorCriticalSection() {
     return true;
   }
 

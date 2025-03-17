@@ -116,14 +116,15 @@ public class SeqStringUtil {
     // TODO we should add some newlines here...
     StringBuilder statements = new StringBuilder();
 
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      statements.append(injectedStatement.toASTString()).append(SeqSyntax.SPACE);
-    }
-
     if (pTargetPc.isPresent()) {
       CExpressionAssignmentStatement pcWrite =
           SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow());
       statements.append(pcWrite.toASTString());
+
+      // we inject after the pc write, in case the injections are goto that require updated pc
+      for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+        statements.append(SeqSyntax.SPACE).append(injectedStatement.toASTString());
+      }
 
     } else if (pTargetGoto.isPresent()) {
       SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.orElseThrow());

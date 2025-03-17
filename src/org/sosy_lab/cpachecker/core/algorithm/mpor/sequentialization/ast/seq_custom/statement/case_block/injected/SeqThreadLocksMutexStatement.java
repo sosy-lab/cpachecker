@@ -31,7 +31,7 @@ public class SeqThreadLocksMutexStatement implements SeqInjectedStatement {
   }
 
   @Override
-  public boolean marksCriticalSection() {
+  public boolean priorCriticalSection() {
     return true;
   }
 

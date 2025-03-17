@@ -31,7 +31,7 @@ public class SeqThreadJoinsThreadStatement implements SeqInjectedStatement {
   }
 
   @Override
-  public boolean marksCriticalSection() {
+  public boolean priorCriticalSection() {
     return true;
   }
 
