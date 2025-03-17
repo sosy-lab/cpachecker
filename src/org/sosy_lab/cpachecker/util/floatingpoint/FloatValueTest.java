@@ -1159,6 +1159,42 @@ public class FloatValueTest {
   }
 
   @Test
+  public void fromRationalRoundingTest() {
+    // Similar to fromRationalTest, but this time we use 64bit integer values to trigger a rounding
+    // error when converting to Float32
+    assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
+
+    for (long arg1 : integerTestValues()) {
+      for (long arg2 : integerTestValues()) {
+        if (arg2 != 0) {
+          try {
+            // Build a fraction from two randomly chosen integers.
+            // We multiply the numerator by a constant that is not just a power of 2 to get our
+            // rounding errors.
+            Rational rational = Rational.ofLongs(arg1 * 3, arg2);
+
+            // Convert the fraction to floating-point, once with Rational.floatValue and once with
+            // FloatValue.fromRational
+            FloatValue expected = FloatValue.fromFloat(rational.floatValue());
+            FloatValue result = FloatValue.fromRational(FloatValue.Format.Float32, rational);
+
+            // Check that the results are the same
+            if (!result.equals(expected)) {
+              String testHeader = printTestHeader("fromRational", (int) arg1, (int) arg2);
+              expect
+                  .withMessage(testHeader)
+                  .that(printValue(FloatValue.Format.Float32, toBigFloat(result)))
+                  .isEqualTo(printValue(FloatValue.Format.Float32, toBigFloat(expected)));
+            }
+          } catch (Throwable t) {
+            throw new RuntimeException(printTestHeader("fromRational", (int) arg1, (int) arg2));
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   public void toRationalTest() {
     assume().that(floatTestOptions.format).isEqualTo(Format.Float32);
 

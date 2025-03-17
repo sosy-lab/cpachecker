@@ -2800,11 +2800,10 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
    * and will need to be rounded down to the target precision.
    */
   public static FloatValue fromRational(Format pFormat, Rational pRational) {
-    // FIXME This will likely suffer from rounding issues. Maybe we can use something similar to
-    //   fromDecimal() to handle the conversion?
-    FloatValue num = FloatValue.fromInteger(pFormat, pRational.getNum());
-    FloatValue den = FloatValue.fromInteger(pFormat, pRational.getDen());
-    return num.divide(den);
+    Format intermediatePrecision = pFormat.intermediatePrecision();
+    FloatValue num = FloatValue.fromInteger(intermediatePrecision, pRational.getNum());
+    FloatValue den = FloatValue.fromInteger(intermediatePrecision, pRational.getDen());
+    return num.divide(den).withPrecision(pFormat);
   }
 
   /**
