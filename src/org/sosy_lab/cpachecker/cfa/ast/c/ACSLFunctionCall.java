@@ -13,10 +13,12 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+/** This class represents an ACSL function call as a CExpression. */
 public final class ACSLFunctionCall extends CFunctionCallExpression implements CExpression {
 
   @Serial private static final long serialVersionUID = -3614875951469862750L;
 
+  /** Class constructor. */
   public ACSLFunctionCall(
       FileLocation pFileLocation,
       CType pType,
@@ -26,6 +28,7 @@ public final class ACSLFunctionCall extends CFunctionCallExpression implements C
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
+  /** Class constructor that creates an ACSLFunctionCall from a CFunctionCallExpression. */
   public ACSLFunctionCall(CFunctionCallExpression pFunctionCall) {
     this(
         pFunctionCall.getFileLocation(),
@@ -37,6 +40,7 @@ public final class ACSLFunctionCall extends CFunctionCallExpression implements C
 
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {
-    throw new UnsupportedOperationException("This method should never be called.");
+    throw new UnsupportedOperationException(
+        "A CExpressionVisitor should never be called on an ACSLFunctionCall.");
   }
 }

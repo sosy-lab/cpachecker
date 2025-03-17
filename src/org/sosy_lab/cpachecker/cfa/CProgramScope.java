@@ -226,7 +226,11 @@ public class CProgramScope implements Scope {
     locationDescriptor = pLocationDescriptor;
   }
 
-  /** Copy constructor */
+  /**
+   * Copy constructor. Creates a copy of the given program scope.
+   *
+   * @param pScope The scope to be copied
+   */
   public CProgramScope(CProgramScope pScope) {
     variableNames = pScope.variableNames;
     simpleDeclarations = pScope.simpleDeclarations;
@@ -427,6 +431,12 @@ public class CProgramScope implements Scope {
     return false;
   }
 
+  /**
+   * Adds a function declaration or a variable declaration to the scope.
+   *
+   * @param pDeclaration The declaration that is added to the scope. Must be a fresh declaration
+   *     either of type CVariableDeclaration or CFunctionDeclaration.
+   */
   public void addDeclarationToScope(CDeclaration pDeclaration) throws InvalidYAMLWitnessException {
 
     ImmutableListMultimap.Builder<String, CSimpleDeclaration> newSimpleDeclarations =

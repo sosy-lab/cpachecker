@@ -40,23 +40,56 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 
+/**
+ * This class provides the necessary methods to parse lemmas from a file.
+ *
+ * <p>All methods within this class are only intended as temporary workarounds until a proper
+ * ACSL-parser has been implemented. At this point these methods should not be used anywhere outside
+ * the parsing of lemmas from a YAML witness for predicate abstraction.
+ */
 public class ACSLParserUtils {
 
+  /**
+   * This method creates an ACSLFunctionCall from a String.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   *
+   * @param functionCall A string representation of an ACSL function call statement.
+   * @param parser A CParser
+   * @param scope The program scope of the C prorgam of the verification task.
+   */
   private static ACSLFunctionCall extractFunctionCall(
       String functionCall, CParser parser, Scope scope) throws InterruptedException {
-
-    // Parse CLemmaFunctionCall
     CStatement s;
     try {
       s = CParserUtils.parseSingleStatement(functionCall, parser, scope);
     } catch (InvalidAutomatonException e) {
       throw new RuntimeException("Not a valid statement: " + functionCall);
     }
-    // if s not instance of CFunctionCallStatement throw exception
+
     CFunctionCallExpression fExp = ((CFunctionCallStatement) s).getFunctionCallExpression();
     return new ACSLFunctionCall(fExp);
   }
 
+  /**
+   * This method takes a C statement string that might contain a function call and returns the
+   * corresponding CExpression.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   *
+   * <p>Function calls are identified via regex pattern matching and then replaced with the
+   * substring "lemma_tmp_i". The ACSLFunctionCall and the corresponding key "lemma_tmp_i" are
+   * stored in a HashMap. The String is parsed as a regular CBinaryExpression. Afterwards the
+   * ACSLFunctionCalls are back inserted at the appropriate places using the ACSLVisitor.
+   *
+   * @param lAssumeCode A string representation of an ACSL statement.
+   * @param parser A CParser *
+   * @param scope The program scope of the C prorgam of the verification task.
+   */
   public static CExpression parseACSLExpression(
       String lAssumeCode, CParser parser, CProgramScope scope)
       throws InterruptedException, InvalidAutomatonException {
@@ -75,9 +108,6 @@ public class ACSLParserUtils {
       String key = tmp + replacements.size();
       replacements.put(key, lFuncCall);
       lString = lm.replaceFirst(key);
-      // We need to add lemma_tmp_i as a variable to the scope
-      // Better: Create a new temporary scope, that is a copy of the program scopa and add the
-      // declarations to that one
 
       CVariableDeclaration tmpDeclaration =
           new CVariableDeclaration(
@@ -112,6 +142,15 @@ public class ACSLParserUtils {
     return exp;
   }
 
+  /**
+   * This method creates a List of CDeclarations from a List of Strings.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   *
+   * @param declarations A List of strings containing C function and variable declarations.
+   */
   public static List<CDeclaration> parseDeclarations(List<String> declarations)
       throws InvalidYAMLWitnessException {
     ImmutableList.Builder<CDeclaration> cDeclarations = new ImmutableList.Builder<>();
@@ -122,6 +161,17 @@ public class ACSLParserUtils {
     return cDeclarations.build();
   }
 
+  /**
+   * This method takes a String that is either a function declaration or a variable declaration and
+   * returns either a CFunctionDeclaration or a CVariableDeclaration.
+   *
+   * <p>This method is only intended as a temporary workaround until a * proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of * lemmas from a YAML *
+   * witness for predicate abstraction.
+   *
+   * @param assumeDeclaration A stirng representation of either a C variable or function
+   *     declaration.
+   */
   public static CDeclaration parseSingleDeclaration(String assumeDeclaration)
       throws InvalidYAMLWitnessException {
     Pattern functionPattern = Pattern.compile("\\w+\\*?\\s+\\w+\\s*\\(.*\\)");
@@ -144,6 +194,17 @@ public class ACSLParserUtils {
     }
   }
 
+  /**
+   * This method takes a function declaration as a String and creates a corresponding object of type
+   * CFunctionDeclaration.
+   *
+   * <p>This method is only intended as a temporary workaround until a * proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of * lemmas from a YAML *
+   * witness for predicate abstraction.
+   *
+   * @param assumeDeclaration A string representation of a C function declaration.
+   * @param pPattern A regex that represents a C declaration of type and name.
+   */
   public static CFunctionDeclaration parseFunctionDeclaration(
       String assumeDeclaration, Pattern pPattern) throws InvalidYAMLWitnessException {
     Matcher functionMatcher = pPattern.matcher(assumeDeclaration);
@@ -172,6 +233,17 @@ public class ACSLParserUtils {
     }
   }
 
+  /**
+   * This method takes a variable declaration as a String and creates a corresponding object of type
+   * CVariableDeclaration.
+   *
+   * <p>This method is only intended as a temporary workaround until a * proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of * lemmas from a YAML *
+   * witness for predicate abstraction.
+   *
+   * @param assumeDeclaration A string representation of a C variable declaration.
+   * @param pPattern A regex that represents a C declaration of type and name.
+   */
   public static CVariableDeclaration parseVariableDeclaration(
       String assumeDeclaration, Pattern pPattern) throws InvalidYAMLWitnessException {
     Matcher variableMatcher = pPattern.matcher(assumeDeclaration);
@@ -186,6 +258,15 @@ public class ACSLParserUtils {
     }
   }
 
+  /**
+   * This method converts a string representing a c-type into the corresponding CType.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   *
+   * @param typeName A string that represents a C type.
+   */
   public static CType toCtype(String typeName) {
     return switch (typeName) {
       case "void" -> CVoidType.VOID;

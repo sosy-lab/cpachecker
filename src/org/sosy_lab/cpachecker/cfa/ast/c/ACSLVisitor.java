@@ -12,21 +12,46 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
+/**
+ * This class provides a visitor back insert ACSLFunctionCalls from a HashMap into a
+ * CBinaryExpression.
+ *
+ * <p>It is only intended as temporary workarounds until a proper ACSL-parser has been implemented.
+ * At this point these methods should not be used anywhere outside the parsing of lemmas from a YAML
+ * witness for predicate abstraction.
+ */
 public class ACSLVisitor extends DefaultCExpressionVisitor<CExpression, NoException> {
 
   private final Map<String, ACSLFunctionCall> replacements;
   private final Pattern p;
 
+  /**
+   * Class constructor
+   *
+   * @param pReplacements A mapping of ACSLFunctionCalls to their replacement "lemma_tmp_i".
+   */
   public ACSLVisitor(Map<String, ACSLFunctionCall> pReplacements) {
     this.replacements = pReplacements;
     p = Pattern.compile("lemma_tmp_\\d+");
   }
 
+  /** Default visitor. */
   @Override
   protected CExpression visitDefault(CExpression exp) {
     return exp;
   }
 
+  /**
+   * Replaces all operands that match the attribute "p" with the corresponding ACSLFunction call
+   * from the map "replacements".
+   *
+   * <p>This method is only intended as a * temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used * anywhere outside the parsing of lemmas from a YAML *
+   * witness for predicate abstraction.
+   *
+   * @param pE A CBinaryExpression that potentially contains a CIDExpression "lemma_tmp_i" that
+   *     replaces an ACSLFunctionCall
+   */
   @Override
   public CExpression visit(final CBinaryExpression pE) {
     CBinaryExpression expression = pE;
