@@ -2815,6 +2815,8 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
   public Optional<Rational> toRational() {
     if (isInfinite() || isNan()) {
       return Optional.empty();
+    } else if (isZero()) {
+      return Optional.of(Rational.of(0));
     } else {
       // Shift the exponent to turn the significand into an integer value
       FloatValue normalized = withPrecision(format.withUnlimitedExponent());
