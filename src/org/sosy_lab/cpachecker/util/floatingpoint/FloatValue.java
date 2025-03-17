@@ -2829,6 +2829,11 @@ public final class FloatValue extends Number implements Comparable<FloatValue> {
         // Otherwise, the fraction is a/2^k
         rationalValue = Rational.of(significand, BigInteger.ONE.shiftLeft(-shiftedExponent));
       }
+
+      // Set the sign
+      if (isNegative()) {
+        rationalValue = rationalValue.negate();
+      }
       return Optional.of(rationalValue);
     }
   }
