@@ -1359,9 +1359,11 @@ abstract class AbstractBMCAlgorithm
         return hashCode;
       }
       if (causingObligation != null) {
-        return hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
+        hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
+      } else {
+        hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
       }
-      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
+      return hashCode;
     }
 
     @Override

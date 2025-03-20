@@ -2516,7 +2516,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             switch (op) {
               case EQ ->
                   compResWithZero < 0
-                      ? op = EqualCompareType.LEQ
+                      ? EqualCompareType.LEQ
                       : (compResWithZero > 0 ? EqualCompareType.GEQ : op);
               case GEQ -> compResWithZero >= 0 ? op : EqualCompareType.NONE;
               case LEQ -> compResWithZero <= 0 ? op : EqualCompareType.NONE;
