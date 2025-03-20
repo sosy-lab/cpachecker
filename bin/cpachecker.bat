@@ -120,10 +120,12 @@ IF NOT "%TMPDIR%"=="" (
 )
 
 REM Determine whether to enable Java assertions
-IF defined BENCHMARK_MODE (
-  SET JAVA_ASSERTIONS=-da
-) ELSE (
-  SET JAVA_ASSERTIONS=-ea
+IF NOT defined JAVA_ASSERTIONS (
+  IF defined BENCHMARK_MODE (
+    SET JAVA_ASSERTIONS=-da
+  ) ELSE (
+    SET JAVA_ASSERTIONS=-ea
+  )
 )
 
 REM Determine heap size

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -50,7 +49,6 @@ import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
  * one is checked.
  */
 @Options(prefix = "counterexample.concrete")
-@SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class ConcretePathExecutionChecker implements CounterexampleChecker, Statistics {
 
   @Option(

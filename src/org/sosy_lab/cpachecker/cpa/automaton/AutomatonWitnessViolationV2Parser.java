@@ -60,12 +60,12 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;
 
-  AutomatonViolationWitnessV2Parser(
+  AutomatonWitnessViolationV2Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
@@ -291,9 +291,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
       // closing bracket of the function whose return statement is being considered
       AStatement statement = edge.getStatement();
       FileLocation statementLocation = statement.getFileLocation();
-      int columnStartOfStatement = statementLocation.getStartColumnInLine();
-      int columnOfClosingBracketInFunctionCall =
-          columnStartOfStatement + statement.toString().lastIndexOf(")");
+      int columnOfClosingBracketInFunctionCall = statementLocation.getEndColumnInLine() - 1;
       if (columnOfClosingBracketInFunctionCall != followColumn
           || edge.getFileLocation().getEndingLineInOrigin() != followLine) {
         continue;
