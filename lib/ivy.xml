@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="33.4.0-jre"
+        <dependency org="com.google.guava" name="guava" rev="33.4.5-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
@@ -77,6 +77,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Annotations we use for @Nullable etc. -->
         <dependency org="org.checkerframework" name="checker-qual" rev="2.5.2"
+                    conf="runtime->default; contrib->sources"/>
+        <dependency org="org.jspecify" name="jspecify" rev="1.0.0"
                     conf="runtime->default; contrib->sources"/>
 
         <!-- JFlex Scanner generator
@@ -121,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="33.4.0-jre"
+        <dependency org="com.google.guava" name="guava-testlib" rev="33.4.5-jre"
                     conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
