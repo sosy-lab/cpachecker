@@ -91,6 +91,7 @@ SPDX-License-Identifier: Apache-2.0
 	<classpathentry kind="lib" path="lib/java/runtime/snakeyaml.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.eclipse.jdt.core.compiler.batch.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/org.osgi.service.prefs.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/jspecify.jar" sourcepath="lib/java-contrib/jspecify-sources.jar"/>
 	<classpathentry kind="lib" path="lib/mpfr_java.jar"/>
 	<classpathentry kind="output" path="classes"/>
 </classpath>

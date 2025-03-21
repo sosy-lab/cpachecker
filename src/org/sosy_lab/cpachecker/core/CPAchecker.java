@@ -427,21 +427,27 @@ public class CPAchecker {
     switch (e.getLanguage()) {
       case C:
         msg.append(
-            "If the code was not preprocessed, please use a C preprocessor\n"
-                + "or specify the --preprocess command-line argument.\n");
+            """
+            If the code was not preprocessed, please use a C preprocessor
+            or specify the --preprocess command-line argument.
+            """);
         break;
       case LLVM:
         msg.append(
-            "If you want to use the LLVM frontend, please make sure that\n"
-                + "the code can be compiled by clang or input valid LLVM code.\n");
+            """
+            If you want to use the LLVM frontend, please make sure that
+            the code can be compiled by clang or input valid LLVM code.
+            """);
         break;
       default:
         // do not log additional messages
         break;
     }
     msg.append(
-        "If the error still occurs, please send this error message\n"
-            + "together with the input file to cpachecker-users@googlegroups.com.\n");
+        """
+        If the error still occurs, please send this error message
+        together with the input file to cpachecker-users@googlegroups.com.
+        """);
     pLogger.log(Level.INFO, msg);
   }
 

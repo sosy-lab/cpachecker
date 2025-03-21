@@ -288,7 +288,7 @@ public class AutomatonTest {
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/functionCall.c");
     assertThat(results.getLog()).contains("i'm in Main after Edge int y;");
-    assertThat(results.getLog()).contains("i'm in f after Edge y = f()");
+    assertThat(results.getLog()).contains("i'm in f after Edge y = (f)()");
     assertThat(results.getLog()).contains("i'm in f after Edge int x;");
     assertThat(results.getLog()).contains("i'm in Main after Edge return");
     assertThat(results.getLog()).contains("i'm in Main after Edge ERROR:");

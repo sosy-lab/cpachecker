@@ -843,65 +843,41 @@ class ASTConverter {
       return null;
     }
 
-    switch (e.getNodeType()) {
-      case ASTNode.ASSIGNMENT:
-        return convert((Assignment) e);
-      case ASTNode.INFIX_EXPRESSION:
-        return convert((InfixExpression) e);
-      case ASTNode.NUMBER_LITERAL:
-        return convert((NumberLiteral) e);
-      case ASTNode.CHARACTER_LITERAL:
-        return convert((CharacterLiteral) e);
-      case ASTNode.STRING_LITERAL:
-        return convert((StringLiteral) e);
-      case ASTNode.NULL_LITERAL:
-        return convert((NullLiteral) e);
-      case ASTNode.PREFIX_EXPRESSION:
-        return convert((PrefixExpression) e);
-      case ASTNode.POSTFIX_EXPRESSION:
-        return convert((PostfixExpression) e);
-      case ASTNode.QUALIFIED_NAME:
-        return convert((QualifiedName) e);
-      case ASTNode.BOOLEAN_LITERAL:
-        return convert((BooleanLiteral) e);
-      case ASTNode.FIELD_ACCESS:
-        return convert((FieldAccess) e);
-      case ASTNode.SIMPLE_NAME:
-        return convert((SimpleName) e);
-      case ASTNode.PARENTHESIZED_EXPRESSION:
-        return convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
-      case ASTNode.METHOD_INVOCATION:
-        return convert((MethodInvocation) e);
-      case ASTNode.CLASS_INSTANCE_CREATION:
-        return convert((ClassInstanceCreation) e);
-      case ASTNode.ARRAY_ACCESS:
-        return convert((ArrayAccess) e);
-      case ASTNode.ARRAY_CREATION:
-        return convert((ArrayCreation) e);
-      case ASTNode.ARRAY_INITIALIZER:
-        return convert((ArrayInitializer) e);
-      case ASTNode.CONDITIONAL_EXPRESSION:
-        return convert((ConditionalExpression) e);
-      case ASTNode.THIS_EXPRESSION:
-        return convert((ThisExpression) e);
-      case ASTNode.INSTANCEOF_EXPRESSION:
-        return convert((InstanceofExpression) e);
-      case ASTNode.CAST_EXPRESSION:
-        return convert((CastExpression) e);
-      case ASTNode.VARIABLE_DECLARATION_EXPRESSION:
-        return convert((VariableDeclarationExpression) e);
-      case ASTNode.SUPER_FIELD_ACCESS:
-        return convert(((SuperFieldAccess) e));
-      case ASTNode.TYPE_LITERAL:
-        return convert((TypeLiteral) e);
-      case ASTNode.SUPER_METHOD_INVOCATION:
-        return convert((SuperMethodInvocation) e);
-      default:
+    return switch (e.getNodeType()) {
+      case ASTNode.ASSIGNMENT -> convert((Assignment) e);
+      case ASTNode.INFIX_EXPRESSION -> convert((InfixExpression) e);
+      case ASTNode.NUMBER_LITERAL -> convert((NumberLiteral) e);
+      case ASTNode.CHARACTER_LITERAL -> convert((CharacterLiteral) e);
+      case ASTNode.STRING_LITERAL -> convert((StringLiteral) e);
+      case ASTNode.NULL_LITERAL -> convert((NullLiteral) e);
+      case ASTNode.PREFIX_EXPRESSION -> convert((PrefixExpression) e);
+      case ASTNode.POSTFIX_EXPRESSION -> convert((PostfixExpression) e);
+      case ASTNode.QUALIFIED_NAME -> convert((QualifiedName) e);
+      case ASTNode.BOOLEAN_LITERAL -> convert((BooleanLiteral) e);
+      case ASTNode.FIELD_ACCESS -> convert((FieldAccess) e);
+      case ASTNode.SIMPLE_NAME -> convert((SimpleName) e);
+      case ASTNode.PARENTHESIZED_EXPRESSION ->
+          convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
+      case ASTNode.METHOD_INVOCATION -> convert((MethodInvocation) e);
+      case ASTNode.CLASS_INSTANCE_CREATION -> convert((ClassInstanceCreation) e);
+      case ASTNode.ARRAY_ACCESS -> convert((ArrayAccess) e);
+      case ASTNode.ARRAY_CREATION -> convert((ArrayCreation) e);
+      case ASTNode.ARRAY_INITIALIZER -> convert((ArrayInitializer) e);
+      case ASTNode.CONDITIONAL_EXPRESSION -> convert((ConditionalExpression) e);
+      case ASTNode.THIS_EXPRESSION -> convert((ThisExpression) e);
+      case ASTNode.INSTANCEOF_EXPRESSION -> convert((InstanceofExpression) e);
+      case ASTNode.CAST_EXPRESSION -> convert((CastExpression) e);
+      case ASTNode.VARIABLE_DECLARATION_EXPRESSION -> convert((VariableDeclarationExpression) e);
+      case ASTNode.SUPER_FIELD_ACCESS -> convert(((SuperFieldAccess) e));
+      case ASTNode.TYPE_LITERAL -> convert((TypeLiteral) e);
+      case ASTNode.SUPER_METHOD_INVOCATION -> convert((SuperMethodInvocation) e);
+      default -> {
         logger.log(
             Level.WARNING,
             "Expression of type " + ASTDebug.getTypeName(e.getNodeType()) + " not implemented");
-        return null;
-    }
+        yield null;
+      }
+    };
   }
 
   private JAstNode convert(final SuperMethodInvocation e) {

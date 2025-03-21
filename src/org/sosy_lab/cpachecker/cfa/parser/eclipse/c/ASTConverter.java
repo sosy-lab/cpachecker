@@ -503,14 +503,31 @@ class ASTConverter {
     }
   }
 
+  /**
+   * If the given AST node <code>foo</code> originally occurs inside the unary operator parentheses,
+   * return the parent AST node with all the parentheses, e.g., <code>(foo)</code> or <code>((foo))
+   * </code>. Otherwise return <code>foo</code> unchanged.
+   */
+  private IASTNode reAddParentheses(IASTNode currentNode) {
+    while (currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
+      currentNode = currentNode.getParent();
+    }
+    return currentNode;
+  }
+
   private boolean isFunctionCallNameExpression(IASTExpression e) {
-    return e.getParent() instanceof IASTFunctionCallExpression
-        && e.getPropertyInParent() == IASTFunctionCallExpression.FUNCTION_NAME;
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTFunctionCallExpression
+        && currentNode.getPropertyInParent() == IASTFunctionCallExpression.FUNCTION_NAME;
   }
 
   private boolean isAddressOfArgument(IASTExpression e) {
-    return e.getParent() instanceof IASTUnaryExpression
-        && ((IASTUnaryExpression) e.getParent()).getOperator() == IASTUnaryExpression.op_amper;
+    IASTNode currentNode = reAddParentheses(e);
+    return currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
+        && currentNode.getPropertyInParent() == IASTUnaryExpression.OPERAND
+        && unaryOpParent.getOperator() == IASTUnaryExpression.op_amper;
   }
 
   enum Condition {
