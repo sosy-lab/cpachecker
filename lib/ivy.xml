@@ -78,6 +78,8 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Annotations we use for @Nullable etc. -->
         <dependency org="org.checkerframework" name="checker-qual" rev="2.5.2"
                     conf="runtime->default; contrib->sources"/>
+        <dependency org="org.jspecify" name="jspecify" rev="1.0.0"
+                    conf="runtime->default; contrib->sources"/>
 
         <!-- JFlex Scanner generator
              Used for generating automaton and FQL scanners. -->
