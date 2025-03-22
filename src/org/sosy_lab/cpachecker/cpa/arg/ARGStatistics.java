@@ -29,7 +29,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -101,7 +100,7 @@ public class ARGStatistics implements Statistics {
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pixelGraphicFile = Path.of("ARG");
+  private Path pixelGraphicFile = null;
 
   @Option(secure = true, name = "proofWitness", description = "export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -211,6 +210,12 @@ public class ARGStatistics implements Statistics {
       name = "automaton.exportZipped",
       description = "export all automata into one zip-file, depends on 'automaton.export=true'")
   private boolean exportAutomatonZipped = true;
+
+  @Option(
+      secure = true,
+      name = "exportYamlWitnessesForUnknownVerdict",
+      description = "export witnesses for unknown verdicts")
+  private boolean exportYamlWitnessesForUnknownVerdict = true;
 
   protected final ConfigurableProgramAnalysis cpa;
   protected final CFA cfa;
@@ -424,7 +429,8 @@ public class ARGStatistics implements Statistics {
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+    if (pResult == Result.TRUE
+        || (exportYamlWitnessesForUnknownVerdict && pResult == Result.UNKNOWN)) {
       try {
         if (cfa.getMetadata().getInputLanguage() == Language.C) {
           if (exportYamlCorrectnessWitness && argToWitnessWriter != null) {

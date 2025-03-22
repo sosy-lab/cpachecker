@@ -212,6 +212,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -260,8 +261,10 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Distribute predicate analysis to multiple workers
-analysis.algorithm.configurableComponents = false
+# Use distributed summary synthesis. This decomposes the input program into
+# smaller units that are analyzed concurrently. See
+# https://doi.org/10.1145/3660766 for details.
+analysis.algorithm.distributedSummarySynthesis = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
@@ -774,8 +777,30 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get candidate invariants from a predicate precision file
+# File with predicate precisions that should be used as candidate invariants
+# in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
+
+# Maximum number of invariants candidates that are generated for a witness
+# invariants when ignoring the function information of the witness and only
+# using the line number. The option has no effect if the heuristic is not
+# NEAREST_N_LOOPS and option enableSecondaryHeuristic is disabled.
+bmc.kinduction.regression.witness.allowedLineMappings = 3
+
+# Enable to use NEAREST_N_LOOPS heuristic for witness invariants for which
+# the primary heuristic did not generate candidate invariants
+bmc.kinduction.regression.witness.enableSecondaryMappingHeuristic = false
+
+# Heuristic for generating candidate invariants from witness invariants,which
+# determines how witness invariants are mapped to loops 
+bmc.kinduction.regression.witness.mappingHeuristic = ALL_LOOPS_IN_FUNCTION
+  enum:     [ALL_LOOPS_IN_FUNCTION, NEAREST_LOOP_IN_FUNCTION_WITHOUT_CANDIDATE,
+             LOOPS_IN_FUNCTION_IN_ORDER, NEAREST_N_LOOPS]
+
+# Correctness witness in 2.x format (for previous program version) that
+# should be used in regression verificationto get candidate invariants for
+# k-induction
+bmc.kinduction.regression.witnessFile = no default value
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant
@@ -862,10 +887,6 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
-# produce C programs more similar to the input program
-# (only possible for a single input file)
-cfa.exportToC.stayCloserToInput = false
-
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
@@ -894,7 +915,7 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
-cfa.pixelGraphicFile = "cfaPixel"
+cfa.pixelGraphicFile = no default value
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -1034,6 +1055,10 @@ counterexample.checker = CBMC
 # counterexample information should provide more precise information from
 # counterexample check, if available
 counterexample.checker.changeCEXInfo = false
+
+# counterexample check checks MemSafety sub-properties (valid-deref,
+# valid-free, valid-memtrack) additionally to the path.
+counterexample.checker.checkMemorySafetySubproperty = false
 
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
@@ -1430,6 +1455,9 @@ cpa.arg.exportTrueInvariants = false
 # export correctness witness in YAML format
 cpa.arg.exportYamlCorrectnessWitness = true
 
+# export witnesses for unknown verdicts
+cpa.arg.exportYamlWitnessesForUnknownVerdict = true
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -1467,7 +1495,7 @@ cpa.arg.mergeOnWrappedSubsumption = false
 # Export final ARG as pixel graphic to the given file name. The suffix is
 # added  corresponding to the value of option pixelgraphic.export.formatIf
 # set to 'null', no pixel graphic is exported.
-cpa.arg.pixelGraphicFile = "ARG"
+cpa.arg.pixelGraphicFile = no default value
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
@@ -2236,6 +2264,10 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# when reading invariants from YML witness ignore the location context and
+# only consider the function context of the program
+cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = false
+
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
@@ -2315,12 +2347,18 @@ cpa.predicate.blk.alwaysAtExplicitNodes = false
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionCallNodes = false
 
+# abstraction always at function exit nodes.
+cpa.predicate.blk.alwaysAtFunctionExit = false
+
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionHeads = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
+
+# Abstract at predefined locations given as a list of CFANode ids.
+cpa.predicate.blk.alwaysAtGivenNodes = {}
 
 # force abstractions at each join node, regardless of threshold
 cpa.predicate.blk.alwaysAtJoin = false
@@ -3203,6 +3241,13 @@ cpa.smg2.GCCZeroLengthArray = false
 # memory allocation of any kind.
 cpa.smg2.abortOnNonConcreteMemorySize = true
 
+# Periodically removes concrete values from the memory model and replaces
+# them with symbolic values. Only the newest concrete values above this
+# threshold are removed. For negative numbers this option is ignored. Note: 0
+# also removes the null value, reducing impacting null dereference or free
+# soundness. Currently only supported for given value 0.
+cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
@@ -3299,6 +3344,11 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
+
+# Maximum amount of concrete assignments before the assigning is aborted. The
+# last offset is then once treated as option
+# overapproximateSymbolicOffsetsAsFallback specifies.
+cpa.smg2.concreteValueForSymbolicOffsetsAssignmentMaximum = 300
 
 # Crash on unknown value when creating constraints of any form.
 cpa.smg2.crashOnUnknownInConstraint = false
@@ -3738,7 +3788,7 @@ cpa.value.assignEqualityAssumptions = true
 
 # configure when to export loop invariants
 cpa.value.exportLoopInvariants = IF_TRUE
-  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE]
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
 
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
@@ -3791,6 +3841,9 @@ cpa.value.invExport.exportBitops = true
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
 cpa.value.invExport.exportLinear = true
 
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
 # Enable invariants that use a shift operator, note that additionally
 # exportBitops must be enabled
 cpa.value.invExport.exportShiftops = true
@@ -3798,6 +3851,9 @@ cpa.value.invExport.exportShiftops = true
 # Enable to export invariants that include three variables, currently only
 # effective if exportLinear is enabled, too
 cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
 
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
@@ -4091,47 +4147,78 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
-# blocks from each merge/branching point to the next merge/branching point.
-# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
-# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
-# creates one block around the complete CFA.
-distributedSummaries.decompositionType = BLOCK_OPERATOR
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+# Abstraction nodes are added to each block after they are created. They are
+# needed to strengthen the preconditions of blocks. Missing blocks make the
+# analysis slower but not impossible.
+distributedSummaries.allowMissingAbstractionNodes = true
 
-# desired number of BlockNodes
-distributedSummaries.desiredNumberOfBlocks = 5
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
 
-# Whether to spawn util workers. Util workers listen to every message and
-# create visual output for debugging. Workers consume resources and should
-# not be used for benchmarks.
-distributedSummaries.spawnUtilWorkers = true
+# Where to store the block graph in JSON format
+distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
 
-# Configuration for backward analysis in computation of distributed summaries
-distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
+# Whether to enable debug mode of block-summary analysis. This creates visual
+# output for debugging and exports additional metadata.Creating this
+# information consumes resources and should not be used for benchmarks.
+distributedSummaries.debug = false
 
-# whether error conditions are always checked for unsatisfiability
-distributedSummaries.worker.checkEveryErrorCondition = true
+# Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
+# creates blocks from each merge/branching point to the next merge/branching
+# point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
+# The final number of blocks should converge to the number of functions in
+# the program. NO_DECOMPOSITION creates one block around the CFA.
+distributedSummaries.decompositionType = MERGE_DECOMPOSITION
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
+             NO_DECOMPOSITION]
+
+# Whether to stop after exporting the blockgraph
+distributedSummaries.generateBlockGraphOnly = false
+
+# Import an existing decomposition from a file
+distributedSummaries.importDecomposition = no default value
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'known' by block-summary analysis. Each file must
+# contain a single, valid JSON DssMessage. If at least one file is provided,
+# the block-summary analysis assumes these pre- and verification-conditions.
+# If no file is provided, the block-summary analysis assumes the precondition
+# 'true' and the verification condition 'false'.
+distributedSummaries.knownConditions = []
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'new' by block-summary analysis. For each message
+# in this list, block-summary analysis will perform a new analysis run in the
+# order of occurrence. Each file must contain a single, valid JSON
+# DssMessage. If at least one file is provided, the block-summary analysis
+# assumes these pre- and verification-conditions. If no file is provided, the
+# block-summary analysis assumes the precondition 'true' and the verification
+# condition 'false'.
+distributedSummaries.newConditions = []
+
+# Where to write responses
+distributedSummaries.outputMessages = "messages/"
+
+# Change the queue type. VIOLATION_CONDITION prioritizes the processing of
+# ViolationConditionMessages. DEFAULT does not differ between PostCondition
+# and ViolationCondition messages.
+distributedSummaries.queue = DEFAULT
+  enum:     [VIOLATION_CONDITION, DEFAULT]
+
+# Whether to spawn a worker for only one block id
+distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
-distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
+distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
-# Destination directory for the logfiles of all BlockSummaryWorkers. The
-# logfiles have the same name as the ID of the worker.
+# Destination directory for the logfiles of all DssWorkers. The logfiles have
+# the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
 
-# Whether loop free programs have to deny all possible error messages. Enable
-# this option to eagerly process every possible error message that occurs
-# after an precondition update.
-distributedSummaries.worker.sendEveryErrorMessage = false
-
-# whether analysis worker store circular post conditions
-distributedSummaries.worker.storeCircularPostConditions = false
-
-# Choose the workers that are spawned for each block. Contrary to DEFAULT
-# workers, SMART workers consume multiple messages at once.
-distributedSummaries.workerType = DEFAULT
-  enum:     [DEFAULT, SMART]
+# output file for visualizing message exchange
+dss.logging.reportFiles = "block_analysis/block_analysis"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -4858,9 +4945,6 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
-
-# output file for visualizing message exchange
-reportFile = "block_analysis/block_analysis.json"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value

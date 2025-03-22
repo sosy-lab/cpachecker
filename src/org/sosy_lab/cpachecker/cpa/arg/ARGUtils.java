@@ -848,10 +848,8 @@ public class ARGUtils {
     Deque<String> sortedFunctionOccurrence = new ArrayDeque<>();
     for (ARGState s : sortedStates) {
       CFANode node = extractLocation(s);
-      if (!sortedFunctionOccurrence.isEmpty()
-          && sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
-        continue;
-      } else {
+      if (sortedFunctionOccurrence.isEmpty()
+          || !sortedFunctionOccurrence.getLast().equals(node.getFunctionName())) {
         sortedFunctionOccurrence.add(node.getFunctionName());
       }
     }
@@ -871,15 +869,12 @@ public class ARGUtils {
         inLoopState = s;
         inLoopNode = extractLocation(inLoopState);
         outLoopState = null;
-        continue;
 
-        // function call inside a loop we want to uproll
       } else if (!loopFound
           && inLoopNode != null
           && !inLoopNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
-        continue;
+        // function call inside a loop we want to uproll
 
-        // function call in the path we want to uproll
       } else if (!loopFound
           && inLoopNode == null
           && loc.getLeavingSummaryEdge() != null
@@ -889,15 +884,14 @@ public class ARGUtils {
           // calls right now
           && sortedFunctionOccurrence.getFirst().equals(sortedFunctionOccurrence.getLast())
           && sortedFunctionOccurrence.size() > 1) {
+        // function call in the path we want to uproll
         inFunctionState = s;
         inFunctionNode = extractLocation(inFunctionState);
         outFunctionState = null;
 
       } else if (inFunctionNode != null
-          // as long as we are in the other function we can just continue, this
-          // is handled later on
           && !inFunctionNode.getFunctionName().equals(extractLocation(s).getFunctionName())) {
-        continue;
+        // as long as we are in the other function we can just continue, this is handled later on
 
       } else if (!loopFound) {
         if (inLoopState != null && outLoopState == null) {

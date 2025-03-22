@@ -15,31 +15,43 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Targets for determining the version number based on the version-control revision. -->
 
-    <target name="determine-version-revision">
-        <!-- Determine full CPAchecker version including SVN revision. -->
-        <exec executable="python3"
-            outputProperty="version.revision"
+    <!-- For release versions, set version directly -->
+    <condition property="version" value="${version.base}">
+        <not><contains string="${version.base}" substring="-git"/></not>
+    </condition>
+
+    <target name="determine-version-revision" unless="version">
+        <!-- Determine full CPAchecker version including git commit. -->
+        <loadresource property="version.core">
+            <propertyresource name="version.base"/>
+            <filterchain>
+                <replacestring from="-git" to="" />
+            </filterchain>
+        </loadresource>
+        <exec executable="git"
+            dir="${basedir}"
+            outputProperty="tmp.version.revision"
             failifexecutionfails="false"
             logError="true">
-            <arg value="build/determine-revision.py"/>
-            <arg value="${basedir}"/>
+            <arg value="describe"/>
+            <arg value="--match=cpachecker-${version.core}"/>
+            <arg value="--dirty=+"/>
         </exec>
+        <loadresource property="version.revision" quiet="true" failonerror="false">
+            <!-- This only sets version.revision if it is non-empty. -->
+            <propertyresource name="tmp.version.revision"/>
+            <filterchain>
+                <replacestring from="cpachecker-" to="" />
+            </filterchain>
+        </loadresource>
     </target>
 
-    <target name="create-version-file-exact" depends="determine-version-revision">
+    <target name="determine-version" depends="determine-version-revision">
         <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <condition property="version" value="${version.base}-${version.revision}" else="${version.base}">
-            <contains string="${version.base}" substring="-svn"/>
+        <condition property="version" value="${version.revision}" else="${version.core}-unknown">
+            <isset property="version.revision"/>
         </condition>
         <echo message="${version}" file="${version.file}"/>
-    </target>
-
-    <target name="determine-version" depends="create-version-file-exact"/>
-
-    <target name="create-version-file" unless="version">
-        <!-- Replacement for create-version-file-exact when we don't need the exact version (faster). -->
-        <mkdir dir="${class.dir}/org/sosy_lab/cpachecker"/>
-        <echo message="${version.base}" file="${version.file}"/>
     </target>
 
 </project>

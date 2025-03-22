@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstUtils.BoundaryNodesComputationFailed;
 
 public final class IfElement extends StatementElement {
   private final ASTElement conditionElement;
@@ -77,7 +78,7 @@ public final class IfElement extends StatementElement {
     return elseEdges;
   }
 
-  private void computeNodesBetweenConditionAndBranches() {
+  private void computeNodesBetweenConditionAndBranches() throws BoundaryNodesComputationFailed {
     Pair<ImmutableSet<CFANode>, ImmutableSet<CFANode>> borderElements =
         computeNodesConditionBoundaryNodes(
             conditionElement.edges(),
@@ -95,7 +96,8 @@ public final class IfElement extends StatementElement {
    *
    * @return the nodes between the condition and the then branch
    */
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndThenBranch()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndThenBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }
@@ -107,7 +109,8 @@ public final class IfElement extends StatementElement {
    *
    * @return the nodes between the condition and the else branch
    */
-  public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch() {
+  public ImmutableSet<CFANode> getNodesBetweenConditionAndElseBranch()
+      throws BoundaryNodesComputationFailed {
     if (nodesBetweenConditionAndElseBranch == null) {
       computeNodesBetweenConditionAndBranches();
     }

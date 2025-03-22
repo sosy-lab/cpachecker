@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
@@ -15,6 +15,12 @@
 # From here on you should not need to change anything
 #------------------------------------------------------------------------------
 
+bash_major_version=$(echo $BASH_VERSION | cut -d'.' -f1)
+if [ -n "$bash_major_version" ] && [ "$bash_major_version" -lt 5 ]; then
+  echo "Your Bash version is too old, please install Bash 5 or later." 1>&2
+  echo "Used Bash version: $BASH_VERSION" 1>&2
+  exit 1
+fi
 java_version="`$JAVA -XX:-UsePerfData -Xmx5m -version 2>&1`"
 result=$?
 if [ $result -eq 127 ]; then
@@ -128,10 +134,12 @@ elif [ -n "$TMP" ]; then
 fi
 
 # Determine whether to enable Java assertions
-if [ "$BENCHMARK_MODE" = true ]; then
-  JAVA_ASSERTIONS=-da
-else
-  JAVA_ASSERTIONS=-ea
+if [[ ! -v JAVA_ASSERTIONS ]]; then
+  if [ "$BENCHMARK_MODE" = true ]; then
+    JAVA_ASSERTIONS=-da
+  else
+    JAVA_ASSERTIONS=-ea
+  fi
 fi
 
 # Determine heap size

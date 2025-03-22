@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -358,7 +359,7 @@ public class LiveVariables {
     if (!liveVarConfig.overallLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(liveVarConfig.overallLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(liveVarConfig.overallLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -405,7 +406,7 @@ public class LiveVariables {
     if (!config.partwiseLivenessCheckTime.isEmpty()) {
       ShutdownManager liveVarsShutdown = ShutdownManager.createWithParent(pShutdownNotifier);
       shutdownNotifier = liveVarsShutdown.getNotifier();
-      ResourceLimit limit = WalltimeLimit.fromNowOn(config.partwiseLivenessCheckTime);
+      ResourceLimit limit = WalltimeLimit.create(config.partwiseLivenessCheckTime);
       limitChecker = new ResourceLimitChecker(liveVarsShutdown, ImmutableList.of(limit));
       limitChecker.start();
     } else {
@@ -473,14 +474,41 @@ public class LiveVariables {
           case FUNCTION_WISE -> pCfa.entryNodes();
           case GLOBAL -> Collections.singleton(pCfa.getMainFunction());
         };
-    for (FunctionEntryNode node : functionHeads) {
-      Optional<FunctionExitNode> exitNode = node.getExitNode();
+
+    // skip function calls unless global evaluation is used
+    final CFATraversal cfaTraversal =
+        evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
+            ? CFATraversal.dfs().ignoreFunctionCalls()
+            : CFATraversal.dfs();
+
+    for (FunctionEntryNode entryNode : functionHeads) {
+      Optional<FunctionExitNode> exitNode = entryNode.getExitNode();
+
+      // add return node (if present) as an entry point
       if (exitNode.isPresent()) {
         analysisParts.reachedSet.add(
             analysisParts.cpa.getInitialState(
                 exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()),
             analysisParts.cpa.getInitialPrecision(
                 exitNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
+      }
+
+      // calculate set of reachable nodes from the function entry point
+      Set<CFANode> reached =
+          exitNode.isPresent()
+              ? cfaTraversal.collectNodesReachableFromTo(entryNode, exitNode.orElseThrow())
+              : cfaTraversal.collectNodesReachableFrom(entryNode);
+
+      // find calls to non-returning functions
+      Iterable<CFANode> nonReturning =
+          FluentIterable.from(reached).filter(node -> node instanceof CFATerminationNode);
+
+      // add calls to non-returning functions as additional entry points
+      for (CFANode finalNode : nonReturning) {
+        analysisParts.reachedSet.add(
+            analysisParts.cpa.getInitialState(finalNode, StateSpacePartition.getDefaultPartition()),
+            analysisParts.cpa.getInitialPrecision(
+                finalNode, StateSpacePartition.getDefaultPartition()));
       }
     }
 

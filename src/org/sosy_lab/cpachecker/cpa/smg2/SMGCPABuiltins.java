@@ -257,6 +257,8 @@ public class SMGCPABuiltins {
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
+        logger.log(
+            Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
         return Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
 
@@ -278,8 +280,12 @@ public class SMGCPABuiltins {
 
       default:
         if (isNondetBuiltin(calledFunctionName)) {
-          // TODO:
-          return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
+          return Collections.singletonList(
+              ValueAndSMGState.ofUnknownValue(
+                  pState,
+                  "Returned unknown value due to call to nondeterministic havoc function as defined"
+                      + " in SV-COMP ",
+                  pCfaEdge));
         } else {
           throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + calledFunctionName);
@@ -635,6 +641,12 @@ public class SMGCPABuiltins {
       case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
+        logger.log(
+            Level.FINE,
+            "Returned unknown value for unknown function that is "
+                + options.getHandleUnknownFunctions()
+                + " allocated in ",
+            pCfaEdge);
         return Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
       default:
@@ -685,7 +697,7 @@ public class SMGCPABuiltins {
           if (options.isAbortOnNonConcreteMemorySize()) {
             throw new UnrecognizedCodeException(infoMsg, cfaEdge);
           } else {
-            logger.log(Level.INFO, infoMsg + ", in " + cfaEdge);
+            logger.log(Level.FINE, infoMsg + ", in " + cfaEdge);
           }
           if (!options.trackPredicates()) {
             // Max overapproximation
@@ -849,16 +861,23 @@ public class SMGCPABuiltins {
           sizeValue = new NumericValue(options.getGuessSize());
         } else if (options.isIgnoreUnknownMemoryAllocation()) {
           // Ignore and move on
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Ignored unknown sizes memory allocation due to option ignoreUnknownMemorySetting"
+                      + " in .",
+                  cfaEdge));
           continue;
         } else if (options.isErrorOnUnknownMemoryAllocation()) {
           // Error for CEGAR to learn the variable
           // TODO: this is bad! For truly unknown variables this also just plainly errors. Think of
-          // a better way
+          //  a better way
           resultBuilder.add(
               ValueAndSMGState.ofUnknownValue(
                   currentState.withMemoryLeak(
-                      "Plain memory error for malloc with symbolic size.", ImmutableList.of())));
+                      "Plain memory error for malloc with symbolic size.", ImmutableList.of()),
+                  "Returned unknown value due to unknown size of memory allocation in ",
+                  cfaEdge));
           continue;
         } else {
           throw new AssertionError(
@@ -1091,7 +1110,12 @@ public class SMGCPABuiltins {
           || ((AddressExpression) bufferValue).getMemoryAddress().isUnknown()
           || !((AddressExpression) bufferValue).getOffset().isNumericValue()) {
         currentState = currentState.withInvalidWrite(bufferValue);
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown because of unknown target address or offset in first argument in"
+                    + " function memset in",
+                cfaEdge));
         continue;
       }
 
@@ -1148,7 +1172,11 @@ public class SMGCPABuiltins {
           currentState.withInvalidWrite(
               "Invalid (Unknown) size (third argument) for memset() function call.", countValue);
       // TODO: we need to change the value behind bufferAddress to unknown as well!
-      return ValueAndSMGState.ofUnknownValue(currentState);
+      return ValueAndSMGState.ofUnknownValue(
+          currentState,
+          "Returned unknown because of unknown number of repetitions in third argument in function"
+              + " memset in",
+          cfaEdge);
     }
     if (!countValue.isNumericValue()) {
       currentState =
@@ -1156,7 +1184,11 @@ public class SMGCPABuiltins {
               "Symbolic count (second argument) for memset() function call not supported.",
               countValue);
       // TODO: we need to change the value behind bufferAddress to unknown as well!
-      return ValueAndSMGState.ofUnknownValue(currentState);
+      return ValueAndSMGState.ofUnknownValue(
+          currentState,
+          "Returned unknown because of unknown number of repetitions in third argument in function"
+              + " memset in",
+          cfaEdge);
     }
 
     long count = countValue.asNumericValue().longValue();
@@ -1401,18 +1433,33 @@ public class SMGCPABuiltins {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset of address of target"
+                      + " argument in function memcpy in",
+                  cfaEdge));
           continue;
         } else if (!(targetAddress instanceof AddressExpression)) {
           // The value can be unknown
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset of address of target"
+                      + " argument in function memcpy in",
+                  cfaEdge));
           continue;
         }
         AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
         if (!targetAddressExpr.getOffset().isNumericValue()) {
           // Write the target region to unknown
           // TODO:
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown offset of target argument in function memcpy"
+                      + " in",
+                  cfaEdge));
           continue;
         }
 
@@ -1457,7 +1504,12 @@ public class SMGCPABuiltins {
 
         if (!destAndState.hasSMGObjectAndOffset()) {
           // Unknown addresses happen only of we don't have a memory associated
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset of address of target"
+                      + " argument in function memcpy in",
+                  cfaEdge));
           continue;
         }
         SMGObject targetObj = destAndState.getSMGObject();
@@ -1466,7 +1518,12 @@ public class SMGCPABuiltins {
         if (!targetOffset.isNumericValue()) {
           // Write the target region to unknown
           // TODO: Write the target region to unknown
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown offset of target argument in function memcpy"
+                      + " in",
+                  cfaEdge));
           continue;
         }
         evaluateMemcpySecondStep(
@@ -1513,18 +1570,33 @@ public class SMGCPABuiltins {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset of source argument in"
+                      + " function memcpy in",
+                  pCFAEdge));
           continue;
         } else if (!(sourceAddress instanceof AddressExpression)) {
           // The value can be unknown
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset of source argument in"
+                      + " function memcpy in",
+                  pCFAEdge));
           continue;
         }
         AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
         if (!sourceAddressExpr.getOffset().isNumericValue()) {
           // Write the target region to unknown
           // TODO:
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown offset in source argument in function memcpy"
+                      + " in",
+                  pCFAEdge));
           continue;
         }
 
@@ -1567,7 +1639,12 @@ public class SMGCPABuiltins {
         SMGState currentState = sourceAndState.getSMGState();
         if (!sourceAndState.hasSMGObjectAndOffset()) {
           // Unknown addresses happen only of we don't have a memory associated
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown target or offset for source argument in"
+                      + " function memcpy in",
+                  pCFAEdge));
           continue;
         }
         SMGObject sourceObj = sourceAndState.getSMGObject();
@@ -1575,7 +1652,11 @@ public class SMGCPABuiltins {
 
         if (!sourceOffset.isNumericValue()) {
           // Unknown offset
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  currentState,
+                  "Returned unknown because of unknown source offset in function memcpy in",
+                  pCFAEdge));
           continue;
         }
 
@@ -1612,7 +1693,11 @@ public class SMGCPABuiltins {
       if (!sizeValue.isNumericValue()) {
         // TODO: log instead of error? This is a limitation of the analysis that is not a
         // critical C problem.
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                currentState,
+                "Returned unknown because of unknown size of copy in function memcpy in",
+                pCFAEdge));
         continue;
       }
 
@@ -1992,10 +2077,18 @@ public class SMGCPABuiltins {
 
     if (allHvesObj1 == null || allHvesObj1.isEmpty()) {
       // If there are no edges, the values are random, so there is no order
-      return ValueAndSMGState.ofUnknownValue(pCurrentState);
+      return ValueAndSMGState.ofUnknownValue(
+          pCurrentState,
+          "Returned unknown because of absence of values to compare in first argument in function"
+              + " memcmp in",
+          pCFAEdge);
     } else if (allHvesObj2 == null || allHvesObj2.isEmpty()) {
       // we know that there are edges in obj1 while 2 is unknown
-      return ValueAndSMGState.ofUnknownValue(pCurrentState);
+      return ValueAndSMGState.ofUnknownValue(
+          pCurrentState,
+          "Returned unknown because of absence of values to compare in second argument in function"
+              + " memcmp in",
+          pCFAEdge);
     }
 
     // No Object is empty, but there might be edges in one when there are none in the other.
@@ -2042,7 +2135,10 @@ public class SMGCPABuiltins {
                     .add(hve1ToCheck.getSizeInBits())
                     .compareTo(obj1FullOffsetPlusSizeArgInBits)
                 < 0) {
-          return ValueAndSMGState.ofUnknownValue(pCurrentState);
+          return ValueAndSMGState.ofUnknownValue(
+              pCurrentState,
+              "Returned unknown for problem with compare ranges in function memcmp in",
+              pCFAEdge);
         }
         // Not equal blocks, perform more detailed checks later.
         continue;
@@ -2166,9 +2262,13 @@ public class SMGCPABuiltins {
     BigInteger numericTargetAddressSize = targetAddressSize.asNumericValue().bigIntegerValue();
     // There can be deref errors if the size is to large
     if (numericSourceAddressSize.compareTo(sourceOffset.add(sizeToCopyInBits)) < 0) {
-      return ValueAndSMGState.ofUnknownValue(pState.withInvalidRead(sourceAddress));
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withInvalidRead(sourceAddress),
+          "Returned unknown for invalid copy ranges in function memcpy.");
     } else if (numericTargetAddressSize.compareTo(targetOffset.add(sizeToCopyInBits)) < 0) {
-      return ValueAndSMGState.ofUnknownValue(pState.withInvalidWrite(targetAddress));
+      return ValueAndSMGState.ofUnknownValue(
+          pState.withInvalidWrite(targetAddress),
+          "Returned unknown for invalid copy ranges in function memcpy.");
     }
 
     SMGState copyResultState =
@@ -2214,13 +2314,21 @@ public class SMGCPABuiltins {
       // concrete offset to be used correctly
       if (!(firstAddress instanceof AddressExpression)) {
         // The value can be unknown
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                firstValueAndSMGState.getState(),
+                "Returned unknown for unknown address in first address in function strcmp in ",
+                pCfaEdge));
         continue;
       }
       AddressExpression firstAddressExpr = (AddressExpression) firstAddress;
       if (!firstAddressExpr.getOffset().isNumericValue()) {
         // Write the target region to unknown
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
+        resultBuilder.add(
+            ValueAndSMGState.ofUnknownValue(
+                firstValueAndSMGState.getState(),
+                "Returned unknown for unknown offset in first address in function strcmp in ",
+                pCfaEdge));
         continue;
       }
 
@@ -2234,17 +2342,30 @@ public class SMGCPABuiltins {
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // TODO: decide what to do here and when this happens
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  secondValueAndSMGState.getState(),
+                  "Returned unknown for unknown target or offset in second address in function"
+                      + " strcmp in ",
+                  pCfaEdge));
           continue;
         } else if (!(secondAddress instanceof AddressExpression)) {
           // The value can be unknown
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  secondValueAndSMGState.getState(),
+                  "Returned unknown for unknown address in second address in function strcmp in ",
+                  pCfaEdge));
           continue;
         }
         AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
         if (!secondAddressExpr.getOffset().isNumericValue()) {
           // Write the target region to unknown
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(
+                  secondValueAndSMGState.getState(),
+                  "Returned unknown for unknown offset in second address in function strcmp in ",
+                  pCfaEdge));
           continue;
         }
 

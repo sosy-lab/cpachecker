@@ -12,6 +12,10 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbs
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula;
 
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -19,7 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
  * Merge operator for symbolic predicate abstraction. This is not a trivial merge operator in the
@@ -27,28 +31,34 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  * abstraction location we don't merge, otherwise we merge two elements and update the {@link
  * PredicateAbstractState}'s pathFormula.
  */
-public class PredicateMergeOperator implements MergeOperator {
+@Options(prefix = "cpa.predicate.merge")
+final class PredicateMergeOperator implements MergeOperator {
+
+  @Option(
+      secure = true,
+      name = "mergeAbstractionStatesWithSamePredecessor",
+      description =
+          "merge two abstraction states if their preceeding abstraction states are the same")
+  private boolean mergeAbstractionStates = false;
 
   private final LogManager logger;
   private final PathFormulaManager formulaManager;
-  private final PredicateStatistics statistics;
-  private final TimerWrapper totalMergeTimer;
 
-  private boolean mergeAbstractionStates;
   private final PredicateAbstractionManager predAbsManager;
 
-  public PredicateMergeOperator(
+  // Statistics
+  final StatTimer totalMergeTime = new StatTimer("Time for merge operator");
+
+  PredicateMergeOperator(
+      Configuration pConfig,
       LogManager pLogger,
       PathFormulaManager pPfmgr,
-      PredicateStatistics pStatistics,
-      boolean pMergeAbstractionStates,
-      PredicateAbstractionManager pPredAbsManager) {
+      PredicateAbstractionManager pPredAbsManager)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
     formulaManager = pPfmgr;
-    statistics = pStatistics;
-    totalMergeTimer = statistics.totalMergeTime.getNewTimer();
 
-    mergeAbstractionStates = pMergeAbstractionStates;
     predAbsManager = pPredAbsManager;
   }
 
@@ -67,7 +77,7 @@ public class PredicateMergeOperator implements MergeOperator {
         && elem2.isAbstractionState()
         && !elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
       if (elem1.getPreviousAbstractionState().equals(elem2.getPreviousAbstractionState())) {
-        totalMergeTimer.start();
+        totalMergeTime.start();
         AbstractionFormula newAbstractionFormula =
             predAbsManager.makeOr(elem1.getAbstractionFormula(), elem2.getAbstractionFormula());
         PathFormula newPathFormula =
@@ -80,7 +90,7 @@ public class PredicateMergeOperator implements MergeOperator {
                 elem2.getAbstractionLocationsOnPath(),
                 elem2.getPreviousAbstractionState());
         elem1.setMergedInto(merged);
-        totalMergeTimer.stop();
+        totalMergeTime.stop();
         return merged;
       }
     }
@@ -96,7 +106,7 @@ public class PredicateMergeOperator implements MergeOperator {
         merged = elem2;
 
       } else {
-        totalMergeTimer.start();
+        totalMergeTime.start();
         assert elem1.getAbstractionLocationsOnPath().equals(elem2.getAbstractionLocationsOnPath());
         // create a new state
 
@@ -114,7 +124,7 @@ public class PredicateMergeOperator implements MergeOperator {
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);
 
-        totalMergeTimer.stop();
+        totalMergeTime.stop();
       }
     }
 

@@ -145,10 +145,22 @@ abstract class AbstractBMCAlgorithm
 
   @Option(
       secure = true,
-      description = "get candidate invariants from a predicate precision file",
+      description =
+          "File with predicate precisions "
+              + "that should be used as candidate invariants in k-induction",
       name = "kinduction.predicatePrecisionFile")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPredicatePrecisionFile = null;
+
+  @Option(
+      secure = true,
+      description =
+          "Correctness witness in 2.x format (for previous program version) "
+              + "that should be used in regression verification"
+              + "to get candidate invariants for k-induction",
+      name = "kinduction.regression.witnessFile")
+  @FileOption(value = Type.OPTIONAL_INPUT_FILE)
+  private @Nullable Path witnessFileForRegressionVerification = null;
 
   @Option(
       secure = true,
@@ -241,6 +253,8 @@ abstract class AbstractBMCAlgorithm
 
   private final ImmutableSet<CandidateInvariant> predicatePrecisionCandidates;
   private @Nullable PredicateToKInductionInvariantConverter predToKIndInv;
+
+  private ImmutableSet<CandidateInvariant> candidateInvariantsFromWitness = null;
 
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
@@ -377,6 +391,15 @@ abstract class AbstractBMCAlgorithm
     } else {
       predicatePrecisionCandidates = ImmutableSet.of();
     }
+
+    if (witnessFileForRegressionVerification != null) {
+      candidateInvariantsFromWitness =
+          new RegressionVerificationWitnessToCandidateInvariantsConverter(
+                  config, logger, shutdownNotifier, fmgr, pmgr, cfa)
+              .getCandidateInvariantsFromWitness(witnessFileForRegressionVerification);
+    } else {
+      candidateInvariantsFromWitness = ImmutableSet.of();
+    }
   }
 
   static boolean checkIfInductionIsPossible(CFA cfa, LogManager logger) {
@@ -412,6 +435,11 @@ abstract class AbstractBMCAlgorithm
     // suggest candidates from predicate precision file
     if (!predicatePrecisionCandidates.isEmpty()) {
       candidateGenerator.suggestCandidates(predicatePrecisionCandidates);
+    }
+
+    // suggest candidates from Witness 2.0 file
+    if (!candidateInvariantsFromWitness.isEmpty()) {
+      candidateGenerator.suggestCandidates(candidateInvariantsFromWitness);
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
@@ -1331,9 +1359,11 @@ abstract class AbstractBMCAlgorithm
         return hashCode;
       }
       if (causingObligation != null) {
-        return hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
+        hashCode = Objects.hash(causingObligation, blockingClause, weakenings);
+      } else {
+        hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
       }
-      return hashCode = Objects.hash(causingCandidateInvariant, blockingClause, weakenings);
+      return hashCode;
     }
 
     @Override

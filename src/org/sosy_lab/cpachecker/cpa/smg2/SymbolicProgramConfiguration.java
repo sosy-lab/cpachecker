@@ -834,7 +834,9 @@ public class SymbolicProgramConfiguration {
         memoryAddressAssumptionsMap;
     for (SMGObject object : frame.getAllObjects()) {
       // Don't invalidate objects that are referenced by another stack frame!
-      if (!validObjects.contains(object)) {
+      // Pointers from may be given as array argument, then we have the object, but don't own it,
+      // hence no heap objs.
+      if (!validObjects.contains(object) && !isHeapObject(object)) {
         newSmg = newSmg.copyAndInvalidateObject(object, false);
         newMemoryAddressAssumptionsMap = newMemoryAddressAssumptionsMap.removeAndCopy(object);
       }
@@ -990,10 +992,13 @@ public class SymbolicProgramConfiguration {
   }
 
   public SymbolicProgramConfiguration replacePointerValuesWithExistingOrNew(
-      SMGObject pOldTargetObj,
-      SMGValue pointerToNewObj,
-      Set<SMGTargetSpecifier> pSpecifierToSwitch) {
-    Preconditions.checkArgument(smg.isPointer(pointerToNewObj));
+      SMGObject pOldTargetObj, SMGValue pointerToNewObj, Set<SMGTargetSpecifier> pSpecifierToSwitch)
+      throws SMGException {
+    if (!smg.isPointer(pointerToNewObj)) {
+      throw new SMGException(
+          "Non-address value found when trying to replace a pointer. This might be caused by"
+              + " overapproximations, e.g. removal of concrete values (null).");
+    }
     SMGObject newTargetObj = smg.getPTEdge(pointerToNewObj).orElseThrow().pointsTo();
 
     SMGAndSMGValues newSMGAndNewValuesForMapping =
@@ -1032,8 +1037,8 @@ public class SymbolicProgramConfiguration {
         found = true;
         continue;
       }
-      Set<SymbolicValue> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
-      if (identsInValue.contains(oldValue)) {
+      Set<SymbolicIdentifier> identsInValue = getSymbolicIdentifiersForValue(mappedValue);
+      if (oldValue instanceof SymbolicIdentifier oldSymIden && identsInValue.contains(oldSymIden)) {
         valuesToUpdate.putIfAbsent(mappedValue, mapping.getValue());
       }
     }
@@ -1101,10 +1106,10 @@ public class SymbolicProgramConfiguration {
    * Returns all {@link ConstantSymbolicExpression}s with {@link SymbolicIdentifier}s inside located
    * in the given value. Preserves type info in the const expr.
    */
-  protected Map<SymbolicValue, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
+  protected Map<SymbolicIdentifier, CType> getSymbolicIdentifiersWithTypesForValue(Value value) {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
-    ImmutableMap.Builder<SymbolicValue, CType> identsBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<SymbolicIdentifier, CType> identsBuilder = ImmutableMap.builder();
     // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
     if (value instanceof SymbolicValue symValue) {
       for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
@@ -1116,7 +1121,7 @@ public class SymbolicProgramConfiguration {
     return identsBuilder.buildOrThrow();
   }
 
-  protected Set<SymbolicValue> getSymbolicIdentifiersForValue(Value value) {
+  protected Set<SymbolicIdentifier> getSymbolicIdentifiersForValue(Value value) {
     return getSymbolicIdentifiersWithTypesForValue(value).keySet();
   }
 
