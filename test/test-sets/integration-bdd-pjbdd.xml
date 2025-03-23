@@ -30,11 +30,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
-    <include>commonTasks.xml</include>
+    <include>integration-bdd-pjbdd-common.xml</include>
   </tasks>
 
   <!-- JAVADD-Konfiguration -->
   <tasks name="JAVADD">
-    <include>commonTasks.xml</include>
+    <include>integration-bdd-pjbdd-common.xml</include>
   </tasks>
 </benchmark>
