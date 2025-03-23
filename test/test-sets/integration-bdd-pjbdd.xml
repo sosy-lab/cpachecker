@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="10 s" hardtimelimit="20 s" memlimit="2 GB" cpuCores="2">
+
+  <!--
+  This is a small benchmark-file to check the BDDCPA with its most-used option-combinations.
+  Some results are FALSE POSITIVES, however there should not be any FALSE NEGATIVES.
+  The rundefinition needs a runtime of 45 minutes.
+  -->
+
+  <option name="--no-output-files"/>
+  <option name="--heap">1500M</option>
+
+  <rundefinition/>
+
+  <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  <!-- PJBDD-Konfiguration -->
+  <tasks name="PJBDD">
+    <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=BDD</option>
+    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
+    <include>commonTasks.xml</include>
+  </tasks>
+
+  <!-- JAVADD-Konfiguration -->
+  <tasks name="JAVADD">
+    <include>commonTasks.xml</include>
+  </tasks>
+</benchmark>
