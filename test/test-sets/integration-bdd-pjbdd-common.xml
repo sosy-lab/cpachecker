@@ -1,5 +1,3 @@
-<?xml version="1.0"?>
-
 <!--
 This file is part of CPAchecker,
 a tool for configurable software verification:
@@ -9,7 +7,7 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 
 SPDX-License-Identifier: Apache-2.0
 -->
-
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="2">
   <tasks name="va-bdd-bool">
     <option name="--valueAnalysis-BDD-bool"/>
     <include>../programs/benchmarks/openssl/*clnt*.yml</include>
@@ -63,3 +61,4 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loops-crafted-1/mono-crafted_13.yml</exclude> <!-- flapping timeout / wrong alarm -->
     <exclude>../programs/benchmarks/loops-crafted-1/theatreSquare.yml</exclude> <!-- flapping OOM/StackOverflow -->
   </tasks>
+</benchmark>
