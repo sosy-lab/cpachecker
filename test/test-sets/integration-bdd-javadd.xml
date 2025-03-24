@@ -22,7 +22,13 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
 
-  <rundefinition/>
+  <rundefinition name="JAVADD">
+  </rundefinition>
+  <rundefinition name="PJBDD">
+    <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=BDD</option>
+    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
+  </rundefinition>
 
   <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
 
