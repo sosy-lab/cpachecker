@@ -57,7 +57,7 @@ SPDX-License-Identifier: Apache-2.0
                     conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
-        <dependency org="org.sosy_lab" name="pjbdd" rev="v.1.0.10-10"
+        <dependency org="org.sosy_lab" name="pjbdd" rev="v1.0.10-9-268-g1ac198bf"
                     conf="runtime->runtime; contrib->sources"/>
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
