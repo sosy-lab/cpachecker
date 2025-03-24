@@ -282,6 +282,7 @@ public class PJBDDRegionManager implements RegionManager {
       switch (useDDType) {
         case "BDD":
           builder = Builders.bddBuilder();
+          break;
         case "CBDD":
           /*
           makeVariableBefore, setVarOrder, makeExists are not supported operations in CBDD PJBDD
