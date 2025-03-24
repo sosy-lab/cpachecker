@@ -31,6 +31,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
   </rundefinition>
+  <!--
   <rundefinition name="PJBDD-TBDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TBDD</option>
@@ -40,6 +41,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.useDDType=CBDD</option>
     <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
   </rundefinition>
+  -->
 
   <!--
   <columns>
