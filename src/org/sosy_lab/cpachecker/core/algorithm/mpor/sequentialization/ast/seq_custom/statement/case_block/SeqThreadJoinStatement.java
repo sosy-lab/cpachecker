@@ -15,18 +15,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-/**
- * Represents a statement that simulates calls to {@code pthread_join} of the form:
- *
- * <p>{@code if (pc[1] != -1) { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 1; }}
- *
- * <p>{@code else { __MPOR_SEQ__THREAD0_JOINS_THREAD1 = 0; pc[0] = ...; }}
- */
+/** Represents a statement that simulates calls to {@code pthread_join}. */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   public final CIdExpression threadJoinsThread;
 
@@ -41,6 +38,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadJoinStatement(CIdExpression pThreadJoins, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
+    loopHeadLabel = Optional.empty();
     threadJoinsThread = pThreadJoins;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -50,6 +48,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   private SeqThreadJoinStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CIdExpression pThreadJoins,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -57,6 +56,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     threadJoinsThread = pThreadJoins;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
@@ -75,7 +75,10 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
-    return setJoinsFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + setJoinsFalse.toASTString()
+        + SeqSyntax.SPACE
+        + targetStatements;
   }
 
   @Override
@@ -95,8 +98,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
-
     return new SeqThreadJoinStatement(
+        loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
         Optional.of(pTargetPc),
@@ -108,6 +111,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqThreadJoinStatement(
+        loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
         Optional.empty(),
@@ -121,6 +125,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
+        loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
         targetPc,
@@ -130,10 +135,23 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqThreadJoinStatement(
+        Optional.of(pLoopHeadLabel),
+        threadJoinsThread,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqThreadJoinStatement(
+        loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
         Optional.empty(),

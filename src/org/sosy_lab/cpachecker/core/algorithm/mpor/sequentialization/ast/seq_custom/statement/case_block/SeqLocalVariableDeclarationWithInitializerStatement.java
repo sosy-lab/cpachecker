@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -25,6 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * explicitly for the sequentialization.
  */
 public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CVariableDeclaration variableDeclaration;
 
@@ -49,6 +52,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
       CVariableDeclaration pVariableDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
     checkArguments(pVariableDeclaration);
+    loopHeadLabel = Optional.empty();
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -58,6 +62,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   private SeqLocalVariableDeclarationWithInitializerStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -66,6 +71,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     checkArguments(pVariableDeclaration);
+    loopHeadLabel = pLoopHeadLabel;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -79,7 +85,8 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return variableDeclaration.toASTStringWithOnlyNameAndInitializer()
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + variableDeclaration.toASTStringWithOnlyNameAndInitializer()
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -103,6 +110,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(int pTargetPc) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
         Optional.of(pTargetPc),
@@ -114,6 +122,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
         Optional.empty(),
@@ -127,6 +136,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
         targetPc,
@@ -136,10 +146,23 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqLocalVariableDeclarationWithInitializerStatement(
+        Optional.of(pLoopHeadLabel),
+        variableDeclaration,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
+        loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
         Optional.empty(),

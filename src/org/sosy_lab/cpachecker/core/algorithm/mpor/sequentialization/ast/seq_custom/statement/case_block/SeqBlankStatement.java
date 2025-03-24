@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 
@@ -21,6 +22,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
  */
 public class SeqBlankStatement implements SeqCaseBlockStatement {
 
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
+
   private final CLeftHandSide pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
@@ -29,16 +32,19 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     injectedStatements = ImmutableList.of();
   }
 
   private SeqBlankStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
     injectedStatements = pInjectedStatements;
@@ -69,7 +75,8 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
-    return new SeqBlankStatement(pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
+    return new SeqBlankStatement(
+        loopHeadLabel, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
   }
 
   @Override
@@ -81,7 +88,13 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    return new SeqBlankStatement(pcLeftHandSide, targetPc, pInjectedStatements);
+    return new SeqBlankStatement(loopHeadLabel, pcLeftHandSide, targetPc, pInjectedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqBlankStatement(
+        Optional.of(pLoopHeadLabel), pcLeftHandSide, targetPc, injectedStatements);
   }
 
   @Override

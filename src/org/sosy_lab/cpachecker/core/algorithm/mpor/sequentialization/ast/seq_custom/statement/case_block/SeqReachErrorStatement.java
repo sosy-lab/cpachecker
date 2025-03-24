@@ -16,7 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /**
@@ -26,11 +28,24 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
+
   private final CLeftHandSide pcLeftHandSide;
 
   private final int targetPc;
 
   SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    loopHeadLabel = Optional.empty();
+    pcLeftHandSide = pPcLeftHandSide;
+    targetPc = pTargetPc;
+  }
+
+  private SeqReachErrorStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
+      CLeftHandSide pPcLeftHandSide,
+      int pTargetPc) {
+
+    loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
   }
@@ -39,7 +54,10 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     CExpressionAssignmentStatement pcWrite =
         SeqStatementBuilder.buildPcWrite(pcLeftHandSide, targetPc);
-    return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + pcWrite.toASTString();
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + Sequentialization.inputReachErrorDummy
+        + SeqSyntax.SPACE
+        + pcWrite.toASTString();
   }
 
   @Override
@@ -63,7 +81,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
     checkArgument(
         pTargetPc == Sequentialization.EXIT_PC,
-        "reach_errors should only be clone with exit pc %s",
+        "reach_errors should only be cloned with exit pc %s",
         Sequentialization.EXIT_PC);
     return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
   }
@@ -78,15 +96,19 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have injected statements and cannot be cloned");
+        this.getClass().getSimpleName() + " do not have injected statements");
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqReachErrorStatement(Optional.of(pLoopHeadLabel), pcLeftHandSide, targetPc);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName()
-            + " do not have concatenated statements and cannot be cloned");
+        this.getClass().getSimpleName() + " do not have concatenated statements");
   }
 
   @Override

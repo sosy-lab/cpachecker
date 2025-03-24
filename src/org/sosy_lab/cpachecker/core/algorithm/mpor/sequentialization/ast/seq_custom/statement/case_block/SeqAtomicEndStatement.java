@@ -12,11 +12,14 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CExpressionAssignmentStatement atomicLockedFalse;
 
@@ -35,6 +38,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
+    loopHeadLabel = Optional.empty();
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -44,6 +48,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   }
 
   private SeqAtomicEndStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -51,6 +56,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -64,7 +70,10 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return atomicLockedFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + atomicLockedFalse.toASTString()
+        + SeqSyntax.SPACE
+        + targetStatements;
   }
 
   @Override
@@ -85,6 +94,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicEndStatement(
+        loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
         Optional.of(pTargetPc),
@@ -96,6 +106,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqAtomicEndStatement(
+        loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
         Optional.empty(),
@@ -109,6 +120,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicEndStatement(
+        loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
         targetPc,
@@ -118,10 +130,23 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqAtomicEndStatement(
+        Optional.of(pLoopHeadLabel),
+        atomicLockedFalse,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqAtomicEndStatement(
+        loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
         Optional.empty(),

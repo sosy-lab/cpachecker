@@ -15,18 +15,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-// TODO refactor this so that we only set locked = 1 and locks = 0 here, the locks variable is set
-//  to true in statements targeting locks, atomic begins, thread joins etc. (everything total order)
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
  *
  * <p>{@code m_LOCKED = 1; THREADi_LOCKS_m = 0;}
  */
 public class SeqMutexLockStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CIdExpression mutexLocked;
 
@@ -48,6 +49,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
+    loopHeadLabel = Optional.empty();
     mutexLocked = pMutexLocked;
     threadLocksMutex = pThreadLocksMutex;
     pcLeftHandSide = pPcLeftHandSide;
@@ -58,6 +60,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   }
 
   private SeqMutexLockStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CIdExpression pMutexLocked,
       CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,
@@ -66,6 +69,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     mutexLocked = pMutexLocked;
     threadLocksMutex = pThreadLocksMutex;
     pcLeftHandSide = pPcLeftHandSide;
@@ -88,7 +92,8 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
-    return setLockedTrue.toASTString()
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + setLockedTrue.toASTString()
         + SeqSyntax.SPACE
         + setLocksFalse.toASTString()
         + SeqSyntax.SPACE
@@ -113,6 +118,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   @Override
   public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(
+        loopHeadLabel,
         mutexLocked,
         threadLocksMutex,
         pcLeftHandSide,
@@ -125,6 +131,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqMutexLockStatement(
+        loopHeadLabel,
         mutexLocked,
         threadLocksMutex,
         pcLeftHandSide,
@@ -139,6 +146,7 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(
+        loopHeadLabel,
         mutexLocked,
         threadLocksMutex,
         pcLeftHandSide,
@@ -149,10 +157,24 @@ public class SeqMutexLockStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqMutexLockStatement(
+        Optional.of(pLoopHeadLabel),
+        mutexLocked,
+        threadLocksMutex,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqMutexLockStatement(
+        loopHeadLabel,
         mutexLocked,
         threadLocksMutex,
         pcLeftHandSide,

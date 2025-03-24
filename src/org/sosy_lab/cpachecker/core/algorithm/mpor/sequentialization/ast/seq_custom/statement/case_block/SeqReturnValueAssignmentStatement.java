@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -23,6 +24,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * sequentialization.
  */
 public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CExpressionAssignmentStatement assignment;
 
@@ -39,6 +42,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   SeqReturnValueAssignmentStatement(
       CExpressionAssignmentStatement pAssignment, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
 
+    loopHeadLabel = Optional.empty();
     assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -48,6 +52,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   }
 
   private SeqReturnValueAssignmentStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CExpressionAssignmentStatement pAssignment,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -55,6 +60,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     assignment = pAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -68,7 +74,10 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return assignment.toASTString() + SeqSyntax.SPACE + targetStatements;
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + assignment.toASTString()
+        + SeqSyntax.SPACE
+        + targetStatements;
   }
 
   @Override
@@ -90,6 +99,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
 
     return new SeqReturnValueAssignmentStatement(
+        loopHeadLabel,
         assignment,
         pcLeftHandSide,
         Optional.of(pTargetPc),
@@ -101,6 +111,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqReturnValueAssignmentStatement(
+        loopHeadLabel,
         assignment,
         pcLeftHandSide,
         Optional.empty(),
@@ -114,6 +125,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReturnValueAssignmentStatement(
+        loopHeadLabel,
         assignment,
         pcLeftHandSide,
         targetPc,
@@ -123,10 +135,23 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqReturnValueAssignmentStatement(
+        Optional.of(pLoopHeadLabel),
+        assignment,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqReturnValueAssignmentStatement(
+        loopHeadLabel,
         assignment,
         pcLeftHandSide,
         Optional.empty(),

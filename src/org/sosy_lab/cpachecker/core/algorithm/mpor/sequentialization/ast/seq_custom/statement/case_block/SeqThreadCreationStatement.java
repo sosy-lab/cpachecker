@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -24,6 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * <p>{@code pc[i] = 0; pc[j] = n; } where thread {@code j} creates thread {@code i}.
  */
 public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final int createdThreadId;
 
@@ -42,6 +45,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   SeqThreadCreationStatement(
       int pCreatedThreadId, int pThreadId, PcVariables pPcVariables, int pTargetPc) {
 
+    loopHeadLabel = Optional.empty();
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     pcVariables = pPcVariables;
@@ -52,6 +56,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   private SeqThreadCreationStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       int pCreatedThreadId,
       int pThreadId,
       PcVariables pPcVariables,
@@ -60,6 +65,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     pcVariables = pPcVariables;
@@ -81,7 +87,10 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
             targetGoto,
             injectedStatements,
             concatenatedStatements);
-    return createdPcWrite.toASTString() + SeqSyntax.SPACE + targetStatements;
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + createdPcWrite.toASTString()
+        + SeqSyntax.SPACE
+        + targetStatements;
   }
 
   @Override
@@ -102,6 +111,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   @Override
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
+        loopHeadLabel,
         createdThreadId,
         threadId,
         pcVariables,
@@ -113,7 +123,15 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
-    return null;
+    return new SeqThreadCreationStatement(
+        loopHeadLabel,
+        createdThreadId,
+        threadId,
+        pcVariables,
+        Optional.empty(),
+        Optional.of(pLabel),
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -121,6 +139,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadCreationStatement(
+        loopHeadLabel,
         createdThreadId,
         threadId,
         pcVariables,
@@ -131,10 +150,24 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqThreadCreationStatement(
+        Optional.of(pLoopHeadLabel),
+        createdThreadId,
+        threadId,
+        pcVariables,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqThreadCreationStatement(
+        loopHeadLabel,
         createdThreadId,
         threadId,
         pcVariables,

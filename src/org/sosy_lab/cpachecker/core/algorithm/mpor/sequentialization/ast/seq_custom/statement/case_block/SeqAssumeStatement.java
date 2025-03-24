@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
-  public final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   public final SeqControlFlowStatement controlFlowStatement;
 
@@ -78,25 +78,12 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     concatenatedStatements = pConcatenatedStatements;
   }
 
-  public SeqAssumeStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqAssumeStatement(
-        Optional.of(pLoopHeadLabel),
-        controlFlowStatement,
-        pcLeftHandSide,
-        targetPc,
-        targetGoto,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
   @Override
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return (loopHeadLabel.isPresent()
-            ? loopHeadLabel.orElseThrow().toASTString() + SeqSyntax.SPACE
-            : SeqSyntax.EMPTY_STRING)
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
         + controlFlowStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(targetStatements);
@@ -110,6 +97,18 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
+  }
+
+  @Override
+  public SeqAssumeStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqAssumeStatement(
+        Optional.of(pLoopHeadLabel),
+        controlFlowStatement,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override

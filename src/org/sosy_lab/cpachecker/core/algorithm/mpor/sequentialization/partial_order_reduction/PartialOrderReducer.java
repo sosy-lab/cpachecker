@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqMutexUnlockStatement;
@@ -198,15 +197,12 @@ public class PartialOrderReducer {
       return pCaseClause.block.statements;
     }
 
-    // create loop head label for the first assume statement (= if)
+    // create loop head label for the first statement
     SeqCaseBlockStatement firstStatement = pCaseClause.block.getFirstStatement();
-    assert firstStatement instanceof SeqAssumeStatement
-        : "first statement of loop head must be assume";
     String labelName = SeqNameUtil.buildLoopHeadLabelName(pOptions, pThread.id);
     SeqLoopHeadLabelStatement loopHeadLabel = new SeqLoopHeadLabelStatement(labelName);
     pLoopHeads.put(pCaseClause.label.value, loopHeadLabel);
-    SeqAssumeStatement cloneWithLabel =
-        ((SeqAssumeStatement) firstStatement).cloneWithLoopHeadLabel(loopHeadLabel);
+    SeqCaseBlockStatement cloneWithLabel = firstStatement.cloneWithLoopHeadLabel(loopHeadLabel);
 
     // inject cloned statement with loop head label
     ImmutableList.Builder<SeqCaseBlockStatement> rWithLabel = ImmutableList.builder();
@@ -249,8 +245,7 @@ public class PartialOrderReducer {
     SeqCaseClause firstCase = pCaseClauses.get(0);
     if (firstCase.block.statements.size() == 1) {
       SeqCaseBlockStatement firstStatement = firstCase.block.getFirstStatement();
-      if (firstStatement instanceof SeqBlankStatement
-          && firstStatement.getInjectedStatements().size() == 1) {
+      if (isUnnecessaryInjection(firstCase, firstStatement)) {
         SeqInjectedStatement injected = firstStatement.getInjectedStatements().get(0);
         pUpdatedVariables.add(injected.getIdExpression().orElseThrow());
         return rPrunedInjections
@@ -262,6 +257,14 @@ public class PartialOrderReducer {
       }
     }
     return pCaseClauses;
+  }
+
+  private static boolean isUnnecessaryInjection(
+      SeqCaseClause pFirstCase, SeqCaseBlockStatement pFirstStatement) {
+
+    return pFirstStatement instanceof SeqBlankStatement
+        && pFirstStatement.getInjectedStatements().size() == 1
+        && !pFirstCase.isLoopStart;
   }
 
   // Helpers =======================================================================================

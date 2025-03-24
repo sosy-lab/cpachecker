@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -22,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  * specific handling and their (substituted) code is placed directly into the case block.
  */
 public class SeqDefaultStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CStatementEdge edge;
 
@@ -36,6 +39,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqDefaultStatement(CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+    loopHeadLabel = Optional.empty();
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
@@ -45,6 +49,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   }
 
   private SeqDefaultStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CStatementEdge pEdge,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
@@ -52,6 +57,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
@@ -65,7 +71,10 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return edge.getCode() + SeqSyntax.SPACE + targetStatements;
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + edge.getCode()
+        + SeqSyntax.SPACE
+        + targetStatements;
   }
 
   @Override
@@ -86,6 +95,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   @Override
   public SeqDefaultStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqDefaultStatement(
+        loopHeadLabel,
         edge,
         pcLeftHandSide,
         Optional.of(pTargetPc),
@@ -97,6 +107,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqDefaultStatement(
+        loopHeadLabel,
         edge,
         pcLeftHandSide,
         Optional.empty(),
@@ -108,8 +119,27 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
     return new SeqDefaultStatement(
-        edge, pcLeftHandSide, targetPc, targetGoto, pInjectedStatements, concatenatedStatements);
+        loopHeadLabel,
+        edge,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        pInjectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqDefaultStatement(
+        Optional.of(pLoopHeadLabel),
+        edge,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
@@ -117,6 +147,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqDefaultStatement(
+        loopHeadLabel,
         edge,
         pcLeftHandSide,
         Optional.empty(),

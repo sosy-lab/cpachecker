@@ -15,11 +15,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CIdExpression atomicLocked;
 
@@ -41,6 +44,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
+    loopHeadLabel = Optional.empty();
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
@@ -51,6 +55,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   private SeqAtomicBeginStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CIdExpression pAtomicLocked,
       CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,
@@ -59,6 +64,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
+    loopHeadLabel = pLoopHeadLabel;
     atomicLocked = pAtomicLocked;
     threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
@@ -81,7 +87,8 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
-    return setAtomicLockedTrue.toASTString()
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + setAtomicLockedTrue.toASTString()
         + SeqSyntax.SPACE
         + setBeginsFalse.toASTString()
         + SeqSyntax.SPACE
@@ -106,6 +113,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   @Override
   public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicBeginStatement(
+        loopHeadLabel,
         atomicLocked,
         threadBeginsAtomic,
         pcLeftHandSide,
@@ -118,6 +126,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqAtomicBeginStatement(
+        loopHeadLabel,
         atomicLocked,
         threadBeginsAtomic,
         pcLeftHandSide,
@@ -132,6 +141,7 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicBeginStatement(
+        loopHeadLabel,
         atomicLocked,
         threadBeginsAtomic,
         pcLeftHandSide,
@@ -142,10 +152,24 @@ public class SeqAtomicBeginStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqAtomicBeginStatement(
+        Optional.of(pLoopHeadLabel),
+        atomicLocked,
+        threadBeginsAtomic,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqAtomicBeginStatement(
+        loopHeadLabel,
         atomicLocked,
         threadBeginsAtomic,
         pcLeftHandSide,

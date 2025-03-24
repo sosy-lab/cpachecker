@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -41,6 +42,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
  * sequentialization, a const declaration will be assigned an undeclared value e.g. {@code q->head}.
  */
 public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
+
+  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final CVariableDeclaration constCpaCheckerTmpDeclaration;
 
@@ -91,6 +94,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       int pTargetPc) {
 
     checkArguments(pDeclaration, pStatementA, pStatementB);
+    loopHeadLabel = Optional.empty();
     statementA = pStatementA;
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pDeclaration;
@@ -102,6 +106,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   private SeqConstCpaCheckerTmpStatement(
+      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CVariableDeclaration pConstCpaCheckerTmpDeclaration,
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
@@ -112,6 +117,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     checkArguments(pConstCpaCheckerTmpDeclaration, pStatementA, pStatementB);
+    loopHeadLabel = pLoopHeadLabel;
     statementA = pStatementA;
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
@@ -128,7 +134,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     // we only want name and initializer here, the declaration is done beforehand
-    return constCpaCheckerTmpDeclaration.toASTStringWithOnlyNameAndInitializer()
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + constCpaCheckerTmpDeclaration.toASTStringWithOnlyNameAndInitializer()
         + SeqSyntax.SPACE
         + statementA.cfaEdge.getCode()
         + SeqSyntax.SPACE
@@ -155,6 +162,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public SeqConstCpaCheckerTmpStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqConstCpaCheckerTmpStatement(
+        loopHeadLabel,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -168,6 +176,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqConstCpaCheckerTmpStatement(
+        loopHeadLabel,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -182,6 +191,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqConstCpaCheckerTmpStatement(
+        loopHeadLabel,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
@@ -193,10 +203,25 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
+    return new SeqConstCpaCheckerTmpStatement(
+        Optional.of(pLoopHeadLabel),
+        constCpaCheckerTmpDeclaration,
+        statementA,
+        statementB,
+        pcLeftHandSide,
+        targetPc,
+        targetGoto,
+        injectedStatements,
+        concatenatedStatements);
+  }
+
+  @Override
   public SeqCaseBlockStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
+        loopHeadLabel,
         constCpaCheckerTmpDeclaration,
         statementA,
         statementB,
