@@ -43,9 +43,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
 
-  private static final String license = "Apache-2.0";
+  private final String license = "Apache-2.0";
 
-  private static final ImmutableList<LineOfCode> licenseHeader =
+  private final ImmutableList<LineOfCode> licenseHeader =
       ImmutableList.of(
           LineOfCode.of(0, "// This file is part of CPAchecker,"),
           LineOfCode.of(0, "// a tool for configurable software verification:"),
@@ -61,7 +61,7 @@ public class Sequentialization {
           // splitting this with + so that 'reuse lint' accepts it
           LineOfCode.of(0, "// SPDX-" + "License-" + "Identifier: " + license));
 
-  private static final ImmutableList<LineOfCode> mporHeader =
+  private final ImmutableList<LineOfCode> mporHeader =
       ImmutableList.of(
           LineOfCode.of(
               0,
