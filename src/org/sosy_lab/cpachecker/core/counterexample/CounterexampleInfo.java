@@ -106,7 +106,7 @@ public class CounterexampleInfo extends AbstractAppender {
    * @param pTargetPath an imprecise representation of the path from the first state to the target
    *     state; the states between these two state are not required to be part of the intended
    *     actual target path.
-   * @return an object representing information about an feasible counterexample with an imprecise
+   * @return an object representing information about a feasible counterexample with an imprecise
    *     and unreliable representation of the path from the first state to the target state.
    */
   public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {

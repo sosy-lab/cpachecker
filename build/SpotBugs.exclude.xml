@@ -11,7 +11,15 @@ SPDX-License-Identifier: Apache-2.0
 <FindBugsFilter>
     <!-- TODO: Investigate -->
     <Match><Bug code="SING"/></Match>
+    <!-- TODO: looks useful, but matches all non-volatile uses of any field
+         in a class that looks potentially multi-threaded,
+         even if that field is not used from other threads.
+         Maybe re-evaluate in the future. -->
+    <Match><Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/></Match>
 
+    <!-- Forbidding static methods in subclasses with same name often makes no sense,
+         for example for factor() etc. -->
+    <Match><Bug pattern="HSM_HIDING_METHOD"/></Match>
     <!-- Exceptions from constructors are not really a problem because we do not use finalizers -->
     <Match><Bug pattern="CT_CONSTRUCTOR_THROW"/></Match>
     <!-- These checks are too pessimistic: https://github.com/spotbugs/spotbugs/issues/1601 -->
@@ -52,6 +60,11 @@ SPDX-License-Identifier: Apache-2.0
     <Match>
         <!-- Ignore Antlr-generated files. -->
         <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
+    </Match>
+    <Match>
+        <!-- Generated parsers sometimes have more or less issues that need to be suppressed. -->
+        <Bug pattern="US_USELESS_SUPPRESSION_ON_CLASS"/>
+        <Class name="~.*Parser"/>
     </Match>
 
     <Match><And>

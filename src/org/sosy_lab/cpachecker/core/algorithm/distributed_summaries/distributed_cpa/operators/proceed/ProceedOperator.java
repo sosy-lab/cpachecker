@@ -8,63 +8,44 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssMessageProcessing;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
   /**
-   * Decide whether to start a forward analysis based on the contents of the {@link
-   * BlockSummaryPostConditionMessage}.
+   * Processes the given state for a forward-analysis. The returned {@link DssMessageProcessing}
+   * contains information about whether to start a forward analysis based on the given {@link
+   * AbstractState}.
    *
-   * @param pMessage Incoming message
-   * @return A potentially empty set of responses to {@code pMessage}
+   * @param pState Incoming state
+   * @return a {@link DssMessageProcessing} that contains a decision whether to proceed and
+   *     potential messages that were generated during processing
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
-      throws InterruptedException;
-
-  /**
-   * Decide whether to start a backward analysis based on the contents of the {@link
-   * BlockSummaryPostConditionMessage}.
-   *
-   * @param pMessage Incoming message
-   * @return A potentially empty set of responses to {@code pMessage}
-   * @throws InterruptedException thrown if program is interrupted unexpectedly.
-   * @throws SolverException thrown if backwards analysis is infeasible
-   */
-  BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
+  DssMessageProcessing processForward(AbstractState pState)
       throws InterruptedException, SolverException;
 
   /**
-   * Decide whether to respond to the incoming message {@code pMessage}
+   * Processes the given state for a backward-analysis. The returned {@link DssMessageProcessing}
+   * contains information about whether to start a backward analysis based on the given {@link
+   * AbstractState}.
    *
-   * @param pMessage Incoming message
-   * @return A potentially empty set of responses to {@code pMessage}
+   * @param pState Incoming state
+   * @return a {@link DssMessageProcessing} that contains a decision whether to proceed and
+   *     potential messages that were generated during processing
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
+  DssMessageProcessing processBackward(AbstractState pState)
       throws InterruptedException, SolverException;
 
-  /**
-   * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis
-   * for later infeasible checks.
-   *
-   * @param pAnalysis Synchronize the knowledge of {@code pAnalysis} with this proceed operator
-   */
-  void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException;
+  static ProceedOperator always() {
+    return new AlwaysProceed();
+  }
 
-  /**
-   * Set the latest own {@link BlockSummaryPostConditionMessage}
-   *
-   * @param pLatestOwnPreconditionMessage latest {@link BlockSummaryPostConditionMessage}
-   */
-  void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
-      throws InterruptedException;
+  static ProceedOperator never() {
+    return new NeverProceed();
+  }
 }
