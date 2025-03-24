@@ -18,19 +18,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="JAVADD--predicateAnalysis">
   </rundefinition>
+  <rundefinition name="PJBDD-IntDD--predicateAnalysis">
+    <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
+  </rundefinition>
   <rundefinition name="PJBDD-OBDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
-  </rundefinition>
-  <rundefinition name="PJBDD-ChainedBDD--predicateAnalysis">
-    <option name="--option">bdd.package=PJBDD</option>
-    <option name="--option">bdd.pjbdd.useDDType=CBDD</option>
-    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
-  </rundefinition>
-  <rundefinition name="PJBDD-IntDD--predicateAnalysis">
-    <option name="--option">bdd.package=PJBDD</option>
-    <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
   </rundefinition>
   <rundefinition name="PJBDD-TaggedDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
@@ -39,6 +34,11 @@ SPDX-License-Identifier: Apache-2.0
   <rundefinition name="PJBDD-TBDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TBDD</option>
+  </rundefinition>
+  <rundefinition name="PJBDD-ChainedBDD--predicateAnalysis">
+    <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=CBDD</option>
+    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
   </rundefinition>
 
   <!--
