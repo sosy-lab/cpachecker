@@ -103,6 +103,7 @@ public class SeqExpressionBuilder {
         SeqFunctionDeclaration.REACH_ERROR);
   }
 
+  // TODO add function that takes MPOROptions and returns (u)int
   public static CFunctionCallExpression buildVerifierNondetInt() {
     return buildFunctionCallExpression(
         SeqSimpleType.INT,

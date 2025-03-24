@@ -201,7 +201,6 @@ public class SeqMainFunction extends SeqFunction {
       rBody.addAll(buildThreadLoopsSwitchStatements(options, threadAssumptions, caseClauses));
     } else {
       rBody.addAll(buildSingleLoopSwitchStatements(options, caseClauses));
-      rBody.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
@@ -333,63 +332,147 @@ public class SeqMainFunction extends SeqFunction {
 
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
 
-    // TODO option for shorter names like i < max_i
     CFunctionCallAssignmentStatement kNondet =
         SeqStatementBuilder.buildFunctionCallAssignmentStatement(
             SeqIdExpression.K,
             pOptions.signedNondet
                 ? SeqExpressionBuilder.buildVerifierNondetInt()
                 : SeqExpressionBuilder.buildVerifierNondetUint());
-    CExpressionAssignmentStatement rReset =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_0);
     CBinaryExpression kGreaterZero =
         binaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+    CExpressionAssignmentStatement rReset =
+        SeqStatementBuilder.buildExpressionAssignmentStatement(
+            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_0);
     CExpressionAssignmentStatement rIncrement =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             SeqIdExpression.R,
             binaryExpressionBuilder.buildBinaryExpression(
                 SeqIdExpression.R, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
 
+    if (pOptions.threadLoopsNext) {
+      rThreadLoops.addAll(
+          buildThreadLoopsWithNextThread(
+              pOptions,
+              pThreadAssumptions,
+              pCaseClauses,
+              kNondet,
+              kGreaterZero,
+              rReset,
+              rIncrement));
+    } else {
+      rThreadLoops.addAll(
+          buildThreadLoopsWithoutNextThread(
+              pOptions,
+              pThreadAssumptions,
+              pCaseClauses,
+              kNondet,
+              kGreaterZero,
+              rReset,
+              rIncrement));
+    }
+
+    return rThreadLoops.build();
+  }
+
+  private ImmutableList<LineOfCode> buildThreadLoopsWithNextThread(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      CFunctionCallAssignmentStatement pKNondet,
+      CBinaryExpression pKGreaterZero,
+      CExpressionAssignmentStatement pRReset,
+      CExpressionAssignmentStatement pRIncrement)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
+
+    SeqFunctionCallStatement assumeKGreaterZero =
+        new SeqFunctionCallStatement(
+            SeqAssumptionBuilder.buildAssumeCall(new CToSeqExpression(pKGreaterZero)));
+
+    rThreadLoops.add(LineOfCode.of(2, pKNondet.toASTString()));
+    rThreadLoops.add(LineOfCode.of(2, assumeKGreaterZero.toASTString()));
+    rThreadLoops.add(LineOfCode.of(2, pRReset.toASTString()));
+
+    int i = 0;
+    for (var entry : pCaseClauses.entrySet()) {
+      MPORThread thread = entry.getKey();
+      CIntegerLiteralExpression threadId =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id);
+
+      CBinaryExpression nextThreadEqualsThreadId =
+          binaryExpressionBuilder.buildBinaryExpression(
+              SeqIdExpression.NEXT_THREAD, threadId, BinaryOperator.EQUALS);
+      // first switch case: use "if", otherwise "else if"
+      SeqControlFlowStatementType statementType =
+          i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
+      SeqControlFlowStatement statement =
+          new SeqControlFlowStatement(nextThreadEqualsThreadId, statementType);
+      rThreadLoops.add(
+          LineOfCode.of(
+              2,
+              i == 0
+                  ? SeqStringUtil.appendOpeningCurly(statement.toASTString())
+                  : SeqStringUtil.wrapInCurlyOutwards(statement.toASTString())));
+
+      ImmutableList<SeqCaseClause> cases = entry.getValue();
+      rThreadLoops.addAll(
+          buildThreadLoop(pOptions, thread, pThreadAssumptions.get(thread), pRIncrement, cases));
+      i++;
+    }
+    rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
+
+    return rThreadLoops.build();
+  }
+
+  private ImmutableList<LineOfCode> buildThreadLoopsWithoutNextThread(
+      MPOROptions pOptions,
+      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      CFunctionCallAssignmentStatement pKNondet,
+      CBinaryExpression pKGreaterZero,
+      CExpressionAssignmentStatement pRReset,
+      CExpressionAssignmentStatement pRIncrement)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqCaseClause> cases = entry.getValue();
-      // choose nondet iterations and reset current iteration before each loop
-      rThreadLoops.add(LineOfCode.of(2, kNondet.toASTString()));
-      rThreadLoops.addAll(
-          buildThreadLoop(
-              pOptions,
-              thread,
-              kGreaterZero,
-              rReset,
-              pThreadAssumptions.get(thread),
-              rIncrement,
-              cases));
-    }
 
+      // choose nondet iterations and reset current iteration before each loop
+      rThreadLoops.add(LineOfCode.of(2, pKNondet.toASTString()));
+      rThreadLoops.add(LineOfCode.of(2, pRReset.toASTString()));
+
+      // add condition if loop still active and K > 0
+      CBinaryExpression pcUnequalExitPc =
+          SeqExpressionBuilder.buildPcUnequalExitPc(
+              pcVariables, thread.id, binaryExpressionBuilder);
+      SeqLogicalAndExpression loopCondition =
+          new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
+      SeqControlFlowStatement ifStatement =
+          new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
+      rThreadLoops.add(
+          LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
+
+      // add the thread loop statements (assumptions and switch)
+      rThreadLoops.addAll(
+          buildThreadLoop(pOptions, thread, pThreadAssumptions.get(thread), pRIncrement, cases));
+      rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
+    }
     return rThreadLoops.build();
   }
 
   private ImmutableList<LineOfCode> buildThreadLoop(
       MPOROptions pOptions,
       MPORThread pThread,
-      CBinaryExpression pKGreaterZero,
-      CExpressionAssignmentStatement pRReset,
       ImmutableList<SeqAssumption> pThreadAssumptions,
       CExpressionAssignmentStatement pRIncrement,
       ImmutableList<SeqCaseClause> pCaseClauses)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
-
-    // first create loop condition expressions
-    CBinaryExpression pcUnequalExitPc =
-        SeqExpressionBuilder.buildPcUnequalExitPc(pcVariables, pThread.id, binaryExpressionBuilder);
-    SeqLogicalAndExpression loopCondition =
-        new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
-    SeqControlFlowStatement ifStatement =
-        new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
 
     // create assumption and switch labels
     // TODO maybe add per-variable labels so that even less assumes are evaluated?
@@ -405,14 +488,11 @@ public class SeqMainFunction extends SeqFunction {
             pOptions, pThread, assumeLabel, switchLabel, pCaseClauses, 3);
 
     // add all lines of code: loop head, assumptions, iteration increment, switch statement
-    rThreadLoop.add(LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
-    rThreadLoop.add(LineOfCode.of(3, pRReset.toASTString()));
     rThreadLoop.add(LineOfCode.of(3, assumeLabel.toASTString()));
     rThreadLoop.addAll(buildThreadLoopAssumptions(pThreadAssumptions));
     rThreadLoop.add(LineOfCode.of(3, switchLabel.toASTString()));
     rThreadLoop.add(LineOfCode.of(3, pRIncrement.toASTString()));
     rThreadLoop.addAll(switchStatement);
-    rThreadLoop.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
 
     return rThreadLoop.build();
   }
@@ -447,6 +527,7 @@ public class SeqMainFunction extends SeqFunction {
       rSwitches.addAll(buildSingleLoopSwitchStatement(pOptions, thread, entry.getValue(), 3));
       i++;
     }
+    rSwitches.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     return rSwitches.build();
   }
 

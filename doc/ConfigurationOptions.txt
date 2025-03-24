@@ -307,6 +307,10 @@ analysis.algorithm.MPOR.signedNondet = false
 # verifier and input program
 analysis.algorithm.MPOR.threadLoops = true
 
+# use the next_thread variable when choosing the thread loop to execute? may
+# slow down or improve verification  depending on the verifier
+analysis.algorithm.MPOR.threadLoopsNext = true
+
 # test if CPAchecker can parse sequentialization? true -> less efficient, but
 # more correctness guarantees
 analysis.algorithm.MPOR.validateParse = true

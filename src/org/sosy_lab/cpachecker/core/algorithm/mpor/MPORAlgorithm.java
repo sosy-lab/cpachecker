@@ -136,6 +136,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean threadLoops = true;
 
   @Option(
+      secure = true,
+      description =
+          "use the next_thread variable when choosing the thread loop to execute? may slow down or"
+              + " improve verification  depending on the verifier")
+  private boolean threadLoopsNext = true;
+
+  @Option(
       description =
           "test if CPAchecker can parse sequentialization? true -> less efficient, but more"
               + " correctness guarantees")
@@ -236,6 +243,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             shortVariables,
             signedNondet,
             threadLoops,
+            threadLoopsNext,
             validateParse,
             validatePc);
     cpa = pCpa;
