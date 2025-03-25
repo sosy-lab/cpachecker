@@ -16,10 +16,10 @@
         type: loop_invariant
         location:
           # file_name: maxArray.c
-          line: 25
+          line: 9
           column: 3
           function: maxArray
-        value: "m == MaxArray(a,i)"
+        value: "m == ACSL(MaxArray(arr,i))"
         format: c_expression
 - entry_type: lemma_set
   declarations: 
@@ -30,7 +30,7 @@
     - lemma:
         location:
           # file_name: maxArray.c
-          line: 25
+          line: 9
           column: 3
           function: maxArray
         value: "ACSL(MaxArray(A,0)) == A[0]"
@@ -38,8 +38,9 @@
     - lemma:
         location:
           # file_name: maxArray.c
-          line: 25
+          line: 9
           column: 3
           function: maxArray
-        value: "ACSL(MaxArray(A,I)) == (A[I] > ACSL(MaxArray(A,I-1))) ? A[I] : ACSL(MaxArray(A,I-1))"
+          # ACSL(MaxArray(A,I)) == (A[I] > ACSL(MaxArray(A,I-1)) ? A[I] : ACSL(MaxArray(A,I-1))) 
+        value: "((A[I] > ACSL(MaxArray(A,I))) & ACSL(MaxArray(A,I)) == A[I]) | (A[I] <= ACSL(MaxArray(A,I)) & ACSL(MaxArray(A,I)) == ACSL(MaxArray(A,I-1)))"
         format: c_expression

@@ -12,6 +12,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -23,11 +24,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ACSLParserUtils;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
 
 public class InvariantExchangeFormatTransformer {
 
@@ -101,29 +104,51 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
+   * Create an {@link ExpressionTree} from a given string.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction!
+   *
+   * @param invariantString The string to parse
+   * @param pScope The scope in which the expression is contained
+   * @return The parsed expression
+   */
+  public ExpressionTree<AExpression> createACSLExpressionTreeFromString(
+      String invariantString, CProgramScope pScope) {
+
+    try {
+
+      return ACSLParserUtils.parseACSLStatementAsExpressionTree(
+          invariantString, cparser, pScope, parserTools);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
    * Parse the invariant string given in an {@link InvariantEntry} into an {@link ExpressionTree}.
    *
    * @param pInvariantEntry The entry whose invariant should be parsed
    * @return The parsed invariant as a {@link ExpressionTree}
-   * @throws InterruptedException If the parsing is interrupted
    */
-  public ExpressionTree<AExpression> parseInvariantEntry(InvariantEntry pInvariantEntry)
-      throws InterruptedException {
-    Integer line = pInvariantEntry.getLocation().getLine();
-    Optional<String> resultFunction =
-        Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
+  public ExpressionTree<AExpression> parseInvariantEntry(
+      InvariantEntry pInvariantEntry, List<CDeclaration> lemmaDeclarations)
+      throws InvalidYAMLWitnessException {
     String invariantString = pInvariantEntry.getValue();
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
 
-    Scope scope =
-        switch (cfa.getLanguage()) {
-          case C -> new CProgramScope(cfa, logger);
-          default -> DummyScope.getInstance();
-        };
+    /*
+     * We need the declarations from the witness file in the scope to correctly parse any invariants that reference the lemmas.
+     * This is a quick fix that needs to be reimplemented properly!*/
+    CProgramScope scope = new CProgramScope(cfa, logger);
+    for (CDeclaration declaration : lemmaDeclarations) {
+      scope.addDeclarationToScope(declaration);
+    }
 
-    return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+    return createACSLExpressionTreeFromString(invariantString, scope);
   }
 
   public PathFormula parseLemmaEntry(
@@ -154,10 +179,21 @@ public class InvariantExchangeFormatTransformer {
    * @return The set of invariants
    */
   public Set<Invariant> generateInvariantsFromEntries(List<AbstractEntry> pEntries)
-      throws InterruptedException {
+      throws InvalidYAMLWitnessException {
     ImmutableSet.Builder<Invariant> invariants = new ImmutableSet.Builder<>();
 
     SetMultimap<Pair<Integer, Integer>, String> lineToSeenInvariants = HashMultimap.create();
+
+    List<LemmaSetEntry> lemmaSetEntries = new ArrayList<>();
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof LemmaSetEntry lemmaSetEntry) {
+        lemmaSetEntries.add(lemmaSetEntry);
+      }
+    }
+
+    List<String> declarationStrings =
+        AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries).asList();
+    List<CDeclaration> lemmaDeclarations = ACSLParserUtils.parseDeclarations(declarationStrings);
 
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
@@ -173,7 +209,8 @@ public class InvariantExchangeFormatTransformer {
               continue;
             }
 
-            ExpressionTree<AExpression> invariant = parseInvariantEntry(invariantEntry);
+            ExpressionTree<AExpression> invariant =
+                parseInvariantEntry(invariantEntry, lemmaDeclarations);
 
             invariants.add(
                 new Invariant(

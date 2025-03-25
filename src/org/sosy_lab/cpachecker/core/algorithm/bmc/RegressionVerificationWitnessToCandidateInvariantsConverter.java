@@ -121,7 +121,7 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
   }
 
   private Set<Invariant> readInvariantEntriesFromWitness(final Path pWitnessFile)
-      throws InterruptedException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream(); ) {
       List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
       return new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa)
@@ -323,7 +323,7 @@ public class RegressionVerificationWitnessToCandidateInvariantsConverter {
   }
 
   public ImmutableSet<CandidateInvariant> getCandidateInvariantsFromWitness(final Path pWitnessFile)
-      throws InterruptedException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     if (!cfa.getAllLoopHeads().isPresent()) {
       logger.log(
           Level.INFO,

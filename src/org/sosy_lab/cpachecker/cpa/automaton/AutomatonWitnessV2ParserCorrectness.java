@@ -10,8 +10,10 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +24,13 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckCoversColumnAndLine;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckEndsAtNodes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.util.ACSLParserUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
@@ -36,6 +41,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationR
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon {
 
@@ -56,17 +62,31 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
    * @throws WitnessParseException if there is some problem parsing the witness
    */
   Automaton createCorrectnessAutomatonFromEntries(List<AbstractEntry> entries)
-      throws InterruptedException, WitnessParseException {
+      throws InterruptedException, WitnessParseException, InvalidYAMLWitnessException {
     String automatonName = "No Loop Invariant Present";
     Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
     String entryStateId = "singleState";
 
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
 
-    ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
+    Builder<AutomatonTransition> transitions = new Builder<>();
 
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
+
+    /*
+     * We need the declarations from the witness file in the scope to correctly parse any invariants that reference the lemmas.
+     * This is a quick fix that needs to be reimplemented properly!*/
+    List<LemmaSetEntry> lemmaSetEntries = new ArrayList<>();
+    for (AbstractEntry entry : entries) {
+      if (entry instanceof LemmaSetEntry lemmaSetEntry) {
+        lemmaSetEntries.add(lemmaSetEntry);
+      }
+    }
+
+    List<String> declarationStrings =
+        AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries).asList();
+    List<CDeclaration> lemmaDeclarations = ACSLParserUtils.parseDeclarations(declarationStrings);
 
     for (AbstractEntry entry : entries) {
       if (entry instanceof InvariantSetEntry invariantSetEntry) {
@@ -89,7 +109,8 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
               lineToSeenInvariants.get(position).add(lookupKey);
             }
 
-            ExpressionTree<AExpression> invariant = transformer.parseInvariantEntry(invariantEntry);
+            ExpressionTree<AExpression> invariant =
+                transformer.parseInvariantEntry(invariantEntry, lemmaDeclarations);
 
             if (invariant.equals(ExpressionTrees.getTrue())) {
               continue;

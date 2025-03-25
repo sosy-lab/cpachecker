@@ -324,6 +324,7 @@ public class CParserUtils {
     // and also supports assignment statements and multiple statements easily
     String assumeCode = tryFixArrayInitializers(pAssumeCode);
     Collection<CStatement> statements = null;
+
     try {
       statements = CParserUtils.parseListOfStatements(assumeCode, pCParser, pScope);
     } catch (RuntimeException e) {
@@ -695,9 +696,9 @@ public class CParserUtils {
 
     private final Simplifier<AExpression> expressionTreeSimplifier;
 
-    private final MachineModel machineModel;
+    protected final MachineModel machineModel;
 
-    private final LogManager logger;
+    protected final LogManager logger;
 
     private ParserTools(
         ExpressionTreeFactory<AExpression> pExpressionTreeFactory,

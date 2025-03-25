@@ -238,10 +238,7 @@ public class WitnessInvariantsExtractor {
   }
 
   private Optional<Set<ExpressionTreeLocationInvariant>> analyzeYAMLWitness(Path pPathToWitnessFile)
-      throws InvalidConfigurationException,
-          InterruptedException,
-          IOException,
-          InvalidWitnessException {
+      throws InvalidConfigurationException, IOException, InvalidWitnessException {
 
     List<AbstractEntry> entries =
         AutomatonWitnessV2ParserUtils.parseYAML(

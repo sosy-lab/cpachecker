@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Ascii;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -18,9 +19,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -39,6 +42,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 /**
  * This class provides the necessary methods to parse lemmas from a file.
@@ -140,6 +146,72 @@ public class ACSLParserUtils {
     CExpression exp = ((CExpressionStatement) statement).getExpression();
     exp = exp.accept(new ACSLVisitor(replacements));
     return exp;
+  }
+
+  /**
+   * This method takes a C statement string that might contain a function call and parses it into a
+   * CExpressionStatement.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   *
+   * @param lAssumeCode A string representation of an ACSL statement
+   * @param parser A CParser
+   * @param scope A CProgramScope containing the program variables and the declarations from the
+   *     witness file
+   */
+  public static CExpressionStatement parseACSLStatement(
+      String lAssumeCode, CParser parser, CProgramScope scope)
+      throws InvalidAutomatonException, InterruptedException {
+    CExpression exp = parseACSLExpression(lAssumeCode, parser, scope);
+    return new CExpressionStatement(exp.getFileLocation(), exp);
+  }
+
+  /**
+   * This method takes a C statement string that might contain a function call and parses it into an
+   * ExpressionTree.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   */
+  public static ExpressionTree<AExpression> parseACSLStatementAsExpressionTree(
+      String pStatement, CParser pCParser, CProgramScope pScope, ParserTools pParserTools)
+      throws Exception {
+    ExpressionTree<AExpression> result;
+    try {
+      result = parseACSLToLeafExpression(pStatement, pCParser, pScope, pParserTools);
+
+    } catch (InvalidAutomatonException e) {
+      throw new RuntimeException("Parsing ACSL statement failed.");
+    }
+    return result;
+  }
+
+  /**
+   * This method takes a C statement string that might contain a function call and parses it into an
+   * ExpressionTree.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   */
+  private static ExpressionTree<AExpression> parseACSLToLeafExpression(
+      String pAssumeCode, CParser pCParser, CProgramScope pScope, ParserTools pParserTools)
+      throws Exception {
+
+    CExpressionStatement statement = parseACSLStatement(pAssumeCode, pCParser, pScope);
+
+    {
+      CBinaryExpressionBuilder binaryExpressionBuilder =
+          new CBinaryExpressionBuilder(pParserTools.machineModel, pParserTools.logger);
+      // Check that no expressions were split
+      if (Ascii.toUpperCase(statement.toString()).contains("__CPACHECKER_TMP")) {
+        throw new Exception("Parsing ACSL statement failed.");
+      }
+      return LeafExpression.fromStatement(statement, binaryExpressionBuilder);
+    }
   }
 
   /**

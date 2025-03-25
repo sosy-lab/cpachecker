@@ -212,10 +212,10 @@ public class PredicateCPA
             shutdownNotifier,
             pathFormulaManager,
             predAbsManager);
-    initialPrecision = precisionBootstraper.prepareInitialPredicates();
-    logger.log(Level.FINEST, "Initial precision is", initialPrecision);
     ImmutableSet<PathFormula> initialLemmas = precisionBootstraper.prepareInitialLemmas();
     logger.log(Level.FINEST, "Initial lemmas are", initialLemmas);
+    initialPrecision = precisionBootstraper.prepareInitialPredicates();
+    logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     PredicateProvider predicateProvider =
         new PredicateProvider(config, pCfa, logger, formulaManager, predAbsManager);
