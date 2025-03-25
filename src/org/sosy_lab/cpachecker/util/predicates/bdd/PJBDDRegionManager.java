@@ -284,22 +284,14 @@ public class PJBDDRegionManager implements RegionManager {
           builder = Builders.bddBuilder();
           break;
         case "CBDD":
-          /*
-          makeVariableBefore, setVarOrder, makeExists are not supported operations in CBDD PJBDD
           builder = Builders.cbddBuilder();
           break;
-           */
-          throw new UnsupportedOperationException();
         case "TaggedDD":
           builder = Builders.taggedDDBuilder();
           break;
         case "TBDD":
-          /*
-          makeVariableBefore, setVarOrder are not supported operations in TBDD PJBDD
           builder = Builders.tbddBuilder();
           break;
-           */
-          throw new UnsupportedOperationException();
         case "IntDD":
           builder = Builders.intBuilder();
           if (synchronizeReordering) {
