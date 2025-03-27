@@ -59,6 +59,7 @@ public class YAMLWitnessContentTest {
       TestConfig pAnalysisType,
       Map<String, String> pOverrideOptions
   ) throws Exception {
+
     String filePath = Path.of(TEST_DIR_PATH, pFilename).toString();
 
     Path witnessExport = TempFile.builder()
@@ -95,8 +96,9 @@ public class YAMLWitnessContentTest {
 
     Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put("counterexample.export.yaml", pWitnessFile);
-    overrideOptions.put("counterexample.export.graphml", ""); //unset graphml export
-    overrideOptions.put("cpa.arg.proofWitness", pWitnessFile);
+    overrideOptions.put("counterexample.export.graphml", ""); //unset graphml export violation witness
+    overrideOptions.put("cpa.arg.yamlProofWitness", pWitnessFile);
+    overrideOptions.put("cpa.arg.proofWitness", ""); //unset graphml export correctness witness
     overrideOptions.put("cpa.arg.compressWitness", "false");
     Configuration generationConfig = generateConfiguration(pConfigPath, overrideOptions, pSpecificationFilePath);
 
