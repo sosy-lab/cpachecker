@@ -49,6 +49,32 @@ public class YAMLWitnessContentTest {
     }
   }
 
+  @Test
+  public void testSimpleMemtrackWitnessExport() throws Exception {
+    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
+
+    performExportTest(
+        "simple-memtrack-unsafe.c",
+        "simple-memtrack-unsafe-expected.yml",
+        ExpectedVerdict.FALSE,
+        memorysafety,
+        TestConfig.SMG2,
+        Map.of("parser.usePreprocessor","true"));
+  }
+
+  @Test
+  public void testSimpleValidWitnessExport() throws Exception {
+    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
+
+    performExportTest(
+        "simple-valid.c",
+        "simple-valid-expected.yml",
+        ExpectedVerdict.FALSE,
+        memorysafety,
+        TestConfig.SMG2,
+        Map.of("parser.usePreprocessor","true"));
+  }
+
   /**
    * Fails if the exported YAML witnesses do not match the expected witnesses.
    * @param pFilename The filename of the Sourcecode to analyze.
@@ -156,9 +182,9 @@ public class YAMLWitnessContentTest {
   ) throws InvalidConfigurationException, IOException {
     ConfigurationBuilder configBuilder =
         TestDataTools.configurationForTest().loadFromFile(pConfigFile);
-    if (!Strings.isNullOrEmpty(pSpecification)) {
+    if (!Strings.isNullOrEmpty(pSpecification))
       pOverrideOptions.put("specification", pSpecification);
-    }
+
     return configBuilder.setOptions(pOverrideOptions).build();
   }
 
