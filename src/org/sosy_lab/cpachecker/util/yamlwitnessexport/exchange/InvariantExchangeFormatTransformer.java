@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
@@ -136,9 +135,6 @@ public class InvariantExchangeFormatTransformer {
       InvariantEntry pInvariantEntry, List<CDeclaration> lemmaDeclarations)
       throws InvalidYAMLWitnessException {
     String invariantString = pInvariantEntry.getValue();
-
-    Deque<String> callStack = new ArrayDeque<>();
-    callStack.push(pInvariantEntry.getLocation().getFunction());
 
     /*
      * We need the declarations from the witness file in the scope to correctly parse any invariants that reference the lemmas.
