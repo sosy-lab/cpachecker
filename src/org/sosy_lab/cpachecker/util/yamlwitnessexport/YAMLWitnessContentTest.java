@@ -19,6 +19,11 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class YAMLWitnessContentTest {
 
+  private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
+  private static final String CONFIG_DIR_PATH = "config";
+  private static final String SPEC_DIR_PATH = "config/specification";
+
+
   /**
    * Builds a {@link Configuration} object from the given configuration file, the given override options, and adds the specification to the configuration.
    * @param pConfigFile The path to the configuration file. (Relative to root)
