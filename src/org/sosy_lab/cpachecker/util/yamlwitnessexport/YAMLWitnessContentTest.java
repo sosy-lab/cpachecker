@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import static org.junit.Assert.assertEquals;
 import static com.google.common.truth.Truth.*;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -61,7 +61,7 @@ public class YAMLWitnessContentTest {
         ExpectedVerdict.FALSE,
         memorysafety,
         TestConfig.SMG2,
-        Map.of("parser.usePreprocessor","true"));
+        ImmutableMap.of("parser.usePreprocessor","true"));
   }
 
   @Test
@@ -74,7 +74,7 @@ public class YAMLWitnessContentTest {
         ExpectedVerdict.FALSE,
         memorysafety,
         TestConfig.SMG2,
-        Map.of("parser.usePreprocessor","true"));
+        ImmutableMap.of("parser.usePreprocessor","true"));
   }
 
   /**
@@ -104,7 +104,6 @@ public class YAMLWitnessContentTest {
         .create()
         .toAbsolutePath();
     witnessExport.toFile().deleteOnExit();
-
 
     generateWitness(filePath, pExpectedVerdict, pSpecificationFilePath, pAnalysisType.filename, pOverrideOptions, witnessExport.toString());
 
