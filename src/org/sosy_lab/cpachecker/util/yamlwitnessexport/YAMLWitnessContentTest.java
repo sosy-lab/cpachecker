@@ -159,7 +159,7 @@ public class YAMLWitnessContentTest {
       List<Map<String, Object>> witnessExportYAML = yaml.load(witnessExportStream);
       List<Map<String, Object>> expectedWitnessYAML = yaml.load(expectedWitnessStream);
 
-      assertThat(expectedWitnessYAML).isEqualTo(witnessExportYAML.get(0).get("content"));
+      assertThat(witnessExportYAML.get(0).get("content")).isEqualTo(expectedWitnessYAML);
 
     } catch (IOException e) {
       throw new AssertionError("Could not read witness export file", e);
