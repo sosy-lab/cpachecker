@@ -52,8 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
-import org.sosy_lab.cpachecker.core.algorithm.error_condition.ErrorConditionCounterexampleExporter;
-import org.sosy_lab.cpachecker.core.algorithm.error_condition.ExportAssumeEdges;
+import org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export.DetailedCounterexampleExport;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -123,11 +122,6 @@ public class CoreComponentsFactory {
           "use a second model checking run (e.g., with CBMC or a different CPAchecker"
               + " configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
-
-  @Option(
-      secure = true,
-      description = "export the assumes edges before running the original algorithm")
-  private boolean exportAssumeEdges = false;
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
@@ -394,9 +388,9 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.counterexampleToC",
+      name = "algorithm.detailedCounterexamples",
       description = "Convert CEX to C program.")
-  private boolean exportCounterexamplesAsC = false;
+  private boolean exportDetailedCounterexamples = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -737,13 +731,9 @@ public class CoreComponentsFactory {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
       }
 
-      if (exportAssumeEdges) {
-        algorithm = new ExportAssumeEdges(algorithm, config, cfa, logger);
-      }
-
-      if (exportCounterexamplesAsC) {
+      if (exportDetailedCounterexamples) {
         algorithm =
-            new ErrorConditionCounterexampleExporter(
+            new DetailedCounterexampleExport(
                 algorithm, config, logger, shutdownNotifier, cfa);
       }
     }

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.error_condition;
+package org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export;
 
 import java.math.BigInteger;
 import java.util.Optional;
