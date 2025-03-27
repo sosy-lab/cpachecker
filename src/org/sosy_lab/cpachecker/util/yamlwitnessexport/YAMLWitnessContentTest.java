@@ -29,6 +29,16 @@ public class YAMLWitnessContentTest {
   private static final String CONFIG_DIR_PATH = "config";
   private static final String SPEC_DIR_PATH = "config/specification";
 
+  private enum TestConfig {
+    SMG2("smg2"),
+    SV_COMP("svcomp25");
+
+    private final String filename;
+
+    TestConfig(String pConfigName) {
+      this.filename = String.format("%s/%s.properties", CONFIG_DIR_PATH, pConfigName);
+    }
+  }
 
   /**
    * Generates witnesses in 2.0 Format and writes them into the {@code pWitnessFile}.
