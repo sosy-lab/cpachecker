@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
@@ -69,7 +68,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
 
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
 
-    Builder<AutomatonTransition> transitions = new Builder<>();
+    ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
 
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
