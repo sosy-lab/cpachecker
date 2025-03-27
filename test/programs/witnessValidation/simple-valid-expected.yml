@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 - segment:
     - waypoint:
         type: "branching"
@@ -6,7 +14,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -17,7 +25,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -28,7 +36,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -39,7 +47,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -50,7 +58,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -61,7 +69,7 @@
           value: "true"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -72,7 +80,7 @@
           value: "false"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 8
+          line: 16
           column: 3
           function: "main"
 - segment:
@@ -81,6 +89,6 @@
         action: "follow"
         location:
           file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
+          line: 24
           column: 3
           function: "main"
