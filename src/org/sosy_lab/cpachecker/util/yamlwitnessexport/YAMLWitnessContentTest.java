@@ -41,6 +41,39 @@ public class YAMLWitnessContentTest {
   }
 
   /**
+   * Fails if the exported YAML witnesses do not match the expected witnesses.
+   * @param pFilename The filename of the Sourcecode to analyze.
+   * @param pExpectedWitnessFilename The filename of the expected witnesses.
+   * @param pExpectedVerdict The expected verdict of the analysis.
+   * @param pSpecificationFilePath FilePath The specification to use for the analysis.
+   * @param pAnalysisType The type of analysis to perform.
+   * @param pOverrideOptions Map of options to override in the configuration.
+   * @throws Exception Gets thrown if the test fails.
+   */
+  private void performExportTest(
+      String pFilename,
+      String pExpectedWitnessFilename,
+      ExpectedVerdict pExpectedVerdict,
+      String pSpecificationFilePath,
+      TestConfig pAnalysisType,
+      Map<String, String> pOverrideOptions
+  ) throws Exception {
+    String filePath = Path.of(TEST_DIR_PATH, pFilename).toString();
+
+    Path witnessExport = TempFile.builder()
+        .prefix("witness")
+        .suffix(".yml")
+        .create()
+        .toAbsolutePath();
+    witnessExport.toFile().deleteOnExit();
+
+    if (pOverrideOptions == null)
+        pOverrideOptions = new LinkedHashMap<>();
+
+    generateWitness(filePath, pExpectedVerdict, pSpecificationFilePath, pAnalysisType.filename, pOverrideOptions, witnessExport.toString());
+  }
+
+  /**
    * Generates witnesses in 2.0 Format and writes them into the {@code pWitnessFile}.
    * @param pFilePath The filename of the Sourcecode to analyze.
    * @param pExpectedVerdict The expected verdict of the analysis.
