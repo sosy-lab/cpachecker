@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -92,7 +93,7 @@ public class YAMLWitnessContentTest {
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
       TestConfig pAnalysisType,
-      Map<String, String> pOverrideOptions
+      @Nullable Map<String, String> pOverrideOptions
   ) throws Exception {
 
     String filePath = Path.of(TEST_DIR_PATH, pFilename).toString();
@@ -104,8 +105,6 @@ public class YAMLWitnessContentTest {
         .toAbsolutePath();
     witnessExport.toFile().deleteOnExit();
 
-    if (pOverrideOptions == null)
-        pOverrideOptions = new LinkedHashMap<>();
 
     generateWitness(filePath, pExpectedVerdict, pSpecificationFilePath, pAnalysisType.filename, pOverrideOptions, witnessExport.toString());
 
@@ -127,9 +126,11 @@ public class YAMLWitnessContentTest {
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
       String pConfigPath,
-      Map<String, String> pOverrideOptions,
+      @Nullable Map<String, String> pOverrideOptions,
       String pWitnessFile
   ) throws Exception {
+    if (pOverrideOptions == null)
+      pOverrideOptions = new LinkedHashMap<>();
 
     Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put("counterexample.export.yaml", pWitnessFile);
