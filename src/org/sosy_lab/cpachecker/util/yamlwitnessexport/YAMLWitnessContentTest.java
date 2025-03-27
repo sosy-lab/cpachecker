@@ -10,12 +10,18 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.google.common.base.Strings;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class YAMLWitnessContentTest {
 
@@ -23,6 +29,38 @@ public class YAMLWitnessContentTest {
   private static final String CONFIG_DIR_PATH = "config";
   private static final String SPEC_DIR_PATH = "config/specification";
 
+
+  /**
+   * Generates witnesses in 2.0 Format and writes them into the {@code pWitnessFile}.
+   * @param pFilePath The filename of the Sourcecode to analyze.
+   * @param pExpectedVerdict The expected verdict of the analysis.
+   * @param pSpecificationFilePath FilePath The specification to use for the analysis.
+   * @param pConfigPath Path to the configuration file.
+   * @param pOverrideOptions Map of options to override in the configuration.
+   * @param pWitnessFile Path to the file to write the witness to.
+   * @throws Exception Gets thrown if invalid configuration is passed or an invalid configuration-filepath is passed.
+   */
+  private void generateWitness(
+      String pFilePath,
+      ExpectedVerdict pExpectedVerdict,
+      String pSpecificationFilePath,
+      String pConfigPath,
+      Map<String, String> pOverrideOptions,
+      String pWitnessFile
+  ) throws Exception {
+
+    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    overrideOptions.put("counterexample.export.yaml", pWitnessFile);
+    overrideOptions.put("counterexample.export.graphml", ""); //unset graphml export
+    overrideOptions.put("cpa.arg.proofWitness", pWitnessFile);
+    overrideOptions.put("cpa.arg.compressWitness", "false");
+    Configuration generationConfig = generateConfiguration(pConfigPath, overrideOptions, pSpecificationFilePath);
+
+    TestResults results = CPATestRunner.run(generationConfig, pFilePath);
+
+    // Trigger statistics so that the witness is written to the file
+    results.getCheckerResult().writeOutputFiles();
+  }
 
   /**
    * Builds a {@link Configuration} object from the given configuration file, the given override options, and adds the specification to the configuration.
