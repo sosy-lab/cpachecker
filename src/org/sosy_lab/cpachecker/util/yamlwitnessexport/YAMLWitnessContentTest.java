@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.*;
 
 import com.google.common.base.Strings;
 import java.io.FileInputStream;
@@ -158,7 +159,7 @@ public class YAMLWitnessContentTest {
       List<Map<String, Object>> witnessExportYAML = yaml.load(witnessExportStream);
       List<Map<String, Object>> expectedWitnessYAML = yaml.load(expectedWitnessStream);
 
-      assertEquals(expectedWitnessYAML, witnessExportYAML.get(0).get("content"));
+      assertThat(expectedWitnessYAML).isEqualTo(witnessExportYAML.get(0).get("content"));
 
     } catch (IOException e) {
       throw new AssertionError("Could not read witness export file", e);
