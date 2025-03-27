@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nullable;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -94,7 +93,7 @@ public class YAMLWitnessContentTest {
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
       TestConfig pAnalysisType,
-      @Nullable Map<String, String> pOverrideOptions)
+      Map<String, String> pOverrideOptions)
       throws Exception {
 
     String filePath = Path.of(TEST_DIR_PATH, pFilename).toString();
@@ -134,7 +133,7 @@ public class YAMLWitnessContentTest {
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
       String pConfigPath,
-      @Nullable Map<String, String> pOverrideOptions,
+      Map<String, String> pOverrideOptions,
       String pWitnessFile)
       throws Exception {
     if (pOverrideOptions == null) {
