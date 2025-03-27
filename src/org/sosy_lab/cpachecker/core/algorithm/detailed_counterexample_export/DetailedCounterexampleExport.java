@@ -107,13 +107,24 @@ public class DetailedCounterexampleExport implements Algorithm {
 
   record PathAndVariables(PathFormula path, ImmutableMap<FormulaAndName, CFAEdge> variables) {}
 
+  /**
+   * Exports concrete variable assignments of all variables at all locations. If there is a loop,
+   * there are as many assignments as loop iterations for the specific location.
+   *
+   * @param pAlgorithm The base algorithm to find counterexamples.
+   * @param pConfig The user configuration.
+   * @param pLogger Manager for logging warnings.
+   * @param pNotifier Notifier for user shut-down requests.
+   * @param pCfa The CFA of the input program.
+   * @throws InvalidConfigurationException Thrown if the configuration is invalid.
+   */
   public DetailedCounterexampleExport(
       Algorithm pAlgorithm,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pNotifier,
       CFA pCfa)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     algorithm = pAlgorithm;
     config = pConfig;
@@ -279,7 +290,7 @@ public class DetailedCounterexampleExport implements Algorithm {
     try {
       exportErrorInducingInputs(counterExamples.toList());
     } catch (IOException | InvalidConfigurationException | SolverException e) {
-      logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs");
+      logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs.");
     }
     return status;
   }

@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Package for finding detailed_counterexample_export. Tubes are precise constraints over all error paths to one
- * location
+ * Package for finding detailed_counterexample_export. Tubes are precise constraints over all error
+ * paths to one location
  */
 package org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export;
