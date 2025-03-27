@@ -1,0 +1,86 @@
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "true"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "branching"
+        action: "follow"
+        constraint:
+          value: "false"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 8
+          column: 3
+          function: "main"
+- segment:
+    - waypoint:
+        type: "target"
+        action: "follow"
+        location:
+          file_name: "test/programs/witnessValidation/simple-valid.c"
+          line: 16
+          column: 3
+          function: "main"

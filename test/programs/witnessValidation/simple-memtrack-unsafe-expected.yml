@@ -1,0 +1,9 @@
+- segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "test/programs/witnessValidation/simple-memtrack-unsafe.c"
+              line: 7
+              column: 3
+              function: "main"
