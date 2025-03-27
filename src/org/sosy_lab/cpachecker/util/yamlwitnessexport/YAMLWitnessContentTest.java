@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -103,6 +104,7 @@ public class YAMLWitnessContentTest {
 
     // Trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
+    results.assertIs(Result.valueOf(pExpectedVerdict.toString()));
   }
 
   /**
