@@ -38,16 +38,16 @@ SPDX-License-Identifier: Apache-2.0
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
-         DuplicateBranches: TODO fix soon
-         RedundantControlFlow: TODO fix soon
+         DuplicateBranches: TODO https://github.com/google/error-prone/issues/4734
+         PatternMatchingInstanceof: TODO https://github.com/google/error-prone/issues/4921, https://github.com/google/error-prone/issues/4922, https://github.com/google/error-prone/issues/4923, https://github.com/google/error-prone/issues/4925
          -->
     <property name="errorprone.options" value="
         -Xep:DuplicateBranches:OFF
-        -Xep:RedundantControlFlow:OFF
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
+        -Xep:PatternMatchingInstanceof:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class LoopInvariantsWriter {
+public final class LoopInvariantsWriter {
 
   private final CFA cfa;
   private final LogManager logger;

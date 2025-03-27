@@ -715,8 +715,6 @@ public class CFABuilder {
       throw new LLVMException(
           "Program contains PHI nodes, but they are not supported by CPAchecker, yet."
               + "Please remove them with `opt -reg2mem $PROG`");
-    } else if (pItem.isInvokeInst()) {
-      throw new UnsupportedOperationException();
     } else {
       throw new UnsupportedOperationException();
     }
@@ -956,44 +954,37 @@ public class CFABuilder {
   private CExpression createFromOpCode(
       final Value pItem, final Path pFileName, final OpCode pOpCode) throws LLVMException {
 
-    switch (pOpCode) {
-      // Arithmetic operations
-      case Add:
-      case FAdd:
-      case Sub:
-      case FSub:
-      case Mul:
-      case FMul:
-      case UDiv:
-      case SDiv:
-      case FDiv:
-      case URem:
-      case SRem:
-      case FRem:
-      case Shl:
-      case LShr:
-      case AShr:
-      case And:
-      case Or:
-      case Xor:
-        return createFromArithmeticOp(pItem, pOpCode, pFileName);
-
-      case GetElementPtr:
-        return createGetElementPtrExp(pItem, pFileName);
-      case BitCast:
-        return createBitcast(pItem, pFileName);
-
-      case PtrToInt:
-      case IntToPtr:
-        return new CCastExpression(
-            getLocation(pItem, pFileName),
-            typeConverter.getCType(pItem),
-            getExpression(
-                pItem.getOperand(0), typeConverter.getCType(pItem.getOperand(0)), pFileName));
-
-      default:
-        throw new UnsupportedOperationException(pOpCode.toString());
-    }
+    return switch (pOpCode) {
+      case Add,
+          FAdd,
+          Sub,
+          FSub,
+          Mul,
+          FMul,
+          UDiv,
+          SDiv,
+          FDiv,
+          URem,
+          SRem,
+          FRem,
+          Shl,
+          LShr,
+          AShr,
+          And,
+          Or,
+          Xor ->
+          // Arithmetic operations
+          createFromArithmeticOp(pItem, pOpCode, pFileName);
+      case GetElementPtr -> createGetElementPtrExp(pItem, pFileName);
+      case BitCast -> createBitcast(pItem, pFileName);
+      case PtrToInt, IntToPtr ->
+          new CCastExpression(
+              getLocation(pItem, pFileName),
+              typeConverter.getCType(pItem),
+              getExpression(
+                  pItem.getOperand(0), typeConverter.getCType(pItem.getOperand(0)), pFileName));
+      default -> throw new UnsupportedOperationException(pOpCode.toString());
+    };
   }
 
   private CExpression createBitcast(Value pItem, Path pFileName) throws LLVMException {

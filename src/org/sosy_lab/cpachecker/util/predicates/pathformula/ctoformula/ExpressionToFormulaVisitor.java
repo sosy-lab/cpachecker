@@ -1083,7 +1083,7 @@ public class ExpressionToFormulaVisitor
             BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
             BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
 
-            FloatingPointFormula diff;
+            FloatingPointFormula diff = fpfmgr.subtract(param0, param1);
 
             return conv.bfmgr.ifThenElse(
                 isFirstNaN,
@@ -1091,10 +1091,7 @@ public class ExpressionToFormulaVisitor
                 conv.bfmgr.ifThenElse(
                     isSecondNaN,
                     param1,
-                    conv.bfmgr.ifThenElse(
-                        fpfmgr.greaterThan((diff = fpfmgr.subtract(param0, param1)), zero),
-                        diff,
-                        zero)));
+                    conv.bfmgr.ifThenElse(fpfmgr.greaterThan(diff, zero), diff, zero)));
           }
         }
       } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {

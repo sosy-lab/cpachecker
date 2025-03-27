@@ -15,12 +15,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
-public class NoOpReducer implements Reducer {
-
-  private static final NoOpReducer instance = new NoOpReducer();
+public enum NoOpReducer implements Reducer {
+  INSTANCE;
 
   public static Reducer getInstance() {
-    return instance;
+    return INSTANCE;
   }
 
   @Override

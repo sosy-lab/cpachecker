@@ -97,9 +97,11 @@ public class NewtonRefinementManager implements StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "sets the level of the pathformulas to use for abstraction. \n"
-              + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
-              + "  BLOCK: Based on Pathformulas at Abstractionstates")
+          """
+          sets the level of the pathformulas to use for abstraction.\s
+            EDGE : Based on Pathformulas of every edge in ARGPath
+            BLOCK: Based on Pathformulas at Abstractionstates\
+          """)
   private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {

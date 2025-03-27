@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * Factory for {@link PredicateCPARefiner}, the base class for most refiners for the PredicateCPA.
  */
 @Options(prefix = "cpa.predicate.refinement")
-public class PredicateCPARefinerFactory {
+public final class PredicateCPARefinerFactory {
 
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;

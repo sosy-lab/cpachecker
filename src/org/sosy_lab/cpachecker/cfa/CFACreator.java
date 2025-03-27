@@ -94,7 +94,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
-import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
@@ -140,11 +139,13 @@ public class CFACreator {
       secure = true,
       name = "analysis.machineModel",
       description =
-          "the machine model, which determines the sizes of types like int:\n"
-              + "- LINUX32: ILP32 for Linux on 32-bit x86\n"
-              + "- LINUX64: LP64 for Linux on 64-bit x86\n"
-              + "- ARM: ILP32 for Linux on 32-bit ARM\n"
-              + "- ARM64: LP64 for Linux on 64-bit ARM")
+          """
+          the machine model, which determines the sizes of types like int:
+          - LINUX32: ILP32 for Linux on 32-bit x86
+          - LINUX64: LP64 for Linux on 64-bit x86
+          - ARM: ILP32 for Linux on 32-bit ARM
+          - ARM64: LP64 for Linux on 64-bit ARM\
+          """)
   private MachineModel machineModel = MachineModel.LINUX32;
 
   @Option(
@@ -195,14 +196,6 @@ public class CFACreator {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
 
-  @Option(
-      secure = true,
-      name = "cfa.exportToC.stayCloserToInput",
-      description =
-          "produce C programs more similar to the input program"
-              + "\n(only possible for a single input file)")
-  private boolean exportCfaToCStayingCloserToInput = false;
-
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
   private boolean exportFunctionCalls = true;
 
@@ -233,7 +226,7 @@ public class CFACreator {
               + " to the value of option pixelgraphic.export.format"
               + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = Path.of("cfaPixel");
+  private Path exportCfaPixelFile = null;
 
   @Option(
       secure = true,
@@ -1194,25 +1187,11 @@ public class CFACreator {
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code;
-        if (exportCfaToCStayingCloserToInput && cfa.getFileNames().size() == 1) {
-          code = new CfaToCExporter(logger, config, shutdownNotifier).exportCfa(cfa);
-        } else {
-          if (exportCfaToCStayingCloserToInput) {
-            logger.log(
-                Level.INFO,
-                "Using the regular CFA-to-C exporter (staying closer to the input program is only"
-                    + " possible for a single input file)");
-          }
-          code = new CFAToCTranslator(config).translateCfa(cfa);
-        }
+        String code = new CFAToCTranslator(config).translateCfa(cfa);
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }
-      } catch (CPAException
-          | IOException
-          | InterruptedException
-          | InvalidConfigurationException e) {
+      } catch (CPAException | IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }

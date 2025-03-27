@@ -22,7 +22,7 @@ public final class JFloatLiteralExpression extends AFloatLiteralExpression
   @Serial private static final long serialVersionUID = -8344145326316408368L;
 
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
-    super(pFileLocation, JSimpleType.getFloat(), pValue);
+    super(pFileLocation, JSimpleType.FLOAT, pValue);
   }
 
   @Override

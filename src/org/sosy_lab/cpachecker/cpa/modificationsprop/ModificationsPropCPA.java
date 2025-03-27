@@ -206,7 +206,7 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Override
   public MergeOperator getMergeOperator() {
     // check equality of location tuple and merge by joining then
-    return variableSetMerge ? new ModificationsPropMergeOperator() : new MergeSepOperator();
+    return variableSetMerge ? new ModificationsPropMergeOperator() : MergeSepOperator.getInstance();
   }
 
   @Override

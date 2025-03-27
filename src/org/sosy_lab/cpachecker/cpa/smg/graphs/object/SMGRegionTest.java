@@ -10,13 +10,9 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import org.junit.Before;
 import org.junit.Test;
 
 public class SMGRegionTest {
-
-  @Before
-  public void setUp() {}
 
   @Test
   public void testIsAbstract() {

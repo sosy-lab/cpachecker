@@ -178,8 +178,8 @@ public class BlockWaitlist implements Waitlist {
   // map of saved empty blocks (to count resources during)
   private final Map<BKey, Block> savedBlocksMap = new TreeMap<>();
 
-  private BlockConfiguration config;
-  private LogManager logger;
+  private final BlockConfiguration config;
+  private final LogManager logger;
 
   /**
    * Constructor that needs a factory for the waitlist implementation that should be used to store

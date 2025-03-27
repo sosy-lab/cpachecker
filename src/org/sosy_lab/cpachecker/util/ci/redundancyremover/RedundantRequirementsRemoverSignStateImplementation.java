@@ -10,18 +10,18 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.Sign;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 public class RedundantRequirementsRemoverSignStateImplementation
-    extends RedundantRequirementsRemoverImplementation<SignState, SIGN> {
+    extends RedundantRequirementsRemoverImplementation<SignState, Sign> {
 
   @Serial private static final long serialVersionUID = 7689875020110766102L;
 
   @Override
-  public int compare(SIGN pO1, SIGN pO2) {
+  public int compare(Sign pO1, Sign pO2) {
     // one of arguments null -> NullPointerException
     // 0 if sign values identical
     // -1 if p02 covers p01
@@ -41,27 +41,27 @@ public class RedundantRequirementsRemoverSignStateImplementation
       return -1;
     } else if (pO1.covers(pO2)) {
       return 1;
-    } else if (pO1 == SIGN.MINUS && (pO2 == SIGN.ZERO || pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0)) {
+    } else if (pO1 == Sign.MINUS && (pO2 == Sign.ZERO || pO2 == Sign.PLUS || pO2 == Sign.PLUS0)) {
       return -1;
-    } else if (pO1 == SIGN.ZERO && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUSMINUS)) {
+    } else if (pO1 == Sign.ZERO && (pO2 == Sign.PLUS || pO2 == Sign.PLUSMINUS)) {
       return -1;
-    } else if (pO1 == SIGN.PLUSMINUS && pO2 == SIGN.PLUS0) {
+    } else if (pO1 == Sign.PLUSMINUS && pO2 == Sign.PLUS0) {
       return -1;
-    } else if (pO1 == SIGN.MINUS0
-        && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0 || pO2 == SIGN.PLUSMINUS)) {
+    } else if (pO1 == Sign.MINUS0
+        && (pO2 == Sign.PLUS || pO2 == Sign.PLUS0 || pO2 == Sign.PLUSMINUS)) {
       return -1;
     }
     return 1;
   }
 
   @Override
-  protected boolean covers(SIGN pCovering, SIGN pCovered) {
+  protected boolean covers(Sign pCovering, Sign pCovered) {
     // return pCovering.covers(pCovered)
     return pCovering.covers(pCovered);
   }
 
   @Override
-  protected SIGN getAbstractValue(SignState pAbstractState, String pVarOrConst) {
+  protected Sign getAbstractValue(SignState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS
     // otherwise getSignForVariable
 
@@ -69,11 +69,11 @@ public class RedundantRequirementsRemoverSignStateImplementation
     try {
       constant = Double.parseDouble(pVarOrConst);
       if (constant < 0) {
-        return SIGN.MINUS;
+        return Sign.MINUS;
       } else if (constant == 0) {
-        return SIGN.ZERO;
+        return Sign.ZERO;
       } else if (constant > 0) {
-        return SIGN.PLUS;
+        return Sign.PLUS;
       }
     } catch (NumberFormatException e) {
       // pVarOrConst is var and handled in next return
@@ -83,15 +83,15 @@ public class RedundantRequirementsRemoverSignStateImplementation
   }
 
   @Override
-  protected SIGN[] emptyArrayOfSize(int pSize) {
+  protected Sign[] emptyArrayOfSize(int pSize) {
     // similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return new SIGN[pSize];
+    return new Sign[pSize];
   }
 
   @Override
-  protected SIGN[][] emptyMatrixOfSize(int pSize) {
+  protected Sign[][] emptyMatrixOfSize(int pSize) {
     // similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return new SIGN[pSize][];
+    return new Sign[pSize][];
   }
 
   @Override
