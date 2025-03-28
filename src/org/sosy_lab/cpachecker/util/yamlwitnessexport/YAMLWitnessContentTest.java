@@ -56,7 +56,7 @@ public class YAMLWitnessContentTest {
 
     performExportTest(
         "simple-memtrack-unsafe.c",
-        "simple-memtrack-unsafe-expected.yml",
+        "simple-memtrack-unsafe-expected.witness.yml",
         ExpectedVerdict.FALSE,
         memorysafety,
         TestConfig.SMG2,
@@ -69,7 +69,7 @@ public class YAMLWitnessContentTest {
 
     performExportTest(
         "simple-valid.c",
-        "simple-valid-expected.yml",
+        "simple-valid-expected.witness.yml",
         ExpectedVerdict.FALSE,
         memorysafety,
         TestConfig.SMG2,
