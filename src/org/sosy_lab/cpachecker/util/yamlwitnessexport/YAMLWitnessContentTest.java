@@ -113,7 +113,7 @@ public class YAMLWitnessContentTest {
         pOverrideOptions,
         witnessExport.toString());
 
-    assertExpectation(witnessExport, Path.of(TEST_DIR_PATH, pExpectedWitnessFilename));
+    assertWitnessContentMatches(witnessExport, Path.of(TEST_DIR_PATH, pExpectedWitnessFilename));
   }
 
   /**
@@ -142,8 +142,7 @@ public class YAMLWitnessContentTest {
 
     Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put("counterexample.export.yaml", pWitnessFile);
-    overrideOptions.put(
-        "counterexample.export.graphml", ""); // unset graphml export violation witness
+    overrideOptions.put("counterexample.export.graphml", ""); // unset graphml export violation witness
     overrideOptions.put("cpa.arg.yamlProofWitness", pWitnessFile);
     overrideOptions.put("cpa.arg.proofWitness", ""); // unset graphml export correctness witness
     overrideOptions.put("cpa.arg.compressWitness", "false");
@@ -163,7 +162,7 @@ public class YAMLWitnessContentTest {
    * @param pWitnessExport Path to the exported witness file.
    * @param pExpectedWitnessFilename Path to the expected content file.
    */
-  private void assertExpectation(Path pWitnessExport, Path pExpectedWitnessFilename) {
+  private void assertWitnessContentMatches(Path pWitnessExport, Path pExpectedWitnessFilename) {
     try (InputStream witnessExportStream = new FileInputStream(pWitnessExport.toFile());
         InputStream expectedWitnessStream =
             new FileInputStream(pExpectedWitnessFilename.toFile())) {
