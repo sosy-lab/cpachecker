@@ -98,11 +98,8 @@ public class YAMLWitnessContentTest {
 
     String filePath = Path.of(TEST_DIR_PATH, pFilename).toString();
 
-    Path witnessExport = TempFile.builder()
-        .prefix("witness")
-        .suffix(".yml")
-        .create()
-        .toAbsolutePath();
+    Path witnessExport =
+        TempFile.builder().prefix("witness").suffix(".yml").create().toAbsolutePath();
     witnessExport.toFile().deleteOnExit();
 
     generateWitness(
@@ -141,11 +138,17 @@ public class YAMLWitnessContentTest {
     }
 
     Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    // set yaml witness export given path
     overrideOptions.put("counterexample.export.yaml", pWitnessFile);
-    overrideOptions.put("counterexample.export.graphml", ""); // unset graphml export violation witness
     overrideOptions.put("cpa.arg.yamlProofWitness", pWitnessFile);
-    overrideOptions.put("cpa.arg.proofWitness", ""); // unset graphml export correctness witness
+
+    // unset graphml witness export
+    overrideOptions.put("counterexample.export.graphml", "");
+    overrideOptions.put("cpa.arg.proofWitness", "");
+
+    // unset witness compression
     overrideOptions.put("cpa.arg.compressWitness", "false");
+
     Configuration generationConfig =
         generateConfiguration(pConfigPath, overrideOptions, pSpecificationFilePath);
 
@@ -169,7 +172,8 @@ public class YAMLWitnessContentTest {
       List<Map<String, Object>> witnessExportYAML = yaml.load(witnessExportStream);
       List<Map<String, Object>> expectedWitnessYAML = yaml.load(expectedWitnessStream);
 
-      assertThat(witnessExportYAML.get(0).get("content")).isEqualTo(expectedWitnessYAML.get(0).get("content"));
+      assertThat(witnessExportYAML.get(0).get("content"))
+          .isEqualTo(expectedWitnessYAML.get(0).get("content"));
 
     } catch (IOException e) {
       throw new AssertionError("Could not read witness export file", e);
