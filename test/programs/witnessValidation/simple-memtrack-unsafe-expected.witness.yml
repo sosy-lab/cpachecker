@@ -29,6 +29,6 @@
             action: "follow"
             location:
               file_name: "test/programs/witnessValidation/simple-memtrack-unsafe.c"
-              line: 15
-              column: 3
+              line: 13
+              column: 5
               function: "main"

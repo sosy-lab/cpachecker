@@ -25,6 +25,18 @@
   content:
     - segment:
         - waypoint:
+            type: "assumption"
+            action: "follow"
+            constraint:
+              value: "\\valid(x)"
+              type: "acsl_expression"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
             type: "branching"
             action: "follow"
             constraint:
@@ -101,6 +113,17 @@
               column: 3
               function: "main"
     - segment:
+        - waypoint:
+            type: "assumption"
+            action: "follow"
+            constraint:
+              value: "!\\valid(x)"
+              type: "acsl_expression"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 21
+              column: 3
+              function: "main"
         - waypoint:
             type: "target"
             action: "follow"
