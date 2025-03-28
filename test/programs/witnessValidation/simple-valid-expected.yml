@@ -6,89 +6,106 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "true"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "branching"
-        action: "follow"
-        constraint:
-          value: "false"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 16
-          column: 3
-          function: "main"
-- segment:
-    - waypoint:
-        type: "target"
-        action: "follow"
-        location:
-          file_name: "test/programs/witnessValidation/simple-valid.c"
-          line: 24
-          column: 3
-          function: "main"
+- entry_type: "violation_sequence"
+  metadata:
+    format_version: "2.0"
+    uuid: "a4fd45ee-db38-3b28-be6e-4ded92a747fc"
+    creation_time: "2025-03-28T11:13:30+01:00"
+    producer:
+      name: "CPAchecker"
+      version: "4.0-624-g18556091eb+"
+    task:
+      input_files:
+        - "test/programs/witnessValidation/simple-valid.c"
+      input_file_hashes:
+        test/programs/witnessValidation/simple-valid.c: "8638d70d315beca5cdcfba00b38be1c655eb551cbb2e26a6e10184a223d93e2f"
+      specification: ""
+      data_model: "ILP32"
+      language: "C"
+  content:
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "true"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "branching"
+            action: "follow"
+            constraint:
+              value: "false"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 15
+              column: 3
+              function: "main"
+    - segment:
+        - waypoint:
+            type: "target"
+            action: "follow"
+            location:
+              file_name: "test/programs/witnessValidation/simple-valid.c"
+              line: 21
+              column: 3
+              function: "main"
