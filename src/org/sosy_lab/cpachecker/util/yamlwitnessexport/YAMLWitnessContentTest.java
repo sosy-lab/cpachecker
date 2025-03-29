@@ -111,7 +111,7 @@ public class YAMLWitnessContentTest {
    * @param pFilename The filename of the Sourcecode to analyze.
    * @param pExpectedWitnessFilename The filename of the expected witnesses.
    * @param pExpectedVerdict The expected verdict of the analysis.
-   * @param pSpecificationFilePath FilePath The specification to use for the analysis.
+   * @param pSpecificationFilePath The specification to use for the analysis.
    * @param pAnalysisType The type of analysis to perform.
    * @param pOverrideOptions Map of options to override in the configuration.
    * @throws Exception Gets thrown if the test fails.
@@ -209,6 +209,16 @@ public class YAMLWitnessContentTest {
     }
   }
 
+  /**
+   * Tests if cpachecker can validate a given c software with given 2.0 witnesses
+   *
+   * @param pFilename The filename of the Sourcecode to analyze
+   * @param pExpectedVerdict The expected verdict of the analysis
+   * @param pSpecificationFilePath The specification to use for the analysis
+   * @param pWitnessFilename The filename of the witness to validate
+   * @param pOverrideOptions Map of options to override in the configuration
+   * @throws Exception Gets thrown if the test fails
+   */
   private void performValidationTest(
       String pFilename,
       ExpectedVerdict pExpectedVerdict,
@@ -241,6 +251,12 @@ public class YAMLWitnessContentTest {
     results.assertIs(Result.valueOf(pExpectedVerdict.toString()));
   }
 
+  /**
+   * Looks at a give witness 2.0 file and determines if it contains correctness of violation witnesses
+   *
+   * @param pWitnessFilePath Path to the witnesses that are analyzed
+   * @return {@link WitnessType#CORRECTNESS CORRECTNESS} or {@link WitnessType#VIOLATION VIOLATION}
+   */
   private WitnessType getWitnessType(Path pWitnessFilePath) {
     try (InputStream witnessStream = new FileInputStream(pWitnessFilePath.toFile())) {
       List<Map<String, Object>> witnessYAML = yaml.load(witnessStream);
