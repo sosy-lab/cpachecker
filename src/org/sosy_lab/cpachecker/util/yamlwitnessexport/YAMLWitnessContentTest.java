@@ -54,9 +54,13 @@ public class YAMLWitnessContentTest {
     }
   }
 
-  private enum WitnessType {CORRECTNESS, VIOLATION}
+  private enum WitnessType {
+    CORRECTNESS,
+    VIOLATION
+  }
 
-  @Ignore("Functionality not yet implemented") @Test
+  @Ignore("Functionality not yet implemented")
+  @Test
   public void testSimpleMemtrackWitnessExport() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
@@ -69,7 +73,8 @@ public class YAMLWitnessContentTest {
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Ignore("Functionality not yet implemented") @Test
+  @Ignore("Functionality not yet implemented")
+  @Test
   public void testSimpleValidWitnessExport() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
@@ -81,7 +86,9 @@ public class YAMLWitnessContentTest {
         TestConfig.SMG2,
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
-  @Ignore("Functionality not yet implemented") @Test
+
+  @Ignore("Functionality not yet implemented")
+  @Test
   public void testSimpleMemtrackWitnessValidation() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
@@ -93,7 +100,8 @@ public class YAMLWitnessContentTest {
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Ignore("Functionality not yet implemented") @Test
+  @Ignore("Functionality not yet implemented")
+  @Test
   public void testSimpleValidWitnessValidation() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
@@ -224,8 +232,8 @@ public class YAMLWitnessContentTest {
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
       String pWitnessFilename,
-      Map<String, String> pOverrideOptions
-  ) throws Exception {
+      Map<String, String> pOverrideOptions)
+      throws Exception {
     Path filePath = Path.of(TEST_DIR_PATH, pFilename);
     Path witnessFilePath = Path.of(TEST_DIR_PATH, pWitnessFilename);
 
@@ -237,8 +245,7 @@ public class YAMLWitnessContentTest {
     if (witnessType == WitnessType.CORRECTNESS) {
       config = TestConfig.CORRECTNESS_WITNESS_VALIDATION;
       overrideOptions.put(
-          "invariantGeneration.kInduction.invariantsAutomatonFile",
-          witnessFilePath.toString());
+          "invariantGeneration.kInduction.invariantsAutomatonFile", witnessFilePath.toString());
     } else {
       config = TestConfig.VIOLATION_WITNESS_VALIDATION;
       specification = Joiner.on(',').join(specification, witnessFilePath.toString());
@@ -252,7 +259,8 @@ public class YAMLWitnessContentTest {
   }
 
   /**
-   * Looks at a give witness 2.0 file and determines if it contains correctness of violation witnesses
+   * Looks at a give witness 2.0 file and determines if it contains correctness of violation
+   * witnesses
    *
    * @param pWitnessFilePath Path to the witnesses that are analyzed
    * @return {@link WitnessType#CORRECTNESS CORRECTNESS} or {@link WitnessType#VIOLATION VIOLATION}
@@ -262,11 +270,9 @@ public class YAMLWitnessContentTest {
       List<Map<String, Object>> witnessYAML = yaml.load(witnessStream);
       if (witnessYAML.get(0).get("entry_type").equals("invariant_set")) {
         return WitnessType.CORRECTNESS;
-      }
-      else if (witnessYAML.get(0).get("entry_type").equals("violation_sequence")) {
+      } else if (witnessYAML.get(0).get("entry_type").equals("violation_sequence")) {
         return WitnessType.VIOLATION;
-      }
-      else {
+      } else {
         throw new AssertionError("Invalid witness file: " + pWitnessFilePath);
       }
     } catch (IOException e) {
