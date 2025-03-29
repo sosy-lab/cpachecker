@@ -81,6 +81,29 @@ public class YAMLWitnessContentTest {
         TestConfig.SMG2,
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
+  @Ignore("Functionality not yet implemented") @Test
+  public void testSimpleMemtrackWitnessValidation() throws Exception {
+    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
+
+    performValidationTest(
+        "simple-memtrack-unsafe.c",
+        ExpectedVerdict.FALSE,
+        memorysafety,
+        "simple-memtrack-unsafe-expected.witness.yml",
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
+
+  @Ignore("Functionality not yet implemented") @Test
+  public void testSimpleValidWitnessValidation() throws Exception {
+    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
+
+    performValidationTest(
+        "simple-valid.c",
+        ExpectedVerdict.FALSE,
+        memorysafety,
+        "simple-valid-expected.witness.yml",
+        ImmutableMap.of("parser.usePreprocessor", "true"));
+  }
 
   /**
    * Fails if the exported YAML witnesses do not match the expected witnesses.
