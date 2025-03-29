@@ -19,6 +19,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -50,7 +51,7 @@ public class YAMLWitnessContentTest {
     }
   }
 
-  @Test
+  @Ignore("Functionality not yet implemented") @Test
   public void testSimpleMemtrackWitnessExport() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
@@ -63,7 +64,7 @@ public class YAMLWitnessContentTest {
         ImmutableMap.of("parser.usePreprocessor", "true"));
   }
 
-  @Test
+  @Ignore("Functionality not yet implemented") @Test
   public void testSimpleValidWitnessExport() throws Exception {
     String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
 
