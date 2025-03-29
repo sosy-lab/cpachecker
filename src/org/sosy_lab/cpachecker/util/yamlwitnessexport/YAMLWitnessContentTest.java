@@ -42,7 +42,9 @@ public class YAMLWitnessContentTest {
 
   private enum TestConfig {
     SMG2("smg2"),
-    SV_COMP("svcomp25");
+    SV_COMP("svcomp25"),
+    CORRECTNESS_WITNESS_VALIDATION("correctness-witness-validation"),
+    VIOLATION_WITNESS_VALIDATION("violation-witness-validation");
 
     private final String filename;
 
@@ -50,6 +52,8 @@ public class YAMLWitnessContentTest {
       this.filename = String.format("%s/%s.properties", CONFIG_DIR_PATH, pConfigName);
     }
   }
+
+  private enum WitnessType {CORRECTNESS, VIOLATION}
 
   @Ignore("Functionality not yet implemented") @Test
   public void testSimpleMemtrackWitnessExport() throws Exception {
