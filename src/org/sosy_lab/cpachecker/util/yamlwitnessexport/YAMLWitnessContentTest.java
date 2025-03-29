@@ -185,6 +185,23 @@ public class YAMLWitnessContentTest {
     }
   }
 
+  private WitnessType getWitnessType(Path pWitnessFilePath) {
+    try (InputStream witnessStream = new FileInputStream(pWitnessFilePath.toFile())) {
+      List<Map<String, Object>> witnessYAML = yaml.load(witnessStream);
+      if (witnessYAML.get(0).get("entry_type").equals("invariant_set")) {
+        return WitnessType.CORRECTNESS;
+      }
+      else if (witnessYAML.get(0).get("entry_type").equals("violation_sequence")) {
+        return WitnessType.VIOLATION;
+      }
+      else {
+        throw new AssertionError("Invalid witness file: " + pWitnessFilePath);
+      }
+    } catch (IOException e) {
+      throw new AssertionError("Could not read witness export file", e);
+    }
+  }
+
   /**
    * Builds a {@link Configuration} object from the given configuration file, the given override
    * options, and adds the specification to the configuration.
