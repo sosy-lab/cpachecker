@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.io.FileInputStream;
@@ -183,6 +184,38 @@ public class YAMLWitnessContentTest {
     } catch (IOException e) {
       throw new AssertionError("Could not read witness export file", e);
     }
+  }
+
+  private void performValidationTest(
+      String pFilename,
+      ExpectedVerdict pExpectedVerdict,
+      String pSpecificationFilePath,
+      String pWitnessFilename,
+      Map<String, String> pOverrideOptions
+  ) throws Exception {
+    Path filePath = Path.of(TEST_DIR_PATH, pFilename);
+    Path witnessFilePath = Path.of(TEST_DIR_PATH, pWitnessFilename);
+
+    LinkedHashMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+
+    WitnessType witnessType = getWitnessType(witnessFilePath);
+    TestConfig config;
+    String specification = pSpecificationFilePath;
+    if (witnessType == WitnessType.CORRECTNESS) {
+      config = TestConfig.CORRECTNESS_WITNESS_VALIDATION;
+      overrideOptions.put(
+          "invariantGeneration.kInduction.invariantsAutomatonFile",
+          witnessFilePath.toString());
+    } else {
+      config = TestConfig.VIOLATION_WITNESS_VALIDATION;
+      specification = Joiner.on(',').join(specification, witnessFilePath.toString());
+    }
+
+    Configuration generationConfig =
+        generateConfiguration(config.filename, overrideOptions, specification);
+
+    TestResults results = CPATestRunner.run(generationConfig, filePath.toString());
+    results.assertIs(Result.valueOf(pExpectedVerdict.toString()));
   }
 
   private WitnessType getWitnessType(Path pWitnessFilePath) {
