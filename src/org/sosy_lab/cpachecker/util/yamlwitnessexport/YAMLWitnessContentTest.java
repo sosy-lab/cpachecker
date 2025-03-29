@@ -237,7 +237,7 @@ public class YAMLWitnessContentTest {
     Path filePath = Path.of(TEST_DIR_PATH, pFilename);
     Path witnessFilePath = Path.of(TEST_DIR_PATH, pWitnessFilename);
 
-    LinkedHashMap<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
+    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
 
     WitnessType witnessType = getWitnessType(witnessFilePath);
     TestConfig config;
