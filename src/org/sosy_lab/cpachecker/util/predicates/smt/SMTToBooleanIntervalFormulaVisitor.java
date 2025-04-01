@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanConstant;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
@@ -37,7 +39,7 @@ public class SMTToBooleanIntervalFormulaVisitor
 
   @Override
   public BooleanFormula<CompoundInterval> visitBoundVariable(Formula pF, int pArg1) {
-    return null;
+    return BooleanConstant.getTrue();
   }
 
   @Override
@@ -60,6 +62,38 @@ public class SMTToBooleanIntervalFormulaVisitor
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
     switch (kind) {
+      case NOT:
+        return LogicalNot.of(fmgr.visit(pArgs.get(0), this));
+      case EQ:
+        Formula leftRaw = pArgs.get(0);
+        Formula rightRaw = pArgs.get(1);
+
+        if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")
+            && rightRaw.toString().equals("1_1")) {
+          BooleanFormula<CompoundInterval> test = fmgr.visit(leftRaw, this);
+          return test;
+        }
+
+        if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")
+            && rightRaw.toString().equals("0_1")) {
+          BooleanFormula<CompoundInterval> test = fmgr.visit(leftRaw, this);
+
+          return LogicalNot.of(test);
+        }
+
+        NumeralFormula<CompoundInterval> left = fmgr.visit(leftRaw, smtToNumeralFormulaVisitor);
+        NumeralFormula<CompoundInterval> right = fmgr.visit(rightRaw, smtToNumeralFormulaVisitor);
+
+        if (left == null || right == null) {
+          System.err.println("⚠️ EQ: left or right is null: " + pF);
+          return BooleanConstant.getFalse();
+        }
+
+        return Equal.of(left, right);
+      case OR:
+        return LogicalAnd.of(
+            LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
+            LogicalNot.of(fmgr.visit(pArgs.get(1), this)));
       case BV_SGT:
       case BV_UGT:
       case FP_GT:
@@ -102,6 +136,11 @@ public class SMTToBooleanIntervalFormulaVisitor
         return Equal.of(
             fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
             smtToNumeralFormulaVisitor.visitConstant(pF, 0));
+      case BV_EXTRACT:
+        Formula variable = pArgs.get(0);
+        return LessThan.of(
+            fmgr.visit(variable, smtToNumeralFormulaVisitor),
+            smtToNumeralFormulaVisitor.visitConstant(variable, BigInteger.ZERO));
       default:
         throw new UnsupportedOperationException("Unsupported function: " + kind);
     }
