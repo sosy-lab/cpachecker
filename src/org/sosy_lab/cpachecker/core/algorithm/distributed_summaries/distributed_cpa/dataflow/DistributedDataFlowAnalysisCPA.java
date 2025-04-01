@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -17,10 +18,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.VerificationConditionException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -28,10 +29,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedDataFlowAnalysisCPA
     implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -93,12 +92,15 @@ public class DistributedDataFlowAnalysisCPA
   }
 
   @Override
-  public AbstractState computeVerificationCondition(ARGPath pARGPath, ARGState pPreviousCondition)
-      throws CPATransferException,
-          InterruptedException,
-          VerificationConditionException,
-          SolverException {
-    return invariantsCPA.getInitialState(
-        blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+  public ViolationConditionOperator getViolationConditionOperator() {
+    return new ViolationConditionOperator() {
+      @Override
+      public Optional<AbstractState> computeViolationCondition(
+          ARGPath pARGPath, Optional<ARGState> pPreviousCondition) throws InterruptedException {
+        return Optional.of(
+            invariantsCPA.getInitialState(
+                blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition()));
+      }
+    };
   }
 }

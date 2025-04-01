@@ -16,9 +16,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.invariants.AbstractionStrategyFactories;
@@ -60,11 +60,11 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
+  public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     Optional<Object> abstractStateOptional = pMessage.getAbstractState(InvariantsCPA.class);
     if (abstractStateOptional.isEmpty()) {
       return invariantsCPA.getInitialState(
-          blockNode.getFirst(), StateSpacePartition.getDefaultPartition());
+          blockNode.getInitialLocation(), StateSpacePartition.getDefaultPartition());
     }
     String booleanFormulaString = (String) abstractStateOptional.orElseThrow();
     BooleanFormula<CompoundInterval> booleanFormula =
@@ -101,26 +101,14 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     }
     deserializedInvariantsState =
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
-
-    deserializedInvariantsState.getFormulaApproximation(formulaManager);
-    org.sosy_lab.java_smt.api.BooleanFormula formulaApprox =
-        deserializedInvariantsState.getFormulaApproximation(formulaManager);
-    SMTToNumeralIntervalFormulaVisitor smtToNumeralFormulaVisitor =
-        new SMTToNumeralIntervalFormulaVisitor(
-            formulaManager, variableTypes, cfa.getMachineModel());
-
-    SMTToBooleanIntervalFormulaVisitor smtToBooleanIntervalFormulaVisitor =
-        new SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
-    BooleanFormula<CompoundInterval> compoundInterval =
-        formulaManager.visit(formulaApprox, smtToBooleanIntervalFormulaVisitor);
     return deserializedInvariantsState;
   }
 
-  private AbstractionStrategyFactories extractAbstractionStrategy(BlockSummaryMessage pMessage) {
+  private AbstractionStrategyFactories extractAbstractionStrategy(DssMessage pMessage) {
     String strategyString = "";
-    if (pMessage instanceof BlockSummaryPostConditionMessage postMessage) {
+    if (pMessage instanceof DssPostConditionMessage postMessage) {
       strategyString = postMessage.getAbstractionStrategy();
-    } else if (pMessage instanceof BlockSummaryErrorConditionMessage errorMessage) {
+    } else if (pMessage instanceof DssViolationConditionMessage errorMessage) {
       strategyString = errorMessage.getAbstractionStrategy();
     }
     return AbstractionStrategyFactories.valueOf(strategyString);

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface SerializeOperator {
 
@@ -20,4 +21,11 @@ public interface SerializeOperator {
    * @return payload
    */
   DssMessagePayload serialize(AbstractState pState);
+
+  default BooleanFormula serializeToFormula(AbstractState pState) {
+    if (pState == null) {
+      return null;
+    }
+    throw new UnsupportedOperationException("This method is not supported.");
+  }
 }

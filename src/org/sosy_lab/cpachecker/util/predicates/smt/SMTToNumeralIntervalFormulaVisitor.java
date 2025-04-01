@@ -43,10 +43,6 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 public class SMTToNumeralIntervalFormulaVisitor
     implements FormulaVisitor<NumeralFormula<CompoundInterval>> {
 
-  private static final String LLONG_MIN_LITERAL = "9223372036854775808";
-
-  private static final String INT_MIN_LITERAL = "2147483648";
-
   private final FormulaManagerView fmgr;
   private final Map<MemoryLocation, CType> variableTypes;
   private final MachineModel machineModel;

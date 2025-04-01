@@ -13,8 +13,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithmFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithmFactory.AnalysisComponents;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -73,7 +73,7 @@ public class DeserializeValueAnalysisStateOperatorTest {
       throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
 
     AnalysisComponents components =
-        DCPAAlgorithmFactory.createAlgorithm(
+        DssBlockAnalysisFactory.createAlgorithm(
             logger, specification, cfa, config, shutdownManager, blockNode);
 
     Algorithm algorithm = components.algorithm();
@@ -98,10 +98,7 @@ public class DeserializeValueAnalysisStateOperatorTest {
         serializeOperator.serializeToFormula(deserializedState);
 
     boolean implication = solver.implies(originalFormula, deserializedFormula);
-    if (implication) {
-      System.out.println("Original Formula:\n" + originalFormula);
-      System.out.println("Deserialized Formula:\n" + deserializedFormula);
-    }
+
     assertTrue("Deserialized state must imply original formula", implication);
   }
 }

@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
@@ -61,8 +60,6 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       Map<MemoryLocation, CType> pVariableTypes)
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
-    //hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
-    // hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     variableTypes = pVariableTypes;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);

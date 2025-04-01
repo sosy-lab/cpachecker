@@ -12,11 +12,10 @@ import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -32,17 +31,12 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
 
   private final FormulaManagerView formulaManager;
 
-  public SerializeDataflowAnalysisStateOperator(Solver solver)
-      throws InvalidConfigurationException {
+  public SerializeDataflowAnalysisStateOperator(Solver solver) {
     formulaManager = solver.getFormulaManager();
   }
 
-  public FormulaManagerView getFormulaManager() {
-    return formulaManager;
-  }
-
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DssMessagePayload serialize(AbstractState pState) {
     InvariantsState state = (InvariantsState) pState;
     BooleanFormula<CompoundInterval> booleanFormula = state.asFormula();
     SerializeNumeralFormulaVisitor numeralFormulaVisitor = new SerializeNumeralFormulaVisitor();
@@ -63,13 +57,13 @@ public class SerializeDataflowAnalysisStateOperator implements SerializeOperator
     }
 
     String serializedVariableTypes = Joiner.on(" && ").join(serializedVariableTypeEntries);
-    BlockSummaryMessagePayload.Builder payload =
-        BlockSummaryMessagePayload.builder()
+    DssMessagePayload.Builder payload =
+        DssMessagePayload.builder()
             .addEntry(InvariantsCPA.class.getName(), booleanFormulaString)
-            .addEntry(BlockSummaryMessagePayload.STRATEGY, abstractionStrategy);
+            .addEntry(DssMessagePayload.STRATEGY, abstractionStrategy);
 
     if (!serializedVariableTypes.isEmpty()) {
-      payload.addEntry(BlockSummaryMessagePayload.VTYPES, serializedVariableTypes);
+      payload.addEntry(DssMessagePayload.VTYPES, serializedVariableTypes);
     }
 
     return payload.buildPayload();

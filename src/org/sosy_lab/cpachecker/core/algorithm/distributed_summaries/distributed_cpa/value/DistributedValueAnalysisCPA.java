@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import java.util.Optional;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
