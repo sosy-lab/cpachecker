@@ -79,6 +79,7 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
@@ -136,6 +137,12 @@ public class FormulaManagerView {
   private @Nullable QuantifiedFormulaManagerView quantifiedFormulaManager;
   private @Nullable ArrayFormulaManagerView arrayFormulaManager;
   private @Nullable SLFormulaManagerView slFormulaManager;
+
+  @Option(
+      secure = true,
+      name = "quantificationOption",
+      description = "Which additional quantification option to use.")
+  private ProverOptions quantOption = null;
 
   @Option(
       secure = true,
@@ -1059,12 +1066,22 @@ public class FormulaManagerView {
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager()
       throws UnsupportedOperationException {
     if (quantifiedFormulaManager == null) {
-      quantifiedFormulaManager =
-          new QuantifiedFormulaManagerView(
-              wrappingHandler,
-              manager.getQuantifiedFormulaManager(),
-              booleanFormulaManager,
-              getIntegerFormulaManager());
+      if (quantOption == null) {
+        quantifiedFormulaManager =
+            new QuantifiedFormulaManagerView(
+                wrappingHandler,
+                manager.getQuantifiedFormulaManager(),
+                booleanFormulaManager,
+                getIntegerFormulaManager());
+      } else {
+        quantifiedFormulaManager =
+            new QuantifiedFormulaManagerView(
+                wrappingHandler,
+                manager.getQuantifiedFormulaManager(),
+                booleanFormulaManager,
+                getIntegerFormulaManager(),
+                quantOption);
+      }
     }
     return quantifiedFormulaManager;
   }
@@ -1950,7 +1967,11 @@ public class FormulaManagerView {
         Quantifier pQuantifier,
         List<Formula> pBoundVariables,
         BooleanFormula pTransformedBody) {
-      return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
+      try {
+        return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
+      } catch (IOException e) {
+        throw new AssertionError(e);
+      }
     }
   }
 

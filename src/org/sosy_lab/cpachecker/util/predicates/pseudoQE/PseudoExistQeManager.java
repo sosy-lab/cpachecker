@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -431,6 +432,8 @@ public class PseudoExistQeManager implements StatisticsProvider {
         // Return unchanged input
         return pExistFormula;
       }
+    } catch (IOException e) {
+      throw new AssertionError(e);
     } finally {
       stats.solverQETimer.stop();
     }
