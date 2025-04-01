@@ -104,7 +104,7 @@ public class RCNFManager implements StatisticsProvider {
    * @return Set of lemmas, only have variables with latest SSA index.
    */
   public Set<BooleanFormula> toLemmasInstantiated(PathFormula pf, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     BooleanFormula transition = pf.getFormula();
     SSAMap ssa = pf.getSsa();
     transition = pFmgr.filterLiterals(transition, input -> !hasDeadUf(input, ssa, pFmgr));
@@ -122,7 +122,7 @@ public class RCNFManager implements StatisticsProvider {
    * @param pFmgr Formula manager which performs the conversion.
    */
   public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();

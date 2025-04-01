@@ -1815,7 +1815,7 @@ public class FormulaManagerView {
 
   /** See {@link FormulaManager#applyTactic(BooleanFormula, Tactic)} for documentation. */
   public BooleanFormula applyTactic(BooleanFormula input, Tactic tactic)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     return manager.applyTactic(input, tactic);
   }
 
@@ -1865,7 +1865,14 @@ public class FormulaManagerView {
   public BooleanFormula filterLiterals(BooleanFormula input, final Predicate<BooleanFormula> toKeep)
       throws InterruptedException {
     // No nested NOT's are possible in NNF.
-    BooleanFormula nnf = applyTactic(input, Tactic.NNF);
+    BooleanFormula nnf;
+    try {
+      nnf = applyTactic(input, Tactic.NNF);
+    } catch (SolverException e) {
+      // TODO: propagate this exception throughout CPAchecker as far as possible and handle possible
+      //  resolutions in the components. See issue #1327.
+      throw new AssertionError("Solver failed when applying tactic NNF", e);
+    }
 
     BooleanFormula nnfNotTransformed =
         booleanFormulaManager.transformRecursively(

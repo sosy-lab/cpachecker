@@ -236,7 +236,7 @@ public class PolicyInterpolationRefiner implements Refiner {
 
   /** Weaken {@code input}, such that it no longer contains any variables in {@code varsToDrop}. */
   private BooleanFormula weaken(BooleanFormula input, Set<String> varsToDrop)
-      throws InterruptedException {
+      throws InterruptedException, SolverException {
     if (varsToDrop.isEmpty()) {
       return input;
     }

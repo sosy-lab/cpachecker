@@ -109,6 +109,21 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
               String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
           break;
         }
+      case FP_IS_ZERO:
+        // +0.0 and -0.0 are equal and are both handled here.
+        result = cache.get(newArgs.get(0)) + " == 0.0";
+        break;
+      case FP_IS_NAN:
+        // NaN is not a number, so it is unequal to itself.
+        String nanArg = cache.get(newArgs.get(0));
+        result = nanArg + " != " + nanArg;
+        break;
+      case FP_IS_INF:
+        // C99 standard for positive infinity is "1 / 0",
+        // see https://www.gnu.org/software/libc/manual/html_node/Infinity-and-NaN.html
+        String infArg = cache.get(newArgs.get(0));
+        result = infArg + " == (1 / 0)" + " || " + infArg + " == -(1 / 0)";
+        break;
       case ITE:
         result =
             String.format(
@@ -159,7 +174,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case BV_AND:
         return " & ";
       case OR:
-        return "\n|| ";
+        return " || ";
       case BV_OR:
         return " | ";
       case BV_XOR:

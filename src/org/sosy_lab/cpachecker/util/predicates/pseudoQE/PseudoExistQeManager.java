@@ -229,7 +229,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
           return Optional.empty();
         }
       } else {
-        logger.log(Level.FINE, "Sucessfully eliminated all quantified Variables.");
+        logger.log(Level.FINE, "Successfully eliminated all quantified Variables.");
         return Optional.of(existFormula.getInnerFormula());
       }
     } finally {
@@ -389,16 +389,15 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
       BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
-      if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
-        afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
-      }
-      if (solverQeTactic == SolverQeTactic.FULL) {
-        try {
-          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
-        } catch (SolverException e) {
-          logger.log(
-              Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);
+      try {
+        if (solverQeTactic == SolverQeTactic.LIGHT || solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
         }
+        if (solverQeTactic == SolverQeTactic.FULL) {
+          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
+        }
+      } catch (SolverException e) {
+        logger.log(Level.FINER, "Solver-based Quantifier Elimination failed:", e);
       }
       int numberQuantifiers = numberQuantifiers(afterQE);
       // Check if number of quantified vars less than before

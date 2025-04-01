@@ -68,7 +68,7 @@ public class LoopTransitionFinderTest {
             .withMessage("Z3 requires newer libc than Ubuntu 18.04 provides")
             .that(cause)
             .hasMessageThat()
-            .doesNotContain("version `GLIBCXX_3.4.26' not found");
+            .doesNotContainMatch("version `(GLIBCXX_3\\.4\\.26|GLIBC_2\\.34)' not found");
       }
       throw e;
     }

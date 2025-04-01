@@ -598,9 +598,14 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
     try {
       stats.pfKindTime.start();
 
-      Set<BooleanFormula> conjuncts =
-          Collections3.transformedImmutableSetCopy(
-              semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      Set<BooleanFormula> conjuncts;
+      try {
+        conjuncts =
+            Collections3.transformedImmutableSetCopy(
+                semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
+      } catch (SolverException e) {
+        throw new CPAException("Solver failed with exception", e);
+      }
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
