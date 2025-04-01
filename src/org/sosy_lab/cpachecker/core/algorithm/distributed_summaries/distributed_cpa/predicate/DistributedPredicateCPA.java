@@ -62,6 +62,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     //hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
+    // hasRootAsPredecessor = pNode.getPredecessorIds().stream().anyMatch(id -> id.equals("root"));
     variableTypes = pVariableTypes;
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
     serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
