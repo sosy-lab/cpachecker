@@ -33,7 +33,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DeserializeDataflowAnalysisStateOperatorTest {
 
   private static final String SPEC_PATH = "config/specification/default.spc";
-  private static final String TEST_PROGRAM_PATH = "test/programs/block_analysis/many-ifs.c";
+  private static final String TEST_PROGRAM_PATH =
+      "test/programs/block_analysis/simple_loop_unsafe.c";
   private static final String CONFIG_PATH =
       "config/distributed-block-summaries/predicateAnalysis-dataFlow-block-forward.properties";
 

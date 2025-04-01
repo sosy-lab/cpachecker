@@ -85,15 +85,16 @@ public class SMTToBooleanIntervalFormulaVisitor
         NumeralFormula<CompoundInterval> right = fmgr.visit(rightRaw, smtToNumeralFormulaVisitor);
 
         if (left == null || right == null) {
-          System.err.println("⚠️ EQ: left or right is null: " + pF);
+          System.err.println("EQ: left or right is null: " + pF);
           return BooleanConstant.getFalse();
         }
 
         return Equal.of(left, right);
       case OR:
-        return LogicalAnd.of(
-            LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
-            LogicalNot.of(fmgr.visit(pArgs.get(1), this)));
+        return LogicalNot.of(
+            LogicalAnd.of(
+                LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
+                LogicalNot.of(fmgr.visit(pArgs.get(1), this))));
       case BV_SGT:
       case BV_UGT:
       case FP_GT:

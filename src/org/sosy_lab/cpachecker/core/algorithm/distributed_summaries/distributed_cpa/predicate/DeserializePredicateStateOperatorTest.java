@@ -8,7 +8,6 @@ import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -22,13 +21,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.DeserializationTestUtils;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class DeserializePredicateStateOperatorTest {
 
@@ -72,8 +69,7 @@ public class DeserializePredicateStateOperatorTest {
     }
   }
 
-  private void runAnalysisAndCheckDeserialization(BlockNode blockNode)
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
+  private void runAnalysisAndCheckDeserialization(BlockNode blockNode) throws Exception {
 
     AnalysisComponents components =
         DssBlockAnalysisFactory.createAlgorithm(
@@ -106,10 +102,7 @@ public class DeserializePredicateStateOperatorTest {
     }
 
     boolean implication = solver.implies(originalFormula, deserializedFormula);
-    if (implication) {
-      System.out.println("Original Formula:\n" + originalFormula);
-      System.out.println("Deserialized Formula:\n" + deserializedFormula);
-    }
+
     assertTrue("Deserialized predicate state must imply original formula", implication);
   }
 }
