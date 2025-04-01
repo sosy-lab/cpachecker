@@ -12,10 +12,7 @@ import com.google.common.base.Joiner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.SerializeCTypeVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -33,14 +30,15 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SerializeDataflowAnalysisStateOperator implements SerializeOperator {
 
-  private final Solver solver;
   private final FormulaManagerView formulaManager;
 
-  public SerializeDataflowAnalysisStateOperator(
-      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
+  public SerializeDataflowAnalysisStateOperator(Solver solver)
       throws InvalidConfigurationException {
-    solver = Solver.create(config, pLogger, shutdownNotifier);
     formulaManager = solver.getFormulaManager();
+  }
+
+  public FormulaManagerView getFormulaManager() {
+    return formulaManager;
   }
 
   @Override

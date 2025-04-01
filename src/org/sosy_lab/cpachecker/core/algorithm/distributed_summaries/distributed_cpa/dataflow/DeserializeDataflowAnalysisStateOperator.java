@@ -12,10 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -54,15 +50,12 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
       CFA pCFA,
       BlockNode pBlockNode,
       Map<MemoryLocation, CType> pVariableTypes,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier shutdownNotifier)
-      throws InvalidConfigurationException {
+      Solver pSolver) {
     cfa = pCFA;
     invariantsCPA = pInvariantsCPA;
     blockNode = pBlockNode;
     variableTypes = pVariableTypes;
-    solver = Solver.create(config, pLogger, shutdownNotifier);
+    solver = pSolver;
     formulaManager = solver.getFormulaManager();
   }
 
@@ -109,6 +102,17 @@ public class DeserializeDataflowAnalysisStateOperator implements DeserializeOper
     deserializedInvariantsState =
         deserializedInvariantsState.addAssumptions(ImmutableSet.copyOf(assumptionParts));
 
+    deserializedInvariantsState.getFormulaApproximation(formulaManager);
+    org.sosy_lab.java_smt.api.BooleanFormula formulaApprox =
+        deserializedInvariantsState.getFormulaApproximation(formulaManager);
+    SMTToNumeralIntervalFormulaVisitor smtToNumeralFormulaVisitor =
+        new SMTToNumeralIntervalFormulaVisitor(
+            formulaManager, variableTypes, cfa.getMachineModel());
+
+    SMTToBooleanIntervalFormulaVisitor smtToBooleanIntervalFormulaVisitor =
+        new SMTToBooleanIntervalFormulaVisitor(formulaManager, smtToNumeralFormulaVisitor);
+    BooleanFormula<CompoundInterval> compoundInterval =
+        formulaManager.visit(formulaApprox, smtToBooleanIntervalFormulaVisitor);
     return deserializedInvariantsState;
   }
 

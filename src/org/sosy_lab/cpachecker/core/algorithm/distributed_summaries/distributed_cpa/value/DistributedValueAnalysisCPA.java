@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DistributedValueAnalysisCPA
@@ -36,6 +37,7 @@ public class DistributedValueAnalysisCPA
   private final SerializeOperator serializeOperator;
   private final DeserializeOperator deserializeOperator;
   private final Map<MemoryLocation, CType> variableTypes;
+  private final Solver solver;
 
   private final BlockNode blockNode;
 
@@ -50,11 +52,9 @@ public class DistributedValueAnalysisCPA
       throws InvalidConfigurationException {
     valueAnalysisCPA = pValueAnalysisCPA;
     variableTypes = new HashMap<>(pVariableTypes);
-    serializeOperator =
-        new SerializeValueAnalysisStateOperator(pConfig, pLogManager, shutdownNotifier);
-    deserializeOperator =
-        new DeserializeValueAnalysisStateOperator(
-            pCFA, variableTypes, pConfig, pLogManager, shutdownNotifier);
+    solver = Solver.create(pConfig, pLogManager, shutdownNotifier);
+    serializeOperator = new SerializeValueAnalysisStateOperator(solver);
+    deserializeOperator = new DeserializeValueAnalysisStateOperator(pCFA, variableTypes, solver);
     blockNode = pNode;
   }
 

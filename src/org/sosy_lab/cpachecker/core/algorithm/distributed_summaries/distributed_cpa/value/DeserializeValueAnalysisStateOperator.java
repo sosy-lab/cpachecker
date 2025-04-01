@@ -14,11 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -47,15 +43,10 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
   private final FormulaManagerView formulaManager;
 
   public DeserializeValueAnalysisStateOperator(
-      CFA pCFA,
-      Map<MemoryLocation, CType> pVariableTypes,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier shutdownNotifier)
-      throws InvalidConfigurationException {
+      CFA pCFA, Map<MemoryLocation, CType> pVariableTypes, Solver pSolver) {
     cfa = pCFA;
     variableTypes = pVariableTypes;
-    solver = Solver.create(config, pLogger, shutdownNotifier);
+    solver = pSolver;
     formulaManager = solver.getFormulaManager();
   }
 

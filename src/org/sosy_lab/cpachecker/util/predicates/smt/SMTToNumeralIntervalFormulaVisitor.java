@@ -68,13 +68,19 @@ public class SMTToNumeralIntervalFormulaVisitor
   }
 
   private BigInteger adjustForOverflow(BigInteger value, int bitSize) {
-    if (bitSize == 32 && value.equals(new BigInteger(INT_MIN_LITERAL))) {
-      return value.add(BigInteger.ONE).subtract(BigInteger.ONE);
+    BigInteger twoPowBits = BigInteger.ONE.shiftLeft(bitSize);
+    BigInteger maxSigned = twoPowBits.shiftRight(1).subtract(BigInteger.ONE);
+    BigInteger minSigned = maxSigned.negate().subtract(BigInteger.ONE);
+
+    BigInteger wrapped = value;
+    if (value.compareTo(minSigned) < 0 || value.compareTo(maxSigned) > 0) {
+      wrapped = value.and(twoPowBits.subtract(BigInteger.ONE));
+      if (wrapped.testBit(bitSize - 1)) {
+        wrapped = wrapped.subtract(twoPowBits);
+      }
     }
-    if (bitSize == 64 && value.equals(new BigInteger(LLONG_MIN_LITERAL))) {
-      return value.add(BigInteger.ONE).subtract(BigInteger.ONE);
-    }
-    return value;
+
+    return wrapped;
   }
 
   @Override
@@ -154,7 +160,6 @@ public class SMTToNumeralIntervalFormulaVisitor
             fmgr.visit(pArgs.get(0), new SMTToBooleanIntervalFormulaVisitor(fmgr, this)),
             fmgr.visit(pArgs.get(1), this),
             fmgr.visit(pArgs.get(2), this));
-
       default:
         break;
     }
