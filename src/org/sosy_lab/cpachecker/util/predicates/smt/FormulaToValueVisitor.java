@@ -114,9 +114,10 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
             PersistentMap<MemoryLocation, ValueAndType> tempConstantsMap = constantsMap;
             constantsMap = previousConstantsMap;
             fmgr.visit(arg, this);
-            for (MemoryLocation var : tempConstantsMap.keySet()) {
+            for (Map.Entry<MemoryLocation, ValueAndType> entry : tempConstantsMap.entrySet()) {
+              MemoryLocation var = entry.getKey();
               if (!constantsMap.containsKey(var)
-                  || !constantsMap.get(var).equals(tempConstantsMap.get(var))) {
+                  || !constantsMap.get(var).equals(entry.getValue())) {
                 constantsMap = constantsMap.removeAndCopy(var);
               }
             }

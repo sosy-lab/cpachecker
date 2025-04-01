@@ -68,7 +68,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
         String identifier = parts.get(0);
         List<String> valueParts = Splitter.on('=').splitToList(parts.get(1));
 
-        if (valueParts.get(1).equals("")) {
+        if (valueParts.get(1).isEmpty()) {
           continue;
         }
 
