@@ -31,8 +31,8 @@ public class LemmaEntryTest {
       if (e instanceof LemmaSetEntry) {
         List<LemmaEntry> lemmaEntries = ((LemmaSetEntry) e).getContent();
         assertThat(lemmaEntries).hasSize(2);
-        assertThat(lemmaEntries.get(0).getValue()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
-        assertThat(lemmaEntries.get(0).getFormat().toString()).isEqualTo("c_expression");
+        assertThat(lemmaEntries.get(0).value()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
+        assertThat(lemmaEntries.get(0).format().toString()).isEqualTo("c_expression");
       }
     }
   }
@@ -44,8 +44,8 @@ public class LemmaEntryTest {
     ImmutableSet<LemmaEntry> lemmaSet =
         AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries);
     assertThat(lemmaSet).hasSize(2);
-    assertThat(lemmaSet.asList().get(0).getValue()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
-    assertThat(lemmaSet.asList().get(0).getFormat().toString()).isEqualTo("c_expression");
+    assertThat(lemmaSet.asList().get(0).value()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
+    assertThat(lemmaSet.asList().get(0).format().toString()).isEqualTo("c_expression");
   }
 
   @Test

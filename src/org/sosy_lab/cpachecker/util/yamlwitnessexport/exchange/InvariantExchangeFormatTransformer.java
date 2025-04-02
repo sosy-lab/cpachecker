@@ -153,17 +153,17 @@ public class InvariantExchangeFormatTransformer {
     CExpression expression;
 
     try {
-      expression = ACSLParserUtils.parseACSLExpression(pLemmaEntry.getValue(), cparser, pScope);
+      expression = ACSLParserUtils.parseACSLExpression(pLemmaEntry.value(), cparser, pScope);
     } catch (InvalidAutomatonException e) {
       throw new InterruptedException(
-          "Could not parse statement as CExpression:" + pLemmaEntry.getValue());
+          "Could not parse statement as CExpression:" + pLemmaEntry.value());
     }
     try {
       return pPathFormulaManagerImpl.makeAnd(
           pPathFormulaManagerImpl.makeEmptyPathFormula(), expression);
     } catch (CPATransferException e) {
       throw new InterruptedException(
-          "Could not create path formula from statement: " + pLemmaEntry.getValue());
+          "Could not create path formula from statement: " + pLemmaEntry.value());
     }
   }
 

@@ -244,9 +244,9 @@ public final class PredicatePrecisionBootstrapper {
 
   public ImmutableSet<PathFormula> prepareInitialLemmas()
       throws InterruptedException, InvalidConfigurationException {
-    List<LemmaSetEntry> lemmaSetEntries = new ArrayList<>();
-    List<LemmaEntry> lemmaSet = new ArrayList<>();
-    List<String> declarationEntries = new ArrayList<>();
+    ImmutableList.Builder<LemmaSetEntry> lemmaSetEntriesBuilder = ImmutableList.builder();
+    ImmutableList.Builder<LemmaEntry> lemmaSetBuilder = ImmutableList.builder();
+    ImmutableList.Builder<String> declarationEntriesBuilder = ImmutableList.builder();
 
     if (!predicatesFiles.isEmpty()) {
       for (Path lemmaFile : predicatesFiles) {
@@ -256,15 +256,21 @@ public final class PredicatePrecisionBootstrapper {
             logger.log(Level.WARNING, "Lemmas can only be supplied via a YAML file.");
             continue;
           }
-          lemmaSetEntries.addAll(AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile));
-          declarationEntries.addAll(
+          ImmutableList<LemmaSetEntry> lemmaSetEntries =
+              lemmaSetEntriesBuilder
+                  .addAll(AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile))
+                  .build();
+          declarationEntriesBuilder.addAll(
               AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries));
-          lemmaSet.addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries));
+          lemmaSetBuilder.addAll(
+              AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries));
         } catch (IOException e) {
           logger.logfUserException(Level.WARNING, e, "Could not read lemma file");
         }
       }
     }
+    ImmutableList<LemmaEntry> lemmaSet = lemmaSetBuilder.build();
+    ImmutableList<String> declarationEntries = declarationEntriesBuilder.build();
 
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
