@@ -14,7 +14,7 @@ extern unsigned __VERIFIER_nondet_uchar();
 
 int maxArray(int* a, int l, int n) {
   int m = a[0];
-  int j = 0;
+  int j = 1;
   while(j < l) {
     if(a[j] > m) {
       m = a[j];
