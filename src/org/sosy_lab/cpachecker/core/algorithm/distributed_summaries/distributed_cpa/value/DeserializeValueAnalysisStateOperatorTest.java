@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Map;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
@@ -38,7 +37,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class DeserializeValueAnalysisStateOperatorTest {
 
   private static final String SPEC_PATH = "config/specification/default.spc";
-  private static final String TEST_PROGRAM_PATH = "test/programs/block_analysis/simple_calculations_unsafe.c";
+  private static final String TEST_PROGRAM_PATH =
+      "test/programs/block_analysis/simple_calculations_unsafe.c";
   private static final String CONFIG_PATH =
       "config/distributed-block-summaries/predicateAnalysis-value-block-forward.properties";
 
@@ -107,6 +107,6 @@ public class DeserializeValueAnalysisStateOperatorTest {
 
     boolean implication = solver.implies(originalFormula, deserializedFormula);
 
-    assertTrue("Deserialized state must imply original formula", implication);
+    Assert.assertTrue("Deserialized state must imply original formula", implication);
   }
 }

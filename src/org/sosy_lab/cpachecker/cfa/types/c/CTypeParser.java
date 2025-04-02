@@ -236,24 +236,16 @@ public class CTypeParser {
   }
 
   private static CBasicType getBasicTypeFromString(String typeStr) {
-    switch (typeStr) {
-      case "_Bool":
-        return CBasicType.BOOL;
-      case "char":
-        return CBasicType.CHAR;
-      case "int":
-        return CBasicType.INT;
-      case "__int128":
-        return CBasicType.INT128;
-      case "float":
-        return CBasicType.FLOAT;
-      case "double":
-        return CBasicType.DOUBLE;
-      case "__float128":
-        return CBasicType.FLOAT128;
-      default:
-        return CBasicType.UNSPECIFIED;
-    }
+    return switch (typeStr) {
+      case "_Bool" -> CBasicType.BOOL;
+      case "char" -> CBasicType.CHAR;
+      case "int" -> CBasicType.INT;
+      case "__int128" -> CBasicType.INT128;
+      case "float" -> CBasicType.FLOAT;
+      case "double" -> CBasicType.DOUBLE;
+      case "__float128" -> CBasicType.FLOAT128;
+      default -> CBasicType.UNSPECIFIED;
+    };
   }
 
   private static String extractInnerContent(String input, String prefix) {

@@ -75,7 +75,9 @@ public class SMTToBooleanIntervalFormulaVisitor
           }
         }
 
-        return Equal.of(fmgr.visit(leftRaw, smtToNumeralFormulaVisitor), fmgr.visit(rightRaw, smtToNumeralFormulaVisitor));
+        return Equal.of(
+            fmgr.visit(leftRaw, smtToNumeralFormulaVisitor),
+            fmgr.visit(rightRaw, smtToNumeralFormulaVisitor));
       case OR:
         return LogicalNot.of(
             LogicalAnd.of(

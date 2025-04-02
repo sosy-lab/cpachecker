@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
-import static org.junit.Assert.assertTrue;
-
 import java.util.Map;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates; 
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -112,6 +111,6 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
 
     boolean implication = solver.implies(deserializedFormula, originalFormula);
 
-    assertTrue("Deserialized state must imply original formula", implication);
+    Assert.assertTrue("Deserialized state must imply original formula", implication);
   }
 }

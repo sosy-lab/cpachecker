@@ -1,9 +1,17 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Sara Ruckstuhl <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.test;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import org.sosy_lab.common.ShutdownManager;
@@ -51,7 +59,7 @@ public final class DeserializationTestUtils {
       Configuration config, LogManager logger, ShutdownNotifier notifier, String filePath)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     CFACreator creator = new CFACreator(config, logger, notifier);
-    return creator.parseFileAndCreateCFA(List.of(filePath));
+    return creator.parseFileAndCreateCFA(ImmutableList.of(filePath));
   }
 
   public static Map<MemoryLocation, CType> extractVariableTypes(CFA cfa) {
@@ -81,7 +89,8 @@ public final class DeserializationTestUtils {
   public static Specification loadSpecification(
       String specPath, CFA cfa, Configuration config, LogManager logger, ShutdownNotifier notifier)
       throws InvalidConfigurationException, InterruptedException {
-    return Specification.fromFiles(List.of(Path.of(specPath)), cfa, config, logger, notifier);
+    return Specification.fromFiles(
+        ImmutableList.of(Path.of(specPath)), cfa, config, logger, notifier);
   }
 
   public static Solver createSolver(
