@@ -101,6 +101,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final DssMessageFactory messageFactory;
   private final LogManager logger;
   private final CFA initialCFA;
+  private final BlockOperator blockOperator;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final DssAnalysisOptions options;
@@ -225,6 +226,14 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     // because this is the outermost class for their setup.
     messageFactory = new DssMessageFactory(options);
     stats = new HashMap<>();
+    blockOperator = new BlockOperator();
+    configuration.inject(blockOperator);
+    try {
+      blockOperator.setCFA(initialCFA);
+    } catch (CPAException e) {
+      // if blockOperator.setCFA throws a CPAexception, this is because of an invalid configuration
+      throw new InvalidConfigurationException("Initialization of block operator failed", e);
+    }
 
     if (Stream.concat(knownConditions.stream(), newConditions.stream())
         .anyMatch(f -> !Files.isRegularFile(f))) {
@@ -240,14 +249,10 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     };
   }
 
-  private DssBlockDecomposition getDecomposer()
-      throws InvalidConfigurationException, IOException, CPAException {
+  private DssBlockDecomposition getDecomposer() throws IOException {
     if (importDecomposition != null) {
       return new ImportDecomposition(importDecomposition);
     }
-    BlockOperator blockOperator = new BlockOperator();
-    configuration.inject(blockOperator);
-    blockOperator.setCFA(initialCFA);
     Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
     return switch (decompositionType) {
       case LINEAR_DECOMPOSITION -> new LinearBlockNodeDecomposition(isBlockEnd);

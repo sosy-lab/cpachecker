@@ -215,17 +215,20 @@ public class WitnessExporterTest {
     // Trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
 
-    switch (pExpected) {
-      case TRUE:
+    return switch (pExpected) {
+      case TRUE -> {
         results.assertIsSafe();
-        return WitnessType.CORRECTNESS_WITNESS;
-      case FALSE:
+        yield WitnessType.CORRECTNESS_WITNESS;
+      }
+      case FALSE -> {
         results.assertIsUnsafe();
-        return WitnessType.VIOLATION_WITNESS;
-      default:
+        yield WitnessType.VIOLATION_WITNESS;
+      }
+      default -> {
         assertWithMessage("Cannot determine expected result.").fail();
         throw new AssertionError("Unreachable code.");
-    }
+      }
+    };
   }
 
   private static String getInvGenFile(TempCompressedFilePath pWitnessPath) throws IOException {

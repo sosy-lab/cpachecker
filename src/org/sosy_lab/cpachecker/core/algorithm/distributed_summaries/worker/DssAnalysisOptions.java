@@ -34,7 +34,7 @@ public class DssAnalysisOptions {
       secure = true)
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path forwardConfiguration =
-      Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
+      Path.of("config/distributed-summary-synthesis/dss-block-analysis.properties");
 
   @Option(
       name = "worker.logDirectory",

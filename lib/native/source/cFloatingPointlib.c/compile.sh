@@ -8,7 +8,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-gcc -std='c11' -shared -fpic -o 'libFloatingPoints.so' \
+if [ "$(uname)" = "Darwin" ]; then
+    OUT_FILE="libFloatingPoints.dylib"
+else
+    OUT_FILE="libFloatingPoints.so"
+fi
+
+gcc -std='c11' -shared -fpic -o "$OUT_FILE" \
  	-I"$JAVA_HOME/include/" \
 	-I"$JAVA_HOME/include/linux/" \
 	-I"$JAVA_HOME/include/darwin/" \

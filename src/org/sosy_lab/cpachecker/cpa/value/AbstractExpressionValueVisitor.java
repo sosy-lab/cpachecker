@@ -2118,20 +2118,15 @@ public abstract class AbstractExpressionValueVisitor
     } else if (valueObject.isNumericValue()) {
       NumericValue value = (NumericValue) valueObject;
 
-      switch (unaryOperator) {
-        case MINUS:
-          return value.negate();
-
-        case COMPLEMENT:
-          return evaluateComplement(unaryOperand, value);
-
-        case PLUS:
-          return value;
-
-        default:
+      return switch (unaryOperator) {
+        case MINUS -> value.negate();
+        case COMPLEMENT -> evaluateComplement(unaryOperand, value);
+        case PLUS -> value;
+        default -> {
           logger.log(Level.FINE, errorMsg);
-          return UnknownValue.getInstance();
-      }
+          yield UnknownValue.getInstance();
+        }
+      };
 
     } else if (valueObject instanceof BooleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {

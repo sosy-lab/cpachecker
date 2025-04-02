@@ -63,8 +63,12 @@ def parse_args(argv):
 
 
 def parse_jsons(json_file: Path):
-    with open(json_file, encoding=ENCODING) as inp:
-        return json.load(inp)
+    try:
+        with open(json_file, encoding=ENCODING) as inp:
+            return json.load(inp)
+    except json.JSONDecodeError as e:
+        print(f"WARNING: Decoding error while parsing {json_file}: {e}")
+        return {}
 
 
 def html_for_message(message, block_log: Dict[str, str]):
@@ -235,10 +239,12 @@ def visualize_messages(
     for message_json in jsons:
         parsed_file = parse_jsons(message_dir / message_json)
         if hash_code is None:
-            hash_code = parsed_file["hashCode"]
-        if hash_code == parsed_file["hashCode"]:
+            hash_code = parsed_file.get("hashCode", "UNKNOWN")
+        if hash_code == parsed_file.get("hashCode", "UNKNOWN"):
             parsed_file["filename"] = str(message_json)
             all_messages.append(parsed_file)
+        if "hashCode" not in parsed_file:
+            print(f"WARNING: Missing hashCode in {message_json}")
     if not all_messages:
         return
 

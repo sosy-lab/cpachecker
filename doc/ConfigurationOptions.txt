@@ -212,6 +212,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -260,8 +261,10 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Distribute predicate analysis to multiple workers
-analysis.algorithm.configurableComponents = false
+# Use distributed summary synthesis. This decomposes the input program into
+# smaller units that are analyzed concurrently. See
+# https://doi.org/10.1145/3660766 for details.
+analysis.algorithm.distributedSummarySynthesis = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
@@ -774,8 +777,30 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get candidate invariants from a predicate precision file
+# File with predicate precisions that should be used as candidate invariants
+# in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
+
+# Maximum number of invariants candidates that are generated for a witness
+# invariants when ignoring the function information of the witness and only
+# using the line number. The option has no effect if the heuristic is not
+# NEAREST_N_LOOPS and option enableSecondaryHeuristic is disabled.
+bmc.kinduction.regression.witness.allowedLineMappings = 3
+
+# Enable to use NEAREST_N_LOOPS heuristic for witness invariants for which
+# the primary heuristic did not generate candidate invariants
+bmc.kinduction.regression.witness.enableSecondaryMappingHeuristic = false
+
+# Heuristic for generating candidate invariants from witness invariants,which
+# determines how witness invariants are mapped to loops 
+bmc.kinduction.regression.witness.mappingHeuristic = ALL_LOOPS_IN_FUNCTION
+  enum:     [ALL_LOOPS_IN_FUNCTION, NEAREST_LOOP_IN_FUNCTION_WITHOUT_CANDIDATE,
+             LOOPS_IN_FUNCTION_IN_ORDER, NEAREST_N_LOOPS]
+
+# Correctness witness in 2.x format (for previous program version) that
+# should be used in regression verificationto get candidate invariants for
+# k-induction
+bmc.kinduction.regression.witnessFile = no default value
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant
@@ -861,10 +886,6 @@ cfa.exportPerFunction = true
 # export CFA as C file
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
-
-# produce C programs more similar to the input program
-# (only possible for a single input file)
-cfa.exportToC.stayCloserToInput = false
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
@@ -1716,11 +1737,6 @@ cpa.callstack.depth = 0
 # faster since it uses only object equivalence
 cpa.callstack.domain = "FLAT"
   allowed values: [FLAT, FLATPCC]
-
-# Decided whether to compute the callstack for the forward analysis. This is
-# useful for analyses like Distributed Summary Synthesis that require the
-# CallstackCPA to be available but do not require it to be executed at times.
-cpa.callstack.ignoreForwardCallstackTransfers = false
 
 # Skip recursion if it happens only by going via a function pointer (this is
 # unsound). Imprecise function pointer tracking often lead to false
@@ -4195,7 +4211,7 @@ distributedSummaries.queue = DEFAULT
 distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
-distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
+distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
