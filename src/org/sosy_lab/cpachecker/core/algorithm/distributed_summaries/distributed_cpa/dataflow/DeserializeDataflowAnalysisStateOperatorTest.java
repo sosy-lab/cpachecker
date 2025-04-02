@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Sara Ruckstuhl <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.dataflow;
 
 import static org.junit.Assert.assertTrue;
@@ -23,7 +31,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.AbstractStates; 
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -34,7 +42,7 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
 
   private static final String SPEC_PATH = "config/specification/default.spc";
   private static final String TEST_PROGRAM_PATH =
-      "test/programs/block_analysis/simple_loop_unsafe.c";
+      "test/programs/block_analysis/simple_calculations_unsafe.c";
   private static final String CONFIG_PATH =
       "config/distributed-block-summaries/predicateAnalysis-dataFlow-block-forward.properties";
 

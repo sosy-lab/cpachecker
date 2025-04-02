@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.Equal;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LessThan;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
-import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
@@ -68,28 +67,15 @@ public class SMTToBooleanIntervalFormulaVisitor
         Formula leftRaw = pArgs.get(0);
         Formula rightRaw = pArgs.get(1);
 
-        if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")
-            && rightRaw.toString().equals("1_1")) {
-          BooleanFormula<CompoundInterval> test = fmgr.visit(leftRaw, this);
-          return test;
+        if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")) {
+          if (rightRaw.toString().equals("1_1")) {
+            return fmgr.visit(leftRaw, this);
+          } else if (rightRaw.toString().equals("0_1")) {
+            return LogicalNot.of(fmgr.visit(leftRaw, this));
+          }
         }
 
-        if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")
-            && rightRaw.toString().equals("0_1")) {
-          BooleanFormula<CompoundInterval> test = fmgr.visit(leftRaw, this);
-
-          return LogicalNot.of(test);
-        }
-
-        NumeralFormula<CompoundInterval> left = fmgr.visit(leftRaw, smtToNumeralFormulaVisitor);
-        NumeralFormula<CompoundInterval> right = fmgr.visit(rightRaw, smtToNumeralFormulaVisitor);
-
-        if (left == null || right == null) {
-          System.err.println("EQ: left or right is null: " + pF);
-          return BooleanConstant.getFalse();
-        }
-
-        return Equal.of(left, right);
+        return Equal.of(fmgr.visit(leftRaw, smtToNumeralFormulaVisitor), fmgr.visit(rightRaw, smtToNumeralFormulaVisitor));
       case OR:
         return LogicalNot.of(
             LogicalAnd.of(
