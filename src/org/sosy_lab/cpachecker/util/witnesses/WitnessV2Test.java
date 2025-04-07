@@ -201,7 +201,7 @@ public class WitnessV2Test {
               pSpecificationFilePath,
               "--config",
               "config/witnessValidation.properties",
-              "--no-output-files"
+              "--no-output-files",
             });
 
     TestResults results = CPATestRunner.run(generationConfig, filePath.toString());
