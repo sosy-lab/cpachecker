@@ -173,7 +173,6 @@ public class WitnessV2Test {
    * @param pExpectedVerdict The expected verdict of the analysis
    * @param pSpecificationFilePath The specification to use for the analysis
    * @param pWitnessFilename The filename of the witness to validate
-   * @param pOverrideOptions Map of options to override in the configuration
    * @throws Exception Gets thrown if the test fails
    */
   protected void performValidationTest(
