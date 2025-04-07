@@ -6,13 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.yamlwitnessexport;
+package org.sosy_lab.cpachecker.util.witnesses;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,12 +17,11 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Ignore;
-import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.cpachecker.cmdline.CPAMain;
+import org.sosy_lab.cpachecker.cmdline.InvalidCmdlineArgumentException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
@@ -33,88 +29,36 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 import org.yaml.snakeyaml.Yaml;
 
-public class YAMLWitnessContentTest {
+public class WitnessV2Test {
 
-  private static final Yaml yaml = new Yaml();
+  final Yaml yaml = new Yaml();
 
-  private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
-  private static final String CONFIG_DIR_PATH = "config";
-  private static final String SPEC_DIR_PATH = "config/specification";
+  final String TEST_DIR_PATH = "test/programs/witnessValidation/";
+  final String CONFIG_DIR_PATH = "config";
+  final String SPEC_DIR_PATH = "config/properties";
 
-  private enum TestConfig {
+  protected enum TestConfig {
     SMG2("smg2"),
     SV_COMP("svcomp25"),
     CORRECTNESS_WITNESS_VALIDATION("correctness-witness-validation"),
-    VIOLATION_WITNESS_VALIDATION("violation-witness-validation");
+    VIOLATION_WITNESS_VALIDATION("violation-witness-validation"),
+    WITNESS_VALIDATION("witnessValidation");
 
-    private final String filename;
+    final String filename;
+
+    final String CONFIG_DIR_PATH = "config";
 
     TestConfig(String pConfigName) {
       this.filename = String.format("%s/%s.properties", CONFIG_DIR_PATH, pConfigName);
     }
   }
 
-  private enum WitnessType {
-    CORRECTNESS,
-    VIOLATION
-  }
-
-  @Ignore("Functionality not yet implemented")
-  @Test
-  public void testSimpleMemtrackWitnessExport() throws Exception {
-    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
-
-    performExportTest(
-        "simple-memtrack-unsafe.c",
-        "simple-memtrack-unsafe-expected.witness.yml",
-        ExpectedVerdict.FALSE,
-        memorysafety,
-        TestConfig.SMG2,
-        ImmutableMap.of("parser.usePreprocessor", "true"));
-  }
-
-  @Ignore("Functionality not yet implemented")
-  @Test
-  public void testSimpleValidWitnessExport() throws Exception {
-    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
-
-    performExportTest(
-        "simple-valid.c",
-        "simple-valid-expected.witness.yml",
-        ExpectedVerdict.FALSE,
-        memorysafety,
-        TestConfig.SMG2,
-        ImmutableMap.of("parser.usePreprocessor", "true"));
-  }
-
-  @Ignore("Functionality not yet implemented")
-  @Test
-  public void testSimpleMemtrackWitnessValidation() throws Exception {
-    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
-
-    performValidationTest(
-        "simple-memtrack-unsafe.c",
-        ExpectedVerdict.FALSE,
-        memorysafety,
-        "simple-memtrack-unsafe-expected.witness.yml",
-        ImmutableMap.of("parser.usePreprocessor", "true"));
-  }
-
-  @Ignore("Functionality not yet implemented")
-  @Test
-  public void testSimpleValidWitnessValidation() throws Exception {
-    String memorysafety = String.format("%s/memorysafety.spc", SPEC_DIR_PATH);
-
-    performValidationTest(
-        "simple-valid.c",
-        ExpectedVerdict.FALSE,
-        memorysafety,
-        "simple-valid-expected.witness.yml",
-        ImmutableMap.of("parser.usePreprocessor", "true"));
+  protected String getMemorySafetySpec() {
+    return String.format("%s/valid-memsafety.prp", SPEC_DIR_PATH);
   }
 
   /**
-   * Fails if the exported YAML witnesses do not match the expected witnesses.
+   * Fails if the exported witness do not match the expected witnesses.
    *
    * @param pFilename The filename of the Sourcecode to analyze.
    * @param pExpectedWitnessFilename The filename of the expected witnesses.
@@ -124,7 +68,7 @@ public class YAMLWitnessContentTest {
    * @param pOverrideOptions Map of options to override in the configuration.
    * @throws Exception Gets thrown if the test fails.
    */
-  private void performExportTest(
+  protected void performExportTest(
       String pFilename,
       String pExpectedWitnessFilename,
       ExpectedVerdict pExpectedVerdict,
@@ -162,7 +106,7 @@ public class YAMLWitnessContentTest {
    * @throws Exception Gets thrown if invalid configuration is passed or an invalid
    *     configuration-filepath is passed.
    */
-  private void generateWitness(
+  protected void generateWitness(
       String pFilePath,
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
@@ -187,7 +131,12 @@ public class YAMLWitnessContentTest {
     overrideOptions.put("cpa.arg.compressWitness", "false");
 
     Configuration generationConfig =
-        generateConfiguration(pConfigPath, overrideOptions, pSpecificationFilePath);
+        TestDataTools.configurationForTest()
+            .loadFromFile(pConfigPath)
+            .setOptions(overrideOptions)
+            .setOption("analysis.entryFunction", "main")
+            .setOption("specification", pSpecificationFilePath)
+            .build();
 
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
 
@@ -202,7 +151,7 @@ public class YAMLWitnessContentTest {
    * @param pWitnessExport Path to the exported witness file.
    * @param pExpectedWitnessFilename Path to the expected content file.
    */
-  private void assertWitnessContentMatches(Path pWitnessExport, Path pExpectedWitnessFilename) {
+  protected void assertWitnessContentMatches(Path pWitnessExport, Path pExpectedWitnessFilename) {
     try (InputStream witnessExportStream = new FileInputStream(pWitnessExport.toFile());
         InputStream expectedWitnessStream =
             new FileInputStream(pExpectedWitnessFilename.toFile())) {
@@ -227,78 +176,44 @@ public class YAMLWitnessContentTest {
    * @param pOverrideOptions Map of options to override in the configuration
    * @throws Exception Gets thrown if the test fails
    */
-  private void performValidationTest(
+  protected void performValidationTest(
       String pFilename,
       ExpectedVerdict pExpectedVerdict,
       String pSpecificationFilePath,
-      String pWitnessFilename,
-      Map<String, String> pOverrideOptions)
+      String pWitnessFilename)
       throws Exception {
     Path filePath = Path.of(TEST_DIR_PATH, pFilename);
     Path witnessFilePath = Path.of(TEST_DIR_PATH, pWitnessFilename);
 
-    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
-
-    WitnessType witnessType = getWitnessType(witnessFilePath);
-    TestConfig config;
-    String specification = pSpecificationFilePath;
-    if (witnessType == WitnessType.CORRECTNESS) {
-      config = TestConfig.CORRECTNESS_WITNESS_VALIDATION;
-      overrideOptions.put(
-          "invariantGeneration.kInduction.invariantsAutomatonFile", witnessFilePath.toString());
-    } else {
-      config = TestConfig.VIOLATION_WITNESS_VALIDATION;
-      specification = Joiner.on(',').join(specification, witnessFilePath.toString());
-    }
+    // Due to how convoluted the config build system is, the best option to generate the correct
+    // config for witness validation is to pass through the command line.
+    //
+    // The major challenges is that the config is overriden multiple times in its built process,
+    // depending on the specification and witness type. Modelling this basically requires
+    // reimplementing the parsing of options from the command line.
 
     Configuration generationConfig =
-        generateConfiguration(config.filename, overrideOptions, specification);
+        createConfigFromCommandLine(
+            new String[] {
+              "--preprocess",
+              "--witness",
+              String.valueOf(witnessFilePath),
+              "--spec",
+              pSpecificationFilePath,
+              "--config",
+              "config/witnessValidation.properties",
+              "--no-output-files"
+            });
 
     TestResults results = CPATestRunner.run(generationConfig, filePath.toString());
     results.assertIs(Result.valueOf(pExpectedVerdict.toString()));
   }
 
-  /**
-   * Looks at a give witness 2.0 file and determines if it contains correctness of violation
-   * witnesses
-   *
-   * @param pWitnessFilePath Path to the witnesses that are analyzed
-   * @return {@link WitnessType#CORRECTNESS CORRECTNESS} or {@link WitnessType#VIOLATION VIOLATION}
-   */
-  private WitnessType getWitnessType(Path pWitnessFilePath) {
-    try (InputStream witnessStream = new FileInputStream(pWitnessFilePath.toFile())) {
-      List<Map<String, Object>> witnessYAML = yaml.load(witnessStream);
-      if (witnessYAML.get(0).get("entry_type").equals("invariant_set")) {
-        return WitnessType.CORRECTNESS;
-      } else if (witnessYAML.get(0).get("entry_type").equals("violation_sequence")) {
-        return WitnessType.VIOLATION;
-      } else {
-        throw new AssertionError("Invalid witness file: " + pWitnessFilePath);
-      }
-    } catch (IOException e) {
-      throw new AssertionError("Could not read witness export file", e);
-    }
-  }
-
-  /**
-   * Builds a {@link Configuration} object from the given configuration file, the given override
-   * options, and adds the specification to the configuration.
-   *
-   * @param pConfigFile The path to the configuration file. (Relative to root)
-   * @param pOverrideOptions A map of options to override in the configuration.
-   * @param pSpecification The path to the specification. (Relative to root)
-   * @return A {@link Configuration} object to pass into the {@link CPATestRunner}.
-   * @throws InvalidConfigurationException If the configuration is invalid.
-   * @throws IOException If the configuration file could not be read.
-   */
-  private Configuration generateConfiguration(
-      String pConfigFile, Map<String, String> pOverrideOptions, String pSpecification)
-      throws InvalidConfigurationException, IOException {
-    ConfigurationBuilder configBuilder =
-        TestDataTools.configurationForTest().loadFromFile(pConfigFile);
-    if (!Strings.isNullOrEmpty(pSpecification)) {
-      pOverrideOptions.put("specification", pSpecification);
-    }
-    return configBuilder.setOptions(pOverrideOptions).build();
+  protected Configuration createConfigFromCommandLine(String[] args)
+      throws IOException,
+          InvalidCmdlineArgumentException,
+          InterruptedException,
+          InvalidConfigurationException {
+    return CPAMain.createConfiguration(args).configuration;
   }
 }
