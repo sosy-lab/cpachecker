@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 import org.yaml.snakeyaml.Yaml;
 
-public class WitnessV2Test {
+public class CommonTestingWitnessV2 {
 
   final Yaml yaml = new Yaml();
 

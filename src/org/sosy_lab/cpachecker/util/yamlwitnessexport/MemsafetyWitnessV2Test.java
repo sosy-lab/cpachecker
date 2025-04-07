@@ -12,9 +12,9 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner.ExpectedVerdict;
-import org.sosy_lab.cpachecker.util.witnesses.WitnessV2Test;
+import org.sosy_lab.cpachecker.util.witnesses.CommonTestingWitnessV2;
 
-public class MemsafetyWitnessV2Test extends WitnessV2Test {
+public class MemsafetyWitnessV2Test extends CommonTestingWitnessV2 {
 
   @Ignore("Functionality not yet implemented")
   @Test
