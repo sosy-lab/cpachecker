@@ -33,9 +33,8 @@ public class WitnessV2Test {
 
   final Yaml yaml = new Yaml();
 
-  final String TEST_DIR_PATH = "test/programs/witnessValidation/";
-  final String CONFIG_DIR_PATH = "config";
-  final String SPEC_DIR_PATH = "config/properties";
+  static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
+  static final String SPEC_DIR_PATH = "config/properties";
 
   protected enum TestConfig {
     SMG2("smg2"),
@@ -46,7 +45,7 @@ public class WitnessV2Test {
 
     final String filename;
 
-    final String CONFIG_DIR_PATH = "config";
+    static final String CONFIG_DIR_PATH = "config";
 
     TestConfig(String pConfigName) {
       this.filename = String.format("%s/%s.properties", CONFIG_DIR_PATH, pConfigName);
