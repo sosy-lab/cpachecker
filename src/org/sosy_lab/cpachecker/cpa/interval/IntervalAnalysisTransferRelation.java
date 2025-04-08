@@ -347,7 +347,13 @@ public class IntervalAnalysisTransferRelation
           decl.getQualifiedName(),
           FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
     } else if (decl.getType() instanceof CArrayType arrayType) {
-      FunArray simpleArray = new FunArray(normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor));
+      Set<NormalFormExpression> normalFormLengthExpressions = ImmutableSet.<NormalFormExpression>builder()
+          .addAll(
+              normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor)
+          ).addAll(
+              normalizeExpression(arrayType.getLength(), visitor)
+          ).build();
+      FunArray simpleArray = new FunArray(normalFormLengthExpressions);
       return state.addArray(decl.getQualifiedName(), simpleArray);
     }
     throw new RuntimeException("Not yet implemented");
