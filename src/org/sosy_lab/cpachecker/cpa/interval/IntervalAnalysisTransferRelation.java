@@ -347,10 +347,29 @@ public class IntervalAnalysisTransferRelation
           decl.getQualifiedName(),
           FunArray.ofInitializerList(initializerList.getInitializers(), visitor));
     } else if (decl.getType() instanceof CArrayType arrayType) {
-      FunArray simpleArray = new FunArray(normalizeExpression(arrayType.getLength(), visitor));
+      FunArray simpleArray = new FunArray(normalizeExpression(getNonWrappedExpression(arrayType.getLength()), visitor));
       return state.addArray(decl.getQualifiedName(), simpleArray);
     }
     throw new RuntimeException("Not yet implemented");
+  }
+
+  /**
+   * When initializing an Array, CPAchecker introduces a temporary variable for the expression
+   * determining the array's length. This needs to be unwrapped, since FunArray utilises the initial
+   * expression.
+   *
+   * @param wrappedExpression the expression to unwrap
+   * @return the initial expression
+   */
+  private static CExpression getNonWrappedExpression(CExpression wrappedExpression) {
+    try {
+      CIdExpression idExpression = (CIdExpression) wrappedExpression;
+      CVariableDeclaration variableDeclaration = (CVariableDeclaration) idExpression.getDeclaration();
+      CInitializerExpression initizalizer = (CInitializerExpression) variableDeclaration.getInitializer();
+      return initizalizer.getExpression();
+    } catch (ClassCastException e) {
+      return wrappedExpression;
+    }
   }
 
   /**
