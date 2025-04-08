@@ -121,7 +121,7 @@ class Benchmark(VcloudBenchmarkBase):
                 sys.exit(
                     "Error: Only revisions in the CPAchecker repository are supported when "
                     "benchmarking CPAchecker remotely via Benchcloud. "
-                    "Please either specify an existing revision to be benchmarked or commit and push your changes."
+                    "Please explicitly pass --revision to specify the revision you want to benchmark or commit and push your changes."
                 )
 
             branch_result = subprocess.run(
@@ -147,7 +147,7 @@ class Benchmark(VcloudBenchmarkBase):
                 logging.warning(
                     "Warning: No upstream branch configured for the current branch. "
                     "Benchmarking will proceed using the current revision hash, "
-                    "but ensure this revision is accessible in your repository."
+                    "but ensure this revision is accessible in the CPAchecker repository."
                 )
             else:
                 local_commit, upstream_commit = (
