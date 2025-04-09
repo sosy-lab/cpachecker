@@ -293,6 +293,14 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.exportCfaAsync",
+      description =
+          "export the information of the CFA asyncronously or synchronously."
+              + "A new thread will be created to export the CFA if `true` is given.")
+  private boolean exportCfaAsyncOption = true;
+
+  @Option(
+      secure = true,
       name = "cfa.findLiveVariables",
       description =
           "By enabling this option the variables that are live are"
@@ -683,7 +691,11 @@ public class CFACreator {
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)
         || (cfaVariablesInScope != null)) {
-      exportCFAAsync(immutableCFA);
+      if (exportCfaAsyncOption) {
+        exportCFAAsync(immutableCFA);
+      } else {
+        exportCFA(immutableCFA);
+      }
     }
 
     logger.log(

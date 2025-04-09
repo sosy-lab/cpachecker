@@ -880,6 +880,10 @@ cfa.expandFunctionPointerArrayAssignments = false
 # export CFA as .dot file
 cfa.export = true
 
+# export the information of the CFA asyncronously or synchronously.A new
+# thread will be created to export the CFA if `true` is given.
+cfa.exportCfaAsync = true
+
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
