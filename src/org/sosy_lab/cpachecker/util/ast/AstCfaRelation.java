@@ -15,7 +15,9 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -25,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /** Contains information relating the CFA to the AST of the program. */
@@ -314,5 +317,53 @@ public final class AstCfaRelation {
         Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
         Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
         globalVariables);
+  }
+
+  public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
+    if (pNode.getNumLeavingEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+              .min(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineNumber());
+
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the first node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else if (pNode.getNumEnteringEdges() != 0) {
+      FileLocation closestFileLocationToNode =
+          CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
+              .max(Comparator.naturalOrder())
+              .orElseThrow();
+      StartingLocation closestStartingLocationToNode =
+          new StartingLocation(
+              closestFileLocationToNode.getStartColumnInLine(),
+              closestFileLocationToNode.getStartingLineNumber());
+      Entry<StartingLocation, ASTElement> element =
+          startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
+
+      // Could happen for example for the last node
+      if (element == null) {
+        return Optional.empty();
+      }
+
+      return Optional.of(element.getValue().location());
+    } else {
+      // Could happen if a node is not connected to the CFA
+      return Optional.empty();
+    }
   }
 }

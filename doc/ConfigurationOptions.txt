@@ -962,6 +962,9 @@ cfa.variableClassification.printStatsOnStartup = false
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 
+# export all variables in scope at each statement
+cfa.variablesInScope = no default value
+
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
 
