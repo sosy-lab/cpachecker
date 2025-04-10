@@ -8,7 +8,7 @@
 
 format_version: '2.0'
 
-input_files: 'remainder.c'
+input_files: 'remainderf.c'
 
 properties:
   - property_file: ../../config/properties/unreach-call.prp

@@ -14,7 +14,7 @@ extern void __assert_fail(const char *, const char *, unsigned int, const char *
 
 extern float remainderf (float __x, float __y) __attribute__ ((__nothrow__ ));
 
-void reach_error() { __assert_fail("0", "remainder.c", 27, "reach_error"); }
+void reach_error() { __assert_fail("0", "remainderf.c", 27, "reach_error"); }
 
 int main() {
   float x = 3.40282347e38f;
