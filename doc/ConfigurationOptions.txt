@@ -2674,15 +2674,18 @@ cpa.predicate.pseudoExistQE.useDER = true
 # Use Unconnected Parameter Drop as simplification method
 cpa.predicate.pseudoExistQE.useUPD = true
 
-# Which additional quantification option to use.
-cpa.predicate.quantificationOption = no default value
-  enum:     [GENERATE_MODELS, GENERATE_ALL_SAT, GENERATE_UNSAT_CORE,
-             GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS, ENABLE_SEPARATION_LOGIC,
-             SOLVER_INDEPENDENT_QUANTIFIER_ELIMINATION, EXTERNAL_QUANTIFIER_CREATION,
-             EXTERNAL_QUANTIFIER_CREATION_FALLBACK_WARN_ON_FAILURE,
-             EXTERNAL_QUANTIFIER_CREATION_FALLBACK,
-             QUANTIFIER_ELIMINATION_FALLBACK_WARN_ON_FAILURE,
-             QUANTIFIER_ELIMINATION_FALLBACK]
+# How to create quantified formulas. Default: native solver quantifiers.
+cpa.predicate.quantifierCreationOption = no default value
+  enum:     [ULTIMATE_ELIMINATOR_BEFORE_FORMULA_CREATION,
+             ULTIMATE_ELIMINATOR_BEFORE_FORMULA_CREATION_FALLBACK,
+             ULTIMATE_ELIMINATOR_BEFORE_FORMULA_CREATION_FALLBACK_WARN_ON_FAILURE]
+
+# How to eliminate quantifiers. Default: NATIVE solver elimination.
+cpa.predicate.quantifierEliminationOption = NATIVE
+  enum:     [NATIVE, NATIVE_FALLBACK_ON_FAILURE,
+             NATIVE_FALLBACK_WITH_WARNING_ON_FAILURE, ULTIMATE_ELIMINATOR,
+             ULTIMATE_ELIMINATOR_FALLBACK_ON_FAILURE,
+             ULTIMATE_ELIMINATOR_FALLBACK_WITH_WARNING_ON_FAILURE]
 
 # If an abstraction is computed during refinement, use only the interpolant
 # as input, not the concrete block.

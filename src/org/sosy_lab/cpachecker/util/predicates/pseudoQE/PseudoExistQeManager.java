@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -381,12 +380,23 @@ public class PseudoExistQeManager implements StatisticsProvider {
       assert qFmgr.isPresent();
 
       // Create the real quantified formula
-      BooleanFormula quantifiedFormula =
-          qFmgr
-              .orElseThrow()
-              .exists(
-                  new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
-                  pExistFormula.getInnerFormula());
+      BooleanFormula quantifiedFormula;
+      if (fmgr.getQuantifierCreationOption() == null) {
+        quantifiedFormula =
+            qFmgr
+                .orElseThrow()
+                .exists(
+                    new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
+                    pExistFormula.getInnerFormula());
+      } else {
+        quantifiedFormula =
+            qFmgr
+                .orElseThrow()
+                .exists(
+                    new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
+                    pExistFormula.getInnerFormula(),
+                    fmgr.getQuantifierCreationOption());
+      }
 
       BooleanFormula afterQE = quantifiedFormula;
       // Apply the Quantifier elimination tactic
@@ -395,7 +405,10 @@ public class PseudoExistQeManager implements StatisticsProvider {
           afterQE = fmgr.applyTactic(quantifiedFormula, Tactic.QE_LIGHT);
         }
         if (solverQeTactic == SolverQeTactic.FULL) {
-          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
+          afterQE =
+              qFmgr
+                  .orElseThrow()
+                  .eliminateQuantifiers(quantifiedFormula, fmgr.getQuantifierEliminationOption());
         }
       } catch (SolverException e) {
         logger.log(Level.FINER, "Solver-based Quantifier Elimination failed:", e);
@@ -432,8 +445,6 @@ public class PseudoExistQeManager implements StatisticsProvider {
         // Return unchanged input
         return pExistFormula;
       }
-    } catch (IOException e) {
-      throw new AssertionError(e);
     } finally {
       stats.solverQETimer.stop();
     }

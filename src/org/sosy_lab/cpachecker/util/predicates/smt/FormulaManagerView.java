@@ -79,7 +79,8 @@ import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.QuantifierCreationMethod;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.QuantifierEliminationMethod;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
@@ -140,9 +141,24 @@ public class FormulaManagerView {
 
   @Option(
       secure = true,
-      name = "quantificationOption",
-      description = "Which additional quantification option to use.")
-  private ProverOptions quantOption = null;
+      name = "quantifierEliminationOption",
+      description = "How to eliminate quantifiers. Default: NATIVE solver elimination.")
+  private QuantifierEliminationMethod quantifierEliminationOption =
+      QuantifierEliminationMethod.NATIVE;
+
+  public QuantifierEliminationMethod getQuantifierEliminationOption() {
+    return quantifierEliminationOption;
+  }
+
+  @Option(
+      secure = true,
+      name = "quantifierCreationOption",
+      description = "How to create quantified formulas. Default: native solver quantifiers.")
+  private QuantifierCreationMethod quantifierCreationOption = null;
+
+  public QuantifierCreationMethod getQuantifierCreationOption() {
+    return quantifierCreationOption;
+  }
 
   @Option(
       secure = true,
@@ -1066,22 +1082,12 @@ public class FormulaManagerView {
   public QuantifiedFormulaManagerView getQuantifiedFormulaManager()
       throws UnsupportedOperationException {
     if (quantifiedFormulaManager == null) {
-      if (quantOption == null) {
-        quantifiedFormulaManager =
-            new QuantifiedFormulaManagerView(
-                wrappingHandler,
-                manager.getQuantifiedFormulaManager(),
-                booleanFormulaManager,
-                getIntegerFormulaManager());
-      } else {
-        quantifiedFormulaManager =
-            new QuantifiedFormulaManagerView(
-                wrappingHandler,
-                manager.getQuantifiedFormulaManager(),
-                booleanFormulaManager,
-                getIntegerFormulaManager(),
-                quantOption);
-      }
+      quantifiedFormulaManager =
+          new QuantifiedFormulaManagerView(
+              wrappingHandler,
+              manager.getQuantifiedFormulaManager(),
+              booleanFormulaManager,
+              getIntegerFormulaManager());
     }
     return quantifiedFormulaManager;
   }
@@ -1354,8 +1360,15 @@ public class FormulaManagerView {
             BooleanFormula transformedBody = (BooleanFormula) pCache.get(body);
 
             if (transformedBody != null) {
-              BooleanFormula newTt =
-                  getQuantifiedFormulaManager().mkQuantifier(quantifier, args, transformedBody);
+              BooleanFormula newTt;
+              if (quantifierCreationOption == null) {
+                newTt =
+                    getQuantifiedFormulaManager().mkQuantifier(quantifier, args, transformedBody);
+              } else {
+                newTt =
+                    getQuantifiedFormulaManager()
+                        .mkQuantifier(quantifier, args, transformedBody, quantifierCreationOption);
+              }
               pCache.put(f, newTt);
 
             } else {
@@ -1774,8 +1787,14 @@ public class FormulaManagerView {
 
     if (!irrelevantVariables.isEmpty()) {
       QuantifiedFormulaManagerView qfmgr = getQuantifiedFormulaManager();
-      BooleanFormula quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
-      eliminationResult = qfmgr.eliminateQuantifiers(quantifiedFormula);
+      BooleanFormula quantifiedFormula;
+      if (quantifierCreationOption == null) {
+        quantifiedFormula = qfmgr.exists(irrelevantVariables, pF);
+      } else {
+        quantifiedFormula = qfmgr.exists(irrelevantVariables, pF, quantifierCreationOption);
+      }
+      eliminationResult =
+          qfmgr.eliminateQuantifiers(quantifiedFormula, quantifierEliminationOption);
     }
 
     eliminationResult = simplify(eliminationResult); // TODO: Benchmark the effect!
@@ -1792,7 +1811,12 @@ public class FormulaManagerView {
     if (irrelevantVariables.isEmpty()) {
       return pF;
     } else {
-      return getQuantifiedFormulaManager().exists(irrelevantVariables, pF);
+      if (quantifierCreationOption == null) {
+        return getQuantifiedFormulaManager().exists(irrelevantVariables, pF);
+      } else {
+        return getQuantifiedFormulaManager()
+            .exists(irrelevantVariables, pF, quantifierCreationOption);
+      }
     }
   }
 

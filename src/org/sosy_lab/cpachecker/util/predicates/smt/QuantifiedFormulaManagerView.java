@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,7 +18,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class QuantifiedFormulaManagerView extends BaseManagerView
@@ -33,22 +31,16 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
       FormulaWrappingHandler pWrappingHandler,
       QuantifiedFormulaManager pManager,
       BooleanFormulaManagerView pBmgr,
-      IntegerFormulaManager pImgr,
-      ProverOptions... pOptions) {
+      IntegerFormulaManager pImgr) {
     super(pWrappingHandler);
     manager = pManager;
     bfm = pBmgr;
     ifm = pImgr;
-    manager.setOptions(pOptions);
   }
 
   @Override
   public BooleanFormula exists(List<? extends Formula> pVariables, BooleanFormula pBody) {
-    try {
-      return manager.exists(unwrap(pVariables), pBody);
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
+    return manager.exists(unwrap(pVariables), pBody);
   }
 
   @Override
@@ -58,26 +50,55 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
 
   @Override
   public BooleanFormula forall(List<? extends Formula> pVariables, BooleanFormula pBody) {
-    try {
-      return manager.forall(unwrap(pVariables), pBody);
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
-  }
-
-  @Override
-  public BooleanFormula mkQuantifier(
-      Quantifier q, List<? extends Formula> pVariables, BooleanFormula pBody) {
-    try {
-      return manager.mkQuantifier(q, unwrap(pVariables), pBody);
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
+    return manager.forall(unwrap(pVariables), pBody);
   }
 
   @Override
   public BooleanFormula forall(Formula pVariable, BooleanFormula pBody) {
     return manager.forall(unwrap(pVariable), pBody);
+  }
+
+  @Override
+  public BooleanFormula exists(
+      List<? extends Formula> pVariables,
+      BooleanFormula pBody,
+      QuantifierCreationMethod pQuantifierCreationMethod) {
+    return manager.exists(unwrap(pVariables), pBody, pQuantifierCreationMethod);
+  }
+
+  @Override
+  public BooleanFormula exists(
+      Formula pVariable, BooleanFormula pBody, QuantifierCreationMethod pQuantifierCreationMethod) {
+    return manager.exists(unwrap(pVariable), pBody, pQuantifierCreationMethod);
+  }
+
+  @Override
+  public BooleanFormula forall(
+      List<? extends Formula> pVariables,
+      BooleanFormula pBody,
+      QuantifierCreationMethod pQuantifierCreationMethod) {
+    return manager.forall(unwrap(pVariables), pBody, pQuantifierCreationMethod);
+  }
+
+  @Override
+  public BooleanFormula forall(
+      Formula pVariable, BooleanFormula pBody, QuantifierCreationMethod pQuantifierCreationMethod) {
+    return manager.forall(unwrap(pVariable), pBody, pQuantifierCreationMethod);
+  }
+
+  @Override
+  public BooleanFormula mkQuantifier(
+      Quantifier q, List<? extends Formula> pVariables, BooleanFormula pBody) {
+    return manager.mkQuantifier(q, unwrap(pVariables), pBody);
+  }
+
+  @Override
+  public BooleanFormula mkQuantifier(
+      Quantifier q,
+      List<? extends Formula> pVariables,
+      BooleanFormula pBody,
+      QuantifierCreationMethod pMethod) {
+    return manager.mkQuantifier(q, unwrap(pVariables), pBody, pMethod);
   }
 
   @Override
@@ -87,8 +108,9 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public void setOptions(ProverOptions... opt) {
-    manager.setOptions(opt);
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF, QuantifierEliminationMethod pMethod)
+      throws InterruptedException, SolverException {
+    return manager.eliminateQuantifiers(pF, pMethod);
   }
 
   /**
@@ -113,12 +135,8 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
     Preconditions.checkNotNull(pBody);
 
     List<BooleanFormula> rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
-    try {
-      return manager.forall(
-          Collections.singletonList(pVariable), bfm.implication(bfm.and(rangeConstraint), pBody));
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
+    return manager.forall(
+        Collections.singletonList(pVariable), bfm.implication(bfm.and(rangeConstraint), pBody));
   }
 
   /**
@@ -139,11 +157,7 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
     List<BooleanFormula> bodyPredicates = new ArrayList<>(rangeConstraint.size() + 1);
     bodyPredicates.addAll(rangeConstraint);
     bodyPredicates.add(pBody);
-    try {
-      return manager.exists(Collections.singletonList(pVariable), bfm.and(bodyPredicates));
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
+    return manager.exists(Collections.singletonList(pVariable), bfm.and(bodyPredicates));
   }
 
   private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
