@@ -1424,7 +1424,7 @@ public class InvariantsState
     if (this == pObj) {
       return true;
     }
-    return pObj instanceof InvariantsState && equalsState((InvariantsState) pObj);
+    return pObj instanceof InvariantsState other && equalsState(other);
   }
 
   private boolean equalsState(InvariantsState pOther) {
@@ -2037,8 +2037,8 @@ public class InvariantsState
         return true;
       }
       // All tools are derived from the factory
-      return pObj instanceof Tools
-          && compoundIntervalManagerFactory.equals(((Tools) pObj).compoundIntervalManagerFactory);
+      return pObj instanceof Tools other
+          && compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory);
     }
 
     @Override

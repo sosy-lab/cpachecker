@@ -90,9 +90,9 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
 
   @Override
   public boolean equals(Object pOther) {
-    return pOther instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) pOther).id == id
-        && Objects.equals(representedLocation, ((SymbolicIdentifier) pOther).representedLocation);
+    return pOther instanceof SymbolicIdentifier other
+        && other.id == id
+        && Objects.equals(representedLocation, other.representedLocation);
   }
 
   @Override

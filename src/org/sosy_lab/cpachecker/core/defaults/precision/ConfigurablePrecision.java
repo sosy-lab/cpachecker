@@ -273,9 +273,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   }
 
   @Override
-  public boolean equals(Object other) {
-    return other instanceof ConfigurablePrecision
-        && tracksTheSameVariablesAs((ConfigurablePrecision) other);
+  public boolean equals(Object pObj) {
+    return pObj instanceof ConfigurablePrecision other && tracksTheSameVariablesAs(other);
   }
 
   @Override

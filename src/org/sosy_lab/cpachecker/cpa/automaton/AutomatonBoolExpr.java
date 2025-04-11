@@ -713,8 +713,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchSuccessor
-          && acceptedNodes.equals(((MatchSuccessor) o).acceptedNodes);
+      return o instanceof MatchSuccessor other && acceptedNodes.equals(other.acceptedNodes);
     }
 
     static AutomatonBoolExpr of(CFANode pAcceptedNode) {
@@ -889,8 +888,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchFunctionCallStatement
-          && functionName.equals(((MatchFunctionCallStatement) o).functionName);
+      return o instanceof MatchFunctionCallStatement other
+          && functionName.equals(other.functionName);
     }
   }
 
@@ -928,8 +927,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchFunctionCall
-          && functionName.equals(((MatchFunctionCall) o).functionName);
+      return o instanceof MatchFunctionCall other && functionName.equals(other.functionName);
     }
   }
 
@@ -1040,8 +1038,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchFunctionExit
-          && functionName.equals(((MatchFunctionExit) o).functionName);
+      return o instanceof MatchFunctionExit other && functionName.equals(other.functionName);
     }
   }
 
@@ -1080,7 +1077,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchLabelExact && label.equals(((MatchLabelExact) o).label);
+      return o instanceof MatchLabelExact other && label.equals(other.label);
     }
   }
 
@@ -1125,7 +1122,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchLabelRegEx && pattern.equals(((MatchLabelRegEx) o).pattern);
+      return o instanceof MatchLabelRegEx other && pattern.equals(other.pattern);
     }
   }
 
@@ -1207,7 +1204,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchCFAEdgeRegEx && pattern.equals(((MatchCFAEdgeRegEx) o).pattern);
+      return o instanceof MatchCFAEdgeRegEx other && pattern.equals(other.pattern);
     }
   }
 
@@ -1247,9 +1244,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object obj) {
-      return obj instanceof MatchCFAEdgeNodes
-          && predecessorNodeNumber == ((MatchCFAEdgeNodes) obj).predecessorNodeNumber
-          && successorNodeNumber == ((MatchCFAEdgeNodes) obj).successorNodeNumber;
+      return obj instanceof MatchCFAEdgeNodes other
+          && predecessorNodeNumber == other.predecessorNodeNumber
+          && successorNodeNumber == other.successorNodeNumber;
     }
   }
 
@@ -1282,7 +1279,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchCFAEdgeExact && pattern.equals(((MatchCFAEdgeExact) o).pattern);
+      return o instanceof MatchCFAEdgeExact other && pattern.equals(other.pattern);
     }
   }
 
@@ -1356,8 +1353,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchAssumeCase
-          && matchPositiveCase == ((MatchAssumeCase) o).matchPositiveCase;
+      return o instanceof MatchAssumeCase other && matchPositiveCase == other.matchPositiveCase;
     }
   }
 
@@ -1406,8 +1402,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchAllSuccessorEdgesBoolExpr
-          && operandExpression.equals(((MatchAllSuccessorEdgesBoolExpr) o).operandExpression);
+      return o instanceof MatchAllSuccessorEdgesBoolExpr other
+          && operandExpression.equals(other.operandExpression);
     }
   }
 
@@ -1498,8 +1494,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof MatchAnySuccessorEdgesBoolExpr
-          && operandExpression.equals(((MatchAnySuccessorEdgesBoolExpr) o).operandExpression);
+      return o instanceof MatchAnySuccessorEdgesBoolExpr other
+          && operandExpression.equals(other.operandExpression);
     }
   }
 
@@ -1637,7 +1633,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof ALLCPAQuery && queryString.equals(((ALLCPAQuery) o).queryString);
+      return o instanceof ALLCPAQuery other && queryString.equals(other.queryString);
     }
   }
 
@@ -1987,7 +1983,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof Negation && a.equals(((Negation) o).a);
+      return o instanceof Negation other && a.equals(other.a);
     }
   }
 
