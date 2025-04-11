@@ -46,6 +46,8 @@
                     "cpa.predicate.memoryAllocationsAlwaysSucceed=true",
                     "--timelimit",
                     "900s",
+                    "--option",
+                    "cpa.arg.logARGs=true",
                     "--spec",
                     "sv-comp-reachability",
                     "--witness",

@@ -551,37 +551,26 @@ public class AutomatonState
   }
 
   public AutomatonState addselfloop() {
-    if (targetInformation != null) {
-    AutomatonState a =
-        new AutomatonState(
-            vars,
-            internalState.addselfloop(),
-            automaton,
-            assumptions,
-            candidateInvariants,
-            areDefaultCandidateInvariants,
-            matches,
-            failedMatches,
-            targetInformation,
-            treatErrorAsTarget);
-    a.setOriginal(this);
-    return a;
-    } else {
+    for(AutomatonTransition transition : internalState.getTransitions()){
+      if (transition.getFollowState().equals(AutomatonInternalState.BOTTOM)) {
       AutomatonState a =
-        new AutomatonState(
-            vars,
-            internalState,
-            automaton,
-            assumptions,
-            candidateInvariants,
-            areDefaultCandidateInvariants,
-            matches,
-            failedMatches,
-            targetInformation,
-            treatErrorAsTarget);
-    a.setOriginal(this);
-    return a;
-    }
+          new AutomatonState(
+              vars,
+              null,
+              //internalState.addselfloop(),
+              automaton,
+              assumptions,
+              candidateInvariants,
+              areDefaultCandidateInvariants,
+              matches,
+              failedMatches,
+              targetInformation,
+              treatErrorAsTarget);
+      //a.setOriginal(this);
+      return a;
+      }
+  }
+    return this;
   }
 
 }

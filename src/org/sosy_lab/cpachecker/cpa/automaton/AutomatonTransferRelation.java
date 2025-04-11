@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -99,7 +100,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     }
 
     Collection<AutomatonState> result =
-        getAbstractSuccessors0(((AutomatonState) pElement).getOriginal(), pCfaEdge, pPrecision);
+        getAbstractSuccessors0(((AutomatonState) pElement), pCfaEdge, pPrecision);
     automatonSuccessors.setNextValue(result.size());
     return result;
   }
@@ -311,7 +312,8 @@ public class AutomatonTransferRelation implements TransferRelation {
               state.getOwningAutomaton(),
               state.getMatches(),
               state.getFailedMatches() + failedMatches,
-              null,
+              //state.getTargetInformation().size() == 0? null : Iterables.getOnlyElement(FluentIterable.from(state.getTargetInformation()).filter(AutomatonTargetInformation.class).toList()),
+              state.getOptionalTargetInformation().isEmpty()? null : Iterables.getOnlyElement(FluentIterable.from(state.getTargetInformation()).filter(AutomatonTargetInformation.class).toList()),
               state.isTreatingErrorsAsTarget());
       return ImmutableSet.of(stateNewCounters);
     }

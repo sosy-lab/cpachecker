@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -23,8 +24,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -52,7 +56,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
     cpa = pCPA;
   }
 
-  private boolean runcheck(AnalysisComponents pcomp) throws CPAException, InterruptedException {
+  private boolean runcheck(AnalysisComponents pcomp, boolean isCompleteness) throws CPAException, InterruptedException {
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     while (pcomp.reached().hasWaitingState() && status.isPrecise() && status.isSound()) {
       status = status.update(pcomp.algorithm().run(pcomp.reached()));
@@ -61,7 +65,8 @@ public class ErrorConditionAlgorithm implements Algorithm {
       throw new CPAException(
           "Error in CPA analysis: precise: " + status.isPrecise() + " sound: " + status.isSound());
     }
-    for (AbstractState state : pcomp.reached()) {
+    Collection<AbstractState> interesting = isCompleteness ? pcomp.reached().asCollection().stream().filter(a -> ((ARGState) a).getChildren().isEmpty()).filter(b -> ((ARGState) b).isTarget()).toList() : pcomp.reached().asCollection();
+    for (AbstractState state : interesting) {
       FluentIterable<AutomatonState> states = AbstractStates.asIterable(state).filter(AutomatonState.class);
       if (states.size() != 2) {
         throw new CPAException("More than two automaton states in reached set: " + states.toList());
@@ -88,7 +93,8 @@ public class ErrorConditionAlgorithm implements Algorithm {
             if (ctrlcpa.getAutomatonName().startsWith("SVCOMP")) {
               ctrlcpalist.add(ctrlcpa.invert());
             } else {
-              ctrlcpalist.add(ctrlcpa.addselfloop());
+              //ctrlcpalist.add(ctrlcpa.addselfloop());
+              ctrlcpalist.add(c);
             }
           } else {
             ctrlcpalist.add(c);
@@ -108,7 +114,7 @@ public class ErrorConditionAlgorithm implements Algorithm {
       AnalysisComponents aSpec =
           TestAlgorithmFactory.createAlgorithm(
               logger, specification, cfa, predicateConfig, ShutdownManager.create(), cpaSpec);
-      boolean resultSpec = runcheck(aSpec);
+      boolean resultSpec = runcheck(aSpec, true);
       if (resultSpec) {
         logger.log(Level.INFO, "Witness complete");
       } else {
@@ -121,9 +127,9 @@ public class ErrorConditionAlgorithm implements Algorithm {
         if (!(c instanceof ARGCPA) && !(c instanceof CompositeCPA)) {
           if (c instanceof ControlAutomatonCPA obscpa) {
             if (obscpa.getAutomatonName().startsWith("WitnessAutomaton")) {
-              obscpalist.add(obscpa.invert());
+              obscpalist.add(obscpa.invert().addselfloop(cfa));
             } else {
-              obscpalist.add(obscpa.addselfloop());
+              obscpalist.add(c);
             }
           } else {
             obscpalist.add(c);
@@ -141,7 +147,8 @@ public class ErrorConditionAlgorithm implements Algorithm {
       AnalysisComponents aWitness =
           TestAlgorithmFactory.createAlgorithm(
               logger, specification, cfa, predicateConfig, ShutdownManager.create(), cpaWitness);
-      boolean resultWitness = runcheck(aWitness);
+      boolean resultWitness = runcheck(aWitness, false);
+      new ARGLogger(config, logger).log("Soundnesscheck",aWitness.reached());
       if (resultWitness) {
         logger.log(Level.INFO, "Witness sound");
       } else {
@@ -162,6 +169,8 @@ public class ErrorConditionAlgorithm implements Algorithm {
       throw new CPAException("User interrupted execution", e);
     } catch (IOException e) {
       throw new CPAException("predicateAnalysis properties not found", e);
+    } catch (InvalidAutomatonException e) {
+      throw new CPAException("Automaton not valid", e);
     }
     // extract violation automaton
     // create copy with inverted states and replace it in the CPA

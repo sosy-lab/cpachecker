@@ -14,8 +14,15 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckPassesThroughNodes;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Negation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a State in the automaton. */
 public class AutomatonInternalState {
@@ -173,25 +180,83 @@ public class AutomatonInternalState {
 
   public AutomatonInternalState flip() {
     ImmutableList.Builder<AutomatonTransition> ptransitions =
-        ImmutableList.<AutomatonTransition>builder().addAll(transitions);
-    if (transitions.isEmpty()) {
-      AutomatonTransition.Builder atBuilder =
-          new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
-      ptransitions.add(atBuilder.build());
-    }
+        ImmutableList.<AutomatonTransition>builder();
+        transitions.stream().map(t -> {
+          if(t.getFollowState().isTarget()){
+            AutomatonTransition.Builder atBuilder =
+          new AutomatonTransition.Builder(t.getTrigger(), t.getFollowState().getName());
+          atBuilder.copy(t, t.getFollowState().getName(), t.getFollowState(), new StringExpression("selfloop"));
+          return new AutomatonTransition(atBuilder);
+          }
+          return t;
+        }).forEach(ptransitions::add);
+    //if (transitions.isEmpty()) {
+    //  AutomatonTransition.Builder atBuilder =
+    //      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
+    //      if(isTarget()){
+    //        atBuilder = atBuilder.withTargetInformation(new StringExpression("flip"));
+    //      }
+    //  ptransitions.add(atBuilder.build());
+    //}
     return new AutomatonInternalState(
         name, ptransitions.build(), !mIsTarget, mAllTransitions, isCycleStart);
   }
 
-  public AutomatonInternalState addselfloop() {
-    ImmutableList.Builder<AutomatonTransition> ptransitions =
-        ImmutableList.<AutomatonTransition>builder().addAll(transitions);
-    if (transitions.isEmpty()) {
-      AutomatonTransition.Builder atBuilder =
-          new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
-      ptransitions.add(atBuilder.build());
+  public AutomatonInternalState addselfloop(CFA pCFA) {
+  ImmutableList.Builder<AutomatonTransition> ptransitions = ImmutableList.builder();
+
+  AutomatonInternalState AlwaysTrue = new AutomatonInternalState(
+      "AlwaysTrue", ImmutableList.of(), true, mAllTransitions, isCycleStart);
+
+  for (AutomatonTransition transition : getTransitions()) {
+    if (!(transition.getTrigger() instanceof CheckPassesThroughNodes trigger)) {
+      ptransitions.add(transition);
+      continue;
     }
-    return new AutomatonInternalState(
-        name, ptransitions.build(), mIsTarget, mAllTransitions, isCycleStart);
+
+    boolean transitionHandled = false;
+
+    for (CFANode node : pCFA.nodes()) {
+      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
+        if (!(edge instanceof CAssumeEdge)) {
+          continue;
+        }
+
+       AutomatonExpressionArguments args = new AutomatonExpressionArguments(null, null, null, edge, null);
+
+
+        try {
+          if (transition.getTrigger().eval(args).getValue()) {
+            transitionHandled = true;
+
+            if(transition.getFollowStateName() != "_predefinedState_BOTTOM"){
+              AutomatonBoolExpr negatedTrigger = new Negation(trigger);
+              AutomatonTransition negatedTransition =
+                  new AutomatonTransition.Builder(negatedTrigger, transition.getFollowState()).build();
+              ptransitions.add(negatedTransition);
+
+              AutomatonTransition toAlwaysTrue =
+                  new AutomatonTransition.Builder(trigger, AlwaysTrue).build();
+              ptransitions.add(toAlwaysTrue);
+              System.out.println("Negated Trigger result: " + negatedTrigger.eval(args).getValue());
+            }
+          }
+        } catch (CPATransferException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    if (!transitionHandled) {
+      ptransitions.add(transition);
+    }
+  }
+
+  return new AutomatonInternalState(
+      name, ptransitions.build(), mIsTarget, mAllTransitions, isCycleStart);
+}
+
+  public AutomatonInternalState replaceall(ImmutableList<AutomatonTransition> pList) {
+    return new AutomatonInternalState(name, pList, mIsTarget, mAllTransitions, isCycleStart);
   }
 }

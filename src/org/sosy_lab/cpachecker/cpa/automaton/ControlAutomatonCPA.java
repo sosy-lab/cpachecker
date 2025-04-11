@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.MoreCollectors;
 import java.io.IOException;
@@ -16,8 +18,14 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -269,8 +277,9 @@ private boolean addselfloop = false;
   public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
     AutomatonInternalState initState = pAutomaton.getInitialState();
     AutomatonTargetInformation safetyProp = null;
-    if (initState.isTarget()) {
+    if (initState.isTarget()) {   
       for (AutomatonTransition t : initState.getTransitions()) {
+        safetyProp = new AutomatonTargetInformation(pAutomaton, t);
         if (t.getFollowState().isTarget()) {
           Optional<AExpression> assumptionOpt =
               t.getAssumptions(null, logger, cfa.getMachineModel()).stream()
@@ -374,26 +383,69 @@ private boolean addselfloop = false;
 
   @Override
   public ControlAutomatonCPA invert()
-      throws CPATransferException, InvalidConfigurationException, InterruptedException {
+      throws CPATransferException, InvalidConfigurationException, InterruptedException, InvalidAutomatonException {
+        String pName = automaton.getName();
+        ImmutableMap<String, AutomatonVariable> pVars = automaton.getInitialVariables();
+        Set<AutomatonInternalState> reached = new HashSet<>();
+        Set<AutomatonInternalState> testreached = new HashSet<>();
+        Queue<AutomatonInternalState> queue = new LinkedList<>();
+        Map<AutomatonInternalState, AutomatonInternalState> flippedStates = new HashMap<>();
+        Map<String, AutomatonInternalState> allflippedtransitions = new HashMap<>();
+        AutomatonInternalState init = automaton.getInitialState();
+        queue.add(init);
+        testreached.add(init);
+        while(!queue.isEmpty()){
+          AutomatonInternalState currentState = queue.poll();
+          AutomatonInternalState flippedcurrentState = flippedStates.getOrDefault(currentState, currentState.flip());
+          
+          ImmutableList.Builder<AutomatonTransition> l =
+            ImmutableList.<AutomatonTransition>builder();
+          for(AutomatonTransition transition : currentState.getTransitions()){
+            AutomatonInternalState followState = transition.getFollowState();
+            AutomatonInternalState flippedfollowState = flippedStates.getOrDefault(followState, followState.flip());
+
+            flippedStates.put(followState, flippedfollowState);
+            allflippedtransitions.put(flippedfollowState.getName(), flippedfollowState);
+
+            AutomatonTransition.Builder atBuilder =
+            new AutomatonTransition.Builder(transition.getTrigger(), flippedfollowState.getName());
+            atBuilder = atBuilder.copy(transition, flippedfollowState);
+
+            l.add(new AutomatonTransition(atBuilder));
+
+            if(testreached.add(flippedfollowState)){
+              queue.add(followState);
+            }
+          }
+          flippedcurrentState = flippedcurrentState.replaceall(l.build()); //alle transitions löschen und durch die neuen aus l ersetzen
+          reached.add(flippedcurrentState);
+          flippedStates.put(currentState, flippedcurrentState);
+          allflippedtransitions.put(flippedcurrentState.getName(), flippedcurrentState);
+        }
+
+        for (AutomatonInternalState state : reached) {
+            state.setFollowStates(allflippedtransitions);
+        }
+        //List<AutomatonInternalState> states = reached.stream().map(AutomatonInternalState::flip).toList();
+        List<AutomatonInternalState> states = reached.stream().toList();
+        String pInitialStateName = automaton.getInitialState().getName();
     return new ControlAutomatonCPA(
-        automaton,
-        Configuration.builder()
-            .copyFrom(config)
-            .setOption("cpa.automaton.invertTransferRelation", "true")
-            .build(),
+        new Automaton(pName, pVars, states, pInitialStateName),
+        config,
         logger,
         cfa,
         shutdownNotifier);
   }
 
-  public ControlAutomatonCPA addselfloop()
-      throws InvalidConfigurationException {
+  public ControlAutomatonCPA addselfloop(CFA pCfa)
+      throws InvalidConfigurationException, InvalidAutomatonException {
+        String pName = automaton.getName();
+        ImmutableMap<String, AutomatonVariable> pVars = automaton.getInitialVariables();
+        List<AutomatonInternalState> states = automaton.getStates().stream().map(state -> state.addselfloop(pCfa)).toList();
+        String pInitialStateName = automaton.getInitialState().getName();
     return new ControlAutomatonCPA(
-        automaton,
-        Configuration.builder()
-            .copyFrom(config)
-            .setOption("cpa.automaton.addselfloop", "true")
-            .build(),
+      new Automaton(pName, pVars, states, pInitialStateName),
+        config,
         logger,
         cfa,
         shutdownNotifier);

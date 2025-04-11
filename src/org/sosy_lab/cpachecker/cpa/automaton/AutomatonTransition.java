@@ -173,6 +173,25 @@ class AutomatonTransition {
           followState,
           targetInformation);
     }
+
+    public AutomatonTransition copy(AutomatonTransition t, String name, AutomatonInternalState s, StringExpression ti){
+      return new AutomatonTransition(
+        t.trigger,
+        ImmutableList.of(t.assertion),
+        t.assumptions,
+        t.candidateInvariants,
+        t.areDefaultCandidateInvariants,
+        t.actions,
+        name,
+        s,
+        ti);
+    }
+
+    public Builder copy(AutomatonTransition t, AutomatonInternalState s){
+      return new Builder(
+        t.trigger,
+        s);
+    }
   }
 
   AutomatonTransition(Builder b) {
