@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 
 public record AVariableDeclarationExchange(
-    @JsonProperty("name") String name, @JsonProperty("simpleType") CBasicType simpleType) {}
+    @JsonProperty("name") String name,
+    @JsonProperty("simpleType") @NonNull CBasicType simpleType) {}
