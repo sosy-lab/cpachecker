@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -23,12 +22,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -42,13 +39,11 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-
 public class GlobalVarAnalysisTransferRelation
     extends ForwardingTransferRelation<GlobalVarAnalysisState, GlobalVarAnalysisState, Precision> {
 
-  private Set<String> formalParameters;
   private final LogManager logger;
-
+  private Set<String> formalParameters; // remember formal parameters used when we call a function
 
   public GlobalVarAnalysisTransferRelation(LogManager pLogger) {
     formalParameters = new HashSet<>();
@@ -56,42 +51,41 @@ public class GlobalVarAnalysisTransferRelation
   }
 
   @Override
-  protected GlobalVarAnalysisState handleDeclarationEdge(CDeclarationEdge declarationEdge, CDeclaration declaration)
-      throws UnrecognizedCodeException {
+  protected GlobalVarAnalysisState handleDeclarationEdge(
+      CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
     Set<String> newGlobalVars = state.getGlobalVars();
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
 
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration decl) {
       boolean isGlobal = decl.isGlobal();
-      if(isGlobal){
+      if (isGlobal) {
         newGlobalVars.add(decl.getQualifiedName());
       }
 
-      if(decl.getInitializer() instanceof CInitializerExpression init){
-        if(init.getExpression() instanceof CBinaryExpression binaryExpr && isGlobalPair(binaryExpr)){ // int x = y + z
+      if (decl.getInitializer() instanceof CInitializerExpression init) {
+        if (init.getExpression() instanceof CBinaryExpression binaryExpr
+            && isGlobalPair(binaryExpr)) { // int x = y + z
           newDetectedAssignedVars.add(decl.getQualifiedName());
         }
       }
     }
 
     return new GlobalVarAnalysisState(
-        newGlobalVars,
-        state.isValidReturn(),
-        newDetectedAssignedVars
-    );
+        newGlobalVars, state.isValidReturn(), newDetectedAssignedVars);
   }
 
   @Override
   protected GlobalVarAnalysisState handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
-    logger.log(Level.INFO,
-        "valid return:" + state.isValidReturn() + " summaryExpr:" + summaryExpr.toASTString()
-    );
+    logger.log(
+        Level.INFO,
+        "valid return:" + state.isValidReturn() + " summaryExpr:" + summaryExpr.toASTString());
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
 
-    if(state.isValidReturn()){
-      if (summaryExpr instanceof CFunctionCallAssignmentStatement fCallAssign) { //y = add() or int y = add()
+    if (state.isValidReturn()) {
+      if (summaryExpr
+          instanceof CFunctionCallAssignmentStatement fCallAssign) { // y = add() or int y = add()
         CLeftHandSide lhs = fCallAssign.getLeftHandSide();
         if (lhs instanceof CIdExpression idExpr) {
           String assignedVar = idExpr.getDeclaration().getQualifiedName();
@@ -101,10 +95,7 @@ public class GlobalVarAnalysisTransferRelation
     }
 
     return new GlobalVarAnalysisState(
-        state.getGlobalVars(),
-        state.isValidReturn(),
-        newDetectedAssignedVars
-    );
+        state.getGlobalVars(), state.isValidReturn(), newDetectedAssignedVars);
   }
 
   @Override
@@ -112,45 +103,39 @@ public class GlobalVarAnalysisTransferRelation
       throws UnrecognizedCodeException {
     List<String> newDetectedAssignedVars = new ArrayList<>(state.getDetectedAssignedVars());
 
-    if (stat instanceof CExpressionAssignmentStatement exprAssign) { //y = y + z
-      if (exprAssign.getRightHandSide() instanceof CBinaryExpression binaryExpr && isGlobalPair(binaryExpr)) {
-        if (exprAssign.getLeftHandSide() instanceof CIdExpression idExpr ) {
+    if (stat instanceof CExpressionAssignmentStatement exprAssign) { // y = y + z
+      if (exprAssign.getRightHandSide() instanceof CBinaryExpression binaryExpr
+          && isGlobalPair(binaryExpr)) {
+        if (exprAssign.getLeftHandSide() instanceof CIdExpression idExpr) {
           newDetectedAssignedVars.add(idExpr.getDeclaration().getQualifiedName());
         }
       }
     }
 
-    return new GlobalVarAnalysisState(
-        state.getGlobalVars(),
-        false,
-        newDetectedAssignedVars
-    );
+    return new GlobalVarAnalysisState(state.getGlobalVars(), false, newDetectedAssignedVars);
   }
 
   @Override
-  protected GlobalVarAnalysisState handleReturnStatementEdge(
-      CReturnStatementEdge returnEdge) throws UnrecognizedCodeException {
+  protected GlobalVarAnalysisState handleReturnStatementEdge(CReturnStatementEdge returnEdge)
+      throws UnrecognizedCodeException {
 
     boolean newValidReturn = state.isValidReturn();
     Optional<CExpression> expressionOptional = returnEdge.getExpression();
 
-    if(expressionOptional.isPresent()) {
+    if (expressionOptional.isPresent()) {
       CExpression returnExpression = expressionOptional.get();
       if (returnExpression instanceof CBinaryExpression returnExpr) {
         newValidReturn = isGlobalPair(returnExpr);
       }
     }
 
-    //delete formal vars from global var set
+    // delete formal vars from global var set
     Set<String> newGlobalVars = new HashSet<>(state.getGlobalVars());
     newGlobalVars.removeAll(formalParameters);
     formalParameters.clear();
 
     return new GlobalVarAnalysisState(
-        newGlobalVars,
-        newValidReturn,
-        state.getDetectedAssignedVars()
-    );
+        newGlobalVars, newValidReturn, state.getDetectedAssignedVars());
   }
 
   @Override
@@ -163,34 +148,33 @@ public class GlobalVarAnalysisTransferRelation
 
     Set<String> newGlobalVars = new HashSet<>(state.getGlobalVars());
 
+    // add related formal vars in global var set
     for (int i = 0; i < parameters.size(); i++) {
       CParameterDeclaration parameter = parameters.get(i);
       CExpression argument = arguments.get(i);
 
       if (argument instanceof CIdExpression idExpr) {
-        if(state.getGlobalVars().contains(idExpr.getDeclaration().getQualifiedName())){
+        if (state.getGlobalVars().contains(idExpr.getDeclaration().getQualifiedName())) {
           newGlobalVars.add(parameter.getQualifiedName());
           formalParameters.add(parameter.getQualifiedName());
         }
       }
     }
 
-      return new GlobalVarAnalysisState(
-          newGlobalVars,
-          state.isValidReturn(),
-          state.getDetectedAssignedVars()
-      );
+    return new GlobalVarAnalysisState(
+        newGlobalVars, state.isValidReturn(), state.getDetectedAssignedVars());
   }
 
   private boolean isGlobalPair(CBinaryExpression binaryExpr) {
-    if (binaryExpr.getOperator() == BinaryOperator.PLUS || binaryExpr.getOperator() == BinaryOperator.MINUS) {
+    if (binaryExpr.getOperator() == BinaryOperator.PLUS
+        || binaryExpr.getOperator() == BinaryOperator.MINUS) {
       CExpression operand1 = binaryExpr.getOperand1();
       CExpression operand2 = binaryExpr.getOperand2();
 
       if (operand1 instanceof CIdExpression var1 && operand2 instanceof CIdExpression var2) {
-        if (!var1.equals(var2) &&
-            state.getGlobalVars().contains(var1.getDeclaration().getQualifiedName()) &&
-            state.getGlobalVars().contains(var2.getDeclaration().getQualifiedName())) {
+        if (!var1.equals(var2)
+            && state.getGlobalVars().contains(var1.getDeclaration().getQualifiedName())
+            && state.getGlobalVars().contains(var2.getDeclaration().getQualifiedName())) {
           return true;
         }
       }
@@ -205,10 +189,8 @@ public class GlobalVarAnalysisTransferRelation
     return state;
   }
 
-
   @Override
   protected GlobalVarAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     return state;
   }
-
 }

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -22,9 +21,7 @@ public class GlobalVarAnalysisState implements AbstractState, Graphable {
   private final List<String> detectedAssignedVars;
 
   public GlobalVarAnalysisState(
-      Set<String> pGlobalVars,
-      boolean pValidReturn,
-      List<String> pDetectedAssignedVars) {
+      Set<String> pGlobalVars, boolean pValidReturn, List<String> pDetectedAssignedVars) {
     globalVars = pGlobalVars;
     validReturn = pValidReturn;
     detectedAssignedVars = pDetectedAssignedVars;
@@ -50,16 +47,16 @@ public class GlobalVarAnalysisState implements AbstractState, Graphable {
 
   @Override
   public String toDOTLabel() {
-    return "global vars = " + globalVars.toString()
-        + ", validReturn = " + validReturn
-        + ", detectedAssignedVars = " + detectedAssignedVars.toString();
+    return "global vars = "
+        + globalVars.toString()
+        + ", validReturn = "
+        + validReturn
+        + ", detectedAssignedVars = "
+        + detectedAssignedVars.toString();
   }
 
   @Override
   public boolean shouldBeHighlighted() {
     return false;
   }
-
-
-
 }

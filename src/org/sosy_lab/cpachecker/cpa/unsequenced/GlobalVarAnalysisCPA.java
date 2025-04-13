@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
