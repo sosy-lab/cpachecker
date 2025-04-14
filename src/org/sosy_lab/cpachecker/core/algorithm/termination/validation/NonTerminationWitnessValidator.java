@@ -572,7 +572,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         // TODO unify with initial predicate precision instead of replacement?
         initialPrecision =
             Precisions.replaceByType(
-                initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
+                initialPrecision, predPrec, PredicatePrecision.class::isInstance);
       }
 
       // build initial state which should be restricted to recurrent set

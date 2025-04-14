@@ -351,7 +351,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         }
 
         final int predIndex =
-            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+            Iterables.indexOf(strengthenedState, PredicateAbstractState.class::isInstance);
         Preconditions.checkState(
             predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
         AbstractState predElement = strengthenedState.get(predIndex);

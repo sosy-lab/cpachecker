@@ -315,7 +315,7 @@ public class SimpleIntProviderFactory {
         public int calculateNext(int pCurrent, CFAEdge pEdge) {
           return pCurrent
               + countDeclarations(
-                  pEdge, declaration -> declaration instanceof CFunctionDeclaration);
+                  pEdge, CFunctionDeclaration.class::isInstance);
         }
       };
 
@@ -520,8 +520,7 @@ public class SimpleIntProviderFactory {
 
         @Override
         public int calculateNext(int pCurrent, CFAEdge edge) {
-          return pCurrent
-              + countExpressions(edge, expression -> expression instanceof CPointerExpression);
+          return pCurrent + countExpressions(edge, CPointerExpression.class::isInstance);
         }
       };
 
