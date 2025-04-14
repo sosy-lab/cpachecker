@@ -427,18 +427,24 @@ public class SignCExpressionVisitor
       return Sign.EMPTY;
     }
 
-    if (pLeft == Sign.PLUS) {
-      if (pRight == Sign.ZERO || pRight == Sign.MINUS) {
-        return Sign.PLUSMINUS;
-      }
-    } else if (pLeft == Sign.ZERO) {
-      if (pRight == Sign.PLUS || pRight == Sign.MINUS) {
-        return Sign.PLUSMINUS;
-      }
-    } else if (pLeft == Sign.MINUS) {
-      if (pRight == Sign.ZERO || pRight == Sign.PLUS) {
-        return Sign.PLUSMINUS;
-      }
+    switch (pLeft) {
+      case PLUS:
+        if (pRight == Sign.ZERO || pRight == Sign.MINUS) {
+          return Sign.PLUSMINUS;
+        }
+        break;
+      case ZERO:
+        if (pRight == Sign.PLUS || pRight == Sign.MINUS) {
+          return Sign.PLUSMINUS;
+        }
+        break;
+      case MINUS:
+        if (pRight == Sign.ZERO || pRight == Sign.PLUS) {
+          return Sign.PLUSMINUS;
+        }
+        break;
+      default:
+        break;
     }
 
     return Sign.ALL;
