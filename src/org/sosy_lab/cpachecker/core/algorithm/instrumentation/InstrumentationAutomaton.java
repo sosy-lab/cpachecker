@@ -30,7 +30,8 @@ public class InstrumentationAutomaton {
     TERMINATION,
     TERMINATIONWITHCOUNTERS,
     ONESTEPREACHABILITY,
-    NOOVERFLOW
+    NOOVERFLOW,
+    MEMCLEANUP
   }
 
   /** The annotation is used to match a property of a CFA node. */
@@ -70,6 +71,7 @@ public class InstrumentationAutomaton {
       case TERMINATIONWITHCOUNTERS -> constructTerminationWithCountersAutomaton(pIndex);
       case ONESTEPREACHABILITY -> constructOneStepReachabilityAutomaton(pIndex);
       case NOOVERFLOW -> constructOverflowAutomaton();
+      case MEMCLEANUP -> constructMemCleanupAutomaton();
       default -> throw new IllegalArgumentException();
     }
   }
@@ -482,6 +484,40 @@ public class InstrumentationAutomaton {
             new InstrumentationOperation(""),
             InstrumentationOrder.AFTER,
             q3);
+    this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
+  }
+
+  private void constructMemCleanupAutomaton() {
+    InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.TRUE, this);
+    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.INIT, this);
+
+    this.initialState = q1;
+
+    InstrumentationTransition t1 =
+        new InstrumentationTransition(
+            q1,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation("extern void *realloc(void *ptr, long unsigned int new_size );\n"
+                + "extern void *malloc (long unsigned int __size);\n"
+                + "extern void *calloc(long unsigned int nitems, long unsigned int size);\n"
+                + "extern void free(void *ptr);\n"
+                + "void *pointer_INSTR = 0;"),
+            InstrumentationOrder.BEFORE,
+            q2);
+    InstrumentationTransition t2 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("[cond]"),
+            new InstrumentationOperation("first_INSTR_ = 1;"),
+            InstrumentationOrder.AFTER,
+            q2);
+    InstrumentationTransition t3 =
+        new InstrumentationTransition(
+            q2,
+            new InstrumentationPattern("true"),
+            new InstrumentationOperation(""),
+            InstrumentationOrder.AFTER,
+            q2);
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3);
   }
 }
