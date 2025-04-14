@@ -802,13 +802,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         if (pVariable.getExpressionType().equals(pSubstitute.getExpressionType())) {
           return true;
         }
-        if (!(pVariable.getExpressionType() instanceof CType)
-            || !(pSubstitute.getExpressionType() instanceof CType)) {
+        if (!(pVariable.getExpressionType() instanceof CType variableType)
+            || !(pSubstitute.getExpressionType() instanceof CType substituteType)) {
           return false;
         }
-        CType typeA = ((CType) pVariable.getExpressionType()).getCanonicalType();
-        CType typeB = ((CType) pSubstitute.getExpressionType()).getCanonicalType();
-        return typeA.canBeAssignedFrom(typeB);
+        return variableType.getCanonicalType().canBeAssignedFrom(substituteType.getCanonicalType());
       }
     },
 

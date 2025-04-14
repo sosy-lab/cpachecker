@@ -614,10 +614,9 @@ class DynamicBindingCreator {
 
     if (!firstReturnType.equals(sndReturnType)) {
 
-      if (!(firstReturnType instanceof JClassOrInterfaceType
-              && sndReturnType instanceof JClassOrInterfaceType)
-          || !isSubType(
-              (JClassOrInterfaceType) firstReturnType, (JClassOrInterfaceType) sndReturnType)) {
+      if (!(firstReturnType instanceof JClassOrInterfaceType firstReturnClassType
+              && sndReturnType instanceof JClassOrInterfaceType sndReturnClassType)
+          || !isSubType(firstReturnClassType, sndReturnClassType)) {
         return false;
       }
     }

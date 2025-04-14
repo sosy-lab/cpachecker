@@ -518,11 +518,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
                 if (starredLocations.isBot() || starredLocations.isTop()) {
                   return starredLocations;
                 }
-                if (!(starredLocations instanceof ExplicitLocationSet)) {
+                if (!(starredLocations instanceof ExplicitLocationSet explicitStarredLocations)) {
                   return LocationSetTop.INSTANCE;
                 }
                 Set<MemoryLocation> result = new HashSet<>();
-                for (MemoryLocation location : ((ExplicitLocationSet) starredLocations)) {
+                for (MemoryLocation location : explicitStarredLocations) {
                   LocationSet pointsToSet = pState.getPointsToSet(location);
                   if (pointsToSet.isTop()) {
                     result.addAll(pState.getKnownLocations());

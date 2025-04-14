@@ -442,14 +442,14 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
+    if (!(params.get(0) instanceof CUnaryExpression param0)) {
       throw new UnrecognizedCodeException("unsupported thread assignment", params.get(0));
     }
-    if (!(params.get(2) instanceof CUnaryExpression)) {
+    if (!(params.get(2) instanceof CUnaryExpression param2)) {
       throw new UnrecognizedCodeException("unsupported thread function call", params.get(2));
     }
-    CExpression expr0 = ((CUnaryExpression) params.get(0)).getOperand();
-    CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+    CExpression expr0 = param0.getOperand();
+    CExpression expr2 = param2.getOperand();
     if (!(expr0 instanceof CIdExpression)) {
       throw new UnrecognizedCodeException("unsupported thread assignment", expr0);
     }

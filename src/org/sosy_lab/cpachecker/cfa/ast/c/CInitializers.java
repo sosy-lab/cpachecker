@@ -344,14 +344,14 @@ public final class CInitializers {
         CExpression floorExp = ((CArrayRangeDesignator) designator).getFloorExpression();
         CExpression ceilExp = ((CArrayRangeDesignator) designator).getCeilExpression();
 
-        if (!(floorExp instanceof CIntegerLiteralExpression)
-            || !(ceilExp instanceof CIntegerLiteralExpression)) {
+        if (!(floorExp instanceof CIntegerLiteralExpression floorLitExp)
+            || !(ceilExp instanceof CIntegerLiteralExpression ceilLitExp)) {
           throw new UnrecognizedCodeException(
               "Cannot evaluate expression as array range designator", edge, designator);
         }
 
-        BigInteger indexBottom = ((CIntegerLiteralExpression) floorExp).getValue();
-        BigInteger indexTop = ((CIntegerLiteralExpression) ceilExp).getValue();
+        BigInteger indexBottom = floorLitExp.getValue();
+        BigInteger indexTop = ceilLitExp.getValue();
         if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
             || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
           throw new UnrecognizedCodeException(
