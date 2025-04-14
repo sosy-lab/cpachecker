@@ -45,6 +45,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/*
+This class implement the CEGECoRe algorithm, which aims to find precise error condition of a
+ program, by iteratively searching for concrete counterexamples, extracting information (conditions)
+ about the error inputs from the found concrete counterexample, instrumenting the program to exclude
+ the recently learned information and updating error condition until no further counterexamples can
+ be found. Proving the program is safe under the exclusion of the final error condition.
+ */
 @Options(prefix = "findErrorCondition")
 public class FindErrorCondition implements Algorithm, StatisticsProvider, Statistics {
 
@@ -54,22 +61,24 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
   private final StatTimer totalTime =
       new StatTimer("Total time for finding precise error condition");
   private final FormulaContext context;
+
+  // Configuration options
   @Option(
       secure = true,
       description = "Maximum iterations for error condition refinement.",
       name = "maxIterations")
-  private int maxIterations = -1; // default: no iteration limit
+  private int maxIterations = -1; // Default: no iteration limit
   @Option(
       secure = true,
       description = "Solver that should perform quantifier Elimination.",
       name = "qSolver")
-  private Solvers qSolver = Solvers.Z3; // default
+  private Solvers qSolver = Solvers.Z3; // Default solver for QE
   @Option(
       secure = true,
       description = "List of refiners to use",
       name = "refiners")
   private RefinementStrategy[] refiners =
-      {RefinementStrategy.QUANTIFIER_ELIMINATION, RefinementStrategy.ALLSAT}; // default
+      {RefinementStrategy.QUANTIFIER_ELIMINATION, RefinementStrategy.ALLSAT}; // Default strategies
   @Option(
       secure = true,
       description = "Enable parallel refinement. Only if at least two refiners are in use.",
@@ -100,7 +109,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     cpa = pCpa;
     pConfig.inject(this);
 
-    // set up formula context
+    // Set up formula context
     PredicateCPA predicateCPA = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, getClass());
     Solver solver = predicateCPA.getSolver();
     PathFormulaManagerImpl manager = new PathFormulaManagerImpl(
@@ -122,42 +131,43 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
     try {
 
       // Initialize variables
-      boolean foundNewCounterexamples;
+      boolean foundNewCounterexample;
       AbstractState initialState = Utility.getInitialState(cpa, context);
       CompositeRefiner refiner =
           new CompositeRefiner(context, refiners, qSolver, parallelRefinement, withFormatter,
               refinerTimeOut);
-      // initially empty
+      // Initially empty error condition (i.e., over-approximation)
       RefinementResult errorCondition =
           new RefinementResult(RefinementStatus.EMPTY, context.getManager().makeEmptyPathFormula());
 
       do {
         logger.log(Level.INFO, "Iteration: " + currentIteration);
-        foundNewCounterexamples = false;
+        foundNewCounterexample = false;
 
-        // Run reachability analysis
+        // Update Reached set
         reachedSet =
             Utility.updateReachedSet(reachedSet, initialState, currentIteration, cpa, context);
+        // Abstraction - Run CPA Predicate Analysis
         status = algorithm.run(reachedSet);
 
-        // Collect counterexamples
+        // get concrete counterexample
         FluentIterable<CounterexampleInfo> counterExamples =
-            Utility.getCounterexamples(reachedSet);
+            Utility.getCounterexample(reachedSet);
 
         if (!counterExamples.isEmpty()) {
-          foundNewCounterexamples = true;
+          foundNewCounterexample = true;
           logger.log(Level.INFO, "Found Counterexamples");
           // TODO: why is this a loop for counter examples? we get usually just one counter example
           //  per iteration
           for (CounterexampleInfo cex : counterExamples) {
-            // Refinement
+            // Error Condition Refinement
             errorCondition = refiner.refine(cex);
           }
-          // do not continue if error condition is invalid (timed out or yielded an error)
+          // Do not continue if error condition is invalid (timed out or yielded an error)
           if (!errorCondition.isSuccessful()) {
             break;
           }
-          // update initial state with the exclusion formula
+          // Update initial state to exclude current error condition for next iteration
           initialState = Utility.updateInitialStateWithExclusions(initialState,
               errorCondition.getFormula(),
               currentIteration, context);
@@ -167,7 +177,7 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
                   currentIteration));
         }
 
-      } while (foundNewCounterexamples && (++currentIteration < maxIterations
+      } while (foundNewCounterexample && (++currentIteration < maxIterations
           || maxIterations == -1));
 
       context.getLogger()
@@ -195,7 +205,6 @@ public class FindErrorCondition implements Algorithm, StatisticsProvider, Statis
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    //TODO add way for collecting statistics
   }
 
 }

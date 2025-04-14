@@ -55,7 +55,8 @@ public class GenerateModelRefiner implements Refiner {
       }
 
       prover.push(cexFormula.getFormula());
-
+      // this condition should always be false, since we work with concrete
+      // satisfiable counterexamples
       if (prover.isUnsat()) {
         Utility.logWithIteration(currentRefinementIteration,
             Level.WARNING, context, "Counterexample Is Infeasible.");

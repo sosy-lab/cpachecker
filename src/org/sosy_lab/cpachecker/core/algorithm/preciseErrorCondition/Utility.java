@@ -60,7 +60,7 @@ public final class Utility {
     return pReachedSet;
   }
 
-  public static FluentIterable<CounterexampleInfo> getCounterexamples(ReachedSet pReachedSet) {
+  public static FluentIterable<CounterexampleInfo> getCounterexample(ReachedSet pReachedSet) {
     return Optionals.presentInstances(
         from(pReachedSet)
             .filter(AbstractStates::isTargetState)
@@ -68,6 +68,9 @@ public final class Utility {
             .transform(ARGState::getCounterexampleInformation));
   }
 
+  // Instrument the initial state of the program to exclude the already explored paths
+  // (i.e., the error condition at this iteration representing the already discovered error-inducing
+  // inputs)
   public static AbstractState updateInitialStateWithExclusions(
       AbstractState pInitialState,
       PathFormula pExclusionFormula,
@@ -76,11 +79,9 @@ public final class Utility {
     Builder<AbstractState> initialAbstractStates = ImmutableList.builder();
     for (AbstractState abstractState : AbstractStates.asIterable(pInitialState)) {
       if (abstractState instanceof ARGState) {
-        // TODO handle ARGState instances
         continue;
       }
       if (abstractState instanceof CompositeState) {
-        // TODO handle CompositeState instances
         continue;
       }
       if (abstractState instanceof PredicateAbstractState predicateState) {
