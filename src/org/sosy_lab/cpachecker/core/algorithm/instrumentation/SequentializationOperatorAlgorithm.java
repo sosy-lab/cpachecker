@@ -230,7 +230,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       if (pTransition.getOrderAsString().equals("AFTER")) {
         location += 1;
       }
-      return Integer.toString(location);
+      return pTransition.getOrderAsString().equals("SAME_LINE")
+             ? "S | " + pTransition.getPattern().getFunctionName() + " | " + location
+             : Integer.toString(location);
     } catch (NumberFormatException e) {
       logger.logException(Level.SEVERE, e, "The line number is not Integer !");
     }

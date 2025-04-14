@@ -9,12 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -33,10 +39,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
  */
 public class InstrumentationPattern {
   private final patternType type;
+  private final String functionName;
   private final String pattern;
 
   public InstrumentationPattern(String pPattern) {
     pattern = pPattern;
+    if (pPattern.startsWith("FUNC")) {
+      functionName = pPattern
+          .replace("FUNC\\(", "")
+          .replace("\\)","");
+      type = patternType.FUNC;
+      return;
+    } else {
+      functionName = "";
+    }
     switch (pPattern) {
       case "true":
         type = patternType.TRUE;
@@ -120,6 +136,7 @@ public class InstrumentationPattern {
       case TRUE -> ImmutableList.of();
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
+      case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, functionName, pDecomposedMap);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
@@ -147,6 +164,10 @@ public class InstrumentationPattern {
   @Override
   public String toString() {
     return pattern;
+  }
+
+  public String getFunctionName() {
+    return functionName;
   }
 
   @Nullable
@@ -220,6 +241,34 @@ public class InstrumentationPattern {
         } else {
           return ImmutableList.of();
         }
+      }
+    }
+    return null;
+  }
+
+  @Nullable
+  private ImmutableList<String> getTheOperandsFromFunctionCall(
+      CFAEdge pCFAEdge, String pFuncName, Map<CFANode, String> pDecomposedMap) {
+    if (pCFAEdge.getRawAST().isPresent()) {
+      AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
+      CFunctionCallExpression expression;
+
+      if (astNode instanceof CFunctionCall) {
+        expression = ((CFunctionCall) astNode).getFunctionCallExpression();
+      } else {
+        return null;
+      }
+
+      if (expression.getFunctionNameExpression().toString().equals(pFuncName)) {
+        String condition = collectConditionFromPreviousEdge(pCFAEdge);
+        if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
+          condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
+        }
+
+        List<String> parameters = new ArrayList<>(expression.getParameterExpressions()
+            .stream().map(e -> e.toString()).toList());
+        parameters.add(0, condition);
+        return ImmutableList.copyOf(parameters);
       }
     }
     return null;
@@ -310,6 +359,7 @@ public class InstrumentationPattern {
     OR,
     AND,
     XOR,
+    FUNC,
     REGEX
   }
 }
