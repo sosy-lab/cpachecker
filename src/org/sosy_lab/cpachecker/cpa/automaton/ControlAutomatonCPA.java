@@ -417,7 +417,7 @@ private boolean addselfloop = false;
               queue.add(followState);
             }
           }
-          flippedcurrentState = flippedcurrentState.replaceall(l.build()); //alle transitions löschen und durch die neuen aus l ersetzen
+          flippedcurrentState = flippedcurrentState.replaceall(l.build()); 
           reached.add(flippedcurrentState);
           flippedStates.put(currentState, flippedcurrentState);
           allflippedtransitions.put(flippedcurrentState.getName(), flippedcurrentState);
@@ -426,7 +426,6 @@ private boolean addselfloop = false;
         for (AutomatonInternalState state : reached) {
             state.setFollowStates(allflippedtransitions);
         }
-        //List<AutomatonInternalState> states = reached.stream().map(AutomatonInternalState::flip).toList();
         List<AutomatonInternalState> states = reached.stream().toList();
         String pInitialStateName = automaton.getInitialState().getName();
     return new ControlAutomatonCPA(

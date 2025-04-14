@@ -77,7 +77,6 @@ public class ErrorConditionAlgorithm implements Algorithm {
       }
     }
     return true;
-    //return FluentIterable.from(pcomp.reached()).filter(AbstractStates::isTargetState).isEmpty();
   }
 
   @Override
@@ -93,7 +92,6 @@ public class ErrorConditionAlgorithm implements Algorithm {
             if (ctrlcpa.getAutomatonName().startsWith("SVCOMP")) {
               ctrlcpalist.add(ctrlcpa.invert());
             } else {
-              //ctrlcpalist.add(ctrlcpa.addselfloop());
               ctrlcpalist.add(c);
             }
           } else {

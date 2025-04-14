@@ -190,14 +190,6 @@ public class AutomatonInternalState {
           }
           return t;
         }).forEach(ptransitions::add);
-    //if (transitions.isEmpty()) {
-    //  AutomatonTransition.Builder atBuilder =
-    //      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, this);
-    //      if(isTarget()){
-    //        atBuilder = atBuilder.withTargetInformation(new StringExpression("flip"));
-    //      }
-    //  ptransitions.add(atBuilder.build());
-    //}
     return new AutomatonInternalState(
         name, ptransitions.build(), !mIsTarget, mAllTransitions, isCycleStart);
   }
@@ -238,7 +230,6 @@ public class AutomatonInternalState {
               AutomatonTransition toAlwaysTrue =
                   new AutomatonTransition.Builder(trigger, AlwaysTrue).build();
               ptransitions.add(toAlwaysTrue);
-              System.out.println("Negated Trigger result: " + negatedTrigger.eval(args).getValue());
             }
           }
         } catch (CPATransferException e) {
