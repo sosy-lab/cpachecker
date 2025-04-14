@@ -257,11 +257,10 @@ public class ToBitvectorFormulaVisitor
     if (sourceFormula == null) {
       return sourceFormula;
     }
-    TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    TypeInfo targetInfo = pCast.getTypeInfo();
-    if (sourceInfo instanceof BitVectorInfo && targetInfo instanceof BitVectorInfo) {
-      int sourceSize = ((BitVectorInfo) sourceInfo).getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+    if (pCast.getCasted().getTypeInfo() instanceof BitVectorInfo sourceInfo
+        && pCast.getTypeInfo() instanceof BitVectorInfo targetInfo) {
+      int sourceSize = sourceInfo.getSize();
+      int targetSize = targetInfo.getSize();
       if (sourceSize < targetSize) {
         return bvfmgr.extend(sourceFormula, targetSize - sourceSize, targetInfo.isSigned());
       }

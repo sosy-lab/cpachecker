@@ -394,11 +394,9 @@ public class ProgramDeclarations {
 
       // first check if the lengths are matching
       CArrayType a2 = (CArrayType) type2;
-      if (a1.getLength() instanceof CIntegerLiteralExpression
-          && a2.getLength() instanceof CIntegerLiteralExpression) {
-        if (!((CIntegerLiteralExpression) a1.getLength())
-            .getValue()
-            .equals(((CIntegerLiteralExpression) a2.getLength()).getValue())) {
+      if (a1.getLength() instanceof CIntegerLiteralExpression a1Length
+          && a2.getLength() instanceof CIntegerLiteralExpression a2Length) {
+        if (!a1Length.getValue().equals(a2Length.getValue())) {
           return false;
         }
       } else {

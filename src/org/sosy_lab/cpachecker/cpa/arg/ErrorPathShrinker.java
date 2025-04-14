@@ -336,16 +336,15 @@ public final class ErrorPathShrinker {
         final AExpression lastExp = lastAss.getExpression();
 
         // check, if the last edge was like "a==b"
-        if (lastExp instanceof ABinaryExpression) {
+        if (lastExp instanceof ABinaryExpression aLastExp) {
           final AExpression currentBinExpOp1 = ((ABinaryExpression) assumeExp).getOperand1();
-          final AExpression lastBinExpOp1 = ((ABinaryExpression) lastExp).getOperand1();
+          final AExpression lastBinExpOp1 = aLastExp.getOperand1();
 
           // only the first variable of the assignment is checked
           final boolean isEqualVarName =
               currentBinExpOp1.toASTString().equals(lastBinExpOp1.toASTString());
 
           // check, if lastEdge is the true-branch of "==" or the false-branch of "!="
-          ABinaryExpression aLastExp = ((ABinaryExpression) lastExp);
           final boolean isEqualOp;
 
           if (aLastExp instanceof CBinaryExpression) {

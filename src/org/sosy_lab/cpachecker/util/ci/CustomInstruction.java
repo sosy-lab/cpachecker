@@ -684,18 +684,18 @@ public class CustomInstruction {
     } else if (ciI != null && aciI == null) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The ci has an initializer but not the aci.");
-    } else if (ciI instanceof CInitializerExpression && aciI instanceof CInitializerExpression) {
-      ((CInitializerExpression) ciI)
+    } else if (ciI instanceof CInitializerExpression ciIExp
+        && aciI instanceof CInitializerExpression aciIExp) {
+      ciIExp
           .getExpression()
-          .accept(
-              new StructureComparisonVisitor(
-                  ((CInitializerExpression) aciI).getExpression(), ciVarToAciVar));
+          .accept(new StructureComparisonVisitor(aciIExp.getExpression(), ciVarToAciVar));
     } else if (ciI instanceof CDesignatedInitializer && aciI instanceof CDesignatedInitializer) {
       throw new AppliedCustomInstructionParsingFailedException(
           "The code contains a CDesignatedInitializer, which is unsupported.");
-    } else if (ciI instanceof CInitializerList && aciI instanceof CInitializerList) {
-      List<CInitializer> ciList = ((CInitializerList) ciI).getInitializers();
-      List<CInitializer> aciList = ((CInitializerList) aciI).getInitializers();
+    } else if (ciI instanceof CInitializerList ciIList
+        && aciI instanceof CInitializerList aciIList) {
+      List<CInitializer> ciList = ciIList.getInitializers();
+      List<CInitializer> aciList = aciIList.getInitializers();
 
       if (ciList.size() != aciList.size()) {
         throw new AppliedCustomInstructionParsingFailedException(

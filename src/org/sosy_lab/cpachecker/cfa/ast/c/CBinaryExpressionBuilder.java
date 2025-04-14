@@ -332,11 +332,10 @@ public class CBinaryExpressionBuilder {
     }
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
-    if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
+    if (pType1 instanceof CSimpleType simpleType1 && pType2 instanceof CSimpleType simpleType2) {
       // TODO we need a recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
 
-      final CType commonType =
-          getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
+      final CType commonType = getCommonSimpleTypeForBinaryOperation(simpleType1, simpleType2);
 
       logger.logf(
           Level.ALL,

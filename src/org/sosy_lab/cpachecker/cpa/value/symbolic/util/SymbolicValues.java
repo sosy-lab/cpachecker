@@ -106,8 +106,9 @@ public class SymbolicValues {
       final Value innerVal1 = ((ConstantSymbolicExpression) pValue1).getValue();
       final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
 
-      if (innerVal1 instanceof SymbolicValue && innerVal2 instanceof SymbolicValue) {
-        return representSameSymbolicMeaning((SymbolicValue) innerVal1, (SymbolicValue) innerVal2);
+      if (innerVal1 instanceof SymbolicValue symVal1
+          && innerVal2 instanceof SymbolicValue symVal2) {
+        return representSameSymbolicMeaning(symVal1, symVal2);
 
       } else {
         return innerVal1.equals(innerVal2);

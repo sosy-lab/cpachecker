@@ -159,11 +159,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               }
             }
           }
-          if (pCfaEdge instanceof CDeclarationEdge) {
+          if (pCfaEdge instanceof CDeclarationEdge declEdge) {
             for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-              if (edgeInOriginal instanceof CDeclarationEdge) {
-                final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration();
-                final CDeclaration declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
+              if (edgeInOriginal instanceof CDeclarationEdge declEdgeInOriginal) {
+                final CDeclaration declOr = declEdgeInOriginal.getDeclaration();
+                final CDeclaration declMo = declEdge.getDeclaration();
                 if (declOr.getOrigName() != null
                     && declOr.getOrigName().equals(declMo.getOrigName())) {
                   helper.logCase("Taking case 4 for different declarations or modified variables.");

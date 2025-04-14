@@ -237,9 +237,8 @@ public class ApronTransferRelation
                           Tcons0.EQ,
                           new Texpr0Intern(new Texpr0BinNode(Texpr0BinNode.OP_SUB, left, right)))));
             } else {
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =
@@ -302,9 +301,8 @@ public class ApronTransferRelation
           case GREATER_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 act =
@@ -346,9 +344,8 @@ public class ApronTransferRelation
           case LESS_THAN -> {
             if (truthAssumption) {
               Tcons0 act;
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedLeft =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, left, constantMin);
                 act =
@@ -374,9 +371,8 @@ public class ApronTransferRelation
           }
           case NOT_EQUALS -> {
             if (truthAssumption) {
-              if ((left instanceof Texpr0DimNode && !state.isInt(((Texpr0DimNode) left).dim))
-                  || (right instanceof Texpr0DimNode
-                      && !state.isInt(((Texpr0DimNode) right).dim))) {
+              if ((left instanceof Texpr0DimNode leftNode && !state.isInt(leftNode.dim))
+                  || (right instanceof Texpr0DimNode rightNode && !state.isInt(rightNode.dim))) {
                 Texpr0BinNode increasedRight =
                     new Texpr0BinNode(Texpr0BinNode.OP_ADD, right, constantMin);
                 Texpr0BinNode increasedLeft =

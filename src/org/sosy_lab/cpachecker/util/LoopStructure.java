@@ -478,9 +478,9 @@ public final class LoopStructure {
     List<CFANode> initialChain = new ArrayList<>();
     @Nullable CFANode nodeAfterInitialChain = null;
     {
-      CFANode functionExitNode = pNodes.first(); // The function exit node is always the first
-      if (functionExitNode instanceof FunctionExitNode) {
-        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+      // The function exit node is always the first
+      if (pNodes.first() instanceof FunctionExitNode functionExitNode) {
+        CFANode startNode = functionExitNode.getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
           startNode = startNode.getLeavingEdge(0).getSuccessor();

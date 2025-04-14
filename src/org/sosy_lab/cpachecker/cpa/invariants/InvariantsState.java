@@ -1980,11 +1980,11 @@ public class InvariantsState
   }
 
   private static int compare(Number pOp1, Number pOp2) {
-    if (pOp1 instanceof BigInteger && pOp2 instanceof BigInteger) {
-      return ((BigInteger) pOp1).compareTo((BigInteger) pOp2);
+    if (pOp1 instanceof BigInteger op1 && pOp2 instanceof BigInteger op2) {
+      return op1.compareTo(op2);
     }
-    if (pOp1 instanceof BigDecimal && pOp2 instanceof BigDecimal) {
-      return ((BigDecimal) pOp1).compareTo((BigDecimal) pOp2);
+    if (pOp1 instanceof BigDecimal op1 && pOp2 instanceof BigDecimal op2) {
+      return op1.compareTo(op2);
     }
     if (isAssignableToLong(pOp1) && isAssignableToLong(pOp2)) {
       return Long.compare(pOp1.longValue(), pOp2.longValue());

@@ -462,8 +462,8 @@ public class AssumptionToEdgeAllocator {
       ConcreteState pConcreteState) {
 
     // TODO processing for other languages
-    if (pExpectedType instanceof CType) {
-      CType cType = ((CType) pExpectedType).getCanonicalType();
+    if (pExpectedType instanceof CType expectedType) {
+      CType cType = expectedType.getCanonicalType();
 
       ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide, pConcreteState);
       ValueLiterals valueLiterals = cType.accept(v);

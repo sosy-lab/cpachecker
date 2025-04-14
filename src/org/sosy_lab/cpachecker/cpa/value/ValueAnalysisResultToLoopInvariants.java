@@ -1346,27 +1346,27 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         return pVal1.floatingPointValue(precision).compareTo(pVal2.floatingPointValue(precision));
       }
 
-      if (num1 instanceof Rational) {
-        if (num2 instanceof Rational) {
-          return ((Rational) num1).compareTo((Rational) num2);
+      if (num1 instanceof Rational rat1) {
+        if (num2 instanceof Rational rat2) {
+          return rat1.compareTo(rat2);
         }
         if (isIntegral2) {
-          return ((Rational) num1).compareTo(Rational.of(num2.longValue()));
+          return rat1.compareTo(Rational.of(num2.longValue()));
         }
         if (isBigInt2) {
-          return ((Rational) num1).compareTo(Rational.ofBigInteger((BigInteger) num2));
+          return rat1.compareTo(Rational.ofBigInteger((BigInteger) num2));
         }
         if (isFloat2 || num2 instanceof FloatValue) {
           // FIXME: Conversion is imprecise
           return FloatValue.fromDouble(num1.doubleValue())
               .compareTo(pVal2.floatingPointValue(FloatValue.Format.Float64));
         }
-      } else if (num2 instanceof Rational) {
+      } else if (num2 instanceof Rational rat2) {
         if (isIntegral1) {
-          return Rational.of(num1.longValue()).compareTo((Rational) num2);
+          return Rational.of(num1.longValue()).compareTo(rat2);
         }
         if (isBigInt1) {
-          return Rational.ofBigInteger((BigInteger) num1).compareTo(((Rational) num2));
+          return Rational.ofBigInteger((BigInteger) num1).compareTo(rat2);
         }
         if (isFloat1 || num1 instanceof FloatValue) {
           // FIXME: Conversion is imprecise

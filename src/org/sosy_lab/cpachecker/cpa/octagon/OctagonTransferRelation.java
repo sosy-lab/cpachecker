@@ -344,9 +344,9 @@ public class OctagonTransferRelation
     }
 
     // both are literals
-    if (left instanceof CLiteralExpression && right instanceof CLiteralExpression) {
-      return handleBinaryAssumptionWithTwoLiterals(
-          (CLiteralExpression) left, (CLiteralExpression) right, op, truthAssumption);
+    if (left instanceof CLiteralExpression leftLiteral
+        && right instanceof CLiteralExpression rightLiteral) {
+      return handleBinaryAssumptionWithTwoLiterals(leftLiteral, rightLiteral, op, truthAssumption);
     } else if (left instanceof CLiteralExpression) {
       // change operator so we can call handleBinaryAssumptionWithOneLiteral
       switch (op) {

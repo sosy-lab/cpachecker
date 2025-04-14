@@ -205,19 +205,19 @@ public class SignCExpressionVisitor
       Sign pLeft, CExpression pLeftExp, Sign pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
     if ((pLeft == Sign.MINUS
-            && (pRightExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
-        || ((pLeftExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+            && (pRightExp instanceof CIntegerLiteralExpression rightExp)
+            && rightExp.getValue().equals(BigInteger.ONE))
+        || ((pLeftExp instanceof CIntegerLiteralExpression leftExp)
+            && leftExp.getValue().equals(BigInteger.ONE)
             && pRight == Sign.MINUS)) {
       return Sign.MINUS0;
     }
     // Special case: +0 + 1 => +, 1 + +0 => +
     if ((pLeft == Sign.PLUS0
-            && (pRightExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
-        || ((pLeftExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+            && (pRightExp instanceof CIntegerLiteralExpression rightExp)
+            && rightExp.getValue().equals(BigInteger.ONE))
+        || ((pLeftExp instanceof CIntegerLiteralExpression leftExp)
+            && leftExp.getValue().equals(BigInteger.ONE)
             && pRight == Sign.PLUS0)) {
       return Sign.PLUS;
     }
