@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--no-output-files"/>
   <option name="--heap">10000M</option>
 
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD1--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.useApply=true</option>
     <option name="--option">bdd.pjbdd.threadSafety=true</option>
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD2--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
@@ -34,7 +34,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.useApply=true</option>
     <option name="--option">bdd.pjbdd.threadSafety=true</option>
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD3--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=None</option>
@@ -43,7 +43,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.useApply=true</option>
     <option name="--option">bdd.pjbdd.threadSafety=false</option>
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD4--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=None</option>
@@ -52,7 +52,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.useApply=true</option>
     <option name="--option">bdd.pjbdd.threadSafety=true</option>
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD5--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=CompletableFuture</option>
