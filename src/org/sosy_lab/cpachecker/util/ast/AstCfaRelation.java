@@ -312,11 +312,18 @@ public final class AstCfaRelation {
         .getValue();
   }
 
-  public FluentIterable<AbstractSimpleDeclaration> getVariablesAndParametersInScope(CFANode pNode) {
-    return FluentIterable.concat(
-        Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
-        Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
-        globalVariables);
+  public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
+      CFANode pNode) {
+    if (!cfaNodeToAstParametersInScope.containsKey(pNode)
+        || !cfaNodeToAstLocalVariablesInScope.containsKey(pNode)) {
+      return Optional.empty();
+    }
+
+    return Optional.of(
+        FluentIterable.concat(
+            Objects.requireNonNull(cfaNodeToAstLocalVariablesInScope.get(pNode)),
+            Objects.requireNonNull(cfaNodeToAstParametersInScope.get(pNode)),
+            globalVariables));
   }
 
   public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
@@ -343,7 +350,7 @@ public final class AstCfaRelation {
       }
 
       return Optional.of(element.getValue().location());
-    } else if (pNode.getNumEnteringEdges() != 0) {
+    } else if (pNode.getNumLeavingEdges() != 0) {
       FileLocation closestFileLocationToNode =
           CFAUtils.allLeavingEdges(pNode).transform(CFAEdge::getFileLocation).stream()
               .max(Comparator.naturalOrder())

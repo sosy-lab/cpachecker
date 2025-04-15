@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.FileNotFoundException;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclarationExchange;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
@@ -1235,9 +1237,16 @@ public class CFACreator {
           continue;
         }
 
+        Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
+            cfa.getAstCfaRelation().getVariablesAndParametersInScope(node);
+
+        if (declarationAtNode.isEmpty()) {
+          continue;
+        }
+
         Set<AVariableDeclarationExchange> variables =
-            cfa.getAstCfaRelation()
-                .getVariablesAndParametersInScope(node)
+            declarationAtNode
+                .orElseThrow()
                 .transform(
                     declaration ->
                         new AVariableDeclarationExchange(
