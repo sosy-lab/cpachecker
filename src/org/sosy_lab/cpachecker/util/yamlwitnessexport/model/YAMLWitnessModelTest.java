@@ -74,8 +74,7 @@ public class YAMLWitnessModelTest {
     JavaType entryType =
         mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
     List<AbstractEntry> entries = mapper.readValue(yamlWitness, entryType);
-    Queue<AbstractEntry> loadedEntries = new ArrayDeque<>();
-    loadedEntries.addAll(entries);
+    Queue<AbstractEntry> loadedEntries = new ArrayDeque<>(entries);
     return loadedEntries;
   }
 }

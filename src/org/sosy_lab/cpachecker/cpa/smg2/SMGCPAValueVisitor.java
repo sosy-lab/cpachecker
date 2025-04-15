@@ -592,114 +592,120 @@ public class SMGCPAValueVisitor
         nonConstLeftValue = ((ConstantSymbolicExpression) leftValue).getValue();
       }
 
-      if (binaryOperator == BinaryOperator.EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        if ((!(nonConstLeftValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstLeftValue, currentState))
-            || (!(nonConstRightValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+      switch (binaryOperator) {
+        case EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          if ((!(nonConstLeftValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstLeftValue, currentState))
+              || (!(nonConstRightValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due non-address value in binary expression evaluated as"
+                        + " pointer arithmetics in ",
+                    cfaEdge));
+          }
+          // address == address or address == not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due non-address value in binary expression evaluated as"
-                      + " pointer arithmetics in ",
-                  cfaEdge));
-        }
-        // address == address or address == not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        // address != address or address != not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkNonEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.PLUS || binaryOperator == BinaryOperator.MINUS) {
-        Value leftAddrExpr = nonConstLeftValue;
-        if (!(nonConstLeftValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstLeftValue, currentState)
-            && !leftAddrExpr.isExplicitlyKnown()) {
-          leftAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
-        }
-        Value rightAddrExpr = nonConstRightValue;
-        if (!(nonConstRightValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstRightValue, currentState)
-            && !rightAddrExpr.isExplicitlyKnown()) {
-          rightAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstRightValue, SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+              ValueAndSMGState.of(
+                  evaluator.checkEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Pointer arithmetics case and fall through (handled inside the method)
-        // i.e. address + 3
-        // (This only handles address +- value!)
-        return calculatePointerArithmetics(
-            leftAddrExpr,
-            rightAddrExpr,
-            binaryOperator,
-            e.getExpressionType(),
-            calculationType,
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-            currentState);
-      } else if (binaryOperator == BinaryOperator.GREATER_EQUAL
-          || binaryOperator == BinaryOperator.LESS_EQUAL
-          || binaryOperator == BinaryOperator.GREATER_THAN
-          || binaryOperator == BinaryOperator.LESS_THAN) {
-        // < <= > >=
-        // For the same memory, we can check < etc.
-
-        // First check that left and right point to the SAME memory region
-        // Check that both Values are truly addresses
-        ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-        leftValue = leftValueAndState.getValue();
-        ValueAndSMGState rightValueAndState =
-            evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-        rightValue = rightValueAndState.getValue();
-        currentState = rightValueAndState.getState();
-        if (!evaluator.isPointerValue(rightValue, currentState)
-            || !evaluator.isPointerValue(leftValue, currentState)) {
+        case NOT_EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          // address != address or address != not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to non-address value in binary pointer comparison"
-                      + " expression in ",
-                  cfaEdge));
-        }
-        if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
-          // This is undefined behavior in C99/C11
-          // But since we don't really handle this we just return unknown :D
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to address values in binary pointer comparison"
-                      + " expression not pointing to the same target memory in ",
-                  cfaEdge));
+              ValueAndSMGState.of(
+                  evaluator.checkNonEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Then get the offsets
-        Value offsetLeft = currentState.getPointerOffset(leftValue);
-        Value offsetRight = currentState.getPointerOffset(rightValue);
-        if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to unknown offset value(s) in binary pointer"
-                      + " comparison expression in ",
-                  cfaEdge));
+        case PLUS, MINUS -> {
+          Value leftAddrExpr = nonConstLeftValue;
+          if (!(nonConstLeftValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstLeftValue, currentState)
+              && !leftAddrExpr.isExplicitlyKnown()) {
+            leftAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
+          }
+          Value rightAddrExpr = nonConstRightValue;
+          if (!(nonConstRightValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstRightValue, currentState)
+              && !rightAddrExpr.isExplicitlyKnown()) {
+            rightAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstRightValue,
+                    SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+          }
+          // Pointer arithmetics case and fall through (handled inside the method)
+          // i.e. address + 3
+          // (This only handles address +- value!)
+          return calculatePointerArithmetics(
+              leftAddrExpr,
+              rightAddrExpr,
+              binaryOperator,
+              e.getExpressionType(),
+              calculationType,
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
+              currentState);
         }
 
-        // Create binary expr with offsets and restart this with it
-        return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
+          // < <= > >=
+          // For the same memory, we can check < etc.
+          // First check that left and right point to the SAME memory region
+          // Check that both Values are truly addresses
+          ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
+          leftValue = leftValueAndState.getValue();
+          ValueAndSMGState rightValueAndState =
+              evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
+          rightValue = rightValueAndState.getValue();
+          currentState = rightValueAndState.getState();
+          if (!evaluator.isPointerValue(rightValue, currentState)
+              || !evaluator.isPointerValue(leftValue, currentState)) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to non-address value in binary pointer comparison"
+                        + " expression in ",
+                    cfaEdge));
+          }
+          if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
+            // This is undefined behavior in C99/C11
+            // But since we don't really handle this we just return unknown :D
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to address values in binary pointer comparison"
+                        + " expression not pointing to the same target memory in ",
+                    cfaEdge));
+          }
+
+          // Then get the offsets
+          Value offsetLeft = currentState.getPointerOffset(leftValue);
+          Value offsetRight = currentState.getPointerOffset(rightValue);
+          if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to unknown offset value(s) in binary pointer"
+                        + " comparison expression in ",
+                    cfaEdge));
+          }
+
+          // Create binary expr with offsets and restart this with it
+          return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        }
+
+        default -> {
+          // handled below
+        }
       }
     }
 

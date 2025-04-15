@@ -216,7 +216,7 @@ public final class CompositeCPA
     ImmutableList<PrecisionAdjustment> precisionAdjustments =
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getPrecisionAdjustment);
 
-    if (precisionAdjustments.stream().allMatch(prec -> prec instanceof SimplePrecisionAdjustment)) {
+    if (precisionAdjustments.stream().allMatch(SimplePrecisionAdjustment.class::isInstance)) {
       @SuppressWarnings("unchecked") // cast is safe because we just checked this
       ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
           (ImmutableList<SimplePrecisionAdjustment>)

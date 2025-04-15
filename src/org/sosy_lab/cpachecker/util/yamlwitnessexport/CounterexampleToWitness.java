@@ -396,7 +396,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
         } else {
           statement =
               assumptions
-                  .transform(stmt -> stmt.toParenthesizedASTString())
+                  .transform(CExpression::toParenthesizedASTString)
                   // Remove any temporary variables created by CPAchecker
                   .filter(s -> !s.contains("__CPAchecker_TMP"))
                   .join(Joiner.on(" && "));
