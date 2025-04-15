@@ -1265,8 +1265,8 @@ class ASTConverter {
       }
       if (((CIdExpression) functionNameExpression).getName().equals(FUNC_OFFSETOF)
           && params.size() == 1
-          && params.get(0) instanceof CFieldReference) {
-        CFieldReference exp = (CFieldReference) params.get(0);
+          && params.get(0) instanceof CFieldReference exp) {
+
         BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
         BigInteger byteInBit = new BigInteger("8");
         if (offset.remainder(byteInBit).equals(BigInteger.ZERO)) {
@@ -1626,12 +1626,12 @@ class ASTConverter {
           // C11 §6.5.3.4 (5) type is always size_t (CDT has wrong type for _Alignof)
           type = CNumericTypes.SIZE_T;
         } else if (e.getOperator() == IASTUnaryExpression.op_minus
-            && operand.getExpressionType() instanceof CSimpleType) {
+            && operand.getExpressionType() instanceof CSimpleType innerType) {
           // CDT parser might get the type wrong in this case, e.g.:
           // literals that should be of type long would still be int instead of long,
           // because CDT only makes the operand long if there is a 'L' at the end
           // => we cannot use e.getExpressionType() here!
-          CSimpleType innerType = (CSimpleType) operand.getExpressionType();
+
           // now do not forget: operand should get promoted to int if its type is smaller than int:
           type =
               CTypes.isIntegerType(innerType)

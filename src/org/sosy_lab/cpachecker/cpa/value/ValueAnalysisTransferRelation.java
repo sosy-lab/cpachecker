@@ -1425,9 +1425,9 @@ public class ValueAnalysisTransferRelation
         String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
         if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
           List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
-          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
+          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression targetPointer) {
             AExpression exp = parameters.get(0);
-            CExpression targetPointer = (CExpression) parameters.get(1);
+
             CLeftHandSide target =
                 new CPointerExpression(
                     targetPointer.getFileLocation(),

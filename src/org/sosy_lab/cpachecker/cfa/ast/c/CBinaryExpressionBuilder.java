@@ -172,10 +172,9 @@ public class CBinaryExpressionBuilder {
       }
       // others can be negated using De Morgan's law:
       if (binOp.equals(BinaryOperator.BINARY_AND) || binOp.equals(BinaryOperator.BINARY_OR)) {
-        if (binExpr.getOperand1() instanceof CBinaryExpression
-            && binExpr.getOperand2() instanceof CBinaryExpression) {
-          final CBinaryExpression binExpr1 = (CBinaryExpression) binExpr.getOperand1();
-          final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
+        if (binExpr.getOperand1() instanceof CBinaryExpression binExpr1
+            && binExpr.getOperand2() instanceof CBinaryExpression binExpr2) {
+
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
             BinaryOperator negatedOperator =

@@ -28,8 +28,8 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
       return of(((AExpressionStatement) pStatement).getExpression());
     }
     if ((pStatement instanceof CAssignment assignment)
-        && (assignment.getRightHandSide() instanceof CExpression)) {
-      CExpression expression = (CExpression) assignment.getRightHandSide();
+        && (assignment.getRightHandSide() instanceof CExpression expression)) {
+
       CBinaryExpression assumeExp =
           pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
               assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);

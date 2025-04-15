@@ -385,8 +385,7 @@ public final class LoopStructure {
   @Nullable
   private static String obtainIncDecVariable(CFAEdge e) {
     if ((e instanceof CStatementEdge stmtEdge)
-        && (stmtEdge.getStatement() instanceof CAssignment)) {
-      CAssignment assign = (CAssignment) stmtEdge.getStatement();
+        && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
       if (assign.getLeftHandSide() instanceof CIdExpression assignementToId) {
         String assignToVar = assignementToId.getDeclaration().getQualifiedName();

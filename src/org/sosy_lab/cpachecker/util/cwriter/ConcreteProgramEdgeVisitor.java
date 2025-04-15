@@ -44,9 +44,8 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   private void createAssumedAssigmentString(
       Deque<FunctionBody> functionStack, CFAEdge currentCFAEdge) {
     CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
-    if (e != null && e.getCFAEdge() instanceof CStatementEdge) {
+    if (e != null && e.getCFAEdge() instanceof CStatementEdge cse) {
 
-      CStatementEdge cse = (CStatementEdge) e.getCFAEdge();
       // could improve detection of introductions of non-det variables
       if (!(cse.getStatement() instanceof CFunctionCallAssignmentStatement)) {
         return;

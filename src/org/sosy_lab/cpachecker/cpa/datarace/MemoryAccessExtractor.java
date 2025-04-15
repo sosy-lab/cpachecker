@@ -103,9 +103,9 @@ public class MemoryAccessExtractor {
         if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
           throw new CPATransferException("DataRaceCPA does not support function " + functionName);
         }
-        if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
-          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-              (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
+        if (functionCallEdge.getFunctionCall()
+            instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
+
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge));

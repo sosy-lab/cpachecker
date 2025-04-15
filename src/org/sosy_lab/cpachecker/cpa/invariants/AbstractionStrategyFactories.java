@@ -191,9 +191,8 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                 }
                 if (lastEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
                   AStatementEdge edge = (AStatementEdge) lastEdge;
-                  if (edge.getStatement() instanceof AExpressionStatement) {
-                    AExpressionStatement expressionStatement =
-                        (AExpressionStatement) edge.getStatement();
+                  if (edge.getStatement() instanceof AExpressionStatement expressionStatement) {
+
                     AExpression expression = expressionStatement.getExpression();
                     if (expression instanceof ALiteralExpression) {
                       continue;
@@ -201,9 +200,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                     if (expression instanceof ALeftHandSide) {
                       continue;
                     }
-                  } else if (edge.getStatement() instanceof AExpressionAssignmentStatement) {
-                    AExpressionAssignmentStatement expressionAssignmentStatement =
-                        (AExpressionAssignmentStatement) edge.getStatement();
+                  } else if (edge.getStatement()
+                      instanceof AExpressionAssignmentStatement expressionAssignmentStatement) {
+
                     AExpression expression = expressionAssignmentStatement.getRightHandSide();
                     if (expression instanceof ALiteralExpression) {
                       continue;

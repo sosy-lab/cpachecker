@@ -35,9 +35,8 @@ public final class CFAEdgeUtils {
 
   public static Type getLeftHandType(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration =
-            (AVariableDeclaration) declarationEdge.getDeclaration();
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration variableDeclaration) {
+
         return variableDeclaration.getType();
       }
     } else {
@@ -51,9 +50,8 @@ public final class CFAEdgeUtils {
 
   public static String getLeftHandVariable(CFAEdge pEdge) {
     if (pEdge instanceof ADeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration) {
-        AVariableDeclaration variableDeclaration =
-            (AVariableDeclaration) declarationEdge.getDeclaration();
+      if (declarationEdge.getDeclaration() instanceof AVariableDeclaration variableDeclaration) {
+
         return variableDeclaration.getQualifiedName();
       }
     } else {
@@ -81,9 +79,8 @@ public final class CFAEdgeUtils {
 
   public static CRightHandSide getRightHandSide(CFAEdge pEdge) {
     if (pEdge instanceof CDeclarationEdge declarationEdge) {
-      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration =
-            (CVariableDeclaration) declarationEdge.getDeclaration();
+      if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+
         CInitializer initializer = variableDeclaration.getInitializer();
         if (initializer instanceof CInitializerExpression) {
           return ((CInitializerExpression) initializer).getExpression();

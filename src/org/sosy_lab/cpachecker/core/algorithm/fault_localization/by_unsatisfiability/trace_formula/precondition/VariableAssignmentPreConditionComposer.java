@@ -104,16 +104,14 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       // side
       if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
         CStatementEdge statementEdge = (CStatementEdge) cfaEdge;
-        if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement) {
-          CFunctionCallAssignmentStatement statement =
-              (CFunctionCallAssignmentStatement) statementEdge.getStatement();
+        if (statementEdge.getStatement() instanceof CFunctionCallAssignmentStatement statement) {
+
           coveredVariables.add(statement.getLeftHandSide().toQualifiedASTString());
           remainingCounterexample.add(cfaEdge);
           continue;
         }
-        if (statementEdge.getStatement() instanceof CExpressionAssignmentStatement) {
-          CExpressionAssignmentStatement statement =
-              (CExpressionAssignmentStatement) statementEdge.getStatement();
+        if (statementEdge.getStatement() instanceof CExpressionAssignmentStatement statement) {
+
           String qualifiedName = statement.getLeftHandSide().toQualifiedASTString();
           if (coveredVariables.contains(qualifiedName)
               || !(statement.getRightHandSide() instanceof CLiteralExpression)) {

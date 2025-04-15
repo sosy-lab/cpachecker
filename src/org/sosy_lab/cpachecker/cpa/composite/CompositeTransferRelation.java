@@ -235,8 +235,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatementEdge statementEdge = (CStatementEdge) edge;
 
-      if ((statementEdge.getStatement() instanceof CFunctionCall)) {
-        CFunctionCall call = ((CFunctionCall) statementEdge.getStatement());
+      if ((statementEdge.getStatement() instanceof CFunctionCall call)) {
+
         CSimpleDeclaration declaration = call.getFunctionCallExpression().getDeclaration();
 
         // declaration == null -> functionPointer

@@ -291,8 +291,7 @@ final class PredicateStaticRefiner extends StaticRefiner
       while (!edgesToHandle.isEmpty()) {
         CFAEdge e = edgesToHandle.pop();
         if ((e instanceof CStatementEdge stmtEdge)
-            && (stmtEdge.getStatement() instanceof CAssignment)) {
-          CAssignment assign = (CAssignment) stmtEdge.getStatement();
+            && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
           if (assign.getLeftHandSide() instanceof CIdExpression) {
             String variable =

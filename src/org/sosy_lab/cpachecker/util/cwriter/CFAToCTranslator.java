@@ -484,8 +484,8 @@ public class CFAToCTranslator {
           declaration =
               lDeclarationEdge.getDeclaration().toASTString(AAstNodeRepresentation.DEFAULT);
 
-          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration varDecl = (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+
             if (varDecl.getType() instanceof CArrayType
                 && varDecl.getInitializer() instanceof CInitializerExpression) {
               int assignAfterPos = declaration.indexOf("=") + 1;

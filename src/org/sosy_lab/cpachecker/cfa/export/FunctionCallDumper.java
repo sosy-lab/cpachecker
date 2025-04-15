@@ -202,9 +202,9 @@ public final class FunctionCallDumper {
         }
         case StatementEdge -> {
           final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
+          if (edge.getStatement() instanceof AFunctionCall functionCall) {
             // called function has no body, only declaration available, external function
-            final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
+
             final AFunctionCallExpression functionCallExpression =
                 functionCall.getFunctionCallExpression();
             final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();

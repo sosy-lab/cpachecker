@@ -1047,8 +1047,8 @@ public class CtoFormulaConverter {
 
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
-    if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+    if (edge.getPredecessor() instanceof CFunctionEntryNode entryNode) {
+
       addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(
           edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);

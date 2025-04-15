@@ -554,20 +554,17 @@ class WitnessFactory implements EdgeAppender {
 
         // Export function return value for cases where it is not explicitly assigned to a variable
         if ((pEdge instanceof AStatementEdge edge)
-            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement)) {
-          AFunctionCallAssignmentStatement assignment =
-              (AFunctionCallAssignmentStatement) edge.getStatement();
-          if (assignment.getLeftHandSide() instanceof AIdExpression
+            && (edge.getStatement() instanceof AFunctionCallAssignmentStatement assignment)) {
+
+          if (assignment.getLeftHandSide() instanceof AIdExpression idExpression
               && assignment.getFunctionCallExpression().getFunctionNameExpression()
-                  instanceof AIdExpression) {
-            AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+                  instanceof AIdExpression resultFunctionName) {
+
             if (isTmpVariable(idExpression)) {
               // get only assignments without nested tmpVariables (except self)
               assignments = getAssignments(cfaEdgeWithAssignments, idExpression);
               resultVariable = Optional.of(idExpression);
-              AIdExpression resultFunctionName =
-                  (AIdExpression)
-                      assignment.getFunctionCallExpression().getFunctionNameExpression();
+
               if (resultFunctionName.getDeclaration() != null) {
                 resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
               } else {

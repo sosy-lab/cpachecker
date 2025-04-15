@@ -410,8 +410,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       PointerState pState, MemoryLocation pLeftHandSide, CType pType, CInitializer pInitializer)
       throws UnrecognizedCodeException {
     if (pInitializer instanceof CInitializerList initializerList
-        && pType.getCanonicalType() instanceof CCompositeType) {
-      CCompositeType compositeType = (CCompositeType) pType.getCanonicalType();
+        && pType.getCanonicalType() instanceof CCompositeType compositeType) {
+
       if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
 
         Iterator<CCompositeTypeMemberDeclaration> memberDecls =
@@ -507,9 +507,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           public LocationSet visit(CArraySubscriptExpression pIastArraySubscriptExpression)
               throws UnrecognizedCodeException {
             if (pIastArraySubscriptExpression.getSubscriptExpression()
-                instanceof CLiteralExpression) {
-              CLiteralExpression literal =
-                  (CLiteralExpression) pIastArraySubscriptExpression.getSubscriptExpression();
+                instanceof CLiteralExpression literal) {
+
               if (literal instanceof CIntegerLiteralExpression
                   && ((CIntegerLiteralExpression) literal).getValue().equals(BigInteger.ZERO)) {
                 LocationSet starredLocations =

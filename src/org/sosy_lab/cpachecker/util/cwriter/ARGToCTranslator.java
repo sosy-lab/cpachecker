@@ -739,8 +739,8 @@ public class ARGToCTranslator {
           // TODO check if works without lDeclarationEdge.getRawStatement();
           declaration = lDeclarationEdge.getDeclaration().toQualifiedASTString();
 
-          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-            CVariableDeclaration varDecl = (CVariableDeclaration) lDeclarationEdge.getDeclaration();
+          if (lDeclarationEdge.getDeclaration() instanceof CVariableDeclaration varDecl) {
+
             if (varDecl.getType() instanceof CArrayType
                 && varDecl.getInitializer() instanceof CInitializerExpression) {
               int assignAfterPos = declaration.indexOf("=") + 1;
