@@ -409,11 +409,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private PointerState handleWithInitializer(
       PointerState pState, MemoryLocation pLeftHandSide, CType pType, CInitializer pInitializer)
       throws UnrecognizedCodeException {
-    if (pInitializer instanceof CInitializerList
+    if (pInitializer instanceof CInitializerList initializerList
         && pType.getCanonicalType() instanceof CCompositeType) {
       CCompositeType compositeType = (CCompositeType) pType.getCanonicalType();
       if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-        CInitializerList initializerList = (CInitializerList) pInitializer;
+
         Iterator<CCompositeTypeMemberDeclaration> memberDecls =
             compositeType.getMembers().iterator();
         Iterator<CInitializer> initializers = initializerList.getInitializers().iterator();

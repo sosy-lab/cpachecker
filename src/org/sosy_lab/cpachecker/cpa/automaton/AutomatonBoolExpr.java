@@ -1585,9 +1585,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         }
         int exceptionFreeCallCount = 0;
         for (AbstractState ae : pArgs.getAbstractStates()) {
-          if (ae instanceof AbstractQueryableState) {
+          if (ae instanceof AbstractQueryableState aqe) {
             exceptionFreeCallCount = exceptionFreeCallCount + 1;
-            AbstractQueryableState aqe = (AbstractQueryableState) ae;
+
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               if (result instanceof Boolean) {

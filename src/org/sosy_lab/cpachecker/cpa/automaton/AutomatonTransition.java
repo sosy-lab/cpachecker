@@ -427,9 +427,9 @@ class AutomatonTransition {
                 "Cannot substitute function return variable: Not a call to " + functionName);
           }
         };
-    if (pAssumption instanceof CExpression) {
+    if (pAssumption instanceof CExpression assumption) {
       try {
-        CExpression assumption = (CExpression) pAssumption;
+
         return Optional.of(
             ExpressionSubstitution.applySubstitution(assumption, substitution, binExpBuilder));
       } catch (SubstitutionException e) {

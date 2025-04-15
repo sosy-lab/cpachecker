@@ -331,9 +331,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
           ofmgr.addLeftShiftAssumptions(op1, op2, upperBounds.get(calculationType), result);
         }
       }
-    } else if (exp instanceof CUnaryExpression) {
+    } else if (exp instanceof CUnaryExpression unaryexp) {
       CType calculationType = CTypes.copyDequalified(exp.getExpressionType());
-      CUnaryExpression unaryexp = (CUnaryExpression) exp;
+
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {
 

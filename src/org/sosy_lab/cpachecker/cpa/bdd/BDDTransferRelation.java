@@ -381,10 +381,10 @@ public class BDDTransferRelation
     final Partition partition = varClass.getPartitionForEdge(cfaEdge);
 
     // handle assignments like "y = f(x);"
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement cAssignment) {
       final String returnVar =
           cfaEdge.getFunctionEntry().getReturnVariable().orElseThrow().getQualifiedName();
-      CFunctionCallAssignmentStatement cAssignment = (CFunctionCallAssignmentStatement) summaryExpr;
+
       CExpression lhs = cAssignment.getLeftHandSide();
       final int size = bvComputer.getBitsize(partition, lhs.getExpressionType());
 

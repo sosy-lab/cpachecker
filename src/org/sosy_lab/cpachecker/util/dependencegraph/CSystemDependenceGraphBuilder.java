@@ -641,12 +641,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         defEdge = Optional.empty();
         defNodeType = NodeType.FORMAL_OUT;
         defNodeVariable = Optional.of(pCause);
-      } else if (pDefEdge instanceof CFunctionSummaryEdge) {
+      } else if (pDefEdge instanceof CFunctionSummaryEdge summaryEdge) {
 
         defNodeType = NodeType.ACTUAL_OUT;
         defNodeVariable = Optional.of(pCause);
 
-        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pDefEdge;
         CFunctionCall functionCall = getFunctionCallWithoutParameters(summaryEdge);
         EdgeDefUseData defUseData = defUseExtractor.extract(functionCall);
 

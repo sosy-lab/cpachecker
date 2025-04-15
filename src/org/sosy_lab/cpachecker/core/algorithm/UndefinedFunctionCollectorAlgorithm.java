@@ -283,9 +283,9 @@ public class UndefinedFunctionCollectorAlgorithm
       } else {
         couldBeHandled = printType(indent, prepend, buf, real);
       }
-    } else if (rt instanceof CTypedefType) {
+    } else if (rt instanceof CTypedefType tt) {
       buf.append(indent + "// Typedef type\n");
-      CTypedefType tt = (CTypedefType) rt;
+
       CType real = tt.getRealType();
       buf.append(indent + "// Real type: " + real + "\n");
       couldBeHandled = printType(indent, prepend, buf, real);

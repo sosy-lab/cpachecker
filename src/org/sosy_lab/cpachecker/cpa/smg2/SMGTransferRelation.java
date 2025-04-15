@@ -1103,12 +1103,12 @@ public class SMGTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
+      } else if (ae instanceof AbstractStateWithAssumptions stateWithAssumptions) {
         try {
           result.clear();
           for (SMGState stateToStrengthen : toStrengthen) {
             super.setInfo(element, pPrecision, cfaEdge);
-            AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+
             result.addAll(
                 strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, cfaEdge));
           }

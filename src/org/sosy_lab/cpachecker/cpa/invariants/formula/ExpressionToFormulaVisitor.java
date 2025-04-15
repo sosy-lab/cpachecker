@@ -681,11 +681,10 @@ public class ExpressionToFormulaVisitor
     FormulaCompoundStateEvaluationVisitor evaluator =
         new FormulaCompoundStateEvaluationVisitor(pCompoundIntervalManagerFactory);
     CompoundInterval value = formula.accept(evaluator, pEnvironment);
-    if (value instanceof CompoundIntegralInterval
+    if (value instanceof CompoundIntegralInterval integralValue
         && typeInfo instanceof BitVectorInfo bitVectorInfo) {
       BigInteger lowerInclusiveBound = bitVectorInfo.getMinValue();
       BigInteger upperExclusiveBound = bitVectorInfo.getMaxValue().add(BigInteger.ONE);
-      CompoundIntegralInterval integralValue = (CompoundIntegralInterval) value;
 
       if (typeInfo.isSigned()) {
         if (!value.hasLowerBound() || !value.hasUpperBound()) {

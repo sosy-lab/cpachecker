@@ -594,9 +594,8 @@ public class ARGToCTranslator {
             : "Unexpected assume edge in dynamic multi edge " + innerEdge;
         assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
             : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
-        if (innerEdge instanceof CReturnStatementEdge) {
+        if (innerEdge instanceof CReturnStatementEdge returnEdge) {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
 
           String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
           String returnVar;

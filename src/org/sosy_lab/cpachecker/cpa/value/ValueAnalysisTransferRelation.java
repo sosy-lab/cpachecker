@@ -1320,11 +1320,11 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof AbstractStateWithAssumptions) {
+      } else if (ae instanceof AbstractStateWithAssumptions stateWithAssumptions) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+
           result.addAll(
               strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, pCfaEdge));
         }
@@ -1355,7 +1355,7 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof PointerState) {
+      } else if (ae instanceof PointerState pointerState) {
 
         CFAEdge edge = pCfaEdge;
 
@@ -1363,7 +1363,6 @@ public class ValueAnalysisTransferRelation
         ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
         Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
         String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
-        PointerState pointerState = (PointerState) ae;
 
         result.clear();
 
@@ -1521,12 +1520,11 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
+    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression rhs) {
       if (target == null) {
         return pValueState;
       }
 
-      CPointerExpression rhs = (CPointerExpression) pRightHandSide;
       CExpression addressExpression = rhs.getOperand();
 
       LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);

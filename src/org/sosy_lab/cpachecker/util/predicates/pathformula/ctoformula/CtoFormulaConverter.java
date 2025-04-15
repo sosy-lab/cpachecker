@@ -1294,11 +1294,11 @@ public class CtoFormulaConverter {
           errorConditions);
 
     } else {
-      if (stmt instanceof CFunctionCallStatement) {
+      if (stmt instanceof CFunctionCallStatement callStmt) {
         CRightHandSideVisitor<Formula, UnrecognizedCodeException> ev =
             createCRightHandSideVisitor(
                 statement, function, ssa, pts, constraints, errorConditions);
-        CFunctionCallStatement callStmt = (CFunctionCallStatement) stmt;
+
         callStmt.getFunctionCallExpression().accept(ev);
 
       } else if (!(stmt instanceof CExpressionStatement)) {

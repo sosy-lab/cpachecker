@@ -445,13 +445,13 @@ public class CBinaryExpressionBuilder {
     }
 
     // if one type is an array, return the pointer-equivalent to the array-type.
-    if (pType instanceof CArrayType) {
+    if (pType instanceof CArrayType at) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
             "Operator " + pBinOperator + " cannot be used with array operand",
             getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
-      final CArrayType at = ((CArrayType) pType);
+
       return new CPointerType(at.isConst(), at.isVolatile(), at.getType());
     }
 

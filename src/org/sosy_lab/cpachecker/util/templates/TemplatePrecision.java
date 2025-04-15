@@ -451,9 +451,9 @@ public class TemplatePrecision implements Precision {
     CStatement statement = edge.getStatement();
     if (statement instanceof CExpressionStatement) {
       return expressionToTemplate(((CExpressionStatement) statement).getExpression());
-    } else if (statement instanceof CExpressionAssignmentStatement) {
+    } else if (statement instanceof CExpressionAssignmentStatement assignment) {
       Set<LinearExpression<CIdExpression>> out = new HashSet<>();
-      CExpressionAssignmentStatement assignment = (CExpressionAssignmentStatement) statement;
+
       CLeftHandSide lhs = assignment.getLeftHandSide();
       if (lhs instanceof CIdExpression id) {
         out.addAll(expressionToTemplate(assignment.getRightHandSide()));
