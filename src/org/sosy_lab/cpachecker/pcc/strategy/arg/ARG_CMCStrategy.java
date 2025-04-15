@@ -93,7 +93,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
-      if (!(partialReached.getFirstState() instanceof ARGState)
+      if (!(partialReached.getFirstState() instanceof ARGState aRGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(
             Level.SEVERE,
@@ -103,7 +103,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         return;
       } else {
         stats.increaseProofSize(1);
-        roots[index++] = (ARGState) partialReached.getFirstState();
+        roots[index++] = aRGState;
       }
     }
 

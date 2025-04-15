@@ -852,12 +852,12 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               return false;
             }
 
-            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression)) {
+            if (!(amState.getAssumptions().get(0) instanceof CBinaryExpression cBinaryExpression)) {
               logger.log(
                   Level.INFO, "Found a disallowed assumption. Only support binary assumptions.");
               return false;
             } else {
-              assumption = (CBinaryExpression) amState.getAssumptions().get(0);
+              assumption = cBinaryExpression;
             }
 
             if (!(assumption.getOperator() == BinaryOperator.EQUALS)) {

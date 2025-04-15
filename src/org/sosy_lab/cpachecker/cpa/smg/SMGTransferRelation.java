@@ -1224,7 +1224,7 @@ public class SMGTransferRelation
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
           BigInteger memberSize = machineModel.getSizeofInBits(memberDcl.getType());
-          if (!(memberDcl.getType() instanceof CBitFieldType)) {
+          if (!(memberDcl.getType() instanceof CBitFieldType cBitFieldType)) {
             offset = offset.add(memberSize);
             BigInteger overByte =
                 offset.mod(BigInteger.valueOf(machineModel.getSizeofCharInBits()));
@@ -1242,7 +1242,7 @@ public class SMGTransferRelation
           } else {
             // Cf. implementation of {@link
             // MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
-            CType innerType = ((CBitFieldType) memberDcl.getType()).getType();
+            CType innerType = cBitFieldType.getType();
 
             if (memberSize.compareTo(BigInteger.ZERO) == 0) {
               offset =

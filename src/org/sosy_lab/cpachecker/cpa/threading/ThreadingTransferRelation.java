@@ -649,10 +649,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // first check for some possible errors and unsupported parts
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
-    if (!(params.get(0) instanceof CUnaryExpression)) {
+    if (!(params.get(0) instanceof CUnaryExpression cUnaryExpression)) {
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
-    CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
+    CExpression operand = cUnaryExpression.getOperand();
     if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
       if (!(subscriptExpression instanceof ALiteralExpression)) {
@@ -665,7 +665,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     //  }
     //  String lockId = ((CIdExpression) expr0).getName();
 
-    String lockId = ((CUnaryExpression) params.get(0)).getOperand().toString();
+    String lockId = cUnaryExpression.getOperand().toString();
     return lockId;
   }
 
@@ -816,11 +816,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
             List<? extends AExpression> params =
                 aFunctionCall.getFunctionCallExpression().getParameterExpressions();
-            if (!(params.get(2) instanceof CUnaryExpression)) {
+            if (!(params.get(2) instanceof CUnaryExpression cUnaryExpression)) {
               throw new UnrecognizedCodeException(
                   "unsupported thread function call", params.get(2));
             }
-            CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+            CExpression expr2 = cUnaryExpression.getOperand();
             if (!(expr2 instanceof CIdExpression cIdExpression)) {
               throw new UnrecognizedCodeException("unsupported thread function call", expr2);
             }
