@@ -351,11 +351,10 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
   private void handleDeclaration(FunctionPointerState.Builder pNewState, CDeclarationEdge declEdge)
       throws UnrecognizedCodeException {
 
-    if (!(declEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // not a variable declaration
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration) declEdge.getDeclaration();
 
     // get name of declaration
     String name = decl.getQualifiedName();

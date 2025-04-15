@@ -736,23 +736,20 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // are either both integer types or floating types and have the same sign
     Set<MemoryLocation> exploredVars = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     for (Entry<MemoryLocation, List<ValueAndType>> varWithVals1 : pVarsWithVals.entrySet()) {
-      if (!(varToType.get(varWithVals1.getKey()) instanceof CSimpleType)) {
+      if (!(varToType.get(varWithVals1.getKey()) instanceof CSimpleType type1)) {
         exploredVars.add(varWithVals1.getKey());
         continue;
       }
 
-      CSimpleType type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
-
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         if (varWithVals1.getKey().equals(varWithVals2.getKey())
             || exploredVars.contains(varWithVals2.getKey())
-            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
+            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType type2)
             || !combinationChecker.apply(
                 ImmutableList.of(varWithVals1.getKey(), varWithVals2.getKey()))) {
           continue;
         }
 
-        CSimpleType type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
         // only pair integer types with integer types and floating point types with floating
         // point types due to incompatibilities in formula encodings
         if (((type1.getType().isIntegerType()
@@ -963,19 +960,17 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     Set<MemoryLocation> exploredVarsOuter = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     Set<MemoryLocation> exploredVarsInner = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     for (Entry<MemoryLocation, List<ValueAndType>> varWithVals1 : pVarsWithVals.entrySet()) {
-      if (!(varToType.get(varWithVals1.getKey()) instanceof CSimpleType)
+      if (!(varToType.get(varWithVals1.getKey()) instanceof CSimpleType type1)
           || varWithVals1.getValue().size() < 3) {
         exploredVarsOuter.add(varWithVals1.getKey());
         continue;
       }
 
-      CSimpleType type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
-
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         exploredVarsInner.clear();
         if (varWithVals1.getKey().equals(varWithVals2.getKey())
             || exploredVarsOuter.contains(varWithVals2.getKey())
-            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
+            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType type2)
             || varWithVals2.getValue().size() < 3
             || varWithVals1.getValue().size() != varWithVals2.getValue().size()
             || !combinationChecker.apply(
@@ -984,7 +979,6 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           continue;
         }
 
-        CSimpleType type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
         // only pair integer types with integer types and floating point types with floating
         // point types due to incompatibilities in formula encodings
         if (((type1.getType().isIntegerType()
@@ -1001,7 +995,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 || varWithVals2.getKey().equals(varWithVals3.getKey())
                 || exploredVarsOuter.contains(varWithVals3.getKey())
                 || exploredVarsInner.contains(varWithVals3.getKey())
-                || !(varToType.get(varWithVals3.getKey()) instanceof CSimpleType)
+                || !(varToType.get(varWithVals3.getKey()) instanceof CSimpleType type3)
                 || varWithVals3.getValue().size() < 3
                 || varWithVals1.getValue().size() != varWithVals3.getValue().size()
                 || !combinationChecker.apply(
@@ -1010,7 +1004,6 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               continue;
             }
 
-            CSimpleType type3 = (CSimpleType) varToType.get(varWithVals3.getKey());
             // only pair integer types with integer types and floating point types with floating
             // point types due to incompatibilities in formula encodings
             if (((type1.getType().isIntegerType()

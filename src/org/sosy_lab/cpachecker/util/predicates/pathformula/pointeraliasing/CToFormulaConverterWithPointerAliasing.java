@@ -933,13 +933,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     // TODO merge with super-class method
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration declaration)) {
       // function declaration, typedef etc.
       logDebug("Ignoring declaration", declarationEdge);
       return bfmgr.makeTrue();
     }
-
-    CVariableDeclaration declaration = (CVariableDeclaration) declarationEdge.getDeclaration();
 
     // makeFreshIndex(variableName, declaration.getType(), ssa); // TODO: Make sure about
     // correctness of SSA indices without this trick!

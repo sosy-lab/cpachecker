@@ -456,13 +456,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (!(expr2 instanceof CIdExpression function)) {
       throw new UnrecognizedCodeException("unsupported thread function call", expr2);
     }
-    if (!(params.get(3) instanceof CExpression)) {
+    if (!(params.get(3) instanceof CExpression threadArg)) {
       throw new UnrecognizedCodeException("unsupported thread function argument", params.get(3));
     }
 
     // now create the thread
-
-    CExpression threadArg = (CExpression) params.get(3);
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,

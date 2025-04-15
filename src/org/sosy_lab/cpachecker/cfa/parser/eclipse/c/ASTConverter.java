@@ -1831,7 +1831,7 @@ class ASTConverter {
     Declarator declarator =
         convert(f.getDeclarator(), specifier.getSecond(), cStorageClass == CStorageClass.STATIC);
 
-    if (!(declarator.type() instanceof CFunctionTypeWithNames)) {
+    if (!(declarator.type() instanceof CFunctionTypeWithNames declSpec)) {
       throw parseContext.parseError("Unsupported nested declarator for function definition", f);
     }
     if (declarator.initializer() != null) {
@@ -1840,8 +1840,6 @@ class ASTConverter {
     if (declarator.name() == null) {
       throw parseContext.parseError("Missing name for function definition", f);
     }
-
-    CFunctionTypeWithNames declSpec = (CFunctionTypeWithNames) declarator.type();
 
     return new CFunctionDeclaration(
         getLocation(f),

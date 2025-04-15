@@ -171,12 +171,10 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
 
   private boolean handleDeclarationEdge(CDeclarationEdge declarationEdge) {
     // only variable declarations can be part of preconditions
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration)) {
       return false;
     }
 
-    CVariableDeclaration variableDeclaration =
-        (CVariableDeclaration) declarationEdge.getDeclaration();
     // variable must not be excluded when added to precondition
     if (options.getExcludeFromPrecondition().contains(variableDeclaration.getQualifiedName())) {
       return false;

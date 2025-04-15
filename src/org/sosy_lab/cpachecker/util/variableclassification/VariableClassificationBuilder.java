@@ -450,11 +450,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     for (CFANode node : nodes) {
       for (CFAEdge leavingEdge : leavingEdges(node)) {
         if (leavingEdge instanceof AStatementEdge edge) {
-          if (!(edge.getStatement() instanceof CAssignment)) {
+          if (!(edge.getStatement() instanceof CAssignment assignment)) {
             continue;
           }
 
-          CAssignment assignment = (CAssignment) edge.getStatement();
           assignedVariables.addAll(
               CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
                   .transform(id -> id.getDeclaration().getQualifiedName())

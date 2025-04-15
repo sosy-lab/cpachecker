@@ -175,11 +175,11 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleDeclaration(
       UninitializedVariablesState element, CDeclarationEdge declarationEdge) {
 
-    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(declarationEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // typedefs etc. do not concern this CPA
       return;
     }
-    CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+
     String varName = decl.getName();
     if (decl.isGlobal()) {
       globalVars.add(varName);

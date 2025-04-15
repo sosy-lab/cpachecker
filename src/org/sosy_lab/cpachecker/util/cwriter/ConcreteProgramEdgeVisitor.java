@@ -53,11 +53,10 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
       for (AExpressionStatement exp : e.getExpStmts()) {
         if (!(exp instanceof CExpressionStatement)
-            || !(exp.getExpression() instanceof CBinaryExpression)) {
+            || !(exp.getExpression() instanceof CBinaryExpression cexp)) {
           continue;
         }
 
-        CBinaryExpression cexp = (CBinaryExpression) exp.getExpression();
         if (!cexp.getOperator().equals(CBinaryExpression.BinaryOperator.EQUALS)) {
           continue;
         }

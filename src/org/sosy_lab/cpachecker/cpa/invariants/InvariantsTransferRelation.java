@@ -238,11 +238,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private InvariantsState handleDeclaration(InvariantsState pElement, CDeclarationEdge pEdge)
       throws UnrecognizedCodeException {
-    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       return pElement;
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
     if (decl.getType().isIncomplete()) {
       // Variables of such types cannot store values, only their address can be taken.
       // We can ignore them.

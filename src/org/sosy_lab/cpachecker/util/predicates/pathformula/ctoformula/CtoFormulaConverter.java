@@ -1319,13 +1319,12 @@ public class CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
 
-    if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(edge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
       return bfmgr.makeTrue();
     }
 
-    CVariableDeclaration decl = (CVariableDeclaration) edge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
     if (!isRelevantVariable(decl)) {

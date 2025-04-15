@@ -394,10 +394,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private PointerState handleDeclarationEdge(
       final PointerState pState, final CDeclarationEdge pCfaEdge) throws UnrecognizedCodeException {
-    if (!(pCfaEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pCfaEdge.getDeclaration() instanceof CVariableDeclaration declaration)) {
       return pState;
     }
-    CVariableDeclaration declaration = (CVariableDeclaration) pCfaEdge.getDeclaration();
+
     CInitializer initializer = declaration.getInitializer();
     if (initializer != null) {
       MemoryLocation location = toLocation(declaration);

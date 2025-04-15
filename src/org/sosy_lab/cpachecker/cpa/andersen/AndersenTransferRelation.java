@@ -199,12 +199,10 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   private AndersenState handleDeclaration(AndersenState pElement, CDeclarationEdge pDeclarationEdge)
       throws UnrecognizedCodeException {
 
-    if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration)) {
+    if (!(pDeclarationEdge.getDeclaration() instanceof CVariableDeclaration decl)) {
       // nothing interesting to see here, please move along
       return pElement;
     }
-
-    CVariableDeclaration decl = (CVariableDeclaration) pDeclarationEdge.getDeclaration();
 
     // get the variable name in the declarator
     String varName = decl.getName();
