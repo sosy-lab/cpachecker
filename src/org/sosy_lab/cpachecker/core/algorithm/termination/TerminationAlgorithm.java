@@ -509,9 +509,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   private boolean possiblyNotEqualsNullPointer(final CExpression expr) {
     if (expr instanceof CBinaryExpression binExpr) {
       if (binExpr.getOperator() == BinaryOperator.NOT_EQUALS
-          && binExpr.getOperand2() instanceof CCastExpression
+          && binExpr.getOperand2() instanceof CCastExpression cCastExpression
           && binExpr.getOperand2().getExpressionType() instanceof CPointerType
-          && ((CCastExpression) binExpr.getOperand2()).getOperand() instanceof CLiteralExpression) {
+          && cCastExpression.getOperand() instanceof CLiteralExpression) {
         return true;
       }
     }

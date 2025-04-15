@@ -170,8 +170,8 @@ public class MemoryLocationExtractingVisitor
     } else if (pExpression instanceof CArraySubscriptExpression) {
       return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CPointerExpression pointerExpression) {
-      if (pointerExpression.getOperand() instanceof CIdExpression) {
-        type = ((CIdExpression) pointerExpression.getOperand()).getDeclaration().getType();
+      if (pointerExpression.getOperand() instanceof CIdExpression cIdExpression) {
+        type = cIdExpression.getDeclaration().getType();
       }
       return new OverapproximatingMemoryLocation(type);
     } else if (pExpression instanceof CCastExpression cast) {

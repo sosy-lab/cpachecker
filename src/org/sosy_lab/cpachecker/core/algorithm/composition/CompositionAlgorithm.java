@@ -620,8 +620,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
-      if (pCurrentContext.getCPA() instanceof StatisticsProvider) {
-        ((StatisticsProvider) pCurrentContext.getCPA()).collectStatistics(stats.getSubStatistics());
+      if (pCurrentContext.getCPA() instanceof StatisticsProvider statisticsProvider) {
+        statisticsProvider.collectStatistics(stats.getSubStatistics());
       }
 
       return Pair.of(algorithm, localShutdownManager);

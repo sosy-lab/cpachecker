@@ -293,9 +293,8 @@ final class PredicateStaticRefiner extends StaticRefiner
         if ((e instanceof CStatementEdge stmtEdge)
             && (stmtEdge.getStatement() instanceof CAssignment assign)) {
 
-          if (assign.getLeftHandSide() instanceof CIdExpression) {
-            String variable =
-                ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+          if (assign.getLeftHandSide() instanceof CIdExpression cIdExpression) {
+            String variable = cIdExpression.getDeclaration().getQualifiedName();
             directlyAffectingStatements.put(variable, stmtEdge);
           }
         }

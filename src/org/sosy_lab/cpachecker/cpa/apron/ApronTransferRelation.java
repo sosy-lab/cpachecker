@@ -1041,8 +1041,8 @@ public class ApronTransferRelation
 
     @Override
     public Set<Texpr0Node> visit(CFunctionCallExpression e) throws CPATransferException {
-      if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+      if (e.getFunctionNameExpression() instanceof CIdExpression cIdExpression) {
+        switch (cIdExpression.getName()) {
           case "__VERIFIER_nondet_int" -> {
             Scalar sup = Scalar.create();
             sup.setInfty(1);
@@ -1131,9 +1131,9 @@ public class ApronTransferRelation
     public Double visit(CCastExpression e) throws CPATransferException {
       Double op = e.getOperand().accept(this);
       if (op != null
-          && e.getExpressionType() instanceof CSimpleType
-          && ((((CSimpleType) e.getExpressionType()).getType() == CBasicType.INT)
-              || (((CSimpleType) e.getExpressionType()).getType() == CBasicType.CHAR))) {
+          && e.getExpressionType() instanceof CSimpleType cSimpleType
+          && ((cSimpleType.getType() == CBasicType.INT)
+              || (cSimpleType.getType() == CBasicType.CHAR))) {
         return (double) op.intValue();
       }
       return op;

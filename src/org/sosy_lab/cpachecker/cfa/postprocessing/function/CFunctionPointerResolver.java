@@ -281,8 +281,8 @@ public class CFunctionPointerResolver implements StatisticsProvider {
 
   private @Nullable CExpression getParameter(CFunctionCall call) {
     for (CExpression param : call.getFunctionCallExpression().getParameterExpressions()) {
-      if (param.getExpressionType() instanceof CPointerType
-          && ((CPointerType) param.getExpressionType()).getType() instanceof CFunctionTypeWithNames
+      if (param.getExpressionType() instanceof CPointerType cPointerType
+          && cPointerType.getType() instanceof CFunctionTypeWithNames
           && ((param instanceof CIdExpression cIdExpression
                   && cIdExpression.getDeclaration().getType() instanceof CPointerType)
               || (param instanceof CFieldReference))) {

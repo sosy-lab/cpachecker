@@ -381,8 +381,8 @@ class WitnessFactory implements EdgeAppender {
     }
 
     if (witnessOptions.exportFunctionCallsAndReturns()
-        && pEdge.getSuccessor() instanceof FunctionExitNode) {
-      FunctionEntryNode entryNode = ((FunctionExitNode) pEdge.getSuccessor()).getEntryNode();
+        && pEdge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
+      FunctionEntryNode entryNode = functionExitNode.getEntryNode();
       String functionName = entryNode.getFunctionDefinition().getOrigName();
       result = result.putAndCopy(KeyDef.FUNCTIONEXIT, functionName);
     }
@@ -637,9 +637,8 @@ class WitnessFactory implements EdgeAppender {
     Predicate<CIdExpression> isGoodVariable = v -> !isTmpVariable(v) || v.equals(toIgnore);
     ImmutableList.Builder<AExpressionStatement> assignments = ImmutableList.builder();
     for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
-      if (s.getExpression() instanceof CExpression
-          && CFAUtils.getIdExpressionsOfExpression((CExpression) s.getExpression())
-              .allMatch(isGoodVariable)) {
+      if (s.getExpression() instanceof CExpression cExpression
+          && CFAUtils.getIdExpressionsOfExpression(cExpression).allMatch(isGoodVariable)) {
         assignments.add(s);
       }
     }

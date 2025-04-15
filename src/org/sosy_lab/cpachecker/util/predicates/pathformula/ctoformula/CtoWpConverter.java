@@ -96,9 +96,9 @@ public class CtoWpConverter extends CtoFormulaConverter {
       }
       case DeclarationEdge -> {
         final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
-        if (edge.getDeclaration() instanceof CVariableDeclaration) {
+        if (edge.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration) {
           return makePreconditionForVarDeclaration(
-              edge, (CVariableDeclaration) edge.getDeclaration(), pPostcond, functionName);
+              edge, cVariableDeclaration, pPostcond, functionName);
         } else {
           return pPostcond;
         }

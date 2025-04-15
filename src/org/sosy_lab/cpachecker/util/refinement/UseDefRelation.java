@@ -302,12 +302,12 @@ public class UseDefRelation {
     CBinaryExpression binaryExpression = ((CBinaryExpression) expression);
 
     ASimpleDeclaration operand = null;
-    if (binaryExpression.getOperand1() instanceof CIdExpression
+    if (binaryExpression.getOperand1() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand1()).getDeclaration();
-    } else if (binaryExpression.getOperand2() instanceof CIdExpression
+      operand = cIdExpression.getDeclaration();
+    } else if (binaryExpression.getOperand2() instanceof CIdExpression cIdExpression
         && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-      operand = ((CIdExpression) binaryExpression.getOperand2()).getDeclaration();
+      operand = cIdExpression.getDeclaration();
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {

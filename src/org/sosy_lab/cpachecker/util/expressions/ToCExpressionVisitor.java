@@ -65,8 +65,8 @@ public class ToCExpressionVisitor
   @Override
   protected CExpression cacheMissLeaf(LeafExpression<AExpression> pLeafExpression)
       throws UnrecognizedCodeException {
-    if (pLeafExpression.getExpression() instanceof CExpression) {
-      return (CExpression) pLeafExpression.getExpression();
+    if (pLeafExpression.getExpression() instanceof CExpression cExpression) {
+      return cExpression;
     }
     throw new AssertionError("Unsupported expression type.");
   }

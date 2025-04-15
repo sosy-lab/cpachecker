@@ -256,8 +256,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     MemoryLocation varName = MemoryLocation.forDeclaration(decl);
 
     NumeralFormula<CompoundInterval> value;
-    if (decl.getInitializer() instanceof CInitializerExpression) {
-      CExpression init = ((CInitializerExpression) decl.getInitializer()).getExpression();
+    if (decl.getInitializer() instanceof CInitializerExpression cInitializerExpression) {
+      CExpression init = cInitializerExpression.getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
         value = toConstant(value, pElement.getEnvironment());
@@ -343,11 +343,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       InvariantsState pElement, CStatementEdge pEdge, InvariantsPrecision pPrecision)
       throws UnrecognizedCodeException {
 
-    if (pEdge.getStatement() instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) pEdge.getStatement())
-              .getFunctionCallExpression()
-              .getFunctionNameExpression();
+    if (pEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
+      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
       if (fn instanceof CIdExpression cIdExpression) {
         String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {

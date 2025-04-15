@@ -399,11 +399,11 @@ public final class LoopStructure {
                 || binExpr.getOperand2() instanceof CLiteralExpression) {
               CIdExpression operandId = null;
 
-              if (binExpr.getOperand1() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand1();
+              if (binExpr.getOperand1() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
-              if (binExpr.getOperand2() instanceof CIdExpression) {
-                operandId = (CIdExpression) binExpr.getOperand2();
+              if (binExpr.getOperand2() instanceof CIdExpression cIdExpression) {
+                operandId = cIdExpression;
               }
 
               if (operandId != null) {

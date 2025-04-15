@@ -297,10 +297,9 @@ public class ProofSlicer {
       case FunctionReturnEdge -> {
         CFunctionReturnEdge funRet = ((CFunctionReturnEdge) edge);
         String varName;
-        if (funRet.getFunctionCall() instanceof CFunctionCallAssignmentStatement) {
-          varName =
-              VarNameRetriever.getVarName(
-                  ((CFunctionCallAssignmentStatement) funRet.getFunctionCall()).getLeftHandSide());
+        if (funRet.getFunctionCall()
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+          varName = VarNameRetriever.getVarName(cFunctionCallAssignmentStatement.getLeftHandSide());
           addAllExceptVar(varName, succVars, updatedVars);
           if (!funRet.getFunctionEntry().getReturnVariable().isPresent()) {
             throw new AssertionError("No return variable provided for non-void function.");

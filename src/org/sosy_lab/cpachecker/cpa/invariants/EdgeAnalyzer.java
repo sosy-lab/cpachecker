@@ -264,9 +264,8 @@ class EdgeAnalyzer {
 
   private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(
       AParameterDeclaration pParameter) {
-    if (pParameter.getType() instanceof CType) {
-      return ImmutableMap.of(
-          MemoryLocation.forDeclaration(pParameter), (CType) pParameter.getType());
+    if (pParameter.getType() instanceof CType cType) {
+      return ImmutableMap.of(MemoryLocation.forDeclaration(pParameter), cType);
     }
     return ImmutableMap.of();
   }

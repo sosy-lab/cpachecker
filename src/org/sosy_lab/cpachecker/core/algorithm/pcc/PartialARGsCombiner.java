@@ -361,8 +361,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     // assume root is the root node of the first ARG constructed
     ARGState root = rootNodes.iterator().next();
 
-    if (root.getWrappedState() instanceof AbstractWrapperState) {
-      wrapped = ((AbstractWrapperState) root.getWrappedState()).getWrappedStates();
+    if (root.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      wrapped = abstractWrapperState.getWrappedStates();
     } else {
       wrapped = Collections.singleton(root.getWrappedState());
     }
@@ -394,8 +394,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   private Iterable<AbstractState> getWrappedStates(ARGState wrapper) {
-    if (wrapper.getWrappedState() instanceof AbstractWrapperState) {
-      return ((AbstractWrapperState) wrapper.getWrappedState()).getWrappedStates();
+    if (wrapper.getWrappedState() instanceof AbstractWrapperState abstractWrapperState) {
+      return abstractWrapperState.getWrappedStates();
     } else {
       return Collections.singleton(wrapper.getWrappedState());
     }

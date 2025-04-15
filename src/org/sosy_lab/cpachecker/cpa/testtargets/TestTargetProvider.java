@@ -212,12 +212,9 @@ public class TestTargetProvider implements Statistics {
 
   public static boolean isTerminatingFunctionCall(final CFAEdge pEdge) {
     if (pEdge instanceof CStatementEdge cStatementEdge
-        && cStatementEdge.getStatement() instanceof CFunctionCall) {
+        && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall) {
       String funName = "";
-      CExpression funExpr =
-          ((CFunctionCall) cStatementEdge.getStatement())
-              .getFunctionCallExpression()
-              .getFunctionNameExpression();
+      CExpression funExpr = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
       if (funExpr instanceof CIdExpression cIdExpression) {
         funName = cIdExpression.getName();
       }

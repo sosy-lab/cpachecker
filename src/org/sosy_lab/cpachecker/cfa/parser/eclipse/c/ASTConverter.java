@@ -917,15 +917,15 @@ class ASTConverter {
   }
 
   private static boolean isPointerToVoid(final IASTExpression e) {
-    return (e.getExpressionType() instanceof IPointerType)
-        && ((IPointerType) e.getExpressionType()).getType() instanceof IBasicType
-        && ((IBasicType) ((IPointerType) e.getExpressionType()).getType()).getKind() == Kind.eVoid;
+    return (e.getExpressionType() instanceof IPointerType iPointerType)
+        && iPointerType.getType() instanceof IBasicType iBasicType
+        && iBasicType.getKind() == Kind.eVoid;
   }
 
   private static boolean isRightHandSide(final IASTExpression e) {
-    return e.getParent() instanceof IASTBinaryExpression
-        && ((IASTBinaryExpression) e.getParent()).getOperator() == IASTBinaryExpression.op_assign
-        && ((IASTBinaryExpression) e.getParent()).getOperand2() == e;
+    return e.getParent() instanceof IASTBinaryExpression iASTBinaryExpression
+        && iASTBinaryExpression.getOperator() == IASTBinaryExpression.op_assign
+        && iASTBinaryExpression.getOperand2() == e;
   }
 
   private CAstNode convert(IASTCastExpression e) {
@@ -970,8 +970,8 @@ class ASTConverter {
     }
 
     if (options.simplifyPointerExpressions()
-        && e.getOperand() instanceof IASTFieldReference
-        && ((IASTFieldReference) e.getOperand()).isPointerDereference()) {
+        && e.getOperand() instanceof IASTFieldReference iASTFieldReference
+        && iASTFieldReference.isPointerDereference()) {
       return createTemporaryVariableWithInitializer(
           loc, new CCastExpression(loc, castType, operand));
     } else {

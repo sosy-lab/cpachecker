@@ -251,12 +251,12 @@ public class MemoryAccessExtractor {
       if (functionNameExpression instanceof AIdExpression aIdExpression) {
         return aIdExpression.getName();
       } else if (functionNameExpression instanceof AUnaryExpression unaryFunctionNameExpression) {
-        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
-          return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
+        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression aIdExpression) {
+          return aIdExpression.getName();
         }
       } else if ((functionNameExpression instanceof APointerExpression pointerExpression)
-          && (pointerExpression.getOperand() instanceof AIdExpression)) {
-        return ((AIdExpression) pointerExpression.getOperand()).getName();
+          && (pointerExpression.getOperand() instanceof AIdExpression aIdExpression)) {
+        return aIdExpression.getName();
       }
     }
     throw new AssertionError("Unable to determine function name.");

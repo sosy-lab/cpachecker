@@ -322,11 +322,11 @@ public class NullPointerChecks {
         return null;
       }
       if (e.getOperator() == UnaryOperator.AMPER) {
-        if (e.getOperand() instanceof CFieldReference
-            && ((CFieldReference) e.getOperand()).isPointerDereference()) {
+        if (e.getOperand() instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference()) {
           // &(s->f)
           // ignore this dereference and visit "s"
-          return ((CFieldReference) e.getOperand()).getFieldOwner().accept(this);
+          return cFieldReference.getFieldOwner().accept(this);
         }
       }
       return e.getOperand().accept(this);

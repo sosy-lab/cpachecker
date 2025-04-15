@@ -739,8 +739,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
   private static Optional<AFunctionCall> asFunctionCall(CFAEdge pEdge) {
     if (pEdge instanceof AStatementEdge statementEdge) {
-      if (statementEdge.getStatement() instanceof AFunctionCall) {
-        return Optional.of((AFunctionCall) statementEdge.getStatement());
+      if (statementEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
+        return Optional.of(aFunctionCall);
       }
     } else if (pEdge instanceof FunctionCallEdge functionCallEdge) {
       return Optional.of(functionCallEdge.getFunctionCall());

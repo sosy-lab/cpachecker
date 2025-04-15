@@ -325,9 +325,9 @@ public class ExpressionToFormulaVisitor
       final Formula ret) {
     BooleanFormulaManagerView bfmgr = mgr.getBooleanFormulaManager();
 
-    if (exp.getOperand2() instanceof CIntegerLiteralExpression) {
+    if (exp.getOperand2() instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
       // We use a BigInteger because it can always be made positive, this is not true for type long!
-      BigInteger modulo = ((CIntegerLiteralExpression) exp.getOperand2()).getValue();
+      BigInteger modulo = cIntegerLiteralExpression.getValue();
       if (!modulo.equals(BigInteger.ZERO)) {
         // modular congruence expects a positive modulo. If our divisor b in a%b is negative, we
         // actually want to generate a modular congruence condition mod (-b):

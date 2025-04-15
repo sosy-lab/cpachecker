@@ -418,8 +418,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private void checkCPAConfiguration(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (pCpa instanceof ARGCPA aRGCPA && aRGCPA.getWrappedCPAs().get(0) instanceof CompositeCPA) {
-      CompositeCPA comCpa = (CompositeCPA) aRGCPA.getWrappedCPAs().get(0);
+    if (pCpa instanceof ARGCPA aRGCPA
+        && aRGCPA.getWrappedCPAs().get(0) instanceof CompositeCPA comCpa) {
 
       boolean considersLocation = false;
       boolean considersCallstack = false;

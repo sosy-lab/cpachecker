@@ -911,8 +911,8 @@ public class CtoFormulaConverter {
             return machineModel.isSigned(cSimpleType);
           }
           if ((t instanceof CBitFieldType bitFieldType)
-              && (bitFieldType.getType() instanceof CSimpleType)) {
-            return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+              && (bitFieldType.getType() instanceof CSimpleType cSimpleType)) {
+            return machineModel.isSigned(cSimpleType);
           }
           throw new AssertionError("Not a simple type: " + t);
         };

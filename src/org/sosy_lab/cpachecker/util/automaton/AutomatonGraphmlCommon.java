@@ -536,8 +536,8 @@ public final class AutomatonGraphmlCommon {
       if (isMainFunctionEntry(edge)) {
         return false;
       }
-      if (edge.getSuccessor() instanceof FunctionExitNode) {
-        return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
+      if (edge.getSuccessor() instanceof FunctionExitNode functionExitNode) {
+        return isEmptyStub(functionExitNode.getEntryNode());
       }
       if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
         return false;
@@ -871,8 +871,8 @@ public final class AutomatonGraphmlCommon {
             } else if (successorEdge instanceof AStatementEdge) {
               intermediateDeclarationsExpected = false;
               AStatementEdge statementEdge = (AStatementEdge) successorEdge;
-              if (statementEdge.getStatement() instanceof AAssignment) {
-                assignment = (AAssignment) statementEdge.getStatement();
+              if (statementEdge.getStatement() instanceof AAssignment aAssignment) {
+                assignment = aAssignment;
               }
             }
             if (assignment != null) {

@@ -139,8 +139,8 @@ public class UndefinedFunctionCollectorAlgorithm
       shutdownNotifier.shutdownIfNecessary();
       if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
         final AStatementEdge stmtEdge = (AStatementEdge) edge;
-        if (stmtEdge.getStatement() instanceof AFunctionCall) {
-          collectUndefinedFunction((AFunctionCall) stmtEdge.getStatement());
+        if (stmtEdge.getStatement() instanceof AFunctionCall aFunctionCall) {
+          collectUndefinedFunction(aFunctionCall);
         }
       }
     }

@@ -639,8 +639,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
        * example: "scanf("%d", &input);" */
       if (param instanceof CUnaryExpression cUnaryExpression
           && UnaryOperator.AMPER == cUnaryExpression.getOperator()
-          && cUnaryExpression.getOperand() instanceof CIdExpression) {
-        final CIdExpression id = (CIdExpression) cUnaryExpression.getOperand();
+          && cUnaryExpression.getOperand() instanceof CIdExpression id) {
+
         final String varName = id.getDeclaration().getQualifiedName();
 
         dependencies.addVar(varName);

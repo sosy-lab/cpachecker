@@ -580,9 +580,9 @@ public final class CInitializers {
       throws UnrecognizedCodeException {
 
     Range<Long> arrayIndices;
-    if (arrayType.getLength() instanceof CIntegerLiteralExpression) {
+    if (arrayType.getLength() instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
       // fixed-size array
-      BigInteger size = ((CIntegerLiteralExpression) arrayType.getLength()).getValue();
+      BigInteger size = cIntegerLiteralExpression.getValue();
       if (!BigInteger.valueOf(size.longValue()).equals(size)) {
         throw new UnrecognizedCodeException(
             "Size of type " + arrayType + " is too large to initialize explicitly",

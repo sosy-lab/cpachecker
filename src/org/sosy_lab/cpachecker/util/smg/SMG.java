@@ -1538,8 +1538,9 @@ public class SMG {
     }
     Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
     return maybePTEdge.isPresent()
-        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment
-        && ((SMGSinglyLinkedListSegment) maybePTEdge.orElseThrow().pointsTo()).getMinLength() == 0;
+        && maybePTEdge.orElseThrow().pointsTo()
+            instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
+        && sMGSinglyLinkedListSegment.getMinLength() == 0;
   }
 
   /**

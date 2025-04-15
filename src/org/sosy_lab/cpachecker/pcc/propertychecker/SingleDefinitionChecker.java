@@ -89,12 +89,13 @@ public class SingleDefinitionChecker implements PropertyChecker {
       edge = pdp.getDefinitionEntryLocation().getEdgeTo(pdp.getDefinitionExitLocation());
       if (edge instanceof CStatementEdge cStatementEdge) {
         left = null;
-        if (cStatementEdge.getStatement() instanceof CExpressionAssignmentStatement) {
-          left = ((CExpressionAssignmentStatement) cStatementEdge.getStatement()).getLeftHandSide();
+        if (cStatementEdge.getStatement()
+            instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+          left = cExpressionAssignmentStatement.getLeftHandSide();
         }
-        if (cStatementEdge.getStatement() instanceof CFunctionCallAssignmentStatement) {
-          left =
-              ((CFunctionCallAssignmentStatement) cStatementEdge.getStatement()).getLeftHandSide();
+        if (cStatementEdge.getStatement()
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
+          left = cFunctionCallAssignmentStatement.getLeftHandSide();
         }
         if (left != null) {
           VariableExtractor extractor = new VariableExtractor(edge);
@@ -111,8 +112,8 @@ public class SingleDefinitionChecker implements PropertyChecker {
         }
       }
       if (edge instanceof CDeclarationEdge cDeclarationEdge
-          && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration
-          && ((CVariableDeclaration) cDeclarationEdge.getDeclaration()).getInitializer() != null
+          && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration cVariableDeclaration
+          && cVariableDeclaration.getInitializer() != null
           && MemoryLocation.forDeclaration(cDeclarationEdge.getDeclaration()).equals(varDefName)) {
         return true;
       }

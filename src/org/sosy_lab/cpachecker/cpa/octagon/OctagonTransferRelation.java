@@ -1596,8 +1596,8 @@ public class OctagonTransferRelation
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CFunctionCallExpression e)
         throws CPATransferException {
       IOctagonCoefficients coefficients = OctagonUniversalCoefficients.INSTANCE;
-      if (e.getFunctionNameExpression() instanceof CIdExpression) {
-        switch (((CIdExpression) e.getFunctionNameExpression()).getName()) {
+      if (e.getFunctionNameExpression() instanceof CIdExpression cIdExpression) {
+        switch (cIdExpression.getName()) {
           case "__VERIFIER_nondet_uint" ->
               coefficients =
                   OctagonIntervalCoefficients.getNondetUIntCoeffs(

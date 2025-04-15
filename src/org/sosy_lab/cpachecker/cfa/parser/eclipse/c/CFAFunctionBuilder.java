@@ -695,9 +695,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode = null;
     String rawSignature = exprStatement.getRawSignature();
 
-    if (exprStatement.getExpression() instanceof IASTExpressionList) {
-      for (IASTExpression exp :
-          ((IASTExpressionList) exprStatement.getExpression()).getExpressions()) {
+    if (exprStatement.getExpression() instanceof IASTExpressionList iASTExpressionList) {
+      for (IASTExpression exp : iASTExpressionList.getExpressions()) {
         CStatement statement = astCreator.convertExpressionToStatement(exp);
         lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
         prevNode = lastNode;

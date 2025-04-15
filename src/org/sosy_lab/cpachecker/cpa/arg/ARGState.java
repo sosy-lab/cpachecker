@@ -415,16 +415,16 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   @Override
   public String toDOTLabel() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).toDOTLabel();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.toDOTLabel();
     }
     return "";
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (getWrappedState() instanceof Graphable) {
-      return ((Graphable) getWrappedState()).shouldBeHighlighted();
+    if (getWrappedState() instanceof Graphable graphable) {
+      return graphable.shouldBeHighlighted();
     }
     return false;
   }

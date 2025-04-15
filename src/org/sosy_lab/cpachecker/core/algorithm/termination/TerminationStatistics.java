@@ -660,8 +660,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getTerm() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm applicationTerm
+            && applicationTerm.getParameters().length != 0) {
           // ignore UFs
           continue;
         }
@@ -700,9 +700,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     Object termVal;
 
     for (Entry<Term, Term> entry : arg.getValuesAtHonda().entrySet()) {
-      if (entry.getKey() instanceof TermVariable && entry.getValue() instanceof ConstantTerm) {
-        varName = toOrigName((TermVariable) entry.getKey());
-        termVal = ((ConstantTerm) entry.getValue()).getValue();
+      if (entry.getKey() instanceof TermVariable termVariable
+          && entry.getValue() instanceof ConstantTerm constantTerm) {
+        varName = toOrigName(termVariable);
+        termVal = constantTerm.getValue();
 
         if (termVal instanceof BigDecimal) {
           // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues

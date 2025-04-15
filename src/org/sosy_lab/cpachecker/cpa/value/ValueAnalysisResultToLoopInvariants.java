@@ -845,12 +845,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportBitops
               && type1.getType().isIntegerType()
               && type2.getType().isIntegerType()
-              && (!(val1.get(0).getValue().asNumericValue().getNumber() instanceof BigInteger)
-                  || containslongValue(
-                      (BigInteger) val1.get(0).getValue().asNumericValue().getNumber()))
-              && (!(val2.get(0).getValue().asNumericValue().getNumber() instanceof BigInteger)
-                  || containslongValue(
-                      (BigInteger) val2.get(0).getValue().asNumericValue().getNumber()))) {
+              && (!(val1.get(0).getValue().asNumericValue().getNumber()
+                      instanceof BigInteger bigInteger)
+                  || containslongValue(bigInteger))
+              && (!(val2.get(0).getValue().asNumericValue().getNumber()
+                      instanceof BigInteger bigInteger)
+                  || containslongValue(bigInteger))) {
             bitInv =
                 new TwoVariableBitOpsInvariant(
                     varWithVals1.getKey(),
@@ -864,12 +864,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
           TwoVariableRelationInvariant relInv;
           if (exportRelational
-              && (!(val1.get(0).getValue().asNumericValue().getNumber() instanceof BigInteger)
-                  || containslongValue(
-                      (BigInteger) val1.get(0).getValue().asNumericValue().getNumber()))
-              && (!(val2.get(0).getValue().asNumericValue().getNumber() instanceof BigInteger)
-                  || containslongValue(
-                      (BigInteger) val2.get(0).getValue().asNumericValue().getNumber()))) {
+              && (!(val1.get(0).getValue().asNumericValue().getNumber()
+                      instanceof BigInteger bigInteger)
+                  || containslongValue(bigInteger))
+              && (!(val2.get(0).getValue().asNumericValue().getNumber()
+                      instanceof BigInteger bigInteger)
+                  || containslongValue(bigInteger))) {
             relInv =
                 new TwoVariableRelationInvariant(
                     varWithVals1.getKey(),

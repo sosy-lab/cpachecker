@@ -46,8 +46,8 @@ public enum TestTargetType {
     public Predicate<CFAEdge> getEdgeCriterion() {
       return edge ->
           edge instanceof CStatementEdge cStatementEdge
-              && cStatementEdge.getStatement() instanceof CFunctionCall
-              && ((CFunctionCall) cStatementEdge.getStatement())
+              && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall
+              && cFunctionCall
                   .getFunctionCallExpression()
                   .getFunctionNameExpression()
                   .toASTString()
@@ -69,8 +69,8 @@ public enum TestTargetType {
     public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
       return edge ->
           (edge instanceof CStatementEdge cStatementEdge
-                  && cStatementEdge.getStatement() instanceof CFunctionCall
-                  && ((CFunctionCall) cStatementEdge.getStatement())
+                  && cStatementEdge.getStatement() instanceof CFunctionCall cFunctionCall
+                  && cFunctionCall
                       .getFunctionCallExpression()
                       .getFunctionNameExpression()
                       .toASTString()

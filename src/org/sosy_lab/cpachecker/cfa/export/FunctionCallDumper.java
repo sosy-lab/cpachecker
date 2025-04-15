@@ -220,8 +220,8 @@ public final class FunctionCallDumper {
                   functionCall.getFunctionCallExpression().getParameterExpressions();
               if (functionNameExp instanceof AIdExpression aIdExpression
                   && THREAD_START.equals(aIdExpression.getName())
-                  && params.get(2) instanceof CUnaryExpression) {
-                CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+                  && params.get(2) instanceof CUnaryExpression cUnaryExpression) {
+                CExpression expr2 = cUnaryExpression.getOperand();
                 if (expr2 instanceof CIdExpression cIdExpression) {
                   AFunctionDeclaration functionDecl =
                       (AFunctionDeclaration) cIdExpression.getDeclaration();
