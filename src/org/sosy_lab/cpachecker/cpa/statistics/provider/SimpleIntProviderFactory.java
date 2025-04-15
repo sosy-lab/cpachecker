@@ -313,9 +313,7 @@ public class SimpleIntProviderFactory {
 
         @Override
         public int calculateNext(int pCurrent, CFAEdge pEdge) {
-          return pCurrent
-              + countDeclarations(
-                  pEdge, CFunctionDeclaration.class::isInstance);
+          return pCurrent + countDeclarations(pEdge, CFunctionDeclaration.class::isInstance);
         }
       };
 
