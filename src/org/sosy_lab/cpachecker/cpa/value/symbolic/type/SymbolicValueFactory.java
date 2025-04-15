@@ -291,10 +291,10 @@ public class SymbolicValueFactory {
       return (SymbolicExpression) pValue;
     }
 
-    if (!(pValue instanceof SymbolicExpression)) {
+    if (!(pValue instanceof SymbolicExpression symbolicExpression)) {
       return asConstant(pValue, canonicalTargetType);
     } else {
-      operand = (SymbolicExpression) pValue;
+      operand = symbolicExpression;
     }
 
     if (operand.getType().equals(canonicalTargetType)) {

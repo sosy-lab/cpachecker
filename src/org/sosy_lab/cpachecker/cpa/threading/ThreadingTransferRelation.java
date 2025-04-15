@@ -692,11 +692,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     List<? extends AExpression> params =
         ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
     AExpression expr = params.get(n);
-    if (!(expr instanceof CIdExpression)) {
+    if (!(expr instanceof CIdExpression cIdExpression)) {
       throw new UnrecognizedCodeException("unsupported thread join access", expr);
     }
 
-    return ((CIdExpression) expr).getName();
+    return cIdExpression.getName();
   }
 
   /**
@@ -821,10 +821,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                   "unsupported thread function call", params.get(2));
             }
             CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
-            if (!(expr2 instanceof CIdExpression)) {
+            if (!(expr2 instanceof CIdExpression cIdExpression)) {
               throw new UnrecognizedCodeException("unsupported thread function call", expr2);
             }
-            String newThreadFunctionName = ((CIdExpression) expr2).getName();
+            String newThreadFunctionName = cIdExpression.getName();
             return Optional.of(newThreadFunctionName);
           }
         }

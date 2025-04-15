@@ -290,11 +290,11 @@ public class AssignmentToPathAllocator {
 
     private Value asValue(Object pValue) {
 
-      if (!(pValue instanceof Number)) {
+      if (!(pValue instanceof Number number)) {
         return Value.UnknownValue.getInstance();
       }
 
-      return new NumericValue((Number) pValue);
+      return new NumericValue(number);
     }
 
     @Override

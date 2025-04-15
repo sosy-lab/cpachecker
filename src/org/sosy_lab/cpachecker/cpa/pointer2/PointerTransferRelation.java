@@ -573,10 +573,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
                 if (targets.isTop() || targets.isBot()) {
                   return targets;
                 }
-                if (!(targets instanceof ExplicitLocationSet)) {
+                if (!(targets instanceof ExplicitLocationSet explicitLocationSet)) {
                   return LocationSetTop.INSTANCE;
                 }
-                Iterables.addAll(newResult, ((ExplicitLocationSet) targets));
+                Iterables.addAll(newResult, explicitLocationSet);
               }
               result = newResult;
             }
@@ -702,10 +702,11 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (pLocationSet.isBot()) {
       return ImmutableSet.of();
     }
-    if (pLocationSet.isTop() || !(pLocationSet instanceof ExplicitLocationSet)) {
+    if (pLocationSet.isTop()
+        || !(pLocationSet instanceof ExplicitLocationSet explicitLocationSet)) {
       return pState.getKnownLocations();
     }
-    return (ExplicitLocationSet) pLocationSet;
+    return explicitLocationSet;
   }
 
   @Override

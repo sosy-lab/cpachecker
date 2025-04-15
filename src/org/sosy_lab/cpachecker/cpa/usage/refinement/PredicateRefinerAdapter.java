@@ -74,13 +74,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       throws InvalidConfigurationException {
     super(wrapper);
 
-    if (!(pCpa instanceof WrapperCPA)) {
+    if (!(pCpa instanceof WrapperCPA wrapperCPA)) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
     }
 
     @SuppressWarnings("resource")
-    BAMPredicateCPA predicateCpa = ((WrapperCPA) pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
+    BAMPredicateCPA predicateCpa = wrapperCPA.retrieveWrappedCpa(BAMPredicateCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(
           BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");

@@ -129,10 +129,10 @@ class CTypeUtils {
    */
   static CType getBaseType(CType type) {
     checkIsSimplified(type);
-    if (!(type instanceof CArrayType)) {
+    if (!(type instanceof CArrayType cArrayType)) {
       return new CPointerType(false, false, type);
     } else {
-      return new CPointerType(false, false, ((CArrayType) type).getType());
+      return new CPointerType(false, false, cArrayType.getType());
     }
   }
 

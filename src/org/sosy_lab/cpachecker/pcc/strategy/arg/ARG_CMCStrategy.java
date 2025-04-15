@@ -76,14 +76,14 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   public void constructInternalProofRepresentation(
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    if (!(pReached instanceof HistoryForwardingReachedSet)) {
+    if (!(pReached instanceof HistoryForwardingReachedSet historyForwardingReachedSet)) {
       throw new InvalidConfigurationException(
           "Reached sets used by restart algorithm are not memorized. Please enable option"
               + " analysis.memorizeReachedAfterRestart");
     }
 
     Collection<ReachedSet> partialReachedSets =
-        ((HistoryForwardingReachedSet) pReached).getAllReachedSetsUsedAsDelegates();
+        historyForwardingReachedSet.getAllReachedSetsUsedAsDelegates();
     roots = new ARGState[partialReachedSets.size()];
 
     if (roots.length <= 0) {

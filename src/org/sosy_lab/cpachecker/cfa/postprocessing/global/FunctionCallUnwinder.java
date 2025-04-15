@@ -181,15 +181,14 @@ public class FunctionCallUnwinder {
   }
 
   static @Nullable String getNameOfFunction(final AStatementEdge edge) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cStatementEdge)) {
       return null;
     }
-    final CStatement statement = ((CStatementEdge) edge).getStatement();
-    if (!(statement instanceof CFunctionCall)) {
+    final CStatement statement = cStatementEdge.getStatement();
+    if (!(statement instanceof CFunctionCall cFunctionCall)) {
       return null;
     }
-    final CDeclaration declaration =
-        ((CFunctionCall) statement).getFunctionCallExpression().getDeclaration();
+    final CDeclaration declaration = cFunctionCall.getFunctionCallExpression().getDeclaration();
     if (declaration == null) {
       return null;
     }

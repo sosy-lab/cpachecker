@@ -398,7 +398,7 @@ class ASTTypeConverter {
     org.eclipse.cdt.core.dom.ast.IASTName astName = d.getName();
     String name = ASTConverter.convert(astName);
     org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
-    if (!(binding instanceof IType)) {
+    if (!(binding instanceof IType iType)) {
       throw parseContext.parseError("Unknown binding of typedef", d);
     }
     CType type = null;
@@ -407,7 +407,7 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      type = convert((IType) binding);
+      type = convert(iType);
     }
 
     if (d.isConst()) {

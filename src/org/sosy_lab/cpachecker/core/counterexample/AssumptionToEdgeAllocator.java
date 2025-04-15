@@ -349,11 +349,11 @@ public class AssumptionToEdgeAllocator {
   private List<AExpressionStatement> handleAssumeStatement(
       AssumeEdge pCFAEdge, ConcreteState pConcreteState) {
 
-    if (!(pCFAEdge instanceof CAssumeEdge)) {
+    if (!(pCFAEdge instanceof CAssumeEdge cAssumeEdge)) {
       return ImmutableList.of();
 
     } else {
-      CExpression pCExpression = ((CAssumeEdge) pCFAEdge).getExpression();
+      CExpression pCExpression = cAssumeEdge.getExpression();
 
       if (!(pCExpression instanceof CBinaryExpression binExp)) {
         return ImmutableList.of();
@@ -1207,21 +1207,21 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pCPointerExpression);
 
-        if (!(value instanceof Number)) {
+        if (!(value instanceof Number number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((Number) value);
+        return new NumericValue(number);
       }
 
       @Override
       protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
-        if (!(value instanceof Number)) {
+        if (!(value instanceof Number number)) {
           return Value.UnknownValue.getInstance();
         }
-        return new NumericValue((Number) value);
+        return new NumericValue(number);
       }
 
       @Override
@@ -1234,11 +1234,11 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if (!(value instanceof Number)) {
+        if (!(value instanceof Number number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((Number) value);
+        return new NumericValue(number);
       }
 
       @Override
@@ -1246,11 +1246,11 @@ public class AssumptionToEdgeAllocator {
           throws UnrecognizedCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
-        if (!(value instanceof Number)) {
+        if (!(value instanceof Number number)) {
           return Value.UnknownValue.getInstance();
         }
 
-        return new NumericValue((Number) value);
+        return new NumericValue(number);
       }
 
       @Override

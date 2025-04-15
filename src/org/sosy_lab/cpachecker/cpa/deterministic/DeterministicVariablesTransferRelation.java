@@ -77,12 +77,12 @@ public class DeterministicVariablesTransferRelation
       throws CPATransferException {
 
     // we do only care about variable declarations
-    if (!(pDeclaration instanceof AVariableDeclaration)) {
+    if (!(pDeclaration instanceof AVariableDeclaration aVariableDeclaration)) {
       return state;
     }
 
     Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap(pDeclaration);
-    AInitializer initializer = ((AVariableDeclaration) pDeclaration).getInitializer();
+    AInitializer initializer = aVariableDeclaration.getInitializer();
 
     // initializer is empty, return identity
     if (initializer == null) {

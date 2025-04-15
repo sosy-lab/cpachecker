@@ -1692,11 +1692,11 @@ class CFABuilder {
                 currentExpression,
                 index);
       } else if (currentType instanceof CCompositeType) {
-        if (!(index instanceof CIntegerLiteralExpression)) {
+        if (!(index instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
           throw new UnsupportedOperationException(
               "GEP index to struct only allows integer constant, but is " + index);
         }
-        int memberIndex = ((CIntegerLiteralExpression) index).getValue().intValue();
+        int memberIndex = cIntegerLiteralExpression.getValue().intValue();
         CCompositeTypeMemberDeclaration field =
             ((CCompositeType) currentType).getMembers().get(memberIndex);
         String fieldName = field.getName();

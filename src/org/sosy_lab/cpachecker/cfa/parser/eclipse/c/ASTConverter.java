@@ -432,11 +432,11 @@ class ASTConverter {
     CAstNode converted = convertExpressionWithSideEffectsNotSimplified(e);
     if (converted == null
         || !options.simplifyConstExpressions()
-        || !(converted instanceof CExpression)) {
+        || !(converted instanceof CExpression cExpression)) {
       return converted;
     }
 
-    return simplifyExpressionOneStep((CExpression) converted);
+    return simplifyExpressionOneStep(cExpression);
   }
 
   private CAstNode convertExpressionWithSideEffectsNotSimplified(IASTExpression e) {
@@ -654,11 +654,11 @@ class ASTConverter {
    */
   private BigInteger evaluateIntegerConstantExpression(IASTExpression exp) {
     CAstNode n = convertExpressionWithSideEffectsNotSimplified(exp);
-    if (!(n instanceof CExpression)) {
+    if (!(n instanceof CExpression cExpression)) {
       throw parseContext.parseError("Constant expression with side effect", exp);
     }
 
-    CExpression e = simplifyExpressionRecursively((CExpression) n);
+    CExpression e = simplifyExpressionRecursively(cExpression);
     if (e instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
       return cIntegerLiteralExpression.getValue();
     } else if (e instanceof CCharLiteralExpression cCharLiteralExpression) {
@@ -1395,11 +1395,11 @@ class ASTConverter {
       CFieldReference lastField = fields.get(fields.size() - 1);
       if (!field.equals(lastField)) {
         final CType fieldType = field.getExpressionType().getCanonicalType();
-        if (!(fieldType instanceof CCompositeType)) {
+        if (!(fieldType instanceof CCompositeType cCompositeType)) {
           throw parseContext.parseError(
               "unexpected type " + fieldType + " in __builtin_offsetof argument", e);
         }
-        structType = (CCompositeType) fieldType;
+        structType = cCompositeType;
       }
     }
 
@@ -1563,10 +1563,10 @@ class ASTConverter {
       }
       case IASTUnaryExpression.op_labelReference -> {
         // L: void * addressOfLabel = && L;
-        if (!(operand instanceof CIdExpression)) {
+        if (!(operand instanceof CIdExpression cIdExpression)) {
           throw parseContext.parseError("Invalid operand for address-of-label operator", e);
         }
-        String labelName = ((CIdExpression) operand).getName();
+        String labelName = cIdExpression.getName();
 
         // type given by CDT is problem type
         return new CAddressOfLabelExpression(fileLoc, CPointerType.POINTER_TO_VOID, labelName);

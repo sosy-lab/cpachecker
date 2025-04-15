@@ -6310,12 +6310,12 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
       } else if (object.isZero()) {
         // nothing to check
-      } else if (!(object instanceof SMGSinglyLinkedListSegment)) {
+      } else if (!(object instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment)) {
         normalObjectCounter++;
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();
       } else {
         // We always start with at least element 2+
-        if (((SMGSinglyLinkedListSegment) object).getMinLength() == TEST_LIST_LENGTH) {
+        if (sMGSinglyLinkedListSegment.getMinLength() == TEST_LIST_LENGTH) {
           assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isTrue();
         } else {
           assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();

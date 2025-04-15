@@ -54,11 +54,11 @@ class CtoFormulaTypeUtils {
     CExpression fieldOwner = fExp.getFieldOwner();
     if (fExp.isPointerDereference()) {
       CType t = fieldOwner.getExpressionType().getCanonicalType();
-      if (!(t instanceof CPointerType)) {
+      if (!(t instanceof CPointerType cPointerType)) {
         throw new UnrecognizedCodeException(
             "Can't dereference a non-pointer in a field reference", fExp);
       }
-      CType dereferencedType = ((CPointerType) t).getType();
+      CType dereferencedType = cPointerType.getType();
       return new CPointerExpression(fExp.getFileLocation(), dereferencedType, fieldOwner);
     }
     return fieldOwner;

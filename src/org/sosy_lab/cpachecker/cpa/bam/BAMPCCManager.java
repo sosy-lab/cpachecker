@@ -311,11 +311,11 @@ public final class BAMPCCManager {
       Collection<? extends AbstractState> pSuccessors) {
     List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
     for (AbstractState elem : pSuccessors) {
-      if (!(elem instanceof ARGState)) {
+      if (!(elem instanceof ARGState aRGState)) {
         return pSuccessors;
       }
       if (!(elem instanceof BAMARGBlockStartState)) {
-        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
+        successorsWithExtendedInfo.add(createAdditionalInfo(aRGState));
       } else {
         successorsWithExtendedInfo.add(elem);
       }
@@ -353,10 +353,10 @@ public final class BAMPCCManager {
   @SuppressWarnings("deprecation")
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
     if (data.getCache().getLastAnalyzedBlock() == null
-        || !(pElement instanceof BAMARGBlockStartState)) {
+        || !(pElement instanceof BAMARGBlockStartState bAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
-    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());
+    bAMARGBlockStartState.setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());
   }
 
   void setCurrentBlock(Block pCurrentBlock) {

@@ -304,12 +304,12 @@ public final class CInitializers {
 
         CExpression indexExp = cArrayDesignator.getSubscriptExpression();
 
-        if (!(indexExp instanceof CIntegerLiteralExpression)) {
+        if (!(indexExp instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
           throw new UnrecognizedCodeException(
               "Cannot evaluate expression as array designator", edge, designator);
         }
 
-        BigInteger index = ((CIntegerLiteralExpression) indexExp).getValue();
+        BigInteger index = cIntegerLiteralExpression.getValue();
         if (!BigInteger.valueOf(index.longValue()).equals(index)) {
           throw new UnrecognizedCodeException(
               "Array designator is too large to initialize explicitly", edge, designator);

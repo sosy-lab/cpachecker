@@ -786,10 +786,10 @@ public final class AutomatonGraphmlCommon {
       }
       if (pEdge instanceof AssumeEdge edge) {
         AExpression expression = edge.getExpression();
-        if (!(expression instanceof ABinaryExpression)) {
+        if (!(expression instanceof ABinaryExpression aBinaryExpression)) {
           return TraversalProcess.ABORT;
         }
-        AExpression operand = ((ABinaryExpression) expression).getOperand1();
+        AExpression operand = aBinaryExpression.getOperand1();
         if (!operand.equals(switchOperand)) {
           return TraversalProcess.ABORT;
         }

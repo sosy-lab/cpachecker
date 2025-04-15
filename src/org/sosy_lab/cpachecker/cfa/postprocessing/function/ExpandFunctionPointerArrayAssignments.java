@@ -74,17 +74,17 @@ public class ExpandFunctionPointerArrayAssignments {
   }
 
   private static void handleEdge(CFAEdge edge, MutableCFA cfa, CBinaryExpressionBuilder builder) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cStatementEdge)) {
       return;
     }
 
-    CStatement stmt = ((CStatementEdge) edge).getStatement();
-    if (!(stmt instanceof CExpressionAssignmentStatement)) {
+    CStatement stmt = cStatementEdge.getStatement();
+    if (!(stmt instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement)) {
       return;
     }
 
-    CLeftHandSide lhs = ((CExpressionAssignmentStatement) stmt).getLeftHandSide();
-    CExpression rhs = ((CExpressionAssignmentStatement) stmt).getRightHandSide();
+    CLeftHandSide lhs = cExpressionAssignmentStatement.getLeftHandSide();
+    CExpression rhs = cExpressionAssignmentStatement.getRightHandSide();
     if (!isFunctionPointerType(lhs.getExpressionType())) {
       return;
     }

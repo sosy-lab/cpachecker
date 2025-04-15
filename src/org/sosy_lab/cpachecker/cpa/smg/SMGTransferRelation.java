@@ -971,12 +971,12 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
-    if (!(cDecl instanceof CVariableDeclaration)) {
+    if (!(cDecl instanceof CVariableDeclaration cVariableDeclaration)) {
       return ImmutableList.of(state);
     }
 
     SMGState newState = state.copyOf();
-    return handleVariableDeclaration(newState, (CVariableDeclaration) cDecl, edge);
+    return handleVariableDeclaration(newState, cVariableDeclaration, edge);
   }
 
   private List<SMGState> handleInitializerForDeclaration(

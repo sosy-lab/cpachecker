@@ -573,10 +573,10 @@ public final class SlicingAbstractionsUtils {
     List<ARGState> newSegmentStates = new ArrayList<>();
     for (ARGState existingState : pSegmentStates) {
       ARGState newState;
-      if (!(existingState instanceof SLARGState)) {
+      if (!(existingState instanceof SLARGState sLARGState)) {
         newState = new ARGState(existingState.getWrappedState(), null);
       } else {
-        newState = new SLARGState((SLARGState) existingState);
+        newState = new SLARGState(sLARGState);
       }
       newState.makeTwinOf(existingState);
       newSegmentStates.add(newState);
@@ -609,11 +609,11 @@ public final class SlicingAbstractionsUtils {
 
   private static void copyParent(
       ARGState oldParent, ARGState oldState, ARGState newParent, ARGState newState) {
-    if (!(newParent instanceof SLARGState)) {
+    if (!(newParent instanceof SLARGState sLARGState)) {
       newState.addParent(newParent);
     } else {
       EdgeSet newEdgeSet = new EdgeSet(((SLARGState) oldParent).getEdgeSetToChild(oldState));
-      ((SLARGState) newState).addParent((SLARGState) newParent, newEdgeSet);
+      ((SLARGState) newState).addParent(sLARGState, newEdgeSet);
     }
   }
 

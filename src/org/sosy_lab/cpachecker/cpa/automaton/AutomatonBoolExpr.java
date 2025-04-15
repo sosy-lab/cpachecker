@@ -456,12 +456,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
 
-      if (!(edge instanceof CCfaEdge)) {
+      if (!(edge instanceof CCfaEdge cCfaEdge)) {
         return CONST_FALSE;
       }
 
       Optional<FileLocation> optionalFullExpressionLocation =
-          CFAUtils.getClosestFullExpression((CCfaEdge) edge, astCfaRelation);
+          CFAUtils.getClosestFullExpression(cCfaEdge, astCfaRelation);
       if (optionalFullExpressionLocation.isEmpty()) {
         return CONST_FALSE;
       }

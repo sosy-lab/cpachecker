@@ -153,12 +153,12 @@ public class PredicateRequirementsTranslator
 
     @Override
     protected TraversalProcess visitDefault(final Formula pFormula) {
-      if (!(pFormula instanceof BooleanFormula)) {
+      if (!(pFormula instanceof BooleanFormula booleanFormula)) {
         success = false;
         return TraversalProcess.ABORT;
       }
 
-      clauses.add((BooleanFormula) pFormula);
+      clauses.add(booleanFormula);
       return TraversalProcess.SKIP;
     }
 
@@ -170,12 +170,12 @@ public class PredicateRequirementsTranslator
       }
 
       if (!Sets.intersection(fmgr.extractVariableNames(pFormula), relevantVars).isEmpty()) {
-        if (!(pFormula instanceof BooleanFormula)) {
+        if (!(pFormula instanceof BooleanFormula booleanFormula)) {
           success = false;
           return TraversalProcess.ABORT;
         }
 
-        clauses.add((BooleanFormula) pFormula);
+        clauses.add(booleanFormula);
       }
 
       return TraversalProcess.SKIP;

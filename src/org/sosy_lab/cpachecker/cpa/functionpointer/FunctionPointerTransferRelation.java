@@ -249,11 +249,11 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     CStatement statement = ((CStatementEdge) pCfaEdge).getStatement();
-    if (!(statement instanceof CFunctionCall)) {
+    if (!(statement instanceof CFunctionCall cFunctionCall)) {
       return null;
     }
 
-    CFunctionCallExpression funcCall = ((CFunctionCall) statement).getFunctionCallExpression();
+    CFunctionCallExpression funcCall = cFunctionCall.getFunctionCallExpression();
     CExpression nameExp = funcCall.getFunctionNameExpression();
 
     if ((nameExp instanceof CIdExpression idExp)

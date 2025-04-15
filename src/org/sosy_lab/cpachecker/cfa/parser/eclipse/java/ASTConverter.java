@@ -1163,7 +1163,7 @@ class ASTConverter {
       boolean isRightOperandArray) {
 
     final JType firstElement = pConcreteTypes.remove(FIRST);
-    if (!(firstElement instanceof JClassType)) {
+    if (!(firstElement instanceof JClassType jClassType)) {
       if (isRightOperandArray) {
         return firstElement.equals(pLeftOperand.getExpressionType())
             ? new JBooleanLiteralExpression(pLocation, true)
@@ -1175,12 +1175,11 @@ class ASTConverter {
     }
     JExpression currentCondition;
     if (pLeftOperand instanceof JIdExpression jIdExpression) {
-      currentCondition =
-          convertClassRunTimeCompileTimeAccord(pLocation, jIdExpression, (JClassType) firstElement);
+      currentCondition = convertClassRunTimeCompileTimeAccord(pLocation, jIdExpression, jClassType);
     } else if (pLeftOperand instanceof JRunTimeTypeExpression jRunTimeTypeExpression) {
       currentCondition =
           new JRunTimeTypeEqualsType(
-              pLeftOperand.getFileLocation(), jRunTimeTypeExpression, (JClassType) firstElement);
+              pLeftOperand.getFileLocation(), jRunTimeTypeExpression, jClassType);
     } else {
       throw new CFAGenerationRuntimeException(
           "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
@@ -1256,14 +1255,14 @@ class ASTConverter {
       return idExpIdentifier;
     }
 
-    if (!(qualifier instanceof JIdExpression)) {
+    if (!(qualifier instanceof JIdExpression jIdExpression)) {
       throw new CFAGenerationRuntimeException(
           "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
 
-    if (!(decl instanceof JFieldDeclaration)) {
+    if (!(decl instanceof JFieldDeclaration jFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
           "Identifier of FieldAccess does not identify a field.", e);
     }
@@ -1272,8 +1271,8 @@ class ASTConverter {
         idExpIdentifier.getFileLocation(),
         idExpIdentifier.getExpressionType(),
         idExpIdentifier.getName(),
-        (JFieldDeclaration) decl,
-        (JIdExpression) qualifier);
+        jFieldDeclaration,
+        jIdExpression);
   }
 
   private boolean isArrayLengthExpression(FieldAccess e) {
@@ -2102,14 +2101,14 @@ class ASTConverter {
       return idExpIdentifier;
     }
 
-    if (!(qualifier instanceof JIdExpression)) {
+    if (!(qualifier instanceof JIdExpression jIdExpression)) {
       throw new CFAGenerationRuntimeException(
           "Qualifier of FieldAccess could not be processed.", e);
     }
 
     JSimpleDeclaration decl = idExpIdentifier.getDeclaration();
 
-    if (!(decl instanceof JFieldDeclaration)) {
+    if (!(decl instanceof JFieldDeclaration jFieldDeclaration)) {
       throw new CFAGenerationRuntimeException(
           "Identifier of FieldAccess does not identify a field.", e);
     }
@@ -2118,8 +2117,8 @@ class ASTConverter {
         idExpIdentifier.getFileLocation(),
         idExpIdentifier.getExpressionType(),
         idExpIdentifier.getName(),
-        (JFieldDeclaration) decl,
-        (JIdExpression) qualifier);
+        jFieldDeclaration,
+        jIdExpression);
   }
 
   /**
@@ -2806,7 +2805,7 @@ class ASTConverter {
     // Get Object to be iterated
     JExpression iterable = convertExpressionWithoutSideEffects(pExpr);
 
-    if (!(iterable instanceof JIdExpression)) {
+    if (!(iterable instanceof JIdExpression jIdExpression)) {
       throw new CFAGenerationRuntimeException(pExpr + " was not correctly processed.", pExpr);
     }
 
@@ -2822,7 +2821,7 @@ class ASTConverter {
 
     JReferencedMethodInvocationExpression mi =
         new JReferencedMethodInvocationExpression(
-            fileLoc, iteratorTyp, name, parameters, null, (JIdExpression) iterable);
+            fileLoc, iteratorTyp, name, parameters, null, jIdExpression);
 
     // create Iterator Declaration
     String varName = "it_";

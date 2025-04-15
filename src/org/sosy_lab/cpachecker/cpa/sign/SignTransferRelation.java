@@ -89,15 +89,14 @@ public class SignTransferRelation
     ImmutableMap.Builder<String, Sign> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
       AExpression exp = pArguments.get(i);
-      if (!(exp instanceof CRightHandSide)) {
+      if (!(exp instanceof CRightHandSide cRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
       String scopedVarId =
           getScopedVariableNameForNonGlobalVariable(
               pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(
-          scopedVarId,
-          ((CRightHandSide) exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
+          scopedVarId, cRightHandSide.accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
     ImmutableMap<String, Sign> argumentMap = mapBuilder.buildOrThrow();
     logger.log(
@@ -285,11 +284,11 @@ public class SignTransferRelation
       CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException { // TODO more complex things
     // Analyse only expressions of the form x op y
-    if (!(pExpression instanceof CBinaryExpression)) {
+    if (!(pExpression instanceof CBinaryExpression cBinaryExpression)) {
       return state;
     }
     Optional<IdentifierValuePair> result =
-        evaluateAssumption((CBinaryExpression) pExpression, pTruthAssumption, pCfaEdge);
+        evaluateAssumption(cBinaryExpression, pTruthAssumption, pCfaEdge);
     if (result.isPresent()) {
       logger.log(
           Level.FINE,

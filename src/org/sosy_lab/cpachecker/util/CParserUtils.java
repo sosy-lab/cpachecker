@@ -156,10 +156,10 @@ public class CParserUtils {
       throws InvalidAutomatonException, InterruptedException {
     try {
       CAstNode statement = parser.parseSingleStatement(code, scope);
-      if (!(statement instanceof CStatement)) {
+      if (!(statement instanceof CStatement cStatement)) {
         throw new InvalidAutomatonException("Not a valid statement: " + statement.toASTString());
       }
-      return (CStatement) statement;
+      return cStatement;
     } catch (ParserException e) {
       throw new InvalidAutomatonException(
           "Error during parsing C code \"" + code + "\": " + e.getMessage());

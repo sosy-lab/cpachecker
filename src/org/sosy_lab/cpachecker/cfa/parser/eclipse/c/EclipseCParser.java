@@ -190,7 +190,7 @@ class EclipseCParser implements CParser {
 
     IASTFunctionDefinition func = (IASTFunctionDefinition) declarations[0];
     IASTStatement body = func.getBody();
-    if (!(body instanceof IASTCompoundStatement)) {
+    if (!(body instanceof IASTCompoundStatement iASTCompoundStatement)) {
       throw new CParserException(
           "Function has an unexpected "
               + body.getClass().getSimpleName()
@@ -198,7 +198,7 @@ class EclipseCParser implements CParser {
               + func.getRawSignature());
     }
 
-    return ((IASTCompoundStatement) body).getStatements();
+    return iASTCompoundStatement.getStatements();
   }
 
   private ASTConverter prepareTemporaryConverter(Scope scope) {

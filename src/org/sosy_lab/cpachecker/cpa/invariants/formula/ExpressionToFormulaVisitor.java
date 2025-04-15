@@ -358,7 +358,7 @@ public class ExpressionToFormulaVisitor
             if (!(promLeft instanceof CPointerType)
                 && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
               yield compoundIntervalFormulaManager.add(left, right);
-            } else if (!(promRight instanceof CPointerType)) {
+            } else if (!(promRight instanceof CPointerType cPointerType)) {
               // operand1 is a pointer => we should multiply the second summand by the size of the
               // pointer target
               yield compoundIntervalFormulaManager.add(
@@ -370,8 +370,7 @@ public class ExpressionToFormulaVisitor
               yield compoundIntervalFormulaManager.add(
                   right,
                   compoundIntervalFormulaManager.multiply(
-                      left,
-                      getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
+                      left, getPointerTargetSizeLiteral(cPointerType, calculationType)));
             } else {
               throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
             }

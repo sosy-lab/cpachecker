@@ -1750,10 +1750,10 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (statement instanceof IASTDeclarationStatement iASTDeclarationStatement) {
       // "int counter = 0;"
       final IASTDeclaration decl = iASTDeclarationStatement.getDeclaration();
-      if (!(decl instanceof IASTSimpleDeclaration)) {
+      if (!(decl instanceof IASTSimpleDeclaration iASTSimpleDeclaration)) {
         throw parseContext.parseError("Unexpected declaration in header of for loop", decl);
       }
-      return createEdgeForDeclaration((IASTSimpleDeclaration) decl, fileLocation, prevNode);
+      return createEdgeForDeclaration(iASTSimpleDeclaration, fileLocation, prevNode);
 
     } else if (statement instanceof IASTExpressionStatement iASTExpressionStatement) {
       // "counter = 0;"
@@ -2240,10 +2240,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
     } else if (exp instanceof CStatement cStatement) {
       stmt = cStatement;
-    } else if (!(exp instanceof CRightHandSide)) {
+    } else if (!(exp instanceof CRightHandSide cRightHandSide)) {
       throw parseContext.parseError("invalid expression type", lastExp);
     } else {
-      stmt = createStatement(lastExpLocation, null, (CRightHandSide) exp);
+      stmt = createStatement(lastExpLocation, null, cRightHandSide);
     }
     CFANode lastNode = newCFANode();
     CFAEdge edge =
@@ -2303,7 +2303,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return locStack.pop();
     }
 
-    if (!(lastStatement instanceof IASTExpressionStatement)) {
+    if (!(lastStatement instanceof IASTExpressionStatement iASTExpressionStatement)) {
       throw parseContext.parseError(
           "Unsupported statement type "
               + lastStatement.getClass().getSimpleName()
@@ -2313,8 +2313,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Now we need to convert the last statement and get a value that we can assign to tempVar.
     CAstNode exp =
-        astCreator.convertExpressionWithSideEffects(
-            ((IASTExpressionStatement) lastStatement).getExpression());
+        astCreator.convertExpressionWithSideEffects(iASTExpressionStatement.getExpression());
 
     CFANode middleNode = locStack.pop();
     CRightHandSide rhs;

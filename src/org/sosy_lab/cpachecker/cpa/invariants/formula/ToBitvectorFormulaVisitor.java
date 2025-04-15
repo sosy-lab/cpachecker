@@ -105,10 +105,10 @@ public class ToBitvectorFormulaVisitor
    * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private BitvectorFormula asBitVectorFormula(TypeInfo pTypeInfo, Number pValue) {
-    if (!(pTypeInfo instanceof BitVectorInfo && pValue instanceof BigInteger value)) {
+    if (!(pTypeInfo instanceof BitVectorInfo bitVectorInfo && pValue instanceof BigInteger value)) {
       return null;
     }
-    int size = ((BitVectorInfo) pTypeInfo).getSize();
+    int size = bitVectorInfo.getSize();
 
     // Get only the [size] least significant bits
     BigInteger upperExclusive = BigInteger.valueOf(2).pow(size);

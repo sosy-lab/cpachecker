@@ -202,7 +202,7 @@ public class ExpressionToFormulaVisitor
         if (!(promT1 instanceof CPointerType)
             && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
           ret = mgr.makePlus(f1, f2);
-        } else if (!(promT2 instanceof CPointerType)) {
+        } else if (!(promT2 instanceof CPointerType cPointerType)) {
           // operand1 is a pointer => we should multiply the second summand by the size of the
           // pointer target
           ret =
@@ -211,9 +211,7 @@ public class ExpressionToFormulaVisitor
         } else if (!(promT1 instanceof CPointerType)) {
           // operand2 is a pointer => we should multiply the first summand by the size of the
           // pointer target
-          ret =
-              mgr.makePlus(
-                  f2, mgr.makeMultiply(f1, getSizeExpression(((CPointerType) promT2).getType())));
+          ret = mgr.makePlus(f2, mgr.makeMultiply(f1, getSizeExpression(cPointerType.getType())));
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }

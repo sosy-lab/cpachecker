@@ -465,7 +465,7 @@ final class VariableAndFieldRelevancyComputer {
       }
       case DeclarationEdge -> {
         final CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
-        if (!(decl instanceof CVariableDeclaration)) {
+        if (!(decl instanceof CVariableDeclaration cVariableDeclaration)) {
           break;
         }
         for (CExpression exp : CTypes.getArrayLengthExpressions(decl.getType())) {
@@ -478,7 +478,7 @@ final class VariableAndFieldRelevancyComputer {
 
         CollectingLHSVisitor collectingLHSVisitor = CollectingLHSVisitor.create(pCfa);
         for (CExpressionAssignmentStatement init :
-            CInitializers.convertToAssignments((CVariableDeclaration) decl, edge)) {
+            CInitializers.convertToAssignments(cVariableDeclaration, edge)) {
           Pair<VariableOrField, VarFieldDependencies> r =
               init.getLeftHandSide().accept(collectingLHSVisitor);
           result =

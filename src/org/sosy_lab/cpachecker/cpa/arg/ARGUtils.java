@@ -150,7 +150,7 @@ public class ARGUtils {
           return true;
         }
         CFAEdge edgeToFirstChild = edgesToFirstChild.iterator().next();
-        if (!(edgeToFirstChild instanceof AssumeEdge)) {
+        if (!(edgeToFirstChild instanceof AssumeEdge assumeEdge)) {
           return true;
         }
         List<CFAEdge> edgesToSecondChild = current.getEdgesToChild(secondChild);
@@ -161,8 +161,7 @@ public class ARGUtils {
         if (!(edgeToSecondChild instanceof AssumeEdge)) {
           return true;
         }
-        if (!CFAUtils.getComplimentaryAssumeEdge((AssumeEdge) edgeToFirstChild)
-            .equals(edgeToSecondChild)) {
+        if (!CFAUtils.getComplimentaryAssumeEdge(assumeEdge).equals(edgeToSecondChild)) {
           return true;
         }
       }
