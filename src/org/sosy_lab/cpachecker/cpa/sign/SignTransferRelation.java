@@ -321,10 +321,10 @@ public class SignTransferRelation
   @Override
   protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl)
       throws CPATransferException {
-    if (!(pDecl instanceof AVariableDeclaration)) {
+    if (!(pDecl instanceof AVariableDeclaration decl)) {
       return state;
     }
-    AVariableDeclaration decl = (AVariableDeclaration) pDecl;
+
     String scopedId;
     if (decl.isGlobal()) {
       scopedId = decl.getName();

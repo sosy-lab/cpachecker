@@ -96,11 +96,9 @@ public class SMGJoinAbstractionManager {
   private Optional<GenericAbstractionCandidateTemplate>
       calculateSimpleTemplateAbstractionFromObject() {
 
-    if (!(destObject instanceof SMGRegion)) {
+    if (!(destObject instanceof SMGRegion root)) {
       return Optional.empty();
     }
-
-    SMGRegion root = (SMGRegion) destObject;
 
     SMGHasValueEdges fieldsOfObject1 = SMGUtils.getFieldsOfObject(smgObject1, inputSMG1);
     SMGHasValueEdges fieldsOfObject2 = SMGUtils.getFieldsOfObject(smgObject2, inputSMG2);

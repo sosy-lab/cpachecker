@@ -690,11 +690,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       MaterilisationStepToSubSMGMap pMatStepToSubSMGMapping,
       MaterlisationStep matStep) {
 
-    if (!(pObject instanceof SMGRegion)) {
+    if (!(pObject instanceof SMGRegion region)) {
       return false;
     }
-
-    SMGRegion region = (SMGRegion) pObject;
 
     if (region.getSize() != pTemplate.getSize()) {
       return false;

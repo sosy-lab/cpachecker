@@ -504,12 +504,10 @@ public class SMGCPAAddressVisitor
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
-      if (!(value instanceof AddressExpression)) {
+      if (!(value instanceof AddressExpression pointerValue)) {
         resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
         continue;
       }
-
-      AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
       Value offset = pointerValue.getOffset();

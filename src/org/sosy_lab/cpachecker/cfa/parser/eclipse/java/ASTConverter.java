@@ -1244,12 +1244,10 @@ class ASTConverter {
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
 
-    if (!(identifier instanceof JIdExpression)) {
+    if (!(identifier instanceof JIdExpression idExpIdentifier)) {
       throw new CFAGenerationRuntimeException(
           "Identifier of FieldAccess could not be processed.", e);
     }
-
-    JIdExpression idExpIdentifier = (JIdExpression) identifier;
 
     JAstNode qualifier = convertExpressionWithoutSideEffects(e.getExpression());
 
@@ -2091,12 +2089,10 @@ class ASTConverter {
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
 
-    if (!(identifier instanceof JIdExpression)) {
+    if (!(identifier instanceof JIdExpression idExpIdentifier)) {
       throw new CFAGenerationRuntimeException(
           "Identifier of FieldAccess could not be processed.", e);
     }
-
-    JIdExpression idExpIdentifier = (JIdExpression) identifier;
 
     JAstNode qualifier = convertExpressionWithoutSideEffects(e.getQualifier());
 

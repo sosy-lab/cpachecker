@@ -499,12 +499,11 @@ public class CProgramScope implements Scope {
     }
 
     // If the types are not composite types, we are done
-    if (!(pA instanceof CCompositeType)) {
+    if (!(pA instanceof CCompositeType aComp)) {
       pResolved.add(ab);
       return true;
     }
 
-    CCompositeType aComp = (CCompositeType) pA;
     CCompositeType bComp = (CCompositeType) pB;
 
     // Check member count

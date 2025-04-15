@@ -130,10 +130,10 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
   @Override
   public boolean equals(Object pObj) {
     // TODO loopstack
-    if (!(pObj instanceof ApronState)) {
+    if (!(pObj instanceof ApronState otherApron)) {
       return false;
     }
-    ApronState otherApron = (ApronState) pObj;
+
     logger.log(Level.FINEST, "apron state: isEqual");
     boolean result;
     try {

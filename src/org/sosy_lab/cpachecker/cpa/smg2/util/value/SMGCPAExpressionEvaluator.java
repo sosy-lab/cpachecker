@@ -215,10 +215,10 @@ public class SMGCPAExpressionEvaluator {
    * @throws SMGException in case of critical errors.
    */
   public ValueAndSMGState unpackAddressExpression(Value value, SMGState state) throws SMGException {
-    if (!(value instanceof AddressExpression)) {
+    if (!(value instanceof AddressExpression address1)) {
       return ValueAndSMGState.of(value, state);
     }
-    AddressExpression address1 = (AddressExpression) value;
+
     Value offsetValue = address1.getOffset();
     if (offsetValue.isNumericValue()
         && offsetValue.asNumericValue().bigIntegerValue().compareTo(BigInteger.ZERO) == 0) {

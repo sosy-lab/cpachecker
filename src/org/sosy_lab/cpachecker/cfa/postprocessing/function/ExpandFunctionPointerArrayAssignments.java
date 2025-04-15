@@ -89,10 +89,10 @@ public class ExpandFunctionPointerArrayAssignments {
       return;
     }
 
-    if (!(lhs instanceof CArraySubscriptExpression)) {
+    if (!(lhs instanceof CArraySubscriptExpression array)) {
       return;
     }
-    CArraySubscriptExpression array = ((CArraySubscriptExpression) lhs);
+
     if (!(array.getSubscriptExpression() instanceof CIdExpression)) {
       return;
     }

@@ -360,12 +360,11 @@ public class ConstraintsTransferRelation
 
       assert pValueState instanceof ValueAnalysisState;
 
-      if (!(pCfaEdge instanceof AssumeEdge)) {
+      if (!(pCfaEdge instanceof AssumeEdge assume)) {
         return Optional.empty();
       }
 
       final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
-      final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 
       final boolean truthAssumption = assume.getTruthAssumption();
       final AExpression edgeExpression = assume.getExpression();

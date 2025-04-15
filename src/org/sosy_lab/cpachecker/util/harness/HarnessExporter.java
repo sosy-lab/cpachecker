@@ -1002,10 +1002,10 @@ public class HarnessExporter {
 
   private static Optional<AExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
-    if (!(pAssumption instanceof ABinaryExpression)) {
+    if (!(pAssumption instanceof ABinaryExpression binOp)) {
       return Optional.empty();
     }
-    ABinaryExpression binOp = (ABinaryExpression) pAssumption;
+
     if (binOp.getOperator() != BinaryOperator.EQUALS
         && binOp.getOperator()
             != org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator.EQUALS) {

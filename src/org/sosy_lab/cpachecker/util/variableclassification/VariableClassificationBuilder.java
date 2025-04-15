@@ -534,11 +534,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
    */
   private void handleDeclarationEdge(final CDeclarationEdge edge) {
     CDeclaration declaration = edge.getDeclaration();
-    if (!(declaration instanceof CVariableDeclaration)) {
+    if (!(declaration instanceof CVariableDeclaration vdecl)) {
       return;
     }
 
-    CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getQualifiedName();
     allVars.add(varName);
 

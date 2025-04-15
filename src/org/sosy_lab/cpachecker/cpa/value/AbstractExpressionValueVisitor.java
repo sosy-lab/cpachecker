@@ -2004,11 +2004,9 @@ public abstract class AbstractExpressionValueVisitor
       final MachineModel machineModel,
       final int size) {
 
-    if (!(type instanceof CSimpleType)) {
+    if (!(type instanceof CSimpleType st)) {
       return numericValue;
     }
-
-    final CSimpleType st = (CSimpleType) type;
 
     switch (st.getType()) {
       case BOOL -> {

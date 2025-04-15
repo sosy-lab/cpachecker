@@ -355,11 +355,10 @@ public class AssumptionToEdgeAllocator {
     } else {
       CExpression pCExpression = ((CAssumeEdge) pCFAEdge).getExpression();
 
-      if (!(pCExpression instanceof CBinaryExpression)) {
+      if (!(pCExpression instanceof CBinaryExpression binExp)) {
         return ImmutableList.of();
 
       } else {
-        CBinaryExpression binExp = ((CBinaryExpression) pCExpression);
 
         CExpression op1 = binExp.getOperand1();
         CExpression op2 = binExp.getOperand2();

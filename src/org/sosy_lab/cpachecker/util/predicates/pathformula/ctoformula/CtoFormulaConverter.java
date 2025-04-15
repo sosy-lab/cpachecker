@@ -1405,10 +1405,10 @@ public class CtoFormulaConverter {
    */
   protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
       throws UnsupportedCodeException {
-    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
+    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType arrayType)) {
       return;
     }
-    CArrayType arrayType = (CArrayType) declarationType;
+
     CType elementType = arrayType.getType();
 
     if (elementType instanceof CSimpleType

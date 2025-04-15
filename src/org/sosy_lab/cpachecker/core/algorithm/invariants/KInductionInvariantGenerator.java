@@ -851,13 +851,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       FluentIterable.from(CFAUtils.getAstNodesFromCfaEdge(e))
                           .transformAndConcat(CFAUtils::traverseRecursively)
                           .filter(AIdExpression.class)) {
-                    if (!(idExpression instanceof CIdExpression)) {
+                    if (!(idExpression instanceof CIdExpression id)) {
                       throw new InvalidConfigurationException(
                           "Linear templates are only supported for C code.");
                     }
                     ASimpleDeclaration decl = idExpression.getDeclaration();
                     if (decl != null) {
-                      CIdExpression id = (CIdExpression) idExpression;
+
                       idExpressions.put(decl.getQualifiedName(), id);
                       CType type = id.getExpressionType().getCanonicalType();
                       typePartitions.put(type, decl.getQualifiedName());
@@ -887,10 +887,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             for (String x : variables) {
               CIdExpression xId = idExpressions.get(x);
               CSimpleDeclaration xDecl = xId.getDeclaration();
-              if (!(xDecl instanceof CVariableDeclaration)) {
+              if (!(xDecl instanceof CVariableDeclaration xVarDecl)) {
                 continue;
               }
-              CVariableDeclaration xVarDecl = (CVariableDeclaration) xDecl;
+
               AFunctionDeclaration function = functions.get(xId);
               for (String y : variables) {
                 if (x.equals(y)) {
@@ -902,10 +902,10 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                   function = yFunction;
                 } else {
                   CSimpleDeclaration yDecl = yId.getDeclaration();
-                  if (!(yDecl instanceof CVariableDeclaration)) {
+                  if (!(yDecl instanceof CVariableDeclaration yVarDecl)) {
                     continue;
                   }
-                  CVariableDeclaration yVarDecl = (CVariableDeclaration) yDecl;
+
                   if (yVarDecl.isGlobal()) {
                     function = yFunction;
                   } else if (!function.equals(yFunction)) {

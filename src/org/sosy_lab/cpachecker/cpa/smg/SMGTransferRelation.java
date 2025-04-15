@@ -658,23 +658,21 @@ public class SMGTransferRelation
   // TODO implement as CFA-preprocessing?
   private static CExpression eliminateOuterEquals(CExpression pExpression) {
 
-    if (!(pExpression instanceof CBinaryExpression)) {
+    if (!(pExpression instanceof CBinaryExpression binExp)) {
       return pExpression;
     }
 
-    CBinaryExpression binExp = (CBinaryExpression) pExpression;
     CExpression op1 = binExp.getOperand1();
     CExpression op2 = binExp.getOperand2();
     BinaryOperator op = binExp.getOperator();
 
-    if (!(op1 instanceof CBinaryExpression
+    if (!(op1 instanceof CBinaryExpression binExpOp1
         && op2 instanceof CIntegerLiteralExpression
         && ((CIntegerLiteralExpression) op2).getValue().equals(BigInteger.ZERO)
         && (op == BinaryOperator.EQUALS || op == BinaryOperator.NOT_EQUALS))) {
       return pExpression;
     }
 
-    CBinaryExpression binExpOp1 = (CBinaryExpression) op1;
     return switch (binExpOp1.getOperator()) {
       case EQUALS ->
           new CBinaryExpression(

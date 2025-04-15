@@ -703,13 +703,14 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
-    if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
+    if (!(declaration instanceof AVariableDeclaration decl)
+        || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
     }
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-    AVariableDeclaration decl = (AVariableDeclaration) declaration;
+
     Type declarationType = decl.getType();
 
     // get the variable name in the declarator

@@ -191,13 +191,13 @@ public class MemoryAccessExtractor {
    */
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       AExpression pExpression, CFAEdge pEdge) {
-    if (!(pExpression instanceof CExpression)) {
+    if (!(pExpression instanceof CExpression expression)) {
       return ImmutableSet.of();
     }
     if (isAddressAccess(pExpression)) {
       return ImmutableSet.of();
     }
-    CExpression expression = (CExpression) pExpression;
+
     MemoryLocationExtractingVisitor visitor =
         new MemoryLocationExtractingVisitor(pEdge.getSuccessor().getFunctionName());
     return expression.accept(visitor);

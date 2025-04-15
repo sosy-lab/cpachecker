@@ -188,7 +188,7 @@ public class CFADeclarationMover {
 
   private void moveDeclEdgeToNewLocation(CDeclarationEdge edge, CFANode pred, CFANode succ) {
     CDeclaration decl = edge.getDeclaration();
-    if (!(decl instanceof CVariableDeclaration)) {
+    if (!(decl instanceof CVariableDeclaration varDecl)) {
       throw new AssertionError("Only variable declaration edges should be moved!");
     }
 
@@ -197,7 +197,7 @@ public class CFADeclarationMover {
     // with the initializer expression as righthandside)
     CFANode actPred = edge.getPredecessor();
     CFANode actSucc = edge.getSuccessor();
-    CVariableDeclaration varDecl = (CVariableDeclaration) decl;
+
     CInitializer init = varDecl.getInitializer();
     if (init instanceof CInitializerExpression) {
       actPred.removeLeavingEdge(edge);

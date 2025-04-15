@@ -83,12 +83,10 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
   protected RTTState handleDeclarationEdge(JDeclarationEdge cfaEdge, JDeclaration declaration)
       throws UnrecognizedCodeException {
 
-    if (!(declaration instanceof JVariableDeclaration)) {
+    if (!(declaration instanceof JVariableDeclaration decl)) {
       // nothing interesting to see here, please move along
       return state;
     }
-
-    JVariableDeclaration decl = (JVariableDeclaration) declaration;
 
     if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {

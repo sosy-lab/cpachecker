@@ -304,12 +304,11 @@ public final class CInitializers {
                 designator);
 
       } else if (designator instanceof CArrayDesignator) {
-        if (!(currentType instanceof CArrayType)) {
+        if (!(currentType instanceof CArrayType arrayType)) {
           throw new UnrecognizedCodeException(
               "Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
-        CArrayType arrayType = (CArrayType) currentType;
         CExpression indexExp = ((CArrayDesignator) designator).getSubscriptExpression();
 
         if (!(indexExp instanceof CIntegerLiteralExpression)) {
@@ -335,12 +334,11 @@ public final class CInitializers {
                 designator);
 
       } else if (designator instanceof CArrayRangeDesignator) {
-        if (!(currentType instanceof CArrayType)) {
+        if (!(currentType instanceof CArrayType arrayType)) {
           throw new UnrecognizedCodeException(
               "Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
-        CArrayType arrayType = (CArrayType) currentType;
         CExpression floorExp = ((CArrayRangeDesignator) designator).getFloorExpression();
         CExpression ceilExp = ((CArrayRangeDesignator) designator).getCeilExpression();
 

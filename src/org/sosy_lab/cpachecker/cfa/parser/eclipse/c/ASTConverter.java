@@ -861,14 +861,13 @@ class ASTConverter {
     CExpression leftHandSide = convertExpressionWithoutSideEffects(e.getOperand1());
 
     if (isAssign) {
-      if (!(leftHandSide instanceof CLeftHandSide)) {
+      if (!(leftHandSide instanceof CLeftHandSide lhs)) {
         throw parseContext.parseError(
             "Lefthandside of Assignment "
                 + e.getRawSignature()
                 + " is no CLeftHandside but should be.",
             leftHandSide);
       }
-      CLeftHandSide lhs = (CLeftHandSide) leftHandSide;
 
       if (op == null) {
         // a = b
@@ -1384,11 +1383,10 @@ class ASTConverter {
           "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ", e);
     }
     final CType ownerType = exp.getFieldOwner().getExpressionType().getCanonicalType();
-    if (!(ownerType instanceof CCompositeType)) {
+    if (!(ownerType instanceof CCompositeType structType)) {
       throw parseContext.parseError(
           "unexpected type " + ownerType + " in __builtin_offsetof argument", e);
     }
-    CCompositeType structType = (CCompositeType) ownerType;
 
     BigInteger sumOffset = BigInteger.ZERO;
     Collections.reverse(fields);
@@ -2062,10 +2060,9 @@ class ASTConverter {
       throw parseContext.parseError((IASTProblemDeclaration) d);
     }
 
-    if (!(d instanceof IASTSimpleDeclaration)) {
+    if (!(d instanceof IASTSimpleDeclaration sd)) {
       throw parseContext.parseError("unknown declaration type " + d.getClass().getSimpleName(), d);
     }
-    IASTSimpleDeclaration sd = (IASTSimpleDeclaration) d;
 
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
     // TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
@@ -2495,10 +2492,9 @@ class ASTConverter {
 
   private Declarator convert(IASTFunctionDeclarator d, CType returnType, boolean isStaticFunction) {
 
-    if (!(d instanceof IASTStandardFunctionDeclarator)) {
+    if (!(d instanceof IASTStandardFunctionDeclarator sd)) {
       throw parseContext.parseError("Unknown non-standard function definition", d);
     }
-    IASTStandardFunctionDeclarator sd = (IASTStandardFunctionDeclarator) d;
 
     // handle return type
     returnType = typeConverter.convertPointerOperators(d.getPointerOperators(), returnType);

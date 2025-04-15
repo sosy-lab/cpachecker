@@ -450,10 +450,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
     CExpression expr0 = param0.getOperand();
     CExpression expr2 = param2.getOperand();
-    if (!(expr0 instanceof CIdExpression)) {
+    if (!(expr0 instanceof CIdExpression id)) {
       throw new UnrecognizedCodeException("unsupported thread assignment", expr0);
     }
-    if (!(expr2 instanceof CIdExpression)) {
+    if (!(expr2 instanceof CIdExpression function)) {
       throw new UnrecognizedCodeException("unsupported thread function call", expr2);
     }
     if (!(params.get(3) instanceof CExpression)) {
@@ -461,8 +461,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // now create the thread
-    CIdExpression id = (CIdExpression) expr0;
-    CIdExpression function = (CIdExpression) expr2;
+
     CExpression threadArg = (CExpression) params.get(3);
 
     if (useAllPossibleClones) {

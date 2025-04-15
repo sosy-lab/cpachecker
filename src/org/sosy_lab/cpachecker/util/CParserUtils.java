@@ -477,10 +477,10 @@ public class CParserUtils {
             return ExpressionTrees.getTrue();
           }
           AExpression expression = optExpression.get();
-          if (!(expression instanceof AIntegerLiteralExpression)) {
+          if (!(expression instanceof AIntegerLiteralExpression literal)) {
             return ExpressionTrees.getTrue();
           }
-          AIntegerLiteralExpression literal = (AIntegerLiteralExpression) expression;
+
           // If the value is zero, the current path is 'false', so we do not add it.
           // If the value is one, we add the current path
           if (!literal.getValue().equals(BigInteger.ZERO)) {

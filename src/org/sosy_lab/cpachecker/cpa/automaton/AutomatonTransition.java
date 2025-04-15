@@ -404,10 +404,10 @@ class AutomatonTransition {
 
           @Override
           public CExpression substitute(CExpression pExpression) throws SubstitutionException {
-            if (!(pExpression instanceof CIdExpression)) {
+            if (!(pExpression instanceof CIdExpression idExpression)) {
               return pExpression;
             }
-            CIdExpression idExpression = (CIdExpression) pExpression;
+
             if (!CProgramScope.isArtificialFunctionReturnVariable(idExpression)) {
               return pExpression;
             }

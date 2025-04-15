@@ -131,10 +131,10 @@ public class MemoryLocationExtractingVisitor
   }
 
   public OverapproximatingMemoryLocation getMemoryLocation(AExpression pExpression) {
-    if (!(pExpression instanceof CExpression)) {
+    if (!(pExpression instanceof CExpression expression)) {
       throw new AssertionError("Only C expressions are supported");
     }
-    CExpression expression = (CExpression) pExpression;
+
     CType type = expression.getExpressionType();
     Set<MemoryLocation> potentialLocations = new HashSet<>();
 

@@ -394,10 +394,9 @@ public class CFASecondPassBuilder {
   }
 
   private void applyAttributes(AStatementEdge edge, AFunctionCall call) {
-    if (!(edge instanceof CStatementEdge)) {
+    if (!(edge instanceof CStatementEdge cEdge)) {
       return;
     }
-    CStatementEdge cEdge = (CStatementEdge) edge;
 
     AFunctionCallExpression f = call.getFunctionCallExpression();
     AFunctionDeclaration decl = f.getDeclaration();

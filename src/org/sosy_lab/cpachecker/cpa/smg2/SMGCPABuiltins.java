@@ -2387,7 +2387,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!(firstAddress instanceof AddressExpression)) {
+      if (!(firstAddress instanceof AddressExpression firstAddressExpr)) {
         // The value can be unknown
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -2396,7 +2396,7 @@ public class SMGCPABuiltins {
                 pCfaEdge));
         continue;
       }
-      AddressExpression firstAddressExpr = (AddressExpression) firstAddress;
+
       if (!firstAddressExpr.getOffset().isNumericValue()) {
         // Write the target region to unknown
         resultBuilder.add(

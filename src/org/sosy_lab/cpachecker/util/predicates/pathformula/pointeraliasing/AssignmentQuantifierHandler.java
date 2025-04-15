@@ -341,14 +341,12 @@ class AssignmentQuantifierHandler {
 
         CExpression baseUnderlying = base.getOperand();
 
-        if (!(baseUnderlying instanceof CIntegerLiteralExpression)) {
+        if (!(baseUnderlying instanceof CIntegerLiteralExpression setValueLiteral)) {
           throw new UnrecognizedCodeException(
               "Non-literal byte repeat value not supported for bitfields", edge);
         }
 
         // determine the value of literal
-        final CIntegerLiteralExpression setValueLiteral =
-            (CIntegerLiteralExpression) baseUnderlying;
 
         // make sure it is either all-zeros or all-ones
         int unsignedCharAllOnes =
