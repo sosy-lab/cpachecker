@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeException> {
@@ -106,6 +108,7 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CProblemType pProblemType) {
+    Objects.requireNonNull(pProblemType, "ProblemType must not be null");
     return "ProblemType(" + pProblemType + ")";
   }
 
