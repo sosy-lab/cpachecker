@@ -2231,7 +2231,9 @@ public class SMGCPAValueVisitor
     final CType calculationType = pExpression.getCalculationType();
 
     // Evaluate == symbolics if possible
-    if (operator.equals(BinaryOperator.EQUALS) && pLValue.equals(pRValue)) {
+    if (((CSimpleType) calculationType).getType().isIntegerType()
+        && operator.equals(BinaryOperator.EQUALS)
+        && pLValue.equals(pRValue)) {
       return new NumericValue(1);
     }
 
@@ -2263,6 +2265,34 @@ public class SMGCPAValueVisitor
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
+
+    // Simplify floating point expressions
+    // TODO Add more simplifications
+    // TODO Move this code to the methods in SymbolicValueFactory?
+    if (pLeftValue.isNumericValue() && pLeftValue.asNumericValue().hasFloatType()) {
+      FloatValue leftNum = pLeftValue.asNumericValue().getFloatValue();
+      if (ImmutableList.of(
+                  BinaryOperator.PLUS,
+                  BinaryOperator.MINUS,
+                  BinaryOperator.MULTIPLY,
+                  BinaryOperator.DIVIDE)
+              .contains(pOperator)
+          && leftNum.isNan()) {
+        return pLeftValue;
+      }
+    }
+    if (pRightValue.isNumericValue() && pRightValue.asNumericValue().hasFloatType()) {
+      FloatValue rightNum = pRightValue.asNumericValue().getFloatValue();
+      if (ImmutableList.of(
+                  BinaryOperator.PLUS,
+                  BinaryOperator.MINUS,
+                  BinaryOperator.MULTIPLY,
+                  BinaryOperator.DIVIDE)
+              .contains(pOperator)
+          && rightNum.isNan()) {
+        return pRightValue;
+      }
+    }
 
     if (pLeftValue.isNumericValue()) {
       BigInteger leftNum = pLeftValue.asNumericValue().bigIntegerValue();
