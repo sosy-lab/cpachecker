@@ -3404,6 +3404,10 @@ public class SMGState
     // We have a partial read of the value given. We can just shift the value a few times until only
     // the relevant bits are left.
     if (value.isNumericValue()) {
+      if (value.asNumericValue().hasFloatType()) {
+        double floatValue = value.asNumericValue().doubleValue();
+        value = new NumericValue(Double.doubleToLongBits(floatValue));
+      }
       if (value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MAX_VALUE))
               <= 0
           && value.asNumericValue().bigIntegerValue().compareTo(BigInteger.valueOf(Long.MIN_VALUE))
@@ -3416,7 +3420,7 @@ public class SMGState
       } else {
         // larger than long
         // TODO: can we handle this in Java?
-
+        throw new IllegalArgumentException();
       }
     } else if (!value.isUnknown()) {
       // Some symbolic value. Wrap in symbolic shift operations
