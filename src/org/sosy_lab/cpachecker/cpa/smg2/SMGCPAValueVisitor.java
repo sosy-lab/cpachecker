@@ -2648,7 +2648,7 @@ public class SMGCPAValueVisitor
       case LESS_THAN -> pArg1.lessThan(pArg2);
       case LESS_EQUAL -> pArg1.lessOrEqual(pArg2);
       case EQUALS -> pArg1.equalTo(pArg2);
-      case NOT_EQUALS -> pArg1.lessOrGreater(pArg2);
+      case NOT_EQUALS -> !pArg1.equalTo(pArg2);
       default -> throw new AssertionError("unknown binary operation: " + pOperation);
     };
   }
