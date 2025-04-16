@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import java.util.Map;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
@@ -40,7 +41,7 @@ public class DeserializeValueAnalysisStateOperatorTest {
   private static final String TEST_PROGRAM_PATH =
       "test/programs/block_analysis/simple_calculations_unsafe.c";
   private static final String CONFIG_PATH =
-      "config/distributed-block-summaries/predicateAnalysis-value-block-forward.properties";
+      "config/distributed-summary-synthesis/predicateAnalysis-value-block-forward.properties";
 
   private CFA cfa;
   private BlockGraph blockGraph;
@@ -107,6 +108,6 @@ public class DeserializeValueAnalysisStateOperatorTest {
 
     boolean implication = solver.implies(originalFormula, deserializedFormula);
 
-    Assert.assertTrue("Deserialized state must imply original formula", implication);
+    assertWithMessage("Deserialized state must imply original formula").that(implication).isTrue();
   }
 }

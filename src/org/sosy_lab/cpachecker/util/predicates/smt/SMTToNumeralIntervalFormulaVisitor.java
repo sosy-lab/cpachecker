@@ -5,6 +5,7 @@
 // SPDX-FileCopyrightText: 2025 Sara Ruckstuhl <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import java.math.BigInteger;
