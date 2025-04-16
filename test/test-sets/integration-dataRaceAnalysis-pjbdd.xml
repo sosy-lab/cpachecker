@@ -11,25 +11,43 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN" "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="2000 s" memlimit="16 GB" cpuCores="4">
 
   <option name="--no-output-files"/>
   <option name="--heap">1500M</option>
 
+
   <rundefinition name="JAVADD--dataRaceAnalysis">
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--dataRaceAnalysis">
+  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=BDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
     <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=true</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=true</option>
+    <option name="--option">bdd.pjbdd.threads=4</option>
   </rundefinition>
-  <rundefinition name="PJBDD-IntDD--dataRaceAnalysis">
+  <rundefinition name="PJBDD-intDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
+    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=true</option>
+    <option name="--option">bdd.pjbdd.threads=4</option>
   </rundefinition>
-  <rundefinition name="PJBDD-TaggedDD--dataRaceAnalysis">
+  <rundefinition name="PJBDD-TaggedDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=None</option>
+    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=true</option>
+    <option name="--option">bdd.pjbdd.threads=4</option>
   </rundefinition>
 
   <tasks>
