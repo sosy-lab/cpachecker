@@ -3539,19 +3539,33 @@ public class SMGState
   private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
     Number numberValue = readValue.asNumericValue().getNumber();
 
+    if (numberValue instanceof FloatValue) {
+      FloatValue floatValue = (FloatValue) numberValue;
+      if (floatValue.getFormat().equals(FloatValue.Format.Float32)) {
+        numberValue = floatValue.floatValue();
+      } else if (floatValue.getFormat().equals(FloatValue.Format.Float64)) {
+        numberValue = floatValue.doubleValue();
+      } else {
+        // Will fail at the bottom
+      }
+    }
+
     if (numberValue instanceof Float) {
       float floatValue = numberValue.floatValue();
-      int intBits = Float.floatToIntBits(floatValue);
+      int intBits = Float.floatToRawIntBits(floatValue);
 
       return new NumericValue(BigInteger.valueOf(intBits));
     } else if (numberValue instanceof Double) {
       double doubleValue = numberValue.doubleValue();
-      long longBits = Double.doubleToLongBits(doubleValue);
+      long longBits = Double.doubleToRawLongBits(doubleValue);
 
       return new NumericValue(BigInteger.valueOf(longBits));
     }
 
-    return UnknownValue.getInstance();
+    throw new IllegalArgumentException(
+        String.format(
+            "Can't reinterpret `%s` as integer. Only single- and double-precision values are supported.",
+            readValue));
   }
 
   private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue) {
