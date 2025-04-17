@@ -253,7 +253,9 @@ public class InstrumentationPattern {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CFunctionCallExpression expression;
-      if (astNode instanceof CReturnStatement && functionName.startsWith("return")) {
+      if (astNode instanceof CReturnStatement
+          && functionName.startsWith("return")
+          && pCFAEdge.getPredecessor().getFunction().getQualifiedName().equals("main")) {
         return ImmutableList.of();
       }
       if (astNode instanceof CFunctionCall) {
