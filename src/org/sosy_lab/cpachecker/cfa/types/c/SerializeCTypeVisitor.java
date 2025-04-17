@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeException> {
