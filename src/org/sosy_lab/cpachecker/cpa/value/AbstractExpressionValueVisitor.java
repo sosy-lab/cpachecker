@@ -1606,54 +1606,57 @@ public abstract class AbstractExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) {
-      return sizeof(unaryOperand.getExpressionType());
-    }
-    if (unaryOperator == UnaryOperator.ALIGNOF) {
-      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
-    }
-    if (unaryOperator == UnaryOperator.AMPER) {
-      // We can handle &((struct foo*)0)->field
-      if (unaryOperand instanceof CFieldReference fieldRef
-          && fieldRef.isPointerDereference()
-          && fieldRef.getFieldOwner() instanceof CCastExpression cast
-          && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
-          && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
-        Value baseAddress = cast.getOperand().accept(this);
-        if (baseAddress.isNumericValue()) {
-          Optional<BigInteger> offset =
-              machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
-          if (offset.isPresent()) {
-            return new NumericValue(
-                baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+    return switch (unaryOperator) {
+      case SIZEOF -> sizeof(unaryOperand.getExpressionType());
+
+      case ALIGNOF -> new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
+
+      case AMPER -> {
+        // We can handle &((struct foo*)0)->field
+        if (unaryOperand instanceof CFieldReference fieldRef
+            && fieldRef.isPointerDereference()
+            && fieldRef.getFieldOwner() instanceof CCastExpression cast
+            && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+            && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
+          Value baseAddress = cast.getOperand().accept(this);
+          if (baseAddress.isNumericValue()) {
+            Optional<BigInteger> offset =
+                machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+            if (offset.isPresent()) {
+              yield new NumericValue(
+                  baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+            }
           }
         }
+        yield Value.UnknownValue.getInstance();
       }
-      return Value.UnknownValue.getInstance();
-    }
 
-    final Value value = unaryOperand.accept(this);
+      default -> {
+        final Value value = unaryOperand.accept(this);
 
-    if (value.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
+        if (value.isUnknown()) {
+          yield Value.UnknownValue.getInstance();
+        }
 
-    if (value instanceof SymbolicValue) {
-      final CType expressionType = unaryExpression.getExpressionType();
-      final CType operandType = unaryOperand.getExpressionType();
+        if (value instanceof SymbolicValue) {
+          final CType expressionType = unaryExpression.getExpressionType();
+          final CType operandType = unaryOperand.getExpressionType();
 
-      return createSymbolicExpression(value, operandType, unaryOperator, expressionType);
+          yield createSymbolicExpression(value, operandType, unaryOperator, expressionType);
 
-    } else if (!value.isNumericValue()) {
-      logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
-      return Value.UnknownValue.getInstance();
-    }
+        } else if (!value.isNumericValue()) {
+          logger.logf(
+              Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
+          yield Value.UnknownValue.getInstance();
+        }
 
-    final NumericValue numericValue = (NumericValue) value;
-    return switch (unaryOperator) {
-      case MINUS -> numericValue.negate();
-      case TILDE -> new NumericValue(~numericValue.longValue());
-      default -> throw new AssertionError("unknown operator: " + unaryOperator);
+        final NumericValue numericValue = (NumericValue) value;
+        yield switch (unaryOperator) {
+          case MINUS -> numericValue.negate();
+          case TILDE -> new NumericValue(~numericValue.longValue());
+          default -> throw new AssertionError("unknown operator: " + unaryOperator);
+        };
+      }
     };
   }
 
@@ -2118,20 +2121,15 @@ public abstract class AbstractExpressionValueVisitor
     } else if (valueObject.isNumericValue()) {
       NumericValue value = (NumericValue) valueObject;
 
-      switch (unaryOperator) {
-        case MINUS:
-          return value.negate();
-
-        case COMPLEMENT:
-          return evaluateComplement(unaryOperand, value);
-
-        case PLUS:
-          return value;
-
-        default:
+      return switch (unaryOperator) {
+        case MINUS -> value.negate();
+        case COMPLEMENT -> evaluateComplement(unaryOperand, value);
+        case PLUS -> value;
+        default -> {
           logger.log(Level.FINE, errorMsg);
-          return UnknownValue.getInstance();
-      }
+          yield UnknownValue.getInstance();
+        }
+      };
 
     } else if (valueObject instanceof BooleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {

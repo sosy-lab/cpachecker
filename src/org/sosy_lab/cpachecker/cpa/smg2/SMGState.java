@@ -3801,7 +3801,7 @@ public class SMGState
         constraintFactory.getUnequalConstraint(
             symbolicValueToBlock, valueToBlock, typeOfValueToBlock, this);
 
-    return this.addConstraint(newConstraint);
+    return addConstraint(newConstraint);
   }
 
   /** Returns a new state with a new constraint added: symbolicValue == value. */
@@ -3814,7 +3814,7 @@ public class SMGState
     final Constraint newConstraint =
         constraintFactory.getEqualConstraint(symbolicValueToAssign, value, typeOfValue, this);
 
-    return this.addConstraint(newConstraint);
+    return addConstraint(newConstraint);
   }
 
   /**

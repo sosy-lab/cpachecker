@@ -758,7 +758,8 @@ public interface PointerTargetSetBuilder {
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
     @Override
     public int getFreshAllocationId() {
-      return allocationCount = Math.incrementExact(allocationCount);
+      allocationCount = Math.incrementExact(allocationCount);
+      return allocationCount;
     }
   }
 

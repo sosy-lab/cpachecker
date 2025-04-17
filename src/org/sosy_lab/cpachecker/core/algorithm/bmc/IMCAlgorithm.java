@@ -204,30 +204,36 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute BMC phase of IMC or ISMC\n"
-                + "CONST: increased by one (to guarantee a shortest counterexample)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute BMC phase of IMC or ISMC
+            CONST: increased by one (to guarantee a shortest counterexample)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy loopBoundIncrementStrategyForBMC =
         LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute k-inductive check if \"checkPropertyInductiveness\" is enabled\n"
-                + "CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute k-inductive check if "checkPropertyInductiveness" is enabled
+            CONST: increased by by a constant (specified via loopBoundIncrementValueForKI)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy loopBoundIncrementStrategyForKI =
         LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration\n"
-                + "to execute interpolation phase of IMC\n"
-                + "CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)\n"
-                + "EAGER: skip all iterations where a bug cannot be found")
+            """
+            toggle the strategy to determine the next loop iteration
+            to execute interpolation phase of IMC
+            CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)
+            EAGER: skip all iterations where a bug cannot be found\
+            """)
     private LoopBoundIncrementStrategy loopBoundIncrementStrategyForIMC =
         LoopBoundIncrementStrategy.CONST;
 

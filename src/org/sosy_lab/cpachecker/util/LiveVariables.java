@@ -501,7 +501,7 @@ public class LiveVariables {
 
       // find calls to non-returning functions
       Iterable<CFANode> nonReturning =
-          FluentIterable.from(reached).filter(node -> node instanceof CFATerminationNode);
+          FluentIterable.from(reached).filter(CFATerminationNode.class::isInstance);
 
       // add calls to non-returning functions as additional entry points
       for (CFANode finalNode : nonReturning) {

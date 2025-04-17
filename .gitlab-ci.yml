@@ -26,7 +26,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: bba447e6b8e1df7ef8cdb6864319a4569e3e275b
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.36.0
+  REFASTER_VERSION: 2.37.0
 
 auto-update-dependencies:
   stage: deploy

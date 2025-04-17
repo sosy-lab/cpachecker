@@ -273,14 +273,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     Map<CFANode, Collection<CandidateInvariant>> invPerLoc =
         Maps.newHashMapWithExpectedSize(contextLocToStates.keySet().size());
-    Collection<CandidateInvariant> invariants;
 
     for (Pair<CFANode, Optional<CallstackStateEqualsWrapper>> contextLoc :
         contextLocToStates.keySet()) {
       if (!invPerLoc.containsKey(contextLoc.getFirstNotNull())) {
         invPerLoc.put(contextLoc.getFirstNotNull(), new ArrayList<>());
       }
-      invariants = invPerLoc.get(contextLoc.getFirstNotNull());
+      Collection<CandidateInvariant> invariants = invPerLoc.get(contextLoc.getFirstNotNull());
 
       invariants.addAll(generateInvariants(contextLocToStates.get(contextLoc)));
     }
@@ -291,23 +290,20 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private ImmutableMultimap<
           Pair<CFANode, Optional<CallstackStateEqualsWrapper>>, ValueAnalysisState>
       extractAndMapRelevantValueStates(final UnmodifiableReachedSet pReached) {
-    CFANode loc;
     Optional<CallstackStateEqualsWrapper> callstack = Optional.empty();
-    ValueAnalysisState currentValState;
-    Pair<CFANode, Optional<CallstackStateEqualsWrapper>> key;
     ImmutableMultimap.Builder<
             Pair<CFANode, Optional<CallstackStateEqualsWrapper>>, ValueAnalysisState>
         multiMapBuilder = new ImmutableMultimap.Builder<>();
 
     for (AbstractState currentAbstractState : pReached) {
-      loc = AbstractStates.extractLocation(currentAbstractState);
+      CFANode loc = AbstractStates.extractLocation(currentAbstractState);
       if (loopHeads == null || loopHeads.contains(loc)) {
         if (invariantsContextSensitive) {
           callstack = AbstractStates.extractOptionalCallstackWraper(currentAbstractState);
         }
-        currentValState =
+        ValueAnalysisState currentValState =
             AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
-        key = Pair.of(loc, callstack);
+        Pair<CFANode, Optional<CallstackStateEqualsWrapper>> key = Pair.of(loc, callstack);
         multiMapBuilder.put(key, currentValState);
       }
     }
@@ -358,16 +354,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       varsWithVals.put(var, new ArrayList<>(pValStates.size()));
     }
 
-    Entry<MemoryLocation, List<ValueAndType>> varWithVals;
-    MemoryLocation var;
-    Set<MemoryLocation> trackedInState;
     for (final ValueAnalysisState valueState : pValStates) {
-      trackedInState = valueState.getTrackedMemoryLocations();
+      Set<MemoryLocation> trackedInState = valueState.getTrackedMemoryLocations();
       for (Iterator<Entry<MemoryLocation, List<ValueAndType>>> varValsIt =
               varsWithVals.entrySet().iterator();
           varValsIt.hasNext(); ) {
-        varWithVals = varValsIt.next();
-        var = varWithVals.getKey();
+        Entry<MemoryLocation, List<ValueAndType>> varWithVals = varValsIt.next();
+        MemoryLocation var = varWithVals.getKey();
         // restrict to variables with numerical or Boolean values
         if (!trackedInState.contains(var)
             || valueState.getValueFor(var).isUnknown()
@@ -416,15 +409,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not expressible: zweierpotenz
     numNumericInvariants = 0;
     numBooleanInvariants = 0;
-    SingleNumericVariableInvariant numInv;
-    SingleBooleanVariableInvariant boolInv;
-    Value val;
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
       if (!varAndVals.getKey().isReference()) {
-        val = varAndVals.getValue().get(0).getValue();
+        Value val = varAndVals.getValue().get(0).getValue();
         if (val.isExplicitlyKnown() && val.isNumericValue()) {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
-          numInv =
+          SingleNumericVariableInvariant numInv =
               new SingleNumericVariableInvariant(
                   varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
@@ -433,7 +423,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           pInvBuilder.add(numInv);
           numNumericInvariants += numInv.getNumInvariants();
         } else if (val instanceof BooleanValue) {
-          boolInv = new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
+          SingleBooleanVariableInvariant boolInv =
+              new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             boolInv.adaptToAdditionalValue(valPlusType.getValue());
           }
@@ -464,16 +455,6 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // x&y, x|y, x^y, x<<y, x>>y
     // not expressible: x = y**2
 
-    TwoVariableRelationInvariant relInv;
-    TwoVariableArithmeticInvariant arInv;
-    TwoVariableBitOpsInvariant bitInv;
-    LinearInEqualityInvariant linInv1;
-    LinearInEqualityInvariant linInv2;
-    CSimpleType type1;
-    CSimpleType type2;
-    List<ValueAndType> val1;
-    List<ValueAndType> val2;
-
     // restricted to variable pairs that are both of CSimpleType,
     // are either both integer types or floating types and have the same sign
     Set<MemoryLocation> exploredVars = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
@@ -483,7 +464,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         continue;
       }
 
-      type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
+      CSimpleType type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
 
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         if (varWithVals1.getKey().equals(varWithVals2.getKey())
@@ -492,7 +473,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           continue;
         }
 
-        type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
+        CSimpleType type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
         // only pair integer types with integer types and floating point types with floating
         // point types due to incompatibilities in formula encodings
         if (((type1.getType().isIntegerType()
@@ -504,8 +485,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           Preconditions.checkState(!type1.hasComplexSpecifier() && !type1.hasImaginarySpecifier());
           Preconditions.checkState(!type2.hasComplexSpecifier() && !type2.hasImaginarySpecifier());
 
-          val1 = varWithVals1.getValue();
-          val2 = varWithVals2.getValue();
+          List<ValueAndType> val1 = varWithVals1.getValue();
+          List<ValueAndType> val2 = varWithVals2.getValue();
           if (val1.isEmpty()
               || val1.size() != val2.size()
               || !val1.get(0).getValue().isNumericValue()
@@ -513,6 +494,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             continue;
           }
 
+          LinearInEqualityInvariant linInv1;
+          LinearInEqualityInvariant linInv2;
           if (exportLinear && val1.size() >= 2) {
 
             Number[] coefficients =
@@ -570,6 +553,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             linInv2 = null;
           }
 
+          TwoVariableArithmeticInvariant arInv;
           if (exportArithmetic) {
             arInv =
                 new TwoVariableArithmeticInvariant(
@@ -581,6 +565,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             arInv = null;
           }
 
+          TwoVariableBitOpsInvariant bitInv;
           if (exportBitops
               && type1.getType().isIntegerType()
               && type2.getType().isIntegerType()
@@ -601,6 +586,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             bitInv = null;
           }
 
+          TwoVariableRelationInvariant relInv;
           if (exportRelational
               && (!(val1.get(0).getValue().asNumericValue().getNumber() instanceof BigInteger)
                   || containslongValue(
@@ -690,16 +676,6 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     Preconditions.checkState(exportTernary);
     numLinearInvariants = Math.max(0, numLinearInvariants);
 
-    CSimpleType type1;
-    CSimpleType type2;
-    CSimpleType type3;
-    LinearInEqualityInvariant linInv1;
-    LinearInEqualityInvariant linInv2;
-    LinearInEqualityInvariant linInv3;
-    List<ValueAndType> val1;
-    List<ValueAndType> val2;
-    List<ValueAndType> val3;
-
     Set<MemoryLocation> exploredVarsOuter = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     Set<MemoryLocation> exploredVarsInner = Sets.newHashSetWithExpectedSize(pVarsWithVals.size());
     for (Entry<MemoryLocation, List<ValueAndType>> varWithVals1 : pVarsWithVals.entrySet()) {
@@ -709,7 +685,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         continue;
       }
 
-      type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
+      CSimpleType type1 = (CSimpleType) varToType.get(varWithVals1.getKey());
 
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         exploredVarsInner.clear();
@@ -722,7 +698,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           continue;
         }
 
-        type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
+        CSimpleType type2 = (CSimpleType) varToType.get(varWithVals2.getKey());
         // only pair integer types with integer types and floating point types with floating
         // point types due to incompatibilities in formula encodings
         if (((type1.getType().isIntegerType()
@@ -745,7 +721,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               continue;
             }
 
-            type3 = (CSimpleType) varToType.get(varWithVals3.getKey());
+            CSimpleType type3 = (CSimpleType) varToType.get(varWithVals3.getKey());
             // only pair integer types with integer types and floating point types with floating
             // point types due to incompatibilities in formula encodings
             if (((type1.getType().isIntegerType()
@@ -758,9 +734,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               Preconditions.checkState(
                   !type3.hasComplexSpecifier() && !type3.hasImaginarySpecifier());
 
-              val1 = varWithVals1.getValue();
-              val2 = varWithVals2.getValue();
-              val3 = varWithVals3.getValue();
+              List<ValueAndType> val1 = varWithVals1.getValue();
+              List<ValueAndType> val2 = varWithVals2.getValue();
+              List<ValueAndType> val3 = varWithVals3.getValue();
 
               Number[] coefficients =
                   computeCoefficientsForLinearEquation(
@@ -778,6 +754,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       0,
                       type1.getType().isFloatingPointType());
 
+              LinearInEqualityInvariant linInv1;
               if (coefficients != null) {
                 linInv1 =
                     new LinearInEqualityInvariant(
@@ -806,6 +783,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       1,
                       type1.getType().isFloatingPointType());
 
+              LinearInEqualityInvariant linInv2;
               if (coefficients != null) {
                 linInv2 =
                     new LinearInEqualityInvariant(
@@ -834,6 +812,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                       2,
                       type1.getType().isFloatingPointType());
 
+              LinearInEqualityInvariant linInv3;
               if (coefficients != null) {
                 linInv3 =
                     new LinearInEqualityInvariant(
@@ -907,12 +886,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         FluentIterable.from(varValsWithCoeff)
             .allMatch(varVals -> varVals != null && varVals.length == eqVarVals.length));
 
-    Value val;
     boolean linConstraint = true;
     Number[][] eqMatrix = new Number[varValsWithCoeff.length + 1][varValsWithCoeff.length + 2];
 
     for (int i = 0; i < eqMatrix.length && linConstraint; i++) {
-      val = eqVarVals[i].getValue();
+      Value val = eqVarVals[i].getValue();
       if (val.isNumericValue()) {
         eqMatrix[i][eqMatrix.length] = val.asNumericValue().getNumber();
       } else {
@@ -2516,7 +2494,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             switch (op) {
               case EQ ->
                   compResWithZero < 0
-                      ? op = EqualCompareType.LEQ
+                      ? EqualCompareType.LEQ
                       : (compResWithZero > 0 ? EqualCompareType.GEQ : op);
               case GEQ -> compResWithZero >= 0 ? op : EqualCompareType.NONE;
               case LEQ -> compResWithZero <= 0 ? op : EqualCompareType.NONE;
