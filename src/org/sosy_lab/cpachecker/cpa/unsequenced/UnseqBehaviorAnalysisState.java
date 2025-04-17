@@ -17,116 +17,171 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
-
-
 public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
 
-  private final Map<CFAEdge, Set<SideEffectInfo>> sideEffectsByEdge;
   private final Map<String, Set<SideEffectInfo>> sideEffectsInFun;
   private boolean isFunctionCalled;
-  private final Map<CFAEdge, Set<SideEffectInfo>>  detectedConflictLocations;
+  private String calledFunctionName;
+  private final Set<ConflictPair> detectedConflicts;
+  private final Map<String, String> tmpNameFunNameMap;
 
   public UnseqBehaviorAnalysisState(
-      Map<CFAEdge, Set<SideEffectInfo>> pSideEffectsByEdge,
       Map<String, Set<SideEffectInfo>> pSideEffectsInFun,
       boolean pIsFunctionCalled,
-      Map<CFAEdge, Set<SideEffectInfo>> pDetectedConflictLocations) {
-    sideEffectsByEdge = pSideEffectsByEdge;
+      String pCalledFunctionName,
+      Set<ConflictPair> pDetectedConflicts,
+      Map<String, String> pTmpNameFunNameMap) {
     sideEffectsInFun = pSideEffectsInFun;
     isFunctionCalled = pIsFunctionCalled;
-    detectedConflictLocations = pDetectedConflictLocations;
+    calledFunctionName = pCalledFunctionName;
+    detectedConflicts = pDetectedConflicts;
+    tmpNameFunNameMap = pTmpNameFunNameMap;
   }
 
   public UnseqBehaviorAnalysisState() {
-    sideEffectsByEdge = new HashMap<>();
     sideEffectsInFun = new HashMap<>();
     isFunctionCalled = false;
-    detectedConflictLocations = new HashMap<>();
-  }
-
-  public Map<CFAEdge, Set<SideEffectInfo>> getSideEffectsByEdge() {
-    return sideEffectsByEdge;
+    calledFunctionName = null;
+    detectedConflicts = new HashSet<>();
+    tmpNameFunNameMap = new HashMap<>();
   }
 
   public Map<String, Set<SideEffectInfo>> getSideEffectsInFun() {
     return sideEffectsInFun;
   }
 
+  public void addSideEffectsToFunction(String functionName, Set<SideEffectInfo> newEffects) {
+    sideEffectsInFun
+        .computeIfAbsent(functionName, k -> new HashSet<>())
+        .addAll(newEffects);
+  }
+
+  public void addConflicts(Set<ConflictPair> conflicts) {
+    detectedConflicts.addAll(conflicts);
+  }
+
+  public Set<ConflictPair> getDetectedConflicts() {
+    return detectedConflicts;
+  }
+
   public boolean hasFunctionCallOccurred() {
     return isFunctionCalled;
   }
 
-  public Map<CFAEdge, Set<SideEffectInfo>> getDetectedConflictLocations() {
-    return detectedConflictLocations;
+  public String getCalledFunctionName() {
+    return calledFunctionName;
+  }
+
+  public void setCalledFunctionName(String pCalledFunctionName) {
+    calledFunctionName = pCalledFunctionName;
+  }
+
+  public void setFunctionCalled(boolean pFunctionCalled) {
+    isFunctionCalled = pFunctionCalled;
+  }
+
+  public void mapTmpToFunction(String tmpVar, String functionName) {
+    tmpNameFunNameMap.put(tmpVar, functionName);
+  }
+
+  public String getFunctionForTmp(String tmpVar) {
+    return tmpNameFunNameMap.get(tmpVar);
+  }
+
+  public void removeTmpMapping(String tmpVar) {
+    tmpNameFunNameMap.remove(tmpVar);
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
-    if (!(o instanceof UnseqBehaviorAnalysisState)) return false;
-    UnseqBehaviorAnalysisState that = (UnseqBehaviorAnalysisState) o;
-    return isFunctionCalled == that.isFunctionCalled
-        && Objects.equals(sideEffectsByEdge, that.sideEffectsByEdge)
-        && Objects.equals(sideEffectsInFun, that.sideEffectsInFun)
-        && Objects.equals(detectedConflictLocations, that.detectedConflictLocations);
+    if (!(o instanceof UnseqBehaviorAnalysisState other)) return false;
+    return isFunctionCalled == other.isFunctionCalled
+        && Objects.equals(calledFunctionName, other.calledFunctionName)
+        && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
+        && Objects.equals(detectedConflicts, other.detectedConflicts)
+        && Objects.equals(tmpNameFunNameMap, other.tmpNameFunNameMap);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(sideEffectsByEdge, sideEffectsInFun, isFunctionCalled, detectedConflictLocations);
+    return Objects.hash(
+        sideEffectsInFun,
+        isFunctionCalled,
+        calledFunctionName,
+        detectedConflicts,
+        tmpNameFunNameMap
+    );
+
   }
-
-
-  public void addSideEffectForEdge(CFAEdge edge, Set<SideEffectInfo> sideEffects) {
-    sideEffectsByEdge.computeIfAbsent(edge, __ -> new HashSet<>())
-        .addAll(sideEffects);
-  }
-
-  public void addConflict(CFAEdge edge, Set<SideEffectInfo> sideEffects) {
-    detectedConflictLocations
-        .computeIfAbsent(edge, __ -> new HashSet<>())
-        .addAll(sideEffects);
-  }
-
 
   public String printConflict() {
-
-    if (detectedConflictLocations.isEmpty()) {
-      return "No conflicts detected.";
+    if (detectedConflicts.isEmpty()) {
+      return "conflicts[]";
     }
 
-    StringBuilder sb = new StringBuilder();
-    sb.append("Detected Conflicts:\n");
+    StringBuilder sb = new StringBuilder("conflicts[");
 
-    for (Map.Entry<CFAEdge, Set<SideEffectInfo>> entry : detectedConflictLocations.entrySet()) {
-      CFAEdge edge = entry.getKey();
-      Set<SideEffectInfo> effects = entry.getValue();
+    boolean first = true;
+    for (ConflictPair conflict : detectedConflicts) {
+      CFAEdge edge = conflict.getLocation();
+      String stmt = edge.getRawStatement();
+      String file = edge.getFileLocation().getNiceFileName();
+      int line = edge.getLineNumber();
 
-      sb.append("  Conflict at: \"")
-          .append(edge.getRawStatement())
-          .append("\" (")
-          .append(edge.getFileLocation().getNiceFileName())
-          .append(":")
-          .append(edge.getLineNumber())
-          .append(")\n");
+      String accessA = conflict.getAccessA().toStringSimple();
+      String accessB = conflict.getAccessB().toStringSimple();
 
-      for (SideEffectInfo info : effects) {
-        sb.append("    → ").append(info.toStringSimple()).append("\n");
+      if (!first) {
+        sb.append(", ");
+      } else {
+        first = false;
       }
+
+      sb.append(String.format(
+          "[%s, %s:%d, %s, %s]",
+          stmt, file, line, accessA, accessB));
     }
 
-
+    sb.append("]");
     return sb.toString();
   }
 
+  public String printSideEffectsInFun() {
+    if (sideEffectsInFun.isEmpty()) {
+      return "SideEffectsInFun[]";
+    }
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("SideEffectsInFun[");
+
+    boolean firstEffect = true;
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : sideEffectsInFun.entrySet()) {
+      String functionName = entry.getKey();
+      for (SideEffectInfo effect : entry.getValue()) {
+        if (!firstEffect) {
+          sb.append(", ");
+        } else {
+          firstEffect = false;
+        }
+
+        sb.append("[").append(functionName).append(": ").append(effect.toStringSimple()).append("]");
+      }
+    }
+
+    sb.append("]");
+    return sb.toString();
+  }
+
+
   @Override
   public String toDOTLabel() {
-    return printConflict();
-
+    return printConflict() +
+        printSideEffectsInFun();
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    return !detectedConflicts.isEmpty();
   }
 }

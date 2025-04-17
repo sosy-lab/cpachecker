@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -32,8 +30,8 @@ import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Map<CFAEdge, Set<SideEffectInfo>>, UnrecognizedCodeException>
-    implements CRightHandSideVisitor<Map<CFAEdge, Set<SideEffectInfo>>, UnrecognizedCodeException> {
+public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Set<SideEffectInfo>, UnrecognizedCodeException>
+    implements CRightHandSideVisitor<Set<SideEffectInfo>, UnrecognizedCodeException> {
 
   private final UnseqBehaviorAnalysisState state;
   private final CFAEdge cfaEdge;
@@ -52,14 +50,14 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Map<CFAEd
   }
 
   @Override
-  protected Map<CFAEdge, Set<SideEffectInfo>> visitDefault(CExpression exp) throws UnrecognizedCodeException {
-    return Collections.emptyMap();
+  protected Set<SideEffectInfo> visitDefault(CExpression exp) throws UnrecognizedCodeException {
+    return Collections.emptySet();
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CIdExpression idExpr) {
+  public Set<SideEffectInfo> visit(CIdExpression idExpr) {
     Set<SideEffectInfo> sideEffects = new HashSet<>();
-    // Variable access: record as READ if global
+    // Variable access: record as READ/WRITE if global
     if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
       String qualifiedName = decl.getQualifiedName();
       MemoryLocation loc = MemoryLocation.fromQualifiedName(qualifiedName);
@@ -77,17 +75,17 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Map<CFAEd
       }
     }
 
-    return record(sideEffects);
+    return sideEffects;
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CFunctionCallExpression funCallExpr) throws UnrecognizedCodeException {
+  public Set<SideEffectInfo> visit(CFunctionCallExpression funCallExpr) throws UnrecognizedCodeException {
     Set<SideEffectInfo> sideEffects = new HashSet<>();
 
     //gather side effects for each parameter
     for(CExpression param: funCallExpr.getParameterExpressions()){
-      Map<CFAEdge, Set<SideEffectInfo>> paramEffects = param.accept(this);
-      paramEffects.values().forEach(sideEffects::addAll);
+      Set<SideEffectInfo> paramEffects = param.accept(this);
+      sideEffects.addAll(paramEffects);
     }
 
     //gather side effects inside function
@@ -102,70 +100,49 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Map<CFAEd
       // e.g., (*fp)(), *get_ptr()()...
     }
 
-    return record(sideEffects) ;
+    return sideEffects;
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CBinaryExpression binaryExpression) throws UnrecognizedCodeException {
+  public  Set<SideEffectInfo> visit(CBinaryExpression binaryExpression) throws UnrecognizedCodeException {
     Set<SideEffectInfo> sideEffects = new HashSet<>();
 
-    Map<CFAEdge, Set<SideEffectInfo>> leftSideEffects = binaryExpression.getOperand1().accept(this);
-    leftSideEffects.values().forEach(sideEffects::addAll);
-    Map<CFAEdge, Set<SideEffectInfo>> rightSideEffects = binaryExpression.getOperand2().accept(this);
-    rightSideEffects.values().forEach(sideEffects::addAll);
+    Set<SideEffectInfo> leftSideEffects = binaryExpression.getOperand1().accept(this);
+    sideEffects.addAll(leftSideEffects);
+    Set<SideEffectInfo> rightSideEffects = binaryExpression.getOperand2().accept(this);
+    sideEffects.addAll(rightSideEffects);;
 
-    return record(sideEffects);
+    return sideEffects;
   }
 
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
-    Set<SideEffectInfo> effects = switch (unaryExpression.getOperator()) {
-      case SIZEOF, ALIGNOF -> Set.of();
-      case MINUS, TILDE, AMPER -> {
-        Map<CFAEdge, Set<SideEffectInfo>> operandEffects = unaryExpression.getOperand().accept(this);
-        Set<SideEffectInfo> collected = new HashSet<>();
-        operandEffects.values().forEach(collected::addAll);
-        yield collected;
-      }
-      default -> throw new UnrecognizedCodeException("unknown unary operator", cfaEdge, unaryExpression);
+  public Set<SideEffectInfo> visit(CUnaryExpression unaryExpression) throws UnrecognizedCodeException {
+    return switch (unaryExpression.getOperator()) {
+      case SIZEOF, ALIGNOF -> Collections.emptySet();
+      case MINUS, TILDE, AMPER -> unaryExpression.getOperand().accept(this);
+      default -> throw new UnrecognizedCodeException("Unknown unary operator", cfaEdge, unaryExpression);
     };
-    return record(effects);
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CFieldReference fieldReference) throws UnrecognizedCodeException {
-    return collectAndRecord(fieldReference);
+  public Set<SideEffectInfo> visit(CFieldReference fieldReference) throws UnrecognizedCodeException {
+    return fieldReference.getFieldOwner().accept(this);
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CCastExpression castExpr) throws UnrecognizedCodeException {
-    return collectAndRecord(castExpr);
+  public Set<SideEffectInfo> visit(CCastExpression castExpr) throws UnrecognizedCodeException {
+    return castExpr.getOperand().accept(this);
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CComplexCastExpression complexCastExpr) throws UnrecognizedCodeException {
-    return collectAndRecord(complexCastExpr);
+  public Set<SideEffectInfo> visit(CComplexCastExpression complexCastExpr) throws UnrecognizedCodeException {
+    return complexCastExpr.getOperand().accept(this);
   }
 
   @Override
-  public Map<CFAEdge, Set<SideEffectInfo>> visit(CPointerExpression pointExpr) throws UnrecognizedCodeException {
-    return collectAndRecord(pointExpr);
+  public Set<SideEffectInfo> visit(CPointerExpression pointExpr) throws UnrecognizedCodeException {
+    return pointExpr.getOperand().accept(this);
   }
 
-  private Map<CFAEdge, Set<SideEffectInfo>> record(Set<SideEffectInfo> effects) {
-    if (effects.isEmpty()) {
-      return Collections.emptyMap();
-    }
-    Map<CFAEdge, Set<SideEffectInfo>> result = new HashMap<>();
-    result.put(cfaEdge, effects);
-    return result;
-  }
-
-  private Map<CFAEdge, Set<SideEffectInfo>> collectAndRecord(CExpression expr) throws UnrecognizedCodeException {
-    Set<SideEffectInfo> sideEffects = new HashSet<>();
-    Map<CFAEdge, Set<SideEffectInfo>> effects = expr.accept(this);
-    effects.values().forEach(sideEffects::addAll);
-    return record(sideEffects);
-  }
 }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 int x = 0;
+int y = 0;
 
 int f() {
   x = 1;
@@ -8,11 +9,11 @@ int f() {
 }
 
 int g() {
-  x = 2;
-  return 0;
+  int a = y;
+  return a;
 }
 
 int main() {
-  int y = f() + g(); // Potential unsequenced write-write conflict on 'x'
+  int result = f() + g(); // f() writes x, g() reads y, no conflict
   return 0;
 }

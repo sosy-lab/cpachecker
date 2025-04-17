@@ -31,15 +31,14 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
-@Options(prefix = "cpa.globalvar")
-public class GlobalVarAnalysisCPA extends AbstractCPA implements StatisticsProvider {
-
+@Options(prefix = "cpa.unseqbehavior")
+public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsProvider {
   @Option(
       secure = true,
       name = "merge",
       toUppercase = true,
       values = {"SEP", "JOIN"},
-      description = "which merge operator to use for GlobalVarAnalysisCPA")
+      description = "which merge operator to use for UnseqBehaviorAnalysisCPA ")
   private String mergeType = "SEP";
 
   @Option(
@@ -47,13 +46,13 @@ public class GlobalVarAnalysisCPA extends AbstractCPA implements StatisticsProvi
       name = "stop",
       toUppercase = true,
       values = {"SEP", "JOIN", "NEVER"},
-      description = "which stop operator to use for GlobalVarAnalysisCPA")
+      description = "which stop operator to use for UnseqBehaviorAnalysisCPA")
   private String stopType = "SEP";
 
   private final StateToFormulaWriter writer;
   private final LogManager logger;
 
-  private GlobalVarAnalysisCPA(
+  private UnseqBehaviorAnalysisCPA (
       Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
@@ -63,7 +62,7 @@ public class GlobalVarAnalysisCPA extends AbstractCPA implements StatisticsProvi
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(GlobalVarAnalysisCPA.class);
+    return AutomaticCPAFactory.forType(UnseqBehaviorAnalysisCPA.class);
   }
 
   @Override
@@ -78,15 +77,13 @@ public class GlobalVarAnalysisCPA extends AbstractCPA implements StatisticsProvi
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new GlobalVarAnalysisTransferRelation(logger);
+    return new UnseqBehaviorAnalysisTransferRelation(logger);
   }
-
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new GlobalVarAnalysisState();
+    return new UnseqBehaviorAnalysisState();
   }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     writer.collectStatistics(pStatsCollection);

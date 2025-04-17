@@ -1936,14 +1936,6 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
-# which merge operator to use for GlobalVarAnalysisCPA
-cpa.globalvar.merge = "SEP"
-  allowed values: [SEP, JOIN]
-
-# which stop operator to use for GlobalVarAnalysisCPA
-cpa.globalvar.stop = "SEP"
-  allowed values: [SEP, JOIN, NEVER]
-
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -3665,6 +3657,14 @@ cpa.uninitvars.printWarnings = "true"
 # which stop operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.stop = "sep"
   allowed values: [sep, join]
+
+# which merge operator to use for UnseqBehaviorAnalysisCPA 
+cpa.unseqbehavior.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
+# which stop operator to use for UnseqBehaviorAnalysisCPA
+cpa.unseqbehavior.stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
 
 # functions, which stops analysis
 cpa.usage.abortfunctions = {}
