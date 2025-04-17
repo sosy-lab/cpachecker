@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -46,8 +47,8 @@ public class InstrumentationPattern {
     pattern = pPattern;
     if (pPattern.startsWith("FUNC")) {
       functionName = pPattern
-          .replace("FUNC\\(", "")
-          .replace("\\)","");
+          .replace("FUNC(", "")
+          .replace(")","");
       type = patternType.FUNC;
       return;
     } else {
@@ -136,7 +137,7 @@ public class InstrumentationPattern {
       case TRUE -> ImmutableList.of();
       case COND -> isOriginalCond(pCFAEdge) ? ImmutableList.of() : null;
       case NOT_COND -> isNegatedCond(pCFAEdge) ? ImmutableList.of() : null;
-      case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, functionName, pDecomposedMap);
+      case FUNC -> getTheOperandsFromFunctionCall(pCFAEdge, pDecomposedMap);
       case ADD -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.PLUS, pDecomposedMap);
       case SUB -> getTheOperandsFromOperation(pCFAEdge, BinaryOperator.MINUS, pDecomposedMap);
       case NEG -> getTheOperandsFromUnaryOperation(pCFAEdge, UnaryOperator.MINUS, pDecomposedMap);
@@ -248,18 +249,19 @@ public class InstrumentationPattern {
 
   @Nullable
   private ImmutableList<String> getTheOperandsFromFunctionCall(
-      CFAEdge pCFAEdge, String pFuncName, Map<CFANode, String> pDecomposedMap) {
+      CFAEdge pCFAEdge, Map<CFANode, String> pDecomposedMap) {
     if (pCFAEdge.getRawAST().isPresent()) {
       AAstNode astNode = pCFAEdge.getRawAST().orElseThrow();
       CFunctionCallExpression expression;
-
+      if (astNode instanceof CReturnStatement && functionName.startsWith("return")) {
+        return ImmutableList.of();
+      }
       if (astNode instanceof CFunctionCall) {
         expression = ((CFunctionCall) astNode).getFunctionCallExpression();
       } else {
         return null;
       }
-
-      if (expression.getFunctionNameExpression().toString().equals(pFuncName)) {
+      if (expression.getFunctionNameExpression().toString().equals(functionName)) {
         String condition = collectConditionFromPreviousEdge(pCFAEdge);
         if (pDecomposedMap.containsKey(pCFAEdge.getPredecessor())) {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
