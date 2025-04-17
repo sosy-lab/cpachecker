@@ -223,14 +223,14 @@ public final class CCfaTransformer {
         return newNode;
       }
 
-      if (pOldNode instanceof CFALabelNode) {
-        newNode = newCfaLabelNode((CFALabelNode) pOldNode);
-      } else if (pOldNode instanceof CFunctionEntryNode) {
-        newNode = newCFunctionEntryNode((CFunctionEntryNode) pOldNode);
-      } else if (pOldNode instanceof FunctionExitNode) {
-        newNode = newFunctionExitNode((FunctionExitNode) pOldNode);
-      } else if (pOldNode instanceof CFATerminationNode) {
-        newNode = newCfaTerminationNode((CFATerminationNode) pOldNode);
+      if (pOldNode instanceof CFALabelNode cFALabelNode) {
+        newNode = newCfaLabelNode(cFALabelNode);
+      } else if (pOldNode instanceof CFunctionEntryNode cFunctionEntryNode) {
+        newNode = newCFunctionEntryNode(cFunctionEntryNode);
+      } else if (pOldNode instanceof FunctionExitNode functionExitNode) {
+        newNode = newFunctionExitNode(functionExitNode);
+      } else if (pOldNode instanceof CFATerminationNode cFATerminationNode) {
+        newNode = newCfaTerminationNode(cFATerminationNode);
       } else {
         newNode = newCfaNode(pOldNode);
       }
@@ -509,8 +509,8 @@ public final class CCfaTransformer {
 
       for (CFANode newCfaNode : oldNodeToNewNode.values()) {
         for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
-          if (newCfaEdge instanceof SummaryPlaceholderEdge) {
-            summaryPlaceholderEdges.add((SummaryPlaceholderEdge) newCfaEdge);
+          if (newCfaEdge instanceof SummaryPlaceholderEdge summaryPlaceholderEdge) {
+            summaryPlaceholderEdges.add(summaryPlaceholderEdge);
           }
         }
       }
@@ -537,8 +537,8 @@ public final class CCfaTransformer {
         CFANode newNode = toNew(oldNode);
         String functionName = newNode.getFunction().getQualifiedName();
 
-        if (newNode instanceof FunctionEntryNode) {
-          newFunctions.put(functionName, (FunctionEntryNode) newNode);
+        if (newNode instanceof FunctionEntryNode functionEntryNode) {
+          newFunctions.put(functionName, functionEntryNode);
         }
 
         newNodes.put(functionName, newNode);

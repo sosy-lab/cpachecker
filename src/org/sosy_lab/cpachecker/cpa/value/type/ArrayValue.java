@@ -110,8 +110,8 @@ public final class ArrayValue implements Value {
     if (pType instanceof JClassOrInterfaceType) {
       return NullValue.getInstance();
 
-    } else if (pType instanceof JSimpleType) {
-      return switch ((JSimpleType) pType) {
+    } else if (pType instanceof JSimpleType jSimpleType) {
+      return switch (jSimpleType) {
         case BOOLEAN -> BooleanValue.valueOf(false);
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
         default -> throw new AssertionError("Unhandled type " + pType.getClass());
@@ -132,8 +132,8 @@ public final class ArrayValue implements Value {
 
     int counter = 0;
     for (Value v : pArrayValue.values) {
-      if (v instanceof ArrayValue) {
-        newArray.values[counter] = ArrayValue.copyOf((ArrayValue) v);
+      if (v instanceof ArrayValue arrayValue) {
+        newArray.values[counter] = ArrayValue.copyOf(arrayValue);
       } else {
         newArray.values[counter] = v;
       }
@@ -165,8 +165,8 @@ public final class ArrayValue implements Value {
       switch (concreteType) {
         case BYTE, CHAR, SHORT, INT, LONG -> {
           // check that, if Value is of NumericValue, it contains an integer
-          if (!(pValue instanceof NumericValue)
-              || (((NumericValue) pValue).doubleValue() % 1) != 0) {
+          if (!(pValue instanceof NumericValue numericValue)
+              || (numericValue.doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
         }

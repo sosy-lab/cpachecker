@@ -119,11 +119,11 @@ public class ReferencedVariablesCollector {
       case DeclarationEdge -> {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
         String lhsVarName = declaration.getQualifiedName();
-        if (declaration instanceof CVariableDeclaration) {
+        if (declaration instanceof CVariableDeclaration cVariableDeclaration) {
           allVars.add(lhsVarName);
-          CInitializer init = ((CVariableDeclaration) declaration).getInitializer();
-          if (init instanceof CInitializerExpression) {
-            Set<String> vars = collectVars(((CInitializerExpression) init).getExpression());
+          CInitializer init = cVariableDeclaration.getInitializer();
+          if (init instanceof CInitializerExpression cInitializerExpression) {
+            Set<String> vars = collectVars(cInitializerExpression.getExpression());
             varsToRHS.putAll(lhsVarName, vars);
             allVars.addAll(vars);
           }
@@ -187,22 +187,22 @@ public class ReferencedVariablesCollector {
   }
 
   private String getVarname(CLeftHandSide pNode) {
-    if (pNode instanceof CIdExpression) {
-      return ((CIdExpression) pNode).getDeclaration().getQualifiedName();
+    if (pNode instanceof CIdExpression cIdExpression) {
+      return cIdExpression.getDeclaration().getQualifiedName();
     }
 
     CExpression expr;
-    if (pNode instanceof CArraySubscriptExpression) {
-      expr = ((CArraySubscriptExpression) pNode).getArrayExpression();
-    } else if (pNode instanceof CPointerExpression) {
-      expr = ((CPointerExpression) pNode).getOperand();
+    if (pNode instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      expr = cArraySubscriptExpression.getArrayExpression();
+    } else if (pNode instanceof CPointerExpression cPointerExpression) {
+      expr = cPointerExpression.getOperand();
     } else {
       // TODO implement retrieval of deeper nested varnames, or use visitor?
       return pNode.toASTString();
     }
 
-    if (expr instanceof CLeftHandSide) {
-      return getVarname((CLeftHandSide) expr);
+    if (expr instanceof CLeftHandSide cLeftHandSide) {
+      return getVarname(cLeftHandSide);
     } else {
       return expr.toASTString();
     }

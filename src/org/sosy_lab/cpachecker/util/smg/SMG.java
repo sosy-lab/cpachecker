@@ -1987,8 +1987,8 @@ public class SMG {
       SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
 
     int minListLen = 0;
-    if (newTarget instanceof SMGSinglyLinkedListSegment) {
-      minListLen = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
+    if (newTarget instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment) {
+      minListLen = sMGSinglyLinkedListSegment.getMinLength();
     }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {

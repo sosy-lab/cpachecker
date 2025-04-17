@@ -102,11 +102,11 @@ public final class BAMPCCManager {
       // do not support nodes which are call nodes of multiple blocks
       Block analyzedBlock = partitioning.getBlockForCallNode(node);
       try {
-        if (!(pState instanceof BAMARGBlockStartState)
-            || ((BAMARGBlockStartState) pState).getAnalyzedBlock() == null
+        if (!(pState instanceof BAMARGBlockStartState bAMARGBlockStartState)
+            || bAMARGBlockStartState.getAnalyzedBlock() == null
             || !bamCPA.isCoveredBy(
                 wrappedReducer.getVariableReducedStateForProofChecking(pState, analyzedBlock, node),
-                ((BAMARGBlockStartState) pState).getAnalyzedBlock())) {
+                bAMARGBlockStartState.getAnalyzedBlock())) {
           return false;
         }
       } catch (CPAException e) {
@@ -324,8 +324,8 @@ public final class BAMPCCManager {
   }
 
   AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
-    if (!(pElem instanceof BAMARGBlockStartState) && pElem instanceof ARGState) {
-      return createAdditionalInfo((ARGState) pElem);
+    if (!(pElem instanceof BAMARGBlockStartState) && pElem instanceof ARGState aRGState) {
+      return createAdditionalInfo(aRGState);
     }
     return pElem;
   }

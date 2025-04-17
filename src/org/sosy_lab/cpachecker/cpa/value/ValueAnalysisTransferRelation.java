@@ -347,10 +347,10 @@ public class ValueAnalysisTransferRelation
       Value value;
       AExpression exp = arguments.get(i);
 
-      if (exp instanceof JExpression) {
-        value = ((JExpression) exp).accept(visitor);
-      } else if (exp instanceof CExpression) {
-        value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
+      if (exp instanceof JExpression jExpression) {
+        value = jExpression.accept(visitor);
+      } else if (exp instanceof CExpression cExpression) {
+        value = visitor.evaluate(cExpression, (CType) parameters.get(i).getType());
       } else {
         throw new AssertionError("Unknown expression: " + exp);
       }
@@ -485,21 +485,22 @@ public class ValueAnalysisTransferRelation
         Optional<MemoryLocation> memLoc = Optional.empty();
 
         // get memory location for left hand side
-        if (op1 instanceof CLeftHandSide) {
+        if (op1 instanceof CLeftHandSide cLeftHandSide) {
           if (valueExists) {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
+            memLoc = getMemoryLocation(cLeftHandSide, newValue, v);
           } else {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
+            memLoc = getMemoryLocation(cLeftHandSide, UnknownValue.getInstance(), v);
           }
 
-        } else if (op1 instanceof AIdExpression) {
-          if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1) && valueExists) {
+        } else if (op1 instanceof AIdExpression aIdExpression) {
+          if (op1 instanceof JIdExpression jIdExpression
+              && isDynamicField(jIdExpression)
+              && valueExists) {
             missingScopedFieldName = true;
-            notScopedField = (JIdExpression) op1;
+            notScopedField = jIdExpression;
             notScopedFieldValue = newValue;
           } else {
-            memLoc =
-                Optional.of(MemoryLocation.forDeclaration(((AIdExpression) op1).getDeclaration()));
+            memLoc = Optional.of(MemoryLocation.forDeclaration(aIdExpression.getDeclaration()));
           }
 
         } else if (op1 instanceof APointerExpression) {
@@ -552,8 +553,8 @@ public class ValueAnalysisTransferRelation
   private boolean isDynamicField(JIdExpression pIdentifier) {
     final JSimpleDeclaration declaration = pIdentifier.getDeclaration();
 
-    return (declaration instanceof JFieldDeclaration)
-        && !((JFieldDeclaration) declaration).isStatic();
+    return (declaration instanceof JFieldDeclaration jFieldDeclaration)
+        && !jFieldDeclaration.isStatic();
   }
 
   private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
@@ -576,9 +577,8 @@ public class ValueAnalysisTransferRelation
     if (functionCall instanceof AFunctionCallAssignmentStatement assignment) {
       AExpression leftHandSide = assignment.getLeftHandSide();
 
-      if (leftHandSide instanceof CLeftHandSide) {
-        MemoryLocation assignedMemoryLocation =
-            getVisitor().evaluateMemoryLocation((CLeftHandSide) leftHandSide);
+      if (leftHandSide instanceof CLeftHandSide cLeftHandSide) {
+        MemoryLocation assignedMemoryLocation = getVisitor().evaluateMemoryLocation(cLeftHandSide);
 
         if (newState.contains(assignedMemoryLocation)) {
           newState.forget(assignedMemoryLocation);
@@ -688,8 +688,8 @@ public class ValueAnalysisTransferRelation
    *
    */
   private boolean representsBoolean(Value value, boolean bool) {
-    if (value instanceof BooleanValue) {
-      return ((BooleanValue) value).isTrue() == bool;
+    if (value instanceof BooleanValue booleanValue) {
+      return booleanValue.isTrue() == bool;
 
     } else if (value.isNumericValue()) {
       return value.equals(new NumericValue(bool ? 1L : 0L));
@@ -723,7 +723,7 @@ public class ValueAnalysisTransferRelation
 
     // handle global variables
     if (decl.isGlobal()) {
-      if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
+      if (decl instanceof JFieldDeclaration jFieldDeclaration && !jFieldDeclaration.isStatic()) {
         missingFieldVariableObject = true;
         javaNonStaticVariables.add(varName);
       }
@@ -742,9 +742,9 @@ public class ValueAnalysisTransferRelation
       ValueAnalysisState.addToBlacklist(memoryLocation);
     }
 
-    if (init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression aInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
-      AExpression exp = ((AInitializerExpression) init).getExpression();
+      AExpression exp = aInitializerExpression.getExpression();
       initialValue = getExpressionValue(exp, declarationType, evv);
 
       if (isMissingCExpressionInformation(evv, exp)) {
@@ -814,8 +814,8 @@ public class ValueAnalysisTransferRelation
       CFunctionCallExpression functionCallExp = functionCall.getFunctionCallExpression();
       CExpression fn = functionCallExp.getFunctionNameExpression();
 
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           if (!options.isAllowedUnsupportedOption(func)) {
             throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
@@ -830,17 +830,18 @@ public class ValueAnalysisTransferRelation
               throw new UnsupportedCodeException(func + " is unsupported for this analysis", null);
             }
           }
-        } else if (expression instanceof CFunctionCallAssignmentStatement) {
+        } else if (expression
+            instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
 
-          return handleFunctionAssignment((CFunctionCallAssignmentStatement) expression);
+          return handleFunctionAssignment(cFunctionCallAssignmentStatement);
         }
       }
     }
 
     // expression is a binary operation, e.g. a = b;
 
-    if (expression instanceof AAssignment) {
-      return handleAssignment((AAssignment) expression, cfaEdge);
+    if (expression instanceof AAssignment aAssignment) {
+      return handleAssignment(aAssignment, cfaEdge);
 
     } else if (expression instanceof AFunctionCallStatement) {
       // external function call - do nothing
@@ -898,18 +899,18 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    if (op1 instanceof AIdExpression) {
+    if (op1 instanceof AIdExpression aIdExpression) {
       /*
        * Assignment of the form
        *  a = ...
        */
 
-      if (op1 instanceof JIdExpression && isDynamicField((JIdExpression) op1)) {
+      if (op1 instanceof JIdExpression jIdExpression && isDynamicField(jIdExpression)) {
         missingScopedFieldName = true;
-        notScopedField = (JIdExpression) op1;
+        notScopedField = jIdExpression;
       }
 
-      MemoryLocation memloc = getMemoryLocation((AIdExpression) op1);
+      MemoryLocation memloc = getMemoryLocation(aIdExpression);
 
       return handleAssignmentToVariable(memloc, op1.getExpressionType(), op2, getVisitor());
     } else if (op1 instanceof APointerExpression) {
@@ -919,11 +920,11 @@ public class ValueAnalysisTransferRelation
         missingInformationList.add(new MissingInformation(op1, op2));
       }
 
-    } else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference cFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
 
-      MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
+      MemoryLocation memLoc = v.evaluateMemoryLocation(cFieldReference);
 
       if (v.hasMissingPointer() && isRelevant(op1, op2)) {
         missingInformationList.add(new MissingInformation(op1, op2));
@@ -1036,22 +1037,22 @@ public class ValueAnalysisTransferRelation
 
     // c structs have to be handled seperatly, because we do not have a value object representing
     // structs
-    if (lType instanceof CType) {
-      CType canonicaltype = ((CType) lType).getCanonicalType();
-      if (canonicaltype instanceof CCompositeType
-          && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
+    if (lType instanceof CType cType) {
+      CType canonicaltype = cType.getCanonicalType();
+      if (canonicaltype instanceof CCompositeType cCompositeType
+          && cCompositeType.getKind() == ComplexTypeKind.STRUCT
           && exp instanceof CLeftHandSide) {
         handleAssignmentToStruct(
-            newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+            newElement, assignedVar, cCompositeType, (CExpression) exp, visitor);
         return;
       }
     }
 
     Value value;
-    if (exp instanceof JRightHandSide) {
-      value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
-    } else if (exp instanceof CRightHandSide) {
-      value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
+    if (exp instanceof JRightHandSide jRightHandSide) {
+      value = visitor.evaluate(jRightHandSide, (JType) lType);
+    } else if (exp instanceof CRightHandSide cRightHandSide) {
+      value = visitor.evaluate(cRightHandSide, (CType) lType);
     } else {
       throw new AssertionError("unknown righthandside-expression: " + exp);
     }
@@ -1132,9 +1133,9 @@ public class ValueAnalysisTransferRelation
   }
 
   private void addMissingInformation(MemoryLocation pMemLoc, ARightHandSide pExp) {
-    if (pExp instanceof CExpression) {
+    if (pExp instanceof CExpression cExpression) {
 
-      missingInformationList.add(new MissingInformation(pMemLoc, (CExpression) pExp));
+      missingInformationList.add(new MissingInformation(pMemLoc, cExpression));
     }
   }
 
@@ -1155,8 +1156,8 @@ public class ValueAnalysisTransferRelation
       JArraySubscriptExpression pArraySubscriptExpression) {
     JExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
 
-    if (arrayExpression instanceof JIdExpression) {
-      JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
+    if (arrayExpression instanceof JIdExpression jIdExpression) {
+      JSimpleDeclaration arrayDeclaration = jIdExpression.getDeclaration();
 
       if (arrayDeclaration != null) {
         MemoryLocation idName = MemoryLocation.forDeclaration(arrayDeclaration);
@@ -1276,18 +1277,18 @@ public class ValueAnalysisTransferRelation
       return UnknownValue.getInstance();
     }
 
-    if (expression instanceof JRightHandSide) {
+    if (expression instanceof JRightHandSide jRightHandSide) {
 
-      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
+      final Value value = evv.evaluate(jRightHandSide, (JType) type);
 
       if (evv.hasMissingFieldAccessInformation()) {
-        missingInformationRightJExpression = (JRightHandSide) expression;
+        missingInformationRightJExpression = jRightHandSide;
         return Value.UnknownValue.getInstance();
       } else {
         return value;
       }
-    } else if (expression instanceof CRightHandSide) {
-      return evv.evaluate((CRightHandSide) expression, (CType) type);
+    } else if (expression instanceof CRightHandSide cRightHandSide) {
+      return evv.evaluate(cRightHandSide, (CType) type);
     } else {
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
@@ -1308,11 +1309,11 @@ public class ValueAnalysisTransferRelation
     result.add((ValueAnalysisState) pElement);
 
     for (AbstractState ae : pElements) {
-      if (ae instanceof RTTState) {
+      if (ae instanceof RTTState rTTState) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState) ae, pCfaEdge);
+          Collection<ValueAnalysisState> ret = strengthen(rTTState, pCfaEdge);
           if (ret == null) {
             result.add(stateToStrengthen);
           } else {
@@ -1331,22 +1332,22 @@ public class ValueAnalysisTransferRelation
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof ThreadingState) {
+      } else if (ae instanceof ThreadingState threadingState) {
         result.clear();
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
-          result.add(strengthenWithThreads((ThreadingState) ae, stateToStrengthen));
+          result.add(strengthenWithThreads(threadingState, stateToStrengthen));
         }
         toStrengthen.clear();
         toStrengthen.addAll(result);
-      } else if (ae instanceof ConstraintsState) {
+      } else if (ae instanceof ConstraintsState constraintsState) {
         result.clear();
 
         for (ValueAnalysisState stateToStrengthen : toStrengthen) {
           super.setInfo(pElement, pPrecision, pCfaEdge);
           Collection<ValueAnalysisState> ret =
               constraintsStrengthenOperator.strengthen(
-                  (ValueAnalysisState) pElement, (ConstraintsState) ae, pCfaEdge);
+                  (ValueAnalysisState) pElement, constraintsState, pCfaEdge);
 
           if (ret == null) {
             result.add(stateToStrengthen);
@@ -1421,8 +1422,8 @@ public class ValueAnalysisTransferRelation
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
-      if (nameExpressionOfCalledFunc instanceof AIdExpression) {
-        String nameOfCalledFunc = ((AIdExpression) nameExpressionOfCalledFunc).getName();
+      if (nameExpressionOfCalledFunc instanceof AIdExpression aIdExpression) {
+        String nameOfCalledFunc = aIdExpression.getName();
         if (BuiltinFloatFunctions.matchesModf(nameOfCalledFunc)) {
           List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
           if (parameters.size() == 2 && parameters.get(1) instanceof CExpression targetPointer) {
@@ -1435,10 +1436,10 @@ public class ValueAnalysisTransferRelation
                     targetPointer);
             ExpressionValueVisitor evv = getVisitor();
             Value value;
-            if (exp instanceof JRightHandSide) {
-              value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
-            } else if (exp instanceof CRightHandSide) {
-              value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
+            if (exp instanceof JRightHandSide jRightHandSide) {
+              value = evv.evaluate(jRightHandSide, (JType) exp.getExpressionType());
+            } else if (exp instanceof CRightHandSide cRightHandSide) {
+              value = evv.evaluate(cRightHandSide, (CType) exp.getExpressionType());
             } else {
               throw new AssertionError("unknown righthandside-expression: " + exp);
             }

@@ -605,13 +605,13 @@ public class SMGTransferRelation
 
           // convert explicit values to symbolic ones,
           // because identifying un/equal works with symbolic values
-          if (val1ImpliesOn instanceof SMGKnownExpValue) {
-            val1 = newState.getSymbolicOfExplicit((SMGKnownExpValue) val1ImpliesOn);
+          if (val1ImpliesOn instanceof SMGKnownExpValue sMGKnownExpValue) {
+            val1 = newState.getSymbolicOfExplicit(sMGKnownExpValue);
           } else {
             val1 = (SMGKnownSymbolicValue) val1ImpliesOn;
           }
-          if (val2ImpliesOn instanceof SMGKnownExpValue) {
-            val2 = newState.getSymbolicOfExplicit((SMGKnownExpValue) val2ImpliesOn);
+          if (val2ImpliesOn instanceof SMGKnownExpValue sMGKnownExpValue) {
+            val2 = newState.getSymbolicOfExplicit(sMGKnownExpValue);
           } else {
             val2 = (SMGKnownSymbolicValue) val2ImpliesOn;
           }
@@ -667,8 +667,8 @@ public class SMGTransferRelation
     BinaryOperator op = binExp.getOperator();
 
     if (!(op1 instanceof CBinaryExpression binExpOp1
-        && op2 instanceof CIntegerLiteralExpression
-        && ((CIntegerLiteralExpression) op2).getValue().equals(BigInteger.ZERO)
+        && op2 instanceof CIntegerLiteralExpression cIntegerLiteralExpression
+        && cIntegerLiteralExpression.getValue().equals(BigInteger.ZERO)
         && (op == BinaryOperator.EQUALS || op == BinaryOperator.NOT_EQUALS))) {
       return pExpression;
     }
@@ -866,11 +866,11 @@ public class SMGTransferRelation
           for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
             SMGValue value = valueAndState.getObject();
             SMGState curState = valueAndState.getSmgState();
-            if (value instanceof SMGKnownSymbolicValue) {
+            if (value instanceof SMGKnownSymbolicValue sMGKnownSymbolicValue) {
               // TODO we should decide whether to return explicit or symbolic values consistently.
               // currently some methods return explicit values, others return symbolic one
               // and then check whether there is a registered explicit value.
-              curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+              curState.putExplicit(sMGKnownSymbolicValue, (SMGKnownExpValue) expValue);
             }
             result.add(
                 expressionEvaluator.assignFieldToState(
@@ -1013,10 +1013,10 @@ public class SMGTransferRelation
       CInitializer pInitializer)
       throws CPATransferException {
 
-    if (pInitializer instanceof CInitializerExpression) {
-      CExpression expression = ((CInitializerExpression) pInitializer).getExpression();
+    if (pInitializer instanceof CInitializerExpression cInitializerExpression) {
+      CExpression expression = cInitializerExpression.getExpression();
       // string literal handling
-      if (expression instanceof CStringLiteralExpression) {
+      if (expression instanceof CStringLiteralExpression cStringLiteralExpression) {
         return handleStringInitializer(
             pNewState,
             pVarDecl,
@@ -1025,8 +1025,8 @@ public class SMGTransferRelation
             pOffset,
             pLValueType,
             pInitializer.getFileLocation(),
-            (CStringLiteralExpression) expression);
-      } else if (expression instanceof CCastExpression) {
+            cStringLiteralExpression);
+      } else if (expression instanceof CCastExpression cCastExpression) {
         // handle casting on initialization like 'char *str = (char *)"string";'
         return handleCastInitializer(
             pNewState,
@@ -1036,7 +1036,7 @@ public class SMGTransferRelation
             pOffset,
             pLValueType,
             pInitializer.getFileLocation(),
-            (CCastExpression) expression);
+            cCastExpression);
       } else {
         return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
       }
@@ -1083,7 +1083,7 @@ public class SMGTransferRelation
       CCastExpression pExpression)
       throws CPATransferException {
     CExpression expression = pExpression.getOperand();
-    if (expression instanceof CStringLiteralExpression) {
+    if (expression instanceof CStringLiteralExpression cStringLiteralExpression) {
       return handleStringInitializer(
           pNewState,
           pVarDecl,
@@ -1092,8 +1092,8 @@ public class SMGTransferRelation
           pOffset,
           pLValueType,
           pFileLocation,
-          (CStringLiteralExpression) expression);
-    } else if (expression instanceof CCastExpression) {
+          cStringLiteralExpression);
+    } else if (expression instanceof CCastExpression cCastExpression) {
       return handleCastInitializer(
           pNewState,
           pVarDecl,
@@ -1102,7 +1102,7 @@ public class SMGTransferRelation
           pOffset,
           pLValueType,
           pFileLocation,
-          (CCastExpression) expression);
+          cCastExpression);
     } else {
       return assignFieldToState(pNewState, pEdge, pNewObject, pOffset, pLValueType, expression);
     }
@@ -1411,9 +1411,8 @@ public class SMGTransferRelation
       if (initializer instanceof CDesignatedInitializer designatedInitializer) {
         assert designatedInitializer.getDesignators().size() == 1;
         CDesignator cDesignator = designatedInitializer.getDesignators().get(0);
-        if (cDesignator instanceof CArrayDesignator) {
-          CExpression subscriptExpression =
-              ((CArrayDesignator) cDesignator).getSubscriptExpression();
+        if (cDesignator instanceof CArrayDesignator cArrayDesignator) {
+          CExpression subscriptExpression = cArrayDesignator.getSubscriptExpression();
           SMGExplicitValueAndState smgExplicitValueAndState =
               expressionEvaluator.forceExplicitValue(pNewState, pEdge, subscriptExpression);
           listCounter = smgExplicitValueAndState.getObject().getAsInt();
@@ -1464,11 +1463,11 @@ public class SMGTransferRelation
     result.add((SMGState) element);
 
     for (AbstractState ae : elements) {
-      if (ae instanceof AutomatonState) {
+      if (ae instanceof AutomatonState automatonState) {
         // New result
         result.clear();
         for (SMGState stateToStrengthen : toStrengthen) {
-          Collection<SMGState> ret = strengthen((AutomatonState) ae, stateToStrengthen, cfaEdge);
+          Collection<SMGState> ret = strengthen(automatonState, stateToStrengthen, cfaEdge);
           if (ret == null) {
             result.add(stateToStrengthen);
           } else {

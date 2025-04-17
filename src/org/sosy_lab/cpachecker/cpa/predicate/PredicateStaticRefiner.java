@@ -453,8 +453,8 @@ final class PredicateStaticRefiner extends StaticRefiner
         for (CIdExpression idExpr :
             CFAUtils.getIdExpressionsOfExpression((CExpression) assume.getExpression())) {
           CSimpleDeclaration decl = idExpr.getDeclaration();
-          if (decl instanceof CVariableDeclaration) {
-            if (!((CVariableDeclaration) decl).isGlobal()) {
+          if (decl instanceof CVariableDeclaration cVariableDeclaration) {
+            if (!cVariableDeclaration.isGlobal()) {
               applyGlobal = false;
             }
           } else if (decl instanceof CParameterDeclaration) {
@@ -507,8 +507,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFAEdge e : cfa.edges()) {
-        if (e instanceof AssumeEdge) {
-          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
+        if (e instanceof AssumeEdge assumeEdge) {
+          Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, assumeEdge);
           for (AbstractionPredicate p : preds) {
             w.append(p.getSymbolicAtom().toString());
             w.append("\n");
@@ -531,8 +531,8 @@ final class PredicateStaticRefiner extends StaticRefiner
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new Stats());
-    if (delegate instanceof StatisticsProvider) {
-      ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    if (delegate instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
   }
 

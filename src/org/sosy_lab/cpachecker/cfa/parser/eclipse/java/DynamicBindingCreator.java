@@ -145,10 +145,10 @@ class DynamicBindingCreator {
 
     JClassOrInterfaceType methodDeclaringType = methodDeclaration.getDeclaringClass();
 
-    if (methodDeclaringType instanceof JClassType) {
-      completeBindingsForDeclaringClassType((JClassType) methodDeclaringType, methodName);
-    } else if (methodDeclaringType instanceof JInterfaceType) {
-      completeBindingsForDeclaringInterfaceType((JInterfaceType) methodDeclaringType, methodName);
+    if (methodDeclaringType instanceof JClassType jClassType) {
+      completeBindingsForDeclaringClassType(jClassType, methodName);
+    } else if (methodDeclaringType instanceof JInterfaceType jInterfaceType) {
+      completeBindingsForDeclaringInterfaceType(jInterfaceType, methodName);
     }
   }
 
@@ -248,9 +248,9 @@ class DynamicBindingCreator {
           JStatement expr = (JStatement) statement.getStatement();
 
           // if statement is of the form x = call(a,b); or call(a,b);
-          if (expr instanceof AFunctionCall) {
+          if (expr instanceof AFunctionCall aFunctionCall) {
             // To Skip new Nodes
-            createBindings(statement, (AFunctionCall) expr, processed);
+            createBindings(statement, aFunctionCall, processed);
           }
         }
 
@@ -683,8 +683,8 @@ class DynamicBindingCreator {
     }
 
     boolean isAbstract() {
-      return methodEntryNode instanceof JMethodEntryNode
-          && ((JMethodEntryNode) methodEntryNode).getFunctionDefinition().isAbstract();
+      return methodEntryNode instanceof JMethodEntryNode jMethodEntryNode
+          && jMethodEntryNode.getFunctionDefinition().isAbstract();
     }
   }
 }

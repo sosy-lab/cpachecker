@@ -69,12 +69,12 @@ public class ExpressionSimplificationVisitor
   }
 
   private @Nullable NumericValue getValue(CExpression expr) {
-    if (expr instanceof CIntegerLiteralExpression) {
-      return new NumericValue(((CIntegerLiteralExpression) expr).getValue());
-    } else if (expr instanceof CCharLiteralExpression) {
-      return new NumericValue((int) ((CCharLiteralExpression) expr).getCharacter());
-    } else if (expr instanceof CFloatLiteralExpression) {
-      return new NumericValue(((CFloatLiteralExpression) expr).getValue());
+    if (expr instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      return new NumericValue(cIntegerLiteralExpression.getValue());
+    } else if (expr instanceof CCharLiteralExpression cCharLiteralExpression) {
+      return new NumericValue((int) cCharLiteralExpression.getCharacter());
+    } else if (expr instanceof CFloatLiteralExpression cFloatLiteralExpression) {
+      return new NumericValue(cFloatLiteralExpression.getValue());
     }
     return null;
   }
@@ -87,8 +87,8 @@ public class ExpressionSimplificationVisitor
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
     final CType type = expr.getExpressionType().getCanonicalType();
-    if (numericResult != null && type instanceof CSimpleType) {
-      CBasicType basicType = ((CSimpleType) type).getType();
+    if (numericResult != null && type instanceof CSimpleType cSimpleType) {
+      CBasicType basicType = cSimpleType.getType();
       if (basicType.isIntegerType()) {
         return new CIntegerLiteralExpression(
             expr.getFileLocation(), type, numericResult.bigIntegerValue());
@@ -255,7 +255,7 @@ public class ExpressionSimplificationVisitor
     assert op.getExpressionType().equals(operandType) : "simplification should not change type";
     final NumericValue value = getValue(op);
 
-    if (value != null && operandType instanceof CSimpleType) {
+    if (value != null && operandType instanceof CSimpleType cSimpleType) {
       if (unaryOperator == UnaryOperator.MINUS) {
         // we have to cast the value, because it can overflow, for example for the unary-expression
         // "-2147483648" (=MIN_INT),
@@ -265,7 +265,7 @@ public class ExpressionSimplificationVisitor
             (NumericValue)
                 AbstractExpressionValueVisitor.castCValue(
                     value.negate(), exprType, machineModel, logger, loc);
-        switch (((CSimpleType) operandType).getType()) {
+        switch (cSimpleType.getType()) {
           case BOOL, CHAR, INT -> {
             // negation of zero is zero, other values should be irrelevant
             // better do not convert to long, but directly use the computed value,
@@ -283,8 +283,7 @@ public class ExpressionSimplificationVisitor
           }
         }
 
-      } else if (unaryOperator == UnaryOperator.TILDE
-          && ((CSimpleType) operandType).getType().isIntegerType()) {
+      } else if (unaryOperator == UnaryOperator.TILDE && cSimpleType.getType().isIntegerType()) {
         // cast the value, because the evaluation of "~" is done for long and maybe the target-type
         // is integer.
         final NumericValue complementValue =
@@ -325,17 +324,19 @@ public class ExpressionSimplificationVisitor
     final CType type = expr.getExpressionType();
 
     // enum constant
-    if (decl instanceof CEnumerator) {
-      final BigInteger v = ((CEnumerator) decl).getValue();
+    if (decl instanceof CEnumerator cEnumerator) {
+      final BigInteger v = cEnumerator.getValue();
       return new CIntegerLiteralExpression(expr.getFileLocation(), type, v);
     }
 
     // const variable, inline initializer
-    if (!(type instanceof CProblemType) && type.isConst() && decl instanceof CVariableDeclaration) {
+    if (!(type instanceof CProblemType)
+        && type.isConst()
+        && decl instanceof CVariableDeclaration cVariableDeclaration) {
 
-      final CInitializer init = ((CVariableDeclaration) decl).getInitializer();
-      if (init instanceof CInitializerExpression) {
-        NumericValue v = getValue(((CInitializerExpression) init).getExpression());
+      final CInitializer init = cVariableDeclaration.getInitializer();
+      if (init instanceof CInitializerExpression cInitializerExpression) {
+        NumericValue v = getValue(cInitializerExpression.getExpression());
 
         if (v != null && decl.getType() instanceof CSimpleType) {
           switch (((CSimpleType) type).getType()) {

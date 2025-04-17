@@ -93,8 +93,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private CFunctionCallEdge getFunctionCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
     for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
-      if (edge instanceof CFunctionCallEdge) {
-        return (CFunctionCallEdge) edge;
+      if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
+        return cFunctionCallEdge;
       }
     }
 
@@ -204,10 +204,10 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   @Override
   protected Set<MemoryLocation> getEdgeDefs(CFAEdge pEdge) {
 
-    if (pEdge instanceof CFunctionCallEdge) {
-      return getCallEdgeDefs((CFunctionCallEdge) pEdge);
-    } else if (pEdge instanceof CFunctionSummaryEdge) {
-      return getSummaryEdgeDefs((CFunctionSummaryEdge) pEdge);
+    if (pEdge instanceof CFunctionCallEdge cFunctionCallEdge) {
+      return getCallEdgeDefs(cFunctionCallEdge);
+    } else if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+      return getSummaryEdgeDefs(cFunctionSummaryEdge);
     } else {
       return getOtherEdgeDefs(pEdge);
     }
@@ -217,8 +217,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
 
     if (pEdge instanceof CFunctionCallEdge) {
       return ImmutableSet.of();
-    } else if (pEdge instanceof CFunctionSummaryEdge) {
-      return getSummaryEdgeUses((CFunctionSummaryEdge) pEdge);
+    } else if (pEdge instanceof CFunctionSummaryEdge cFunctionSummaryEdge) {
+      return getSummaryEdgeUses(cFunctionSummaryEdge);
     } else {
       return getOtherEdgeUses(pEdge);
     }
@@ -359,8 +359,8 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
       }
     }
 
-    if (pEdge instanceof CDeclarationEdge) {
-      CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+    if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+      CDeclaration declaration = cDeclarationEdge.getDeclaration();
       CType type = declaration.getType();
 
       while (type instanceof CPointerType) {

@@ -546,10 +546,10 @@ public final class AutomatonGraphmlCommon {
         return false;
       }
       return true;
-    } else if (edge instanceof CFunctionCallEdge) {
-      return isEmptyStub(((CFunctionCallEdge) edge).getSuccessor());
-    } else if (edge instanceof CFunctionReturnEdge) {
-      return isEmptyStub(((CFunctionReturnEdge) edge).getFunctionEntry());
+    } else if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
+      return isEmptyStub(cFunctionCallEdge.getSuccessor());
+    } else if (edge instanceof CFunctionReturnEdge cFunctionReturnEdge) {
+      return isEmptyStub(cFunctionReturnEdge.getFunctionEntry());
     } else if (edge instanceof CDeclarationEdge declEdge) {
       CDeclaration decl = declEdge.getDeclaration();
       if (decl instanceof CFunctionDeclaration) {
@@ -763,8 +763,8 @@ public final class AutomatonGraphmlCommon {
 
     public SwitchDetector(AssumeEdge pAssumeEdge) {
       assumeExpression = pAssumeEdge.getExpression();
-      if (assumeExpression instanceof ABinaryExpression) {
-        switchOperand = ((ABinaryExpression) assumeExpression).getOperand1();
+      if (assumeExpression instanceof ABinaryExpression aBinaryExpression) {
+        switchOperand = aBinaryExpression.getOperand1();
       } else {
         switchOperand = assumeExpression;
       }
@@ -864,8 +864,8 @@ public final class AutomatonGraphmlCommon {
             if (successorEdge instanceof FunctionCallEdge functionCallEdge) {
               FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
               AFunctionCall functionCall = functionCallEdge.getFunctionCall();
-              if (functionCall instanceof AAssignment) {
-                assignment = (AAssignment) functionCall;
+              if (functionCall instanceof AAssignment aAssignment) {
+                assignment = aAssignment;
                 successorEdge = summaryEdge;
               }
             } else if (successorEdge instanceof AStatementEdge) {
@@ -905,7 +905,7 @@ public final class AutomatonGraphmlCommon {
   }
 
   public static boolean isSplitAssumption(CFAEdge pEdge) {
-    return pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate();
+    return pEdge instanceof AssumeEdge assumeEdge && assumeEdge.isArtificialIntermediate();
   }
 
   public static boolean isPointerCallAssumption(CFAEdge pEdge) {

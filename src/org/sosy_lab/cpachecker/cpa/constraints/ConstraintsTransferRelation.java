@@ -187,18 +187,18 @@ public class ConstraintsTransferRelation
       AExpression pExpression, ConstraintFactory pFactory, boolean pTruthAssumption)
       throws UnrecognizedCodeException {
 
-    if (pExpression instanceof JBinaryExpression) {
-      return createConstraint((JBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    if (pExpression instanceof JBinaryExpression jBinaryExpression) {
+      return createConstraint(jBinaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof JUnaryExpression) {
-      return createConstraint((JUnaryExpression) pExpression, pFactory, pTruthAssumption);
+    } else if (pExpression instanceof JUnaryExpression jUnaryExpression) {
+      return createConstraint(jUnaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof CBinaryExpression) {
-      return createConstraint((CBinaryExpression) pExpression, pFactory, pTruthAssumption);
+    } else if (pExpression instanceof CBinaryExpression cBinaryExpression) {
+      return createConstraint(cBinaryExpression, pFactory, pTruthAssumption);
 
-    } else if (pExpression instanceof AIdExpression) {
+    } else if (pExpression instanceof AIdExpression aIdExpression) {
       // id expressions in assume edges are created by a call of __VERIFIER_assume(x), for example
-      return createConstraint((AIdExpression) pExpression, pFactory, pTruthAssumption);
+      return createConstraint(aIdExpression, pFactory, pTruthAssumption);
 
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());

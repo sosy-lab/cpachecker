@@ -863,8 +863,8 @@ public class CtoFormulaConverter {
     if (pType instanceof CEnumType enumType) {
       return enumType.getCompatibleType();
     }
-    if (pType instanceof CElaboratedType
-        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
+    if (pType instanceof CElaboratedType cElaboratedType
+        && cElaboratedType.getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -907,8 +907,8 @@ public class CtoFormulaConverter {
     checkSimpleCastArgument(pToCType);
     Predicate<CType> isSigned =
         t -> {
-          if (t instanceof CSimpleType) {
-            return machineModel.isSigned((CSimpleType) t);
+          if (t instanceof CSimpleType cSimpleType) {
+            return machineModel.isSigned(cSimpleType);
           }
           if ((t instanceof CBitFieldType bitFieldType)
               && (bitFieldType.getType() instanceof CSimpleType)) {
@@ -1031,7 +1031,7 @@ public class CtoFormulaConverter {
   }
 
   private static boolean isFloatingPointType(final CType pType) {
-    return pType instanceof CSimpleType && ((CSimpleType) pType).getType().isFloatingPointType();
+    return pType instanceof CSimpleType cSimpleType && cSimpleType.getType().isFloatingPointType();
   }
 
   //  @Override
@@ -1410,15 +1410,14 @@ public class CtoFormulaConverter {
 
     CType elementType = arrayType.getType();
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+    if (elementType instanceof CSimpleType cSimpleType
+        && cSimpleType.getType().isFloatingPointType()) {
       if (arrayType.getLengthAsInt().orElse(0) > 100) {
         throw new UnsupportedCodeException("large floating-point array", declarationEdge);
       }
     }
 
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+    if (elementType instanceof CSimpleType cSimpleType && cSimpleType.getType() == CBasicType.INT) {
       if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
         throw new UnsupportedCodeException("large integer array", declarationEdge);
       }

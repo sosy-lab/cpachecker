@@ -370,8 +370,8 @@ class WitnessFactory implements EdgeAppender {
     if (witnessOptions.exportFunctionCallsAndReturns()) {
       String functionName = pAlternativeFunctionEntry.orElse(null);
       CFANode succ = pEdge.getSuccessor();
-      if (succ instanceof FunctionEntryNode) {
-        functionName = ((FunctionEntryNode) succ).getFunctionDefinition().getOrigName();
+      if (succ instanceof FunctionEntryNode functionEntryNode) {
+        functionName = functionEntryNode.getFunctionDefinition().getOrigName();
       } else if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
         functionName = succ.getFunctionName();
       }
@@ -471,8 +471,8 @@ class WitnessFactory implements EdgeAppender {
       }
       if (sourceCode.isEmpty()
           && !isEmptyTransitionPossible(pAdditionalInfo)
-          && pEdge instanceof FunctionReturnEdge) {
-        sourceCode = ((FunctionReturnEdge) pEdge).getSummaryEdge().getRawStatement().trim();
+          && pEdge instanceof FunctionReturnEdge functionReturnEdge) {
+        sourceCode = functionReturnEdge.getSummaryEdge().getRawStatement().trim();
       }
 
       if (!sourceCode.isEmpty()) {
@@ -704,8 +704,8 @@ class WitnessFactory implements EdgeAppender {
             : CExpressionToOriginalCodeVisitor.BASIC_TRANSFORMER;
     final Function<Object, String> converter =
         pLeafExpression -> {
-          if (pLeafExpression instanceof CExpression) {
-            return ((CExpression) pLeafExpression).accept(transformer);
+          if (pLeafExpression instanceof CExpression cExpression) {
+            return cExpression.accept(transformer);
           }
           if (pLeafExpression == null) {
             return "(0)";
@@ -839,11 +839,11 @@ class WitnessFactory implements EdgeAppender {
 
     if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       AStatement statement = ((AStatementEdge) pEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           switch (functionName) {
             case ThreadingTransferRelation.THREAD_START -> {
               Optional<ARGState> possibleChild =

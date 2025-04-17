@@ -273,8 +273,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) cpa).collectStatistics(pStatsCollection);
+    if (cpa instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStatsCollection);
     }
     algorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);

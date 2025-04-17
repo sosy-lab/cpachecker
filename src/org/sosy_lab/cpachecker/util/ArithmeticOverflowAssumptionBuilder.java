@@ -521,8 +521,8 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
 
   /** Whether the given operator can create new expression. */
   private boolean resultCanOverflow(CExpression expr) {
-    if (expr instanceof CBinaryExpression) {
-      return switch (((CBinaryExpression) expr).getOperator()) {
+    if (expr instanceof CBinaryExpression cBinaryExpression) {
+      return switch (cBinaryExpression.getOperator()) {
         case MULTIPLY, DIVIDE, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT -> true;
         case LESS_THAN,
             GREATER_THAN,
@@ -536,8 +536,8 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             MODULO ->
             false;
       };
-    } else if (expr instanceof CUnaryExpression) {
-      return switch (((CUnaryExpression) expr).getOperator()) {
+    } else if (expr instanceof CUnaryExpression cUnaryExpression) {
+      return switch (cUnaryExpression.getOperator()) {
         case MINUS -> true;
         default -> false;
       };

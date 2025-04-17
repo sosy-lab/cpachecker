@@ -61,8 +61,8 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
               ((AFunctionCall) edge.getStatement())
                   .getFunctionCallExpression()
                   .getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            String functionName = ((AIdExpression) functionNameExp).getName();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
             if (options.getUnsupportedFunctions().contains(functionName)) {
               throw new UnrecognizedCodeException(
                   "Unsupported feature: " + options.getUnsupportedFunctions(),
@@ -72,8 +72,8 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
           }
         }
 
-        if (pEdge instanceof CFunctionSummaryStatementEdge) {
-          if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
             // should go by function call and skip the current edge
             return ImmutableSet.of();
           }

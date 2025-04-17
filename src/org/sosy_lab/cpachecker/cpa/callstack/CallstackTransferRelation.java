@@ -88,16 +88,16 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
               ((AFunctionCall) edge.getStatement())
                   .getFunctionCallExpression()
                   .getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            String functionName = ((AIdExpression) functionNameExp).getName();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            String functionName = aIdExpression.getName();
             if (options.getUnsupportedFunctions().contains(functionName)) {
               throw new UnsupportedCodeException(functionName, edge, edge.getStatement());
             }
           }
         }
 
-        if (pEdge instanceof CFunctionSummaryStatementEdge) {
-          if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
+        if (pEdge instanceof CFunctionSummaryStatementEdge cFunctionSummaryStatementEdge) {
+          if (!shouldGoByFunctionSummaryStatement(e, cFunctionSummaryStatementEdge)) {
             // should go by function call and skip the current edge
             return ImmutableSet.of();
           }

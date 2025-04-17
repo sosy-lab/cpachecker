@@ -334,9 +334,9 @@ public class SignTransferRelation
     AInitializer init = decl.getInitializer();
     logger.log(Level.FINE, "Declaration: " + scopedId);
     // type x = expression;
-    if (init instanceof AInitializerExpression) {
+    if (init instanceof AInitializerExpression aInitializerExpression) {
       return handleAssignmentToVariable(
-          state, scopedId, ((AInitializerExpression) init).getExpression(), pCfaEdge);
+          state, scopedId, aInitializerExpression.getExpression(), pCfaEdge);
     }
     // type x;
     // since it is C, we assume it may have any value here
@@ -347,8 +347,8 @@ public class SignTransferRelation
   protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement)
       throws CPATransferException {
     // expression is a binary expression e.g. a = b.
-    if (pStatement instanceof AAssignment) {
-      return handleAssignment((AAssignment) pStatement, pCfaEdge);
+    if (pStatement instanceof AAssignment aAssignment) {
+      return handleAssignment(aAssignment, pCfaEdge);
     }
 
     // only expression expr; does not change state
@@ -383,11 +383,10 @@ public class SignTransferRelation
     }
 
     // x[index] = ..,
-    if (left instanceof CArraySubscriptExpression) {
+    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
       return state.assignSignToVariable(
-          getScopedVariableName(
-              ((CArraySubscriptExpression) left).getArrayExpression(), functionName),
+          getScopedVariableName(cArraySubscriptExpression.getArrayExpression(), functionName),
           Sign.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);

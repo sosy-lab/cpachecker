@@ -129,13 +129,13 @@ public class CtoWpConverter extends CtoFormulaConverter {
       throws UnrecognizedCodeException {
 
     CStatement stmt = pEdge.getStatement();
-    if (stmt instanceof CAssignment) {
-      return makePreconditionForAssignment((CAssignment) stmt, pEdge, pPostcond, pFunction);
+    if (stmt instanceof CAssignment cAssignment) {
+      return makePreconditionForAssignment(cAssignment, pEdge, pPostcond, pFunction);
 
     } else {
-      if (stmt instanceof CFunctionCallStatement) {
+      if (stmt instanceof CFunctionCallStatement cFunctionCallStatement) {
         return makePreconditionForFunctionCallStatement(
-            pEdge, (CFunctionCallStatement) stmt, pPostcond, pFunction);
+            pEdge, cFunctionCallStatement, pPostcond, pFunction);
       } else if (!(stmt instanceof CExpressionStatement)) {
         throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
       }

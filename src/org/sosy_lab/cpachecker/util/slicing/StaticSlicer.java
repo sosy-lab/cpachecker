@@ -308,8 +308,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       checkArgument(
           getRelevantEdges().contains(pEdge), "pEdge is not relevant to this program slice");
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           return isInitializerRelevant(pEdge);
         }

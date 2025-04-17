@@ -58,8 +58,8 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
       if (pType.isAssignableFrom(precision.getClass())) {
         return pType.cast(precision);
 
-      } else if (precision instanceof WrapperPrecision) {
-        T result = ((WrapperPrecision) precision).retrieveWrappedPrecision(pType);
+      } else if (precision instanceof WrapperPrecision wrapperPrecision) {
+        T result = wrapperPrecision.retrieveWrappedPrecision(pType);
         if (result != null) {
           return result;
         }
@@ -83,9 +83,9 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
         newPrecisions.add(newPrecision);
         changed = true;
 
-      } else if (precision instanceof WrapperPrecision) {
+      } else if (precision instanceof WrapperPrecision wrapperPrecision) {
         Precision newWrappedPrecision =
-            ((WrapperPrecision) precision).replaceWrappedPrecision(newPrecision, replaceType);
+            wrapperPrecision.replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;

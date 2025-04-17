@@ -86,8 +86,8 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     // e.g. a = b;
-    if (pExpression instanceof CAssignment) {
-      return handleAssignment(pElement, (CAssignment) pExpression, pCfaEdge);
+    if (pExpression instanceof CAssignment cAssignment) {
+      return handleAssignment(pElement, cAssignment, pCfaEdge);
     } else if (pExpression instanceof CFunctionCallStatement) {
       return pElement;
     } else if (pExpression instanceof CExpressionStatement) {
@@ -209,9 +209,9 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
     // get initial value
     CInitializer init = decl.getInitializer();
-    if (init instanceof CInitializerExpression) {
+    if (init instanceof CInitializerExpression cInitializerExpression) {
 
-      CRightHandSide exp = ((CInitializerExpression) init).getExpression();
+      CRightHandSide exp = cInitializerExpression.getExpression();
 
       return handleAssignmentTo(varName, exp, pElement, pDeclarationEdge);
     }

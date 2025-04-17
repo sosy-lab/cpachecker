@@ -350,8 +350,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
       CFAEdge edge = node.getLeavingEdge(0);
 
-      if (edge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+      if (edge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration.isGlobal()) {
           declEdges.add(edge);
         }
@@ -370,10 +370,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         ImmutableListMultimap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
-      if (edge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-        if (declaration instanceof CFunctionDeclaration) {
-          String name = ((CFunctionDeclaration) declaration).getQualifiedName();
+      if (edge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
+        if (declaration instanceof CFunctionDeclaration cFunctionDeclaration) {
+          String name = cFunctionDeclaration.getQualifiedName();
           declarationEdges.put(name, edge);
         }
       }
@@ -389,10 +389,10 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         ImmutableListMultimap.builder();
 
     for (CFAEdge edge : pGlobalEdges) {
-      if (edge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-        if (declaration instanceof CComplexTypeDeclaration) {
-          CComplexType globalType = ((CComplexTypeDeclaration) declaration).getType();
+      if (edge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
+        if (declaration instanceof CComplexTypeDeclaration cComplexTypeDeclaration) {
+          CComplexType globalType = cComplexTypeDeclaration.getType();
           String name = globalType.getQualifiedName();
           declarationEdges.put(name, edge);
         }
@@ -405,8 +405,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private CFunctionCallEdge getCallEdge(CFunctionSummaryEdge pSummaryEdge) {
 
     for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
-      if (edge instanceof CFunctionCallEdge) {
-        return (CFunctionCallEdge) edge;
+      if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
+        return cFunctionCallEdge;
       }
     }
 

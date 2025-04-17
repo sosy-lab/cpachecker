@@ -55,7 +55,7 @@ public class CompositeState
   @Override
   public boolean isTarget() {
     for (AbstractState element : states) {
-      if ((element instanceof Targetable) && ((Targetable) element).isTarget()) {
+      if ((element instanceof Targetable targetable) && targetable.isTarget()) {
         return true;
       }
     }
@@ -67,8 +67,8 @@ public class CompositeState
     checkState(isTarget());
     ImmutableSet.Builder<TargetInformation> properties = ImmutableSet.builder();
     for (AbstractState element : states) {
-      if ((element instanceof Targetable) && ((Targetable) element).isTarget()) {
-        properties.addAll(((Targetable) element).getTargetInformation());
+      if ((element instanceof Targetable targetable) && targetable.isTarget()) {
+        properties.addAll(targetable.getTargetInformation());
       }
     }
     return properties.build();
@@ -93,8 +93,8 @@ public class CompositeState
   public String toDOTLabel() {
     StringBuilder builder = new StringBuilder();
     for (AbstractState element : states) {
-      if (element instanceof Graphable) {
-        String label = ((Graphable) element).toDOTLabel();
+      if (element instanceof Graphable graphable) {
+        String label = graphable.toDOTLabel();
         if (!label.isEmpty()) {
           builder.append(element.getClass().getSimpleName());
           builder.append(": ");
@@ -110,8 +110,8 @@ public class CompositeState
   @Override
   public boolean shouldBeHighlighted() {
     for (AbstractState element : states) {
-      if (element instanceof Graphable) {
-        if (((Graphable) element).shouldBeHighlighted()) {
+      if (element instanceof Graphable graphable) {
+        if (graphable.shouldBeHighlighted()) {
           return true;
         }
       }
@@ -135,8 +135,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof Partitionable) {
-          keys[i] = ((Partitionable) element).getPartitionKey();
+        if (element instanceof Partitionable partitionable) {
+          keys[i] = partitionable.getPartitionKey();
         }
         i++;
       }
@@ -155,8 +155,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof PseudoPartitionable) {
-          keys[i] = ((PseudoPartitionable) element).getPseudoPartitionKey();
+        if (element instanceof PseudoPartitionable pseudoPartitionable) {
+          keys[i] = pseudoPartitionable.getPseudoPartitionKey();
         }
         i++;
       }
@@ -175,8 +175,8 @@ public class CompositeState
 
       int i = 0;
       for (AbstractState element : states) {
-        if (element instanceof PseudoPartitionable) {
-          keys[i] = ((PseudoPartitionable) element).getPseudoHashCode();
+        if (element instanceof PseudoPartitionable pseudoPartitionable) {
+          keys[i] = pseudoPartitionable.getPseudoHashCode();
         }
         i++;
       }
@@ -202,8 +202,8 @@ public class CompositeState
         return true;
       }
 
-      return pObj instanceof CompositePartitionKey
-          && Arrays.equals(keys, ((CompositePartitionKey) pObj).keys);
+      return pObj instanceof CompositePartitionKey compositePartitionKey
+          && Arrays.equals(keys, compositePartitionKey.keys);
     }
 
     @Override
@@ -233,8 +233,8 @@ public class CompositeState
         return true;
       }
 
-      return pObj instanceof CompositePseudoPartitionKey
-          && Arrays.equals(keys, ((CompositePseudoPartitionKey) pObj).keys);
+      return pObj instanceof CompositePseudoPartitionKey compositePseudoPartitionKey
+          && Arrays.equals(keys, compositePseudoPartitionKey.keys);
     }
 
     @Override
@@ -264,8 +264,8 @@ public class CompositeState
       // if state was not replaced, add it:
       if (targetSize > newWrappedStates.size()) {
         // recursion might end here if state is not splitable:
-        if (state instanceof Splitable) {
-          newWrappedStates.add(((Splitable) state).forkWithReplacements(pReplacementStates));
+        if (state instanceof Splitable splitable) {
+          newWrappedStates.add(splitable.forkWithReplacements(pReplacementStates));
         } else {
           newWrappedStates.add(state);
         }

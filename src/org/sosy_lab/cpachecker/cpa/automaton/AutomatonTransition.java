@@ -412,13 +412,13 @@ class AutomatonTransition {
               return pExpression;
             }
             String functionName = CProgramScope.getFunctionNameOfArtificialReturnVar(idExpression);
-            if (pEdge instanceof AStatementEdge) {
-              AStatement statement = ((AStatementEdge) pEdge).getStatement();
+            if (pEdge instanceof AStatementEdge aStatementEdge) {
+              AStatement statement = aStatementEdge.getStatement();
               if (statement instanceof AFunctionCallAssignmentStatement functionCallAssignment) {
                 AExpression functionNameExpression =
                     functionCallAssignment.getFunctionCallExpression().getFunctionNameExpression();
-                if (functionNameExpression instanceof AIdExpression
-                    && ((AIdExpression) functionNameExpression).getName().equals(functionName)) {
+                if (functionNameExpression instanceof AIdExpression aIdExpression
+                    && aIdExpression.getName().equals(functionName)) {
                   return (CExpression) functionCallAssignment.getLeftHandSide();
                 }
               }

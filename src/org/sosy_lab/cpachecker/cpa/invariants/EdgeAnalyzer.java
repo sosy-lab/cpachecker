@@ -172,13 +172,13 @@ class EdgeAnalyzer {
       case StatementEdge -> {
         AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
         AStatement statement = statementEdge.getStatement();
-        if (statement instanceof AExpressionAssignmentStatement) {
-          yield getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
-        } else if (statement instanceof AExpressionStatement) {
-          yield getInvolvedVariableTypes(
-              ((AExpressionStatement) statement).getExpression(), pCfaEdge);
-        } else if (statement instanceof AFunctionCallAssignmentStatement) {
-          yield getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
+        if (statement instanceof AExpressionAssignmentStatement aExpressionAssignmentStatement) {
+          yield getInvolvedVariableTypes(aExpressionAssignmentStatement, pCfaEdge);
+        } else if (statement instanceof AExpressionStatement aExpressionStatement) {
+          yield getInvolvedVariableTypes(aExpressionStatement.getExpression(), pCfaEdge);
+        } else if (statement
+            instanceof AFunctionCallAssignmentStatement aFunctionCallAssignmentStatement) {
+          yield getInvolvedVariableTypes(aFunctionCallAssignmentStatement, pCfaEdge);
         } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
           Map<MemoryLocation, CType> result = new HashMap<>();
           for (AExpression expression :
@@ -279,12 +279,10 @@ class EdgeAnalyzer {
    */
   private ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
-    if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariableTypes(
-          ((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariableTypes(
-          ((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
+    if (pCInitializer instanceof CDesignatedInitializer cDesignatedInitializer) {
+      return getInvolvedVariableTypes(cDesignatedInitializer.getRightHandSide(), pCfaEdge);
+    } else if (pCInitializer instanceof CInitializerExpression cInitializerExpression) {
+      return getInvolvedVariableTypes(cInitializerExpression.getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList initializerList) {
       Map<MemoryLocation, CType> result = new HashMap<>();
       for (CInitializer initializer : initializerList.getInitializers()) {
@@ -322,10 +320,10 @@ class EdgeAnalyzer {
     if (pExpression == null) {
       return ImmutableMap.of();
     }
-    if (pExpression instanceof CExpression) {
+    if (pExpression instanceof CExpression cExpression) {
       Map<MemoryLocation, CType> result = new HashMap<>();
 
-      for (ALeftHandSide leftHandSide : ((CExpression) pExpression).accept(LHSVisitor.INSTANCE)) {
+      for (ALeftHandSide leftHandSide : cExpression.accept(LHSVisitor.INSTANCE)) {
         NumeralFormula<CompoundInterval> formula;
         try {
           ExpressionToFormulaVisitor etfv =

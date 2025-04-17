@@ -131,17 +131,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
    */
   private boolean appendOverflowGuardForNegativeIntegralLiterals(
       String pGuardString, Object pValue) {
-    if (pValue instanceof BigInteger) {
+    if (pValue instanceof BigInteger bigInteger) {
       String valueString = pValue.toString();
       if (valueString.equals("-" + pGuardString)) {
-        builder.append("( ( ").append(((BigInteger) pValue).add(BigInteger.ONE)).append(" ) - 1 )");
+        builder.append("( ( ").append(bigInteger.add(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
       if (bvSigned && valueString.equals(pGuardString)) {
-        builder
-            .append("( ( -")
-            .append(((BigInteger) pValue).subtract(BigInteger.ONE))
-            .append(" ) - 1 )");
+        builder.append("( ( -").append(bigInteger.subtract(BigInteger.ONE)).append(" ) - 1 )");
         return true;
       }
     }

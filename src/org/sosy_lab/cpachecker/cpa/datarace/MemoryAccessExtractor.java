@@ -139,10 +139,9 @@ public class MemoryAccessExtractor {
           readLocationBuilder.addAll(
               getInvolvedVariableTypes(
                   expressionAssignmentStatement.getRightHandSide(), statementEdge));
-        } else if (statement instanceof AExpressionStatement) {
+        } else if (statement instanceof AExpressionStatement aExpressionStatement) {
           readLocationBuilder.addAll(
-              getInvolvedVariableTypes(
-                  ((AExpressionStatement) statement).getExpression(), statementEdge));
+              getInvolvedVariableTypes(aExpressionStatement.getExpression(), statementEdge));
         } else if (statement
             instanceof AFunctionCallAssignmentStatement functionCallAssignmentStatement) {
           String functionName = getFunctionName(functionCallAssignmentStatement);
@@ -205,15 +204,13 @@ public class MemoryAccessExtractor {
 
   private Set<OverapproximatingMemoryLocation> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
-    if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariableTypes(
-          ((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariableTypes(
-          ((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
-    } else if (pCInitializer instanceof CInitializerList) {
+    if (pCInitializer instanceof CDesignatedInitializer cDesignatedInitializer) {
+      return getInvolvedVariableTypes(cDesignatedInitializer.getRightHandSide(), pCfaEdge);
+    } else if (pCInitializer instanceof CInitializerExpression cInitializerExpression) {
+      return getInvolvedVariableTypes(cInitializerExpression.getExpression(), pCfaEdge);
+    } else if (pCInitializer instanceof CInitializerList cInitializerList) {
       ImmutableSet.Builder<OverapproximatingMemoryLocation> resultBuilder = ImmutableSet.builder();
-      for (CInitializer initializer : ((CInitializerList) pCInitializer).getInitializers()) {
+      for (CInitializer initializer : cInitializerList.getInitializers()) {
         resultBuilder.addAll(getInvolvedVariableTypes(initializer, pCfaEdge));
       }
       return resultBuilder.build();
@@ -227,8 +224,8 @@ public class MemoryAccessExtractor {
    * accessing only the address of a memory location is not considered a read access.
    */
   private boolean isAddressAccess(AExpression pExpression) {
-    if (pExpression instanceof AUnaryExpression
-        && ((AUnaryExpression) pExpression).getOperator().equals(UnaryOperator.AMPER)) {
+    if (pExpression instanceof AUnaryExpression aUnaryExpression
+        && aUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
       return true;
     }
     if (pExpression instanceof AIdExpression
@@ -251,8 +248,8 @@ public class MemoryAccessExtractor {
       return functionCallExpression.getDeclaration().getName();
     } else {
       AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
-      if (functionNameExpression instanceof AIdExpression) {
-        return ((AIdExpression) functionNameExpression).getName();
+      if (functionNameExpression instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getName();
       } else if (functionNameExpression instanceof AUnaryExpression unaryFunctionNameExpression) {
         if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
           return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();

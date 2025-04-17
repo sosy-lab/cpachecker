@@ -249,8 +249,8 @@ public class CFAToCTranslator {
       return ImmutableList.of();
     }
 
-    if (pNode instanceof CFALabelNode) {
-      pBlock.addStatement(createLabel((CFALabelNode) pNode));
+    if (pNode instanceof CFALabelNode cFALabelNode) {
+      pBlock.addStatement(createLabel(cFALabelNode));
     }
 
     Collection<Pair<CFAEdge, CompoundStatement>> outgoingEdges =

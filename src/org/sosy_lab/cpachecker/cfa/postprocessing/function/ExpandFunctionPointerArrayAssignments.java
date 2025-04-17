@@ -99,11 +99,12 @@ public class ExpandFunctionPointerArrayAssignments {
     final CExpression subscript = array.getSubscriptExpression();
 
     CType arrayType = array.getArrayExpression().getExpressionType().getCanonicalType();
-    if (!(arrayType instanceof CArrayType)
-        || !(((CArrayType) arrayType).getLength() instanceof CIntegerLiteralExpression)) {
+    if (!(arrayType instanceof CArrayType cArrayType)
+        || !(cArrayType.getLength()
+            instanceof CIntegerLiteralExpression cIntegerLiteralExpression)) {
       return;
     }
-    final long length = ((CIntegerLiteralExpression) ((CArrayType) arrayType).getLength()).asLong();
+    final long length = cIntegerLiteralExpression.asLong();
 
     final CFANode startNode = edge.getPredecessor();
     final CFANode endNode = edge.getSuccessor();

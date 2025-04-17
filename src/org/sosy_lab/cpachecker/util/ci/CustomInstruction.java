@@ -297,15 +297,15 @@ public class CustomInstruction {
 
         computeMappingOfCiAndAci(ciEdge, aciEdge, mapping, outVariables);
 
-        if (ciEdge instanceof FunctionCallEdge) {
+        if (ciEdge instanceof FunctionCallEdge functionCallEdge) {
           computeMappingOfCiAndAci(
-              ((FunctionCallEdge) ciEdge).getSummaryEdge(),
+              functionCallEdge.getSummaryEdge(),
               ((FunctionCallEdge) aciEdge).getSummaryEdge(),
               mapping,
               outVariables);
           next =
               Pair.of(
-                  ((FunctionCallEdge) ciEdge).getSummaryEdge().getSuccessor(),
+                  functionCallEdge.getSummaryEdge().getSuccessor(),
                   ((FunctionCallEdge) aciEdge).getSummaryEdge().getSuccessor());
         } else {
           next = Pair.of(ciSucc, aciSucc);

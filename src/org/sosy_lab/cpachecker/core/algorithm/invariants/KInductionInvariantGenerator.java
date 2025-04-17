@@ -862,8 +862,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       CType type = id.getExpressionType().getCanonicalType();
                       typePartitions.put(type, decl.getQualifiedName());
                       functions.put(id, e.getPredecessor().getFunction());
-                      if (type instanceof CSimpleType) {
-                        constants.add(machineModel.getMaximalIntegerValue((CSimpleType) type));
+                      if (type instanceof CSimpleType cSimpleType) {
+                        constants.add(machineModel.getMaximalIntegerValue(cSimpleType));
                       }
                     }
                   }
@@ -881,9 +881,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         for (Map.Entry<CType, Collection<String>> typePartition :
             typePartitions.asMap().entrySet()) {
           CType type = typePartition.getKey();
-          if (type instanceof CSimpleType) {
+          if (type instanceof CSimpleType cSimpleType) {
             Collection<String> variables = typePartition.getValue();
-            BigInteger max = machineModel.getMaximalIntegerValue((CSimpleType) type);
+            BigInteger max = machineModel.getMaximalIntegerValue(cSimpleType);
             for (String x : variables) {
               CIdExpression xId = idExpressions.get(x);
               CSimpleDeclaration xDecl = xId.getDeclaration();

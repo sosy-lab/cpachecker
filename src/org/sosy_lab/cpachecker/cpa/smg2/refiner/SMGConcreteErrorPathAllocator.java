@@ -135,8 +135,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     if (innerEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       CStatement stmt = ((CStatementEdge) innerEdge).getStatement();
 
-      if (stmt instanceof CAssignment) {
-        CLeftHandSide lhs = ((CAssignment) stmt).getLeftHandSide();
+      if (stmt instanceof CAssignment cAssignment) {
+        CLeftHandSide lhs = cAssignment.getLeftHandSide();
         alreadyAssigned.add(lhs);
       }
     }
@@ -173,8 +173,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
     CStatement stmt = pCfaEdge.getStatement();
 
-    if (stmt instanceof CAssignment) {
-      CLeftHandSide leftHandSide = ((CAssignment) stmt).getLeftHandSide();
+    if (stmt instanceof CAssignment cAssignment) {
+      CLeftHandSide leftHandSide = cAssignment.getLeftHandSide();
 
       return isLeftHandSideValueKnown(leftHandSide, pAlreadyAssigned);
     }

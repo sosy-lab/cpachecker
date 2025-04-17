@@ -598,11 +598,11 @@ class ASTConverter {
     } else if ((node instanceof JMethodInvocationExpression)) {
       return addSideassignmentsForExpressionsWithoutMethodInvocationSideEffects(node, e);
 
-    } else if (node instanceof JAssignment) {
+    } else if (node instanceof JAssignment jAssignment) {
 
       addSideassignmentsForExpressionsWithoutAssignmentSideEffects(node, e);
 
-      return ((JAssignment) node).getLeftHandSide();
+      return jAssignment.getLeftHandSide();
     } else {
       throw new AssertionError("unknown expression " + node);
     }
@@ -676,17 +676,18 @@ class ASTConverter {
 
     JAstNode node = convertExpressionWithSideEffects(s.getExpression());
 
-    if (node instanceof JExpressionAssignmentStatement) {
-      return (JExpressionAssignmentStatement) node;
+    if (node instanceof JExpressionAssignmentStatement jExpressionAssignmentStatement) {
+      return jExpressionAssignmentStatement;
 
-    } else if (node instanceof JMethodInvocationAssignmentStatement) {
-      return (JMethodInvocationAssignmentStatement) node;
+    } else if (node
+        instanceof JMethodInvocationAssignmentStatement jMethodInvocationAssignmentStatement) {
+      return jMethodInvocationAssignmentStatement;
 
-    } else if (node instanceof JMethodInvocationExpression) {
-      return new JMethodInvocationStatement(getFileLocation(s), (JMethodInvocationExpression) node);
+    } else if (node instanceof JMethodInvocationExpression jMethodInvocationExpression) {
+      return new JMethodInvocationStatement(getFileLocation(s), jMethodInvocationExpression);
 
-    } else if (node instanceof JExpression) {
-      return new JExpressionStatement(getFileLocation(s), (JExpression) node);
+    } else if (node instanceof JExpression jExpression) {
+      return new JExpressionStatement(getFileLocation(s), jExpression);
 
     } else {
       throw new AssertionError("Unhandled node type " + node.getClass().getCanonicalName());
@@ -951,8 +952,8 @@ class ASTConverter {
 
       JType type = miv.getDeclaringType();
 
-      if (type instanceof JClassType) {
-        miv.setRunTimeBinding((JClassType) type);
+      if (type instanceof JClassType jClassType) {
+        miv.setRunTimeBinding(jClassType);
       }
     }
 
@@ -1100,9 +1101,9 @@ class ASTConverter {
       JExpression pLeftOperand, JReferenceType pRightOperand, FileLocation pLocation) {
     List<JType> allPossibleClasses;
     boolean isRightOperandArray;
-    if ((pRightOperand instanceof JArrayType)) {
+    if ((pRightOperand instanceof JArrayType jArrayType)) {
       isRightOperandArray = true;
-      final JType elementType = ((JArrayType) pRightOperand).getElementType();
+      final JType elementType = jArrayType.getElementType();
       allPossibleClasses = getSubClasses(elementType);
 
     } else {
@@ -1141,8 +1142,8 @@ class ASTConverter {
         : "Unhandled type " + pType;
 
     Set<JClassType> subClassTypeSet;
-    if (pType instanceof JInterfaceType) {
-      subClassTypeSet = ((JInterfaceType) pType).getAllKnownImplementingClassesOfInterface();
+    if (pType instanceof JInterfaceType jInterfaceType) {
+      subClassTypeSet = jInterfaceType.getAllKnownImplementingClassesOfInterface();
 
     } else {
       JClassType classType = (JClassType) pType;
@@ -1173,16 +1174,13 @@ class ASTConverter {
       }
     }
     JExpression currentCondition;
-    if (pLeftOperand instanceof JIdExpression) {
+    if (pLeftOperand instanceof JIdExpression jIdExpression) {
       currentCondition =
-          convertClassRunTimeCompileTimeAccord(
-              pLocation, (JIdExpression) pLeftOperand, (JClassType) firstElement);
-    } else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+          convertClassRunTimeCompileTimeAccord(pLocation, jIdExpression, (JClassType) firstElement);
+    } else if (pLeftOperand instanceof JRunTimeTypeExpression jRunTimeTypeExpression) {
       currentCondition =
           new JRunTimeTypeEqualsType(
-              pLeftOperand.getFileLocation(),
-              (JRunTimeTypeExpression) pLeftOperand,
-              (JClassType) firstElement);
+              pLeftOperand.getFileLocation(), jRunTimeTypeExpression, (JClassType) firstElement);
     } else {
       throw new CFAGenerationRuntimeException(
           "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
@@ -1191,15 +1189,15 @@ class ASTConverter {
     JRunTimeTypeEqualsType newCondition;
 
     for (JType currentSubType : pConcreteTypes) {
-      if (pLeftOperand instanceof JIdExpression) {
+      if (pLeftOperand instanceof JIdExpression jIdExpression) {
         newCondition =
             convertClassRunTimeCompileTimeAccord(
-                pLocation, (JIdExpression) pLeftOperand, (JClassType) currentSubType);
-      } else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+                pLocation, jIdExpression, (JClassType) currentSubType);
+      } else if (pLeftOperand instanceof JRunTimeTypeExpression jRunTimeTypeExpression) {
         newCondition =
             new JRunTimeTypeEqualsType(
                 pLeftOperand.getFileLocation(),
-                (JRunTimeTypeExpression) pLeftOperand,
+                jRunTimeTypeExpression,
                 (JClassType) currentSubType);
       } else {
         throw new CFAGenerationRuntimeException(
@@ -1373,13 +1371,13 @@ class ASTConverter {
                 getFileLocation(pCIC),
                 parameter,
                 // TODO Naming for simple types
-                parameter instanceof JClassOrInterfaceType
-                    ? ((JClassOrInterfaceType) parameter).getSimpleName()
+                parameter instanceof JClassOrInterfaceType jClassOrInterfaceType
+                    ? jClassOrInterfaceType.getSimpleName()
                     : ((JSimpleType) parameter).toString(),
-                parameter instanceof JClassOrInterfaceType
-                    ? ((JClassOrInterfaceType) parameter).getName()
+                parameter instanceof JClassOrInterfaceType jClassOrInterfaceType
+                    ? jClassOrInterfaceType.getName()
                     : ((JSimpleType) parameter).toString(),
-                parameter instanceof JClassType && ((JClassType) parameter).isFinal()));
+                parameter instanceof JClassType jClassType && jClassType.isFinal()));
       }
 
       return new JConstructorDeclaration(
@@ -1602,8 +1600,9 @@ class ASTConverter {
         final Optional<Class<?>> classOfJType =
             getClassOfJType(simpleDeclarationType, pImportDeclarations);
         result.add(classOfJType.orElseThrow());
-      } else if (argument instanceof Expression && !(argument instanceof InfixExpression)) {
-        ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+      } else if (argument instanceof Expression expression
+          && !(argument instanceof InfixExpression)) {
+        ITypeBinding binding = expression.resolveTypeBinding();
         if (binding != null) {
           final JType jType = typeConverter.convert(binding);
           result.add(getClassOfJType(jType, pImportDeclarations).orElseThrow());
@@ -1611,8 +1610,8 @@ class ASTConverter {
           // TODO Need better solution for Method Invocations
           return Optional.empty();
         }
-      } else if (argument instanceof InfixExpression) {
-        JBinaryExpression expression = (JBinaryExpression) convert((InfixExpression) argument);
+      } else if (argument instanceof InfixExpression infixExpression) {
+        JBinaryExpression expression = (JBinaryExpression) convert(infixExpression);
         result.add(
             getClassOfJType(expression.getExpressionType(), pImportDeclarations).orElseThrow());
       } else {
@@ -1627,10 +1626,10 @@ class ASTConverter {
 
   private Optional<JSimpleDeclaration> getJSimpleDeclarationOfArgument(final Object pArgument) {
     String argumentName;
-    if (pArgument instanceof ArrayAccess) {
-      argumentName = ((ArrayAccess) pArgument).getArray().toString();
-    } else if (pArgument instanceof InfixExpression) {
-      JExpression jExpression = convert((InfixExpression) pArgument);
+    if (pArgument instanceof ArrayAccess arrayAccess) {
+      argumentName = arrayAccess.getArray().toString();
+    } else if (pArgument instanceof InfixExpression infixExpression) {
+      JExpression jExpression = convert(infixExpression);
       argumentName = jExpression.getExpressionType().toString();
     } else {
       argumentName = pArgument.toString();
@@ -1645,11 +1644,11 @@ class ASTConverter {
   @VisibleForTesting
   static Optional<Class<?>> getClassOfJType(
       JType pJType, Set<ImportDeclaration> pImportDeclarations) {
-    if (pJType instanceof JSimpleType) {
-      return Optional.of(getClassOfPrimitiveType((JSimpleType) pJType));
+    if (pJType instanceof JSimpleType jSimpleType) {
+      return Optional.of(getClassOfPrimitiveType(jSimpleType));
     }
-    if (pJType instanceof JClassOrInterfaceType) {
-      final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
+    if (pJType instanceof JClassOrInterfaceType jClassOrInterfaceType) {
+      final String jTypeName = jClassOrInterfaceType.getName();
       Optional<ImportDeclaration> matchingImportDeclaration =
           getMatchingImportDeclaration(jTypeName, pImportDeclarations);
       Optional<Class<?>> cls = Optional.empty();
@@ -1687,11 +1686,11 @@ class ASTConverter {
       }
       return cls;
     }
-    if (pJType instanceof JArrayType) {
-      final JType elementTypeOfJArrayType = ((JArrayType) pJType).getElementType();
+    if (pJType instanceof JArrayType jArrayType) {
+      final JType elementTypeOfJArrayType = jArrayType.getElementType();
       Optional<Class<?>> typeOfArray =
           getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
-      int dimensionsOfArray = ((JArrayType) pJType).getDimensions();
+      int dimensionsOfArray = jArrayType.getDimensions();
       Class<?> array = Array.newInstance(typeOfArray.orElseThrow(), 0).getClass();
       for (int i = 1; i < dimensionsOfArray; i++) {
         array = Array.newInstance(array, 0).getClass();
@@ -1726,11 +1725,11 @@ class ASTConverter {
       final JSimpleDeclaration jSimpleDeclaration = scope.lookupVariable(argument.toString());
       if (jSimpleDeclaration != null) {
         parameterList.add(jSimpleDeclaration.getType());
-      } else if (argument instanceof Expression) {
-        if (argument instanceof InfixExpression) {
-          parameterList.add(convert((InfixExpression) argument).getExpressionType());
+      } else if (argument instanceof Expression expression) {
+        if (argument instanceof InfixExpression infixExpression) {
+          parameterList.add(convert(infixExpression).getExpressionType());
         } else {
-          parameterList.add(typeConverter.convert((Expression) argument));
+          parameterList.add(typeConverter.convert(expression));
         }
 
       } else {
@@ -1749,25 +1748,25 @@ class ASTConverter {
         parameterList.add(
             convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.orElseThrow())
                 .orElseThrow());
-      } else if (argument instanceof Expression) {
+      } else if (argument instanceof Expression expression) {
         final String name;
         final String qualifiedName;
         JType jType;
-        if (argument instanceof InfixExpression) {
-          jType = convert((InfixExpression) argument).getExpressionType();
-          if (jType instanceof JSimpleType) {
-            name = ((JSimpleType) jType).toString();
-            qualifiedName = ((JSimpleType) jType).toString();
+        if (argument instanceof InfixExpression infixExpression) {
+          jType = convert(infixExpression).getExpressionType();
+          if (jType instanceof JSimpleType jSimpleType) {
+            name = jSimpleType.toString();
+            qualifiedName = jSimpleType.toString();
           } else {
             name = ((JClassType) jType).getSimpleName();
             qualifiedName = ((JClassType) jType).getName();
           }
-        } else if (argument instanceof StringLiteral) {
-          jType = convert((StringLiteral) argument).getExpressionType();
+        } else if (argument instanceof StringLiteral stringLiteral) {
+          jType = convert(stringLiteral).getExpressionType();
           name = ((JClassType) jType).getSimpleName();
           qualifiedName = ((JClassType) jType).getName();
         } else {
-          ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+          ITypeBinding binding = expression.resolveTypeBinding();
           jType = typeConverter.convert(binding);
           if (binding != null) {
             name = binding.getName();
@@ -1783,7 +1782,7 @@ class ASTConverter {
                 jType,
                 name,
                 qualifiedName,
-                jType instanceof JClassType && ((JClassType) jType).isFinal()));
+                jType instanceof JClassType jClassType && jClassType.isFinal()));
       } else {
         throw new CFAGenerationRuntimeException("Could not process argument: " + argument + " .");
       }
@@ -1793,16 +1792,16 @@ class ASTConverter {
 
   private Optional<JParameterDeclaration> convertSimpleDeclarationToParameterDeclaration(
       JSimpleDeclaration js) {
-    if (js instanceof JVariableDeclaration) {
+    if (js instanceof JVariableDeclaration jVariableDeclaration) {
       return Optional.of(
           new JParameterDeclaration(
               js.getFileLocation(),
               js.getType(),
               js.getName(),
               js.getQualifiedName(),
-              ((JVariableDeclaration) js).isFinal()));
-    } else if (js instanceof JParameterDeclaration) {
-      return Optional.of((JParameterDeclaration) js);
+              jVariableDeclaration.isFinal()));
+    } else if (js instanceof JParameterDeclaration jParameterDeclaration) {
+      return Optional.of(jParameterDeclaration);
     }
     throw new CFAGenerationRuntimeException(
         "Could not convert " + js.getName() + " to ParameterDeclaration");
@@ -2061,8 +2060,8 @@ class ASTConverter {
   private boolean isMainArgumentArray(QualifiedName e, JExpression qualifierExpression) {
     final IBinding lengthBinding = e.resolveBinding();
 
-    if (qualifierExpression instanceof JIdExpression) {
-      JSimpleDeclaration qualifierDecl = ((JIdExpression) qualifierExpression).getDeclaration();
+    if (qualifierExpression instanceof JIdExpression jIdExpression) {
+      JSimpleDeclaration qualifierDecl = jIdExpression.getDeclaration();
 
       // check that no binding exists (special case for main argument array) and that
       // the given qualifier is an array and a parameter
@@ -2142,14 +2141,15 @@ class ASTConverter {
         new JIdExpression(
             oldMethodCall.getFileLocation(), JSimpleType.UNSPECIFIED, name, declaration);
 
-    if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
+    if (oldMethodCall
+        instanceof JReferencedMethodInvocationExpression jReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(
           oldMethodCall.getFileLocation(),
           oldMethodCall.getExpressionType(),
           methodName,
           oldMethodCall.getParameterExpressions(),
           declaration,
-          ((JReferencedMethodInvocationExpression) oldMethodCall).getReferencedVariable());
+          jReferencedMethodInvocationExpression.getReferencedVariable());
     } else {
       return new JMethodInvocationExpression(
           oldMethodCall.getFileLocation(),
@@ -2262,11 +2262,11 @@ class ASTConverter {
 
     // TODO Complete declaration by finding all Bindings
     if (canBeResolved) {
-      if (binding instanceof IVariableBinding) {
-        return convertSimpleVariable(e, (IVariableBinding) binding);
+      if (binding instanceof IVariableBinding iVariableBinding) {
+        return convertSimpleVariable(e, iVariableBinding);
 
-      } else if (binding instanceof IMethodBinding) {
-        name = NameConverter.convertName((IMethodBinding) binding);
+      } else if (binding instanceof IMethodBinding iMethodBinding) {
+        name = NameConverter.convertName(iMethodBinding);
         declaration = scope.lookupMethod(name);
       } else if (binding instanceof ITypeBinding) {
         name = e.getIdentifier();
@@ -2352,24 +2352,23 @@ class ASTConverter {
           convertExpressionWithSideEffects(
               e.getRightHandSide()); // right-hand side may have a method call
 
-      if (rightHandSide instanceof JExpression) {
+      if (rightHandSide instanceof JExpression jExpression) {
         // a = b
-        return new JExpressionAssignmentStatement(
-            fileLoc, leftHandSide, (JExpression) rightHandSide);
+        return new JExpressionAssignmentStatement(fileLoc, leftHandSide, jExpression);
 
-      } else if (rightHandSide instanceof JMethodInvocationExpression) {
+      } else if (rightHandSide instanceof JMethodInvocationExpression jMethodInvocationExpression) {
         // a = f()
         return new JMethodInvocationAssignmentStatement(
-            fileLoc, leftHandSide, (JMethodInvocationExpression) rightHandSide);
+            fileLoc, leftHandSide, jMethodInvocationExpression);
 
-      } else if (rightHandSide instanceof JAssignment) {
+      } else if (rightHandSide instanceof JAssignment jAssignment) {
 
         // TODO We need the assignments to be evaluated from left to right
         // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(
-            fileLoc, leftHandSide, ((JAssignment) rightHandSide).getLeftHandSide());
+            fileLoc, leftHandSide, jAssignment.getLeftHandSide());
 
       } else {
         throw new CFAGenerationRuntimeException("Expression is not free of side effects");
@@ -2395,8 +2394,8 @@ class ASTConverter {
 
     JSimpleType simpleType;
 
-    if (type instanceof JSimpleType) {
-      simpleType = (JSimpleType) type;
+    if (type instanceof JSimpleType jSimpleType) {
+      simpleType = jSimpleType;
     } else {
       simpleType = null;
     }
@@ -2592,22 +2591,22 @@ class ASTConverter {
     JSimpleType simpleTypeOp1 = null;
     JSimpleType simpleTypeOp2 = null;
 
-    if (pOp1Type instanceof JSimpleType) {
-      simpleTypeOp1 = (JSimpleType) pOp1Type;
+    if (pOp1Type instanceof JSimpleType jSimpleType) {
+      simpleTypeOp1 = jSimpleType;
     }
 
-    if (pOp2Type instanceof JSimpleType) {
-      simpleTypeOp2 = (JSimpleType) pOp2Type;
+    if (pOp2Type instanceof JSimpleType jSimpleType) {
+      simpleTypeOp2 = jSimpleType;
     }
 
     JSimpleType jSimpleType;
-    if (pOp1Type instanceof JClassType && simpleTypeOp2 != null) {
-      jSimpleType = unboxJClassType((JClassType) pOp1Type).orElse(null);
+    if (pOp1Type instanceof JClassType jClassType && simpleTypeOp2 != null) {
+      jSimpleType = unboxJClassType(jClassType).orElse(null);
       if (jSimpleType == simpleTypeOp2) {
         simpleTypeOp1 = jSimpleType;
       }
-    } else if (pOp2Type instanceof JClassType && simpleTypeOp1 != null) {
-      jSimpleType = unboxJClassType((JClassType) pOp2Type).orElse(null);
+    } else if (pOp2Type instanceof JClassType jClassType && simpleTypeOp1 != null) {
+      jSimpleType = unboxJClassType(jClassType).orElse(null);
       if (jSimpleType == simpleTypeOp1) {
         simpleTypeOp2 = jSimpleType;
       }
@@ -2650,8 +2649,8 @@ class ASTConverter {
   }
 
   private boolean isStringType(JType t) {
-    return t instanceof JClassOrInterfaceType
-        && ((JClassOrInterfaceType) t).getName().equals("java.lang.String");
+    return t instanceof JClassOrInterfaceType jClassOrInterfaceType
+        && jClassOrInterfaceType.getName().equals("java.lang.String");
   }
 
   private BinaryOperator convertNumericOperator(InfixExpression.Operator op) {
@@ -2951,11 +2950,11 @@ class ASTConverter {
    * @return whether the type of expression is boolean.
    */
   public boolean isBooleanExpression(JExpression e) {
-    if (e instanceof JBinaryExpression) {
-      return BOOLEAN_BINARY_OPERATORS.contains(((JBinaryExpression) e).getOperator());
+    if (e instanceof JBinaryExpression jBinaryExpression) {
+      return BOOLEAN_BINARY_OPERATORS.contains(jBinaryExpression.getOperator());
 
-    } else if (e instanceof JUnaryExpression) {
-      return ((JUnaryExpression) e).getOperator() == UnaryOperator.NOT;
+    } else if (e instanceof JUnaryExpression jUnaryExpression) {
+      return jUnaryExpression.getOperator() == UnaryOperator.NOT;
 
     } else {
 
@@ -2982,9 +2981,10 @@ class ASTConverter {
       JMethodInvocationExpression methodInvocation,
       JClassOrInterfaceType classType) {
 
-    if (methodInvocation instanceof JReferencedMethodInvocationExpression) {
+    if (methodInvocation
+        instanceof JReferencedMethodInvocationExpression jReferencedMethodInvocationExpression) {
       JIdExpression referencedVariable =
-          ((JReferencedMethodInvocationExpression) methodInvocation).getReferencedVariable();
+          jReferencedMethodInvocationExpression.getReferencedVariable();
 
       JRunTimeTypeExpression methodReturnType =
           new JVariableRunTimeType(fileloc, referencedVariable);

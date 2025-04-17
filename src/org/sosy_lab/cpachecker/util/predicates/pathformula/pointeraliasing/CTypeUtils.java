@@ -138,8 +138,8 @@ class CTypeUtils {
 
   static CType implicitCastToPointer(CType type) {
     checkIsSimplified(type);
-    if (type instanceof CArrayType) {
-      return new CPointerType(false, false, checkIsSimplified(((CArrayType) type).getType()));
+    if (type instanceof CArrayType cArrayType) {
+      return new CPointerType(false, false, checkIsSimplified(cArrayType.getType()));
     } else if (type instanceof CFunctionType) {
       return new CPointerType(false, false, type);
     } else {

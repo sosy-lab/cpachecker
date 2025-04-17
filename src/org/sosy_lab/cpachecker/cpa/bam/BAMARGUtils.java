@@ -152,10 +152,10 @@ class BAMARGUtils {
 
   private static ARGState copyNode(ARGState toCopy) {
     ARGState copyState;
-    if (toCopy instanceof BAMARGBlockStartState) {
+    if (toCopy instanceof BAMARGBlockStartState bAMARGBlockStartState) {
       copyState = new BAMARGBlockStartState(toCopy.getWrappedState(), null);
       ((BAMARGBlockStartState) copyState)
-          .setAnalyzedBlock(((BAMARGBlockStartState) toCopy).getAnalyzedBlock());
+          .setAnalyzedBlock(bAMARGBlockStartState.getAnalyzedBlock());
     } else {
       copyState = new ARGState(toCopy.getWrappedState(), null);
     }

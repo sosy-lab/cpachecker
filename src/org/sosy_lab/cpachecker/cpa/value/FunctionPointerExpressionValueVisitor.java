@@ -87,8 +87,8 @@ class FunctionPointerExpressionValueVisitor extends ExpressionValueVisitor {
         throws UnrecognizedCodeException {
 
       CType expType = pIastFieldReference.getExpressionType();
-      if (expType instanceof CPointerType) {
-        if (((CPointerType) expType).getType() instanceof CFunctionType) {
+      if (expType instanceof CPointerType cPointerType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return MemoryLocation.forIdentifier(pIastFieldReference.getFieldName());
         }
       }

@@ -3952,8 +3952,8 @@ public class SMGCPAValueVisitorTest {
    * @return some Value for the type and input value.
    */
   private @Nullable Value transformInputIntoValue(CType valueType, int numValue) {
-    if (valueType instanceof CSimpleType) {
-      if (((CSimpleType) valueType).hasSignedSpecifier()) {
+    if (valueType instanceof CSimpleType cSimpleType) {
+      if (cSimpleType.hasSignedSpecifier()) {
         // Make every second number negative
         return new NumericValue(numValue % 2 == 0 ? numValue : -numValue);
       } else {

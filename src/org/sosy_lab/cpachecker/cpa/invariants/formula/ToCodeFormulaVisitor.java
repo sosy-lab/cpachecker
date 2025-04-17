@@ -331,10 +331,10 @@ public class ToCodeFormulaVisitor
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
     TypeInfo sourceInfo = pCast.getCasted().getTypeInfo();
-    if (targetInfo instanceof BitVectorInfo
+    if (targetInfo instanceof BitVectorInfo bitVectorInfo
         && sourceInfo instanceof BitVectorInfo sourceBitVectorInfo) {
       int sourceSize = sourceBitVectorInfo.getSize();
-      int targetSize = ((BitVectorInfo) targetInfo).getSize();
+      int targetSize = bitVectorInfo.getSize();
       if ((sourceSize == targetSize && sourceBitVectorInfo.isSigned() == targetInfo.isSigned())
           || sourceFormula == null) {
         return sourceFormula;

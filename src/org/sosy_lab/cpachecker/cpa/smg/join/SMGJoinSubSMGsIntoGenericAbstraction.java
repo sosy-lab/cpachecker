@@ -152,8 +152,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       GenericAbstractionCandidateTemplate pTemplate,
       Set<SMGObject> pAlreadyVisited) {
 
-    if (pRootObject instanceof GenericAbstraction) {
-      return subSMGmatchSpecificShape((GenericAbstraction) pRootObject, pTemplate, pAlreadyVisited);
+    if (pRootObject instanceof GenericAbstraction genericAbstraction) {
+      return subSMGmatchSpecificShape(genericAbstraction, pTemplate, pAlreadyVisited);
     } else if (pRootObject instanceof SMGRegion) {
       return subSMGmatchSpecificShape(pInputSMG, pRootObject, pMapping, pTemplate, pAlreadyVisited);
     } else {

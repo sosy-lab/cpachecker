@@ -251,11 +251,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     switch (cfaEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-        if (statement instanceof AFunctionCall) {
+        if (statement instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
-              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            final String functionName = ((AIdExpression) functionNameExp).getName();
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            final String functionName = aIdExpression.getName();
             if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
               throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
             }
@@ -386,11 +386,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static boolean isThreadExit(CFAEdge cfaEdge) {
     if (CFAEdgeType.StatementEdge == cfaEdge.getEdgeType()) {
       AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          return THREAD_EXIT.equals(((AIdExpression) functionNameExp).getName());
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          return THREAD_EXIT.equals(aIdExpression.getName());
         }
       }
     }
@@ -630,11 +630,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
       final AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-      if (statement instanceof AFunctionCall) {
+      if (statement instanceof AFunctionCall aFunctionCall) {
         final AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (THREAD_MUTEX_LOCK.equals(functionName)) {
             return extractLockId(statement);
           }
@@ -653,9 +653,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       throw new UnrecognizedCodeException("unsupported thread locking", params.get(0));
     }
     CExpression operand = ((CUnaryExpression) params.get(0)).getOperand();
-    if (operand instanceof CArraySubscriptExpression) {
-      CExpression subscriptExpression =
-          ((CArraySubscriptExpression) operand).getSubscriptExpression();
+    if (operand instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      CExpression subscriptExpression = cArraySubscriptExpression.getSubscriptExpression();
       if (!(subscriptExpression instanceof ALiteralExpression)) {
         throw new UnrecognizedCodeException("unsupported thread lock assignment", params.get(0));
       }
@@ -729,11 +728,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     switch (cfaEdge.getEdgeType()) {
       case StatementEdge -> {
         AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-        if (statement instanceof AFunctionCall) {
+        if (statement instanceof AFunctionCall aFunctionCall) {
           AExpression functionNameExp =
-              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExp instanceof AIdExpression) {
-            return THREAD_FUNCTIONS.contains(((AIdExpression) functionNameExp).getName());
+              aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression aIdExpression) {
+            return THREAD_FUNCTIONS.contains(aIdExpression.getName());
           }
         }
         return false;
@@ -807,16 +806,16 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** if the current edge creates a new function, return its name, else nothing. */
   public static Optional<String> getCreatedThreadFunction(final CFAEdge edge)
       throws UnrecognizedCodeException {
-    if (edge instanceof AStatementEdge) {
-      AStatement statement = ((AStatementEdge) edge).getStatement();
-      if (statement instanceof AFunctionCall) {
+    if (edge instanceof AStatementEdge aStatementEdge) {
+      AStatement statement = aStatementEdge.getStatement();
+      if (statement instanceof AFunctionCall aFunctionCall) {
         AExpression functionNameExp =
-            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-        if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression) functionNameExp).getName();
+            aFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+        if (functionNameExp instanceof AIdExpression aIdExpression) {
+          final String functionName = aIdExpression.getName();
           if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
             List<? extends AExpression> params =
-                ((AFunctionCall) statement).getFunctionCallExpression().getParameterExpressions();
+                aFunctionCall.getFunctionCallExpression().getParameterExpressions();
             if (!(params.get(2) instanceof CUnaryExpression)) {
               throw new UnrecognizedCodeException(
                   "unsupported thread function call", params.get(2));

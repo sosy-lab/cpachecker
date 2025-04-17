@@ -566,9 +566,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
           succ.addParent(pred);
 
-        } else if (leave instanceof FunctionCallEdge && pred.getChildren().isEmpty()) {
+        } else if (leave instanceof FunctionCallEdge functionCallEdge
+            && pred.getChildren().isEmpty()) {
           // function calls are not considered to be part of the loop
-          CFANode locContinueLoop = ((FunctionCallEdge) leave).getReturnNode();
+          CFANode locContinueLoop = functionCallEdge.getReturnNode();
           Map<Pair<CFANode, CallstackState>, ARGState> contextToARGState = new HashMap<>();
           Pair<CFANode, CallstackState> context =
               Pair.of(
@@ -592,11 +593,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               Pair<CFANode, CallstackState> newContext =
                   Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
-              if (leaveFun instanceof FunctionReturnEdge) {
-                if (!context
-                    .getSecond()
-                    .getCallNode()
-                    .equals(((FunctionReturnEdge) leaveFun).getCallNode())) {
+              if (leaveFun instanceof FunctionReturnEdge functionReturnEdge) {
+                if (!context.getSecond().getCallNode().equals(functionReturnEdge.getCallNode())) {
                   continue; // false context
                 }
                 newContext =
@@ -645,10 +643,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   private ExpressionTree<Object> buildInvariantFrom(NonTerminationArgument pArg) {
     ExpressionTree<Object> computedQuasiInvariant = ExpressionTrees.getTrue();
-    if (pArg instanceof GeometricNonTerminationArgument) {
-      computedQuasiInvariant = buildInvariantFrom((GeometricNonTerminationArgument) pArg);
-    } else if (pArg instanceof InfiniteFixpointRepetition) {
-      computedQuasiInvariant = buildInvaraintFrom((InfiniteFixpointRepetition) pArg);
+    if (pArg instanceof GeometricNonTerminationArgument geometricNonTerminationArgument) {
+      computedQuasiInvariant = buildInvariantFrom(geometricNonTerminationArgument);
+    } else if (pArg instanceof InfiniteFixpointRepetition infiniteFixpointRepetition) {
+      computedQuasiInvariant = buildInvaraintFrom(infiniteFixpointRepetition);
     }
     return computedQuasiInvariant;
   }

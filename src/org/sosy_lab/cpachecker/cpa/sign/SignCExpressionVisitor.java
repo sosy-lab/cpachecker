@@ -245,14 +245,14 @@ public class SignCExpressionVisitor
   private Sign evaluateMinusOperator(Sign pLeft, Sign pRight, CExpression pRightExp) {
     // Special case: + - 1 => +0
     if (pLeft == Sign.PLUS
-        && (pRightExp instanceof CIntegerLiteralExpression)
-        && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
+        && (pRightExp instanceof CIntegerLiteralExpression cIntegerLiteralExpression)
+        && cIntegerLiteralExpression.getValue().equals(BigInteger.ONE)) {
       return Sign.PLUS0;
     }
     // Special case: -0 - 1 => -
     if (pLeft == Sign.MINUS0
-        && (pRightExp instanceof CIntegerLiteralExpression)
-        && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
+        && (pRightExp instanceof CIntegerLiteralExpression cIntegerLiteralExpression)
+        && cIntegerLiteralExpression.getValue().equals(BigInteger.ONE)) {
       return Sign.MINUS;
     }
     if (pRight == Sign.ZERO) {

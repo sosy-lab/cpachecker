@@ -185,8 +185,8 @@ public class AppliedCustomInstructionParserTest {
   private List<CFALabelNode> getLabelNodes(CFA pCfa) {
     List<CFALabelNode> result = new ArrayList<>();
     for (CFANode n : pCfa.nodes()) {
-      if (n instanceof CFALabelNode) {
-        result.add((CFALabelNode) n);
+      if (n instanceof CFALabelNode cFALabelNode) {
+        result.add(cFALabelNode);
       }
     }
     return result;

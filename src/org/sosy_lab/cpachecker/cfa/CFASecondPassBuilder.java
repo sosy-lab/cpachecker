@@ -435,7 +435,7 @@ public class CFASecondPassBuilder {
   }
 
   private boolean isAbortingFunction(AFunctionDeclaration pDecl) {
-    return (pDecl instanceof CFunctionDeclaration
-        && ((CFunctionDeclaration) pDecl).doesNotReturn());
+    return (pDecl instanceof CFunctionDeclaration cFunctionDeclaration
+        && cFunctionDeclaration.doesNotReturn());
   }
 }

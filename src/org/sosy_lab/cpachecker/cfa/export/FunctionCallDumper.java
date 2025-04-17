@@ -218,13 +218,13 @@ public final class FunctionCallDumper {
               AExpression functionNameExp = functionCallExpression.getFunctionNameExpression();
               List<? extends AExpression> params =
                   functionCall.getFunctionCallExpression().getParameterExpressions();
-              if (functionNameExp instanceof AIdExpression
-                  && THREAD_START.equals(((AIdExpression) functionNameExp).getName())
+              if (functionNameExp instanceof AIdExpression aIdExpression
+                  && THREAD_START.equals(aIdExpression.getName())
                   && params.get(2) instanceof CUnaryExpression) {
                 CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
-                if (expr2 instanceof CIdExpression) {
+                if (expr2 instanceof CIdExpression cIdExpression) {
                   AFunctionDeclaration functionDecl =
-                      (AFunctionDeclaration) ((CIdExpression) expr2).getDeclaration();
+                      (AFunctionDeclaration) cIdExpression.getDeclaration();
                   String calledThreadFunction = functionDecl.getName();
                   threadCreations.put(functionName, calledThreadFunction);
                   originalNames.put(functionDecl.getName(), functionDecl.getOrigName());

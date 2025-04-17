@@ -7386,10 +7386,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // All should be invalid except our SLL here
       SMGSinglyLinkedListSegment sll = null;
       for (SMGObject object : objects) {
-        if (object instanceof SMGSinglyLinkedListSegment
+        if (object instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
             && state.getMemoryModel().isObjectValid(object)) {
           assertThat(sll).isNull();
-          sll = (SMGSinglyLinkedListSegment) object;
+          sll = sMGSinglyLinkedListSegment;
         } else {
           // The only valid non-SLL object is the stack variable
           if (object.getSize().asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(32))) {
@@ -7434,10 +7434,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // All should be invalid except our SLL here
       SMGSinglyLinkedListSegment sll = null;
       for (SMGObject object : objects) {
-        if (object instanceof SMGSinglyLinkedListSegment
+        if (object instanceof SMGSinglyLinkedListSegment sMGSinglyLinkedListSegment
             && state.getMemoryModel().isObjectValid(object)) {
           assertThat(sll).isNull();
-          sll = (SMGSinglyLinkedListSegment) object;
+          sll = sMGSinglyLinkedListSegment;
         } else {
           // The only valid non-SLL object is the stack variable
           if (object.getSize().asNumericValue().bigIntegerValue().equals(BigInteger.valueOf(32))) {
@@ -7485,10 +7485,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       // All should be invalid except our SLL here
       SMGDoublyLinkedListSegment dll = null;
       for (SMGObject object : objects) {
-        if (object instanceof SMGDoublyLinkedListSegment
+        if (object instanceof SMGDoublyLinkedListSegment sMGDoublyLinkedListSegment
             && state.getMemoryModel().isObjectValid(object)) {
           assertThat(dll).isNull();
-          dll = (SMGDoublyLinkedListSegment) object;
+          dll = sMGDoublyLinkedListSegment;
         } else {
           if (object.getSize().asNumericValue().bigIntegerValue().equals(pointerSizeInBits)) {
             // Only the stack variable memory is valid (original pointer)
@@ -7545,10 +7545,10 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // All should be invalid except our SLL here
         SMGDoublyLinkedListSegment dll = null;
         for (SMGObject object : objects) {
-          if (object instanceof SMGDoublyLinkedListSegment
+          if (object instanceof SMGDoublyLinkedListSegment sMGDoublyLinkedListSegment
               && state.getMemoryModel().isObjectValid(object)) {
             assertThat(dll).isNull();
-            dll = (SMGDoublyLinkedListSegment) object;
+            dll = sMGDoublyLinkedListSegment;
           } else if (object
               .getSize()
               .asNumericValue()

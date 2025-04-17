@@ -546,8 +546,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     for (TransferRelation tr : transferRelations) {
       if (pType.isAssignableFrom(tr.getClass())) {
         return pType.cast(tr);
-      } else if (tr instanceof WrapperTransferRelation) {
-        T result = ((WrapperTransferRelation) tr).retrieveWrappedTransferRelation(pType);
+      } else if (tr instanceof WrapperTransferRelation wrapperTransferRelation) {
+        T result = wrapperTransferRelation.retrieveWrappedTransferRelation(pType);
         if (result != null) {
           return result;
         }

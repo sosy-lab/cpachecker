@@ -1178,9 +1178,9 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!(bufferValue instanceof AddressExpression)
-          || ((AddressExpression) bufferValue).getMemoryAddress().isUnknown()
-          || !((AddressExpression) bufferValue).getOffset().isNumericValue()) {
+      if (!(bufferValue instanceof AddressExpression addressExpression)
+          || addressExpression.getMemoryAddress().isUnknown()
+          || !addressExpression.getOffset().isNumericValue()) {
         currentState = currentState.withInvalidWrite(bufferValue);
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
@@ -1203,7 +1203,7 @@ public class SMGCPABuiltins {
               evaluateMemset(
                   countAndState.getState(),
                   cfaEdge,
-                  (AddressExpression) bufferValue,
+                  addressExpression,
                   charValueAndSMGState.getValue(),
                   countAndState.getValue()));
         }

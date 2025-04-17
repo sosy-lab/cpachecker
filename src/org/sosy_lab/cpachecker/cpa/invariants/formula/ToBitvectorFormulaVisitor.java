@@ -239,9 +239,9 @@ public class ToBitvectorFormulaVisitor
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     TypeInfo typeInfo = pVariable.getTypeInfo();
-    if (typeInfo instanceof BitVectorInfo) {
+    if (typeInfo instanceof BitVectorInfo bitVectorInfo) {
       return bvfmgr.makeVariable(
-          ((BitVectorInfo) typeInfo).getSize(),
+          bitVectorInfo.getSize(),
           useQualifiedNames
               ? pVariable.getMemoryLocation().getExtendedQualifiedName()
               : pVariable.getMemoryLocation().getIdentifier());

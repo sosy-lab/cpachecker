@@ -143,7 +143,7 @@ public class MemoryLocationExtractingVisitor
       boolean isLocal = false;
       if (var.getDeclaration() != null) {
         CSimpleDeclaration decl = var.getDeclaration();
-        if (!((decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal())
+        if (!((decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal())
             || decl instanceof CEnumerator)) {
           isLocal = true;
         }

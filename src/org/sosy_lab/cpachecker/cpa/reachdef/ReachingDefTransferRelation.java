@@ -233,8 +233,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
                   @Override
                   protected Collection<CLeftHandSide> visitDefault(CExpression pExp)
                       throws NoException {
-                    if (pExp instanceof CLeftHandSide) {
-                      return ImmutableList.of((CLeftHandSide) pExp);
+                    if (pExp instanceof CLeftHandSide cLeftHandSide) {
+                      return ImmutableList.of(cLeftHandSide);
 
                     } else if (pExp instanceof CLiteralExpression) {
                       return ImmutableList.of();
@@ -249,8 +249,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
                       return res;
 
-                    } else if (pExp instanceof CUnaryExpression) {
-                      return ((CUnaryExpression) pExp).getOperand().accept(this);
+                    } else if (pExp instanceof CUnaryExpression cUnaryExpression) {
+                      return cUnaryExpression.getOperand().accept(this);
 
                     } else {
                       throw new AssertionError("Unhandled operation: " + pExp);
@@ -301,11 +301,12 @@ public class ReachingDefTransferRelation implements TransferRelation {
   private ReachingDefState handleStatement(
       ReachingDefState pState, CFAEdge pEdge, CStatement pStatement) {
     CLeftHandSide left;
-    if (pStatement instanceof CExpressionAssignmentStatement) {
-      left = ((CExpressionAssignmentStatement) pStatement).getLeftHandSide();
-    } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement cExpressionAssignmentStatement) {
+      left = cExpressionAssignmentStatement.getLeftHandSide();
+    } else if (pStatement
+        instanceof CFunctionCallAssignmentStatement cFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
-      left = ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide();
+      left = cFunctionCallAssignmentStatement.getLeftHandSide();
       logger.logOnce(
           Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
@@ -453,8 +454,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
 
     for (AbstractState o : otherStates) {
-      if (o instanceof PointerState) {
-        return strengthen((ReachingDefState) state, (PointerState) o);
+      if (o instanceof PointerState pointerState) {
+        return strengthen((ReachingDefState) state, pointerState);
       }
     }
     return Collections.singleton(state);

@@ -429,10 +429,10 @@ class GlobalScope extends AbstractScope {
       }
       return renamedEnumType;
 
-    } else if (oldType instanceof CElaboratedType) {
+    } else if (oldType instanceof CElaboratedType cElaboratedType) {
       CComplexType renamedRealType = null;
-      if (((CElaboratedType) oldType).getRealType() != null) {
-        renamedRealType = createRenamedType(((CElaboratedType) oldType).getRealType());
+      if (cElaboratedType.getRealType() != null) {
+        renamedRealType = createRenamedType(cElaboratedType.getRealType());
       }
       return new CElaboratedType(
           oldType.isConst(),

@@ -704,8 +704,8 @@ public enum MachineModel {
   public <X extends Exception> BigInteger getSizeofInBits(
       CType pType, BaseSizeofVisitor<X> pSizeofVisitor) throws X {
     checkNotNull(pSizeofVisitor);
-    if (pType instanceof CBitFieldType) {
-      return BigInteger.valueOf(((CBitFieldType) pType).getBitFieldSize());
+    if (pType instanceof CBitFieldType cBitFieldType) {
+      return BigInteger.valueOf(cBitFieldType.getBitFieldSize());
     } else {
       return getSizeof(pType, pSizeofVisitor).multiply(BigInteger.valueOf(getSizeofCharInBits()));
     }

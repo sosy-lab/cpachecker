@@ -354,8 +354,8 @@ public final class SMGPlotter {
     } else if (explicitValues.containsKey(value)) {
       label += " : " + explicitValues.get(value).getAsLong();
       color = "black";
-    } else if (value instanceof SMGKnownAddressValue) {
-      label += "\\n" + ((SMGKnownAddressValue) value).getObject();
+    } else if (value instanceof SMGKnownAddressValue sMGKnownAddressValue) {
+      label += "\\n" + sMGKnownAddressValue.getObject();
       color = "blue";
     }
     return String.format("value_%s[color=%s label=\"%s\"];", value.asDotId(), color, label);

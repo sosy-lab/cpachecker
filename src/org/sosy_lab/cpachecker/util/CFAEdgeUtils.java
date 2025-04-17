@@ -41,8 +41,8 @@ public final class CFAEdgeUtils {
       }
     } else {
       ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getType();
+      if (lhs instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getDeclaration().getType();
       }
     }
     return null;
@@ -56,8 +56,8 @@ public final class CFAEdgeUtils {
       }
     } else {
       ALeftHandSide lhs = getLeftHandSide(pEdge);
-      if (lhs instanceof AIdExpression) {
-        return ((AIdExpression) lhs).getDeclaration().getQualifiedName();
+      if (lhs instanceof AIdExpression aIdExpression) {
+        return aIdExpression.getDeclaration().getQualifiedName();
       }
     }
     return null;
@@ -82,8 +82,8 @@ public final class CFAEdgeUtils {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
 
         CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer instanceof CInitializerExpression) {
-          return ((CInitializerExpression) initializer).getExpression();
+        if (initializer instanceof CInitializerExpression cInitializerExpression) {
+          return cInitializerExpression.getExpression();
         }
       }
     } else if (pEdge instanceof CStatementEdge statementEdge) {

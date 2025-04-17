@@ -286,20 +286,20 @@ public class DeterministicVariablesTransferRelation
    */
   private Collection<Wrapper<ASimpleDeclaration>> getVariablesUsedForInitialization(
       final AInitializer init) throws CPATransferException {
-    if (init instanceof CDesignatedInitializer) {
+    if (init instanceof CDesignatedInitializer cDesignatedInitializer) {
       // e.g. .x=b or .p.x.=1 as part of struct initialization
-      return getVariablesUsedForInitialization(((CDesignatedInitializer) init).getRightHandSide());
+      return getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (init instanceof CInitializerList) {
+    } else if (init instanceof CInitializerList cInitializerList) {
       // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
       Collection<Wrapper<ASimpleDeclaration>> readVars = new ArrayList<>();
 
-      for (CInitializer inList : ((CInitializerList) init).getInitializers()) {
+      for (CInitializer inList : cInitializerList.getInitializers()) {
         readVars.addAll(getVariablesUsedForInitialization(inList));
       }
       return readVars;
-    } else if (init instanceof AInitializerExpression) {
-      return handleExpression(((AInitializerExpression) init).getExpression());
+    } else if (init instanceof AInitializerExpression aInitializerExpression) {
+      return handleExpression(aInitializerExpression.getExpression());
     } else {
       throw new CPATransferException("Missing case for if-then-else statement.");
     }

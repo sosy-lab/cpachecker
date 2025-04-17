@@ -208,13 +208,13 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     // Create a formula representing the edge expression
 
     BooleanFormula<CompoundInterval> assumption = null;
-    if (expression instanceof CExpression) {
+    if (expression instanceof CExpression cExpression) {
       NumeralFormula<CompoundInterval> expressionFormula =
-          ((CExpression) expression).accept(pExpressionToFormulaVisitor);
+          cExpression.accept(pExpressionToFormulaVisitor);
       assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
-    } else if (expression instanceof JExpression) {
+    } else if (expression instanceof JExpression jExpression) {
       NumeralFormula<CompoundInterval> expressionFormula =
-          ((JExpression) expression).accept(pExpressionToFormulaVisitor);
+          jExpression.accept(pExpressionToFormulaVisitor);
       assumption = compoundIntervalFormulaManager.fromNumeral(expressionFormula);
     } else {
       return pState;
@@ -348,8 +348,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
           ((CFunctionCall) pEdge.getStatement())
               .getFunctionCallExpression()
               .getFunctionNameExpression();
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), pEdge, fn);
         }
@@ -552,23 +552,23 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       AFunctionDeclaration function = pCfaEdge.getSuccessor().getFunction();
       for (AExpression assumption : assumptionState.getAssumptions()) {
         AssumeEdge fakeEdge;
-        if (assumption instanceof CExpression) {
+        if (assumption instanceof CExpression cExpression) {
           fakeEdge =
               new CAssumeEdge(
                   assumption.toASTString(),
                   FileLocation.DUMMY,
                   new CFANode(function),
                   new CFANode(function),
-                  (CExpression) assumption,
+                  cExpression,
                   true);
-        } else if (assumption instanceof JExpression) {
+        } else if (assumption instanceof JExpression jExpression) {
           fakeEdge =
               new JAssumeEdge(
                   assumption.toASTString(),
                   FileLocation.DUMMY,
                   new CFANode(function),
                   new CFANode(function),
-                  (JExpression) assumption,
+                  jExpression,
                   true);
         } else {
           throw new AssertionError("unexpected expression type " + assumption);
@@ -595,8 +595,8 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     CFAEdge edge = pCfaEdge;
     ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression
-        || (leftHandSide instanceof CFieldReference
-            && ((CFieldReference) leftHandSide).isPointerDereference())) {
+        || (leftHandSide instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference())) {
       FluentIterable<PointerState> pointerStates =
           FluentIterable.from(pOtherElements).filter(PointerState.class);
       if (pointerStates.isEmpty()) {

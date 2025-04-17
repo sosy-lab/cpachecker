@@ -191,8 +191,8 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
       List<CInitializer> waitlist = new ArrayList<>(listInitializer.getInitializers());
       while (!waitlist.isEmpty()) {
         CInitializer next = waitlist.remove(0);
-        if (next instanceof CInitializerList) {
-          waitlist.addAll(((CInitializerList) next).getInitializers());
+        if (next instanceof CInitializerList cInitializerList) {
+          waitlist.addAll(cInitializerList.getInitializers());
           continue;
         }
         if ((next instanceof CInitializerExpression expression)

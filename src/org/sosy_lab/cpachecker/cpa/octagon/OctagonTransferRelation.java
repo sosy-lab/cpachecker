@@ -179,8 +179,8 @@ public class OctagonTransferRelation
       throws CPATransferException {
 
     // Binary operation
-    if (expression instanceof CBinaryExpression) {
-      return handleBinaryBooleanExpression((CBinaryExpression) expression, truthAssumption, state);
+    if (expression instanceof CBinaryExpression cBinaryExpression) {
+      return handleBinaryBooleanExpression(cBinaryExpression, truthAssumption, state);
 
       // Unary operation
     } else if (expression instanceof CUnaryExpression unaryExp) {
@@ -193,8 +193,8 @@ public class OctagonTransferRelation
       // An expression which cannot be simplified anymore
     } else if (expression instanceof CIdExpression
         || expression instanceof CFieldReference
-        || (expression instanceof CPointerExpression
-            && ((CPointerExpression) expression).getOperand() instanceof CIdExpression)) {
+        || (expression instanceof CPointerExpression cPointerExpression
+            && cPointerExpression.getOperand() instanceof CIdExpression)) {
       if (isHandleableVariable(expression)) {
         MemoryLocation varName = buildVarName((CLeftHandSide) expression, functionName);
         return handleSingleBooleanExpression(varName, truthAssumption, state);
@@ -204,13 +204,13 @@ public class OctagonTransferRelation
 
       // A constant value
     } else if (expression instanceof CLiteralExpression) {
-      if (expression instanceof CIntegerLiteralExpression) {
+      if (expression instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
         return handleLiteralBooleanExpression(
-            ((CIntegerLiteralExpression) expression).asLong(), truthAssumption, state);
+            cIntegerLiteralExpression.asLong(), truthAssumption, state);
 
-      } else if (expression instanceof CCharLiteralExpression) {
+      } else if (expression instanceof CCharLiteralExpression cCharLiteralExpression) {
         return handleLiteralBooleanExpression(
-            ((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
+            cCharLiteralExpression.getCharacter(), truthAssumption, state);
 
       } else if (expression instanceof CFloatLiteralExpression floatLiteral) {
         // only when the float is exactly zero the condition is wrong, for all other float values it
@@ -222,9 +222,8 @@ public class OctagonTransferRelation
       }
 
       // a cast, we ignore this cast and call this method again with the casts operand
-    } else if (expression instanceof CCastExpression) {
-      return handleAssumption(
-          cfaEdge, ((CCastExpression) expression).getOperand(), truthAssumption);
+    } else if (expression instanceof CCastExpression cCastExpression) {
+      return handleAssumption(cfaEdge, cCastExpression.getOperand(), truthAssumption);
 
     } else {
       throw new UnrecognizedCodeException(
@@ -251,9 +250,9 @@ public class OctagonTransferRelation
   }
 
   private OctagonState.Type getCorrespondingOctStateType(CType type) {
-    if (type instanceof CSimpleType
-        && (((CSimpleType) type).getType() == CBasicType.FLOAT
-            || ((CSimpleType) type).getType() == CBasicType.DOUBLE)) {
+    if (type instanceof CSimpleType cSimpleType
+        && (cSimpleType.getType() == CBasicType.FLOAT
+            || cSimpleType.getType() == CBasicType.DOUBLE)) {
       return Type.FLOAT;
     } else {
       return Type.INT;
@@ -347,7 +346,7 @@ public class OctagonTransferRelation
     if (left instanceof CLiteralExpression leftLiteral
         && right instanceof CLiteralExpression rightLiteral) {
       return handleBinaryAssumptionWithTwoLiterals(leftLiteral, rightLiteral, op, truthAssumption);
-    } else if (left instanceof CLiteralExpression) {
+    } else if (left instanceof CLiteralExpression cLiteralExpression) {
       // change operator so we can call handleBinaryAssumptionWithOneLiteral
       switch (op) {
         case GREATER_EQUAL -> op = BinaryOperator.LESS_EQUAL;
@@ -359,12 +358,12 @@ public class OctagonTransferRelation
         default -> {}
       }
       return handleBinaryAssumptionWithOneLiteral(
-          right, (CLiteralExpression) left, op, truthAssumption, pState);
+          right, cLiteralExpression, op, truthAssumption, pState);
 
       // literal is on the right position, variable on the left;
-    } else if (right instanceof CLiteralExpression) {
+    } else if (right instanceof CLiteralExpression cLiteralExpression) {
       return handleBinaryAssumptionWithOneLiteral(
-          left, (CLiteralExpression) right, op, truthAssumption, pState);
+          left, cLiteralExpression, op, truthAssumption, pState);
     }
 
     // if we did not return anything up to now we were not able to handle it
@@ -377,7 +376,8 @@ public class OctagonTransferRelation
         || var instanceof CFieldReference
         || var instanceof CPointerExpression
         || var instanceof CStringLiteralExpression
-        || (var instanceof CFieldReference && ((CFieldReference) var).isPointerDereference())) {
+        || (var instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference())) {
       return false;
     }
     return isHandleAbleType(var.getExpressionType());
@@ -411,7 +411,8 @@ public class OctagonTransferRelation
 
     // we cannot handle pointers, so just ignore them
     if (left.getExpressionType() instanceof CPointerType
-        || (left instanceof CFieldReference && ((CFieldReference) left).isPointerDereference())) {
+        || (left instanceof CFieldReference cFieldReference
+            && cFieldReference.isPointerDereference())) {
       return Collections.singleton(pState);
     }
 
@@ -455,12 +456,12 @@ public class OctagonTransferRelation
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(((CIntegerLiteralExpression) right).asLong());
-    } else if (right instanceof CCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
+    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
+      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
+      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
 
       // we cannot handle strings, so just return the previous state
     } else {
@@ -530,21 +531,21 @@ public class OctagonTransferRelation
       BinaryOperator op,
       boolean truthAssumption) {
     OctagonNumericValue leftVal = OctagonIntValue.ZERO;
-    if (left instanceof CIntegerLiteralExpression) {
-      leftVal = OctagonIntValue.of(((CIntegerLiteralExpression) left).asLong());
-    } else if (left instanceof CCharLiteralExpression) {
-      leftVal = OctagonIntValue.of(((CCharLiteralExpression) left).getCharacter());
-    } else if (left instanceof CFloatLiteralExpression) {
-      leftVal = new OctagonDoubleValue(((CFloatLiteralExpression) left).getValue().doubleValue());
+    if (left instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      leftVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+    } else if (left instanceof CCharLiteralExpression cCharLiteralExpression) {
+      leftVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+    } else if (left instanceof CFloatLiteralExpression cFloatLiteralExpression) {
+      leftVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
     }
 
     OctagonNumericValue rightVal = OctagonIntValue.ZERO;
-    if (right instanceof CIntegerLiteralExpression) {
-      rightVal = OctagonIntValue.of(((CIntegerLiteralExpression) right).asLong());
-    } else if (right instanceof CCharLiteralExpression) {
-      rightVal = OctagonIntValue.of(((CCharLiteralExpression) right).getCharacter());
-    } else if (right instanceof CFloatLiteralExpression) {
-      rightVal = new OctagonDoubleValue(((CFloatLiteralExpression) right).getValue().doubleValue());
+    if (right instanceof CIntegerLiteralExpression cIntegerLiteralExpression) {
+      rightVal = OctagonIntValue.of(cIntegerLiteralExpression.asLong());
+    } else if (right instanceof CCharLiteralExpression cCharLiteralExpression) {
+      rightVal = OctagonIntValue.of(cCharLiteralExpression.getCharacter());
+    } else if (right instanceof CFloatLiteralExpression cFloatLiteralExpression) {
+      rightVal = new OctagonDoubleValue(cFloatLiteralExpression.getValue().doubleValue());
     }
 
     if (truthAssumption == isOperatorSatisfied(op, leftVal, rightVal)) {
@@ -911,8 +912,8 @@ public class OctagonTransferRelation
       Set<OctagonState> possibleStates = new HashSet<>();
 
       if (init != null) {
-        if (init instanceof CInitializerExpression) {
-          CExpression exp = ((CInitializerExpression) init).getExpression();
+        if (init instanceof CInitializerExpression cInitializerExpression) {
+          CExpression exp = cInitializerExpression.getExpression();
 
           COctagonCoefficientVisitor coeffVisitor =
               new COctagonCoefficientVisitor(state, functionName);
@@ -959,11 +960,10 @@ public class OctagonTransferRelation
   protected Set<OctagonState> handleStatementEdge(CStatementEdge cfaEdge, CStatement statement)
       throws CPATransferException {
     // check if there are functioncalls we cannot handle
-    if (statement instanceof CFunctionCall) {
-      CExpression fn =
-          ((CFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-      if (fn instanceof CIdExpression) {
-        String func = ((CIdExpression) fn).getName();
+    if (statement instanceof CFunctionCall cFunctionCall) {
+      CExpression fn = cFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+      if (fn instanceof CIdExpression cIdExpression) {
+        String func = cIdExpression.getName();
         if (UNSUPPORTED_FUNCTIONS.containsKey(func)) {
           throw new UnsupportedCodeException(UNSUPPORTED_FUNCTIONS.get(func), cfaEdge, fn);
         }
@@ -971,9 +971,9 @@ public class OctagonTransferRelation
     }
 
     // expression is a binary operation, e.g. a = b;
-    if (statement instanceof CAssignment) {
-      CLeftHandSide left = ((CAssignment) statement).getLeftHandSide();
-      CRightHandSide right = ((CAssignment) statement).getRightHandSide();
+    if (statement instanceof CAssignment cAssignment) {
+      CLeftHandSide left = cAssignment.getLeftHandSide();
+      CRightHandSide right = cAssignment.getRightHandSide();
 
       MemoryLocation variableName = buildVarName(left, functionName);
 
@@ -1021,12 +1021,12 @@ public class OctagonTransferRelation
   private MemoryLocation buildVarName(CLeftHandSide left, String pFunctionName) {
 
     String variableName = null;
-    if (left instanceof CArraySubscriptExpression) {
-      variableName = ((CArraySubscriptExpression) left).getArrayExpression().toASTString();
-    } else if (left instanceof CPointerExpression) {
-      variableName = ((CPointerExpression) left).getOperand().toASTString();
-    } else if (left instanceof CFieldReference) {
-      variableName = ((CFieldReference) left).getFieldOwner().toASTString();
+    if (left instanceof CArraySubscriptExpression cArraySubscriptExpression) {
+      variableName = cArraySubscriptExpression.getArrayExpression().toASTString();
+    } else if (left instanceof CPointerExpression cPointerExpression) {
+      variableName = cPointerExpression.getOperand().toASTString();
+    } else if (left instanceof CFieldReference cFieldReference) {
+      variableName = cFieldReference.getFieldOwner().toASTString();
     } else {
       variableName = left.toASTString();
     }

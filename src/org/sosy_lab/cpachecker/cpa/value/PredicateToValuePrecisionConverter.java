@@ -497,8 +497,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
       if (pType == EdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
-        if (edge instanceof CAssumeEdge) {
-          ((CAssumeEdge) edge).getExpression().accept(assumeVisitor);
+        if (edge instanceof CAssumeEdge cAssumeEdge) {
+          cAssumeEdge.getExpression().accept(assumeVisitor);
         }
         return VisitResult.CONTINUE;
       }
@@ -564,10 +564,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     private Optional<MemoryLocation> getVariable(final CExpression exp) {
-      if (exp instanceof CIdExpression) {
+      if (exp instanceof CIdExpression cIdExpression) {
         return Optional.of(
             MemoryLocation.parseExtendedQualifiedName(
-                ((CIdExpression) exp).getDeclaration().getQualifiedName()));
+                cIdExpression.getDeclaration().getQualifiedName()));
       }
       return Optional.empty();
     }

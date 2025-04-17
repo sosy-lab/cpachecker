@@ -182,8 +182,8 @@ public class ExpressionToFormulaVisitor
     final FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
 
     final boolean signed;
-    if (calculationType instanceof CSimpleType) {
-      signed = conv.machineModel.isSigned((CSimpleType) calculationType);
+    if (calculationType instanceof CSimpleType cSimpleType) {
+      signed = conv.machineModel.isSigned(cSimpleType);
     } else {
       // For pointers: happens only for additions/subtractions (for which signedness is irrelevant)
       // and comparisons. GCC implements pointer comparisons as unsigned.
@@ -228,14 +228,12 @@ public class ExpressionToFormulaVisitor
           ret =
               mgr.makeMinus(
                   f1, mgr.makeMultiply(f2, getSizeExpression(((CPointerType) promT1).getType())));
-        } else if (promT1 instanceof CPointerType) {
+        } else if (promT1 instanceof CPointerType cPointerType) {
           // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
           if (promT1.equals(promT2)) {
             ret =
                 mgr.makeDivide(
-                    mgr.makeMinus(f1, f2),
-                    getSizeExpression(((CPointerType) promT1).getType()),
-                    true);
+                    mgr.makeMinus(f1, f2), getSizeExpression(cPointerType.getType()), true);
           } else {
             throw new UnrecognizedCodeException(
                 "Can't subtract pointers of different types", edge, exp);
@@ -407,9 +405,9 @@ public class ExpressionToFormulaVisitor
     }
 
     CExpression fieldRef = fExp.getFieldOwner();
-    if (fieldRef instanceof CIdExpression) {
-      CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-      if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
+    if (fieldRef instanceof CIdExpression cIdExpression) {
+      CSimpleDeclaration decl = cIdExpression.getDeclaration();
+      if (decl instanceof CDeclaration cDeclaration && cDeclaration.isGlobal()) {
         // this is the reference to a global field variable
 
         // we can omit the warning (no pointers involved),
@@ -644,8 +642,8 @@ public class ExpressionToFormulaVisitor
 
     // First let's handle special cases such as assumes, allocations, nondets, external models, etc.
     final String functionName;
-    if (functionNameExpression instanceof CIdExpression) {
-      functionName = ((CIdExpression) functionNameExpression).getName();
+    if (functionNameExpression instanceof CIdExpression cIdExpression) {
+      functionName = cIdExpression.getName();
 
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)

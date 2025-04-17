@@ -843,7 +843,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private static AutomatonBoolExpr of(
         AutomatonBoolExpr pExpr, boolean pForward, boolean pContinueAtBranching) {
-      if (pExpr instanceof EpsilonMatch && ((EpsilonMatch) pExpr).forward == pForward) {
+      if (pExpr instanceof EpsilonMatch epsilonMatch && epsilonMatch.forward == pForward) {
         return pExpr;
       }
       return new EpsilonMatch(pExpr, pForward, pContinueAtBranching);
@@ -1057,8 +1057,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CFALabelNode
-          && label.equals(((CFALabelNode) successorNode).getLabel())) {
+      if (successorNode instanceof CFALabelNode cFALabelNode
+          && label.equals(cFALabelNode.getLabel())) {
         return CONST_TRUE;
       } else {
         return CONST_FALSE;
@@ -1096,8 +1096,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFANode successorNode = pArgs.getCfaEdge().getSuccessor();
-      if (successorNode instanceof CFALabelNode) {
-        String label = ((CFALabelNode) successorNode).getLabel();
+      if (successorNode instanceof CFALabelNode cFALabelNode) {
+        String label = cFALabelNode.getLabel();
         if (pattern.matcher(label).matches()) {
           return CONST_TRUE;
         } else {
@@ -1429,11 +1429,10 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
               CFAUtils.enteringEdges(callEdge.getReturnNode())
                   .filter(
                       e ->
-                          (e instanceof AStatementEdge
-                                  && call.equals(((AStatementEdge) e).getStatement()))
-                              || (e instanceof FunctionReturnEdge
-                                  && summaryEdge.equals(
-                                      ((FunctionReturnEdge) e).getSummaryEdge())));
+                          (e instanceof AStatementEdge aStatementEdge
+                                  && call.equals(aStatementEdge.getStatement()))
+                              || (e instanceof FunctionReturnEdge functionReturnEdge
+                                  && summaryEdge.equals(functionReturnEdge.getSummaryEdge())));
           leavingEdges = Iterables.concat(leavingEdges, potentialFurtherMatches);
         }
       }
@@ -1590,8 +1589,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
-              if (result instanceof Boolean) {
-                if ((Boolean) result) {
+              if (result instanceof Boolean b) {
+                if (b) {
                   pArgs
                       .getLogger()
                       .log(
@@ -1664,8 +1663,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         if ((ae instanceof AbstractQueryableState aqe) && aqe.getCPAName().equals(cpaName)) {
           try {
             Object result = aqe.evaluateProperty(modifiedQueryString);
-            if (result instanceof Boolean) {
-              if ((Boolean) result) {
+            if (result instanceof Boolean b) {
+              if (b) {
                 if (logger.wouldBeLogged(Level.FINER)) {
                   String message =
                       "CPA-Check succeeded: ModifiedCheckString: \""

@@ -261,7 +261,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       UninitializedVariablesState element, CStatement expression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
 
-    if (expression instanceof CFunctionCallStatement) {
+    if (expression instanceof CFunctionCallStatement cFunctionCallStatement) {
       // in case of a return edge, remove the local context of the function from which we returned
       if (cfaEdge instanceof FunctionSummaryEdge) {
         element.returnFromFunction();
@@ -270,19 +270,16 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       // just check if there are uninitialized variable usages
       if (printWarnings) {
         for (CExpression param :
-            ((CFunctionCallStatement) expression)
-                .getFunctionCallExpression()
-                .getParameterExpressions()) {
+            cFunctionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
           isExpressionUninitialized(element, param, cfaEdge);
         }
       }
 
-    } else if (expression instanceof CExpressionStatement) {
+    } else if (expression instanceof CExpressionStatement cExpressionStatement) {
 
       // just check if there are uninitialized variable usages
       if (printWarnings) {
-        isExpressionUninitialized(
-            element, ((CExpressionStatement) expression).getExpression(), cfaEdge);
+        isExpressionUninitialized(element, cExpressionStatement.getExpression(), cfaEdge);
       }
 
     } else if (expression instanceof CAssignment assignExpression) {
@@ -303,10 +300,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
     CExpression op1 = expression.getLeftHandSide();
     CRightHandSide op2 = expression.getRightHandSide();
 
-    if (op1 instanceof CIdExpression) {
+    if (op1 instanceof CIdExpression cIdExpression) {
       // assignment to simple variable
 
-      String leftName = ((CIdExpression) op1).getName();
+      String leftName = cIdExpression.getName();
 
       if (isExpressionUninitialized(element, op2, cfaEdge)) {
         setUninitialized(element, leftName);
@@ -314,10 +311,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         setInitialized(element, leftName);
       }
 
-    } else if (op1 instanceof CFieldReference) {
+    } else if (op1 instanceof CFieldReference cFieldReference) {
       // for field references, don't change the initialization status in case of a pointer
       // dereference
-      if (((CFieldReference) op1).isPointerDereference()) {
+      if (cFieldReference.isPointerDereference()) {
         if (printWarnings) {
           isExpressionUninitialized(element, op1, cfaEdge);
           isExpressionUninitialized(element, op2, cfaEdge);
@@ -362,7 +359,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   }
 
   private boolean isStructType(CType t) {
-    return t instanceof CCompositeType && ((CCompositeType) t).getKind() == ComplexTypeKind.STRUCT;
+    return t instanceof CCompositeType cCompositeType
+        && cCompositeType.getKind() == ComplexTypeKind.STRUCT;
   }
 
   @SuppressWarnings("ShortCircuitBoolean")
@@ -373,8 +371,8 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
       // e.g. empty parameter list
       return false;
 
-    } else if (expression instanceof CIdExpression) {
-      String variable = ((CIdExpression) expression).getName();
+    } else if (expression instanceof CIdExpression cIdExpression) {
+      String variable = cIdExpression.getName();
       if (element.isUninitialized(variable)) {
         addWarning(cfaEdge, variable, expression, element);
         return true;
@@ -412,17 +410,15 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         return isExpressionUninitialized(element, unaryExpression.getOperand(), cfaEdge);
       }
 
-    } else if (expression instanceof CPointerExpression) {
-      return isExpressionUninitialized(
-          element, ((CPointerExpression) expression).getOperand(), cfaEdge);
+    } else if (expression instanceof CPointerExpression cPointerExpression) {
+      return isExpressionUninitialized(element, cPointerExpression.getOperand(), cfaEdge);
 
     } else if (expression instanceof CBinaryExpression binExpression) {
       return isExpressionUninitialized(element, binExpression.getOperand1(), cfaEdge)
           | isExpressionUninitialized(element, binExpression.getOperand2(), cfaEdge);
 
-    } else if (expression instanceof CCastExpression) {
-      return isExpressionUninitialized(
-          element, ((CCastExpression) expression).getOperand(), cfaEdge);
+    } else if (expression instanceof CCastExpression cCastExpression) {
+      return isExpressionUninitialized(element, cCastExpression.getOperand(), cfaEdge);
 
     } else if (expression instanceof CFunctionCallExpression funcExpression) {
       // if the FunctionCallExpression is associated with a statement edge, then this is

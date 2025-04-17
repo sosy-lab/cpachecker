@@ -135,12 +135,12 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           changedVars,
                           stack,
                           helper));
-                } else if (pCfaEdge instanceof CStatementEdge) {
+                } else if (pCfaEdge instanceof CStatementEdge cStatementEdge) {
                   helper.logCase("Taking case 4b.");
                   final ImmutableSet<String> changedVarsInSuccessor;
                   try {
                     changedVarsInSuccessor =
-                        helper.modifySetForAssignment((CStatementEdge) pCfaEdge, changedVars);
+                        helper.modifySetForAssignment(cStatementEdge, changedVars);
                   } catch (PointerAccessException e) {
                     helper.logProblem("Caution: Pointer or similar detected.");
                     return ImmutableSet.of(modPropState.makeBad());

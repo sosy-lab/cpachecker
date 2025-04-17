@@ -254,8 +254,8 @@ class ReachedSetExecutor {
 
       if (bamcpa.doesBreakForMissingBlock()) {
         AbstractState lastState = rs.getLastState();
-        if (lastState instanceof MissingBlockAbstractionState) {
-          handleMissingBlock((MissingBlockAbstractionState) lastState);
+        if (lastState instanceof MissingBlockAbstractionState missingBlockAbstractionState) {
+          handleMissingBlock(missingBlockAbstractionState);
         }
       } else {
         // create local copy of important states, because RS will be modified later.

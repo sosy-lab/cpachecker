@@ -1058,8 +1058,8 @@ public class ARGUtils {
         CFANode edgeSuccessor = edge.getSuccessor();
 
         // skip function calls
-        if (edge instanceof FunctionCallEdge) {
-          CFANode sumEdgeSuccessor = ((FunctionCallEdge) edge).getReturnNode();
+        if (edge instanceof FunctionCallEdge functionCallEdge) {
+          CFANode sumEdgeSuccessor = functionCallEdge.getReturnNode();
 
           // only continue if we do not meet the loophead again
           if (!sumEdgeSuccessor.equals(loopHead)) {

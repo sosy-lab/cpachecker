@@ -199,14 +199,14 @@ public class CFADeclarationMover {
     CFANode actSucc = edge.getSuccessor();
 
     CInitializer init = varDecl.getInitializer();
-    if (init instanceof CInitializerExpression) {
+    if (init instanceof CInitializerExpression cInitializerExpression) {
       actPred.removeLeavingEdge(edge);
       actSucc.removeEnteringEdge(edge);
       CExpressionAssignmentStatement stmt =
           new CExpressionAssignmentStatement(
               varDecl.getFileLocation(),
               new CIdExpression(varDecl.getFileLocation(), varDecl),
-              ((CInitializerExpression) init).getExpression());
+              cInitializerExpression.getExpression());
       CStatementEdge midEdge =
           new CStatementEdge(
               edge.getRawStatement(), stmt, edge.getFileLocation(), actPred, actSucc);
@@ -295,8 +295,8 @@ public class CFADeclarationMover {
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       // only sum up variabledeclarations
-      if (edge instanceof ADeclarationEdge
-          && (((ADeclarationEdge) edge).getDeclaration() instanceof AVariableDeclaration)) {
+      if (edge instanceof ADeclarationEdge aDeclarationEdge
+          && (aDeclarationEdge.getDeclaration() instanceof AVariableDeclaration)) {
         edges.add(edge);
       }
       return TraversalProcess.CONTINUE;

@@ -555,9 +555,8 @@ public final class SlicingAbstractionsUtils {
 
     // we need to treat the case where we have no intermediate non-abstraction states differently:
     if (oldEndState.getParents().contains(oldStartState)) {
-      if (oldStartState instanceof SLARGState) {
-        EdgeSet newEdgeSet =
-            new EdgeSet(((SLARGState) oldStartState).getEdgeSetToChild(oldEndState));
+      if (oldStartState instanceof SLARGState sLARGState) {
+        EdgeSet newEdgeSet = new EdgeSet(sLARGState.getEdgeSetToChild(oldEndState));
         ((SLARGState) newEndState).addParent((SLARGState) newStartState, newEdgeSet);
       } else {
         newEndState.addParent(newStartState);
@@ -765,7 +764,7 @@ public final class SlicingAbstractionsUtils {
     if (calculateOutgoingSegments(pState).containsKey(pState)) {
       return true;
     }
-    if (pState instanceof SLARGState) {
+    if (pState instanceof SLARGState sLARGState) {
       // if not all EdgeSets from parents to pState are singletons, return true:
       if (!pState.getParents().stream()
           .map(parent -> ((SLARGState) parent).getEdgeSetToChild(pState))
@@ -774,7 +773,7 @@ public final class SlicingAbstractionsUtils {
       }
       // if not all EdgeSets from pState to children are singletons, return true:
       if (!pState.getChildren().stream()
-          .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
+          .map(child -> sLARGState.getEdgeSetToChild(child))
           .allMatch(x -> x.size() == 1)) {
         return true;
       }
@@ -802,20 +801,20 @@ public final class SlicingAbstractionsUtils {
         ARGState newState = currentState.forkWithReplacements(Collections.singleton(replacement));
         currentState.replaceInARGWith(newState);
         pArgReachedSet.addForkedState(newState, (ARGState) state);
-        if (newState instanceof SLARGState) {
+        if (newState instanceof SLARGState sLARGState) {
           // check for incoming edges that do not have a suitable outgoing edge for their successor
           // location. E.g.: A-{1~>2}->B-{3~>4}->C
           // transfer from 1~>2 will be removed
-          removeIncomingEdgesWithLocationMismatch((SLARGState) newState);
+          removeIncomingEdgesWithLocationMismatch(sLARGState);
 
           // now do the same the other way around (check for outgoing edges that do not have a
-          removeOutgoingEdgesWithLocationMismatch((SLARGState) newState);
+          removeOutgoingEdgesWithLocationMismatch(sLARGState);
         }
       } else if (predState.isAbstractionState() && !((ARGState) state).getParents().isEmpty()) {
         // here it is only sound to check for outgoing edges that do not have a suitable incoming
         // edge
-        if (state instanceof SLARGState) {
-          removeOutgoingEdgesWithLocationMismatch((SLARGState) state);
+        if (state instanceof SLARGState sLARGState) {
+          removeOutgoingEdgesWithLocationMismatch(sLARGState);
         }
       }
     }

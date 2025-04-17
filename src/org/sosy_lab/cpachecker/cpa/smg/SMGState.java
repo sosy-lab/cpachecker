@@ -408,8 +408,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
     SMGObject target = pAddress.getObject();
     SMGExplicitValue offset = pAddress.getOffset();
-    if (target instanceof SMGRegion) {
-      SMGValue address = getAddress((SMGRegion) target, offset.getAsLong());
+    if (target instanceof SMGRegion sMGRegion) {
+      SMGValue address = getAddress(sMGRegion, offset.getAsLong());
       if (address == null) {
         return singletonList(
             SMGAddressValueAndState.of(
@@ -1301,8 +1301,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
-    if (pValue instanceof SMGAddressValue) {
-      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+    if (pValue instanceof SMGAddressValue sMGAddressValue) {
+      SMGAddress address = sMGAddressValue.getAddress();
 
       if (!address.isUnknown()) {
         addPointsToEdge(address.getObject(), address.getOffset().getAsLong(), value);
@@ -1737,7 +1737,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addElementToCurrentChain(Object elem) {
     // Avoid to add Null element
-    if (elem instanceof SMGValue && ((SMGValue) elem).isZero()) {
+    if (elem instanceof SMGValue sMGValue && sMGValue.isZero()) {
       return;
     }
     errorInfo = errorInfo.withObject(elem);
@@ -1981,9 +1981,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();
@@ -1996,9 +1996,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addPredicateRelation(
       SMGValue pV1, SMGType pSMGType1, SMGExplicitValue pV2, BinaryOperator pOp, CFAEdge pEdge) {
-    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
+    if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge cAssumeEdge) {
       BinaryOperator temp;
-      if (((CAssumeEdge) pEdge).getTruthAssumption()) {
+      if (cAssumeEdge.getTruthAssumption()) {
         temp = pOp;
       } else {
         temp = pOp.getOppositLogicalOperator();

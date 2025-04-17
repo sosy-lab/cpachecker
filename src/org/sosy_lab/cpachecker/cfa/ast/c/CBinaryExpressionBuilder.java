@@ -212,8 +212,8 @@ public class CBinaryExpressionBuilder {
      * shall be an integer constant expression, that has a value representable as an int.
      */
     if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType
-            && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+        || (pType instanceof CElaboratedType cElaboratedType
+            && cElaboratedType.getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
     } else if (pType instanceof CBitFieldType bitFieldType) {
       CType handledInnerType = handleEnum(bitFieldType.getType());
@@ -233,7 +233,7 @@ public class CBinaryExpressionBuilder {
    * @return the wrapped type for all bit-field types, and the type itself otherwise.
    */
   private CType unwrapBitFields(CType pType) {
-    return pType instanceof CBitFieldType ? ((CBitFieldType) pType).getType() : pType;
+    return pType instanceof CBitFieldType cBitFieldType ? cBitFieldType.getType() : pType;
   }
 
   /**
@@ -373,12 +373,12 @@ public class CBinaryExpressionBuilder {
       }
 
       // we compare function-pointer and function, so return function-pointer
-      if (pType1 instanceof CPointerType && pType2 instanceof CFunctionType) {
-        if (((CPointerType) pType1).getType() instanceof CFunctionType) {
+      if (pType1 instanceof CPointerType cPointerType && pType2 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType1;
         }
-      } else if (pType2 instanceof CPointerType && pType1 instanceof CFunctionType) {
-        if (((CPointerType) pType2).getType() instanceof CFunctionType) {
+      } else if (pType2 instanceof CPointerType cPointerType && pType1 instanceof CFunctionType) {
+        if (cPointerType.getType() instanceof CFunctionType) {
           return pType2;
         }
       }

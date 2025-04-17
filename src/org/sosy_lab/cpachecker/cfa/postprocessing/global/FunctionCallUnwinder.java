@@ -141,11 +141,10 @@ public class FunctionCallUnwinder {
     final AFunctionCall call = (AFunctionCall) functionCallEdge.getStatement();
 
     final AStatementEdge newEdge;
-    if (call instanceof CFunctionCall) {
+    if (call instanceof CFunctionCall cFunctionCall) {
 
       // get old values
-      final CDeclaration declaration =
-          ((CFunctionCall) call).getFunctionCallExpression().getDeclaration();
+      final CDeclaration declaration = cFunctionCall.getFunctionCallExpression().getDeclaration();
       Preconditions.checkNotNull(declaration);
       final String oldFunctionName = declaration.getQualifiedName();
 

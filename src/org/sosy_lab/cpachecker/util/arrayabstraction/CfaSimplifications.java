@@ -154,8 +154,8 @@ final class CfaSimplifications {
               substitution
                   .computeIfAbsent(edge, key -> new HashMap<>())
                   .put(current, substituteExpression);
-              if (edge instanceof FunctionCallEdge) {
-                FunctionSummaryEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+              if (edge instanceof FunctionCallEdge functionCallEdge) {
+                FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
                 assert summaryEdge != null : "Missing summary edge for call edge";
                 substitution
                     .computeIfAbsent(summaryEdge, key -> new HashMap<>())
@@ -187,8 +187,8 @@ final class CfaSimplifications {
                   .collect(ImmutableMap.toImmutableMap(extractExpression, Map.Entry::getValue));
 
           // TODO: add support for more edges/statements that can contain writing array accesses
-          if (edge instanceof CStatementEdge) {
-            CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (edge instanceof CStatementEdge cStatementEdge) {
+            CStatement statement = cStatementEdge.getStatement();
             if (statement instanceof CExpressionAssignmentStatement assignStatement) {
               CAstNode rhs =
                   assignStatement

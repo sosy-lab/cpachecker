@@ -82,9 +82,9 @@ public class SMGJoinAbstractionManager {
   private Optional<GenericAbstractionCandidateTemplate> calculateTemplateAbstraction(
       Map<Integer, List<SMGAbstractionCandidate>> pAlreadyFoundCandidates) {
 
-    if (destObject instanceof GenericAbstraction) {
+    if (destObject instanceof GenericAbstraction genericAbstraction) {
       GenericAbstractionCandidateTemplate template =
-          ((GenericAbstraction) destObject).createCandidateTemplate(machineModel);
+          genericAbstraction.createCandidateTemplate(machineModel);
       return Optional.of(template);
     } else if (pAlreadyFoundCandidates.isEmpty()) {
       return calculateSimpleTemplateAbstractionFromObject();
@@ -233,8 +233,8 @@ public class SMGJoinAbstractionManager {
     SMGAbstractionCandidate template =
         pAlreadyFoundCandidates.values().iterator().next().iterator().next();
 
-    if (template instanceof GenericAbstractionCandidate) {
-      return Optional.of(((GenericAbstractionCandidate) template).createTemplate(machineModel));
+    if (template instanceof GenericAbstractionCandidate genericAbstractionCandidate) {
+      return Optional.of(genericAbstractionCandidate.createTemplate(machineModel));
     } else {
       return Optional.empty();
     }

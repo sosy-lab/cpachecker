@@ -435,10 +435,10 @@ public class SMGCPAAddressVisitor
             evaluator.getTargetObjectAndOffset(
                 currentState, structAddr.getMemoryAddress(), finalFieldOffset));
 
-      } else if (structValue instanceof SymbolicIdentifier
-          && ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent()) {
+      } else if (structValue instanceof SymbolicIdentifier symbolicIdentifier
+          && symbolicIdentifier.getRepresentedLocation().isPresent()) {
         MemoryLocation variableAndOffset =
-            ((SymbolicIdentifier) structValue).getRepresentedLocation().orElseThrow();
+            symbolicIdentifier.getRepresentedLocation().orElseThrow();
         String varName = variableAndOffset.getIdentifier();
         Value baseOffset = new NumericValue(BigInteger.valueOf(variableAndOffset.getOffset()));
         Value finalFieldOffset = evaluator.addBitOffsetValues(baseOffset, fieldOffset);

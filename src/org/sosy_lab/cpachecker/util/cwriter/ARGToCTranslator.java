@@ -220,9 +220,8 @@ public class ARGToCTranslator {
     isVoidMain = returnType instanceof CVoidType;
     if (!isVoidMain) {
       mainReturnVar = "__return_main";
-      if (returnType instanceof CArrayType) {
-        globalDefinitionsList.add(
-            ((CArrayType) returnType).toQualifiedASTString(mainReturnVar) + ";");
+      if (returnType instanceof CArrayType cArrayType) {
+        globalDefinitionsList.add(cArrayType.toQualifiedASTString(mainReturnVar) + ";");
       } else {
         globalDefinitionsList.add(returnType.toASTString(mainReturnVar) + ";");
       }
@@ -684,8 +683,8 @@ public class ARGToCTranslator {
           (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
       CFunctionEntryNode fn = functionReturnEdge.getFunctionEntry();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
-      if (retType instanceof CArrayType) {
-        returnType = ((CArrayType) retType).toQualifiedASTString(varName);
+      if (retType instanceof CArrayType cArrayType) {
+        returnType = cArrayType.toQualifiedASTString(varName);
       } else {
         returnType = retType.toASTString(varName);
       }
@@ -697,8 +696,8 @@ public class ARGToCTranslator {
     CType returnType = pFunDecl.getType().getReturnType();
     if (!(returnType instanceof CVoidType)) {
       String varName = "__return_" + pElementId;
-      if (returnType instanceof CArrayType) {
-        globalDefinitionsList.add(((CArrayType) returnType).toQualifiedASTString(varName) + ";");
+      if (returnType instanceof CArrayType cArrayType) {
+        globalDefinitionsList.add(cArrayType.toQualifiedASTString(varName) + ";");
       } else {
         globalDefinitionsList.add(returnType.toASTString(varName) + ";");
       }
@@ -1010,19 +1009,19 @@ public class ARGToCTranslator {
 
   private DeclarationInfo handleDecInfoForEdge(
       final CFAEdge edge, final ARGState pred, final ARGState succ, final DeclarationInfo decInfo) {
-    if (edge instanceof CFunctionCallEdge) {
+    if (edge instanceof CFunctionCallEdge cFunctionCallEdge) {
       return decInfo.fromFunctionCall(
-          (CFunctionCallEdge) edge, pred.getStateId() + ":" + +succ.getStateId());
+          cFunctionCallEdge, pred.getStateId() + ":" + +succ.getStateId());
     }
 
     if (edge instanceof CFunctionReturnEdge) {
       return decInfo.fromFunctionReturn();
     }
-    if (edge instanceof CDeclarationEdge
-        && ((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration
-        && !((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
+    if (edge instanceof CDeclarationEdge cDeclarationEdge
+        && cDeclarationEdge.getDeclaration() instanceof CVariableDeclaration
+        && !cDeclarationEdge.getDeclaration().isGlobal()) {
       return decInfo.addNewDeclarationInfo(
-          ((CDeclarationEdge) edge).getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
+          cDeclarationEdge.getDeclaration(), pred.getStateId() + ":" + +succ.getStateId());
     }
 
     return decInfo;

@@ -92,14 +92,14 @@ class ASTTypeConverter {
 
   /** converts types BOOL, INT,..., PointerTypes, ComplexTypes */
   private CType convert0(IType t) {
-    if (t instanceof IBasicType) {
-      return conv((IBasicType) t);
+    if (t instanceof IBasicType iBasicType) {
+      return conv(iBasicType);
 
-    } else if (t instanceof IPointerType) {
-      return conv((IPointerType) t);
+    } else if (t instanceof IPointerType iPointerType) {
+      return conv(iPointerType);
 
-    } else if (t instanceof ITypedef) {
-      return conv((ITypedef) t);
+    } else if (t instanceof ITypedef iTypedef) {
+      return conv(iTypedef);
 
     } else if (t instanceof ICompositeType ct) {
       ComplexTypeKind kind =
@@ -148,7 +148,7 @@ class ASTTypeConverter {
       IType[] parameters = ft.getParameterTypes();
       List<CType> newParameters = new ArrayList<>(parameters.length);
       for (IType p : parameters) {
-        if (p instanceof IBasicType && ((IBasicType) p).getKind() == IBasicType.Kind.eVoid) {
+        if (p instanceof IBasicType iBasicType && iBasicType.getKind() == IBasicType.Kind.eVoid) {
           // there may be a function declaration f(void), which is equal to f()
           // we don't want this dummy parameter "void"
           assert parameters.length == 1;
@@ -160,20 +160,20 @@ class ASTTypeConverter {
       // TODO varargs
       return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
 
-    } else if (t instanceof ICArrayType) {
-      return conv((ICArrayType) t);
+    } else if (t instanceof ICArrayType iCArrayType) {
+      return conv(iCArrayType);
 
-    } else if (t instanceof IQualifierType) {
-      return conv((IQualifierType) t);
+    } else if (t instanceof IQualifierType iQualifierType) {
+      return conv(iQualifierType);
 
-    } else if (t instanceof IEnumeration) {
-      return conv((IEnumeration) t);
+    } else if (t instanceof IEnumeration iEnumeration) {
+      return conv(iEnumeration);
 
-    } else if (t instanceof IProblemType) {
+    } else if (t instanceof IProblemType iProblemType) {
       // Of course, the obvious idea would be to throw an exception here.
       // However, CDT seems to give us ProblemTypes even for perfectly legal C code,
       // e.g. in cdaudio_safe.i.cil.c
-      return new CProblemType(t + ": " + ((IProblemType) t).getMessage());
+      return new CProblemType(t + ": " + iProblemType.getMessage());
 
     } else if (t instanceof IProblemBinding problem) {
       if (problem.getASTNode().getRawSignature().equals("__label__")) {

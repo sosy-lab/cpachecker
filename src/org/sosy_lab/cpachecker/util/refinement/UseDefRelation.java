@@ -365,22 +365,21 @@ public class UseDefRelation {
    * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
-    if (initializer instanceof CDesignatedInitializer) {
+    if (initializer instanceof CDesignatedInitializer cDesignatedInitializer) {
       // e.g. .x=b or .p.x.=1  as part of struct initialization
-      return getVariablesUsedForInitialization(
-          ((CDesignatedInitializer) initializer).getRightHandSide());
+      return getVariablesUsedForInitialization(cDesignatedInitializer.getRightHandSide());
 
-    } else if (initializer instanceof CInitializerList) {
+    } else if (initializer instanceof CInitializerList cInitializerList) {
       // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
       Set<ASimpleDeclaration> readVars = new HashSet<>();
 
-      for (CInitializer initializerList : ((CInitializerList) initializer).getInitializers()) {
+      for (CInitializer initializerList : cInitializerList.getInitializers()) {
         readVars.addAll(getVariablesUsedForInitialization(initializerList));
       }
 
       return readVars;
-    } else if (initializer instanceof AInitializerExpression) {
-      return acceptAll(((AInitializerExpression) initializer).getExpression());
+    } else if (initializer instanceof AInitializerExpression aInitializerExpression) {
+      return acceptAll(aInitializerExpression.getExpression());
     } else {
       throw new AssertionError("Missing case for if-then-else statement.");
     }

@@ -680,9 +680,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (exportEvenVal) {
             numEvenOrOdd += numInv.exportEvenOrOdd() ? 1 : 0;
           }
-        } else if (val instanceof BooleanValue) {
+        } else if (val instanceof BooleanValue booleanValue) {
           SingleBooleanVariableInvariant boolInv =
-              new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
+              new SingleBooleanVariableInvariant(varAndVals.getKey(), booleanValue);
 
           boolean onlyOneVal = true;
           for (ValueAndType valPlusType : varAndVals.getValue()) {
@@ -1382,27 +1382,27 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         return pFmgrV.makeNumber(pFormulaType, numVal.longValue());
       }
 
-      if (numVal instanceof BigInteger) {
-        return pFmgrV.makeNumber(pFormulaType, (BigInteger) numVal);
+      if (numVal instanceof BigInteger bigInteger) {
+        return pFmgrV.makeNumber(pFormulaType, bigInteger);
       }
 
-      if (numVal instanceof Rational) {
-        return pFmgrV.makeNumber(pVarF, (Rational) numVal);
+      if (numVal instanceof Rational rational) {
+        return pFmgrV.makeNumber(pVarF, rational);
       }
 
-      if (pFormulaType instanceof FormulaType.FloatingPointType) {
+      if (pFormulaType instanceof FormulaType.FloatingPointType floatingPointType) {
         try {
 
           if (isFloatingNumber(numVal)) {
             return pFmgrV
                 .getFloatingPointFormulaManager()
-                .makeNumber(numVal.doubleValue(), (FormulaType.FloatingPointType) pFormulaType);
+                .makeNumber(numVal.doubleValue(), floatingPointType);
           }
 
-          if (numVal instanceof BigDecimal) {
+          if (numVal instanceof BigDecimal bigDecimal) {
             return pFmgrV
                 .getFloatingPointFormulaManager()
-                .makeNumber((BigDecimal) numVal, (FormulaType.FloatingPointType) pFormulaType);
+                .makeNumber(bigDecimal, floatingPointType);
           }
         } catch (UnsupportedOperationException e) {
           throw new AssertionError("Unsupported floating point Number instance " + numVal);
@@ -1502,8 +1502,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         // precision?
       } else {
         BigInteger compareNum;
-        if (pNumber instanceof BigInteger) {
-          compareNum = (BigInteger) pNumber;
+        if (pNumber instanceof BigInteger bigInteger) {
+          compareNum = bigInteger;
         } else {
           Preconditions.checkArgument(isIntegralType(pNumber));
           compareNum = BigInteger.valueOf(pNumber.longValue());
@@ -1681,11 +1681,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var));
           Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
 
-          if (varF instanceof BooleanFormula) {
+          if (varF instanceof BooleanFormula booleanFormula) {
             if (alwaysTrue) {
-              return ImmutableList.of((BooleanFormula) varF);
+              return ImmutableList.of(booleanFormula);
             } else if (alwaysFalse) {
-              return ImmutableList.of(pFmgrV.makeNot((BooleanFormula) varF));
+              return ImmutableList.of(pFmgrV.makeNot(booleanFormula));
             }
           } else {
             if (alwaysTrue) {
@@ -1815,8 +1815,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
       // assume type is signed (by default) if it is not a simple type
       boolean signed =
-          pVarToType.get(var) instanceof CSimpleType
-              ? pMachineModel.isSigned((CSimpleType) pVarToType.get(var))
+          pVarToType.get(var) instanceof CSimpleType cSimpleType
+              ? pMachineModel.isSigned(cSimpleType)
               : true;
 
       if (pExportOpt != EXPORT_OPTION.ONLY_OPT) {

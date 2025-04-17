@@ -151,9 +151,9 @@ public class UndefinedFunctionCollectorAlgorithm
 
     if (functionDecl == null) {
       AExpression functionName = call.getFunctionCallExpression().getFunctionNameExpression();
-      if (functionName instanceof AIdExpression) {
+      if (functionName instanceof AIdExpression aIdExpression) {
         // no declaration, but regular function call (no function pointer)
-        String name = ((AIdExpression) functionName).getName();
+        String name = aIdExpression.getName();
         logger.log(Level.FINE, "Call to undeclared function", name, "found.");
         undeclaredFunctions.add(name);
       }
@@ -276,8 +276,8 @@ public class UndefinedFunctionCollectorAlgorithm
       prepend.append(ASSUME_FUNCTION_DECL);
       buf.append(indent + ASSUME_FUNCTION_NAME + "(tmp != 0);\n");
       buf.append(indent + "return *tmp;\n");
-    } else if (rt instanceof CElaboratedType) {
-      CType real = ((CElaboratedType) rt).getRealType();
+    } else if (rt instanceof CElaboratedType cElaboratedType) {
+      CType real = cElaboratedType.getRealType();
       if (real == null) {
         couldBeHandled = false;
       } else {

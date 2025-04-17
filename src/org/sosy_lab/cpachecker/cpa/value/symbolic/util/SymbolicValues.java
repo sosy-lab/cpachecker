@@ -64,19 +64,19 @@ public class SymbolicValues {
 
       return maybeRepLocVal1.equals(maybeRepLocVal2);
 
-    } else if (pValue1 instanceof UnarySymbolicExpression) {
+    } else if (pValue1 instanceof UnarySymbolicExpression unarySymbolicExpression) {
       assert pValue2 instanceof UnarySymbolicExpression;
 
-      final SymbolicValue val1Op = ((UnarySymbolicExpression) pValue1).getOperand();
+      final SymbolicValue val1Op = unarySymbolicExpression.getOperand();
       final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
 
       return representSameCCodeExpression(val1Op, val2Op);
 
-    } else if (pValue1 instanceof BinarySymbolicExpression) {
+    } else if (pValue1 instanceof BinarySymbolicExpression binarySymbolicExpression) {
       assert pValue2 instanceof BinarySymbolicExpression;
 
-      final SymbolicValue val1Op1 = ((BinarySymbolicExpression) pValue1).getOperand1();
-      final SymbolicValue val1Op2 = ((BinarySymbolicExpression) pValue1).getOperand2();
+      final SymbolicValue val1Op1 = binarySymbolicExpression.getOperand1();
+      final SymbolicValue val1Op2 = binarySymbolicExpression.getOperand2();
       final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
       final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
 
@@ -95,15 +95,15 @@ public class SymbolicValues {
       return false;
     }
 
-    if (pValue1 instanceof SymbolicIdentifier) {
+    if (pValue1 instanceof SymbolicIdentifier symbolicIdentifier) {
       assert pValue2 instanceof SymbolicIdentifier;
 
-      return ((SymbolicIdentifier) pValue1).getId() == ((SymbolicIdentifier) pValue2).getId();
+      return symbolicIdentifier.getId() == ((SymbolicIdentifier) pValue2).getId();
 
-    } else if (pValue1 instanceof ConstantSymbolicExpression) {
+    } else if (pValue1 instanceof ConstantSymbolicExpression constantSymbolicExpression) {
       assert pValue2 instanceof ConstantSymbolicExpression;
 
-      final Value innerVal1 = ((ConstantSymbolicExpression) pValue1).getValue();
+      final Value innerVal1 = constantSymbolicExpression.getValue();
       final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
 
       if (innerVal1 instanceof SymbolicValue symVal1
@@ -114,19 +114,19 @@ public class SymbolicValues {
         return innerVal1.equals(innerVal2);
       }
 
-    } else if (pValue1 instanceof UnarySymbolicExpression) {
+    } else if (pValue1 instanceof UnarySymbolicExpression unarySymbolicExpression) {
       assert pValue2 instanceof UnarySymbolicExpression;
 
-      final SymbolicValue val1Op = ((UnarySymbolicExpression) pValue1).getOperand();
+      final SymbolicValue val1Op = unarySymbolicExpression.getOperand();
       final SymbolicValue val2Op = ((UnarySymbolicExpression) pValue2).getOperand();
 
       return representSameSymbolicMeaning(val1Op, val2Op);
 
-    } else if (pValue1 instanceof BinarySymbolicExpression) {
+    } else if (pValue1 instanceof BinarySymbolicExpression binarySymbolicExpression) {
       assert pValue2 instanceof BinarySymbolicExpression;
 
-      final SymbolicValue val1Op1 = ((BinarySymbolicExpression) pValue1).getOperand1();
-      final SymbolicValue val1Op2 = ((BinarySymbolicExpression) pValue1).getOperand2();
+      final SymbolicValue val1Op1 = binarySymbolicExpression.getOperand1();
+      final SymbolicValue val1Op2 = binarySymbolicExpression.getOperand2();
       final SymbolicValue val2Op1 = ((BinarySymbolicExpression) pValue2).getOperand1();
       final SymbolicValue val2Op2 = ((BinarySymbolicExpression) pValue2).getOperand2();
 
@@ -187,10 +187,10 @@ public class SymbolicValues {
 
   public static Value convertToValue(ValueAssignment assignment) {
     Object value = assignment.getValue();
-    if (value instanceof Number) {
-      return new NumericValue((Number) value);
-    } else if (value instanceof Boolean) {
-      return BooleanValue.valueOf((Boolean) value);
+    if (value instanceof Number number) {
+      return new NumericValue(number);
+    } else if (value instanceof Boolean b) {
+      return BooleanValue.valueOf(b);
     } else {
       throw new AssertionError("Unexpected value " + value);
     }

@@ -393,8 +393,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
         return Result.UNKNOWN;
       } else {
         for (CFAEdge edge : pLoop.getOutgoingEdges()) {
-          if (edge instanceof CAssumeEdge
-              && possiblyNotEqualsNullPointer(((CAssumeEdge) edge).getExpression())) {
+          if (edge instanceof CAssumeEdge cAssumeEdge
+              && possiblyNotEqualsNullPointer(cAssumeEdge.getExpression())) {
             return Result.UNKNOWN;
           }
         }
@@ -475,8 +475,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean containsEqualFactors(CRightHandSide pExpression, Set<CIdExpression> pFactors) {
-    if (pExpression instanceof CIdExpression) {
-      if (!pFactors.add((CIdExpression) pExpression)) {
+    if (pExpression instanceof CIdExpression cIdExpression) {
+      if (!pFactors.add(cIdExpression)) {
         // The expression was not added to the set because there is already one that is equal
         return true;
       }
@@ -805,10 +805,9 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
 
-      if (pNode instanceof CFunctionEntryNode) {
+      if (pNode instanceof CFunctionEntryNode cFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
-        List<CParameterDeclaration> parameters =
-            ((CFunctionEntryNode) pNode).getFunctionParameters();
+        List<CParameterDeclaration> parameters = cFunctionEntryNode.getFunctionParameters();
         parameters.stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(localDeclarations.get(functionName)::add);
@@ -819,8 +818,8 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
 
-      if (pEdge instanceof CDeclarationEdge) {
-        CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+      if (pEdge instanceof CDeclarationEdge cDeclarationEdge) {
+        CDeclaration declaration = cDeclarationEdge.getDeclaration();
         if (declaration instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.isGlobal()) {
             globalDeclarations.add(variableDeclaration);

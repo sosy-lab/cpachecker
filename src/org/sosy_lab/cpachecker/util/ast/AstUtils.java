@@ -85,7 +85,7 @@ public class AstUtils {
         .transformAndConcat(CFAUtils::allEnteringEdges)
         .anyMatch(
             pEdge ->
-                pEdge instanceof AssumeEdge && ((AssumeEdge) pEdge).isArtificialIntermediate())) {
+                pEdge instanceof AssumeEdge assumeEdge && assumeEdge.isArtificialIntermediate())) {
 
       throw new BoundaryNodesComputationFailed("Condition edges are not connected");
     }

@@ -197,9 +197,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   protected void handleUpdateSignal(
       Class<? extends RefinementInterface> pCallerClass, Object pData) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      if (pData instanceof ReachedSet) {
+      if (pData instanceof ReachedSet reachedSet) {
         // Updating new reached set
-        updateReachedSet((ReachedSet) pData);
+        updateReachedSet(reachedSet);
       }
     }
   }
@@ -230,8 +230,8 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStats) {
-    if (refiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) refiner).collectStatistics(pStats);
+    if (refiner instanceof StatisticsProvider statisticsProvider) {
+      statisticsProvider.collectStatistics(pStats);
     }
     super.collectStatistics(pStats);
   }
