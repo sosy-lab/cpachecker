@@ -2231,9 +2231,10 @@ public class SMGCPAValueVisitor
     final CType calculationType = pExpression.getCalculationType();
 
     // Evaluate == symbolics if possible
-    if (((CSimpleType) calculationType).getType().isIntegerType()
-        && operator.equals(BinaryOperator.EQUALS)
-        && pLValue.equals(pRValue)) {
+    if (operator.equals(BinaryOperator.EQUALS)
+        && pLValue.equals(pRValue)
+        && !(calculationType instanceof CSimpleType simpleType
+            && simpleType.getType().isFloatingPointType())) {
       return new NumericValue(1);
     }
 
