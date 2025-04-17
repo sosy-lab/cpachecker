@@ -18,12 +18,8 @@ public record AVariableDeclarationExchange(
     @JsonProperty("name") @NonNull String name,
     @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
 
-  public AVariableDeclarationExchange(
-      @JsonProperty("name") String name,
-      @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
+  public AVariableDeclarationExchange {
     checkNotNull(name);
     checkNotNull(simpleType);
-    this.name = name;
-    this.simpleType = simpleType;
   }
 }
