@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,9 +44,7 @@ public class InstrumentationPattern {
   public InstrumentationPattern(String pPattern) {
     pattern = pPattern;
     if (pPattern.startsWith("FUNC")) {
-      functionName = pPattern
-          .replace("FUNC(", "")
-          .replace(")","");
+      functionName = pPattern.replace("FUNC(", "").replace(")", "");
       type = patternType.FUNC;
       return;
     } else {
@@ -269,8 +265,9 @@ public class InstrumentationPattern {
           condition = condition + " && " + pDecomposedMap.get(pCFAEdge.getPredecessor());
         }
 
-        List<String> parameters = new ArrayList<>(expression.getParameterExpressions()
-            .stream().map(e -> e.toString()).toList());
+        List<String> parameters =
+            new ArrayList<>(
+                expression.getParameterExpressions().stream().map(e -> e.toString()).toList());
         parameters.add(0, condition);
         return ImmutableList.copyOf(parameters);
       }

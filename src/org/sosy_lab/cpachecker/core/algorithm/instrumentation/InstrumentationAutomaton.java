@@ -498,53 +498,56 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q1,
             new InstrumentationPattern("true"),
-            new InstrumentationOperation("extern void *realloc(void *ptr, long unsigned int new_size );\n"
-                + "extern void *malloc (long unsigned int __size);\n"
-                + "extern void *calloc(long unsigned int nitems, long unsigned int size);\n"
-                + "extern void free(void *ptr);\n"
-                + "void *__instrumentation_track_allocated_pointer = 0;\n"
-                + "unsigned long long __instrumentation_track_allocated_length = 0;\n"
-                + "void __instrumentation_memory_free(void *ptr)\n"
-                + "{\n"
-                + "  free(ptr);\n"
-                + "  if (ptr == __instrumentation_track_allocated_pointer)\n"
-                + "  {\n"
-                + "    __instrumentation_track_allocated_pointer = 0;\n"
-                + "    __instrumentation_track_allocated_length = 0;\n"
-                + "  }\n"
-                + "}\n"
-                + "void *__instrumentation_memory_malloc(long unsigned int size)\n"
-                + "{\n"
-                + "  void *p = malloc(size);\n"
-                + "  if (__VERIFIER_nondet_int())\n"
-                + "  {\n"
-                + "    __instrumentation_track_allocated_pointer = p;\n"
-                + "    __instrumentation_track_allocated_length = size;\n"
-                + "  }\n"
-                + "  return p;\n"
-                + "}\n"
-                + "\n"
-                + "void *__instrumentation_memory_calloc(long unsigned int nitems, long unsigned int size)\n"
-                + "{\n"
-                + "  void *p = calloc(nitems, size);\n"
-                + "  if (__VERIFIER_nondet_int())\n"
-                + "  {\n"
-                + "    __instrumentation_track_allocated_pointer = p;\n"
-                + "    __instrumentation_track_allocated_length = size;\n"
-                + "  }\n"
-                + "  return p;\n"
-                + "}\n"
-                + "\n"
-                + "void *__instrumentation_memory_realloc(void *ptr, long unsigned int size)\n"
-                + "{\n"
-                + "  void *p = realloc(ptr, size);\n"
-                + "  if (__VERIFIER_nondet_int() || (__instrumentation_track_allocated_pointer == ptr))\n"
-                + "  {\n"
-                + "    __instrumentation_track_allocated_pointer = p;\n"
-                + "    __instrumentation_track_allocated_length = size;\n"
-                + "  }\n"
-                + "  return p;\n"
-                + "}\n"),
+            new InstrumentationOperation(
+                "extern void *realloc(void *ptr, long unsigned int new_size );\n"
+                    + "extern void *malloc (long unsigned int __size);\n"
+                    + "extern void *calloc(long unsigned int nitems, long unsigned int size);\n"
+                    + "extern void free(void *ptr);\n"
+                    + "void *__instrumentation_track_allocated_pointer = 0;\n"
+                    + "unsigned long long __instrumentation_track_allocated_length = 0;\n"
+                    + "void __instrumentation_memory_free(void *ptr)\n"
+                    + "{\n"
+                    + "  free(ptr);\n"
+                    + "  if (ptr == __instrumentation_track_allocated_pointer)\n"
+                    + "  {\n"
+                    + "    __instrumentation_track_allocated_pointer = 0;\n"
+                    + "    __instrumentation_track_allocated_length = 0;\n"
+                    + "  }\n"
+                    + "}\n"
+                    + "void *__instrumentation_memory_malloc(long unsigned int size)\n"
+                    + "{\n"
+                    + "  void *p = malloc(size);\n"
+                    + "  if (__VERIFIER_nondet_int())\n"
+                    + "  {\n"
+                    + "    __instrumentation_track_allocated_pointer = p;\n"
+                    + "    __instrumentation_track_allocated_length = size;\n"
+                    + "  }\n"
+                    + "  return p;\n"
+                    + "}\n"
+                    + "\n"
+                    + "void *__instrumentation_memory_calloc(long unsigned int nitems, long"
+                    + " unsigned int size)\n"
+                    + "{\n"
+                    + "  void *p = calloc(nitems, size);\n"
+                    + "  if (__VERIFIER_nondet_int())\n"
+                    + "  {\n"
+                    + "    __instrumentation_track_allocated_pointer = p;\n"
+                    + "    __instrumentation_track_allocated_length = size;\n"
+                    + "  }\n"
+                    + "  return p;\n"
+                    + "}\n"
+                    + "\n"
+                    + "void *__instrumentation_memory_realloc(void *ptr, long unsigned int size)\n"
+                    + "{\n"
+                    + "  void *p = realloc(ptr, size);\n"
+                    + "  if (__VERIFIER_nondet_int() || (__instrumentation_track_allocated_pointer"
+                    + " == ptr))\n"
+                    + "  {\n"
+                    + "    __instrumentation_track_allocated_pointer = p;\n"
+                    + "    __instrumentation_track_allocated_length = size;\n"
+                    + "  }\n"
+                    + "  return p;\n"
+                    + "}\n"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
@@ -579,32 +582,32 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(abort)"),
-            new InstrumentationOperation("if (__instrumentation_track_allocated_pointer != 0)"
-                + "{reach_error()}"),
+            new InstrumentationOperation(
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(exit)"),
-            new InstrumentationOperation("if (__instrumentation_track_allocated_pointer != 0)"
-                + "{reach_error()}"),
+            new InstrumentationOperation(
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t8 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(return 0;)"),
-            new InstrumentationOperation("if (__instrumentation_track_allocated_pointer != 0)"
-                + "{reach_error()}"),
+            new InstrumentationOperation(
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t9 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(reach_error)"),
-            new InstrumentationOperation("if (__instrumentation_track_allocated_pointer != 0)"
-                + "{reach_error()}"),
+            new InstrumentationOperation(
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
             InstrumentationOrder.BEFORE,
             q2);
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9);
