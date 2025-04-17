@@ -3568,7 +3568,8 @@ public class SMGState
 
     throw new IllegalArgumentException(
         String.format(
-            "Can't reinterpret `%s` as integer. Only single- and double-precision values are supported.",
+            "Can't reinterpret `%s` as integer. Only single- and double-precision values are"
+                + " supported.",
             readValue));
   }
 
