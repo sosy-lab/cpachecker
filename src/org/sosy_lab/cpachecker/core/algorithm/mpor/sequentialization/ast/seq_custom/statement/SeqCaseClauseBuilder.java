@@ -142,7 +142,7 @@ public class SeqCaseClauseBuilder {
       final ImmutableSet<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges,
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       GhostVariables pGhostVariables) {
 
     pCoveredNodes.add(pThreadNode);
@@ -174,7 +174,7 @@ public class SeqCaseClauseBuilder {
               pThreadNode,
               pcLeftHandSide,
               pCoveredNodes,
-              pSubEdges,
+              pSubstituteEdges,
               pGhostVariables));
     }
     return Optional.of(

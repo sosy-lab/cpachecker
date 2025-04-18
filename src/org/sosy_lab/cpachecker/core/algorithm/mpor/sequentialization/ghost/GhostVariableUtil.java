@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -222,7 +223,8 @@ public class GhostVariableUtil {
             new FunctionParameterAssignment(
                 SeqStatementBuilder.buildExpressionAssignmentStatement(
                     parameterSubstitute,
-                    pSubstitution.substitute(rightHandSide, threadEdge.callContext)));
+                    pSubstitution.substitute(
+                        rightHandSide, threadEdge.callContext, Optional.empty())));
         assignments.add(parameterAssignment);
       }
       rAssignments.put(threadEdge, assignments.build());

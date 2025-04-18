@@ -74,7 +74,7 @@ public class MPOROptions {
       boolean pValidatePc) {
 
     checkArgument(
-        correctParamAmount(),
+        correctParameterAmount(),
         "the amount of constructor parameters must match the amount of @Option fields in"
             + " MPORAlgorithm");
     checkArgument(
@@ -133,7 +133,7 @@ public class MPOROptions {
         true);
   }
 
-  private boolean correctParamAmount() {
+  private boolean correctParameterAmount() {
     // extract amount of MPOROptions constructor parameters
     Constructor<?>[] constructors = MPOROptions.class.getDeclaredConstructors();
     checkArgument(constructors.length == 1, "MPOROptions can have one constructor only");

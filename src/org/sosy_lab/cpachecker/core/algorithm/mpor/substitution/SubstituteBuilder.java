@@ -61,18 +61,25 @@ public class SubstituteBuilder {
         // prevent duplicate keys by excluding parallel edges
         if (!rSubstituteEdges.containsKey(threadEdge)) {
           CFAEdge cfaEdge = threadEdge.cfaEdge;
-          // if edge is not substituted: just use original edge
           Optional<SubstituteEdge> substitute =
               trySubstituteEdge(pOptions, substitution, threadEdge);
+          // if edge is not substituted: just use original edge
           rSubstituteEdges.put(
               threadEdge,
-              substitute.isPresent() ? substitute.orElseThrow() : new SubstituteEdge(cfaEdge));
+              substitute.isPresent()
+                  ? substitute.orElseThrow()
+                  : new SubstituteEdge(cfaEdge, ImmutableSet.of()));
         }
       }
     }
     return ImmutableMap.copyOf(rSubstituteEdges);
   }
 
+  // TODO create separate method for each edge type for better overview
+  /**
+   * Tries to substitute the given {@link ThreadEdge}. Not all edges are substituted, e.g. function
+   * declarations from the input program are included if specified by {@link MPOROptions}.
+   */
   private static Optional<SubstituteEdge> trySubstituteEdge(
       MPOROptions pOptions, MPORSubstitution pSubstitution, ThreadEdge pThreadEdge) {
 
@@ -88,48 +95,64 @@ public class SubstituteBuilder {
         if (declaration instanceof CVariableDeclaration) {
           CVariableDeclaration variableDeclaration =
               pSubstitution.getVariableDeclarationSubstitute(declaration, callContext);
+          // TODO which global variables to include for the set?
           return Optional.of(
-              new SubstituteEdge(substituteDeclarationEdge(declarationEdge, variableDeclaration)));
+              new SubstituteEdge(
+                  substituteDeclarationEdge(declarationEdge, variableDeclaration),
+                  ImmutableSet.of()));
         }
       }
 
     } else if (cfaEdge instanceof CAssumeEdge assume) {
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
+      CExpression substituteAssumption =
+          pSubstitution.substitute(
+              assume.getExpression(), callContext, Optional.of(globalVariables));
       return Optional.of(
           new SubstituteEdge(
-              substituteAssumeEdge(
-                  assume, pSubstitution.substitute(assume.getExpression(), callContext))));
+              substituteAssumeEdge(assume, substituteAssumption), globalVariables.build()));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
+      CStatement substituteStatement =
+          pSubstitution.substitute(
+              statement.getStatement(), callContext, Optional.of(globalVariables));
       return Optional.of(
           new SubstituteEdge(
-              substituteStatementEdge(
-                  statement, pSubstitution.substitute(statement.getStatement(), callContext))));
+              substituteStatementEdge(statement, substituteStatement), globalVariables.build()));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
+        ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
+        CStatement substituteAssignment =
+            pSubstitution.substitute(assignment, callContext, Optional.of(globalVariables));
         return Optional.of(
             new SubstituteEdge(
-                substituteFunctionSummaryEdge(
-                    functionSummary, pSubstitution.substitute(assignment, callContext))));
+                substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
+                globalVariables.build()));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
-      // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here
-      // too
+      // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
+      CStatement substituteFunctionCall =
+          pSubstitution.substitute(
+              functionCall.getFunctionCall(), callContext, Optional.of(globalVariables));
       return Optional.of(
           new SubstituteEdge(
-              substituteFunctionCallEdge(
-                  functionCall,
-                  (CFunctionCall)
-                      pSubstitution.substitute(functionCall.getFunctionCall(), callContext))));
+              substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
+              globalVariables.build()));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
+      CReturnStatement substituteReturnStatement =
+          pSubstitution.substitute(
+              returnStatement.getReturnStatement(), callContext, Optional.of(globalVariables));
       return Optional.of(
           new SubstituteEdge(
-              substituteReturnStatementEdge(
-                  returnStatement,
-                  pSubstitution.substitute(returnStatement.getReturnStatement(), callContext))));
+              substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
+              globalVariables.build()));
     }
     return Optional.empty();
   }
@@ -323,7 +346,7 @@ public class SubstituteBuilder {
                 initializerExpression,
                 dummySubstitution.substitute(
                     // no call context for global variables
-                    initializerExpression.getExpression(), Optional.empty()));
+                    initializerExpression.getExpression(), Optional.empty(), Optional.empty()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
         rFinalSubstitutes.put(finalSub, idExpression);
@@ -446,10 +469,12 @@ public class SubstituteBuilder {
               (CVariableDeclaration) substituteExpression.getDeclaration();
 
           Optional<ThreadEdge> callContext = callContextToSubstituteEntry.getKey();
+          // TODO not sure if global var set required here?
           CInitializerExpression initializerSubstitute =
               substituteInitializerExpression(
                   initializerExpression,
-                  dummySubstitution.substitute(initializerExpression.getExpression(), callContext));
+                  dummySubstitution.substitute(
+                      initializerExpression.getExpression(), callContext, Optional.empty()));
           CVariableDeclaration finalSubstitute =
               substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
 
