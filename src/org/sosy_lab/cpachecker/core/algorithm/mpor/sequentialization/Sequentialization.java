@@ -23,9 +23,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -165,6 +166,7 @@ public class Sequentialization {
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
+    BitVectorVariables bitVectorVariables = GhostVariableUtil.buildBitVectors(options, threads);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 
@@ -188,6 +190,7 @@ public class Sequentialization {
             options,
             substitutions,
             substituteEdges,
+            bitVectorVariables,
             pcVariables,
             threadSimulationVariables,
             binaryExpressionBuilder,

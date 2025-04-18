@@ -40,7 +40,7 @@ public class SeqToken {
 
   public static final String ATOMIC = "ATOMIC";
 
-  public static final String B = "B";
+  public static final String b = "b";
 
   public static final String BEGINS = "BEGINS";
 

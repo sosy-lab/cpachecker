@@ -14,12 +14,14 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqGotoThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqCaseClauseUtil {
@@ -68,6 +70,24 @@ public class SeqCaseClauseUtil {
       }
     }
     return rAllStatements.build();
+  }
+
+  // TODO make this return the set
+  /** Searches {@code pStatement} and all concatenated statements for their global variables. */
+  public static void recursivelyGetGlobalVariables(
+      ImmutableSet.Builder<CVariableDeclaration> pFound, SeqCaseBlockStatement pStatement) {
+
+    for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
+      for (CVariableDeclaration variable : substituteEdge.getGlobalVariables()) {
+        assert variable.isGlobal();
+        pFound.add(variable);
+      }
+    }
+    if (pStatement.isConcatenable()) {
+      for (SeqCaseBlockStatement concatStatement : pStatement.getConcatenatedStatements()) {
+        recursivelyGetGlobalVariables(pFound, concatStatement);
+      }
+    }
   }
 
   /**

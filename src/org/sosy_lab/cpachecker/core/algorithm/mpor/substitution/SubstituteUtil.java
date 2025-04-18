@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -46,5 +47,12 @@ public class SubstituteUtil {
       }
     }
     return false;
+  }
+
+  public static ImmutableSet<CVariableDeclaration> getAllGlobalVariables(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+    return pSubstituteEdges.stream()
+        .flatMap(s -> s.getGlobalVariables().stream())
+        .collect(ImmutableSet.toImmutableSet());
   }
 }

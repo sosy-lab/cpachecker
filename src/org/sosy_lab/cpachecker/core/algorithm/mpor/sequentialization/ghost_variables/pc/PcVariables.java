@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;

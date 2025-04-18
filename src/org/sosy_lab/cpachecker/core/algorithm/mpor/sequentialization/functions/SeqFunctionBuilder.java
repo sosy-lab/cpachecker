@@ -11,18 +11,22 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumption;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -33,6 +37,7 @@ public class SeqFunctionBuilder {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -41,6 +46,8 @@ public class SeqFunctionBuilder {
 
     // used to store which injected variables are initialized with 1
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
+    ImmutableSet<CVariableDeclaration> allGlobalVariables =
+        SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(
@@ -48,6 +55,8 @@ public class SeqFunctionBuilder {
             updatedVariables,
             pSubstitutions,
             pSubstituteEdges,
+            allGlobalVariables,
+            pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pLogger);
@@ -59,8 +68,10 @@ public class SeqFunctionBuilder {
         pOptions,
         updatedVariables.build(),
         pSubstitutions.size(),
+        allGlobalVariables.size(),
         threadSimulationAssumptions,
         caseClauses,
+        pBitVectorVariables,
         pPcVariables,
         pBinaryExpressionBuilder);
   }

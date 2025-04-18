@@ -41,10 +41,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
@@ -56,7 +58,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -84,6 +89,8 @@ public class SeqMainFunction extends SeqFunction {
   /** The thread-specific case clauses in the while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses;
 
+  private final ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations;
+
   private final ImmutableList<CVariableDeclaration> pcDeclarations;
 
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
@@ -100,8 +107,10 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<CIdExpression> pUpdatedVariables,
       int pNumThreads,
+      int pNumGlobalVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -121,12 +130,29 @@ public class SeqMainFunction extends SeqFunction {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
 
+    bitVectorDeclarations = createBitVectorDeclarations(pNumGlobalVariables, pBitVectorVariables);
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
     nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNondet);
     nextThreadAssumption = buildNextThreadAssumption(pOptions.signedNondet);
     pcNextThreadAssumption =
         buildPcNextThreadAssumption(pNumThreads, pOptions.scalarPc, pcVariables);
+  }
+
+  private ImmutableList<SeqBitVectorDeclaration> createBitVectorDeclarations(
+      int pNumGlobalVariables, BitVectorVariables pBitVectorVariables) {
+
+    int bitVectorLength = BitVectorUtil.getBitVectorLength(pNumGlobalVariables);
+    // TODO adjust initial bit vector based on first seq case clause
+    SeqBitVector defaultBitVector = BitVectorUtil.createDefaultBitVector(bitVectorLength);
+    ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
+    for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
+      SeqBitVectorType type = BitVectorUtil.getTypeByLength(bitVectorLength);
+      SeqBitVectorDeclaration declaration =
+          new SeqBitVectorDeclaration(type, entry.getValue(), defaultBitVector);
+      rDeclarations.add(declaration);
+    }
+    return rDeclarations.build();
   }
 
   private ImmutableList<CVariableDeclaration> createPcDeclarations(
@@ -163,7 +189,9 @@ public class SeqMainFunction extends SeqFunction {
     ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
     // declare main() local variables NUM_THREADS, pc, next_thread
     // TODO its probably best to remove num threads entirely and just place the int
-    rBody.addAll(buildVariableDeclarations(options, numThreads.getDeclaration(), pcDeclarations));
+    rBody.addAll(
+        buildVariableDeclarations(
+            options, numThreads.getDeclaration(), bitVectorDeclarations, pcDeclarations));
     // add updated injected variables that were pruned in partial order reduction
     rBody.addAll(buildVariableUpdates(updatedVariables));
     // --- loop starts here ---
@@ -243,21 +271,13 @@ public class SeqMainFunction extends SeqFunction {
   private ImmutableList<LineOfCode> buildVariableDeclarations(
       MPOROptions pOptions,
       CSimpleDeclaration pNumThreads,
+      ImmutableList<SeqBitVectorDeclaration> pBitVectorDeclarations,
       ImmutableList<CVariableDeclaration> pPcDeclarations) {
 
     ImmutableList.Builder<LineOfCode> rVariableDeclarations = ImmutableList.builder();
 
     // NUM_THREADS
     rVariableDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
-
-    // pc
-    if (pOptions.comments) {
-      rVariableDeclarations.add(LineOfCode.empty());
-      rVariableDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
-    }
-    for (CVariableDeclaration varDeclaration : pPcDeclarations) {
-      rVariableDeclarations.add(LineOfCode.of(1, varDeclaration.toASTString()));
-    }
 
     // next_thread
     if (pOptions.signedNondet) {
@@ -266,6 +286,22 @@ public class SeqMainFunction extends SeqFunction {
     } else {
       rVariableDeclarations.add(
           LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+    }
+
+    // pc
+    if (pOptions.comments) {
+      rVariableDeclarations.add(LineOfCode.empty());
+      rVariableDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
+    }
+    for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
+      rVariableDeclarations.add(LineOfCode.of(1, pcDeclaration.toASTString()));
+    }
+
+    // if enabled: bit vectors (for partial order reductions)
+    if (pOptions.porBitVector) {
+      for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
+        rVariableDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
+      }
     }
 
     // if enabled: K and r (for thread loops iterations)

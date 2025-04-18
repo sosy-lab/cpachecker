@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Classes for injected variables in the sequentialization that were not present in the input
- * program (ghost variables) to simulate functions and threads.
+ * To store the pc expressions for all threads, i.e. {@code pc[0]} for array or {@code pc0} for
+ * scalar.
  */
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc;

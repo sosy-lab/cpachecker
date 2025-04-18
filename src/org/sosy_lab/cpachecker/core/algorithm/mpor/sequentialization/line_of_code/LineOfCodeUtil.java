@@ -27,8 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -189,6 +190,7 @@ public class LineOfCodeUtil {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -209,6 +211,7 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             pSubstituteEdges,
+            pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
             pBinaryExpressionBuilder,

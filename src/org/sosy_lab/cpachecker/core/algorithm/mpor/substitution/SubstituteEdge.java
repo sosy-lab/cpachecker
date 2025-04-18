@@ -18,7 +18,7 @@ public class SubstituteEdge {
   public final CFAEdge cfaEdge;
 
   /** The set of global variable declarations that this edge accesses. */
-  public final ImmutableSet<CVariableDeclaration> globalVariables;
+  private final ImmutableSet<CVariableDeclaration> globalVariables;
 
   // TODO parameters are a bit trickier due to passed on parameters
   /** The set of parameters pointing to global variable declarations that this edge accesses. */
@@ -27,5 +27,9 @@ public class SubstituteEdge {
   public SubstituteEdge(CFAEdge pCfaEdge, ImmutableSet<CVariableDeclaration> pGlobalVariables) {
     cfaEdge = pCfaEdge;
     globalVariables = pGlobalVariables;
+  }
+
+  public ImmutableSet<CVariableDeclaration> getGlobalVariables() {
+    return globalVariables;
   }
 }

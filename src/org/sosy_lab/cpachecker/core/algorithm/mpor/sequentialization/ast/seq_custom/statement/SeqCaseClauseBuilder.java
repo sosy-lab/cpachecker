@@ -19,6 +19,7 @@ import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -28,11 +29,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariableUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionStatements;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -51,6 +53,8 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
+      BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       LogManager pLogger) {
@@ -63,7 +67,8 @@ public class SeqCaseClauseBuilder {
         SeqPruner.pruneCaseClauses(initialCaseClauses);
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
-        PartialOrderReducer.reduce(pOptions, pUpdatedVariables, prunedCases);
+        PartialOrderReducer.reduce(
+            pOptions, pUpdatedVariables, pBitVectorVariables, pAllGlobalVariables, prunedCases);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
         SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases);
