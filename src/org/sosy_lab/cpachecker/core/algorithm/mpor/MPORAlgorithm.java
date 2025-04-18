@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
+import java.util.logging.Level;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -259,6 +260,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
+    handleOptionWarnings();
+
     InputRejection.handleRejections(logger, inputCfa);
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
@@ -300,5 +303,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
 
     return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
+  }
+
+  /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
+  private void handleOptionWarnings() {
+    if (!options.porConcat && options.porBitVector) {
+      logger.log(
+          Level.WARNING,
+          "WARNING: POR bit vectors are only created with porConcat enabled. Either enable"
+              + " porConcat or disable porBitVector.");
+    }
   }
 }
