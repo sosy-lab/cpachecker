@@ -257,12 +257,11 @@ public class SeqCaseClauseUtil {
         ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
         // add previous injections BEFORE (otherwise undefined behavior in seq!)
         newInjections.addAll(pCurrentStatement.getInjectedStatements());
-        if (priorCriticalSection(pCurrentStatement)) {
-          // for statements targeting starts of critical sections, assumes have to be reevaluated
-          newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pAssumeLabel));
-        } else {
-          newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pSwitchLabel));
-        }
+        newInjections.add(
+            new SeqThreadLoopGotoStatement(
+                pIterationSmallerMax,
+                // for statements targeting starts of critical sections, assumes are reevaluated
+                priorCriticalSection(pCurrentStatement) ? pAssumeLabel : pSwitchLabel));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }
     }
@@ -270,7 +269,7 @@ public class SeqCaseClauseUtil {
     return pCurrentStatement;
   }
 
-  private static boolean priorCriticalSection(SeqCaseBlockStatement pStatement) {
+  public static boolean priorCriticalSection(SeqCaseBlockStatement pStatement) {
     return pStatement.getInjectedStatements().stream().anyMatch(i -> i.priorCriticalSection());
   }
 

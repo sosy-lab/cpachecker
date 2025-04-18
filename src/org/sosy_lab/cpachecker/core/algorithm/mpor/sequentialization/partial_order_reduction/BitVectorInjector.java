@@ -136,7 +136,11 @@ public class BitVectorInjector {
               BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables.build())));
       newInjected.add(
           new SeqBitVectorGotoStatement(
-              new SeqLogicalNotExpression(pBitVectorEvaluation), pAssumeLabel));
+              new SeqLogicalNotExpression(pBitVectorEvaluation),
+              // for statements targeting starts of critical sections, assumes are reevaluated
+              SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)
+                  ? pAssumeLabel
+                  : pSwitchLabel));
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
     return pCurrentStatement;
