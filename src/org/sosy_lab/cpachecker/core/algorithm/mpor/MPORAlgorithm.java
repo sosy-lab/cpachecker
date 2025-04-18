@@ -100,7 +100,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "add partial order reduction (grouping commuting statements) in the sequentialization"
               + " to reduce the state space?")
-  private boolean partialOrderReduction = false;
+  private boolean porConcat = false;
+
+  @Option(
+      description =
+          "add partial order reduction (bit vectors storing global variable accesses) in the"
+              + " sequentialization to reduce the state space?")
+  private boolean porBitVector = false;
 
   @Option(
       secure = true,
@@ -237,7 +243,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             outputMetadata,
             outputPath,
             overwriteFiles,
-            partialOrderReduction,
+            porConcat,
+            porBitVector,
             scalarPc,
             sequentializationErrors,
             shortVariables,

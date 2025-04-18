@@ -37,7 +37,9 @@ public class MPOROptions {
 
   public final boolean overwriteFiles;
 
-  public final boolean partialOrderReduction;
+  public final boolean porConcat;
+
+  public final boolean porBitVector;
 
   public final boolean scalarPc;
 
@@ -63,7 +65,8 @@ public class MPOROptions {
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
-      boolean pPartialOrderReduction,
+      boolean pPorConcat,
+      boolean pPorBitVector,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -88,7 +91,8 @@ public class MPOROptions {
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
-    partialOrderReduction = pPartialOrderReduction;
+    porConcat = pPorConcat;
+    porBitVector = pPorBitVector;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariables = pShortVariables;
@@ -104,7 +108,8 @@ public class MPOROptions {
       boolean pComments,
       boolean pInputFunctionDeclarations,
       boolean pLicense,
-      boolean pPartialOrderReduction,
+      boolean pPorConcat,
+      boolean pPorBitVector,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -121,7 +126,8 @@ public class MPOROptions {
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
-        pPartialOrderReduction,
+        pPorConcat,
+        pPorBitVector,
         pScalarPc,
         pSequentializationErrors,
         pShortVariables,

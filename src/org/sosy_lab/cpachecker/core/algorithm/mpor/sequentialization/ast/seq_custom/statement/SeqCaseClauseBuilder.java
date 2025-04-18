@@ -63,9 +63,7 @@ public class SeqCaseClauseBuilder {
         SeqPruner.pruneCaseClauses(initialCaseClauses);
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
-        pOptions.partialOrderReduction
-            ? PartialOrderReducer.reduceCaseClauses(pOptions, pUpdatedVariables, prunedCases)
-            : prunedCases;
+        PartialOrderReducer.reduce(pOptions, pUpdatedVariables, prunedCases);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
         SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases);

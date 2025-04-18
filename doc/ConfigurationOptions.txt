@@ -281,9 +281,13 @@ analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true
 
+# add partial order reduction (bit vectors storing global variable accesses)
+# in the sequentialization to reduce the state space?
+analysis.algorithm.MPOR.porBitVector = false
+
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?
-analysis.algorithm.MPOR.partialOrderReduction = false
+analysis.algorithm.MPOR.porConcat = false
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays? may slow down or improve verification depending on the verifier and
