@@ -6,15 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqLoopHeadLabelStatement implements SeqLabelStatement {
+public class SeqThreadLoopLabelStatement implements SeqLabelStatement {
 
   public final String labelName;
 
-  public SeqLoopHeadLabelStatement(String pLabelName) {
+  public SeqThreadLoopLabelStatement(String pLabelName) {
     labelName = pLabelName;
   }
 

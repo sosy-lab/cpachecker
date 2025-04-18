@@ -84,6 +84,6 @@ public class SeqExpressions {
   public static class SeqStringLiteralExpression {
 
     public static final CStringLiteralExpression STRING_0 =
-        buildStringLiteralExpression(SeqToken._0);
+        buildStringLiteralExpression(SeqToken.STRING_0);
   }
 }

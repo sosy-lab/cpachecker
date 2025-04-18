@@ -22,7 +22,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.ha
  */
 public class SeqToken {
 
-  public static final String _0 = "\"0\"";
+  public static final String _0 = "0";
+
+  public static final String _0b = "0b";
+
+  public static final String _1 = "1";
 
   public static final String abort = "abort";
 
@@ -104,6 +108,8 @@ public class SeqToken {
   public static final String reach_error = "reach_error";
 
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
+
+  public static final String STRING_0 = "\"0\"";
 
   public static final String SWITCH = "SWITCH";
 

@@ -24,6 +24,8 @@ public class SeqSyntax {
 
   public static final String EMPTY_STRING = "";
 
+  public static final String EQUALS = "=";
+
   public static final String LOGICAL_AND = "&&";
 
   public static final String LOGICAL_NOT = "!";
