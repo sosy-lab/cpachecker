@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqCaseBlockStatement {
@@ -29,6 +31,8 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -38,12 +42,16 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqAssumeStatement(
-      SeqControlFlowStatement pControlFlowStatement, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      SeqControlFlowStatement pControlFlowStatement,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
     // we initialize labels later when applying POR
     loopHeadLabel = Optional.empty();
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -54,6 +62,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       SeqControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -72,6 +81,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
     loopHeadLabel = pLoopHeadLabel;
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -90,6 +100,11 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
+  }
+
+  @Override
   public Optional<Integer> getTargetPc() {
     return targetPc;
   }
@@ -105,6 +120,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         controlFlowStatement,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -122,6 +138,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         controlFlowStatement,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -134,6 +151,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         controlFlowStatement,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -148,6 +166,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         controlFlowStatement,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -162,6 +181,7 @@ public class SeqAssumeStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         controlFlowStatement,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

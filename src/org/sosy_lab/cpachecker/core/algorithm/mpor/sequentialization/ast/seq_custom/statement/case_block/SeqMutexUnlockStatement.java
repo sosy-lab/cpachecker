@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_unlock} of the form:
@@ -30,6 +32,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -39,11 +42,15 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqMutexUnlockStatement(
-      CExpressionAssignmentStatement pLockedFalse, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      CExpressionAssignmentStatement pLockedFalse,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -54,6 +61,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CExpressionAssignmentStatement pLockedFalse,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -62,6 +70,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
     loopHeadLabel = pLoopHeadLabel;
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -77,6 +86,11 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         + lockedFalse.toASTString()
         + SeqSyntax.SPACE
         + targetStatements;
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -100,6 +114,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -112,6 +127,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -126,6 +142,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -138,6 +155,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         lockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -152,6 +170,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

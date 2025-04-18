@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 // TODO further divide this into thread, function, ... interfaces
 // TODO its probably better to use an abstract class here for default implementations and attributes
@@ -24,6 +26,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
  * constructors used for cloning are {@code private}.
  */
 public interface SeqCaseBlockStatement extends SeqStatement {
+
+  /** The set of underlying {@link SubstituteEdge}s used to create this statement. */
+  ImmutableSet<SubstituteEdge> getSubstituteEdges();
 
   /** After concatenation, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents a statement that simulates calls to {@code pthread_create} of the form:
@@ -34,6 +36,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final PcVariables pcVariables;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -43,12 +46,17 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadCreationStatement(
-      int pCreatedThreadId, int pThreadId, PcVariables pPcVariables, int pTargetPc) {
+      int pCreatedThreadId,
+      int pThreadId,
+      PcVariables pPcVariables,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     pcVariables = pPcVariables;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -60,6 +68,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
       int pCreatedThreadId,
       int pThreadId,
       PcVariables pPcVariables,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -69,6 +78,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
     createdThreadId = pCreatedThreadId;
     threadId = pThreadId;
     pcVariables = pPcVariables;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -94,6 +104,11 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
+  }
+
+  @Override
   public Optional<Integer> getTargetPc() {
     return targetPc;
   }
@@ -115,6 +130,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -128,6 +144,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -143,6 +160,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -156,6 +174,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -171,6 +190,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
         createdThreadId,
         threadId,
         pcVariables,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

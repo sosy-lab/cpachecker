@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents an injected call to {@code reach_error} so that the sequentialization actually adopts
@@ -32,21 +34,27 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final int targetPc;
 
-  SeqReachErrorStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  SeqReachErrorStatement(
+      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
     loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
   }
 
   private SeqReachErrorStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
   }
 
@@ -58,6 +66,11 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
         + Sequentialization.inputReachErrorDummy
         + SeqSyntax.SPACE
         + pcWrite.toASTString();
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -83,7 +96,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
         pTargetPc == Sequentialization.EXIT_PC,
         "reach_errors should only be cloned with exit pc %s",
         Sequentialization.EXIT_PC);
-    return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
+    return new SeqReachErrorStatement(pcLeftHandSide, substituteEdges, pTargetPc);
   }
 
   @Override
@@ -101,7 +114,8 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqReachErrorStatement(Optional.of(pLoopHeadLabel), pcLeftHandSide, targetPc);
+    return new SeqReachErrorStatement(
+        Optional.of(pLoopHeadLabel), pcLeftHandSide, substituteEdges, targetPc);
   }
 
   @Override

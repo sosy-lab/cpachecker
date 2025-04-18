@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
@@ -29,6 +31,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -37,10 +41,15 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
-  SeqThreadJoinStatement(CIdExpression pThreadJoins, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
+  SeqThreadJoinStatement(
+      CIdExpression pThreadJoins,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide) {
     loopHeadLabel = Optional.empty();
     threadJoinsThread = pThreadJoins;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -51,6 +60,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CIdExpression pThreadJoins,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -58,6 +68,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
     loopHeadLabel = pLoopHeadLabel;
     threadJoinsThread = pThreadJoins;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     pcLeftHandSide = pPcLeftHandSide;
@@ -82,6 +93,11 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
+  }
+
+  @Override
   public Optional<Integer> getTargetPc() {
     return targetPc;
   }
@@ -102,6 +118,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -114,6 +131,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -128,6 +146,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -140,6 +159,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         threadJoinsThread,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -154,6 +174,7 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         threadJoinsThread,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

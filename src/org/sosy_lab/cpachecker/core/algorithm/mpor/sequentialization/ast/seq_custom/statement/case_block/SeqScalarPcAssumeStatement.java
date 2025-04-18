@@ -9,10 +9,12 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Only used with {@code scalarPc} when assuming that the next thread is still active, e.g.
@@ -30,6 +32,12 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   @Override
   public String toASTString() {
     return statement.toASTString();
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have substitute edges");
   }
 
   @Override

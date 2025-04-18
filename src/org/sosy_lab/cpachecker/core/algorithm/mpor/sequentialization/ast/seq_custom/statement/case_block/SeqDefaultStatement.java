@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -17,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents the default case block statement where the original {@link CFAEdge}s require no
@@ -30,6 +32,8 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -38,10 +42,15 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
 
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
-  SeqDefaultStatement(CStatementEdge pEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+  SeqDefaultStatement(
+      CStatementEdge pEdge,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
     loopHeadLabel = Optional.empty();
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -52,6 +61,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CStatementEdge pEdge,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -60,6 +70,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
     loopHeadLabel = pLoopHeadLabel;
     edge = pEdge;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -75,6 +86,11 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         + edge.getCode()
         + SeqSyntax.SPACE
         + targetStatements;
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -98,6 +114,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         edge,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -110,6 +127,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         edge,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -124,6 +142,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         edge,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -136,6 +155,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         edge,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -150,6 +170,7 @@ public class SeqDefaultStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         edge,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

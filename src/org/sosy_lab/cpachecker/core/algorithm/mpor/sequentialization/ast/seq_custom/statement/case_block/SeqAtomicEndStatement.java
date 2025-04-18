@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
 
@@ -24,6 +26,8 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   private final CExpressionAssignmentStatement atomicLockedFalse;
 
   private final CLeftHandSide pcLeftHandSide;
+
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -36,11 +40,13 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
   SeqAtomicEndStatement(
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -51,6 +57,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -59,6 +66,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
     loopHeadLabel = pLoopHeadLabel;
     atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -74,6 +82,11 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         + atomicLockedFalse.toASTString()
         + SeqSyntax.SPACE
         + targetStatements;
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -97,6 +110,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -109,6 +123,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -123,6 +138,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -135,6 +151,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         atomicLockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -149,6 +166,7 @@ public class SeqAtomicEndStatement implements SeqCaseBlockStatement {
         loopHeadLabel,
         atomicLockedFalse,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

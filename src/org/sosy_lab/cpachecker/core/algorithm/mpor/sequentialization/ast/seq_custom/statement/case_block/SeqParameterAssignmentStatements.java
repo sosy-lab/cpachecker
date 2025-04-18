@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.goto_labels.SeqLoopHeadLabelStatement;
@@ -16,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Represents the assignment of a parameter given to a function to an injected parameter variable in
@@ -31,6 +33,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -42,11 +45,13 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
   SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -57,6 +62,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -65,6 +71,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
     loopHeadLabel = pLoopHeadLabel;
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -83,6 +90,11 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     rString.append(targetStatements);
     return rString.toString();
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -106,6 +118,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         loopHeadLabel,
         assignments,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -118,6 +131,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         loopHeadLabel,
         assignments,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -131,6 +145,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         loopHeadLabel,
         assignments,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -143,6 +158,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         Optional.of(pLoopHeadLabel),
         assignments,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -157,6 +173,7 @@ public class SeqParameterAssignmentStatements implements SeqCaseBlockStatement {
         loopHeadLabel,
         assignments,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

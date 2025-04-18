@@ -95,8 +95,7 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       if (isSubstitutable(idExpression.getDeclaration())) {
         if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-          if (variableDeclaration.isGlobal()) {
-            assert pGlobalVariables.isPresent();
+          if (variableDeclaration.isGlobal() && pGlobalVariables.isPresent()) {
             pGlobalVariables.orElseThrow().add(variableDeclaration);
           }
         }

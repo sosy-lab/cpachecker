@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -53,6 +54,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
 
   private final CLeftHandSide pcLeftHandSide;
 
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -91,6 +94,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     checkArguments(pDeclaration, pStatementA, pStatementB);
@@ -99,6 +103,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -111,6 +116,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
       SubstituteEdge pStatementA,
       SubstituteEdge pStatementB,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -122,6 +128,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
     statementB = pStatementB;
     constCpaCheckerTmpDeclaration = pConstCpaCheckerTmpDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -142,6 +149,11 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         + statementB.cfaEdge.getCode()
         + SeqSyntax.SPACE
         + targetStatements;
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -167,6 +179,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -181,6 +194,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -196,6 +210,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -210,6 +225,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -226,6 +242,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqCaseBlockStatement {
         statementA,
         statementB,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

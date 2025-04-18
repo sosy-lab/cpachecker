@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
  * Standard C does not allow function declarations or definitions inside functions. Type
@@ -32,6 +34,8 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   private final CVariableDeclaration variableDeclaration;
 
   private final CLeftHandSide pcLeftHandSide;
+
+  private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
@@ -49,12 +53,16 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   SeqLocalVariableDeclarationWithInitializerStatement(
-      CVariableDeclaration pVariableDeclaration, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+      CVariableDeclaration pVariableDeclaration,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
     checkArguments(pVariableDeclaration);
     loopHeadLabel = Optional.empty();
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
@@ -65,6 +73,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CVariableDeclaration pVariableDeclaration,
       CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements,
@@ -74,6 +83,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
     loopHeadLabel = pLoopHeadLabel;
     variableDeclaration = pVariableDeclaration;
     pcLeftHandSide = pPcLeftHandSide;
+    substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
@@ -89,6 +99,11 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         + variableDeclaration.toASTStringWithOnlyNameAndInitializer()
         + SeqSyntax.SPACE
         + targetStatements;
+  }
+
+  @Override
+  public ImmutableSet<SubstituteEdge> getSubstituteEdges() {
+    return substituteEdges;
   }
 
   @Override
@@ -113,6 +128,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
+        substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
         injectedStatements,
@@ -125,6 +141,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
         injectedStatements,
@@ -139,6 +156,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         pInjectedStatements,
@@ -151,6 +169,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         Optional.of(pLoopHeadLabel),
         variableDeclaration,
         pcLeftHandSide,
+        substituteEdges,
         targetPc,
         targetGoto,
         injectedStatements,
@@ -165,6 +184,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         loopHeadLabel,
         variableDeclaration,
         pcLeftHandSide,
+        substituteEdges,
         Optional.empty(),
         Optional.empty(),
         injectedStatements,

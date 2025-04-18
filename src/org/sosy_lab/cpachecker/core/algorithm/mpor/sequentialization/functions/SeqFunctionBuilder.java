@@ -39,9 +39,8 @@ public class SeqFunctionBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    // use to store which injected variables are initialized with 1
+    // used to store which injected variables are initialized with 1
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
-
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(

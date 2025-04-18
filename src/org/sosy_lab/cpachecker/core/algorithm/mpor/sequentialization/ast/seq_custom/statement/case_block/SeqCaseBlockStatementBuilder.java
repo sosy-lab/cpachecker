@@ -103,7 +103,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     // ensure there are two single successors that are both statement edges
     ThreadNode successorA = pThreadEdge.getSuccessor();
@@ -120,10 +120,11 @@ public class SeqCaseBlockStatementBuilder {
     pCoveredNodes.add(successorB);
 
     // treat const CPAchecker_TMP var as atomic (3 statements in 1 case)
-    CFAEdge cfaEdge = Objects.requireNonNull(pSubEdges.get(pThreadEdge)).cfaEdge;
+    SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(pThreadEdge));
+    CFAEdge cfaEdge = substituteEdge.cfaEdge;
     assert cfaEdge instanceof CDeclarationEdge : "cfaEdge must declare const CPAchecker_TMP";
-    SubstituteEdge subA = Objects.requireNonNull(pSubEdges.get(statementA));
-    SubstituteEdge subB = Objects.requireNonNull(pSubEdges.get(statementB));
+    SubstituteEdge subA = Objects.requireNonNull(pSubstituteEdges.get(statementA));
+    SubstituteEdge subB = Objects.requireNonNull(pSubstituteEdges.get(statementB));
     int newTargetPc = statementB.getSuccessor().pc;
 
     // ensure that declaration is variable declaration and cast accordingly
@@ -133,7 +134,12 @@ public class SeqCaseBlockStatementBuilder {
     CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
 
     return new SeqConstCpaCheckerTmpStatement(
-        variableDeclaration, subA, subB, pPcLeftHandSide, newTargetPc);
+        variableDeclaration,
+        subA,
+        subB,
+        pPcLeftHandSide,
+        ImmutableSet.of(substituteEdge, subA, subB),
+        newTargetPc);
   }
 
   private static SeqCaseBlockStatement buildCaseBlockStatementFromEdge(
@@ -155,18 +161,20 @@ public class SeqCaseBlockStatementBuilder {
 
     } else {
       if (pSubstituteEdge.cfaEdge instanceof CAssumeEdge assumeEdge) {
-        return buildAssumeStatement(pFirstEdge, pLastEdge, assumeEdge, pcLeftHandSide, targetPc);
+        return buildAssumeStatement(
+            pFirstEdge, pLastEdge, assumeEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CDeclarationEdge declarationEdge) {
         return buildLocalVariableDeclarationWithInitializerStatement(
-            declarationEdge, pcLeftHandSide, targetPc);
+            declarationEdge, pSubstituteEdge, pcLeftHandSide, targetPc);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CFunctionCallEdge) {
-        return handleFunctionCallEdge(pThread.id, pThreadEdge, targetPc, pGhostVariables);
+        return handleFunctionCallEdge(
+            pThread.id, pThreadEdge, pSubstituteEdge, targetPc, pGhostVariables);
 
       } else if (pSubstituteEdge.cfaEdge instanceof CReturnStatementEdge) {
         return buildReturnValueAssignmentStatement(
-            pThreadEdge, targetPc, pcLeftHandSide, pGhostVariables.function);
+            pThreadEdge, pSubstituteEdge, targetPc, pcLeftHandSide, pGhostVariables.function);
 
       } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
         return buildStatementFromPthreadFunction(
@@ -182,7 +190,10 @@ public class SeqCaseBlockStatementBuilder {
     // "leftover" edges should be statement edges
     assert pSubstituteEdge.cfaEdge instanceof CStatementEdge;
     return new SeqDefaultStatement(
-        (CStatementEdge) pSubstituteEdge.cfaEdge, pcLeftHandSide, targetPc);
+        (CStatementEdge) pSubstituteEdge.cfaEdge,
+        pcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        targetPc);
   }
 
   public static SeqBlankStatement buildBlankStatement(
@@ -194,6 +205,7 @@ public class SeqCaseBlockStatementBuilder {
       boolean pFirstEdge,
       boolean pLastEdge,
       CAssumeEdge pAssumeEdge,
+      SubstituteEdge pSubstituteEdge,
       CLeftHandSide pPcLeftHandSide,
       int pTargetPc) {
 
@@ -208,29 +220,41 @@ public class SeqCaseBlockStatementBuilder {
       // use else ... for last (= second) assume edge
       statement = new SeqControlFlowStatement();
     }
-    return new SeqAssumeStatement(statement, pPcLeftHandSide, pTargetPc);
+    return new SeqAssumeStatement(
+        statement, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqLocalVariableDeclarationWithInitializerStatement
       buildLocalVariableDeclarationWithInitializerStatement(
-          CDeclarationEdge pDeclarationEdge, CLeftHandSide pPcLeftHandSide, int pTargetPc) {
+          CDeclarationEdge pDeclarationEdge,
+          SubstituteEdge pSubstituteEdge,
+          CLeftHandSide pPcLeftHandSide,
+          int pTargetPc) {
 
     // "leftover" declarations should be local variables with an initializer
     CDeclaration declaration = pDeclarationEdge.getDeclaration();
     checkArgument(
         declaration instanceof CVariableDeclaration, "pDeclarationEdge must declare variable");
     return new SeqLocalVariableDeclarationWithInitializerStatement(
-        (CVariableDeclaration) declaration, pPcLeftHandSide, pTargetPc);
+        (CVariableDeclaration) declaration,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
   }
 
   private static SeqCaseBlockStatement handleFunctionCallEdge(
-      int pThreadId, ThreadEdge pThreadEdge, int pTargetPc, GhostVariables pGhostVariables) {
+      int pThreadId,
+      ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      GhostVariables pGhostVariables) {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge)) {
       // inject non-inlined reach_error
-      return new SeqReachErrorStatement(pcLeftHandSide, pTargetPc);
+      return new SeqReachErrorStatement(
+          pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
     }
     assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
     ImmutableList<FunctionParameterAssignment> assignments =
@@ -238,11 +262,13 @@ public class SeqCaseBlockStatementBuilder {
     if (assignments.isEmpty()) {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }
-    return new SeqParameterAssignmentStatements(assignments, pcLeftHandSide, pTargetPc);
+    return new SeqParameterAssignmentStatements(
+        assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqCaseBlockStatement buildReturnValueAssignmentStatement(
       ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       FunctionStatements pFunctionVariables) {
@@ -257,7 +283,7 @@ public class SeqCaseBlockStatementBuilder {
     } else {
       FunctionReturnValueAssignment assignment = assignments.iterator().next();
       return new SeqReturnValueAssignmentStatement(
-          assignment.statement, pPcLeftHandSide, pTargetPc);
+          assignment.statement, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
     }
   }
 
@@ -276,18 +302,21 @@ public class SeqCaseBlockStatementBuilder {
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
-          buildThreadCreationStatement(pThread, pAllThreads, cfaEdge, pTargetPc, pPcVariables);
+          buildThreadCreationStatement(
+              pThread, pAllThreads, pSubstituteEdge, pTargetPc, pPcVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
-              pThread, pThreadEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+              pThread, pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockStatement(cfaEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildMutexUnlockStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case PTHREAD_JOIN ->
-          buildThreadJoinStatement(pThread, cfaEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildThreadJoinStatement(
+              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case __VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicBeginStatement(pThread, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildAtomicBeginStatement(
+              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       case __VERIFIER_ATOMIC_END ->
-          buildAtomicEndStatement(pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildAtomicEndStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
       default ->
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
@@ -297,13 +326,14 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqThreadCreationStatement buildThreadCreationStatement(
       MPORThread pThread,
       ImmutableSet<MPORThread> pAllThreads,
-      CFAEdge pCfaEdge,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       PcVariables pPcVariables) {
 
-    CExpression pthreadT = PthreadUtil.extractPthreadT(pCfaEdge);
+    CExpression pthreadT = PthreadUtil.extractPthreadT(pSubstituteEdge.cfaEdge);
     MPORThread createdThread = PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
-    return new SeqThreadCreationStatement(createdThread.id, pThread.id, pPcVariables, pTargetPc);
+    return new SeqThreadCreationStatement(
+        createdThread.id, pThread.id, pPcVariables, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   public static Optional<SeqInjectedStatement> tryBuildInjectedStatement(
@@ -342,6 +372,7 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqMutexLockStatement buildMutexLockStatement(
       MPORThread pThread,
       ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSimulationVariables pThreadVariables) {
@@ -356,42 +387,51 @@ public class SeqCaseBlockStatementBuilder {
         Objects.requireNonNull(
                 Objects.requireNonNull(pThreadVariables.locks.get(pThread)).get(lockedMutexT))
             .idExpression;
-    return new SeqMutexLockStatement(mutexLocked, threadLocksMutex, pPcLeftHandSide, pTargetPc);
+    return new SeqMutexLockStatement(
+        mutexLocked,
+        threadLocksMutex,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
   }
 
   private static SeqMutexUnlockStatement buildMutexUnlockStatement(
-      CFAEdge pCfaEdge,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSimulationVariables pThreadVariables) {
 
-    CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pCfaEdge);
+    CIdExpression unlockedMutexT = PthreadUtil.extractPthreadMutexT(pSubstituteEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(unlockedMutexT);
     // assign 0 to locked variable
     CExpressionAssignmentStatement lockedFalse =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             Objects.requireNonNull(pThreadVariables.locked.get(unlockedMutexT)).idExpression,
             SeqIntegerLiteralExpression.INT_0);
-    return new SeqMutexUnlockStatement(lockedFalse, pPcLeftHandSide, pTargetPc);
+    return new SeqMutexUnlockStatement(
+        lockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqThreadJoinStatement buildThreadJoinStatement(
       MPORThread pThread,
-      CFAEdge pCfaEdge,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSimulationVariables pThreadVariables) {
 
-    MPORThread targetThread = PthreadUtil.extractThread(pThreadVariables.joins.keySet(), pCfaEdge);
+    MPORThread targetThread =
+        PthreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
     CIdExpression threadJoins =
         Objects.requireNonNull(
                 Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
             .idExpression;
-    return new SeqThreadJoinStatement(threadJoins, pTargetPc, pPcLeftHandSide);
+    return new SeqThreadJoinStatement(
+        threadJoins, ImmutableSet.of(pSubstituteEdge), pTargetPc, pPcLeftHandSide);
   }
 
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(
       MPORThread pThread,
+      SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
       ThreadSimulationVariables pThreadVariables) {
@@ -402,11 +442,15 @@ public class SeqCaseBlockStatementBuilder {
     assert pThreadVariables.begins.containsKey(pThread);
     CIdExpression beginsVar =
         Objects.requireNonNull(pThreadVariables.begins.get(pThread)).idExpression;
-    return new SeqAtomicBeginStatement(atomicLocked, beginsVar, pPcLeftHandSide, pTargetPc);
+    return new SeqAtomicBeginStatement(
+        atomicLocked, beginsVar, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqAtomicEndStatement buildAtomicEndStatement(
-      int pTargetPc, CLeftHandSide pPcLeftHandSide, ThreadSimulationVariables pThreadVariables) {
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSimulationVariables pThreadVariables) {
 
     assert pThreadVariables.atomicLocked.isPresent();
     // assign 0 to ATOMIC_LOCKED variable
@@ -414,7 +458,8 @@ public class SeqCaseBlockStatementBuilder {
         SeqStatementBuilder.buildExpressionAssignmentStatement(
             Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression),
             SeqIntegerLiteralExpression.INT_0);
-    return new SeqAtomicEndStatement(atomicLockedFalse, pPcLeftHandSide, pTargetPc);
+    return new SeqAtomicEndStatement(
+        atomicLockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   public static SeqScalarPcAssumeStatement buildScalarPcAssumeStatement(SeqStatement pStatement) {
