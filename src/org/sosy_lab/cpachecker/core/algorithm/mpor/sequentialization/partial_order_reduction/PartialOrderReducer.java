@@ -25,10 +25,13 @@ public class PartialOrderReducer {
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
-    if (pOptions.porConcat) {
-      return StatementConcatenator.concatCaseClauses(pOptions, pUpdatedVariables, pCaseClauses);
+
+    if (pOptions.porConcat && pOptions.porBitVector) {
+      return BitVectorInjector.inject(
+          StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses));
+    } else if (pOptions.porConcat) {
+      return StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
     }
-    // TODO bitvectors here
     return pCaseClauses;
   }
 }

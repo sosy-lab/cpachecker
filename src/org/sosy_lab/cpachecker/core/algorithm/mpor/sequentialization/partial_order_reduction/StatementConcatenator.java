@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class StatementConcatenator {
+class StatementConcatenator {
 
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concatCaseClauses(
+  protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat(
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
