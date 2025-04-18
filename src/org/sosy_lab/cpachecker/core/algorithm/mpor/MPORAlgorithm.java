@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -262,7 +262,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableSet<CVariableDeclaration> globalVars =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
-        SubstituteBuilder.buildSubstitutions(options, globalVars, threads, binaryExpressionBuilder);
+        MPORSubstitutionBuilder.buildSubstitutions(
+            options, globalVars, threads, binaryExpressionBuilder);
   }
 
   /** Use this constructor only for test purposes. */
@@ -284,7 +285,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
-        SubstituteBuilder.buildSubstitutions(
+        MPORSubstitutionBuilder.buildSubstitutions(
             options, globalVariableDeclarations, threads, binaryExpressionBuilder);
   }
 

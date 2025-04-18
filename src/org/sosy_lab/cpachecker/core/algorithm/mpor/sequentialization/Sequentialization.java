@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -164,7 +164,7 @@ public class Sequentialization {
     MPORSubstitution mainThreadSubstitution =
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
-        SubstituteBuilder.substituteEdges(options, substitutions);
+        SubstituteEdgeBuilder.substituteEdges(options, substitutions);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 
