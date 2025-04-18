@@ -49,7 +49,7 @@ public class InputRejectionTest {
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     MPOROptions options =
         MPOROptions.testInstance(
-            false, false, false, false, false, false, false, false, false, false);
+            false, false, false, false, false, false, false, false, false, false, false);
     T throwable =
         assertThrows(
             pExpectedThrowable, () -> MPORAlgorithm.testInstance(options, logger, inputCfa));
