@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -80,6 +83,28 @@ public class SeqExpressionBuilder {
         SeqIdExpression.NEXT_THREAD,
         buildIntegerLiteralExpression(pThreadId),
         BinaryOperator.NOT_EQUALS);
+  }
+
+  public static CBinaryExpression buildBitVectorEvaluation(
+      CIdExpression pActiveBitVector,
+      ImmutableSet<CIdExpression> pOtherBitVectors,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(pOtherBitVectors.size() >= 2);
+    checkArgument(!pOtherBitVectors.contains(pActiveBitVector));
+
+    // init RHS with the first bit vector that is not the current bit vector
+    CExpression rightHandSide = pOtherBitVectors.iterator().next();
+    for (CIdExpression bitVector : pOtherBitVectors) {
+      if (!bitVector.equals(rightHandSide)) {
+        rightHandSide =
+            pBinaryExpressionBuilder.buildBinaryExpression(
+                rightHandSide, bitVector, BinaryOperator.BINARY_OR);
+      }
+    }
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
   }
 
   // CFunctionCallExpression =======================================================================

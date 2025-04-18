@@ -22,7 +22,7 @@ public enum SeqBitVectorType {
     size = pSize;
   }
 
-  public String toString() {
+  public String toASTString() {
     return SeqToken.__uint + size + SeqToken._t;
   }
 }

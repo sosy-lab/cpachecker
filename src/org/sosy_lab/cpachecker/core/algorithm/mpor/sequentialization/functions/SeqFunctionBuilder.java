@@ -59,6 +59,7 @@ public class SeqFunctionBuilder {
             pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
+            pBinaryExpressionBuilder,
             pLogger);
     // include assumptions over thread simulation variables
     ImmutableListMultimap<MPORThread, SeqAssumption> threadSimulationAssumptions =

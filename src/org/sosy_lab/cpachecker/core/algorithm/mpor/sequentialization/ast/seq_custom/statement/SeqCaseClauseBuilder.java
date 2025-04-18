@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqCaseClauseBuilder {
 
@@ -57,7 +59,9 @@ public class SeqCaseClauseBuilder {
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
-      LogManager pLogger) {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
 
     // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
@@ -68,7 +72,12 @@ public class SeqCaseClauseBuilder {
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
         PartialOrderReducer.reduce(
-            pOptions, pUpdatedVariables, pBitVectorVariables, pAllGlobalVariables, prunedCases);
+            pOptions,
+            pUpdatedVariables,
+            pAllGlobalVariables,
+            pBitVectorVariables,
+            prunedCases,
+            pBinaryExpressionBuilder);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
         SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases);

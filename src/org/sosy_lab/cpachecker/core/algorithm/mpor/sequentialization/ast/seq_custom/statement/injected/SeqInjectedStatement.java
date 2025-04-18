@@ -17,5 +17,6 @@ public interface SeqInjectedStatement extends SeqStatement {
   // TODO rename marks? or alwaysPrior... ? other statements can also be prior critical sections.
   boolean priorCriticalSection();
 
+  /** The thread simulation variable of this injected statement, used for assumptions. */
   Optional<CIdExpression> getIdExpression();
 }

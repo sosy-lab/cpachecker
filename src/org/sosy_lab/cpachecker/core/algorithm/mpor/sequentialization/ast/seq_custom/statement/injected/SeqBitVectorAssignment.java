@@ -29,7 +29,7 @@ public class SeqBitVectorAssignment implements SeqInjectedStatement {
 
   @Override
   public Optional<CIdExpression> getIdExpression() {
-    return Optional.of(variable);
+    return Optional.empty();
   }
 
   @Override

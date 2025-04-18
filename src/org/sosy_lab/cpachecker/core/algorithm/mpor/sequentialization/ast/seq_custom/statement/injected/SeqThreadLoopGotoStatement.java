@@ -18,16 +18,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqGotoThreadLoopLabelStatement implements SeqInjectedStatement {
+public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
 
-  private final CBinaryExpression iterationSmallerMax;
+  private final CBinaryExpression rSmallerK;
 
   private final SeqThreadLoopLabelStatement gotoLabel;
 
-  public SeqGotoThreadLoopLabelStatement(
-      CBinaryExpression pIterationSmallerMax, SeqThreadLoopLabelStatement pGotoLabel) {
+  public SeqThreadLoopGotoStatement(
+      CBinaryExpression pRSmallerK, SeqThreadLoopLabelStatement pGotoLabel) {
 
-    iterationSmallerMax = pIterationSmallerMax;
+    rSmallerK = pRSmallerK;
     gotoLabel = pGotoLabel;
   }
 
@@ -44,7 +44,7 @@ public class SeqGotoThreadLoopLabelStatement implements SeqInjectedStatement {
   @Override
   public String toASTString() {
     SeqControlFlowStatement ifStatement =
-        new SeqControlFlowStatement(iterationSmallerMax, SeqControlFlowStatementType.IF);
+        new SeqControlFlowStatement(rSmallerK, SeqControlFlowStatementType.IF);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.labelName);
     return ifStatement.toASTString()
         + SeqSyntax.SPACE

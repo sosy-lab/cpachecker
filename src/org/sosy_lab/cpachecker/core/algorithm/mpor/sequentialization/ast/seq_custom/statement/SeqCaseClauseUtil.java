@@ -19,8 +19,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqGotoThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -259,11 +259,9 @@ public class SeqCaseClauseUtil {
         newInjections.addAll(pCurrentStatement.getInjectedStatements());
         if (priorCriticalSection(pCurrentStatement)) {
           // for statements targeting starts of critical sections, assumes have to be reevaluated
-          newInjections.add(
-              new SeqGotoThreadLoopLabelStatement(pIterationSmallerMax, pAssumeLabel));
+          newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pAssumeLabel));
         } else {
-          newInjections.add(
-              new SeqGotoThreadLoopLabelStatement(pIterationSmallerMax, pSwitchLabel));
+          newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pSwitchLabel));
         }
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }

@@ -27,7 +27,7 @@ public class SeqBitVectorDeclaration implements SeqDeclaration {
 
   @Override
   public String toASTString() {
-    return type.toString()
+    return type.toASTString()
         + SeqSyntax.SPACE
         + variable.toASTString()
         + SeqSyntax.SPACE
