@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.BitVectorInjector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqBinaryBitVector implements SeqBitVector {
@@ -22,7 +21,7 @@ public class SeqBinaryBitVector implements SeqBitVector {
   private final ImmutableSet<Integer> setBits;
 
   public SeqBinaryBitVector(int pLength, ImmutableSet<Integer> pSetBits) {
-    checkArgument(Collections.max(pSetBits) < BitVectorInjector.MAX_BIT_VECTOR_LENGTH);
+    checkArgument(pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BIT_VECTOR_LENGTH);
     length = pLength;
     setBits = pSetBits;
   }

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
@@ -253,5 +254,15 @@ public class SeqCaseClauseUtil {
 
   private static boolean priorCriticalSection(SeqCaseBlockStatement pStatement) {
     return pStatement.getInjectedStatements().stream().anyMatch(i -> i.priorCriticalSection());
+  }
+
+  public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {
+    if (pTargetPc.isPresent()) {
+      int targetPc = pTargetPc.orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC) {
+        return true;
+      }
+    }
+    return false;
   }
 }

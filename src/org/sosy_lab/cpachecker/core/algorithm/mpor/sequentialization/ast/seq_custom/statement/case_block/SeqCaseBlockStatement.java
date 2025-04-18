@@ -43,6 +43,7 @@ public interface SeqCaseBlockStatement extends SeqStatement {
 
   SeqCaseBlockStatement cloneWithTargetGoto(String pLabel);
 
+  // TODO replace with "addInjectedStatement" (to already existing statements) and then clone
   SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements);
 

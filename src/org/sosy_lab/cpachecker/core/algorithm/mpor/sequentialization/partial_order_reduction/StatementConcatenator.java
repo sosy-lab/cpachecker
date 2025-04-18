@@ -14,11 +14,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
@@ -111,7 +109,7 @@ class StatementConcatenator {
       Map<Integer, SeqLoopHeadLabelStatement> pLoopHeadLabels,
       final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
 
-    if (validIntTargetPc(pCurrentStatement.getTargetPc())) {
+    if (SeqCaseClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(
@@ -262,17 +260,5 @@ class StatementConcatenator {
     return pFirstStatement instanceof SeqBlankStatement
         && pFirstStatement.getInjectedStatements().size() == 1
         && !pFirstCase.isLoopStart;
-  }
-
-  // Helpers =======================================================================================
-
-  private static boolean validIntTargetPc(Optional<Integer> pTargetPc) {
-    if (pTargetPc.isPresent()) {
-      int targetPc = pTargetPc.orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC) {
-        return true;
-      }
-    }
-    return false;
   }
 }

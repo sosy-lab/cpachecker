@@ -103,6 +103,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " to reduce the state space?")
   private boolean porConcat = false;
 
+  // TODO bit vector format option: binary - hex - scalar
   @Option(
       description =
           "add partial order reduction (bit vectors storing global variable accesses) in the"

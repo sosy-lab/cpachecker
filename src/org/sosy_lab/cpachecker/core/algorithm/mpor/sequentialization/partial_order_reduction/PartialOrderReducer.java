@@ -28,7 +28,7 @@ public class PartialOrderReducer {
 
     if (pOptions.porConcat && pOptions.porBitVector) {
       return BitVectorInjector.inject(
-          StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses));
+          pOptions, StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses));
     } else if (pOptions.porConcat) {
       return StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
     }

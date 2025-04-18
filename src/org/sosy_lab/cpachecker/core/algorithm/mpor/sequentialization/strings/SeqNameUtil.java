@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -114,6 +115,17 @@ public class SeqNameUtil {
         + pCallNumber
         + createVariableId()
         + pParameterDeclaration.getName();
+  }
+
+  public static String buildBitVectorType(int pLength) {
+    checkArgument(BitVectorUtil.isValidLength(pLength), "Invalid bit vector length: " + pLength);
+    return SeqToken.__uint + pLength + SeqToken._t;
+  }
+
+  public static String buildBitVectorName(MPOROptions pOptions, int pThreadId) {
+    return pOptions.shortVariables
+        ? SeqToken.B + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR;
   }
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */

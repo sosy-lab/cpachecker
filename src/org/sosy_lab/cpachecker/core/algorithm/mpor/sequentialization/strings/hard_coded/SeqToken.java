@@ -40,7 +40,11 @@ public class SeqToken {
 
   public static final String ATOMIC = "ATOMIC";
 
+  public static final String B = "B";
+
   public static final String BEGINS = "BEGINS";
+
+  public static final String BIT_VECTOR = "BIT_VECTOR";
 
   public static final String _break = "break";
 
@@ -115,7 +119,11 @@ public class SeqToken {
 
   public static final String T = "T";
 
+  public static final String _t = "_t";
+
   public static final String THREAD = "THREAD";
+
+  public static final String __uint = "__uint";
 
   public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
 
