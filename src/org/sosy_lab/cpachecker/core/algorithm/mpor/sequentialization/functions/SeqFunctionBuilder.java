@@ -48,6 +48,8 @@ public class SeqFunctionBuilder {
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
     ImmutableSet<CVariableDeclaration> allGlobalVariables =
         SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
+    ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
+        assignGlobalVariableIds(allGlobalVariables);
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(
@@ -56,6 +58,7 @@ public class SeqFunctionBuilder {
             pSubstitutions,
             pSubstituteEdges,
             allGlobalVariables,
+            globalVariableIds,
             pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
@@ -69,11 +72,22 @@ public class SeqFunctionBuilder {
         pOptions,
         updatedVariables.build(),
         pSubstitutions.size(),
-        allGlobalVariables.size(),
+        globalVariableIds,
         threadSimulationAssumptions,
         caseClauses,
         pBitVectorVariables,
         pPcVariables,
         pBinaryExpressionBuilder);
+  }
+
+  private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
+      ImmutableSet<CVariableDeclaration> pGlobalVariables) {
+    ImmutableMap.Builder<CVariableDeclaration, Integer> rIds = ImmutableMap.builder();
+    int id = 0;
+    for (CVariableDeclaration variable : pGlobalVariables) {
+      assert variable.isGlobal();
+      rIds.put(variable, id++);
+    }
+    return rIds.buildOrThrow();
   }
 }

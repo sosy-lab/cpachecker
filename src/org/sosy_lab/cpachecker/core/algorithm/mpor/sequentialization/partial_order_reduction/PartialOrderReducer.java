@@ -30,6 +30,7 @@ public class PartialOrderReducer {
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
+      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       BitVectorVariables pBitVectors,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -40,6 +41,7 @@ public class PartialOrderReducer {
           pOptions,
           pBitVectors,
           pAllGlobalVariables,
+          pGlobalVariableIds,
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses),
           pBinaryExpressionBuilder);
     } else if (pOptions.porConcat) {

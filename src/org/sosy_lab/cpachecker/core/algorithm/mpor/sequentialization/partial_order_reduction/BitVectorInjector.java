@@ -41,12 +41,10 @@ class BitVectorInjector {
       MPOROptions pOptions,
       BitVectorVariables pBitVectors,
       ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
+      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
-
-    ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
-        assignGlobalVariableIds(pAllGlobalVariables);
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rInjected =
         ImmutableMap.builder();
@@ -72,7 +70,7 @@ class BitVectorInjector {
           entry.getKey(),
           injectBitVectors(
               entry.getKey(),
-              globalVariableIds,
+              pGlobalVariableIds,
               pBitVectors,
               entry.getValue(),
               bitVectorEvaluation,
@@ -177,16 +175,5 @@ class BitVectorInjector {
     }
     // no concat statements and no valid target pc (e.g. exit pc) -> return statement as is
     return pCurrentStatement;
-  }
-
-  private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
-      ImmutableSet<CVariableDeclaration> pGlobalVariables) {
-    ImmutableMap.Builder<CVariableDeclaration, Integer> rIds = ImmutableMap.builder();
-    int id = 0;
-    for (CVariableDeclaration variable : pGlobalVariables) {
-      assert variable.isGlobal();
-      rIds.put(variable, id++);
-    }
-    return rIds.buildOrThrow();
   }
 }

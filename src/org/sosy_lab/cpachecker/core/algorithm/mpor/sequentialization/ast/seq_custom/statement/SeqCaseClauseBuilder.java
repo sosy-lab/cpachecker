@@ -56,6 +56,7 @@ public class SeqCaseClauseBuilder {
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
+      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -75,6 +76,7 @@ public class SeqCaseClauseBuilder {
             pOptions,
             pUpdatedVariables,
             pAllGlobalVariables,
+            pGlobalVariableIds,
             pBitVectorVariables,
             prunedCases,
             pBinaryExpressionBuilder);

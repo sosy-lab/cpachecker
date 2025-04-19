@@ -12,6 +12,8 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -107,7 +109,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<CIdExpression> pUpdatedVariables,
       int pNumThreads,
-      int pNumGlobalVariables,
+      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       BitVectorVariables pBitVectorVariables,
@@ -130,7 +132,8 @@ public class SeqMainFunction extends SeqFunction {
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
 
-    bitVectorDeclarations = createBitVectorDeclarations(pNumGlobalVariables, pBitVectorVariables);
+    bitVectorDeclarations =
+        createBitVectorDeclarations(pBitVectorVariables, pGlobalVariableIds, pCaseClauses);
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
     nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNondet);
@@ -140,16 +143,21 @@ public class SeqMainFunction extends SeqFunction {
   }
 
   private ImmutableList<SeqBitVectorDeclaration> createBitVectorDeclarations(
-      int pNumGlobalVariables, BitVectorVariables pBitVectorVariables) {
+      BitVectorVariables pBitVectorVariables,
+      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    int bitVectorLength = BitVectorUtil.getBitVectorLength(pNumGlobalVariables);
-    // TODO adjust initial bit vector based on first seq case clause
-    SeqBitVector defaultBitVector = BitVectorUtil.createDefaultBitVector(bitVectorLength);
+    int bitVectorLength = BitVectorUtil.getBitVectorLength(pGlobalVariableIds.size());
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    for (CIdExpression idExpression : pBitVectorVariables.bitVectors.values()) {
+    for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
       SeqBitVectorType type = BitVectorUtil.getTypeByLength(bitVectorLength);
+      SeqCaseClause firstCase = Objects.requireNonNull(pCaseClauses.get(entry.getKey())).get(0);
+      ImmutableSet<CVariableDeclaration> firstCaseGlobalVariables =
+          SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(firstCase);
+      SeqBitVector bitVector =
+          BitVectorUtil.createBitVector(pGlobalVariableIds, firstCaseGlobalVariables);
       SeqBitVectorDeclaration declaration =
-          new SeqBitVectorDeclaration(type, idExpression, defaultBitVector);
+          new SeqBitVectorDeclaration(type, entry.getValue(), bitVector);
       rDeclarations.add(declaration);
     }
     return rDeclarations.build();
