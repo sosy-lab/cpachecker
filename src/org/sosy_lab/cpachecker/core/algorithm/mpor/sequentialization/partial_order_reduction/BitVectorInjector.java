@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class BitVectorInjector {
+class BitVectorInjector {
 
   protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> inject(
       MPOROptions pOptions,
@@ -124,18 +124,21 @@ public class BitVectorInjector {
 
     // step 1: recursively inject bit vector into concatenated statements
     if (pCurrentStatement.isConcatenable()) {
-      for (SeqCaseBlockStatement concatStatement : pCurrentStatement.getConcatenatedStatements()) {
+      if (!pCurrentStatement.getConcatenatedStatements().isEmpty()) {
         ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-        newStatements.add(
-            recursivelyInjectBitVectors(
-                pThread,
-                pBitVectorEvaluation,
-                pAssumeLabel,
-                pSwitchLabel,
-                concatStatement,
-                pGlobalVariableIds,
-                pBitVectorVariables,
-                pLabelValueMap));
+        for (SeqCaseBlockStatement concatStatement :
+            pCurrentStatement.getConcatenatedStatements()) {
+          newStatements.add(
+              recursivelyInjectBitVectors(
+                  pThread,
+                  pBitVectorEvaluation,
+                  pAssumeLabel,
+                  pSwitchLabel,
+                  concatStatement,
+                  pGlobalVariableIds,
+                  pBitVectorVariables,
+                  pLabelValueMap));
+        }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
     }
