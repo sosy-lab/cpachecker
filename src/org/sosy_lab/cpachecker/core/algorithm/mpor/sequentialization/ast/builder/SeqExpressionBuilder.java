@@ -91,7 +91,7 @@ public class SeqExpressionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    checkArgument(pOtherBitVectors.size() >= 2);
+    checkArgument(!pOtherBitVectors.isEmpty());
     checkArgument(!pOtherBitVectors.contains(pActiveBitVector));
 
     // init RHS with the first bit vector that is not the current bit vector
