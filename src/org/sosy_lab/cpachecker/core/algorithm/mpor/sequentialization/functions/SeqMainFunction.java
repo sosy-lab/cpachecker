@@ -218,6 +218,8 @@ public class SeqMainFunction extends SeqFunction {
     }
     // we only add the global assumptions if thread specific loops (and assumptions) are disabled
     if (!options.threadLoops) {
+      SeqThreadLoopLabelStatement labelStatement = new SeqThreadLoopLabelStatement(SeqToken.ASSUME);
+      rBody.add(LineOfCode.of(2, labelStatement.toASTString()));
       rBody.addAll(buildSingleLoopAssumptions(threadAssumptions));
     }
     // add all switch statements
@@ -560,6 +562,10 @@ public class SeqMainFunction extends SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
+      SeqThreadLoopLabelStatement switchLabel =
+          new SeqThreadLoopLabelStatement(
+              SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
+      rSwitches.add(LineOfCode.of(3, switchLabel.toASTString()));
       rSwitches.addAll(buildSingleLoopSwitchStatement(pOptions, thread, entry.getValue(), 3));
       i++;
     }

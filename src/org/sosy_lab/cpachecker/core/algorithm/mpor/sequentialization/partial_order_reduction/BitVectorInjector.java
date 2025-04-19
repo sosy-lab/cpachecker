@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -60,7 +61,9 @@ public class BitVectorInjector {
               pBinaryExpressionBuilder);
       SeqThreadLoopLabelStatement assumeLabel =
           new SeqThreadLoopLabelStatement(
-              SeqNameUtil.buildThreadAssumeLabelName(pOptions, thread.id));
+              pOptions.threadLoops
+                  ? SeqNameUtil.buildThreadAssumeLabelName(pOptions, thread.id)
+                  : SeqToken.ASSUME);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
               SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
