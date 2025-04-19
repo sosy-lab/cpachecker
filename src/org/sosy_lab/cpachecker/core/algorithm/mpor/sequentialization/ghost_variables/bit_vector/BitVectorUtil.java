@@ -37,11 +37,8 @@ public class BitVectorUtil {
       @NonNull ImmutableMap<T, Integer> pIndices,
       @NonNull ImmutableSet<T> pVariables) {
 
-    // TODO test - concurrent programs without global variables?
-    checkArgument(!pIndices.isEmpty(), "no global variable found");
-    /*checkArgument(
-    pIndices.entrySet().containsAll(pVariables),
-    "pIndices must contain all pVariables as keys.");*/
+    checkArgument(
+        pIndices.keySet().containsAll(pVariables), "pIndices must contain all pVariables as keys.");
 
     // retrieve all variable ids from pIndices that are in the set pVariables
     final ImmutableSet<Integer> setBits =
