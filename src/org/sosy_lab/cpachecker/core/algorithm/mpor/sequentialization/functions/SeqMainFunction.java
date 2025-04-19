@@ -147,10 +147,10 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    int bitVectorLength = BitVectorUtil.getBitVectorLength(pGlobalVariableIds.size());
+    int binaryLength = BitVectorUtil.getBinaryLength(pGlobalVariableIds.size());
+    SeqBitVectorType type = BitVectorUtil.getTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
-      SeqBitVectorType type = BitVectorUtil.getTypeByLength(bitVectorLength);
       SeqCaseClause firstCase = Objects.requireNonNull(pCaseClauses.get(entry.getKey())).get(0);
       ImmutableSet<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(firstCase);

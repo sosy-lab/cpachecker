@@ -18,13 +18,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SeqHexadecimalBitVector implements SeqBitVector {
 
-  private final int length;
+  private final int hexLength;
 
   private final ImmutableSet<Integer> setBits;
 
-  public SeqHexadecimalBitVector(int pLength, ImmutableSet<Integer> pSetBits) {
-    checkArgument(pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_LENGTH);
-    length = pLength;
+  public SeqHexadecimalBitVector(int pHexLength, ImmutableSet<Integer> pSetBits) {
+    // we still use the max binary length here, because setBits represents the binary positions
+    checkArgument(
+        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    hexLength = pHexLength;
     setBits = pSetBits;
   }
 
@@ -34,13 +36,13 @@ public class SeqHexadecimalBitVector implements SeqBitVector {
     rBitVector.append(SeqToken._0x);
     // build the binary vector, then parse to long and convert to hex
     StringBuilder binaryBitVector = new StringBuilder();
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < BitVectorUtil.convertHexLengthToBinary(hexLength); i++) {
       binaryBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     // use long in case we have 64 length bit vectors
     long parsedLong = Long.parseLong(binaryBitVector.toString(), 2);
     // padding is not necessary, but looks nicer
-    rBitVector.append(BitVectorUtil.padHexString(parsedLong));
+    rBitVector.append(BitVectorUtil.padHexString(hexLength, parsedLong));
     return rBitVector.toString();
   }
 

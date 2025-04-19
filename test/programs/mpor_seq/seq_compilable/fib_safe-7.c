@@ -48,6 +48,7 @@ void *t2(void *arg) {
 
 int cur = 1, prev = 0, next = 0;
 int x;
+int a;
 int fib() {
   for (x = 0; x < 16; x++) {
     next = prev + cur;
@@ -65,6 +66,7 @@ int main(int argc, char **argv) {
   __VERIFIER_atomic_begin();
   i = 1;
   __VERIFIER_atomic_end();
+  a = 42;
   __VERIFIER_atomic_begin();
   j = 1;
   __VERIFIER_atomic_end();

@@ -153,10 +153,10 @@ class BitVectorInjector {
         // for the exit pc, reset the bit vector to just 0s
         CIdExpression bitVector = pBitVectorVariables.get(pThread);
         newInjected.addAll(pCurrentStatement.getInjectedStatements());
-        int bitVectorLength = BitVectorUtil.getBitVectorLength(pGlobalVariableIds.size());
+        int binaryLength = BitVectorUtil.getBinaryLength(pGlobalVariableIds.size());
         newInjected.add(
             new SeqBitVectorAssignment(
-                bitVector, BitVectorUtil.allZeroBitVector(pOptions, bitVectorLength)));
+                bitVector, BitVectorUtil.createZeroBitVector(pOptions, binaryLength)));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));

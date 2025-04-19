@@ -61,11 +61,6 @@ public class SeqStringUtil {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 
-  /** Returns "pString }" */
-  public static String appendClosingCurly(String pString) {
-    return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_RIGHT;
-  }
-
   /** Returns pString with the specified amount of tabs as prefix and a new line \n as suffix. */
   public static String prependTabsWithNewline(int pTabs, String pString) {
     return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
@@ -99,6 +94,10 @@ public class SeqStringUtil {
       return 0;
     }
     return newlineSplitter.splitToList(pString).size();
+  }
+
+  public static String hexFormat(int pLength, long pLong) {
+    return String.format("%0" + pLength + "x", pLong);
   }
 
   /**

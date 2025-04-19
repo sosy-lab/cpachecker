@@ -18,13 +18,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SeqBinaryBitVector implements SeqBitVector {
 
-  private final int length;
+  private final int bitLength;
 
   private final ImmutableSet<Integer> setBits;
 
   public SeqBinaryBitVector(int pLength, ImmutableSet<Integer> pSetBits) {
-    checkArgument(pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_LENGTH);
-    length = pLength;
+    checkArgument(
+        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    bitLength = pLength;
     setBits = pSetBits;
   }
 
@@ -32,7 +33,7 @@ public class SeqBinaryBitVector implements SeqBitVector {
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
     rBitVector.append(SeqToken._0b);
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < bitLength; i++) {
       rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     return rBitVector.toString();
