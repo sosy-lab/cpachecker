@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -108,8 +109,8 @@ public class BitVectorUtil {
   // Helpers =======================================================================================
 
   /** Pads the resulting hex string to pLength, e.g. 0x0 -> 0x00 for length 2. */
-  public static String padHexString(int pLength, long pLong) {
-    return SeqStringUtil.hexFormat(pLength, pLong);
+  public static String padHexString(int pLength, BigInteger pBigInteger) {
+    return SeqStringUtil.hexFormat(pLength, pBigInteger);
   }
 
   public static int convertBinaryLengthToHex(int pBinaryLength) {

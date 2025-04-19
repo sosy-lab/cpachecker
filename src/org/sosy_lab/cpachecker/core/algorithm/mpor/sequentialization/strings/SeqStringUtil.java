@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -96,8 +97,8 @@ public class SeqStringUtil {
     return newlineSplitter.splitToList(pString).size();
   }
 
-  public static String hexFormat(int pLength, long pLong) {
-    return String.format("%0" + pLength + "x", pLong);
+  public static String hexFormat(int pLength, BigInteger pBigInteger) {
+    return String.format("%0" + pLength + "x", pBigInteger);
   }
 
   /**

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
@@ -40,9 +41,9 @@ public class SeqHexadecimalBitVector implements SeqBitVector {
       binaryBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     // use long in case we have 64 length bit vectors
-    long parsedLong = Long.parseLong(binaryBitVector.toString(), 2);
+    BigInteger bigInteger = new BigInteger(binaryBitVector.toString(), 2);
     // padding is not necessary, but looks nicer
-    rBitVector.append(BitVectorUtil.padHexString(hexLength, parsedLong));
+    rBitVector.append(BitVectorUtil.padHexString(hexLength, bigInteger));
     return rBitVector.toString();
   }
 
