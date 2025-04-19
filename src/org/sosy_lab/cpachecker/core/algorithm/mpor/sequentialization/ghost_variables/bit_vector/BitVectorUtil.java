@@ -64,9 +64,8 @@ public class BitVectorUtil {
   public static int getBitVectorLength(int pMinLength) {
     checkArgument(
         pMinLength <= MAX_LENGTH,
-        "cannot have more than "
-            + MAX_LENGTH
-            + " global variables, please disable bit vectors for this program.");
+        "cannot have more than %s global variables, please disable bit vectors for this program.",
+        MAX_LENGTH);
     int rLength = MIN_LENGTH;
     while (rLength < pMinLength) {
       rLength *= 2;

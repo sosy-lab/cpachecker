@@ -119,21 +119,35 @@ public class BitVectorInjector {
       final BitVectorVariables pBitVectorVariables,
       final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
 
+    // step 1: recursively inject bit vector into concatenated statements
+    if (pCurrentStatement.isConcatenable()) {
+      for (SeqCaseBlockStatement concatStatement : pCurrentStatement.getConcatenatedStatements()) {
+        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
+        newStatements.add(
+            recursivelyInjectBitVectors(
+                pThread,
+                pBitVectorEvaluation,
+                pAssumeLabel,
+                pSwitchLabel,
+                concatStatement,
+                pGlobalVariableIds,
+                pBitVectorVariables,
+                pLabelValueMap));
+        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
+      }
+    }
+    // step 2: if valid target pc found, inject bit vector write and evaluation statements
     if (SeqCaseClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
-      for (SeqCaseBlockStatement statement : newTarget.block.statements) {
-        SeqCaseClauseUtil.recursivelyGetGlobalVariables(globalVariables, statement);
-      }
-
+      ImmutableSet<CVariableDeclaration> globalVariables =
+          SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
       CIdExpression bitVector = pBitVectorVariables.get(pThread);
       newInjected.addAll(pCurrentStatement.getInjectedStatements());
       newInjected.add(
           new SeqBitVectorAssignment(
-              bitVector,
-              BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables.build())));
+              bitVector, BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables)));
       newInjected.add(
           new SeqBitVectorGotoStatement(
               new SeqLogicalNotExpression(pBitVectorEvaluation),
@@ -143,6 +157,7 @@ public class BitVectorInjector {
                   : pSwitchLabel));
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
+    // no concat statements and no valid target pc (e.g. exit pc) -> return statement as is
     return pCurrentStatement;
   }
 

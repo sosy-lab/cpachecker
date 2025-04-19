@@ -146,10 +146,10 @@ public class SeqMainFunction extends SeqFunction {
     // TODO adjust initial bit vector based on first seq case clause
     SeqBitVector defaultBitVector = BitVectorUtil.createDefaultBitVector(bitVectorLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
+    for (CIdExpression idExpression : pBitVectorVariables.bitVectors.values()) {
       SeqBitVectorType type = BitVectorUtil.getTypeByLength(bitVectorLength);
       SeqBitVectorDeclaration declaration =
-          new SeqBitVectorDeclaration(type, entry.getValue(), defaultBitVector);
+          new SeqBitVectorDeclaration(type, idExpression, defaultBitVector);
       rDeclarations.add(declaration);
     }
     return rDeclarations.build();
