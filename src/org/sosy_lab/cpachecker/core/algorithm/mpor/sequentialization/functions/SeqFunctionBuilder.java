@@ -46,6 +46,7 @@ public class SeqFunctionBuilder {
 
     // used to store which injected variables are initialized with 1
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
+    // collect all global variables accessed in substitute edges, and assign unique ids
     ImmutableSet<CVariableDeclaration> allGlobalVariables =
         SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
     ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
@@ -57,7 +58,6 @@ public class SeqFunctionBuilder {
             updatedVariables,
             pSubstitutions,
             pSubstituteEdges,
-            allGlobalVariables,
             globalVariableIds,
             pBitVectorVariables,
             pPcVariables,

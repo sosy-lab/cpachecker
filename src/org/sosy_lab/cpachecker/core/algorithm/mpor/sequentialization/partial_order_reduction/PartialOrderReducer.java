@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -29,7 +28,6 @@ public class PartialOrderReducer {
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduce(
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
-      ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       BitVectorVariables pBitVectors,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
@@ -40,7 +38,6 @@ public class PartialOrderReducer {
       return BitVectorInjector.inject(
           pOptions,
           pBitVectors,
-          pAllGlobalVariables,
           pGlobalVariableIds,
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses),
           pBinaryExpressionBuilder);

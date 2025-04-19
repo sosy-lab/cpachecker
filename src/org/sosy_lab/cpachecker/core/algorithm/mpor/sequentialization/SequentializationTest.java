@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SequentializationTest {
@@ -50,7 +51,19 @@ public class SequentializationTest {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
-        MPOROptions.testInstance(true, true, true, true, false, true, true, true, true, true, true);
+        MPOROptions.testInstance(
+            true,
+            true,
+            true,
+            true,
+            false,
+            SeqBitVectorEncoding.BINARY,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true);
     testCompile(path, options);
   }
 
@@ -60,7 +73,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            false, false, true, true, true, false, true, true, true, false, false);
+            false,
+            false,
+            true,
+            true,
+            true,
+            SeqBitVectorEncoding.BINARY,
+            false,
+            true,
+            true,
+            true,
+            false,
+            false);
     testCompile(path, options);
   }
 
@@ -70,7 +94,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            false, true, true, false, false, true, true, false, true, false, false);
+            false,
+            true,
+            true,
+            false,
+            false,
+            SeqBitVectorEncoding.BINARY,
+            true,
+            true,
+            false,
+            true,
+            false,
+            false);
     testCompile(path, options);
   }
 
@@ -80,7 +115,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            false, false, false, true, true, false, true, false, false, true, true);
+            false,
+            false,
+            false,
+            true,
+            true,
+            SeqBitVectorEncoding.HEX,
+            false,
+            true,
+            false,
+            false,
+            true,
+            true);
     testCompile(path, options);
   }
 
@@ -91,7 +137,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            true, true, false, true, false, true, false, true, false, true, true);
+            true,
+            true,
+            false,
+            true,
+            false,
+            SeqBitVectorEncoding.BINARY,
+            true,
+            false,
+            true,
+            false,
+            true,
+            true);
     testCompile(path, options);
   }
 
@@ -101,7 +158,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            true, false, false, true, true, false, true, true, true, false, true);
+            true,
+            false,
+            false,
+            true,
+            true,
+            SeqBitVectorEncoding.SCALAR,
+            false,
+            true,
+            true,
+            true,
+            false,
+            true);
     testCompile(path, options);
   }
 
@@ -112,7 +180,18 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            false, true, false, false, false, false, true, false, true, false, false);
+            false,
+            true,
+            false,
+            false,
+            false,
+            SeqBitVectorEncoding.BINARY,
+            false,
+            true,
+            false,
+            true,
+            false,
+            false);
     testCompile(path, options);
   }
 

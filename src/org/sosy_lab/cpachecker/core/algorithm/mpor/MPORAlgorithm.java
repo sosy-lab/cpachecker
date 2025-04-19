@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
@@ -95,7 +96,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "overwrite files in the ./output directory when creating sequentializations?")
   private boolean overwriteFiles = true;
 
-  // TODO this is currently not secure because we assume pointer parameters that are assigned global
+  // TODO POR is currently not secure because we assume pointer parameters that are assigned global
   //  variable addresses to commute
   @Option(
       description =
@@ -109,6 +110,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "add partial order reduction (bit vectors storing global variable accesses) in the"
               + " sequentialization to reduce the state space?")
   private boolean porBitVector = false;
+
+  @Option(
+      description =
+          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
+  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.HEX;
 
   @Option(
       secure = true,

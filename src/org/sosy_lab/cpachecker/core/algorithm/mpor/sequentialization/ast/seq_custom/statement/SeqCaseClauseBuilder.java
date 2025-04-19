@@ -55,7 +55,6 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
@@ -75,7 +74,6 @@ public class SeqCaseClauseBuilder {
         PartialOrderReducer.reduce(
             pOptions,
             pUpdatedVariables,
-            pAllGlobalVariables,
             pGlobalVariableIds,
             pBitVectorVariables,
             prunedCases,

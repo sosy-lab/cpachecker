@@ -16,6 +16,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 
 /**
  * For better overview so that not all {@link Option}s passed to {@code analysis.algorithm.MPOR}
@@ -40,6 +41,8 @@ public class MPOROptions {
   public final boolean porConcat;
 
   public final boolean porBitVector;
+
+  public final SeqBitVectorEncoding porBitVectorEncoding;
 
   public final boolean scalarPc;
 
@@ -67,6 +70,7 @@ public class MPOROptions {
       boolean pOverwriteFiles,
       boolean pPorConcat,
       boolean pPorBitVector,
+      SeqBitVectorEncoding pPorBitVectorEncoding,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -93,6 +97,7 @@ public class MPOROptions {
     overwriteFiles = pOverwriteFiles;
     porConcat = pPorConcat;
     porBitVector = pPorBitVector;
+    porBitVectorEncoding = pPorBitVectorEncoding;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariables = pShortVariables;
@@ -110,6 +115,7 @@ public class MPOROptions {
       boolean pLicense,
       boolean pPorConcat,
       boolean pPorBitVector,
+      SeqBitVectorEncoding pPorBitVectorEncoding,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -128,6 +134,7 @@ public class MPOROptions {
         false,
         pPorConcat,
         pPorBitVector,
+        pPorBitVectorEncoding,
         pScalarPc,
         pSequentializationErrors,
         pShortVariables,

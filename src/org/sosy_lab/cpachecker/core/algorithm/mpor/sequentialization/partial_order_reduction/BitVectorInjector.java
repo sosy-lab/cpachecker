@@ -40,7 +40,6 @@ class BitVectorInjector {
   protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> inject(
       MPOROptions pOptions,
       BitVectorVariables pBitVectors,
-      ImmutableSet<CVariableDeclaration> pAllGlobalVariables,
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)

@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqBinaryBitVector implements SeqBitVector {
@@ -35,5 +36,10 @@ public class SeqBinaryBitVector implements SeqBitVector {
       rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     return rBitVector.toString();
+  }
+
+  @Override
+  public SeqBitVectorEncoding getEncoding() {
+    return SeqBitVectorEncoding.BINARY;
   }
 }

@@ -9,5 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 
-public interface SeqBitVector extends SeqExpression {}
+public interface SeqBitVector extends SeqExpression {
+  SeqBitVectorEncoding getEncoding();
+}
