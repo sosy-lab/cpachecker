@@ -13,10 +13,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -38,34 +36,44 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   private final int targetPc;
 
+  private final ImmutableList<SeqInjectedStatement> injectedStatements;
+
   SeqReachErrorStatement(
       CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
     loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
+    injectedStatements = ImmutableList.of();
   }
 
   private SeqReachErrorStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc) {
+      int pTargetPc,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
+    injectedStatements = pInjectedStatements;
   }
 
   @Override
   public String toASTString() {
-    CExpressionAssignmentStatement pcWrite =
-        SeqStatementBuilder.buildPcWrite(pcLeftHandSide, targetPc);
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide,
+            Optional.of(targetPc),
+            Optional.empty(),
+            injectedStatements,
+            ImmutableList.of());
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
         + Sequentialization.inputReachErrorDummy
         + SeqSyntax.SPACE
-        + pcWrite.toASTString();
+        + targetStatements;
   }
 
   @Override
@@ -80,8 +88,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have injected statements");
+    return injectedStatements;
   }
 
   @Override
@@ -108,14 +115,15 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   @Override
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have injected statements");
+
+    return new SeqReachErrorStatement(
+        loopHeadLabel, pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqReachErrorStatement(
-        Optional.of(pLoopHeadLabel), pcLeftHandSide, substituteEdges, targetPc);
+        Optional.of(pLoopHeadLabel), pcLeftHandSide, substituteEdges, targetPc, injectedStatements);
   }
 
   @Override

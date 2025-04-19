@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
@@ -143,24 +144,35 @@ class BitVectorInjector {
       }
     }
     // step 2: if valid target pc found, inject bit vector write and evaluation statements
-    if (SeqCaseClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-      ImmutableSet<CVariableDeclaration> globalVariables =
-          SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
+    if (pCurrentStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      CIdExpression bitVector = pBitVectorVariables.get(pThread);
-      newInjected.addAll(pCurrentStatement.getInjectedStatements());
-      newInjected.add(
-          new SeqBitVectorAssignment(
-              bitVector, BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables)));
-      newInjected.add(
-          new SeqBitVectorGotoStatement(
-              new SeqLogicalNotExpression(pBitVectorEvaluation),
-              // for statements targeting starts of critical sections, assumes are reevaluated
-              SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)
-                  ? pAssumeLabel
-                  : pSwitchLabel));
+      int intTargetPc = pCurrentStatement.getTargetPc().orElseThrow();
+      if (intTargetPc == Sequentialization.EXIT_PC) {
+        // for the exit pc, reset the bit vector to just 0s
+        CIdExpression bitVector = pBitVectorVariables.get(pThread);
+        newInjected.addAll(pCurrentStatement.getInjectedStatements());
+        int bitVectorLength = BitVectorUtil.getBitVectorLength(pGlobalVariableIds.size());
+        newInjected.add(
+            new SeqBitVectorAssignment(
+                bitVector, BitVectorUtil.createDefaultBitVector(bitVectorLength)));
+      } else {
+        // for all other target pc, set the bit vector based on global accesses in the target case
+        SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
+        ImmutableSet<CVariableDeclaration> globalVariables =
+            SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
+        CIdExpression bitVector = pBitVectorVariables.get(pThread);
+        newInjected.addAll(pCurrentStatement.getInjectedStatements());
+        newInjected.add(
+            new SeqBitVectorAssignment(
+                bitVector, BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables)));
+        newInjected.add(
+            new SeqBitVectorGotoStatement(
+                new SeqLogicalNotExpression(pBitVectorEvaluation),
+                // for statements targeting starts of critical sections, assumes are reevaluated
+                SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)
+                    ? pAssumeLabel
+                    : pSwitchLabel));
+      }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
     // no concat statements and no valid target pc (e.g. exit pc) -> return statement as is
