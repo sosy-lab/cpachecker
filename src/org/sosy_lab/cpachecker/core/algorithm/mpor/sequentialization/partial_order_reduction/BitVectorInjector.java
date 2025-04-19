@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
@@ -151,19 +153,20 @@ class BitVectorInjector {
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
         ImmutableSet<CVariableDeclaration> globalVariables =
             SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
-        CIdExpression bitVector = pBitVectorVariables.get(pThread);
+        CIdExpression bitVectorVariable = pBitVectorVariables.get(pThread);
         newInjected.addAll(pCurrentStatement.getInjectedStatements());
-        newInjected.add(
-            new SeqBitVectorAssignment(
-                bitVector,
-                BitVectorUtil.createBitVector(pOptions, pGlobalVariableIds, globalVariables)));
+        SeqBitVector bitVector =
+            BitVectorUtil.createBitVector(pOptions, pGlobalVariableIds, globalVariables);
+        newInjected.add(new SeqBitVectorAssignment(bitVectorVariable, bitVector));
         // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
         if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
-          // TODO if the bit vector is 0, then evaluation is redundant -> just break/goto without
-          // evaluation
+          // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
           newInjected.add(
               new SeqBitVectorGotoStatement(
-                  new SeqLogicalNotExpression(pBitVectorEvaluation), pSwitchLabel));
+                  bitVector.isZero()
+                      ? Optional.empty()
+                      : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation)),
+                  pSwitchLabel));
         }
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());

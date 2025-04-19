@@ -13,4 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 
 public interface SeqBitVector extends SeqExpression {
   SeqBitVectorEncoding getEncoding();
+
+  /** Whether this bit vector is 0, e.g. {@code 0b00000000} or {@code 0x00}. */
+  boolean isZero();
 }

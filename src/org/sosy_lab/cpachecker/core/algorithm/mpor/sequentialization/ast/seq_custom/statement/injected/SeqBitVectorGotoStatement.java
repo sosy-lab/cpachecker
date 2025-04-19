@@ -20,12 +20,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SeqBitVectorGotoStatement implements SeqInjectedStatement {
 
-  private final SeqLogicalNotExpression threadBitVectors;
+  private final Optional<SeqLogicalNotExpression> threadBitVectors;
 
   private final SeqThreadLoopLabelStatement gotoLabel;
 
   public SeqBitVectorGotoStatement(
-      SeqLogicalNotExpression pThreadBitVectors, SeqThreadLoopLabelStatement pGotoLabel) {
+      Optional<SeqLogicalNotExpression> pThreadBitVectors, SeqThreadLoopLabelStatement pGotoLabel) {
 
     threadBitVectors = pThreadBitVectors;
     gotoLabel = pGotoLabel;
@@ -43,11 +43,18 @@ public class SeqBitVectorGotoStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() {
-    SeqControlFlowStatement ifStatement =
-        new SeqControlFlowStatement(threadBitVectors, SeqControlFlowStatementType.IF);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.labelName);
-    return ifStatement.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+    // if bit vectors present: evaluate in if statement
+    if (threadBitVectors.isPresent()) {
+      SeqControlFlowStatement ifStatement =
+          new SeqControlFlowStatement(
+              threadBitVectors.orElseThrow(), SeqControlFlowStatementType.IF);
+      return ifStatement.toASTString()
+          + SeqSyntax.SPACE
+          + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+    } else {
+      // otherwise add only goto
+      return gotoStatement.toASTString();
+    }
   }
 }

@@ -51,4 +51,9 @@ public class SeqHexadecimalBitVector implements SeqBitVector {
   public SeqBitVectorEncoding getEncoding() {
     return SeqBitVectorEncoding.HEXADECIMAL;
   }
+
+  @Override
+  public boolean isZero() {
+    return setBits.isEmpty();
+  }
 }

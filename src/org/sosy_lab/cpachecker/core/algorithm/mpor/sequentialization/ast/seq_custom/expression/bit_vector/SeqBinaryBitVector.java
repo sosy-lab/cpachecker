@@ -43,4 +43,9 @@ public class SeqBinaryBitVector implements SeqBitVector {
   public SeqBitVectorEncoding getEncoding() {
     return SeqBitVectorEncoding.BINARY;
   }
+
+  @Override
+  public boolean isZero() {
+    return setBits.isEmpty();
+  }
 }
