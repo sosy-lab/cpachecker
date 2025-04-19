@@ -68,6 +68,7 @@ class BitVectorInjector {
       rInjected.put(
           entry.getKey(),
           injectBitVectors(
+              pOptions,
               entry.getKey(),
               pGlobalVariableIds,
               pBitVectors,
@@ -80,6 +81,7 @@ class BitVectorInjector {
   }
 
   private static ImmutableList<SeqCaseClause> injectBitVectors(
+      MPOROptions pOptions,
       MPORThread pThread,
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       BitVectorVariables pBitVectorVariables,
@@ -96,6 +98,7 @@ class BitVectorInjector {
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         newStatements.add(
             recursivelyInjectBitVectors(
+                pOptions,
                 pThread,
                 pBitVectorEvaluation,
                 pAssumeLabel,
@@ -111,6 +114,7 @@ class BitVectorInjector {
   }
 
   private static SeqCaseBlockStatement recursivelyInjectBitVectors(
+      MPOROptions pOptions,
       final MPORThread pThread,
       final CBinaryExpression pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pAssumeLabel,
@@ -128,6 +132,7 @@ class BitVectorInjector {
             pCurrentStatement.getConcatenatedStatements()) {
           newStatements.add(
               recursivelyInjectBitVectors(
+                  pOptions,
                   pThread,
                   pBitVectorEvaluation,
                   pAssumeLabel,
@@ -151,7 +156,7 @@ class BitVectorInjector {
         int bitVectorLength = BitVectorUtil.getBitVectorLength(pGlobalVariableIds.size());
         newInjected.add(
             new SeqBitVectorAssignment(
-                bitVector, BitVectorUtil.createDefaultBitVector(bitVectorLength)));
+                bitVector, BitVectorUtil.allZeroBitVector(pOptions, bitVectorLength)));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
@@ -161,7 +166,8 @@ class BitVectorInjector {
         newInjected.addAll(pCurrentStatement.getInjectedStatements());
         newInjected.add(
             new SeqBitVectorAssignment(
-                bitVector, BitVectorUtil.createBitVector(pGlobalVariableIds, globalVariables)));
+                bitVector,
+                BitVectorUtil.createBitVector(pOptions, pGlobalVariableIds, globalVariables)));
         newInjected.add(
             new SeqBitVectorGotoStatement(
                 new SeqLogicalNotExpression(pBitVectorEvaluation),

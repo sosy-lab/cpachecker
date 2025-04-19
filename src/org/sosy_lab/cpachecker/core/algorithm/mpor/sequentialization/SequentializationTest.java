@@ -120,7 +120,7 @@ public class SequentializationTest {
             false,
             true,
             true,
-            SeqBitVectorEncoding.HEX,
+            SeqBitVectorEncoding.HEXADECIMAL,
             false,
             true,
             false,

@@ -155,7 +155,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableSet<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(firstCase);
       SeqBitVector bitVector =
-          BitVectorUtil.createBitVector(pGlobalVariableIds, firstCaseGlobalVariables);
+          BitVectorUtil.createBitVector(options, pGlobalVariableIds, firstCaseGlobalVariables);
       SeqBitVectorDeclaration declaration =
           new SeqBitVectorDeclaration(type, entry.getValue(), bitVector);
       rDeclarations.add(declaration);

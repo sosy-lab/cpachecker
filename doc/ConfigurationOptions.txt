@@ -287,8 +287,8 @@ analysis.algorithm.MPOR.porBitVector = false
 
 # the encoding (binary, hex, scalar) of the partial order reduction bit
 # vectors.
-analysis.algorithm.MPOR.porBitVectorEncoding = HEX
-  enum:     [BINARY, HEX, SCALAR]
+analysis.algorithm.MPOR.porBitVectorEncoding = HEXADECIMAL
+  enum:     [BINARY, HEXADECIMAL, SCALAR]
 
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?

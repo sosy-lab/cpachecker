@@ -26,6 +26,8 @@ public class SeqToken {
 
   public static final String _0b = "0b";
 
+  public static final String _0x = "0x";
+
   public static final String _1 = "1";
 
   public static final String abort = "abort";

@@ -114,7 +114,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       description =
           "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
-  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.HEX;
+  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.HEXADECIMAL;
 
   @Option(
       secure = true,
@@ -253,6 +253,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             overwriteFiles,
             porConcat,
             porBitVector,
+            porBitVectorEncoding,
             scalarPc,
             sequentializationErrors,
             shortVariables,

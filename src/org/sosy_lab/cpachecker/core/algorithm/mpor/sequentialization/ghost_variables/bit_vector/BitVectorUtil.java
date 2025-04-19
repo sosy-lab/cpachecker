@@ -12,10 +12,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Map;
+import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBinaryBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqHexadecimalBitVector;
 
 public class BitVectorUtil {
 
@@ -40,12 +42,14 @@ public class BitVectorUtil {
     throw new IllegalArgumentException("no bit vector type with given length found: " + pLength);
   }
 
-  public static SeqBitVector createDefaultBitVector(int pLength) {
-    return new SeqBinaryBitVector(pLength, ImmutableSet.of());
+  public static SeqBitVector allZeroBitVector(MPOROptions pOptions, int pLength) {
+    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pLength, ImmutableSet.of());
   }
 
   public static <T> SeqBitVector createBitVector(
-      @NonNull ImmutableMap<T, Integer> pIndices, @NonNull ImmutableSet<T> pVariables) {
+      MPOROptions pOptions,
+      @NonNull ImmutableMap<T, Integer> pIndices,
+      @NonNull ImmutableSet<T> pVariables) {
 
     // TODO test - concurrent programs without global variables?
     checkArgument(!pIndices.isEmpty(), "no global variable found");
@@ -53,12 +57,23 @@ public class BitVectorUtil {
     pIndices.entrySet().containsAll(pVariables),
     "pIndices must contain all pVariables as keys.");*/
 
+    // retrieve all variable ids from pIndices that are in the set pVariables
+    final int length = getBitVectorLength(pIndices.size());
     final ImmutableSet<Integer> setBits =
         pIndices.entrySet().stream()
             .filter(entry -> pVariables.contains(entry.getKey()))
-            .map(Map.Entry::getValue)
+            .map(Entry::getValue)
             .collect(ImmutableSet.toImmutableSet());
-    return new SeqBinaryBitVector(getBitVectorLength(pIndices.size()), setBits);
+    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, length, setBits);
+  }
+
+  private static SeqBitVector createBitVectorByEncoding(
+      SeqBitVectorEncoding pEncoding, int pLength, ImmutableSet<Integer> pSetBits) {
+    return switch (pEncoding) {
+      case BINARY -> new SeqBinaryBitVector(pLength, pSetBits);
+      case HEXADECIMAL -> new SeqHexadecimalBitVector(pLength, pSetBits);
+      case SCALAR -> /* TODO */ new SeqBinaryBitVector(pLength, pSetBits);
+    };
   }
 
   public static int getBitVectorLength(int pMinLength) {
@@ -72,5 +87,20 @@ public class BitVectorUtil {
     }
     assert isValidLength(rLength);
     return rLength;
+  }
+
+  /** Pads the resulting hex string to the next power of 2, e.g. 0x0 -> 0x00. */
+  public static String padHexString(long pLong) {
+    String hex = Long.toHexString(pLong);
+    int initialLength = hex.length();
+    if (initialLength <= 2) {
+      return String.format("%0" + 2 + "x", pLong);
+    } else if (initialLength <= 4) {
+      return String.format("%0" + 4 + "x", pLong);
+    } else if (initialLength <= 8) {
+      return String.format("%0" + 8 + "x", pLong);
+    } else { // long to hex is at most 16 long, so no extra check here
+      return String.format("%0" + 16 + "x", pLong);
+    }
   }
 }
