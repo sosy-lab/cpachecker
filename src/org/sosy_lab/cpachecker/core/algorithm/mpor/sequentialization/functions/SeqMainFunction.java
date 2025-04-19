@@ -226,12 +226,6 @@ public class SeqMainFunction extends SeqFunction {
     }
     // we only add the global assumptions if thread specific loops (and assumptions) are disabled
     if (!options.threadLoops) {
-      // only add label if bit vectors are enabled, otherwise they are not used
-      if (options.porBitVector && options.porConcat) {
-        SeqThreadLoopLabelStatement labelStatement =
-            new SeqThreadLoopLabelStatement(SeqToken.ASSUME);
-        rBody.add(LineOfCode.of(2, labelStatement.toASTString()));
-      }
       rBody.addAll(buildSingleLoopAssumptions(threadAssumptions));
     }
     // add all switch statements

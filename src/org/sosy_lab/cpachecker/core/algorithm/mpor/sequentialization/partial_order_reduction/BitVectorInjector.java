@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -57,11 +56,6 @@ class BitVectorInjector {
                   .filter(b -> !b.equals(bitVector))
                   .collect(ImmutableSet.toImmutableSet()),
               pBinaryExpressionBuilder);
-      SeqThreadLoopLabelStatement assumeLabel =
-          new SeqThreadLoopLabelStatement(
-              pOptions.threadLoops
-                  ? SeqNameUtil.buildThreadAssumeLabelName(pOptions, thread.id)
-                  : SeqToken.ASSUME);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
               SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
@@ -74,7 +68,6 @@ class BitVectorInjector {
               pBitVectors,
               entry.getValue(),
               bitVectorEvaluation,
-              assumeLabel,
               switchLabel));
     }
     return rInjected.buildOrThrow();
@@ -87,7 +80,6 @@ class BitVectorInjector {
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
       CBinaryExpression pBitVectorEvaluation,
-      SeqThreadLoopLabelStatement pAssumeLabel,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
@@ -101,7 +93,6 @@ class BitVectorInjector {
                 pOptions,
                 pThread,
                 pBitVectorEvaluation,
-                pAssumeLabel,
                 pSwitchLabel,
                 statement,
                 pGlobalVariableIds,
@@ -117,7 +108,6 @@ class BitVectorInjector {
       MPOROptions pOptions,
       final MPORThread pThread,
       final CBinaryExpression pBitVectorEvaluation,
-      SeqThreadLoopLabelStatement pAssumeLabel,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
       final ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
@@ -135,7 +125,6 @@ class BitVectorInjector {
                   pOptions,
                   pThread,
                   pBitVectorEvaluation,
-                  pAssumeLabel,
                   pSwitchLabel,
                   concatStatement,
                   pGlobalVariableIds,
@@ -168,13 +157,14 @@ class BitVectorInjector {
             new SeqBitVectorAssignment(
                 bitVector,
                 BitVectorUtil.createBitVector(pOptions, pGlobalVariableIds, globalVariables)));
-        newInjected.add(
-            new SeqBitVectorGotoStatement(
-                new SeqLogicalNotExpression(pBitVectorEvaluation),
-                // for statements targeting starts of critical sections, assumes are reevaluated
-                SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)
-                    ? pAssumeLabel
-                    : pSwitchLabel));
+        // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
+        if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
+          // TODO if the bit vector is 0, then evaluation is redundant -> just break/goto without
+          // evaluation
+          newInjected.add(
+              new SeqBitVectorGotoStatement(
+                  new SeqLogicalNotExpression(pBitVectorEvaluation), pSwitchLabel));
+        }
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
