@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -47,7 +46,7 @@ public class SeqFunctionBuilder {
     // used to store which injected variables are initialized with 1
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
     // collect all global variables accessed in substitute edges, and assign unique ids
-    ImmutableSet<CVariableDeclaration> allGlobalVariables =
+    ImmutableList<CVariableDeclaration> allGlobalVariables =
         SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
     ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
         assignGlobalVariableIds(allGlobalVariables);
@@ -81,7 +80,8 @@ public class SeqFunctionBuilder {
   }
 
   private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
-      ImmutableSet<CVariableDeclaration> pGlobalVariables) {
+      ImmutableList<CVariableDeclaration> pGlobalVariables) {
+
     ImmutableMap.Builder<CVariableDeclaration, Integer> rIds = ImmutableMap.builder();
     int id = 0;
     for (CVariableDeclaration variable : pGlobalVariables) {

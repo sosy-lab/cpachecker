@@ -49,10 +49,12 @@ public class SubstituteUtil {
     return false;
   }
 
-  public static ImmutableSet<CVariableDeclaration> getAllGlobalVariables(
+  public static ImmutableList<CVariableDeclaration> getAllGlobalVariables(
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
     return pSubstituteEdges.stream()
         .flatMap(s -> s.getGlobalVariables().stream())
-        .collect(ImmutableSet.toImmutableSet());
+        .distinct() // ensure that each variable present only once
+        .collect(ImmutableList.toImmutableList());
   }
 }

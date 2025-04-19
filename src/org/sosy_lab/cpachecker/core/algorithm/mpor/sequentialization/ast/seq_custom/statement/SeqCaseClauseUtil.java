@@ -72,18 +72,18 @@ public class SeqCaseClauseUtil {
     return rAllStatements.build();
   }
 
-  public static ImmutableSet<CVariableDeclaration> findAllGlobalVariablesInCaseClause(
+  public static ImmutableList<CVariableDeclaration> findAllGlobalVariablesInCaseClause(
       SeqCaseClause pCaseClause) {
-    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
     for (SeqCaseBlockStatement statement : pCaseClause.block.statements) {
-      rGlobalVariables.addAll(recursivelyFindGlobalVariables(ImmutableSet.builder(), statement));
+      rGlobalVariables.addAll(recursivelyFindGlobalVariables(ImmutableList.builder(), statement));
     }
     return rGlobalVariables.build();
   }
 
   /** Searches {@code pStatement} and all concatenated statements for their global variables. */
-  private static ImmutableSet<CVariableDeclaration> recursivelyFindGlobalVariables(
-      ImmutableSet.Builder<CVariableDeclaration> pFound, SeqCaseBlockStatement pStatement) {
+  private static ImmutableList<CVariableDeclaration> recursivelyFindGlobalVariables(
+      ImmutableList.Builder<CVariableDeclaration> pFound, SeqCaseBlockStatement pStatement) {
 
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
       for (CVariableDeclaration variable : substituteEdge.getGlobalVariables()) {

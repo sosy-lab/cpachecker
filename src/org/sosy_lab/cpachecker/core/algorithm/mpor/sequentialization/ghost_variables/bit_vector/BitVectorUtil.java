@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -35,7 +36,7 @@ public class BitVectorUtil {
   public static <T> SeqBitVector createBitVector(
       MPOROptions pOptions,
       @NonNull ImmutableMap<T, Integer> pIndices,
-      @NonNull ImmutableSet<T> pVariables) {
+      @NonNull ImmutableList<T> pVariables) {
 
     checkArgument(
         pIndices.keySet().containsAll(pVariables), "pIndices must contain all pVariables as keys.");

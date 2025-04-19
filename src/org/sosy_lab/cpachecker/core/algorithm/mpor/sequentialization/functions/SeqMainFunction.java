@@ -12,7 +12,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -152,7 +151,7 @@ public class SeqMainFunction extends SeqFunction {
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
       SeqCaseClause firstCase = Objects.requireNonNull(pCaseClauses.get(entry.getKey())).get(0);
-      ImmutableSet<CVariableDeclaration> firstCaseGlobalVariables =
+      ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(firstCase);
       SeqBitVector bitVector =
           BitVectorUtil.createBitVector(options, pGlobalVariableIds, firstCaseGlobalVariables);

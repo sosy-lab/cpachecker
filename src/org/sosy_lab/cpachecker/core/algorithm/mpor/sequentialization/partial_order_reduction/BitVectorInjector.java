@@ -151,7 +151,7 @@ class BitVectorInjector {
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
-        ImmutableSet<CVariableDeclaration> globalVariables =
+        ImmutableList<CVariableDeclaration> globalVariables =
             SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
         CIdExpression bitVectorVariable = pBitVectorVariables.get(pThread);
         newInjected.addAll(pCurrentStatement.getInjectedStatements());

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -17,19 +17,19 @@ public class SubstituteEdge {
 
   public final CFAEdge cfaEdge;
 
-  /** The set of global variable declarations that this edge accesses. */
-  private final ImmutableSet<CVariableDeclaration> globalVariables;
+  /** The list of global variable declarations that this edge accesses. */
+  private final ImmutableList<CVariableDeclaration> globalVariables;
 
   // TODO parameters are a bit trickier due to passed on parameters
-  /** The set of parameters pointing to global variable declarations that this edge accesses. */
-  // public final ImmutableSet<CParameterDeclaration> globalParameterVariables;
+  /** The list of parameters pointing to global variable declarations that this edge accesses. */
+  // public final ImmutableList<CParameterDeclaration> globalParameterVariables;
 
-  public SubstituteEdge(CFAEdge pCfaEdge, ImmutableSet<CVariableDeclaration> pGlobalVariables) {
+  public SubstituteEdge(CFAEdge pCfaEdge, ImmutableList<CVariableDeclaration> pGlobalVariables) {
     cfaEdge = pCfaEdge;
     globalVariables = pGlobalVariables;
   }
 
-  public ImmutableSet<CVariableDeclaration> getGlobalVariables() {
+  public ImmutableList<CVariableDeclaration> getGlobalVariables() {
     return globalVariables;
   }
 }

@@ -77,21 +77,22 @@ public class GhostVariableUtil {
   public static FunctionStatements buildFunctionVariables(
       MPORThread pThread,
       MPORSubstitution pSubstitution,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     return new FunctionStatements(
-        buildParameterAssignments(pSubstitution), buildReturnValueAssignments(pThread, pSubEdges));
+        buildParameterAssignments(pSubstitution),
+        buildReturnValueAssignments(pThread, pSubstituteEdges));
   }
 
   public static ThreadSimulationVariables buildThreadSimulationVariables(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     return new ThreadSimulationVariables(
         pOptions,
-        buildMutexLockedVariables(pOptions, pThreads, pSubEdges),
-        buildThreadAwaitsMutexVariables(pOptions, pThreads, pSubEdges),
+        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges),
+        buildThreadAwaitsMutexVariables(pOptions, pThreads, pSubstituteEdges),
         buildThreadJoinsThreadVariables(pOptions, pThreads),
         buildThreadBeginsAtomicVariables(pOptions, pThreads));
   }
@@ -130,15 +131,15 @@ public class GhostVariableUtil {
       buildThreadAwaitsMutexVariables(
           MPOROptions pOptions,
           ImmutableSet<MPORThread> pThreads,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+          ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
         ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       Map<CIdExpression, ThreadLocksMutex> locksVariables = new HashMap<>();
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        if (pSubEdges.containsKey(threadEdge)) {
-          SubstituteEdge substitute = Objects.requireNonNull(pSubEdges.get(threadEdge));
+        if (pSubstituteEdges.containsKey(threadEdge)) {
+          SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
           if (PthreadUtil.callsPthreadFunction(
               substitute.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
             CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
@@ -262,19 +263,20 @@ public class GhostVariableUtil {
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       buildReturnValueAssignments(
-          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubEdges) {
+          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
         rReturnStatements = ImmutableMap.builder();
     for (ThreadEdge threadEdgeA : pThread.cfa.threadEdges) {
-      if (pSubEdges.containsKey(threadEdgeA)) {
-        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubEdges.get(threadEdgeA));
+      if (pSubstituteEdges.containsKey(threadEdgeA)) {
+        SubstituteEdge substituteEdgeA = Objects.requireNonNull(pSubstituteEdges.get(threadEdgeA));
 
         if (substituteEdgeA.cfaEdge instanceof CReturnStatementEdge returnStatementEdge) {
           ImmutableSet.Builder<FunctionReturnValueAssignment> assigns = ImmutableSet.builder();
           for (ThreadEdge threadEdgeB : pThread.cfa.threadEdges) {
-            if (pSubEdges.containsKey(threadEdgeB)) {
-              SubstituteEdge substituteEdgeB = Objects.requireNonNull(pSubEdges.get(threadEdgeB));
+            if (pSubstituteEdges.containsKey(threadEdgeB)) {
+              SubstituteEdge substituteEdgeB =
+                  Objects.requireNonNull(pSubstituteEdges.get(threadEdgeB));
 
               if (substituteEdgeB.cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
                 // if the summary edge is of the form value = func(); (i.e. an assignment)
