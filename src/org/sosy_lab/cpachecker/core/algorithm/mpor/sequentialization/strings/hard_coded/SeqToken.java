@@ -125,7 +125,7 @@ public class SeqToken {
 
   public static final String THREAD = "THREAD";
 
-  public static final String __uint = "__uint";
+  public static final String uint = "uint";
 
   public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
 

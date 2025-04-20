@@ -171,8 +171,8 @@ public class Sequentialization {
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
-    rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
+    rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
     // add function, struct, variable declarations in the order: global, local, parameters
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainThreadSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));

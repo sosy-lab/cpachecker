@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
@@ -68,16 +67,6 @@ public class LineOfCodeUtil {
         // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
-            if (declaration instanceof CTypeDefDeclaration typeDeclaration) {
-              for (SeqBitVectorType bitVectorType : SeqBitVectorType.values()) {
-                if (bitVectorType.toASTString().equals(typeDeclaration.getName())) {
-                  if (bitVectorType.simpleType.equals(typeDeclaration.getType())) {
-                    // exclude bit vector types (included above, duplicates cause parse errors)
-                    continue outerLoop;
-                  }
-                }
-              }
-            }
             rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
           }
         }
