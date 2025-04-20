@@ -62,7 +62,6 @@ public class LineOfCodeUtil {
     for (MPORThread thread : pThreads) {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           ThreadUtil.extractNonVariableDeclarations(thread);
-      outerLoop:
       for (CDeclaration declaration : nonVariableDeclarations) {
         // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
