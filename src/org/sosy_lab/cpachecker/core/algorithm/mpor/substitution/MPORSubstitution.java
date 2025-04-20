@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -152,6 +153,12 @@ public class MPORSubstitution {
           pointer.getFileLocation(),
           pointer.getExpressionType(),
           substitute(pointer.getOperand(), pCallContext, pGlobalVariables));
+
+    } else if (pExpression instanceof CCastExpression cast) {
+      return new CCastExpression(
+          cast.getFileLocation(),
+          cast.getCastType(),
+          substitute(cast.getOperand(), pCallContext, pGlobalVariables));
     }
 
     return pExpression;

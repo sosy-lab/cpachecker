@@ -3,7 +3,7 @@
 //
 // SPDX-FileCopyrightText: 2005-2021 University of Tartu & Technische Universität München
 //
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT AND Apache-2.0
 
 #include <assert.h>
 extern void abort(void);

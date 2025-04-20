@@ -40,12 +40,6 @@ public class SequentializationTest {
   // 28-race_reach_45-escape_racing
   // 28-race_reach_46-escape_racefree
 
-  // TODO parsing fail due to missing variable substitution ("size")
-  // weaver/popl120-send-receive.wvr
-
-  // TODO parsing fail due to loop head labels
-  // 13-privatized_04-priv_multi_true
-
   // TODO substitute assertion error
   // pthread-divine/tls-basic.i
 
