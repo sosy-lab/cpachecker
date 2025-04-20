@@ -54,8 +54,10 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
 
   @Override
   public String toASTString() {
-    return SeqStringUtil.buildTargetStatements(
-        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, ImmutableList.of());
+    String targetStatements =
+        SeqStringUtil.buildTargetStatements(
+            pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, ImmutableList.of());
+    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel) + targetStatements;
   }
 
   @Override
@@ -66,6 +68,11 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   @Override
   public Optional<Integer> getTargetPc() {
     return targetPc;
+  }
+
+  @Override
+  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
+    return loopHeadLabel;
   }
 
   @Override

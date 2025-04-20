@@ -38,11 +38,39 @@ public class SequentializationTest {
 
   // TODO parsing fails for sequentializations of:
   // 28-race_reach_45-escape_racing
-  // weaver/popl120-send-receive.wvr
   // 28-race_reach_46-escape_racefree
+
+  // TODO parsing fail due to missing variable substitution ("size")
+  // weaver/popl120-send-receive.wvr
+
+  // TODO parsing fail due to loop head labels
+  // 13-privatized_04-priv_multi_true
 
   // TODO substitute assertion error
   // pthread-divine/tls-basic.i
+
+  @Test
+  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
+    // this program contains multiple loops whose condition only contains local variables
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            false,
+            true,
+            true,
+            false,
+            SeqBitVectorEncoding.BINARY,
+            true,
+            true,
+            false,
+            true,
+            true,
+            false);
+    testCompile(path, options);
+  }
 
   @Test
   public void testCompileSeq_fib_safe7() throws Exception {

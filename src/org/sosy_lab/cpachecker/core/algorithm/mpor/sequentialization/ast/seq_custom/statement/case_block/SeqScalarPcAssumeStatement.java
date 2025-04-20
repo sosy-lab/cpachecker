@@ -47,6 +47,12 @@ public class SeqScalarPcAssumeStatement implements SeqCaseBlockStatement {
   }
 
   @Override
+  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
+    throw new UnsupportedOperationException(
+        this.getClass().getSimpleName() + " do not have a loop head label");
+  }
+
+  @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have injected statements");

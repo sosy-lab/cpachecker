@@ -33,6 +33,8 @@ public interface SeqCaseBlockStatement extends SeqStatement {
   /** After concatenation, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();
 
+  Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel();
+
   /** The list of statements injected to the {@code pc} write. */
   ImmutableList<SeqInjectedStatement> getInjectedStatements();
 

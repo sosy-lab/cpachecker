@@ -100,6 +100,11 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
   }
 
   @Override
+  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
+    return loopHeadLabel;
+  }
+
+  @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }

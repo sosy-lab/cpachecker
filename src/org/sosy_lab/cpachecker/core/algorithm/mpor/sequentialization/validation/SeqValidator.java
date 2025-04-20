@@ -108,12 +108,15 @@ public class SeqValidator {
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
+      ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
       // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
-      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(entry.getValue());
+      ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(caseClauses);
+      ImmutableMap<Integer, SeqCaseClause> labelCaseMap =
+          SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
       ImmutableSet<Integer> allTargetPcs =
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
-        checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, thread.id, pLogger);
+        checkLabelPcAsTargetPc(pcEntry.getKey(), allTargetPcs, labelCaseMap, thread.id, pLogger);
         checkTargetPcAsLabelPc(pcEntry.getValue(), pcMap.keySet(), thread.id, pLogger);
       }
     }
@@ -136,16 +139,26 @@ public class SeqValidator {
   }
 
   private static void checkLabelPcAsTargetPc(
-      int pLabelPc, ImmutableSet<Integer> pAllTargetPc, int pThreadId, LogManager pLogger)
+      int pLabelPc,
+      ImmutableSet<Integer> pAllTargetPc,
+      ImmutableMap<Integer, SeqCaseClause> pLabelCaseMap,
+      int pThreadId,
+      LogManager pLogger)
       throws IllegalArgumentException {
 
     // exclude INIT_PC, it is (often) not present as a target pc
     if (pLabelPc != Sequentialization.INIT_PC) {
+      // check if label is a target pc anywhere in this threads switch statement
       if (!pAllTargetPc.contains(pLabelPc)) {
-        handleValidationException(
-            String.format(
-                "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
-            pLogger);
+        // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
+        SeqCaseClause caseClause = pLabelCaseMap.get(pLabelPc);
+        assert caseClause != null;
+        if (caseClause.block.getFirstStatement().getLoopHeadLabel().isEmpty()) {
+          handleValidationException(
+              String.format(
+                  "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
+              pLogger);
+        }
       }
     }
   }

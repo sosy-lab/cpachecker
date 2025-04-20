@@ -112,6 +112,11 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
   }
 
   @Override
+  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
+    return loopHeadLabel;
+  }
+
+  @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
   }
