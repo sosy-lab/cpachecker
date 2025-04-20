@@ -34,13 +34,21 @@ public class SeqTypes {
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, true, false, false, false);
 
+    public static final CSimpleType UNSIGNED_SHORT_INT =
+        new CSimpleType(
+            false, false, CBasicType.INT, false, true, false, true, false, false, false);
+
+    public static final CSimpleType UNSIGNED_LONG_INT =
+        new CSimpleType(
+            false, false, CBasicType.INT, true, false, false, true, false, false, false);
+
     public static final CSimpleType CONST_CHAR =
         new CSimpleType(
             true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
 
     public static final CSimpleType UNSIGNED_CHAR =
         new CSimpleType(
-            false, false, CBasicType.INT, false, false, false, true, false, false, false);
+            false, false, CBasicType.CHAR, false, false, false, true, false, false, false);
   }
 
   public static class SeqArrayType {

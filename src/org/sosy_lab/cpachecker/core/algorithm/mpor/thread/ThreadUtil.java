@@ -14,7 +14,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 
 public class ThreadUtil {
 
@@ -32,8 +31,8 @@ public class ThreadUtil {
   }
 
   /**
-   * Creates {@link LineOfCode}s for all non-variable declarations (e.g. function and struct
-   * declarations) for the given thread.
+   * Extracts all non-variable declarations (e.g. function and struct declarations) for the given
+   * thread.
    */
   public static ImmutableList<CDeclaration> extractNonVariableDeclarations(MPORThread pThread) {
     ImmutableList.Builder<CDeclaration> rNonVariableDeclarations = ImmutableList.builder();

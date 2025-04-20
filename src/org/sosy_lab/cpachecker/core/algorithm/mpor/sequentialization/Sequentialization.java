@@ -170,11 +170,10 @@ public class Sequentialization {
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 
-    // add function, struct, variable declarations in the order: original, global, local, parameters
-    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
+    // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
-    // for variable declarations, we exclude pthread objects such as pthread_t
-    // they should only be used with pthread methods, all of which are not in the sequentialization
+    rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
+    // add function, struct, variable declarations in the order: global, local, parameters
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainThreadSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));

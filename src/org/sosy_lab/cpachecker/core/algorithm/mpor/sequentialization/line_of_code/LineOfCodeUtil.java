@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -25,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
@@ -45,6 +43,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class LineOfCodeUtil {
 
+  public static ImmutableList<LineOfCode> buildBitVectorTypeDeclarations() {
+    ImmutableList.Builder<LineOfCode> rBitVectorTypeDeclarations = ImmutableList.builder();
+    for (SeqBitVectorType bitVectorType : SeqBitVectorType.values()) {
+      CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
+      rBitVectorTypeDeclarations.add(LineOfCode.of(0, bitVectorTypeDeclaration.toASTString()));
+    }
+    return rBitVectorTypeDeclarations.build();
+  }
+
   public static ImmutableList<LineOfCode> buildOriginalDeclarations(
       MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
 
@@ -56,10 +63,21 @@ public class LineOfCodeUtil {
     for (MPORThread thread : pThreads) {
       ImmutableList<CDeclaration> nonVariableDeclarations =
           ThreadUtil.extractNonVariableDeclarations(thread);
+      outerLoop:
       for (CDeclaration declaration : nonVariableDeclarations) {
         // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
+            if (declaration instanceof CTypeDefDeclaration typeDeclaration) {
+              for (SeqBitVectorType bitVectorType : SeqBitVectorType.values()) {
+                if (bitVectorType.toASTString().equals(typeDeclaration.getName())) {
+                  if (bitVectorType.simpleType.equals(typeDeclaration.getType())) {
+                    // exclude bit vector types (included above, duplicates cause parse errors)
+                    continue outerLoop;
+                  }
+                }
+              }
+            }
             rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
           }
         }
@@ -69,22 +87,6 @@ public class LineOfCodeUtil {
       rOriginalDeclarations.add(LineOfCode.empty());
     }
     return rOriginalDeclarations.build();
-  }
-
-  public static ImmutableList<LineOfCode> buildBitVectorTypeDeclarations() {
-    ImmutableList.Builder<LineOfCode> rBitVectorTypeDeclarations = ImmutableList.builder();
-    for (SeqBitVectorType bitVectorType : SeqBitVectorType.values()) {
-      CTypeDeclaration bitVectorTypeDeclaration =
-          new CTypeDefDeclaration(
-              FileLocation.DUMMY,
-              true,
-              SeqSimpleType.UNSIGNED_CHAR,
-              bitVectorType.toASTString(),
-              // TODO qualified name not needed
-              bitVectorType.toASTString());
-      rBitVectorTypeDeclarations.add(LineOfCode.of(0, bitVectorTypeDeclaration.toASTString()));
-    }
-    return rBitVectorTypeDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildGlobalDeclarations(
