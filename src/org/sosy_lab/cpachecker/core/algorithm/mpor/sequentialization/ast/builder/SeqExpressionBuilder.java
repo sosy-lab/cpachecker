@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -108,11 +107,9 @@ public class SeqExpressionBuilder {
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
-        CIdExpression bitVector = pBitVectorVariables.get(pActiveThread);
+        CIdExpression bitVector = pBitVectorVariables.getBitVectorExpression(pActiveThread);
         ImmutableSet<CExpression> otherBitVectors =
-            pBitVectorVariables.bitVectors.values().stream()
-                .filter(b -> !b.equals(bitVector))
-                .collect(ImmutableSet.toImmutableSet());
+            pBitVectorVariables.getOtherBitVectorExpressions(bitVector);
         CBinaryExpression binaryExpression =
             SeqExpressionBuilder.buildBitVectorEvaluation(
                 bitVector, otherBitVectors, pBinaryExpressionBuilder);
@@ -120,7 +117,7 @@ public class SeqExpressionBuilder {
       }
       case SCALAR -> {
         SeqExpression seqExpression =
-            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables.scalarBitVectors);
+            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables);
         yield new BitVectorEvaluationExpression(Optional.empty(), Optional.of(seqExpression));
       }
     };
@@ -143,14 +140,12 @@ public class SeqExpressionBuilder {
   }
 
   private static SeqExpression buildScalarBitVectorEvaluation(
-      MPORThread pActiveThread, ImmutableList<ScalarBitVectorVariable> pAllGlobalVariables) {
+      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
 
-    for (ScalarBitVectorVariable bitVectorGlobalVariable : pAllGlobalVariables) {
-      assert bitVectorGlobalVariable.accessVariables.isPresent() : "no access variables present";
-      ImmutableMap<MPORThread, CIdExpression> accessVariables =
-          bitVectorGlobalVariable.accessVariables.orElseThrow();
+    for (var entry : pBitVectorVariables.scalarBitVectors.entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().accessVariables;
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeVariable = accessVariables.get(pActiveThread);
       assert activeVariable != null;

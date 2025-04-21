@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.time.Year;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -166,7 +167,7 @@ public class Sequentialization {
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
-    BitVectorVariables bitVectorVariables =
+    Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, substituteEdges);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);

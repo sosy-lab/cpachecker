@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -37,36 +39,32 @@ public class BitVectorUtil {
   // Creation ======================================================================================
 
   public static BitVectorExpression buildZeroBitVector(
-      MPOROptions pOptions, ImmutableList<ScalarBitVectorVariable> pAllGlobalVariables) {
+      MPOROptions pOptions, int pNumGlobalVariables) {
 
     checkArgument(
         !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
         "no bit vector encoding specified");
     return buildBitVectorExpressionByEncoding(
-        pOptions.porBitVectorEncoding, pAllGlobalVariables.size(), ImmutableSet.of());
+        pOptions.porBitVectorEncoding, pNumGlobalVariables, ImmutableSet.of());
   }
 
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
-      @NonNull ImmutableList<ScalarBitVectorVariable> pAllVariables,
+      @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
       @NonNull ImmutableList<CVariableDeclaration> pAccessedVariables) {
 
     checkArgument(
         !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
         "no bit vector encoding specified");
-    ImmutableSet<CVariableDeclaration> allVariables =
-        pAllVariables.stream()
-            .map(ScalarBitVectorVariable::getDeclaration)
-            .collect(ImmutableSet.toImmutableSet());
     checkArgument(
-        allVariables.containsAll(pAccessedVariables),
+        pAllVariables.keySet().containsAll(pAccessedVariables),
         "pAllVariables must contain all pAccessedVariables as keys.");
 
     // retrieve all variable ids from pAllVariables that are in pAccessedVariables
-    final ImmutableSet<Integer> setBits =
-        pAllVariables.stream()
-            .filter(variable -> pAccessedVariables.contains(variable.getDeclaration()))
-            .map(ScalarBitVectorVariable::getId)
+    ImmutableSet<Integer> setBits =
+        pAccessedVariables.stream()
+            .map(pAllVariables::get)
+            .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(
         pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);

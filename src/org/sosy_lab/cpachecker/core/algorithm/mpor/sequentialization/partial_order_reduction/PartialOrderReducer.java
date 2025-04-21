@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -27,7 +28,7 @@ public class PartialOrderReducer {
   public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduce(
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
-      BitVectorVariables pBitVectors,
+      Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -35,7 +36,7 @@ public class PartialOrderReducer {
     if (pOptions.porConcat && pOptions.porBitVector) {
       return BitVectorInjector.inject(
           pOptions,
-          pBitVectors,
+          pBitVectorVariables.orElseThrow(),
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses),
           pBinaryExpressionBuilder);
     } else if (pOptions.porConcat) {

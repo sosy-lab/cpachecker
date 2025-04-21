@@ -54,7 +54,7 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      BitVectorVariables pBitVectorVariables,
+      Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,

@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -166,21 +165,19 @@ class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (ScalarBitVectorVariable bitVectorGlobalVariable : pBitVectorVariables.scalarBitVectors) {
-        assert bitVectorGlobalVariable.accessVariables.isPresent() : "no access variables found";
-        ImmutableMap<MPORThread, CIdExpression> accessVariables =
-            bitVectorGlobalVariable.accessVariables.orElseThrow();
-        boolean value = pAccessedVariables.contains(bitVectorGlobalVariable.getDeclaration());
+      for (var entry : pBitVectorVariables.scalarBitVectors.entrySet()) {
+        ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().accessVariables;
+        boolean value = pAccessedVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
                 accessVariables.get(pThread), scalarBitVectorExpression));
       }
     } else {
-      CIdExpression bitVectorVariable = pBitVectorVariables.get(pThread);
+      CIdExpression bitVectorVariable = pBitVectorVariables.getBitVectorExpression(pThread);
       BitVectorExpression bitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.scalarBitVectors, pAccessedVariables);
+              pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);
       rStatements.add(new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression));
     }
     return rStatements.build();
