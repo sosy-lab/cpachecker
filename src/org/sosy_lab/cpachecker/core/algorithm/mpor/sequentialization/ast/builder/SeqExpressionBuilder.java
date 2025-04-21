@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builde
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.List;
@@ -36,9 +39,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressionBuilder {
@@ -51,7 +58,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
-    ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
+    Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       rArrayPc.add(buildPcSubscriptExpression(buildIntegerLiteralExpression(i)));
     }
@@ -85,26 +92,96 @@ public class SeqExpressionBuilder {
         BinaryOperator.NOT_EQUALS);
   }
 
-  public static CBinaryExpression buildBitVectorEvaluation(
+  public static CBinaryExpression buildBitVectorEvaluationByEncoding(
+      BitVectorEncoding pEncoding,
+      MPORThread pActiveThread,
+      BitVectorVariables pBitVectorVariables,
+      ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pEncoding) {
+      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
+      case BINARY, HEXADECIMAL -> {
+        CIdExpression bitVector = pBitVectorVariables.get(pActiveThread);
+        ImmutableSet<CExpression> otherBitVectors =
+            pBitVectorVariables.bitVectors.values().stream()
+                .filter(b -> !b.equals(bitVector))
+                .collect(ImmutableSet.toImmutableSet());
+        yield SeqExpressionBuilder.buildBitVectorEvaluation(
+            bitVector, otherBitVectors, pBinaryExpressionBuilder);
+      }
+      case SCALAR ->
+          buildScalarBitVectorEvaluation(
+              pActiveThread, pBitVectorGlobalVariables, pBinaryExpressionBuilder);
+    };
+  }
+
+  private static CBinaryExpression buildBitVectorEvaluation(
       CIdExpression pActiveBitVector,
-      ImmutableSet<CIdExpression> pOtherBitVectors,
+      // TODO make list
+      ImmutableSet<CExpression> pOtherBitVectors,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     checkArgument(!pOtherBitVectors.isEmpty());
     checkArgument(!pOtherBitVectors.contains(pActiveBitVector));
 
-    // init RHS with the first bit vector that is not the current bit vector
-    CExpression rightHandSide = pOtherBitVectors.iterator().next();
-    for (CIdExpression bitVector : pOtherBitVectors) {
-      if (!bitVector.equals(rightHandSide)) {
-        rightHandSide =
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                rightHandSide, bitVector, BinaryOperator.BINARY_OR);
-      }
-    }
+    CExpression rightHandSide =
+        nestBinaryExpressions(pOtherBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
+  }
+
+  private static CBinaryExpression buildScalarBitVectorEvaluation(
+      MPORThread pActiveThread,
+      ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    Builder<CExpression> orVariableExpression = ImmutableList.builder();
+
+    for (BitVectorGlobalVariable bitVectorGlobalVariable : pAllGlobalVariables) {
+      assert bitVectorGlobalVariable.accessVariables.isPresent() : "no access variables present";
+      ImmutableMap<MPORThread, CIdExpression> accessVariables =
+          bitVectorGlobalVariable.accessVariables.orElseThrow();
+      assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
+      CIdExpression activeVariable = accessVariables.get(pActiveThread);
+      assert activeVariable != null;
+      ImmutableList<CExpression> otherVariables =
+          accessVariables.values().stream()
+              .filter(v -> !v.equals(activeVariable))
+              .collect(ImmutableList.toImmutableList());
+      CExpression rightHandSide =
+          nestBinaryExpressions(otherVariables, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+      CBinaryExpression andExpression =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              activeVariable, rightHandSide, BinaryOperator.BINARY_AND);
+      orVariableExpression.add(andExpression);
+    }
+    CExpression rNested =
+        nestBinaryExpressions(
+            orVariableExpression.build(), BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+    assert rNested instanceof CBinaryExpression : "nested expression must be binary expression";
+    return (CBinaryExpression) rNested;
+  }
+
+  private static CExpression nestBinaryExpressions(
+      ImmutableCollection<CExpression> pAllExpressions,
+      BinaryOperator pBinaryOperator,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
+
+    CExpression rNested = pAllExpressions.iterator().next();
+    for (CExpression nextExpression : pAllExpressions) {
+      if (!nextExpression.equals(rNested)) {
+        rNested =
+            pBinaryExpressionBuilder.buildBinaryExpression(
+                rNested, nextExpression, pBinaryOperator);
+      }
+    }
+    return rNested;
   }
 
   // CFunctionCallExpression =======================================================================
@@ -182,7 +259,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
-    ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
+    Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
       rScalarPc.add(

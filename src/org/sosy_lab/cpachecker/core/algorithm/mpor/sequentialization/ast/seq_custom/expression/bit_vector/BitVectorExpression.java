@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 
-public interface SeqBitVector extends SeqExpression {
-  SeqBitVectorEncoding getEncoding();
+public interface BitVectorExpression extends SeqExpression {
+  BitVectorEncoding getEncoding();
 
-  /** Whether this bit vector is 0, e.g. {@code 0b00000000} or {@code 0x00}. */
+  /** Whether this bit vector is 0, e.g. {@code 0b00000000} or {@code 0x00} or {@code 0}. */
   boolean isZero();
 }

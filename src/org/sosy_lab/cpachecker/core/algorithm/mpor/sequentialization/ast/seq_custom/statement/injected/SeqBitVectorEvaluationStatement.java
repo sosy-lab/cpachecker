@@ -18,13 +18,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqBitVectorGotoStatement implements SeqInjectedStatement {
+public class SeqBitVectorEvaluationStatement implements SeqInjectedStatement {
 
   private final Optional<SeqLogicalNotExpression> threadBitVectors;
 
   private final SeqThreadLoopLabelStatement gotoLabel;
 
-  public SeqBitVectorGotoStatement(
+  public SeqBitVectorEvaluationStatement(
       Optional<SeqLogicalNotExpression> pThreadBitVectors, SeqThreadLoopLabelStatement pGotoLabel) {
 
     threadBitVectors = pThreadBitVectors;

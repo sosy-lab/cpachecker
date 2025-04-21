@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SequentializationTest {
@@ -56,7 +56,7 @@ public class SequentializationTest {
             true,
             true,
             false,
-            SeqBitVectorEncoding.NONE,
+            BitVectorEncoding.NONE,
             true,
             true,
             false,
@@ -79,7 +79,7 @@ public class SequentializationTest {
             true,
             true,
             false,
-            SeqBitVectorEncoding.NONE,
+            BitVectorEncoding.NONE,
             true,
             true,
             true,
@@ -100,7 +100,7 @@ public class SequentializationTest {
             true,
             true,
             true,
-            SeqBitVectorEncoding.BINARY,
+            BitVectorEncoding.BINARY,
             false,
             true,
             true,
@@ -121,7 +121,7 @@ public class SequentializationTest {
             true,
             false,
             false,
-            SeqBitVectorEncoding.NONE,
+            BitVectorEncoding.NONE,
             true,
             true,
             false,
@@ -142,7 +142,7 @@ public class SequentializationTest {
             false,
             true,
             true,
-            SeqBitVectorEncoding.HEXADECIMAL,
+            BitVectorEncoding.HEXADECIMAL,
             false,
             true,
             false,
@@ -164,7 +164,7 @@ public class SequentializationTest {
             false,
             true,
             false,
-            SeqBitVectorEncoding.NONE,
+            BitVectorEncoding.NONE,
             true,
             false,
             true,
@@ -185,7 +185,7 @@ public class SequentializationTest {
             false,
             true,
             true,
-            SeqBitVectorEncoding.SCALAR,
+            BitVectorEncoding.SCALAR,
             false,
             true,
             true,
@@ -207,7 +207,7 @@ public class SequentializationTest {
             false,
             false,
             false,
-            SeqBitVectorEncoding.NONE,
+            BitVectorEncoding.NONE,
             false,
             true,
             false,

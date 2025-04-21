@@ -13,22 +13,27 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collections;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class SeqHexadecimalBitVector implements SeqBitVector {
+public class HexadecimalBitVectorExpression implements BitVectorExpression {
 
   private final int hexLength;
 
   private final ImmutableSet<Integer> setBits;
 
-  public SeqHexadecimalBitVector(int pHexLength, ImmutableSet<Integer> pSetBits) {
+  public HexadecimalBitVectorExpression(
+      int pHexLength, ImmutableSet<BitVectorGlobalVariable> pSetBits) {
+    ImmutableSet<Integer> intBits =
+        pSetBits.stream()
+            .map(BitVectorGlobalVariable::getId)
+            .collect(ImmutableSet.toImmutableSet());
     // we still use the max binary length here, because setBits represents the binary positions
-    checkArgument(
-        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    checkArgument(pSetBits.isEmpty() || Collections.max(intBits) < BitVectorUtil.MAX_BINARY_LENGTH);
     hexLength = pHexLength;
-    setBits = pSetBits;
+    setBits = intBits;
   }
 
   @Override
@@ -48,8 +53,8 @@ public class SeqHexadecimalBitVector implements SeqBitVector {
   }
 
   @Override
-  public SeqBitVectorEncoding getEncoding() {
-    return SeqBitVectorEncoding.HEXADECIMAL;
+  public BitVectorEncoding getEncoding() {
+    return BitVectorEncoding.HEXADECIMAL;
   }
 
   @Override

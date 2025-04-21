@@ -128,7 +128,7 @@ public class SeqNameUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariables
-        ? SeqToken.b + pThreadId + variableName
+        ? SeqToken.b + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR
             + SeqSyntax.UNDERSCORE

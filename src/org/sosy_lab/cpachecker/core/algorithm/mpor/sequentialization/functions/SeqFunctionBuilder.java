@@ -22,10 +22,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -93,12 +93,12 @@ public class SeqFunctionBuilder {
     ImmutableList.Builder<BitVectorGlobalVariable> rVariables = ImmutableList.builder();
     int id = 0;
     for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclaration) {
-      assert variableDeclaration.isGlobal();
+      assert variableDeclaration.isGlobal() : "variable declaration for bit vector must be global";
       BitVectorGlobalVariable globalVariable =
           new BitVectorGlobalVariable(
               id++,
               variableDeclaration,
-              pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.SCALAR)
+              pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)
                   ? Optional.of(createAccessVariables(pOptions, pThreads, variableDeclaration))
                   : Optional.empty());
       rVariables.add(globalVariable);
@@ -110,6 +110,7 @@ public class SeqFunctionBuilder {
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pThreads,
       CVariableDeclaration pVariableDeclaration) {
+
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
       rAccessVariables.put(

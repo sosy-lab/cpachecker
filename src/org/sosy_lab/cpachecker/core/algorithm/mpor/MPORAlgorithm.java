@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
@@ -114,7 +114,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
   // using optional for @Options is not allowed, unfortunately...
-  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.NONE;
+  private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
 
   @Option(
       secure = true,

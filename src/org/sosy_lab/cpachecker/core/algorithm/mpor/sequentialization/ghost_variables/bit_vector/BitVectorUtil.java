@@ -22,9 +22,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBinaryBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqHexadecimalBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BinaryBitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.HexadecimalBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -36,20 +36,23 @@ public class BitVectorUtil {
 
   // Creation ======================================================================================
 
-  public static SeqBitVector createZeroBitVector(MPOROptions pOptions, int pLength) {
+  public static BitVectorExpression buildZeroBitVector(
+      MPOROptions pOptions, ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables) {
+
     checkArgument(
-        !pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE),
+        !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
         "no bit vector encoding specified");
-    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pLength, ImmutableSet.of());
+    return buildBitVectorExpressionByEncoding(
+        pOptions.porBitVectorEncoding, pAllGlobalVariables.size(), ImmutableSet.of());
   }
 
-  public static SeqBitVector createBitVector(
+  public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
       @NonNull ImmutableList<BitVectorGlobalVariable> pAllVariables,
       @NonNull ImmutableList<CVariableDeclaration> pAccessedVariables) {
 
     checkArgument(
-        !pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE),
+        !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
         "no bit vector encoding specified");
     ImmutableSet<CVariableDeclaration> allVariables =
         pAllVariables.stream()
@@ -60,23 +63,27 @@ public class BitVectorUtil {
         "pAllVariables must contain all pAccessedVariables as keys.");
 
     // retrieve all variable ids from pAllVariables that are in pAccessedVariables
-    final ImmutableSet<Integer> setBits =
+    final ImmutableSet<BitVectorGlobalVariable> setBits =
         pAllVariables.stream()
             .filter(variable -> pAccessedVariables.contains(variable.getDeclaration()))
-            .map(BitVectorGlobalVariable::getId)
             .collect(ImmutableSet.toImmutableSet());
-    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);
+    return buildBitVectorExpressionByEncoding(
+        pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);
   }
 
-  private static SeqBitVector createBitVectorByEncoding(
-      SeqBitVectorEncoding pEncoding, int pNumGlobalVariables, ImmutableSet<Integer> pSetBits) {
+  private static BitVectorExpression buildBitVectorExpressionByEncoding(
+      BitVectorEncoding pEncoding,
+      int pNumGlobalVariables,
+      ImmutableSet<BitVectorGlobalVariable> pSetBits) {
 
     int length = getBitVectorLengthByEncoding(pEncoding, pNumGlobalVariables);
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> new SeqBinaryBitVector(length, pSetBits);
-      case HEXADECIMAL -> new SeqHexadecimalBitVector(length, pSetBits);
-      case SCALAR -> /* TODO */ new SeqBinaryBitVector(length, pSetBits);
+      case BINARY -> new BinaryBitVectorExpression(length, pSetBits);
+      case HEXADECIMAL -> new HexadecimalBitVectorExpression(length, pSetBits);
+      // TODO this is not so nice ...
+      case SCALAR ->
+          throw new IllegalArgumentException("use constructor directly for scalar bit vectors");
     };
   }
 
@@ -92,7 +99,8 @@ public class BitVectorUtil {
   }
 
   public static int getBitVectorLengthByEncoding(
-      SeqBitVectorEncoding pEncoding, int pNumGlobalVariables) {
+      BitVectorEncoding pEncoding, int pNumGlobalVariables) {
+
     checkArgument(
         pNumGlobalVariables <= MAX_BINARY_LENGTH,
         "cannot have more than %s global variables, please disable bit vectors for this program.",
@@ -128,7 +136,9 @@ public class BitVectorUtil {
 
   public static CIdExpression createScalarAccessVariable(
       MPOROptions pOptions, MPORThread pThread, CVariableDeclaration pVariableDeclaration) {
+
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    // we use the original variable name here, not the substitute -> less code
     String name =
         SeqNameUtil.buildBitVectorScalarAccessVariableName(
             pOptions, pThread.id, pVariableDeclaration);

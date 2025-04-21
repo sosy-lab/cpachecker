@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
@@ -102,7 +102,7 @@ public class InputRejection {
   }
 
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (pOptions.porBitVector && pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE)) {
+    if (pOptions.porBitVector && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,
           "porBitVector is enabled, but porBitVectorEncoding is not set. Either disable"
