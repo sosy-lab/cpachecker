@@ -55,7 +55,7 @@ public class InputRejectionTest {
             false,
             false,
             false,
-            SeqBitVectorEncoding.HEXADECIMAL,
+            SeqBitVectorEncoding.NONE,
             false,
             false,
             false,

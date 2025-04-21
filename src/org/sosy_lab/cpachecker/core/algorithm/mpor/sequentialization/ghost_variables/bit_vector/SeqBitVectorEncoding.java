@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
 public enum SeqBitVectorEncoding {
+  NONE,
   BINARY,
   HEXADECIMAL,
   SCALAR

@@ -30,6 +30,9 @@ public class BitVectorUtil {
   // Creation ======================================================================================
 
   public static SeqBitVector createZeroBitVector(MPOROptions pOptions, int pLength) {
+    checkArgument(
+        !pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE),
+        "no bit vector encoding specified");
     return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pLength, ImmutableSet.of());
   }
 
@@ -38,6 +41,9 @@ public class BitVectorUtil {
       @NonNull ImmutableMap<T, Integer> pIndices,
       @NonNull ImmutableList<T> pVariables) {
 
+    checkArgument(
+        !pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE),
+        "no bit vector encoding specified");
     checkArgument(
         pIndices.keySet().containsAll(pVariables), "pIndices must contain all pVariables as keys.");
 
@@ -55,6 +61,7 @@ public class BitVectorUtil {
 
     int length = getBitVectorLengthByEncoding(pEncoding, pNumGlobalVariables);
     return switch (pEncoding) {
+      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> new SeqBinaryBitVector(length, pSetBits);
       case HEXADECIMAL -> new SeqHexadecimalBitVector(length, pSetBits);
       case SCALAR -> /* TODO */ new SeqBinaryBitVector(length, pSetBits);
@@ -80,6 +87,7 @@ public class BitVectorUtil {
         MAX_BINARY_LENGTH);
 
     return switch (pEncoding) {
+      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> getBinaryLength(pNumGlobalVariables);
       case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pNumGlobalVariables));
       case SCALAR -> pNumGlobalVariables;

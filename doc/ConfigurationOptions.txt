@@ -287,24 +287,24 @@ analysis.algorithm.MPOR.porBitVector = false
 
 # the encoding (binary, hex, scalar) of the partial order reduction bit
 # vectors.
-analysis.algorithm.MPOR.porBitVectorEncoding = HEXADECIMAL
-  enum:     [BINARY, HEXADECIMAL, SCALAR]
+analysis.algorithm.MPOR.porBitVectorEncoding = NONE
+  enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
 
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?
-analysis.algorithm.MPOR.porConcat = false
+analysis.algorithm.MPOR.porConcat = true
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays? may slow down or improve verification depending on the verifier and
 # input program
-analysis.algorithm.MPOR.scalarPc = false
+analysis.algorithm.MPOR.scalarPc = true
 
 # include additional reach_error marking sequentialization locations only
 # reachable when transformation is erroneous?
 analysis.algorithm.MPOR.sequentializationErrors = false
 
 # use shortened variable names? e.g. THREAD0 -> T0
-analysis.algorithm.MPOR.shortVariables = false
+analysis.algorithm.MPOR.shortVariables = true
 
 # use signed __VERIFIER_nondet_int() instead of unsigned
 # __VERIFIER_nondet_uint()? may slow down or improve verification depending
@@ -314,11 +314,11 @@ analysis.algorithm.MPOR.signedNondet = false
 # use thread modular loops to reduce the amount of evaluated assume
 # expressions? may slow down or improve verification depending on the
 # verifier and input program
-analysis.algorithm.MPOR.threadLoops = true
+analysis.algorithm.MPOR.threadLoops = false
 
 # use the next_thread variable when choosing the thread loop to execute? may
 # slow down or improve verification  depending on the verifier
-analysis.algorithm.MPOR.threadLoopsNext = true
+analysis.algorithm.MPOR.threadLoopsNext = false
 
 # test if CPAchecker can parse sequentialization? true -> less efficient, but
 # more correctness guarantees

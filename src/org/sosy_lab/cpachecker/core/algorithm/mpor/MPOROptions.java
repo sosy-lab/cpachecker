@@ -14,7 +14,9 @@ import com.google.common.collect.ImmutableSet;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 
@@ -175,5 +177,27 @@ public class MPOROptions {
       }
     }
     return true;
+  }
+
+  /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
+  protected void handleOptionWarnings(LogManager pLogger) {
+    if (!porConcat && porBitVector) {
+      pLogger.log(
+          Level.WARNING,
+          "WARNING: POR bit vectors are only created with porConcat enabled. Either enable"
+              + " porConcat or disable porBitVector.");
+    }
+    if (!porBitVector && !porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE)) {
+      pLogger.log(
+          Level.WARNING,
+          "WARNING: porBitVectorEncoding is not NONE, but porBitVector is disabled. Either"
+              + " disable porBitVector or set porBitVectorEncoding to NONE.");
+    }
+    if (!threadLoops && threadLoopsNext) {
+      pLogger.log(
+          Level.WARNING,
+          "WARNING: threadLoopsNext is only considered with threadLoops enabled. Either enable"
+              + "threadLoops or disable threadLoopsNext.");
+    }
   }
 }

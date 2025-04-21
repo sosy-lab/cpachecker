@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
-import java.util.logging.Level;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -102,7 +101,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "add partial order reduction (grouping commuting statements) in the sequentialization"
               + " to reduce the state space?")
-  private boolean porConcat = false;
+  private boolean porConcat = true;
 
   // TODO bit vector format option: binary - hex - scalar
   @Option(
@@ -114,7 +113,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       description =
           "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
-  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.HEXADECIMAL;
+  // using optional for @Options is not allowed, unfortunately...
+  private SeqBitVectorEncoding porBitVectorEncoding = SeqBitVectorEncoding.NONE;
 
   @Option(
       secure = true,
@@ -122,7 +122,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "use separate int values (scalars) for tracking thread pcs instead of"
               + " int arrays? may slow down or improve verification depending on the verifier and"
               + " input program")
-  private boolean scalarPc = false;
+  private boolean scalarPc = true;
 
   @Option(
       description =
@@ -131,7 +131,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean sequentializationErrors = false;
 
   @Option(secure = true, description = "use shortened variable names? e.g. THREAD0 -> T0")
-  private boolean shortVariables = false;
+  private boolean shortVariables = true;
 
   @Option(
       secure = true,
@@ -147,14 +147,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "use thread modular loops to reduce the amount of evaluated assume expressions?"
               + " may slow down or improve verification"
               + " depending on the verifier and input program")
-  private boolean threadLoops = true;
+  private boolean threadLoops = false;
 
   @Option(
       secure = true,
       description =
           "use the next_thread variable when choosing the thread loop to execute? may slow down or"
               + " improve verification  depending on the verifier")
-  private boolean threadLoopsNext = true;
+  private boolean threadLoopsNext = false;
 
   @Option(
       description =
@@ -268,9 +268,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
-    handleOptionWarnings();
-
-    InputRejection.handleRejections(logger, inputCfa);
+    InputRejection.handleRejections(logger, options, inputCfa);
+    options.handleOptionWarnings(logger);
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
@@ -293,7 +292,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = null;
     inputCfa = pInputCfa;
 
-    InputRejection.handleRejections(logger, inputCfa);
+    InputRejection.handleRejections(logger, options, inputCfa);
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
@@ -311,15 +310,5 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
 
     return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
-  }
-
-  /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
-  private void handleOptionWarnings() {
-    if (!options.porConcat && options.porBitVector) {
-      logger.log(
-          Level.WARNING,
-          "WARNING: POR bit vectors are only created with porConcat enabled. Either enable"
-              + " porConcat or disable porBitVector.");
-    }
   }
 }
