@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -119,7 +118,6 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
-    logger.log(Level.INFO, "[handleFunctionReturnEdge] edge: " + summaryExpr);
 
     //map tmp name and function name
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
@@ -131,7 +129,6 @@ public class UnseqBehaviorAnalysisTransferRelation
         String funName = rhs.getDeclaration().getName();
 
         state.mapTmpToFunction(tmpName, funName);
-        logger.log(Level.INFO, String.format("[handleFunctionReturnEdge] Mapped TMP: %s → Function: %s", tmpName,funName));
       }
     }
 
@@ -143,6 +140,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
     newState.setFunctionCalled(false);
+    newState.setCalledFunctionName(null);
     // TODO: detect unseq behavior in return statement
     return newState;
   }
@@ -168,7 +166,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       UnseqBehaviorAnalysisState pstate
   ) throws UnrecognizedCodeException {
     String funName = pstate.getCalledFunctionName();
-    if (funName != null && !pstate.getSideEffectsInFun().containsKey(funName)) {
+    if (funName != null) {
       SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pstate, edge, accessType, logger);
       Set<SideEffectInfo> effects = expr.accept(visitor);
       pstate.addSideEffectsToFunction(funName, effects);
@@ -195,6 +193,7 @@ public class UnseqBehaviorAnalysisTransferRelation
         pState.addConflicts(conflicts);
       }
     }
+    pState.clearTmpMappings();
   }
 
   private Set<ConflictPair> getUnsequencedConflicts(
@@ -218,32 +217,36 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   private Set<SideEffectInfo> resolveSideEffectsFromExpr(CExpression expr, UnseqBehaviorAnalysisState pState, CFAEdge pCFAEdge) {
+    Set<SideEffectInfo> result = new HashSet<>();
+
     if (expr instanceof CIdExpression idExpr) {
       String tmp = idExpr.getName();
       String fun = pState.getFunctionForTmp(tmp);
 
       if (fun != null) {
         Set<SideEffectInfo> effects = pState.getSideEffectsInFun().getOrDefault(fun, Set.of());
-
-        logger.log(
-            Level.INFO,
-            String.format(
-                "[resolveSideEffects] TMP: %s → Function: %s → SideEffects: %d → %s",
-                tmp, fun, effects.size(), effects
-            )
-        );
-
-        pState.removeTmpMapping(tmp);
-        return effects;
+        logger.log(Level.INFO, String.format(
+            "[resolveSideEffects] TMP: %s → Function: %s → SideEffects: %d → %s",
+            tmp, fun, effects.size(), effects
+        ));
+        result.addAll(effects);
+        return result;
       }
     }
 
+
     try {
-      SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pState, pCFAEdge, SideEffectInfo.AccessType.READ, logger);
-      return expr.accept(visitor);
+      SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pState, pCFAEdge, AccessType.READ, logger);
+      result.addAll(expr.accept(visitor));
     } catch (Exception e) {
-      return Set.of();
+      logger.log(Level.WARNING, "[resolveSideEffects] Exception while visiting expr: " + expr.toASTString(), e);
     }
+
+    logger.log(Level.INFO, String.format(
+        "[resolveSideEffects] Final side effects for expr: %s → %s",
+        expr.toASTString(), result));
+    return result;
   }
+
 
 }

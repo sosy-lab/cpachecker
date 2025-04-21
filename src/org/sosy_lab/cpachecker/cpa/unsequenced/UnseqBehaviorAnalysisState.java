@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -88,8 +89,8 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     return tmpNameFunNameMap.get(tmpVar);
   }
 
-  public void removeTmpMapping(String tmpVar) {
-    tmpNameFunNameMap.remove(tmpVar);
+  public void clearTmpMappings() {
+    tmpNameFunNameMap.clear();
   }
 
   @Override
@@ -126,8 +127,7 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     for (ConflictPair conflict : detectedConflicts) {
       CFAEdge edge = conflict.getLocation();
       String stmt = edge.getRawStatement();
-      String file = edge.getFileLocation().getNiceFileName();
-      int line = edge.getLineNumber();
+      int line = edge.getFileLocation().getStartingLineInOrigin();
 
       String accessA = conflict.getAccessA().toStringSimple();
       String accessB = conflict.getAccessB().toStringSimple();
@@ -139,8 +139,8 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
       }
 
       sb.append(String.format(
-          "[%s, %s:%d, %s, %s]",
-          stmt, file, line, accessA, accessB));
+          "[%s, line: %d, %s, %s]",
+          stmt, line, accessA, accessB));
     }
 
     sb.append("]");
@@ -182,6 +182,6 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
 
   @Override
   public boolean shouldBeHighlighted() {
-    return !detectedConflicts.isEmpty();
+    return false;
   }
 }

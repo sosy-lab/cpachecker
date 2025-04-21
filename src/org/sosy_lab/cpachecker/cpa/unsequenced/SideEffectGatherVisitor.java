@@ -57,6 +57,25 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Set<SideE
   @Override
   public Set<SideEffectInfo> visit(CIdExpression idExpr) {
     Set<SideEffectInfo> sideEffects = new HashSet<>();
+
+    String varName = idExpr.getName();
+
+    //TMP variable → side effects inside corresponding function
+    if (varName.startsWith("__CPAchecker_TMP_")) {
+      String funName = state.getFunctionForTmp(varName);
+      if (funName != null) {
+        Set<SideEffectInfo> tmpEffects = state.getSideEffectsInFun().getOrDefault(funName, Set.of());
+
+        logger.log(Level.INFO, String.format(
+            "[SideEffectVisitor] TMP: %s → Function: %s → SideEffects: %d → %s",
+            varName, funName, tmpEffects.size(), tmpEffects));
+
+        sideEffects.addAll(tmpEffects);
+        return sideEffects;
+      }
+    }
+
+
     // Variable access: record as READ/WRITE if global
     if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
       String qualifiedName = decl.getQualifiedName();
@@ -64,7 +83,6 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Set<SideE
       if (!loc.isOnFunctionStack()) {
           SideEffectInfo sideEffectInfo =  new SideEffectInfo(loc, accessType, cfaEdge);
           sideEffects.add(sideEffectInfo);
-
         logger.log(
             Level.INFO,
             String.format("Detected global %s access at %s: %s",

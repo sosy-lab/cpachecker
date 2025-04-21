@@ -67,20 +67,18 @@ public class SideEffectInfo {
   @Override
   public String toString() {
     return String.format(
-        "%s@%s [%s] at %s:%d:%d",
+        "%s@%s at %s (line %d, col %d)",
         memoryLocation.getExtendedQualifiedName(),
         accessType,
-        cfaEdge.getRawStatement(),
         cfaEdge.getFileLocation().getNiceFileName(),
-        cfaEdge.getLineNumber(),
+        cfaEdge.getFileLocation().getStartingLineInOrigin(),
         cfaEdge.getFileLocation().getStartColumnInLine());
   }
-
   public String toStringSimple() {
-    String varName = memoryLocation.getExtendedQualifiedName();
-    String access = accessType.toString();
-    int line = cfaEdge.getLineNumber();
-
-    return String.format("%s@%s:line %d", varName, access, line);
+    return String.format(
+        "%s@%s:line %d",
+        memoryLocation.getExtendedQualifiedName(),
+        accessType,
+        cfaEdge.getFileLocation().getStartingLineInOrigin());
   }
 }
