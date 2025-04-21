@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -41,7 +42,7 @@ class BitVectorInjector {
   protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> inject(
       MPOROptions pOptions,
       BitVectorVariables pBitVectors,
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -66,7 +67,7 @@ class BitVectorInjector {
           injectBitVectors(
               pOptions,
               entry.getKey(),
-              pGlobalVariableIds,
+              pBitVectorGlobalVariables,
               pBitVectors,
               entry.getValue(),
               bitVectorEvaluation,
@@ -78,7 +79,7 @@ class BitVectorInjector {
   private static ImmutableList<SeqCaseClause> injectBitVectors(
       MPOROptions pOptions,
       MPORThread pThread,
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
       CBinaryExpression pBitVectorEvaluation,
@@ -97,7 +98,7 @@ class BitVectorInjector {
                 pBitVectorEvaluation,
                 pSwitchLabel,
                 statement,
-                pGlobalVariableIds,
+                pBitVectorGlobalVariables,
                 pBitVectorVariables,
                 labelValueMap));
       }
@@ -112,7 +113,7 @@ class BitVectorInjector {
       final CBinaryExpression pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
-      final ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      final ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       final BitVectorVariables pBitVectorVariables,
       final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
 
@@ -129,7 +130,7 @@ class BitVectorInjector {
                   pBitVectorEvaluation,
                   pSwitchLabel,
                   concatStatement,
-                  pGlobalVariableIds,
+                  pBitVectorGlobalVariables,
                   pBitVectorVariables,
                   pLabelValueMap));
         }
@@ -144,7 +145,7 @@ class BitVectorInjector {
         // for the exit pc, reset the bit vector to just 0s
         CIdExpression bitVector = pBitVectorVariables.get(pThread);
         newInjected.addAll(pCurrentStatement.getInjectedStatements());
-        int binaryLength = BitVectorUtil.getBinaryLength(pGlobalVariableIds.size());
+        int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorGlobalVariables.size());
         newInjected.add(
             new SeqBitVectorAssignment(
                 bitVector, BitVectorUtil.createZeroBitVector(pOptions, binaryLength)));
@@ -156,7 +157,7 @@ class BitVectorInjector {
         CIdExpression bitVectorVariable = pBitVectorVariables.get(pThread);
         newInjected.addAll(pCurrentStatement.getInjectedStatements());
         SeqBitVector bitVector =
-            BitVectorUtil.createBitVector(pOptions, pGlobalVariableIds, globalVariables);
+            BitVectorUtil.createBitVector(pOptions, pBitVectorGlobalVariables, globalVariables);
         newInjected.add(new SeqBitVectorAssignment(bitVectorVariable, bitVector));
         // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
         if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {

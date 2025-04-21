@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorType;
@@ -108,7 +109,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<CIdExpression> pUpdatedVariables,
       int pNumThreads,
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
       BitVectorVariables pBitVectorVariables,
@@ -132,7 +133,7 @@ public class SeqMainFunction extends SeqFunction {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
 
     bitVectorDeclarations =
-        createBitVectorDeclarations(pBitVectorVariables, pGlobalVariableIds, pCaseClauses);
+        createBitVectorDeclarations(pBitVectorVariables, pAllGlobalVariables, pCaseClauses);
     pcDeclarations = createPcDeclarations(pNumThreads, pOptions.scalarPc);
 
     nextThreadAssignment = buildNextThreadAssignment(pOptions.signedNondet);
@@ -143,10 +144,10 @@ public class SeqMainFunction extends SeqFunction {
 
   private ImmutableList<SeqBitVectorDeclaration> createBitVectorDeclarations(
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
+      ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    int binaryLength = BitVectorUtil.getBinaryLength(pGlobalVariableIds.size());
+    int binaryLength = BitVectorUtil.getBinaryLength(pAllGlobalVariables.size());
     SeqBitVectorType type = BitVectorUtil.getTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (var entry : pBitVectorVariables.bitVectors.entrySet()) {
@@ -154,7 +155,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(firstCase);
       SeqBitVector bitVector =
-          BitVectorUtil.createBitVector(options, pGlobalVariableIds, firstCaseGlobalVariables);
+          BitVectorUtil.createBitVector(options, pAllGlobalVariables, firstCaseGlobalVariables);
       SeqBitVectorDeclaration declaration =
           new SeqBitVectorDeclaration(type, entry.getValue(), bitVector);
       rDeclarations.add(declaration);

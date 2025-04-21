@@ -11,16 +11,23 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBinaryBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.SeqHexadecimalBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorUtil {
 
@@ -36,24 +43,29 @@ public class BitVectorUtil {
     return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pLength, ImmutableSet.of());
   }
 
-  public static <T> SeqBitVector createBitVector(
+  public static SeqBitVector createBitVector(
       MPOROptions pOptions,
-      @NonNull ImmutableMap<T, Integer> pIndices,
-      @NonNull ImmutableList<T> pVariables) {
+      @NonNull ImmutableList<BitVectorGlobalVariable> pAllVariables,
+      @NonNull ImmutableList<CVariableDeclaration> pAccessedVariables) {
 
     checkArgument(
         !pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.NONE),
         "no bit vector encoding specified");
-    checkArgument(
-        pIndices.keySet().containsAll(pVariables), "pIndices must contain all pVariables as keys.");
-
-    // retrieve all variable ids from pIndices that are in the set pVariables
-    final ImmutableSet<Integer> setBits =
-        pIndices.entrySet().stream()
-            .filter(entry -> pVariables.contains(entry.getKey()))
-            .map(Entry::getValue)
+    ImmutableSet<CVariableDeclaration> allVariables =
+        pAllVariables.stream()
+            .map(BitVectorGlobalVariable::getDeclaration)
             .collect(ImmutableSet.toImmutableSet());
-    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pIndices.size(), setBits);
+    checkArgument(
+        allVariables.containsAll(pAccessedVariables),
+        "pAllVariables must contain all pAccessedVariables as keys.");
+
+    // retrieve all variable ids from pAllVariables that are in pAccessedVariables
+    final ImmutableSet<Integer> setBits =
+        pAllVariables.stream()
+            .filter(variable -> pAccessedVariables.contains(variable.getDeclaration()))
+            .map(BitVectorGlobalVariable::getId)
+            .collect(ImmutableSet.toImmutableSet());
+    return createBitVectorByEncoding(pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);
   }
 
   private static SeqBitVector createBitVectorByEncoding(
@@ -110,6 +122,21 @@ public class BitVectorUtil {
       }
     }
     return false;
+  }
+
+  // Scalar ========================================================================================
+
+  public static CIdExpression createScalarAccessVariable(
+      MPOROptions pOptions, MPORThread pThread, CVariableDeclaration pVariableDeclaration) {
+    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    String name =
+        SeqNameUtil.buildBitVectorScalarAccessVariableName(
+            pOptions, pThread.id, pVariableDeclaration);
+    // TODO initializer? would be best to adjust to 0/1 directly here, if possible
+    CSimpleDeclaration declaration =
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
+    return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 
   // Helpers =======================================================================================

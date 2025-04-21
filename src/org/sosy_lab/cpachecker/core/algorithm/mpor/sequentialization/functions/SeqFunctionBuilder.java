@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -20,7 +22,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -48,8 +53,9 @@ public class SeqFunctionBuilder {
     // collect all global variables accessed in substitute edges, and assign unique ids
     ImmutableList<CVariableDeclaration> allGlobalVariables =
         SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
-    ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
-        assignGlobalVariableIds(allGlobalVariables);
+    ImmutableList<BitVectorGlobalVariable> bitVectorGlobalVariables =
+        createBitVectorGlobalVariables(
+            pOptions, SubstituteUtil.extractThreads(pSubstitutions), allGlobalVariables);
     // create case clauses in main method
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
         SeqCaseClauseBuilder.buildCaseClauses(
@@ -57,7 +63,7 @@ public class SeqFunctionBuilder {
             updatedVariables,
             pSubstitutions,
             pSubstituteEdges,
-            globalVariableIds,
+            bitVectorGlobalVariables,
             pBitVectorVariables,
             pPcVariables,
             pThreadSimulationVariables,
@@ -71,7 +77,7 @@ public class SeqFunctionBuilder {
         pOptions,
         updatedVariables.build(),
         pSubstitutions.size(),
-        globalVariableIds,
+        bitVectorGlobalVariables,
         threadSimulationAssumptions,
         caseClauses,
         pBitVectorVariables,
@@ -79,15 +85,36 @@ public class SeqFunctionBuilder {
         pBinaryExpressionBuilder);
   }
 
-  private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
-      ImmutableList<CVariableDeclaration> pGlobalVariables) {
+  private static ImmutableList<BitVectorGlobalVariable> createBitVectorGlobalVariables(
+      MPOROptions pOptions,
+      ImmutableSet<MPORThread> pThreads,
+      ImmutableList<CVariableDeclaration> pGlobalVariableDeclaration) {
 
-    ImmutableMap.Builder<CVariableDeclaration, Integer> rIds = ImmutableMap.builder();
+    ImmutableList.Builder<BitVectorGlobalVariable> rVariables = ImmutableList.builder();
     int id = 0;
-    for (CVariableDeclaration variable : pGlobalVariables) {
-      assert variable.isGlobal();
-      rIds.put(variable, id++);
+    for (CVariableDeclaration variableDeclaration : pGlobalVariableDeclaration) {
+      assert variableDeclaration.isGlobal();
+      BitVectorGlobalVariable globalVariable =
+          new BitVectorGlobalVariable(
+              id++,
+              variableDeclaration,
+              pOptions.porBitVectorEncoding.equals(SeqBitVectorEncoding.SCALAR)
+                  ? Optional.of(createAccessVariables(pOptions, pThreads, variableDeclaration))
+                  : Optional.empty());
+      rVariables.add(globalVariable);
     }
-    return rIds.buildOrThrow();
+    return rVariables.build();
+  }
+
+  private static ImmutableMap<MPORThread, CIdExpression> createAccessVariables(
+      MPOROptions pOptions,
+      ImmutableSet<MPORThread> pThreads,
+      CVariableDeclaration pVariableDeclaration) {
+    ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
+    for (MPORThread thread : pThreads) {
+      rAccessVariables.put(
+          thread, BitVectorUtil.createScalarAccessVariable(pOptions, thread, pVariableDeclaration));
+    }
+    return rAccessVariables.buildOrThrow();
   }
 }

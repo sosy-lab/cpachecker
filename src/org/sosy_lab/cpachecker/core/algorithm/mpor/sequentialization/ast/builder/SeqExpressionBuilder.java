@@ -177,8 +177,8 @@ public class SeqExpressionBuilder {
     return new CIdExpression(FileLocation.DUMMY, varDec);
   }
 
-  public static CIdExpression buildIdExpression(CSimpleDeclaration pDec) {
-    return new CIdExpression(FileLocation.DUMMY, pDec);
+  public static CIdExpression buildIdExpression(CSimpleDeclaration pDeclaration) {
+    return new CIdExpression(FileLocation.DUMMY, pDeclaration);
   }
 
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {

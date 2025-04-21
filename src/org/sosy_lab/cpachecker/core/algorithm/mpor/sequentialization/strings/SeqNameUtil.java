@@ -122,6 +122,19 @@ public class SeqNameUtil {
         : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR;
   }
 
+  public static String buildBitVectorScalarAccessVariableName(
+      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+
+    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    String variableName = pVariableDeclaration.getName();
+    return pOptions.shortVariables
+        ? SeqToken.b + pThreadId + variableName
+        : buildThreadPrefix(pOptions, pThreadId)
+            + SeqToken.BIT_VECTOR
+            + SeqSyntax.UNDERSCORE
+            + variableName;
+  }
+
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
     return (pOptions.shortVariables ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
