@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -58,7 +57,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
-    Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
+    ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       rArrayPc.add(buildPcSubscriptExpression(buildIntegerLiteralExpression(i)));
     }
@@ -139,7 +138,7 @@ public class SeqExpressionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Builder<CExpression> orVariableExpression = ImmutableList.builder();
+    ImmutableList.Builder<CExpression> orVariableExpression = ImmutableList.builder();
 
     for (BitVectorGlobalVariable bitVectorGlobalVariable : pAllGlobalVariables) {
       assert bitVectorGlobalVariable.accessVariables.isPresent() : "no access variables present";
@@ -259,7 +258,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
-    Builder<CIdExpression> rScalarPc = ImmutableList.builder();
+    ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
       rScalarPc.add(
