@@ -13,8 +13,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
@@ -81,6 +79,10 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     isFunctionCalled = pFunctionCalled;
   }
 
+  public Map<String, String> getTmpNameFunNameMap() {
+    return tmpNameFunNameMap;
+  }
+
   public void mapTmpToFunction(String tmpVar, String functionName) {
     tmpNameFunNameMap.put(tmpVar, functionName);
   }
@@ -125,59 +127,21 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
 
     boolean first = true;
     for (ConflictPair conflict : detectedConflicts) {
-      CFAEdge edge = conflict.getLocation();
-      String stmt = edge.getRawStatement();
-      int line = edge.getFileLocation().getStartingLineInOrigin();
-
-      String accessA = conflict.getAccessA().toStringSimple();
-      String accessB = conflict.getAccessB().toStringSimple();
-
       if (!first) {
         sb.append(", ");
       } else {
         first = false;
       }
-
-      sb.append(String.format(
-          "[%s, line: %d, %s, %s]",
-          stmt, line, accessA, accessB));
+      sb.append(conflict);
     }
 
     sb.append("]");
     return sb.toString();
   }
-
-  public String printSideEffectsInFun() {
-    if (sideEffectsInFun.isEmpty()) {
-      return "SideEffectsInFun[]";
-    }
-
-    StringBuilder sb = new StringBuilder();
-    sb.append("SideEffectsInFun[");
-
-    boolean firstEffect = true;
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : sideEffectsInFun.entrySet()) {
-      String functionName = entry.getKey();
-      for (SideEffectInfo effect : entry.getValue()) {
-        if (!firstEffect) {
-          sb.append(", ");
-        } else {
-          firstEffect = false;
-        }
-
-        sb.append("[").append(functionName).append(": ").append(effect.toStringSimple()).append("]");
-      }
-    }
-
-    sb.append("]");
-    return sb.toString();
-  }
-
 
   @Override
   public String toDOTLabel() {
-    return printConflict() +
-        printSideEffectsInFun();
+    return printConflict();
   }
 
   @Override

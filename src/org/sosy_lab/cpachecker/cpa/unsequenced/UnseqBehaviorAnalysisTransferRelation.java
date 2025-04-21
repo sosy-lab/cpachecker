@@ -188,7 +188,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       Set<SideEffectInfo> leftEffects = resolveSideEffectsFromExpr(left, pState, pCFAEdge);
       Set<SideEffectInfo> rightEffects = resolveSideEffectsFromExpr(right, pState, pCFAEdge);
 
-      Set<ConflictPair> conflicts = getUnsequencedConflicts(leftEffects, rightEffects, pCFAEdge);
+      Set<ConflictPair> conflicts = getUnsequencedConflicts(leftEffects, rightEffects, pCFAEdge, left, right);
       if (!conflicts.isEmpty()) {
         pState.addConflicts(conflicts);
       }
@@ -199,12 +199,27 @@ public class UnseqBehaviorAnalysisTransferRelation
   private Set<ConflictPair> getUnsequencedConflicts(
       Set<SideEffectInfo> op1Effects,
       Set<SideEffectInfo> op2Effects,
-      CFAEdge location) {
+      CFAEdge location,
+      CExpression op1Expr,
+      CExpression op2Expr) {
+
+    TmpReplacingToStringVisitor visitor = new TmpReplacingToStringVisitor(state.getTmpNameFunNameMap());
+
+    String exprStrA, exprStrB;
+
+    try {
+      exprStrA = op1Expr.accept(visitor);
+      exprStrB = op2Expr.accept(visitor);
+    } catch (Exception e) {
+      exprStrA = op1Expr.toASTString();
+      exprStrB = op2Expr.toASTString();
+    }
+
     Set<ConflictPair> result = new HashSet<>();
     for (SideEffectInfo s1 : op1Effects) {
       for (SideEffectInfo s2 : op2Effects) {
         if (conflictOnSameLocation(s1, s2)) {
-          result.add(new ConflictPair(s1, s2, location));
+          result.add(new ConflictPair(s1, s2, location, exprStrA, exprStrB));
         }
       }
     }
@@ -233,7 +248,6 @@ public class UnseqBehaviorAnalysisTransferRelation
         return result;
       }
     }
-
 
     try {
       SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pState, pCFAEdge, AccessType.READ, logger);

@@ -61,7 +61,7 @@ public class SideEffectGatherVisitor extends DefaultCExpressionVisitor<Set<SideE
     String varName = idExpr.getName();
 
     //TMP variable → side effects inside corresponding function
-    if (varName.startsWith("__CPAchecker_TMP_")) {
+    if (state.getTmpNameFunNameMap().containsKey(varName)) {
       String funName = state.getFunctionForTmp(varName);
       if (funName != null) {
         Set<SideEffectInfo> tmpEffects = state.getSideEffectsInFun().getOrDefault(funName, Set.of());
