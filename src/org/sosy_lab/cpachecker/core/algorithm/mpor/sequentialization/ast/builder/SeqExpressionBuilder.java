@@ -41,9 +41,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalOrExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -161,13 +162,13 @@ public class SeqExpressionBuilder {
               .filter(v -> !v.equals(activeVariable))
               .map(CToSeqExpression::new)
               .collect(ImmutableList.toImmutableList());
-      SeqExpression rightHandSide = nestLogicalOrExpressions(otherVariables);
+      SeqExpression rightHandSide = nestLogicalExpressions(otherVariables, SeqLogicalOperator.OR);
       SeqLogicalAndExpression andExpression =
           new SeqLogicalAndExpression(new CToSeqExpression(activeVariable), rightHandSide);
       variableExpressions.add(andExpression);
     }
 
-    return nestLogicalOrExpressions(variableExpressions.build());
+    return nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR);
   }
 
   private static CExpression nestBinaryExpressions(
@@ -187,15 +188,17 @@ public class SeqExpressionBuilder {
     return rNested;
   }
 
-  private static SeqExpression nestLogicalOrExpressions(
-      ImmutableCollection<SeqExpression> pAllExpressions) throws UnrecognizedCodeException {
+  private static SeqExpression nestLogicalExpressions(
+      ImmutableCollection<SeqExpression> pAllExpressions, SeqLogicalOperator pLogicalOperator) {
 
     checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
 
     SeqExpression rNested = pAllExpressions.iterator().next();
     for (SeqExpression next : pAllExpressions) {
       if (!next.equals(rNested)) {
-        rNested = new SeqLogicalOrExpression(rNested, next);
+        rNested =
+            SeqLogicalExpressionBuilder.buildBinaryLogicalExpressionByOperator(
+                pLogicalOperator, rNested, next);
       }
     }
     return rNested;

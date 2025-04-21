@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-// TODO try and replace with ExpressionTree Or.of etc.
-public class SeqLogicalOrExpression implements SeqExpression {
+public class SeqLogicalOrExpression implements SeqLogicalExpression {
 
   private final Optional<CExpression> operand1;
 
@@ -55,9 +55,14 @@ public class SeqLogicalOrExpression implements SeqExpression {
     return SeqSyntax.BRACKET_LEFT
         + expression1
         + SeqSyntax.SPACE
-        + SeqSyntax.LOGICAL_OR
+        + getOperator().toString()
         + SeqSyntax.SPACE
         + expression2
         + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  @Override
+  public SeqLogicalOperator getOperator() {
+    return SeqLogicalOperator.OR;
   }
 }

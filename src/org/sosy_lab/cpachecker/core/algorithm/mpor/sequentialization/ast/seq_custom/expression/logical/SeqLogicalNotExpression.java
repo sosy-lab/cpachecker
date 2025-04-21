@@ -6,13 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqLogicalNotExpression implements SeqExpression {
+public class SeqLogicalNotExpression implements SeqLogicalExpression {
 
   private final Optional<CExpression> operand;
 
@@ -40,6 +41,11 @@ public class SeqLogicalNotExpression implements SeqExpression {
       throw new IllegalArgumentException(
           "either CExpression or SeqExpression operand must be present");
     }
-    return SeqSyntax.LOGICAL_NOT + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
+    return getOperator().toString() + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  @Override
+  public SeqLogicalOperator getOperator() {
+    return SeqLogicalOperator.NOT;
   }
 }
