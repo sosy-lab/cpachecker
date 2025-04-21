@@ -41,7 +41,7 @@ public class SeqLogicalNotExpression implements SeqLogicalExpression {
       throw new IllegalArgumentException(
           "either CExpression or SeqExpression operand must be present");
     }
-    return getOperator().toString() + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
+    return getOperator() + SeqSyntax.BRACKET_LEFT + expression + SeqSyntax.BRACKET_RIGHT;
   }
 
   @Override

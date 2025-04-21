@@ -55,7 +55,7 @@ public class SeqLogicalOrExpression implements SeqLogicalExpression {
     return SeqSyntax.BRACKET_LEFT
         + expression1
         + SeqSyntax.SPACE
-        + getOperator().toString()
+        + getOperator()
         + SeqSyntax.SPACE
         + expression2
         + SeqSyntax.BRACKET_RIGHT;
