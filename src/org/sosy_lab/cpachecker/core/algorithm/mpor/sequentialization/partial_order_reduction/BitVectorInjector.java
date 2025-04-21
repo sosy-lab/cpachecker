@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -20,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
@@ -52,7 +52,7 @@ class BitVectorInjector {
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      CBinaryExpression bitVectorEvaluation =
+      BitVectorEvaluationExpression bitVectorEvaluation =
           SeqExpressionBuilder.buildBitVectorEvaluationByEncoding(
               pOptions.porBitVectorEncoding,
               thread,
@@ -82,7 +82,7 @@ class BitVectorInjector {
       ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
-      CBinaryExpression pBitVectorEvaluation,
+      BitVectorEvaluationExpression pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
@@ -110,7 +110,7 @@ class BitVectorInjector {
   private static SeqCaseBlockStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
-      final CBinaryExpression pBitVectorEvaluation,
+      final BitVectorEvaluationExpression pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
       final ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
@@ -211,7 +211,7 @@ class BitVectorInjector {
   private static Optional<SeqBitVectorEvaluationStatement> buildBitVectorEvaluationStatements(
       SeqCaseBlockStatement pCurrentStatement,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
-      CBinaryExpression pBitVectorEvaluation,
+      BitVectorEvaluationExpression pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
