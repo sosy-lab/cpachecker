@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -24,16 +23,12 @@ public class HexadecimalBitVectorExpression implements BitVectorExpression {
 
   private final ImmutableSet<Integer> setBits;
 
-  public HexadecimalBitVectorExpression(
-      int pHexLength, ImmutableSet<BitVectorGlobalVariable> pSetBits) {
-    ImmutableSet<Integer> intBits =
-        pSetBits.stream()
-            .map(BitVectorGlobalVariable::getId)
-            .collect(ImmutableSet.toImmutableSet());
+  public HexadecimalBitVectorExpression(int pHexLength, ImmutableSet<Integer> pSetBits) {
     // we still use the max binary length here, because setBits represents the binary positions
-    checkArgument(pSetBits.isEmpty() || Collections.max(intBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    checkArgument(
+        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
     hexLength = pHexLength;
-    setBits = intBits;
+    setBits = pSetBits;
   }
 
   @Override

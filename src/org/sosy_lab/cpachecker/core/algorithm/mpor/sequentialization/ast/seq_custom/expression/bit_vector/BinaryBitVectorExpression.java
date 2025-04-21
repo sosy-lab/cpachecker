@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -23,14 +22,11 @@ public class BinaryBitVectorExpression implements BitVectorExpression {
 
   private final ImmutableSet<Integer> setBits;
 
-  public BinaryBitVectorExpression(int pLength, ImmutableSet<BitVectorGlobalVariable> pSetBits) {
-    ImmutableSet<Integer> intBits =
-        pSetBits.stream()
-            .map(BitVectorGlobalVariable::getId)
-            .collect(ImmutableSet.toImmutableSet());
-    checkArgument(pSetBits.isEmpty() || Collections.max(intBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+  public BinaryBitVectorExpression(int pLength, ImmutableSet<Integer> pSetBits) {
+    checkArgument(
+        pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
     bitLength = pLength;
-    setBits = intBits;
+    setBits = pSetBits;
   }
 
   @Override

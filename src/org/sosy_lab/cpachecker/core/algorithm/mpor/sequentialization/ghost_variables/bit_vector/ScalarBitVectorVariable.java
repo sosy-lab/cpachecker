@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class BitVectorGlobalVariable {
+public class ScalarBitVectorVariable {
 
   private final int id;
 
@@ -22,7 +22,7 @@ public class BitVectorGlobalVariable {
 
   public final Optional<ImmutableMap<MPORThread, CIdExpression>> accessVariables;
 
-  public BitVectorGlobalVariable(
+  public ScalarBitVectorVariable(
       int pId,
       CVariableDeclaration pDeclaration,
       Optional<ImmutableMap<MPORThread, CIdExpression>> pAccessVariable) {

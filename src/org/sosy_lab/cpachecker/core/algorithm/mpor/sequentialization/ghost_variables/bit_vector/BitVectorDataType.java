@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public enum SeqBitVectorType {
+public enum BitVectorDataType {
   __UINT8_T(8, SeqSimpleType.UNSIGNED_CHAR),
   __UINT16_T(16, SeqSimpleType.UNSIGNED_SHORT_INT),
   __UINT32_T(32, SeqSimpleType.UNSIGNED_INT),
@@ -24,7 +24,7 @@ public enum SeqBitVectorType {
   public final int size;
   public final CSimpleType simpleType;
 
-  SeqBitVectorType(int pSize, CSimpleType pSimpleType) {
+  BitVectorDataType(int pSize, CSimpleType pSimpleType) {
     size = pSize;
     simpleType = pSimpleType;
   }

@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.S
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqFunctionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqMainFunction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqReachErrorFunction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SeqBitVectorType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -44,7 +44,7 @@ public class LineOfCodeUtil {
 
   public static ImmutableList<LineOfCode> buildBitVectorTypeDeclarations() {
     ImmutableList.Builder<LineOfCode> rBitVectorTypeDeclarations = ImmutableList.builder();
-    for (SeqBitVectorType bitVectorType : SeqBitVectorType.values()) {
+    for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
       CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
       rBitVectorTypeDeclarations.add(LineOfCode.of(0, bitVectorTypeDeclaration.toASTString()));
     }

@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -102,7 +102,6 @@ public class SeqExpressionBuilder {
       BitVectorEncoding pEncoding,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -121,7 +120,7 @@ public class SeqExpressionBuilder {
       }
       case SCALAR -> {
         SeqExpression seqExpression =
-            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorGlobalVariables);
+            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables.scalarBitVectors);
         yield new BitVectorEvaluationExpression(Optional.empty(), Optional.of(seqExpression));
       }
     };
@@ -144,12 +143,11 @@ public class SeqExpressionBuilder {
   }
 
   private static SeqExpression buildScalarBitVectorEvaluation(
-      MPORThread pActiveThread, ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables)
-      throws UnrecognizedCodeException {
+      MPORThread pActiveThread, ImmutableList<ScalarBitVectorVariable> pAllGlobalVariables) {
 
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
 
-    for (BitVectorGlobalVariable bitVectorGlobalVariable : pAllGlobalVariables) {
+    for (ScalarBitVectorVariable bitVectorGlobalVariable : pAllGlobalVariables) {
       assert bitVectorGlobalVariable.accessVariables.isPresent() : "no access variables present";
       ImmutableMap<MPORThread, CIdExpression> accessVariables =
           bitVectorGlobalVariable.accessVariables.orElseThrow();

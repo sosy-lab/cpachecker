@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorGlobalVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -55,7 +54,6 @@ public class SeqCaseClauseBuilder {
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      ImmutableList<BitVectorGlobalVariable> pBitVectorGlobalVariables,
       BitVectorVariables pBitVectorVariables,
       PcVariables pPcVariables,
       ThreadSimulationVariables pThreadSimulationVariables,
@@ -74,7 +72,6 @@ public class SeqCaseClauseBuilder {
         PartialOrderReducer.reduce(
             pOptions,
             pUpdatedVariables,
-            pBitVectorGlobalVariables,
             pBitVectorVariables,
             prunedCases,
             pBinaryExpressionBuilder);

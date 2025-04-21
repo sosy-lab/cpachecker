@@ -31,13 +31,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorUtil {
 
-  public static final int MIN_BINARY_LENGTH = SeqBitVectorType.__UINT8_T.size;
-  public static final int MAX_BINARY_LENGTH = SeqBitVectorType.__UINT64_T.size;
+  public static final int MIN_BINARY_LENGTH = BitVectorDataType.__UINT8_T.size;
+  public static final int MAX_BINARY_LENGTH = BitVectorDataType.__UINT64_T.size;
 
   // Creation ======================================================================================
 
   public static BitVectorExpression buildZeroBitVector(
-      MPOROptions pOptions, ImmutableList<BitVectorGlobalVariable> pAllGlobalVariables) {
+      MPOROptions pOptions, ImmutableList<ScalarBitVectorVariable> pAllGlobalVariables) {
 
     checkArgument(
         !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
@@ -48,7 +48,7 @@ public class BitVectorUtil {
 
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
-      @NonNull ImmutableList<BitVectorGlobalVariable> pAllVariables,
+      @NonNull ImmutableList<ScalarBitVectorVariable> pAllVariables,
       @NonNull ImmutableList<CVariableDeclaration> pAccessedVariables) {
 
     checkArgument(
@@ -56,25 +56,24 @@ public class BitVectorUtil {
         "no bit vector encoding specified");
     ImmutableSet<CVariableDeclaration> allVariables =
         pAllVariables.stream()
-            .map(BitVectorGlobalVariable::getDeclaration)
+            .map(ScalarBitVectorVariable::getDeclaration)
             .collect(ImmutableSet.toImmutableSet());
     checkArgument(
         allVariables.containsAll(pAccessedVariables),
         "pAllVariables must contain all pAccessedVariables as keys.");
 
     // retrieve all variable ids from pAllVariables that are in pAccessedVariables
-    final ImmutableSet<BitVectorGlobalVariable> setBits =
+    final ImmutableSet<Integer> setBits =
         pAllVariables.stream()
             .filter(variable -> pAccessedVariables.contains(variable.getDeclaration()))
+            .map(ScalarBitVectorVariable::getId)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(
         pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);
   }
 
   private static BitVectorExpression buildBitVectorExpressionByEncoding(
-      BitVectorEncoding pEncoding,
-      int pNumGlobalVariables,
-      ImmutableSet<BitVectorGlobalVariable> pSetBits) {
+      BitVectorEncoding pEncoding, int pNumGlobalVariables, ImmutableSet<Integer> pSetBits) {
 
     int length = getBitVectorLengthByEncoding(pEncoding, pNumGlobalVariables);
     return switch (pEncoding) {
@@ -89,8 +88,8 @@ public class BitVectorUtil {
 
   // Vector Length =================================================================================
 
-  public static SeqBitVectorType getTypeByLength(int pLength) {
-    for (SeqBitVectorType type : SeqBitVectorType.values()) {
+  public static BitVectorDataType getTypeByLength(int pLength) {
+    for (BitVectorDataType type : BitVectorDataType.values()) {
       if (type.size == pLength) {
         return type;
       }
@@ -124,7 +123,7 @@ public class BitVectorUtil {
   }
 
   public static boolean isValidLength(int pLength) {
-    for (SeqBitVectorType type : SeqBitVectorType.values()) {
+    for (BitVectorDataType type : BitVectorDataType.values()) {
       if (type.size == pLength) {
         return true;
       }

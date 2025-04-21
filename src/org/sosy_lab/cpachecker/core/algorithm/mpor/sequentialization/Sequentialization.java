@@ -166,7 +166,8 @@ public class Sequentialization {
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
-    BitVectorVariables bitVectorVariables = GhostVariableUtil.buildBitVectors(options, threads);
+    BitVectorVariables bitVectorVariables =
+        GhostVariableUtil.buildBitVectorVariables(options, threads, substituteEdges);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 

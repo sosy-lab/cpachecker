@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -15,8 +16,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class BitVectorVariables {
   public final ImmutableMap<MPORThread, CIdExpression> bitVectors;
 
-  public BitVectorVariables(ImmutableMap<MPORThread, CIdExpression> pBitVectors) {
+  public final ImmutableList<ScalarBitVectorVariable> scalarBitVectors;
+
+  public BitVectorVariables(
+      ImmutableMap<MPORThread, CIdExpression> pBitVectors,
+      ImmutableList<ScalarBitVectorVariable> pScalarBitVectors) {
+
     bitVectors = pBitVectors;
+    scalarBitVectors = pScalarBitVectors;
   }
 
   public CIdExpression get(MPORThread pThread) {
