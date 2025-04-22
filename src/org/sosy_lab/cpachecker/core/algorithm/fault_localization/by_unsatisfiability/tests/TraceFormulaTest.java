@@ -125,64 +125,51 @@ public class TraceFormulaTest {
     List<Integer> lines = new ArrayList<>();
     for (Fault fault : faultInfo.getRankedList()) {
       switch (algorithm) {
-        case ERRINV:
+        case ERRINV -> {
           if (!(fault instanceof ErrorInvariantsAlgorithm.Interval)) {
             // Faults produced by ErrorInvariantsAlgorithm always have exactly one member
             TraceAtom traceElement = (TraceAtom) Iterables.getOnlyElement(fault);
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
-          break;
-
-        case MAXSAT:
+        }
+        case MAXSAT -> {
           for (FaultContribution contribution : fault) {
             TraceAtom traceElement = (TraceAtom) contribution;
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
-          break;
-
-        default:
-          throw new AssertionError(algorithm + " is not a valid algorithm.");
+        }
+        default -> throw new AssertionError(algorithm + " is not a valid algorithm.");
       }
     }
 
     expected.forEach(
         (key, value) -> {
           switch (key) {
-            case TFRESULT:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-                ImmutableList<Integer> foundLinesLog =
-                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-                assertThat(lines).containsExactlyElementsIn(expectedLines);
-                assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
-                break;
-              }
-
-            case TFPOSTCONDITION:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
-                ImmutableList<Integer> foundLines =
-                    transformedImmutableListCopy(found.get(key), val -> (Integer) val);
-                assertThat(foundLines).containsExactlyElementsIn(expectedLines);
-                break;
-              }
-
-            case TFPRECONDITION:
-              {
-                @SuppressWarnings("unchecked")
-                ImmutableList<String> expectedValues = (ImmutableList<String>) value;
-                ImmutableList<String> variableValues =
-                    found.get(key).stream()
-                        .map(Object::toString)
-                        .collect(ImmutableList.toImmutableList());
-                assertThat(variableValues).containsExactlyElementsIn(expectedValues);
-                break;
-              }
-
-            default:
-              throw new AssertionError("Unknown log keyword: " + key);
+            case TFRESULT -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+              ImmutableList<Integer> foundLinesLog =
+                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+              assertThat(lines).containsExactlyElementsIn(expectedLines);
+              assertThat(foundLinesLog).containsExactlyElementsIn(expectedLines);
+            }
+            case TFPOSTCONDITION -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<Integer> expectedLines = (ImmutableList<Integer>) value;
+              ImmutableList<Integer> foundLines =
+                  transformedImmutableListCopy(found.get(key), val -> (Integer) val);
+              assertThat(foundLines).containsExactlyElementsIn(expectedLines);
+            }
+            case TFPRECONDITION -> {
+              @SuppressWarnings("unchecked")
+              ImmutableList<String> expectedValues = (ImmutableList<String>) value;
+              ImmutableList<String> variableValues =
+                  found.get(key).stream()
+                      .map(Object::toString)
+                      .collect(ImmutableList.toImmutableList());
+              assertThat(variableValues).containsExactlyElementsIn(expectedValues);
+            }
+            default -> throw new AssertionError("Unknown log keyword: " + key);
           }
         });
   }

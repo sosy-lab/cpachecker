@@ -258,8 +258,7 @@ public final class SMGJoinSubSMGsForAbstraction {
   private boolean shouldAbstractionIncreaseLevel(SMGObject pObj1, SMGObject pObj2) {
 
     switch (pObj1.getKind()) {
-      case REG:
-      case OPTIONAL:
+      case REG, OPTIONAL -> {
         switch (pObj2.getKind()) {
           case REG:
           case OPTIONAL:
@@ -267,9 +266,10 @@ public final class SMGJoinSubSMGsForAbstraction {
           default:
             return false;
         }
-
-      default:
+      }
+      default -> {
         return false;
+      }
     }
   }
 

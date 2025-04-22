@@ -185,72 +185,65 @@ public final class FunctionCallDumper {
     @Override
     public TraversalProcess visitEdge(final CFAEdge pEdge) {
       switch (pEdge.getEdgeType()) {
-        case CallToReturnEdge:
-          {
-            // the normal case of functioncall, both functions have their complete CFA
-            final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
-            final String functionName = function.getPredecessor().getFunctionName();
-            final AFunctionDeclaration calledFunctionDecl =
-                CFAUtils.leavingEdges(function.getPredecessor())
-                    .filter(FunctionCallEdge.class)
-                    .first()
-                    .toJavaUtil()
-                    .orElseThrow(() -> new IllegalStateException("internal function without body"))
-                    .getSuccessor()
-                    .getFunctionDefinition();
-            functionCalls.put(functionName, calledFunctionDecl.getName());
-            originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());
-            break;
-          }
+        case CallToReturnEdge -> {
+          // the normal case of functioncall, both functions have their complete CFA
+          final FunctionSummaryEdge function = (FunctionSummaryEdge) pEdge;
+          final String functionName = function.getPredecessor().getFunctionName();
+          final AFunctionDeclaration calledFunctionDecl =
+              CFAUtils.leavingEdges(function.getPredecessor())
+                  .filter(FunctionCallEdge.class)
+                  .first()
+                  .toJavaUtil()
+                  .orElseThrow(() -> new IllegalStateException("internal function without body"))
+                  .getSuccessor()
+                  .getFunctionDefinition();
+          functionCalls.put(functionName, calledFunctionDecl.getName());
+          originalNames.put(calledFunctionDecl.getName(), calledFunctionDecl.getOrigName());
+        }
+        case StatementEdge -> {
+          final AStatementEdge edge = (AStatementEdge) pEdge;
+          if (edge.getStatement() instanceof AFunctionCall) {
+            // called function has no body, only declaration available, external function
+            final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
+            final AFunctionCallExpression functionCallExpression =
+                functionCall.getFunctionCallExpression();
+            final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
+            if (declaration != null) {
+              final String functionName = pEdge.getPredecessor().getFunctionName();
+              final String calledFunction = declaration.getName();
+              functionCalls.put(functionName, calledFunction);
+              originalNames.put(declaration.getName(), declaration.getOrigName());
 
-        case StatementEdge:
-          {
-            final AStatementEdge edge = (AStatementEdge) pEdge;
-            if (edge.getStatement() instanceof AFunctionCall) {
-              // called function has no body, only declaration available, external function
-              final AFunctionCall functionCall = (AFunctionCall) edge.getStatement();
-              final AFunctionCallExpression functionCallExpression =
-                  functionCall.getFunctionCallExpression();
-              final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
-              if (declaration != null) {
-                final String functionName = pEdge.getPredecessor().getFunctionName();
-                final String calledFunction = declaration.getName();
-                functionCalls.put(functionName, calledFunction);
-                originalNames.put(declaration.getName(), declaration.getOrigName());
-
-                // for threads, we also collect function called via pthread_create
-                AExpression functionNameExp = functionCallExpression.getFunctionNameExpression();
-                List<? extends AExpression> params =
-                    functionCall.getFunctionCallExpression().getParameterExpressions();
-                if (functionNameExp instanceof AIdExpression
-                    && THREAD_START.equals(((AIdExpression) functionNameExp).getName())
-                    && params.get(2) instanceof CUnaryExpression) {
-                  CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
-                  if (expr2 instanceof CIdExpression) {
-                    AFunctionDeclaration functionDecl =
-                        (AFunctionDeclaration) ((CIdExpression) expr2).getDeclaration();
-                    String calledThreadFunction = functionDecl.getName();
-                    threadCreations.put(functionName, calledThreadFunction);
-                    originalNames.put(functionDecl.getName(), functionDecl.getOrigName());
-                    for (String name : cfa.getAllFunctions().keySet()) {
-                      if (name.startsWith(calledThreadFunction + SEPARATOR)) {
-                        threadCreations.put(functionName, name);
-                        originalNames.put(name, calledThreadFunction);
-                      }
+              // for threads, we also collect function called via pthread_create
+              AExpression functionNameExp = functionCallExpression.getFunctionNameExpression();
+              List<? extends AExpression> params =
+                  functionCall.getFunctionCallExpression().getParameterExpressions();
+              if (functionNameExp instanceof AIdExpression
+                  && THREAD_START.equals(((AIdExpression) functionNameExp).getName())
+                  && params.get(2) instanceof CUnaryExpression) {
+                CExpression expr2 = ((CUnaryExpression) params.get(2)).getOperand();
+                if (expr2 instanceof CIdExpression) {
+                  AFunctionDeclaration functionDecl =
+                      (AFunctionDeclaration) ((CIdExpression) expr2).getDeclaration();
+                  String calledThreadFunction = functionDecl.getName();
+                  threadCreations.put(functionName, calledThreadFunction);
+                  originalNames.put(functionDecl.getName(), functionDecl.getOrigName());
+                  for (String name : cfa.getAllFunctions().keySet()) {
+                    if (name.startsWith(calledThreadFunction + SEPARATOR)) {
+                      threadCreations.put(functionName, name);
+                      originalNames.put(name, calledThreadFunction);
                     }
                   }
                 }
               }
             }
-            break;
           }
-
-        case FunctionCallEdge:
-          throw new AssertionError("traversal-strategy should ignore functioncalls");
-
-        default:
+        }
+        case FunctionCallEdge ->
+            throw new AssertionError("traversal-strategy should ignore functioncalls");
+        default -> {
           // nothing to do
-
+        }
       }
       return TraversalProcess.CONTINUE;
     }

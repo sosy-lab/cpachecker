@@ -266,21 +266,19 @@ public class CEXExporter {
 
       if (options.getSourceFile() != null) {
         switch (codeStyle) {
-          case CONCRETE_EXECUTION:
-            logger.log(
-                Level.WARNING,
-                "Cannot export imprecise counterexample to C code for concrete execution.");
-            break;
-          case CBMC:
+          case CONCRETE_EXECUTION ->
+              logger.log(
+                  Level.WARNING,
+                  "Cannot export imprecise counterexample to C code for concrete execution.");
+          case CBMC -> {
             // "translatePaths" does not work if the ARG branches without assume edge
             if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
               pathProgram = PathToCTranslator.translateSinglePath(targetPath);
             } else {
               pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
             }
-            break;
-          default:
-            throw new AssertionError("Unhandled case statement: " + codeStyle);
+          }
+          default -> throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
     }

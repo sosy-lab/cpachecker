@@ -875,7 +875,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
             for (ARGState parent : argState.getParents()) {
               edge = parent.getEdgeToChild(argState);
               switch (edge.getEdgeType()) {
-                case StatementEdge:
+                case StatementEdge -> {
                   CStatement stmt = ((CStatementEdge) edge).getStatement();
                   if (stmt instanceof CFunctionCallAssignmentStatement) {
                     // external function call
@@ -892,8 +892,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                     logger.log(Level.INFO, "Found an assumption for a deterministic edge.");
                     return false;
                   }
-                  break;
-                case DeclarationEdge:
+                }
+                case DeclarationEdge -> {
                   CDeclaration decl = ((CDeclarationEdge) edge).getDeclaration();
                   if (decl instanceof CVariableDeclaration
                       && ((CVariableDeclaration) decl).getInitializer() == null) {
@@ -913,10 +913,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                         "Found an unallowed assumption for a declaration with initializer.");
                     return false;
                   }
-                  break;
-                default:
+                }
+                default -> {
                   logger.log(Level.INFO, "Found an assumption for a deterministic statement");
                   return false;
+                }
               }
             }
           }

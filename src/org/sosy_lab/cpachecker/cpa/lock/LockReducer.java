@@ -188,15 +188,10 @@ public class LockReducer implements Reducer, StatisticsProvider {
      * !notReducedLocks.get(pContext.getCallNode()).contains(l)); }
      */
     switch (reduceLockCounters) {
-      case BLOCK:
-        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        // locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
-        break;
-      case ALL:
-        locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
-        break;
-      case NONE:
-        break;
+      case BLOCK -> locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
+      // locksToProcess = Sets.difference(locksToProcess, pContext.getCapturedLocks());
+      case ALL -> locksToProcess = Sets.difference(rootState.getLocks(), uselessLocks);
+      case NONE -> {}
     }
     return Pair.of(locksToProcess, uselessLocks);
   }

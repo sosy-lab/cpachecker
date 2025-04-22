@@ -31,7 +31,7 @@ public enum SMGObjectKind {
   // TODO looks strange, perhaps rename method to match intended behavior.
   public boolean isContainedIn(SMGObjectKind other) {
     switch (this) {
-      case OPTIONAL:
+      case OPTIONAL -> {
         switch (other) {
           case SLL:
           case DLL:
@@ -40,11 +40,13 @@ public enum SMGObjectKind {
           default:
             return true;
         }
-      case SLL:
-      case DLL:
+      }
+      case SLL, DLL -> {
         return other != OPTIONAL;
-      default:
+      }
+      default -> {
         return true;
+      }
     }
   }
 }
