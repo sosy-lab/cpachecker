@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class BitVectorEvaluationExpression implements SeqExpression {
 
@@ -22,12 +21,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
   public BitVectorEvaluationExpression(
       Optional<CBinaryExpression> pBinaryExpression, Optional<SeqExpression> pLogicalExpression) {
 
-    checkArgument(
-        pBinaryExpression.isEmpty() || pLogicalExpression.isEmpty(),
-        "either pBinary- or pLogicalExpression must be empty");
-    checkArgument(
-        pBinaryExpression.isPresent() || pLogicalExpression.isPresent(),
-        "either pBinary- or pLogicalExpression must be present");
+    // both binary and logical expression can be empty, when the program has no global variables
     binaryExpression = pBinaryExpression;
     logicalExpression = pLogicalExpression;
   }
@@ -36,8 +30,9 @@ public class BitVectorEvaluationExpression implements SeqExpression {
   public String toASTString() {
     if (binaryExpression.isPresent()) {
       return binaryExpression.orElseThrow().toASTString();
-    } else {
+    } else if (logicalExpression.isPresent()) {
       return logicalExpression.orElseThrow().toASTString();
     }
+    return SeqSyntax.EMPTY_STRING;
   }
 }

@@ -116,9 +116,9 @@ public class SeqExpressionBuilder {
         yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
       }
       case SCALAR -> {
-        SeqExpression seqExpression =
+        Optional<SeqExpression> seqExpression =
             buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables);
-        yield new BitVectorEvaluationExpression(Optional.empty(), Optional.of(seqExpression));
+        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
       }
     };
   }
@@ -139,11 +139,13 @@ public class SeqExpressionBuilder {
         pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
   }
 
-  private static SeqExpression buildScalarBitVectorEvaluation(
+  private static Optional<SeqExpression> buildScalarBitVectorEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
+    if (pBitVectorVariables.scalarBitVectors.isEmpty()) {
+      return Optional.empty();
+    }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-
     for (var entry : pBitVectorVariables.scalarBitVectors.entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().accessVariables;
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
@@ -160,8 +162,7 @@ public class SeqExpressionBuilder {
           new SeqLogicalAndExpression(new CToSeqExpression(activeVariable), rightHandSide);
       variableExpressions.add(andExpression);
     }
-
-    return nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR);
+    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
   }
 
   private static CExpression nestBinaryExpressions(

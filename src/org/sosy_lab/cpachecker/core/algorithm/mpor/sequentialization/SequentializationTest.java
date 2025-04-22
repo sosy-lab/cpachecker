@@ -67,6 +67,30 @@ public class SequentializationTest {
   }
 
   @Test
+  public void testCompileSeq_13_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
+    // this program contains only local variables, no global variables
+    Path path =
+        Path.of(
+            "./test/programs/mpor_seq/seq_compilable/36-apron_41-threadenter-no-locals_unknown_1_pos.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            false,
+            false,
+            true,
+            true,
+            true,
+            BitVectorEncoding.SCALAR,
+            true,
+            false,
+            false,
+            true,
+            true,
+            false);
+    testCompile(path, options);
+  }
+
+  @Test
   public void testCompileSeq_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
