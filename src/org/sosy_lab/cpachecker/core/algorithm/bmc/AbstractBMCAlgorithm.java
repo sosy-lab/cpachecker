@@ -400,7 +400,9 @@ abstract class AbstractBMCAlgorithm
       throws CPAException, SolverException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
 
-    ((NotEqualInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
+    if (invariantGenerator instanceof NotEqualInvariantGenerator) {
+      ((NotEqualInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
+    }
 
     invariantGenerator.start(initialLocation);
 
