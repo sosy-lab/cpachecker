@@ -77,6 +77,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.ExpressionTreeSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.invariants.NotEqualInvariantGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -94,7 +95,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -127,8 +127,6 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-//////////////////////////////////////
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 @Options(prefix = "bmc")
 abstract class AbstractBMCAlgorithm
@@ -301,12 +299,14 @@ abstract class AbstractBMCAlgorithm
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
+      //invariantGenerationStrategy2 = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
     boolean addInvariantsByInduction =
         invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
+        //invariantGenerationStrategy2 == InvariantGeneratorFactory.INDUCTION;
     if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
@@ -318,6 +318,7 @@ abstract class AbstractBMCAlgorithm
 
     if (pIsInvariantGenerator && addInvariantsByInduction) {
       invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
+      //invariantGenerationStrategy2 = InvariantGeneratorFactory.NOT_EQUAL;
     }
     Configuration invGenConfig = pConfig;
     if (invariantGeneratorConfig != null) {
@@ -334,6 +335,7 @@ abstract class AbstractBMCAlgorithm
     }
     final InvariantGenerator invGen =
         invariantGenerationStrategy.createInvariantGenerator(
+        //invariantGenerationStrategy2.createInvariantGenerator(
             invGenConfig,
             pLogger,
             pReachedSetFactory,
@@ -397,6 +399,9 @@ abstract class AbstractBMCAlgorithm
   public AlgorithmStatus run(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+
+    ((NotEqualInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
+
     invariantGenerator.start(initialLocation);
 
     // The set of candidate invariants that still need to be checked.
@@ -1100,80 +1105,13 @@ abstract class AbstractBMCAlgorithm
           CFA pCFA,
           Specification pSpecification,
           AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider) {
-        return new AbstractInvariantGenerator() {
-
-          @Override
-          protected void startImpl(CFANode pInitialLocation) {
-            // do nothing
-          }
-
-          @Override
-          public boolean isProgramSafe() {
-            // just return false, program will be ended by parallel algorithm if the invariant
-            // generator can prove safety before the current analysis
-            return false;
-          }
-
-          @Override
-          public void cancel() {
-            // do nothing
-          }
-
-          @Override
-          public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
-            return new InvariantSupplier() {
-              @Override
-              public BooleanFormula getInvariantFor(
-                  CFANode node,
-                  Optional<CallstackStateEqualsWrapper> callstackInformation,
-                  FormulaManagerView fmgr,
-                  PathFormulaManager pfmgr,
-                  PathFormula pContext) throws InterruptedException {
-
-
-                SSAMap ssaMap = pfmgr.makeEmptyPathFormula().getSsa();
-//                Set<String> allVariables = ssaMap.allVariables();
-                List<String> variableSetToList = new ArrayList<>(ssaMap.allVariables());
-                BooleanFormula notEqualInvariant = fmgr.getBooleanFormulaManager().makeTrue();
-
-
-//                for (String var1 : allVariables) {
-//                  for (String var2 : allVariables) {
-//                    if (!var1.equals(var2)) {
-//                      BooleanFormula state1 = fmgr.getBooleanFormulaManager().makeVariable(var1);
-//                      BooleanFormula state2 = fmgr.getBooleanFormulaManager().makeVariable(var2);
-//
-//                      BooleanFormula inequality = fmgr.makeNot(fmgr.makeEqual(state1, fstate2));
-//                      notEqualInvariant = fmgr.makeAnd(notEqualInvariant, inequality);
-//                    }
-//                  }
-//                }
-                for(int i = 0; i < variableSetToList.size(); i+=2)
-                  if (i+1 < variableSetToList.size()) {
-                    String var1 = variableSetToList.get(i);
-                    String var2 = variableSetToList.get(i + 1);
-
-                    BooleanFormula state1 = fmgr.getBooleanFormulaManager().makeVariable(var1);
-                    BooleanFormula state2 = fmgr.getBooleanFormulaManager().makeVariable(var2);
-                    BooleanFormula inequality = fmgr.makeNot(fmgr.makeEqual(state1, state2));
-                    notEqualInvariant = fmgr.makeAnd(notEqualInvariant, inequality);
-
-                  }
-                return notEqualInvariant;
-
-            };
-          };
-          }
-
-          @Override
-          public ExpressionTreeSupplier getExpressionTreeSupplier()
-              throws CPAException, InterruptedException {
-            return new ExpressionTreeInvariantSupplier(pAggregatedReachedSets, pCFA);
-          }
-        };
+          TargetLocationProvider pTargetLocationProvider
+      ) {
+        pLogger.log(Level.INFO, "Using ReachedSetNotEqualInvariantGenerator");
+        return new NotEqualInvariantGenerator(pAggregatedReachedSets, pCFA) ;
       }
     },
+
 
     REACHED_SET {
       @Override
@@ -1208,6 +1146,7 @@ abstract class AbstractBMCAlgorithm
           @Override
           public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
             return new FormulaInvariantsSupplier(pAggregatedReachedSets);
+
           }
 
           @Override
@@ -1218,7 +1157,6 @@ abstract class AbstractBMCAlgorithm
         };
       }
     },
-
 
 
     DO_NOTHING {

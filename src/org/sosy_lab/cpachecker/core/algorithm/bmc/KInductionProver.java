@@ -252,8 +252,22 @@ class KInductionProver implements AutoCloseable {
       PathFormulaManager pPathFormulaManager,
       PathFormula pContext)
       throws InterruptedException {
+
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Location: " + pLocation);
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Formula Manager: " + pFormulaManager);
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula Manager: " + pPathFormulaManager);
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula: " + pContext);
+
+
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
+
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Current Invariant Supplier: " + currentInvariantsSupplier.getClass().getName());
+
+    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(
+        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Invariant: " + invariant);
+
 
     return currentInvariantsSupplier.getInvariantFor(
         pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
@@ -424,6 +438,8 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
     previousK = pK + 1;
     stats.inductionPreparation.stop();
+
+    System.out.println("KKKIIIPPP PREVIOUS K : " + previousK );
 
     // Attempt the induction proofs
     shutdownNotifier.shutdownIfNecessary();
@@ -689,6 +705,9 @@ class KInductionProver implements AutoCloseable {
           AbstractStates.extractStateByType(current, PredicateAbstractState.class);
       if (is != null && pas != null) {
         SSAMap ssaMap = pas.getPathFormula().getSsa();
+
+        //System.out.println("KKKIIIPPP ssaMap: " + ssaMap);
+
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
