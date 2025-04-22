@@ -490,10 +490,11 @@ public class ARGUtils {
           ARGState falseChild = null;
 
           Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          if (Iterables.any(
-              locs, loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class)))) {
-            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-          }
+          checkArgument(
+              !Iterables.any(
+                  locs,
+                  loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))),
+              "ARG branches where there is no AssumeEdge!");
 
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
@@ -505,17 +506,15 @@ public class ARGUtils {
               falseChild = currentChild;
             }
           }
-          if (trueEdge == null || falseEdge == null) {
-            throw new IllegalArgumentException("ARG branches with non-complementary AssumeEdges!");
-          }
+          checkArgument(
+              trueEdge != null && falseEdge != null,
+              "ARG branches with non-complementary AssumeEdges!");
           assert trueChild != null;
           assert falseChild != null;
 
           // search first idx where we have a predicate for the current branching
           Boolean predValue = branchingInformation.apply(currentElement, trueEdge);
-          if (predValue == null) {
-            throw new IllegalArgumentException("ARG branches without direction information!");
-          }
+          checkArgument(predValue != null, "ARG branches without direction information!");
 
           // now select the right edge
           if (predValue) {
