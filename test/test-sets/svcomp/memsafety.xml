@@ -1,0 +1,432 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+
+  <!-- Default for SV-COMP, change if necessary/desired -->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900 s</option>
+
+  <!-- MemSafety category synced to SV-COMP25 -->
+  <tasks name="MemSafety-Arrays">
+    <includesfile>../sv-benchmarks/c/Arrays.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Heap-Termination.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Heap">
+    <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-LinkedLists">
+    <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Other">
+    <includesfile>../sv-benchmarks/c/Loops.set</includesfile>
+    <includesfile>../sv-benchmarks/c/ControlFlow.set</includesfile>
+    <includesfile>../sv-benchmarks/c/ControlFlow-Termination.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Juliet">
+    <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="SoftwareSystems-coreutils-MemSafety">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-coreutils.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-MemSafety">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-Other-MemSafety">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-BusyBox.set</includesfile>
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-OpenBSD.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-MemSafety">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ConcurrencySafety-MemSafety">
+    <includesfile>../sv-benchmarks/c/Concurrency.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <!-- Run-definitions / default (SMT solver MathSAT5) -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio MathSAT5 (default)">
+    <option name="--svcomp25" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx MathSAT5 (default)">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access MathSAT5 (default)">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX MathSAT5 (default)">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP MathSAT5 (default)">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <!-- No SMT solvers needed -->
+  <rundefinition name="SV-COMP25 Value without Concrete Values with CEX">
+    <option name="--svcomp25--smgAnalysis-value-no-concrete-with-cex" />
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 Value with CEX">
+    <option name="--svcomp25--smgAnalysis-value-with-cex" />
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: Z3 -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio Z3">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Z3">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Z3">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Z3">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Z3">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: CVC4 -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio CVC4">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx CVC4">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access CVC4">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX CVC4">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP CVC4">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: CVC5 -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio CVC5">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx CVC5">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access CVC5">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX CVC5">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP CVC5">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: SMTInterpol -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio SMTInterpol">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx SMTInterpol">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access SMTInterpol">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX SMTInterpol">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP SMTInterpol">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <!-- Alternative SMT solvers: Princess -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio Princess">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Princess">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Princess">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Princess">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Princess">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: OpenSMT2 -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio OpenSMT2">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx OpenSMT2">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access OpenSMT2">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX OpenSMT2">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP OpenSMT2">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: Boolector -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio Boolector">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Boolector">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Boolector">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Boolector">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Boolector">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: Bitwuzla -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio Bitwuzla">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Bitwuzla">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Bitwuzla">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Bitwuzla">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Bitwuzla">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: Yices2 -->
+  <!-- To install Yices2, please edit `lib/ivy.xml` and include the GPL-licenced parts of JavaSMT. -->
+  <rundefinition name="SV-COMP25 Parallel Portfolio Yices2">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Yices2">
+    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Yices2">
+    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Yices2">
+    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Yices2">
+    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+
+  <columns>
+    <column title="total">Total time for CPAchecker</column>
+    <column title="reached">Size of reached set</column>
+    <column title="targets">Number of target states</column>
+    <column title="sat check time">Time for final sat check</column>
+    <column title="assertions check time">Time for bounding assertions check</column>
+    <column title="UsedConfig">Used algorithm property</column>
+  </columns>
+
+</benchmark>
