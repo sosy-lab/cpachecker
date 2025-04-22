@@ -118,21 +118,20 @@ public class Edge implements Comparable<Edge> {
       ValueDifference<String> diff = diffEntry.getValue();
       final String result;
       switch (key) {
-        case STARTLINE:
-        case OFFSET:
+        case STARTLINE, OFFSET -> {
           int lowA = Integer.parseInt(diff.leftValue());
           int lowB = Integer.parseInt(diff.rightValue());
           result = Integer.toString(Math.min(lowA, lowB));
-          break;
-        case ENDLINE:
-        case ENDOFFSET:
+        }
+        case ENDLINE, ENDOFFSET -> {
           int highA = Integer.parseInt(diff.leftValue());
           int highB = Integer.parseInt(diff.rightValue());
           result = Integer.toString(Math.max(highA, highB));
-          break;
-        default:
+        }
+        default -> {
           // incomparable information
           return Optional.empty();
+        }
       }
       newLabel = newLabel.putAndCopy(key, result);
     }

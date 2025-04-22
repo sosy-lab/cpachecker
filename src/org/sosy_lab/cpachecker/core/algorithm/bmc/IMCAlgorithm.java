@@ -762,22 +762,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
-        case ITP:
-          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
-          break;
-        case ITPSEQ:
-          hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
-          break;
-        case ITPSEQ_AND_ITP:
+        case ITP -> hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
+        case ITPSEQ ->
+            hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+        case ITPSEQ_AND_ITP -> {
           hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
           if (!hasReachedFixedPoint) {
             hasReachedFixedPoint = reachFixedPointByInterpolation(formulas, reachVector);
           }
-          break;
-        case NONE:
-          break;
-        default:
-          throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
+        }
+        case NONE -> {}
+        default ->
+            throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
       }
       if (hasReachedFixedPoint) {
         InterpolationHelper.removeUnreachableTargetStates(pReachedSet);

@@ -178,7 +178,7 @@ public class SignCExpressionVisitor
   @Override
   public Sign visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch (pIastUnaryExpression.getOperator()) {
-      case MINUS:
+      case MINUS -> {
         Sign result = Sign.EMPTY;
         Sign operandSign = pIastUnaryExpression.getOperand().accept(this);
         for (Sign atomSign : operandSign.split()) {
@@ -187,8 +187,9 @@ public class SignCExpressionVisitor
                   evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
         }
         return result;
-      default:
-        throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
+      }
+      default ->
+          throw new UnsupportedCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
     }
   }
 
@@ -336,39 +337,38 @@ public class SignCExpressionVisitor
       return Sign.EMPTY;
     }
     switch (pLeft) {
-      case PLUS:
+      case PLUS -> {
         if (Sign.MINUS0.covers(pRight)) {
           return Sign.ZERO;
         }
-        break;
-      case MINUS:
+      }
+      case MINUS -> {
         if (Sign.PLUS0.covers(pRight)) {
           return Sign.ZERO;
         }
-        break;
-      case ZERO:
+      }
+      case ZERO -> {
         if (Sign.MINUS0.covers(pRight)) {
           return Sign.ZERO;
         }
         if (pRight == Sign.ZERO) {
           return Sign.PLUSMINUS;
         }
-        break;
-      case PLUS0:
+      }
+      case PLUS0 -> {
         if (pRight == Sign.MINUS) {
           return Sign.ZERO;
         }
         if (pRight == Sign.ZERO) {
           return Sign.PLUSMINUS;
         }
-        break;
-      case MINUS0:
+      }
+      case MINUS0 -> {
         if (pRight == Sign.PLUS) {
           return Sign.PLUSMINUS;
         }
-        break;
-      default:
-        break;
+      }
+      default -> {}
     }
     return Sign.ALL;
   }
@@ -378,36 +378,35 @@ public class SignCExpressionVisitor
       return Sign.EMPTY;
     }
     switch (pLeft) {
-      case PLUS:
+      case PLUS -> {
         if (Sign.MINUS0.covers(pRight)) {
           return Sign.ZERO;
         }
-        break;
-      case MINUS:
+      }
+      case MINUS -> {
         if (Sign.PLUS0.covers(pRight)) {
           return Sign.ZERO;
         }
-        break;
-      case ZERO:
+      }
+      case ZERO -> {
         if (Sign.PLUS0.covers(pRight)) {
           return Sign.PLUSMINUS;
         }
         if (pRight == Sign.MINUS) {
           return Sign.ZERO;
         }
-        break;
-      case PLUS0:
+      }
+      case PLUS0 -> {
         if (pRight == Sign.MINUS) {
           return Sign.ZERO;
         }
-        break;
-      case MINUS0:
+      }
+      case MINUS0 -> {
         if (pRight == Sign.PLUS) {
           return Sign.PLUSMINUS;
         }
-        break;
-      default:
-        break;
+      }
+      default -> {}
     }
     return Sign.ALL;
   }
@@ -428,23 +427,22 @@ public class SignCExpressionVisitor
     }
 
     switch (pLeft) {
-      case PLUS:
+      case PLUS -> {
         if (pRight == Sign.ZERO || pRight == Sign.MINUS) {
           return Sign.PLUSMINUS;
         }
-        break;
-      case ZERO:
+      }
+      case ZERO -> {
         if (pRight == Sign.PLUS || pRight == Sign.MINUS) {
           return Sign.PLUSMINUS;
         }
-        break;
-      case MINUS:
+      }
+      case MINUS -> {
         if (pRight == Sign.ZERO || pRight == Sign.PLUS) {
           return Sign.PLUSMINUS;
         }
-        break;
-      default:
-        break;
+      }
+      default -> {}
     }
 
     return Sign.ALL;

@@ -63,7 +63,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
   private static Interval getLogicInterval(
       BinaryOperator operator, Interval interval1, Interval interval2) {
     switch (operator) {
-      case EQUALS:
+      case EQUALS -> {
         if (!interval1.intersects(interval2)) {
           return Interval.ZERO;
         } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
@@ -72,8 +72,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case NOT_EQUALS:
+      }
+      case NOT_EQUALS -> {
         if (!interval1.intersects(interval2)) {
           return Interval.ONE;
         } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
@@ -82,8 +82,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case GREATER_THAN:
+      }
+      case GREATER_THAN -> {
         if (interval1.isGreaterThan(interval2)) {
           return Interval.ONE;
         } else if (interval2.isGreaterOrEqualThan(interval1)) {
@@ -91,20 +91,22 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else {
           return Interval.BOOLEAN_INTERVAL;
         }
-
-      case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
+      }
+      case GREATER_EQUAL -> {
+        // a>=b == a+1>b, works only for integers
         return getLogicInterval(
             BinaryOperator.GREATER_THAN, interval1.plus(Interval.ONE), interval2);
-
-      case LESS_THAN: // a<b == b>a
+      }
+      case LESS_THAN -> {
+        // a<b == b>a
         return getLogicInterval(BinaryOperator.GREATER_THAN, interval2, interval1);
-
-      case LESS_EQUAL: // a<=b == b+1>a, works only for integers
+      }
+      case LESS_EQUAL -> {
+        // a<=b == b+1>a, works only for integers
         return getLogicInterval(
             BinaryOperator.GREATER_THAN, interval2.plus(Interval.ONE), interval1);
-
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
+      }
+      default -> throw new AssertionError("unknown binary operator: " + operator);
     }
   }
 

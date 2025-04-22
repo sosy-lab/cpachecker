@@ -45,7 +45,7 @@ public class ACSLPredicateToExpressionTreeVisitor
     ExpressionTree<Object> leftTree;
     ExpressionTree<Object> rightTree;
     switch (pred.getOperator()) {
-      case AND:
+      case AND -> {
         if (pred.isNegated()) {
           leftTree = pred.getLeft().negate().accept(this);
           rightTree = pred.getRight().negate().accept(this);
@@ -54,7 +54,8 @@ public class ACSLPredicateToExpressionTreeVisitor
         leftTree = pred.getLeft().accept(this);
         rightTree = pred.getRight().accept(this);
         return And.of(leftTree, rightTree);
-      case OR:
+      }
+      case OR -> {
         if (pred.isNegated()) {
           leftTree = pred.getLeft().negate().accept(this);
           rightTree = pred.getRight().negate().accept(this);
@@ -63,8 +64,8 @@ public class ACSLPredicateToExpressionTreeVisitor
         leftTree = pred.getLeft().accept(this);
         rightTree = pred.getRight().accept(this);
         return Or.of(leftTree, rightTree);
-      default:
-        throw new AssertionError("Operator should be AND or OR");
+      }
+      default -> throw new AssertionError("Operator should be AND or OR");
     }
   }
 

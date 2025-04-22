@@ -206,25 +206,20 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCodeException {
 
     switch (cfaEdge.getEdgeType()) {
-      case FunctionCallEdge:
+      case FunctionCallEdge -> {
         return handleFunctionCall((CFunctionCallEdge) cfaEdge);
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         return handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
-
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return handleStatement((CStatementEdge) cfaEdge);
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return handleAssumption((CAssumeEdge) cfaEdge);
-
-      case BlankEdge:
-      case ReturnStatementEdge:
-      case DeclarationEdge:
-      case CallToReturnEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
+      }
+      case BlankEdge, ReturnStatementEdge, DeclarationEdge, CallToReturnEdge -> {}
+      default -> throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
     }
     return ImmutableList.of();
   }

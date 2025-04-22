@@ -351,35 +351,39 @@ public class SMGState
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
-      case HAS_LEAKS:
+      case HAS_LEAKS -> {
         if (hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
           return true;
         }
         return false;
-      case HAS_INVALID_WRITES:
+      }
+      case HAS_INVALID_WRITES -> {
         if (hasInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
           return true;
         }
         return false;
-      case HAS_INVALID_READS:
+      }
+      case HAS_INVALID_READS -> {
         if (hasInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
           return true;
         }
         return false;
-      case HAS_INVALID_FREES:
+      }
+      case HAS_INVALID_FREES -> {
         if (hasInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
           return true;
         }
         return false;
-      case HAS_HEAP_OBJECTS:
+      }
+      case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
         // However, when combined with program exit, we can detect the property MemCleanup.
         PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
@@ -394,9 +398,8 @@ public class SMGState
           }
         }
         return !heapObs.isEmpty();
-
-      default:
-        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+      }
+      default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
   }
 

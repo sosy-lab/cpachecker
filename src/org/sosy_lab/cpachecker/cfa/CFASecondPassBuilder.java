@@ -190,30 +190,27 @@ public class CFASecondPassBuilder {
       int actualParameters = functionCallExpression.getParameterExpressions().size();
 
       switch (language) {
-        case JAVA:
-          throw new JParserException(
-              "Function "
-                  + functionName
-                  + " takes "
-                  + declaredParameters
-                  + " parameter(s) but is called with "
-                  + actualParameters
-                  + " parameter(s)",
-              edge);
-
-        case C:
-          throw new CParserException(
-              "Method "
-                  + functionName
-                  + " takes "
-                  + declaredParameters
-                  + " parameter(s) but is called with "
-                  + actualParameters
-                  + " parameter(s)",
-              edge);
-
-        default:
-          throw new AssertionError("Unhandled language " + language);
+        case JAVA ->
+            throw new JParserException(
+                "Function "
+                    + functionName
+                    + " takes "
+                    + declaredParameters
+                    + " parameter(s) but is called with "
+                    + actualParameters
+                    + " parameter(s)",
+                edge);
+        case C ->
+            throw new CParserException(
+                "Method "
+                    + functionName
+                    + " takes "
+                    + declaredParameters
+                    + " parameter(s) but is called with "
+                    + actualParameters
+                    + " parameter(s)",
+                edge);
+        default -> throw new AssertionError("Unhandled language " + language);
       }
     }
 
@@ -226,7 +223,7 @@ public class CFASecondPassBuilder {
     // create new edges
 
     switch (language) {
-      case C:
+      case C -> {
         if (summaryEdges) {
           CFunctionSummaryStatementEdge summaryStatementEdge =
               new CFunctionSummaryStatementEdge(
@@ -259,9 +256,8 @@ public class CFASecondPassBuilder {
                 (CFunctionEntryNode) fDefNode,
                 (CFunctionCall) functionCall,
                 (CFunctionSummaryEdge) calltoReturnEdge);
-        break;
-
-      case JAVA:
+      }
+      case JAVA -> {
         calltoReturnEdge =
             new JMethodSummaryEdge(
                 edge.getRawStatement(),
@@ -279,10 +275,8 @@ public class CFASecondPassBuilder {
                 (JMethodEntryNode) fDefNode,
                 (JMethodOrConstructorInvocation) functionCall,
                 (JMethodSummaryEdge) calltoReturnEdge);
-        break;
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
 
     predecessorNode.addLeavingSummaryEdge(calltoReturnEdge);

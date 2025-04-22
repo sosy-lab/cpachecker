@@ -43,26 +43,34 @@ public class FunctionApplicationManager {
     // Stateful shortcut.
 
     switch (functionName) {
-      case "Integer__*_":
+      case "Integer__*_" -> {
         return INTEGER_MULT.apply(entry, value);
-      case "Integer__/_":
+      }
+      case "Integer__/_" -> {
         return INTEGER_DIV.apply(entry, value);
-      case "Integer__%_":
+      }
+      case "Integer__%_" -> {
         return INTEGER_MOD.apply(entry, value);
-      case "_<<_":
+      }
+      case "_<<_" -> {
         return INTEGER_SHIFT_LEFT.apply(entry, value);
-      case "_>>_":
+      }
+      case "_>>_" -> {
         return INTEGER_SHIFT_RIGHT.apply(entry, value);
-      case "_&_":
+      }
+      case "_&_" -> {
         return INTEGER_AND.apply(entry, value);
-      case "_!!_":
+      }
+      case "_!!_" -> {
         return INTEGER_OR.apply(entry, value);
-      case "_^_":
+      }
+      case "_^_" -> {
         return INTEGER_XOR.apply(entry, value);
-      case "_~_":
+      }
+      case "_~_" -> {
         return INTEGER_NOT.apply(entry, value);
-      default:
-        // $FALL-THROUGH$
+      }
+      default -> {}
     }
 
     if (functionName.startsWith("_overflow")) {

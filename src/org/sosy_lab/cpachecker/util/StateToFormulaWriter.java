@@ -219,19 +219,16 @@ public class StateToFormulaWriter implements StatisticsProvider {
         states.stream().map(state -> state.getFormulaApproximation(fmgr));
 
     switch (splitFormulas) {
-      case LOCATION:
-        // create the disjunction of the found states for the current location
-        formulas = Stream.of(formulas.collect(bfmgr.toDisjunction()));
-        break;
-      case STATE:
+      case LOCATION ->
+          // create the disjunction of the found states for the current location
+          formulas = Stream.of(formulas.collect(bfmgr.toDisjunction()));
+      case STATE -> {
         // do not merge different location-formulas, nothing to do
-        break;
-      case ATOM:
-        // atomize formulas
-        formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
-        break;
-      default:
-        throw new AssertionError("unknown option");
+      }
+      case ATOM ->
+          // atomize formulas
+          formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
+      default -> throw new AssertionError("unknown option");
     }
 
     // filter out formulas with no information

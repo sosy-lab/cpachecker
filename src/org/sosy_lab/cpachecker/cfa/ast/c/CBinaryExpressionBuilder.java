@@ -645,15 +645,15 @@ public class CBinaryExpressionBuilder {
     CBasicType type = t.getType();
 
     switch (type) {
-      case BOOL:
+      case BOOL -> {
         // The rank of _Bool shall be less than the rank of all other standard integer types.
         return 10;
-
-      case CHAR:
+      }
+      case CHAR -> {
         // The rank of char shall equal the rank of signed char and unsigned char.
         return 20;
-
-      case INT:
+      }
+      case INT -> {
         /* The rank of any unsigned integer type shall equal the rank of the
          * corresponding signed integer type, if any.
          * The rank of long long int shall be greater than the rank of long int,
@@ -671,12 +671,11 @@ public class CBinaryExpressionBuilder {
           return 60;
         }
         return 40;
-
-      case INT128:
+      }
+      case INT128 -> {
         return 70;
-
-      default:
-        throw new AssertionError("unhandled CSimpleType: " + t);
+      }
+      default -> throw new AssertionError("unhandled CSimpleType: " + t);
     }
   }
 

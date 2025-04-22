@@ -219,43 +219,39 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
     AssumptionsFinder finder = new AssumptionsFinder(result, node);
 
     switch (pEdge.getEdgeType()) {
-      case BlankEdge:
-
+      case BlankEdge -> {
         // Can't be an overflow if we don't do anything.
-        break;
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
         assumeEdge.getExpression().accept(finder);
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge fcallEdge = (CFunctionCallEdge) pEdge;
 
         // Overflows in argument parameters.
         for (CExpression e : fcallEdge.getArguments()) {
           e.accept(finder);
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         CStatementEdge stmtEdge = (CStatementEdge) pEdge;
         stmtEdge.getStatement().accept(finder);
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
         declarationEdge.getDeclaration().accept(finder);
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
         if (returnEdge.getExpression().isPresent()) {
           returnEdge.getExpression().orElseThrow().accept(finder);
         }
-        break;
-      case FunctionReturnEdge:
-      case CallToReturnEdge:
-
+      }
+      case FunctionReturnEdge, CallToReturnEdge -> {
         // No overflows for summary edges.
-        break;
-      default:
-        throw new UnsupportedOperationException("Unexpected edge type");
+      }
+      default -> throw new UnsupportedOperationException("Unexpected edge type");
     }
 
     if (simplifyExpressions) {
