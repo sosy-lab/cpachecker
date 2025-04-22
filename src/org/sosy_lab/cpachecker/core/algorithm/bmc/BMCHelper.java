@@ -128,7 +128,7 @@ public final class BMCHelper {
     SSAMap ssaMap = pathFormula.getSsa().withDefault(1);
     BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
 
-    BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);git
+    BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
 
     if (pForce) {
       return instantiatedFormula;

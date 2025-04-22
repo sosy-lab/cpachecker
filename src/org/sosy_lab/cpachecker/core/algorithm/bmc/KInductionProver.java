@@ -691,8 +691,6 @@ class KInductionProver implements AutoCloseable {
       if (is != null && pas != null) {
         SSAMap ssaMap = pas.getPathFormula().getSsa();
 
-        // System.out.println("KKKIIIPPP ssaMap: " + ssaMap);
-
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
             inputs.put(input, ssaMap.getIndex(input) - 1);
