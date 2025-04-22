@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
@@ -390,12 +391,20 @@ public class IntervalAnalysisTransferRelation
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
     if (expression instanceof CAssignment assignExpression) {
       CExpression assignee = assignExpression.getLeftHandSide();
-      Interval value =
-          assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge));
-      return ImmutableSet.of(assign(assignee, value, cfaEdge));
+      return ImmutableSet.of(assign(assignee, (CExpression) assignExpression.getRightHandSide(), cfaEdge)); // TODO: Is this cast correct?
     }
     return ImmutableSet.of();
   }
+
+  private IntervalAnalysisState assign(CExpression assignee, CExpression value, CFAEdge cfaEdge)
+      throws UnrecognizedCodeException {
+    if (assignee instanceof CIdExpression id) {
+      IntervalAnalysisState modifiedState = state.adaptToVariableAssignment(id, normalizeExpression(value, new ExpressionValueVisitor(state, cfaEdge)));
+      return modifiedState.addInterval(id.getDeclaration().getQualifiedName(), value.accept(new ExpressionValueVisitor(state, cfaEdge)), threshold);
+    }
+    return state;
+    //TODO: Erweitern, sodass auch array assignments abgedeckt sind
+  };
 
   private IntervalAnalysisState assign(CExpression assignee, Interval value, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {

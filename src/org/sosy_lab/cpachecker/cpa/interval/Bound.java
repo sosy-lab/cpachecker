@@ -15,7 +15,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -32,50 +34,40 @@ public record Bound(Set<NormalFormExpression> expressions) {
     this(ImmutableSet.of(expression));
   }
 
-  //  public Bound adaptForChangedVariableValues(
-  //          String changedVariableRef,
-  //          Set<CExpression> newValues
-  //  ) {
-  //    var modifiedExpressions = expressions.stream().flatMap(
-  //            expression -> newValues.stream().flatMap(newValue -> {
-  //              if (expression.containsVariable(newValue.varRef())) {
-  //                if (expression.containsVariable(changedVariableRef)) {
-  //                  return Stream.of(expression.increase(-newValue.constant()));
-  //                } else {
-  //                  return Stream.of(
-  //                          expression,
-  //                          new CExpression(changedVariableRef, expression.constant() -
-  // newValue.constant())
-  //                  );
-  //                }
-  //              } else {
-  //                if (expression.containsVariable(changedVariableRef)) {
-  //                  return Stream.of();
-  //                } else {
-  //                  return Stream.of(expression);
-  //                }
-  //              }
-  //            })
-  //    ).collect(Collectors.toSet());
-  //
-  //    return new Bound(modifiedExpressions);
-  //
-  //    throw new RuntimeException("Not yet implemented");
-  //  }
+  public Bound adaptForChangedVariableValues(
+      CIdExpression changedVariableId,
+      Set<NormalFormExpression> newValues
+  ) {
+    var modifiedExpressions = expressions.stream().flatMap(
+        expression -> newValues.stream().flatMap(newValue -> {
+          if (expression.containsVariable(newValue.getVariable())) {
+            if (expression.containsVariable(changedVariableId)) {
+              return Stream.of(expression.increase(-newValue.getConstant()));
+            } else {
+              return Stream.of(
+                  expression,
+                  new NormalFormExpression(changedVariableId, expression.getConstant() - newValue.getConstant())
+              );
+            }
+          } else {
+            if (expression.containsVariable(changedVariableId)) {
+              return Stream.of();
+            } else {
+              return Stream.of(expression);
+            }
+          }
+        })
+    ).collect(Collectors.toSet());
 
-  //  /**
-  //   * Removes all expressions containing the specified variable.
-  //   *
-  //   * @param varRef the variable.
-  //   * @return the modified bound.
-  //   */
-  //  public Bound removeVariableOccurrences(String varRef) {
-  //    var modifiedExpressions = expressions.stream()
-  //            .filter(e -> !e.containsVariable(varRef))
-  //            .collect(Collectors.toSet());
-  //    return new Bound(modifiedExpressions);
-  //    throw new RuntimeException("Not yet implemented");
-  //  }
+    return new Bound(modifiedExpressions);
+  }
+
+    public Bound removeVariableOccurrences(CIdExpression removeVariable) {
+      var modifiedExpressions = expressions.stream()
+              .filter(e -> !e.containsVariable(removeVariable))
+              .collect(Collectors.toSet());
+      return new Bound(modifiedExpressions);
+    }
 
   public boolean contains(NormalFormExpression expression) {
     return expressions().stream().anyMatch(e -> e.equals(expression));

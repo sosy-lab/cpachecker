@@ -21,11 +21,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -556,5 +558,23 @@ public class IntervalAnalysisState
           .compare(absoluteDistance, other.absoluteDistance)
           .result();
     }
+  }
+
+  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
+
+    PersistentMap<String, FunArray> adaptedArrays = arrays.empty();
+
+    for (Entry<String, FunArray> entry : arrays.entrySet()) {
+      adaptedArrays = adaptedArrays.putAndCopy(
+        entry.getKey(),
+        entry.getValue().adaptToVariableAssignment(changedVariable, expressions)
+      );
+    }
+
+    return new IntervalAnalysisState(
+        intervals,
+        referenceCounts,
+        adaptedArrays
+    );
   }
 }

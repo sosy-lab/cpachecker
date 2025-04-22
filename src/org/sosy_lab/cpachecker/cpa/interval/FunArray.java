@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -123,22 +124,22 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
         .collect(Collectors.joining(" "));
   }
 
-  //  public FunArray insertExpression(String varRef, Set<CExpression> expressions) {
-  //    var newBounds = new ArrayList<>(bounds.stream()
-  //            .map(b -> b.adaptForChangedVariableValues(varRef, expressions))
-  //            .toList());
-  //    var newValues = new ArrayList<>(values);
-  //    var newEmptiness = new ArrayList<>(emptiness);
-  //
-  //    return new FunArray(newBounds, newValues, newEmptiness);
-  //  }
-  //
-  //  public FunArray removeVariableOccurrences(String varRef) {
-  //    return new FunArray(
-  //            bounds.stream().map(b -> b.removeVariableOccurrences(varRef)).toList(),
-  //            values, emptiness
-  //    ).removeEmptyBounds();
-  //  }
+    public FunArray adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
+      var newBounds = new ArrayList<>(bounds.stream()
+              .map(b -> b.adaptForChangedVariableValues(changedVariable, expressions))
+              .toList());
+      var newValues = new ArrayList<>(values);
+      var newEmptiness = new ArrayList<>(emptiness);
+
+      return new FunArray(newBounds, newValues, newEmptiness);
+    }
+
+    public FunArray removeVariableOccurrences(CIdExpression removeVariable) {
+      return new FunArray(
+              bounds.stream().map(b -> b.removeVariableOccurrences(removeVariable)).toList(),
+              values, emptiness
+      ).removeEmptyBounds();
+    }
 
   public FunArray restrictExpressionOccurrences(Set<NormalFormExpression> allowedExpressions) {
     var newBounds = bounds.stream().map(b -> b.intersection(allowedExpressions)).toList();

@@ -25,6 +25,14 @@ public class NormalFormExpression {
   private final CIdExpression variable;
   private final long constant;
 
+  public CIdExpression getVariable() {
+    return variable;
+  }
+
+  public long getConstant() {
+    return constant;
+  }
+
   public NormalFormExpression(CIdExpression pVariable, long pConstant) {
     variable = pVariable;
     constant = pConstant;
@@ -38,6 +46,10 @@ public class NormalFormExpression {
   public NormalFormExpression(CIdExpression pVariable) {
     variable = pVariable;
     constant = 0;
+  }
+
+  public NormalFormExpression increase(long value) {
+    return new NormalFormExpression(variable, constant + value);
   }
 
   public boolean isSyntacticallyLessThanOrEqualTo(NormalFormExpression other) {
@@ -104,6 +116,14 @@ public class NormalFormExpression {
     }
     return variable.accept(visitor).plus(constant);
   }
+
+  public boolean containsVariable(CIdExpression pVariable) {
+    if (variable == null) {
+      return pVariable == null;
+    }
+    return variable.equals(pVariable);
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(variable, constant);
