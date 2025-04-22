@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -391,7 +392,15 @@ public class IntervalAnalysisTransferRelation
       CStatementEdge cfaEdge, CStatement expression) throws UnrecognizedCodeException {
     if (expression instanceof CAssignment assignExpression) {
       CExpression assignee = assignExpression.getLeftHandSide();
-      return ImmutableSet.of(assign(assignee, (CExpression) assignExpression.getRightHandSide(), cfaEdge)); // TODO: Is this cast correct?
+
+      CRightHandSide rightHandSide = assignExpression.getRightHandSide();
+
+      if (rightHandSide instanceof CExpression rightHandSideExpression) {
+        return ImmutableSet.of(assign(assignee, rightHandSideExpression, cfaEdge));
+      } else {
+        return ImmutableSet.of(assign(assignee, assignExpression.getRightHandSide().accept(new ExpressionValueVisitor(state, cfaEdge)), cfaEdge));
+      }
+
     }
     return ImmutableSet.of();
   }
