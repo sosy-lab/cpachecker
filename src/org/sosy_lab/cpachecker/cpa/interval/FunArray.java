@@ -526,4 +526,80 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
   public boolean isReachable() {
     return values.stream().noneMatch(Interval::isEmpty);
   }
+
+  public FunArray satisfyStrictLessThan(NormalFormExpression lesser, NormalFormExpression greater) {
+    int leftIndex;
+    int rightIndex;
+    try {
+      leftIndex = this.findIndex(lesser);
+      rightIndex = this.findIndex(greater);
+    } catch (IndexOutOfBoundsException e) {
+      return this;
+    }
+
+    if (leftIndex + 1 == rightIndex) {
+      // Since the condition requires strict inequality, a single segment between the expressions
+      // cannot be empty.
+      var modifiedEmptiness = new ArrayList<>(this.emptiness());
+      modifiedEmptiness.set(leftIndex, false);
+      return new FunArray(this.bounds(), this.values(), modifiedEmptiness);
+    } else if (leftIndex < rightIndex) {
+      // If there is more than one segment in between the expressions it cannot be decided which one
+      // is not empty.
+      return this;
+    } else {
+      // Bound order states that left expression is greater than right expression
+      // Condition states that left expression is less than right expression
+      // --> Condition cannot be satisfied --> Remove expressions in question
+
+      var newBounds = this.bounds().stream()
+          .map(b -> b.difference(Set.of(lesser, greater)))
+          .toList();
+      return new FunArray(newBounds, this.values(), this.emptiness())
+          .removeEmptyBounds();
+    }
+  }
+
+  public FunArray satisfyLessEqual(NormalFormExpression lesser, NormalFormExpression greater) {
+    int leftIndex;
+    int rightIndex;
+    try {
+      leftIndex = this.findIndex(lesser);
+      rightIndex = this.findIndex(greater);
+    } catch (IndexOutOfBoundsException e) {
+      return this;
+    }
+
+    var modifiedBounds = new ArrayList<>(this.bounds());
+    var modifiedValues = new ArrayList<>(this.values());
+    var modifiedEmptiness = new ArrayList<>(this.emptiness());
+
+    if (leftIndex <= rightIndex) {
+      // Condition is already met, change nothing
+      return this;
+    } else if (modifiedEmptiness.subList(rightIndex, leftIndex).stream().anyMatch(e -> !e)) {
+      // Bound order states that left expression is greater than right expression
+      // Condition states that left expression is less equal than right expression
+      // --> Condition cannot be satisfied --> Remove expressions in question
+      var newBounds = modifiedBounds.stream()
+          .map(b -> b.difference(Set.of(lesser, greater)))
+          .toList();
+      return new FunArray(newBounds, this.values(), this.emptiness())
+          .removeEmptyBounds();
+    } else {
+      // Bound order states that left expression is greater equal than right expression
+      // Condition states that left expression is less equal than right expression
+      // --> left expression has to be equal to right expression --> Squash segments
+      var boundsToBeSquashed = modifiedBounds.subList(rightIndex, leftIndex + 1);
+      var squashedBound = Bound.union(boundsToBeSquashed);
+      boundsToBeSquashed.clear();
+      boundsToBeSquashed.add(squashedBound);
+
+      modifiedValues.subList(rightIndex, leftIndex).clear();
+      modifiedEmptiness.subList(rightIndex, leftIndex).clear();
+
+      return new FunArray(modifiedBounds, modifiedValues, modifiedEmptiness);
+    }
+  }
+  //TODO: Satisfy equal and not equal
 }
