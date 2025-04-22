@@ -41,23 +41,21 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
   public NotEqualInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
     this.aggregatedReachedSets = pAggregatedReachedSets;
     this.cfa = pCFA;
-    //    System.out.println("NNNEEE NotEqualInvariantGenerator");
+
   }
 
   @Override
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
-    //    int size = (pReachedSet == null) ? 0 : pReachedSet.asCollection().size();
-    //    System.out.println("NNNEEE ReachedSet Size: " + size);
+
   }
 
   protected Iterable<AbstractState> getReachedStates() {
     if (reachedSet == null) {
-      //      System.out.println("NNNEEE ReachedSet is null.");
+
       return java.util.Collections.emptyList();
     } else {
-      //      int size = reachedSet.asCollection().size();
-      //      System.out.println("NNNEEE getReachedStates: reached set size = " + size);
+
       return reachedSet.asCollection();
     }
   }
@@ -77,7 +75,6 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
   public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
     return new InvariantSupplier() {
 
-      private int invariantCount = 0;
 
       @Override
       public BooleanFormula getInvariantFor(
@@ -88,50 +85,28 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
           PathFormula pContext)
           throws InterruptedException {
 
-        invariantCount++;
-        //        System.out.println("NNNEEE ---------- Count " + invariantCount + " ----------");
 
         BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
         Map<String, Integer> lastIndices = new HashMap<>();
         List<BooleanFormula> inequalityConstraints = new ArrayList<>();
 
-        //        int allStates = 0;
-        //        for (AbstractState s : getReachedStates()) {
-        //          allStates++;
-        //        }
-        //        System.out.println("NNNEEE Total reached states: " + allStates);
-
         Iterable<AbstractState> nodeState = AbstractStates.filterLocation(getReachedStates(), node);
-        //        int nodeStateCount = 0;
-        //        for (AbstractState s : nodeState) {
-        //          nodeStateCount++;
-        //        }
-        //        System.out.println(
-        //            "NNNEEE Reached states at node (line " + node.getNodeNumber() + "): " +
-        // nodeStateCount);
 
         for (AbstractState state : nodeState) {
           PredicateAbstractState pas =
               AbstractStates.extractStateByType(state, PredicateAbstractState.class);
           if (pas == null) {
-            //            System.out.println("NNNEEE PredicateAbstractState is null for state: " +
-            // state);
             continue;
           }
           PathFormula currentPf = pas.getPathFormula();
           SSAMap currentSSAMap = currentPf.getSsa();
-          // System.out.println("NNNEEE Processing state with PF: " + currentPf);
-          //          System.out.println("NNNEEE SSA Map: " + currentSSAMap);
 
           for (String var : currentSSAMap.allVariables()) {
             int currentIndex = currentSSAMap.getIndex(var);
-            //            System.out.println("NNNEEE Variable: " + var + ", Current Index: " +
-            // currentIndex);
 
             if (lastIndices.containsKey(var)) {
               int prevIndex = lastIndices.get(var);
-              //              System.out.println("NNNEEE Previous index for " + var + ": " +
-              // prevIndex);
+
               if (prevIndex != currentIndex) {
 
                 String oldVarName = var + "____" + prevIndex;
@@ -143,28 +118,15 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
                 BooleanFormula inequality =
                     fmgr.makeNot(fmgr.makeEqual(oldVarFormula, curVarFormula));
                 inequalityConstraints.add(inequality);
-                //                System.out.println("NNNEEE Adding inequality: " + oldVarName + "
-                // != " + curVarName);
               }
-              //              else {
-              //                System.out.println( "NNNEEE No index change for variable " + var + "
-              // (remains " + currentIndex + ")");
-              //              }
             }
 
-            //            System.out.println("NNNEEE Invariant : " + lastIndices);
             lastIndices.put(var, currentIndex);
           }
         }
 
         BooleanFormula notEaulInvariant =
             inequalityConstraints.isEmpty() ? bfmgr.makeTrue() : bfmgr.and(inequalityConstraints);
-        //        System.out.println("NNNEEE Final invariant: " + notEaulInvariant);
-
-        SSAMap updatedSsaMap = pContext.getSsa().builder().build();
-        pContext = pContext.withContext(updatedSsaMap, pContext.getPointerTargetSet());
-        //        System.out.println(
-        //            "NNNEEE Updated pContext: " + pContext); // ////always same never updated.
 
         return notEaulInvariant;
       }

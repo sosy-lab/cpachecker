@@ -13,5 +13,4 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 public interface ReachedSetNotEqual {
 
   void setReachedSet(ReachedSet reachedSet);
-
 }

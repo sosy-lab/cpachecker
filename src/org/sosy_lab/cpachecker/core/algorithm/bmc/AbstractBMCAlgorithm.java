@@ -299,14 +299,14 @@ abstract class AbstractBMCAlgorithm
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
-      //invariantGenerationStrategy2 = InvariantGeneratorFactory.DO_NOTHING;
+      // invariantGenerationStrategy2 = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
     boolean addInvariantsByInduction =
         invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
-        //invariantGenerationStrategy2 == InvariantGeneratorFactory.INDUCTION;
+    // invariantGenerationStrategy2 == InvariantGeneratorFactory.INDUCTION;
     if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
@@ -318,7 +318,7 @@ abstract class AbstractBMCAlgorithm
 
     if (pIsInvariantGenerator && addInvariantsByInduction) {
       invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
-      //invariantGenerationStrategy2 = InvariantGeneratorFactory.NOT_EQUAL;
+      // invariantGenerationStrategy2 = InvariantGeneratorFactory.NOT_EQUAL;
     }
     Configuration invGenConfig = pConfig;
     if (invariantGeneratorConfig != null) {
@@ -335,7 +335,7 @@ abstract class AbstractBMCAlgorithm
     }
     final InvariantGenerator invGen =
         invariantGenerationStrategy.createInvariantGenerator(
-        //invariantGenerationStrategy2.createInvariantGenerator(
+            // invariantGenerationStrategy2.createInvariantGenerator(
             invGenConfig,
             pLogger,
             pReachedSetFactory,
@@ -1105,13 +1105,11 @@ abstract class AbstractBMCAlgorithm
           CFA pCFA,
           Specification pSpecification,
           AggregatedReachedSets pAggregatedReachedSets,
-          TargetLocationProvider pTargetLocationProvider
-      ) {
+          TargetLocationProvider pTargetLocationProvider) {
         pLogger.log(Level.INFO, "Using ReachedSetNotEqualInvariantGenerator");
-        return new NotEqualInvariantGenerator(pAggregatedReachedSets, pCFA) ;
+        return new NotEqualInvariantGenerator(pAggregatedReachedSets, pCFA);
       }
     },
-
 
     REACHED_SET {
       @Override
@@ -1146,7 +1144,6 @@ abstract class AbstractBMCAlgorithm
           @Override
           public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
             return new FormulaInvariantsSupplier(pAggregatedReachedSets);
-
           }
 
           @Override
@@ -1157,7 +1154,6 @@ abstract class AbstractBMCAlgorithm
         };
       }
     },
-
 
     DO_NOTHING {
 
@@ -1449,6 +1445,7 @@ abstract class AbstractBMCAlgorithm
 
     void waitForInvariantGenerator() throws InterruptedException;
   }
+
   private enum InvariantGeneratorHeadStartFactories {
     NONE {
 

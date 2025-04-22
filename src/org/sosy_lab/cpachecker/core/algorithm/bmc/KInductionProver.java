@@ -253,23 +253,8 @@ class KInductionProver implements AutoCloseable {
       PathFormula pContext)
       throws InterruptedException {
 
-    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Location: " + pLocation);
-    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Formula Manager: " + pFormulaManager);
-    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula Manager: " +
-    // pPathFormulaManager);
-    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula: " + pContext);
-
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
-
-    //    System.out.println(
-    //        "!!!!!!!!!!!!!!!!!!!!!!! Current Invariant Supplier: "
-    //            + currentInvariantsSupplier.getClass().getName());
-
-    //    BooleanFormula invariant =
-    //        currentInvariantsSupplier.getInvariantFor(
-    //            pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
-    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Invariant: " + invariant);
 
     return currentInvariantsSupplier.getInvariantFor(
         pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
@@ -440,8 +425,6 @@ class KInductionProver implements AutoCloseable {
     BooleanFormula loopHeadInv = inductiveLoopHeadInvariantAssertion(loopHeadStates);
     previousK = pK + 1;
     stats.inductionPreparation.stop();
-
-    //    System.out.println("KKKIIIPPP PREVIOUS K : " + previousK);
 
     // Attempt the induction proofs
     shutdownNotifier.shutdownIfNecessary();
