@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -102,5 +103,31 @@ public class NormalFormExpression {
       return new Interval(constant);
     }
     return variable.accept(visitor).plus(constant);
+  }
+  @Override
+  public int hashCode() {
+    return Objects.hash(variable, constant);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (obj instanceof NormalFormExpression other) {
+
+      if (variable == null) {
+        if (other.variable == null) {
+          return other.constant == constant;
+        }
+        return false;
+      }
+
+      return variable.equals(other.variable) && constant == other.constant;
+    }
+    return false;
   }
 }
