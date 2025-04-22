@@ -80,7 +80,7 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
             if (functionNameExp instanceof AIdExpression pFunctionName) {
               final String functionName = pFunctionName.getName();
               switch (functionName) {
-                case "pthread_create":
+                case "pthread_create" -> {
                   final var params =
                       pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
                   Preconditions.checkState(
@@ -101,10 +101,10 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
                           prevState,
                           ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
                               .getName());
-                  break;
-                default:
+                }
+                default -> {
                   // nothing to do
-                  break;
+                }
               }
             }
           }

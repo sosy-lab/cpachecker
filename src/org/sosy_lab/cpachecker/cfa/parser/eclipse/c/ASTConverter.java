@@ -589,44 +589,40 @@ class ASTConverter {
     if (exp instanceof IASTBinaryExpression binExp
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
             || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
-      switch (binExp.getOperator()) {
+      return switch (binExp.getOperator()) {
         case IASTBinaryExpression.op_logicalAnd -> {
           Condition left = getConditionKind(binExp.getOperand1());
-          switch (left) {
-            case ALWAYS_TRUE:
-              return getConditionKind(binExp.getOperand2());
-            case ALWAYS_FALSE:
-              return left;
-            case NORMAL:
+          yield switch (left) {
+            case ALWAYS_TRUE -> getConditionKind(binExp.getOperand2());
+            case ALWAYS_FALSE -> left;
+            case NORMAL -> {
               if (getConditionKind(binExp.getOperand2()) == Condition.ALWAYS_FALSE) {
-                return Condition.ALWAYS_FALSE;
+                yield Condition.ALWAYS_FALSE;
               } else {
-                return Condition.NORMAL;
+                yield Condition.NORMAL;
               }
-            default:
-              throw new AssertionError("unhandled case statement");
-          }
+            }
+            default -> throw new AssertionError("unhandled case statement");
+          };
         }
         case IASTBinaryExpression.op_logicalOr -> {
           Condition left = getConditionKind(binExp.getOperand1());
-          switch (left) {
-            case ALWAYS_TRUE:
-              return Condition.ALWAYS_TRUE;
-            case ALWAYS_FALSE:
-              return getConditionKind(binExp.getOperand2());
-            case NORMAL:
+          yield switch (left) {
+            case ALWAYS_TRUE -> Condition.ALWAYS_TRUE;
+            case ALWAYS_FALSE -> getConditionKind(binExp.getOperand2());
+            case NORMAL -> {
               Condition right = getConditionKind(binExp.getOperand2());
               if (right == Condition.ALWAYS_FALSE) {
-                return Condition.NORMAL;
+                yield Condition.NORMAL;
               } else {
-                return right;
+                yield right;
               }
-            default:
-              throw new AssertionError("unhandled case statement");
-          }
+            }
+            default -> throw new AssertionError("unhandled case statement");
+          };
         }
         default -> throw new AssertionError("unhandled case statement");
-      }
+      };
 
     } else {
       sideAssignmentStack.enterBlock();
