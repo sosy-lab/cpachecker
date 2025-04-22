@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,19 +42,17 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
   public NotEqualInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
     this.aggregatedReachedSets = pAggregatedReachedSets;
     this.cfa = pCFA;
-
   }
 
   @Override
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
-
   }
 
   protected Iterable<AbstractState> getReachedStates() {
     if (reachedSet == null) {
 
-      return java.util.Collections.emptyList();
+      return ImmutableList.of();
     } else {
 
       return reachedSet.asCollection();
@@ -75,7 +74,6 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
   public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
     return new InvariantSupplier() {
 
-
       @Override
       public BooleanFormula getInvariantFor(
           CFANode node,
@@ -84,7 +82,6 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
           PathFormulaManager pfmgr,
           PathFormula pContext)
           throws InterruptedException {
-
 
         BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
         Map<String, Integer> lastIndices = new HashMap<>();
@@ -127,7 +124,6 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
 
         BooleanFormula notEaulInvariant =
             inequalityConstraints.isEmpty() ? bfmgr.makeTrue() : bfmgr.and(inequalityConstraints);
-
         return notEaulInvariant;
       }
     };

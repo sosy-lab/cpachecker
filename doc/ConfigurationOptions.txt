@@ -760,7 +760,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, NOT_EQUAL, REACHED_SET, DO_NOTHING]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
