@@ -316,7 +316,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryErrors",
       description = "Determines if memory errors are target states")
-  private boolean memoryErrors = true;
+  private boolean memoryErrors = false;
 
   @Option(
       secure = true,
