@@ -253,21 +253,23 @@ class KInductionProver implements AutoCloseable {
       PathFormula pContext)
       throws InterruptedException {
 
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Location: " + pLocation);
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Formula Manager: " + pFormulaManager);
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula Manager: " + pPathFormulaManager);
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula: " + pContext);
-
+    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Location: " + pLocation);
+    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Formula Manager: " + pFormulaManager);
+    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula Manager: " +
+    // pPathFormulaManager);
+    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Path Formula: " + pContext);
 
     shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
 
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Current Invariant Supplier: " + currentInvariantsSupplier.getClass().getName());
+    //    System.out.println(
+    //        "!!!!!!!!!!!!!!!!!!!!!!! Current Invariant Supplier: "
+    //            + currentInvariantsSupplier.getClass().getName());
 
-    BooleanFormula invariant = currentInvariantsSupplier.getInvariantFor(
-        pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
-    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Invariant: " + invariant);
-
+    //    BooleanFormula invariant =
+    //        currentInvariantsSupplier.getInvariantFor(
+    //            pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
+    //    System.out.println("!!!!!!!!!!!!!!!!!!!!!!! Invariant: " + invariant);
 
     return currentInvariantsSupplier.getInvariantFor(
         pLocation, Optional.empty(), pFormulaManager, pPathFormulaManager, pContext);
@@ -439,7 +441,7 @@ class KInductionProver implements AutoCloseable {
     previousK = pK + 1;
     stats.inductionPreparation.stop();
 
-    System.out.println("KKKIIIPPP PREVIOUS K : " + previousK );
+    //    System.out.println("KKKIIIPPP PREVIOUS K : " + previousK);
 
     // Attempt the induction proofs
     shutdownNotifier.shutdownIfNecessary();
@@ -706,7 +708,7 @@ class KInductionProver implements AutoCloseable {
       if (is != null && pas != null) {
         SSAMap ssaMap = pas.getPathFormula().getSsa();
 
-        //System.out.println("KKKIIIPPP ssaMap: " + ssaMap);
+        // System.out.println("KKKIIIPPP ssaMap: " + ssaMap);
 
         for (String input : is.getInputs()) {
           if (ssaMap.containsVariable(input)) {
