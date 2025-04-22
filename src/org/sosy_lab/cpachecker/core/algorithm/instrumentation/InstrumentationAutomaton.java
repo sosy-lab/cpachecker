@@ -556,28 +556,28 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(free)"),
-            new InstrumentationOperation("__instrumentation_memory_free(x_instr_2)"),
+            new InstrumentationOperation("__instrumentation_memory_free"),
             InstrumentationOrder.SAME_LINE,
             q2);
     InstrumentationTransition t3 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(malloc)"),
-            new InstrumentationOperation("__instrumentation_memory_malloc(x_instr_2)"),
+            new InstrumentationOperation("__instrumentation_memory_malloc"),
             InstrumentationOrder.SAME_LINE,
             q2);
     InstrumentationTransition t4 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(calloc)"),
-            new InstrumentationOperation("__instrumentation_memory_calloc(x_instr_2, x_instr_3)"),
+            new InstrumentationOperation("__instrumentation_memory_calloc"),
             InstrumentationOrder.SAME_LINE,
             q2);
     InstrumentationTransition t5 =
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("FUNC(realloc)"),
-            new InstrumentationOperation("__instrumentation_memory_realloc(x_instr_2, x_instr_3)"),
+            new InstrumentationOperation("__instrumentation_memory_realloc"),
             InstrumentationOrder.SAME_LINE,
             q2);
     InstrumentationTransition t6 =
