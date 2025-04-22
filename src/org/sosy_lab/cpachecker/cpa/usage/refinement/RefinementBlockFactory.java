@@ -93,7 +93,7 @@ public class RefinementBlockFactory {
       RefinementBlockTypes currentType = RefinementChain.get(i);
       if (currentBlockType == currentType.innerType) {
         switch (currentType) {
-          case IdentifierIterator:
+          case IdentifierIterator -> {
             currentBlock =
                 new IdentifierIterator(
                     (ConfigurableRefinementBlock<SingleIdentifier>) currentBlock,
@@ -101,23 +101,20 @@ public class RefinementBlockFactory {
                     cpa,
                     bamCpa.getTransferRelation());
             currentBlockType = currentInnerBlockType.ReachedSet;
-            break;
-
-          case PointIterator:
+          }
+          case PointIterator -> {
             currentBlock =
                 new PointIterator(
                     (ConfigurableRefinementBlock<Pair<UsageInfoSet, UsageInfoSet>>) currentBlock);
             currentBlockType = currentInnerBlockType.SingleIdentifier;
-            break;
-
-          case UsageIterator:
+          }
+          case UsageIterator -> {
             currentBlock =
                 new UsagePairIterator(
                     (ConfigurableRefinementBlock<Pair<UsageInfo, UsageInfo>>) currentBlock, logger);
             currentBlockType = currentInnerBlockType.UsageInfoSet;
-            break;
-
-          case PathIterator:
+          }
+          case PathIterator -> {
             currentBlock =
                 new PathPairIterator(
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
@@ -125,34 +122,27 @@ public class RefinementBlockFactory {
                     bamCpa,
                     pathEquation);
             currentBlockType = currentInnerBlockType.UsageInfo;
-            break;
-
-          case PredicateRefiner:
-            currentBlock =
-                new PredicateRefinerAdapter(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
-                        currentBlock,
-                    cpa,
-                    logger);
-            break;
-
-          case CallstackFilter:
-            currentBlock =
-                new CallstackFilter(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
-                        currentBlock,
-                    config);
-            break;
-
-          case ProbeFilter:
-            currentBlock =
-                new ProbeFilter(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
-                        currentBlock,
-                    config);
-            break;
-
-          case SharedRefiner:
+          }
+          case PredicateRefiner ->
+              currentBlock =
+                  new PredicateRefinerAdapter(
+                      (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                          currentBlock,
+                      cpa,
+                      logger);
+          case CallstackFilter ->
+              currentBlock =
+                  new CallstackFilter(
+                      (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                          currentBlock,
+                      config);
+          case ProbeFilter ->
+              currentBlock =
+                  new ProbeFilter(
+                      (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
+                          currentBlock,
+                      config);
+          case SharedRefiner -> {
             // LocalCPA CPAForSharedRefiner = CPAs.retrieveCPA(cpa, LocalCPA.class);
             // assert(CPAForSharedRefiner != null);
             LocalTransferRelation RelationForSharedRefiner = new LocalTransferRelation(config);
@@ -162,12 +152,10 @@ public class RefinementBlockFactory {
                     (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>)
                         currentBlock,
                     RelationForSharedRefiner);
-
-            break;
-
-          default:
-            throw new InvalidConfigurationException(
-                "The type " + RefinementChain.get(i) + " is not supported");
+          }
+          default ->
+              throw new InvalidConfigurationException(
+                  "The type " + RefinementChain.get(i) + " is not supported");
         }
       } else {
         throw new InvalidConfigurationException(

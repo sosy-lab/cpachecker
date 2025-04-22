@@ -894,12 +894,14 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     BitvectorFormula visit(Texpr0UnNode pNode) {
       BitvectorFormula operand = visit(pNode.getArgument());
       switch (pNode.getOperation()) {
-        case Texpr0UnNode.OP_NEG:
+        case Texpr0UnNode.OP_NEG -> {
           return bitFmgr.negate(operand);
-        case Texpr0UnNode.OP_SQRT:
-          throw new AssertionError("sqrt not implemented in this visitor");
-        default:
+        }
+        case Texpr0UnNode.OP_SQRT ->
+            throw new AssertionError("sqrt not implemented in this visitor");
+        default -> {
           // nothing to do here, we ignore casts
+        }
       }
       return operand;
     }

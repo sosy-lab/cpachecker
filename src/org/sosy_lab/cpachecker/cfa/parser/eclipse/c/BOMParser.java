@@ -87,14 +87,11 @@ public final class BOMParser {
         }
       }
       switch (bom) {
-        case NO_BOM:
-          // Reset the stream to read the file from the beginning again
-          in.reset();
-          break;
-        case UNKNOWN_BOM:
-          throw new CParserException("Byte Order Mark is unknown");
-        default:
-          break;
+        case NO_BOM ->
+            // Reset the stream to read the file from the beginning again
+            in.reset();
+        case UNKNOWN_BOM -> throw new CParserException("Byte Order Mark is unknown");
+        default -> {}
       }
       String code;
       try (InputStreamReader reader = new InputStreamReader(in, bom.charset)) {

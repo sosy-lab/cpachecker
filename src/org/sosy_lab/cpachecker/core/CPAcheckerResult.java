@@ -140,9 +140,10 @@ public class CPAcheckerResult {
 
   public String getResultString() {
     switch (result) {
-      case UNKNOWN:
+      case UNKNOWN -> {
         return "UNKNOWN, incomplete analysis.";
-      case FALSE:
+      }
+      case FALSE -> {
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
         if (!targetDescription.isEmpty()) {
@@ -150,10 +151,11 @@ public class CPAcheckerResult {
         }
         sb.append(" found by chosen configuration.");
         return sb.toString();
-      case TRUE:
+      }
+      case TRUE -> {
         return "TRUE. No property violation found by chosen configuration.";
-      default:
-        throw new AssertionError(result);
+      }
+      default -> throw new AssertionError(result);
     }
   }
 

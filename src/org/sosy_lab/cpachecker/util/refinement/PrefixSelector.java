@@ -112,44 +112,27 @@ public class PrefixSelector {
     }
 
     public Scorer createScorer(PrefixPreference pPreference) {
-      switch (pPreference) {
-        case LENGTH_MIN:
-          return new LengthScorer();
-        case LENGTH_MAX:
-          return new LengthScorer().invert();
-        case DOMAIN_MIN:
-          return new DomainScorer(classification, loopStructure, logger);
-        case DOMAIN_MAX:
-          return new DomainScorer(classification, loopStructure, logger).invert();
-        case LOOPS_MIN:
-          return new LoopScorer(classification, loopStructure, logger);
-        case LOOPS_MAX:
-          return new LoopScorer(classification, loopStructure, logger).invert();
-        case WIDTH_MIN:
-          return new WidthScorer();
-        case WIDTH_MAX:
-          return new WidthScorer().invert();
-        case PIVOT_MIN:
-          return new DepthScorer();
-        case PIVOT_MAX:
-          return new DepthScorer().invert();
-        case ASSIGNMENTS_MIN:
-          return new AssignmentScorer(classification);
-        case ASSIGNMENTS_MAX:
-          return new AssignmentScorer(classification).invert();
-        case ASSUMPTIONS_MIN:
-          return new AssumptionScorer(classification);
-        case ASSUMPTIONS_MAX:
-          return new AssumptionScorer(classification).invert();
-        case RANDOM:
-          return randomScorer;
-
+      return switch (pPreference) {
+        case LENGTH_MIN -> new LengthScorer();
+        case LENGTH_MAX -> new LengthScorer().invert();
+        case DOMAIN_MIN -> new DomainScorer(classification, loopStructure, logger);
+        case DOMAIN_MAX -> new DomainScorer(classification, loopStructure, logger).invert();
+        case LOOPS_MIN -> new LoopScorer(classification, loopStructure, logger);
+        case LOOPS_MAX -> new LoopScorer(classification, loopStructure, logger).invert();
+        case WIDTH_MIN -> new WidthScorer();
+        case WIDTH_MAX -> new WidthScorer().invert();
+        case PIVOT_MIN -> new DepthScorer();
+        case PIVOT_MAX -> new DepthScorer().invert();
+        case ASSIGNMENTS_MIN -> new AssignmentScorer(classification);
+        case ASSIGNMENTS_MAX -> new AssignmentScorer(classification).invert();
+        case ASSUMPTIONS_MIN -> new AssumptionScorer(classification);
+        case ASSUMPTIONS_MAX -> new AssumptionScorer(classification).invert();
+        case RANDOM -> randomScorer;
         // illegal arguments
-        case NONE:
-        default:
-          throw new IllegalArgumentException(
-              "Illegal prefix preference " + pPreference + " given!");
-      }
+        case NONE ->
+            throw new IllegalArgumentException(
+                "Illegal prefix preference " + pPreference + " given!");
+      };
     }
   }
 

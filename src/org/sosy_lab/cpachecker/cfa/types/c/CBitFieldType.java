@@ -49,12 +49,10 @@ public final class CBitFieldType implements CType {
     if (canonicalType instanceof CSimpleType simpleType) {
       CBasicType basicType = simpleType.getType();
       switch (basicType) {
-        case BOOL:
-        case CHAR:
-        case INT:
+        case BOOL, CHAR, INT -> {
           return pBitFieldType;
-        default:
-          break;
+        }
+        default -> {}
       }
     } else if (canonicalType instanceof CEnumType) {
       return pBitFieldType;

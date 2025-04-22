@@ -96,13 +96,10 @@ public class PseudoExistQeManager implements StatisticsProvider {
     public Map<Formula, Formula> visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       switch (pFunctionDeclaration.getKind()) {
-
-        // TODO this code assumes that equality has exactly two arguments.
-        // We might have more than two.
-
-        case EQ: // check those functions that represent equality
-        case BV_EQ:
-        case FP_EQ:
+        case EQ, BV_EQ, FP_EQ -> {
+          // TODO this code assumes that equality has exactly two arguments.
+          // We might have more than two.
+          // check those functions that represent equality
           if (boundVars.contains(pArgs.get(0))) {
             return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
           } else if (boundVars.contains(pArgs.get(1))) {
@@ -110,8 +107,10 @@ public class PseudoExistQeManager implements StatisticsProvider {
           } else {
             return null;
           }
-        default:
+        }
+        default -> {
           return null;
+        }
       }
     }
   }

@@ -87,34 +87,36 @@ public class CtoWpConverter extends CtoFormulaConverter {
     String functionName = pEdge.getPredecessor().getFunctionName();
 
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
+      case StatementEdge -> {
         return makePreconditionForStatement((CStatementEdge) pEdge, pPostcond, functionName);
-      case ReturnStatementEdge:
-        {
-          final var edge = (CReturnStatementEdge) pEdge;
-          return makePreconditionForReturn(edge.asAssignment(), edge, pPostcond, functionName);
+      }
+      case ReturnStatementEdge -> {
+        final var edge = (CReturnStatementEdge) pEdge;
+        return makePreconditionForReturn(edge.asAssignment(), edge, pPostcond, functionName);
+      }
+      case DeclarationEdge -> {
+        final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
+        if (edge.getDeclaration() instanceof CVariableDeclaration) {
+          return makePreconditionForVarDeclaration(
+              edge, (CVariableDeclaration) edge.getDeclaration(), pPostcond, functionName);
+        } else {
+          return pPostcond;
         }
-      case DeclarationEdge:
-        {
-          final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
-          if (edge.getDeclaration() instanceof CVariableDeclaration) {
-            return makePreconditionForVarDeclaration(
-                edge, (CVariableDeclaration) edge.getDeclaration(), pPostcond, functionName);
-          } else {
-            return pPostcond;
-          }
-        }
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return makePreconditionForAssumption((CAssumeEdge) pEdge, pPostcond, functionName);
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         return makePreconditionForFunctionCall((CFunctionCallEdge) pEdge, pPostcond, functionName);
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         return makePreconditionForFunctionExit(
             ((CFunctionReturnEdge) pEdge).getSummaryEdge(), pPostcond);
-      case BlankEdge:
+      }
+      case BlankEdge -> {
         return pPostcond;
-      default:
-        throw new UnrecognizedCFAEdgeException(pEdge);
+      }
+      default -> throw new UnrecognizedCFAEdgeException(pEdge);
     }
   }
 

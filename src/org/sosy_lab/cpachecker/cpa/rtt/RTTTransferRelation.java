@@ -92,20 +92,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case FLOAT:
-        case DOUBLE:
-        case INT:
-        case LONG:
-        case SHORT:
-        case UNSPECIFIED:
+        case BOOLEAN, BYTE, CHAR, FLOAT, DOUBLE, INT, LONG, SHORT, UNSPECIFIED -> {
           // TODO Change with inclusion of Boxing, Unboxing
           // Unnecessary to track Primitive types.
           return state;
-        default:
+        }
+        default -> {
           // nothing to do here, TODO perhaps throw exceptions in other cases?
+        }
       }
     }
 
@@ -624,13 +618,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       boolean result = value1.equals(value2);
 
       switch (operator) {
-        case EQUALS:
-          break;
-        case NOT_EQUALS:
-          result = !result;
-          break;
-        default:
-          throw new UnrecognizedCodeException("unexpected enum comparison", edge);
+        case EQUALS -> {}
+        case NOT_EQUALS -> result = !result;
+        default -> throw new UnrecognizedCodeException("unexpected enum comparison", edge);
       }
 
       return Boolean.toString(result);

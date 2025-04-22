@@ -61,65 +61,60 @@ class LvalueToPointerTargetPatternVisitor
       final CExpression operand2 = e.getOperand2();
 
       switch (e.getOperator()) {
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
-        case DIVIDE:
-        case EQUALS:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case MODULO:
-        case MULTIPLY:
-        case NOT_EQUALS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
+        case BINARY_AND,
+            BINARY_OR,
+            BINARY_XOR,
+            DIVIDE,
+            EQUALS,
+            GREATER_EQUAL,
+            GREATER_THAN,
+            LESS_EQUAL,
+            LESS_THAN,
+            MODULO,
+            MULTIPLY,
+            NOT_EQUALS,
+            SHIFT_LEFT,
+            SHIFT_RIGHT -> {
           return null;
-
-        case MINUS:
-          {
-            final PointerTargetPatternBuilder result = operand1.accept(this);
-            if (result != null) {
-              final Long offset = tryEvaluateExpression(operand2);
-              final Long oldOffset = result.getProperOffset();
-              if (offset != null && oldOffset != null && offset < oldOffset) {
-                result.setProperOffset(oldOffset - offset);
-              } else {
-                result.retainBase();
-              }
-              return result;
+        }
+        case MINUS -> {
+          final PointerTargetPatternBuilder result = operand1.accept(this);
+          if (result != null) {
+            final Long offset = tryEvaluateExpression(operand2);
+            final Long oldOffset = result.getProperOffset();
+            if (offset != null && oldOffset != null && offset < oldOffset) {
+              result.setProperOffset(oldOffset - offset);
             } else {
-              return null;
+              result.retainBase();
             }
+            return result;
+          } else {
+            return null;
           }
-
-        case PLUS:
-          {
-            PointerTargetPatternBuilder result = operand1.accept(this);
-            final Long offset;
-            if (result == null) {
-              result = operand2.accept(this);
-              offset = tryEvaluateExpression(operand1);
-            } else {
-              offset = tryEvaluateExpression(operand2);
-            }
-            if (result != null) {
-              final Long remaining = result.getRemainingOffset(typeHandler);
-              if (offset != null && remaining != null && offset < remaining) {
-                assert result.getProperOffset() != null : "Unexpected nondet proper offset";
-                result.setProperOffset(result.getProperOffset() + offset);
-              } else {
-                result.retainBase();
-              }
-              return result;
-            } else {
-              return null;
-            }
+        }
+        case PLUS -> {
+          PointerTargetPatternBuilder result = operand1.accept(this);
+          final Long offset;
+          if (result == null) {
+            result = operand2.accept(this);
+            offset = tryEvaluateExpression(operand1);
+          } else {
+            offset = tryEvaluateExpression(operand2);
           }
-
-        default:
-          throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
+          if (result != null) {
+            final Long remaining = result.getRemainingOffset(typeHandler);
+            if (offset != null && remaining != null && offset < remaining) {
+              assert result.getProperOffset() != null : "Unexpected nondet proper offset";
+              result.setProperOffset(result.getProperOffset() + offset);
+            } else {
+              result.retainBase();
+            }
+            return result;
+          } else {
+            return null;
+          }
+        }
+        default -> throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
       }
     }
 
@@ -249,13 +244,9 @@ class LvalueToPointerTargetPatternVisitor
   public PointerTargetPatternBuilder visit(final CUnaryExpression e)
       throws UnrecognizedCodeException {
     switch (e.getOperator()) {
-      case AMPER:
-      case MINUS:
-      case SIZEOF:
-      case TILDE:
-        throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
-      default:
-        throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
+      case AMPER, MINUS, SIZEOF, TILDE ->
+          throw new UnrecognizedCodeException("Illegal unary operator", cfaEdge, e);
+      default -> throw new UnrecognizedCodeException("Unhandled unary operator", cfaEdge, e);
     }
   }
 

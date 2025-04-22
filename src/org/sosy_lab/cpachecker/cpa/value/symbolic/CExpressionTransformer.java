@@ -143,20 +143,19 @@ public class CExpressionTransformer extends ExpressionTransformer
     final Type expressionType = pIastUnaryExpression.getExpressionType();
 
     switch (operator) {
-      case MINUS:
-      case TILDE:
-        {
-          SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
+      case MINUS, TILDE -> {
+        SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
 
-          if (operand == null) {
-            return null;
-          } else {
-            return transformUnaryArithmetic(operator, operand, expressionType);
-          }
+        if (operand == null) {
+          return null;
+        } else {
+          return transformUnaryArithmetic(operator, operand, expressionType);
         }
-
-      default:
-        return null; // TODO: amper, alignof, sizeof with own expressions
+      }
+      default -> {
+        return null;
+        // TODO: amper, alignof, sizeof with own expressions
+      }
     }
   }
 

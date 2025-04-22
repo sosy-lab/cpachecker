@@ -51,12 +51,7 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
     Set<String> operand2 = exp.getOperand2().accept(this);
 
     switch (exp.getOperator()) {
-      case PLUS:
-      case MINUS:
-      case MULTIPLY:
-      case DIVIDE:
-      case MODULO:
-      case SHIFT_LEFT:
+      case PLUS, MINUS, MULTIPLY, DIVIDE, MODULO, SHIFT_LEFT -> {
         // here an overflow can occur
         if (operand1 != null) {
           intOverflowsVars.addAll(operand1);
@@ -65,8 +60,9 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
           intOverflowsVars.addAll(operand2);
         }
         return null;
-
-      default: // no overflow can occur
+      }
+      default -> {
+        // no overflow can occur
         if (operand1 == null || operand2 == null) {
           if (operand1 != null) {
             return operand1;
@@ -76,6 +72,7 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
           operand1.addAll(operand2);
           return operand1;
         }
+      }
     }
   }
 

@@ -718,53 +718,45 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    */
   private String processSimpleWithLoop(CFAEdge edge, BasicBlock currentBlock, String suffix) {
     switch (edge.getEdgeType()) {
-      case BlankEdge:
-      case StatementEdge:
-      case ReturnStatementEdge:
-      case DeclarationEdge:
+      case BlankEdge, StatementEdge, ReturnStatementEdge, DeclarationEdge -> {
         return super.processSimpleEdge(edge, currentBlock) + "\n";
-
-      case AssumeEdge:
-        {
-          CAssumeEdge lAssumeEdge = (CAssumeEdge) edge;
-          if (suffix.isEmpty()) {
-            if (currentFunctionName.equals("int main_0()")) {
-              return "if(! ("
-                  + lAssumeEdge.getCode()
-                  + ")) { return 0; }\n"; // we do only want to see the relevant path
-            } else {
-              return ""; // we cannot just use exit(0) as the invariant generators does
-              // cannot cope with non-returning functions
-            }
+      }
+      case AssumeEdge -> {
+        CAssumeEdge lAssumeEdge = (CAssumeEdge) edge;
+        if (suffix.isEmpty()) {
+          if (currentFunctionName.equals("int main_0()")) {
+            return "if(! ("
+                + lAssumeEdge.getCode()
+                + ")) { return 0; }\n"; // we do only want to see the relevant path
           } else {
-            // this is either an out of loop-if or a normal if which has to be redone in a normal
-            // way
-            // therefore we cannot invert the condition, otherwise the meaning is wrong
-            return ("if(" + lAssumeEdge.getCode() + ") { goto " + suffix + "; }\n");
+            return ""; // we cannot just use exit(0) as the invariant generators does
+            // cannot cope with non-returning functions
           }
+        } else {
+          // this is either an out of loop-if or a normal if which has to be redone in a normal
+          // way
+          // therefore we cannot invert the condition, otherwise the meaning is wrong
+          return ("if(" + lAssumeEdge.getCode() + ") { goto " + suffix + "; }\n");
+        }
+      }
+      case FunctionCallEdge -> {
+        // write summary edge to the caller site (with the new unique function name)
+        CFunctionEntryNode entryNode =
+            (CFunctionEntryNode) ((FunctionCallEdge) edge).getSuccessor();
+        String functionName = entryNode.getFunctionName();
+        String functionHeader =
+            entryNode.getFunctionDefinition().getType().toASTString(functionName);
+        // lFunctionHeader is for example "void foo_99(int a)"
+
+        if (!nonUniqueFunctions.containsKey(functionHeader)) {
+          nonUniqueFunctions.put(
+              functionHeader, Pair.of(entryNode, new FunctionBody(-1, functionHeader)));
         }
 
-      case FunctionCallEdge:
-        {
-
-          // write summary edge to the caller site (with the new unique function name)
-          CFunctionEntryNode entryNode =
-              (CFunctionEntryNode) ((FunctionCallEdge) edge).getSuccessor();
-          String functionName = entryNode.getFunctionName();
-          String functionHeader =
-              entryNode.getFunctionDefinition().getType().toASTString(functionName);
-          // lFunctionHeader is for example "void foo_99(int a)"
-
-          if (!nonUniqueFunctions.containsKey(functionHeader)) {
-            nonUniqueFunctions.put(
-                functionHeader, Pair.of(entryNode, new FunctionBody(-1, functionHeader)));
-          }
-
-          return processFunctionCall(edge, functionName) + "\n";
-        }
-
-      default:
-        throw new AssertionError("Unexpected edge " + edge + " of type " + edge.getEdgeType());
+        return processFunctionCall(edge, functionName) + "\n";
+      }
+      default ->
+          throw new AssertionError("Unexpected edge " + edge + " of type " + edge.getEdgeType());
     }
   }
 

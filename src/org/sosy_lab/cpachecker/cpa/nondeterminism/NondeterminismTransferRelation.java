@@ -75,18 +75,22 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
       NondeterminismNonAbstractionState pState, CFAEdge pEdge) {
     Objects.requireNonNull(pState);
     switch (pEdge.getEdgeType()) {
-      case DeclarationEdge:
+      case DeclarationEdge -> {
         return handleDeclaration(pState, (ADeclarationEdge) pEdge);
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return handleStatement(pState, (AStatementEdge) pEdge);
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         return handleReturnStatement(pState, (AReturnStatementEdge) pEdge);
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         return handleFunctionCall(pState, (FunctionCallEdge) pEdge);
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return handleAssumption(pState, (AssumeEdge) pEdge);
-      default:
-        break;
+      }
+      default -> {}
     }
     return pState;
   }
