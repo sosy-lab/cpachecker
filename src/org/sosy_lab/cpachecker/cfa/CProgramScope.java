@@ -19,9 +19,11 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -42,6 +44,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -190,18 +194,41 @@ public class CProgramScope implements Scope {
 
   private final Predicate<FileLocation> locationDescriptor;
 
-  /** Returns an empty program scope. */
-  private CProgramScope() {
-    variableNames = ImmutableSet.of();
-    qualifiedDeclarations = ImmutableListMultimap.of();
-    simpleDeclarations = ImmutableListMultimap.of();
-    functionDeclarations = ImmutableListMultimap.of();
-    qualifiedTypes = ImmutableMap.of();
-    qualifiedTypeDefs = ImmutableMap.of();
-    retValDeclarations = ImmutableMap.of();
-    uses = ImmutableListMultimap.of();
-    functionName = null;
-    locationDescriptor = Predicates.alwaysTrue();
+  public static CProgramScope mutableCoy(CProgramScope pCProgramScope) {
+    return new CProgramScope(
+        new HashSet<>(pCProgramScope.variableNames),
+        LinkedListMultimap.create(pCProgramScope.qualifiedDeclarations),
+        LinkedListMultimap.create(pCProgramScope.simpleDeclarations),
+        LinkedListMultimap.create(pCProgramScope.functionDeclarations),
+        new HashMap<>(pCProgramScope.qualifiedTypes),
+        new HashMap<>(pCProgramScope.qualifiedTypeDefs),
+        new HashMap<>(pCProgramScope.retValDeclarations),
+        LinkedListMultimap.create(pCProgramScope.uses),
+        pCProgramScope.functionName,
+        pCProgramScope.locationDescriptor);
+  }
+
+  private CProgramScope(
+      Set<String> pVariableNames,
+      Multimap<String, CSimpleDeclaration> pQualifiedDeclarations,
+      Multimap<String, CSimpleDeclaration> pSimpleDeclarations,
+      Multimap<String, CFunctionDeclaration> pFunctionDeclarations,
+      Map<String, CComplexType> pQualifiedTypes,
+      Map<String, CType> pQualifiedTypeDefs,
+      Map<String, CSimpleDeclaration> pRetValDeclarations,
+      Multimap<CAstNode, FileLocation> pUses,
+      String pFunctionName,
+      Predicate<FileLocation> pLocationDescriptor) {
+    variableNames = pVariableNames;
+    qualifiedDeclarations = pQualifiedDeclarations;
+    simpleDeclarations = pSimpleDeclarations;
+    functionDeclarations = pFunctionDeclarations;
+    qualifiedTypes = pQualifiedTypes;
+    qualifiedTypeDefs = pQualifiedTypeDefs;
+    retValDeclarations = pRetValDeclarations;
+    uses = pUses;
+    functionName = pFunctionName;
+    locationDescriptor = pLocationDescriptor;
   }
 
   /**
@@ -289,7 +316,17 @@ public class CProgramScope implements Scope {
   }
 
   public static CProgramScope empty() {
-    return new CProgramScope();
+    return new CProgramScope(
+        ImmutableSet.of(),
+        ImmutableListMultimap.of(),
+        ImmutableListMultimap.of(),
+        ImmutableListMultimap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        ImmutableListMultimap.of(),
+        null,
+        Predicates.alwaysTrue());
   }
 
   @Override
@@ -402,12 +439,29 @@ public class CProgramScope implements Scope {
   }
 
   @Override
-  public void registerDeclaration(CSimpleDeclaration pDeclaration) {
-    // Assume that all declarations are already registered
+  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
+    if (simpleDeclarations instanceof ImmutableMultimap<String, CSimpleDeclaration>
+        || functionDeclarations instanceof ImmutableMultimap<String, CFunctionDeclaration>) {
+      // Previously adding new declarations to a scope was ignored and all data structures
+      // were immutable. To remain consistent with this behavior, we skip the addition in case the
+      // data structures are immutable
+      return;
+    }
+
+    if (pDeclaration instanceof CFunctionDeclaration) {
+      // Function declarations are not stored in the simple declarations map
+      assert pDeclaration instanceof CFunctionDeclaration;
+      functionDeclarations.put(pDeclaration.getOrigName(), (CFunctionDeclaration) pDeclaration);
+    } else if (pDeclaration instanceof CSimpleDeclaration) {
+      assert pDeclaration instanceof CSimpleDeclaration;
+      simpleDeclarations.put(pDeclaration.getOrigName(), (CSimpleDeclaration) pDeclaration);
+    } else {
+      throw new AssertionError("Unsupported declaration type: " + pDeclaration);
+    }
   }
 
   @Override
-  public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
+  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
     // Assume that all type declarations are already registered
     return false;
   }

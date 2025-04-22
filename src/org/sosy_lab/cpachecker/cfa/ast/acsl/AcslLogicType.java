@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/*
- * This package contains the classes for the Annotated C Specification Language (ACSL).
- */
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
+
+// TODO: Missing polymorphic types
+public sealed interface AcslLogicType extends AcslType permits AcslBuiltinLogicType {}

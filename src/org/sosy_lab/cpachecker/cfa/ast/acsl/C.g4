@@ -916,7 +916,7 @@ Constant
     | CharacterConstant
     ;
 
-fragment IntegerConstant
+IntegerConstant
     : DecimalConstant IntegerSuffix?
     | OctalConstant IntegerSuffix?
     | HexadecimalConstant IntegerSuffix?
@@ -928,7 +928,7 @@ fragment BinaryConstant
     ;
 
 fragment DecimalConstant
-    : NonzeroDigit Digit*
+    : Digit+
     ;
 
 fragment OctalConstant
@@ -975,7 +975,7 @@ fragment LongLongSuffix
     | 'LL'
     ;
 
-fragment FloatingConstant
+FloatingConstant
     : DecimalFloatingConstant
     | HexadecimalFloatingConstant
     ;

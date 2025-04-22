@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -32,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 
 public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressionVisitor<R, X>
-    implements CAstNodeVisitor<R, X>, JAstNodeVisitor<R, X> {
+    implements CAstNodeVisitor<R, X>, JAstNodeVisitor<R, X>, AcslAstNodeVisitor<R, X> {
 
   /*
    * only language common expressions here, all other have to be implemented by
@@ -133,6 +138,16 @@ public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressio
     return visit((AFunctionDeclaration) decl);
   }
 
+  @Override
+  public R visit(AcslFunctionDeclaration decl) throws X {
+    return visit((AFunctionDeclaration) decl);
+  }
+
+  @Override
+  public R visit(AcslPredicateDeclaration decl) throws X {
+    return visit((AFunctionDeclaration) decl);
+  }
+
   protected abstract R visit(AFunctionDeclaration decl) throws X;
 
   @Override
@@ -154,6 +169,16 @@ public abstract class AAstNodeVisitor<R, X extends Exception> extends AExpressio
 
   @Override
   public R visit(JVariableDeclaration decl) throws X {
+    return visit((AVariableDeclaration) decl);
+  }
+
+  @Override
+  public R visit(AcslVariableDeclaration decl) throws X {
+    return visit((AVariableDeclaration) decl);
+  }
+
+  @Override
+  public R visit(AcslCVariableDeclaration decl) throws X {
     return visit((AVariableDeclaration) decl);
   }
 

@@ -67,6 +67,27 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression.AcslBinaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -1047,6 +1068,11 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<CAstNode> visit(AcslTypeVariableDeclaration pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<CAstNode> visit(CDesignatedInitializer pNode) {
       return Iterables.concat(pNode.getDesignators(), ImmutableList.of(pNode.getRightHandSide()));
     }
@@ -1054,6 +1080,11 @@ public class CFAUtils {
     @Override
     public Iterable<CAstNode> visit(CInitializerExpression pNode) {
       return ImmutableList.of(pNode.getExpression());
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslInitializerExpression pNode) {
+      return ImmutableList.of();
     }
 
     @Override
@@ -1147,6 +1178,105 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(JClassLiteralExpression pJClassLiteralExpression)
         throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslBinaryTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslIdTerm pAcslBinaryTerm) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslOldTerm pAcslOldTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslResultTerm pAcslResultTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslUnaryTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslStringLiteralTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslCharLiteralTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslRealLiteralTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslIntegerLiteralTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslBooleanLiteralTerm pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslBinaryExpressionOperator pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<CAstNode> visit(AcslBinaryTermOperator pNode) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslBinaryTermComparisonExpressionOperator pDecl) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslUnaryTermOperator pDecl) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslUnaryExpressionOperator pDecl)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslIdExpression pAcslIdExpression) {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslBinaryTermComparisonExpression pAcslBinaryTermComparisonExpression) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslOldExpression pAcslOldExpression)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslBooleanLiteralExpression pAcslBooleanLiteralExpression) throws NoException {
       return ImmutableList.of();
     }
   }

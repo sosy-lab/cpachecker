@@ -1,0 +1,60 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.acsl;
+
+import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+public final class AcslBooleanLiteralExpression extends AcslLiteralExpression {
+
+  @Serial private static final long serialVersionUID = 7019912361956900L;
+
+  private final boolean value;
+
+  public AcslBooleanLiteralExpression(FileLocation pFileLocation, boolean pValue) {
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    value = pValue;
+  }
+
+  @Override
+  public Boolean getValue() {
+    return value;
+  }
+
+  @Override
+  public String toASTString() {
+    return value ? "\\true" : "\\false";
+  }
+
+  @Override
+  public String toQualifiedASTString() {
+    return toASTString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof AcslBooleanLiteralExpression other
+        && super.equals(other)
+        && other.value == value;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
+    return v.visit(this);
+  }
+}

@@ -70,7 +70,7 @@ src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLSymbols.java
 /src/org/sosy_lab/cpachecker/util/ltl/generated/
 
 # /src/org/sosy_lab/cpachecker/cfa/ast/acsl/generated/
-/src/org/sosy_lab/cpachecker/cfa/ast/acsl/generated/
+/src/org/sosy_lab/cpachecker/core/specification/acsl/generated/
 
 # /test/programs/
 /test/programs/benchmarks

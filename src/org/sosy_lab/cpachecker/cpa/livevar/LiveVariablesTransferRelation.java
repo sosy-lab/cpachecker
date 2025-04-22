@@ -65,6 +65,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -848,6 +852,28 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AcslIdExpression pAcslIdExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AcslBinaryTermComparisonExpression pAcslBinaryTermComparisonExpression)
+        throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AcslOldExpression pAcslOldExpression) throws NoException {
+      return false;
+    }
+
+    @Override
+    public Boolean visit(AcslBooleanLiteralExpression pAcslBooleanLiteralExpression)
+        throws NoException {
       return false;
     }
   }

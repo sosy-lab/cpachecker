@@ -90,6 +90,8 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -143,6 +145,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -1441,15 +1444,36 @@ class ASTConverter {
     // Furthermore, a global variable and a function with the same name
     // cannot exist, so the following code works correctly.
     // We first try to lookup static variables.
-    CSimpleDeclaration declaration = scope.lookupVariable(staticVariablePrefix + name);
+    ASimpleDeclaration lookupDeclaration = scope.lookupVariable(staticVariablePrefix + name);
+    CSimpleDeclaration declaration = null;
+    if (lookupDeclaration != null) {
+      assert lookupDeclaration instanceof CSimpleDeclaration
+          : "Expected C variable, but got " + lookupDeclaration;
+      declaration = (CSimpleDeclaration) lookupDeclaration;
+    }
+
     if (declaration == null) {
-      declaration = scope.lookupVariable(name);
+      ASimpleDeclaration variable = scope.lookupVariable(name);
+      if (variable != null) {
+        assert variable instanceof CSimpleDeclaration : "Expected C variable, but got " + variable;
+        declaration = (CSimpleDeclaration) variable;
+      }
     }
     if (declaration == null) {
-      declaration = scope.lookupFunction(staticVariablePrefix + name);
+      AFunctionDeclaration functionDeclaration = scope.lookupFunction(staticVariablePrefix + name);
+      if (functionDeclaration != null) {
+        assert functionDeclaration instanceof CFunctionDeclaration
+            : "Expected C function declaration, but got " + functionDeclaration;
+        declaration = (CFunctionDeclaration) functionDeclaration;
+      }
     }
     if (declaration == null) {
-      declaration = scope.lookupFunction(name);
+      AFunctionDeclaration functionDeclaration = scope.lookupFunction(staticVariablePrefix + name);
+      if (functionDeclaration != null) {
+        assert functionDeclaration instanceof CFunctionDeclaration
+            : "Expected C function declaration, but got " + functionDeclaration;
+        declaration = (CFunctionDeclaration) functionDeclaration;
+      }
     }
 
     if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(name)) {
@@ -1482,7 +1506,10 @@ class ASTConverter {
     if (declaration != null
         // We cannot use declaration in case (B).
         && !(declaration instanceof CEnumerator enumerator && enumerator.getEnum() == null)) {
-      type = declaration.getType();
+      Type lookupType = declaration.getType();
+      assert lookupType instanceof CType : "Expected C type, but got " + lookupType;
+
+      type = (CType) lookupType;
     } else {
       type = typeConverter.convert(e.getExpressionType());
     }
@@ -1880,8 +1907,10 @@ class ASTConverter {
       // we can be sure the variable gets the correct (perhaps renamed) type
       if (declarators.length > 0 && type instanceof CCompositeType) {
         addSideEffectDeclarationForType((CCompositeType) complexType, fileLoc);
-        complexType = scope.lookupType(complexType.getQualifiedName());
+        Type lookupType = scope.lookupType(complexType.getQualifiedName());
+        assert lookupType instanceof CComplexType : "Expected CComplexType, but got " + lookupType;
 
+        complexType = (CComplexType) lookupType;
       } else {
         result.add(new CComplexTypeDeclaration(fileLoc, scope.isGlobalScope(), complexType));
       }

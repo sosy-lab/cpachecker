@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
-import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
@@ -19,17 +18,15 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser;
-import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class AcslParser {
 
   public static AcslExpression parsePredicate(
-      String pRaw, CProgramScope pCProgramScope, AcslScope pAcslScope)
-      throws AcslParseException, LtlParseException {
+      String pRaw, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
     checkNotNull(pRaw);
 
+    ParseTree tree;
     try {
-      ANTLRInputStream input = new ANTLRInputStream();
       // create a lexer that feeds off of input CharStream
       AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pRaw));
       // create a buffer of tokens pulled from the lexer
@@ -37,16 +34,25 @@ public class AcslParser {
       // create a parser that feeds off the tokens buffer
       AcslGrammarParser parser = new AcslGrammarParser(tokens);
 
-      ParseTree tree = parser.pred();
+      tree = parser.pred();
 
     } catch (ParseCancellationException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
 
-    return tree;
+    AcslAntrlToExpressionsConverter converter =
+        new AcslAntrlToExpressionsConverter(pCProgramScope, pAcslScope);
+
+    AcslAstNode expression = converter.visit(tree);
+    if (expression == null || !(expression instanceof AcslExpression)) {
+      throw new AcslParseException(
+          "Conversion of the parse tree to an internal expression failed.");
+    }
+
+    return (AcslExpression) expression;
   }
 
-  private static class AcslParseException extends Exception {
+  public static class AcslParseException extends Exception {
     @Serial private static final long serialVersionUID = -8907490123042996735L;
 
     public AcslParseException(String pMsg) {

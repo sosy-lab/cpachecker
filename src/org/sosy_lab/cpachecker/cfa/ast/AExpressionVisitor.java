@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -30,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 
 public abstract class AExpressionVisitor<R, X extends Exception>
-    implements CExpressionVisitor<R, X>, JExpressionVisitor<R, X> {
+    implements CExpressionVisitor<R, X>, JExpressionVisitor<R, X>, AcslExpressionVisitor<R, X> {
 
   /*
    * only language common expressions here, all other have to be implemented by
@@ -68,6 +71,11 @@ public abstract class AExpressionVisitor<R, X extends Exception>
 
   @Override
   public R visit(JBinaryExpression exp) throws X {
+    return visit((ABinaryExpression) exp);
+  }
+
+  @Override
+  public R visit(AcslBinaryExpression exp) throws X {
     return visit((ABinaryExpression) exp);
   }
 
@@ -140,6 +148,11 @@ public abstract class AExpressionVisitor<R, X extends Exception>
 
   @Override
   public R visit(JUnaryExpression exp) throws X {
+    return visit((AUnaryExpression) exp);
+  }
+
+  @Override
+  public R visit(AcslUnaryExpression exp) throws X {
     return visit((AUnaryExpression) exp);
   }
 
