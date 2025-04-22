@@ -254,7 +254,7 @@ public class SMGOptions {
       secure = true,
       name = "trackPredicates",
       description = "Enable track predicates on SMG state")
-  private boolean trackPredicates = false;
+  private boolean trackPredicates = true;
 
   private enum CheckStrategy {
     AT_ASSUME,
