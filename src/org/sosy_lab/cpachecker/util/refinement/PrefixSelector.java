@@ -146,6 +146,8 @@ public class PrefixSelector {
 
         // illegal arguments
         case NONE:
+          throw new IllegalArgumentException(
+              "Illegal prefix preference " + pPreference + " given!");
         default:
           throw new IllegalArgumentException(
               "Illegal prefix preference " + pPreference + " given!");

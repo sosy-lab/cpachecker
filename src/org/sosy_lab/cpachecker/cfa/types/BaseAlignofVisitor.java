@@ -52,6 +52,7 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
         return alignof;
 
       case ENUM: // There is no such kind of Composite Type.
+        throw new AssertionError();
       default:
         throw new AssertionError();
     }

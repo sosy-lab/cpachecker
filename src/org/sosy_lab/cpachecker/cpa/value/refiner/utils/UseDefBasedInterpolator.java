@@ -213,6 +213,7 @@ public class UseDefBasedInterpolator {
         case UNION:
           return createMemoryLocationsForUnion(pCompositeType);
         case ENUM: // there is no such kind of CompositeType
+          throw new AssertionError();
         default:
           throw new AssertionError();
       }

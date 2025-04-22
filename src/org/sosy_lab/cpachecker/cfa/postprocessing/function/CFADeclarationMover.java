@@ -176,8 +176,10 @@ public class CFADeclarationMover {
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
         return edge;
+      case FunctionCallEdge:
       case CallToReturnEdge:
       case FunctionReturnEdge:
+        throw new AssertionError("should never happen");
       default:
         throw new AssertionError("should never happen");
     }
