@@ -40,7 +40,7 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
   @Override
   public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
-    switch (pCompositeType.getKind()) {
+    return switch (pCompositeType.getKind()) {
       case STRUCT, UNION -> {
         int alignof = 1;
         // TODO: Take possible padding into account
@@ -48,13 +48,12 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
           int alignOfType = decl.getType().accept(this);
           alignof = Math.max(alignof, alignOfType);
         }
-        return alignof;
+        yield alignof;
       }
       case ENUM ->
           // There is no such kind of Composite Type.
           throw new AssertionError();
-      default -> throw new AssertionError();
-    }
+    };
   }
 
   @Override

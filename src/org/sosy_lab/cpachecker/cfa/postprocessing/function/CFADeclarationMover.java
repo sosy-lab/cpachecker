@@ -183,7 +183,6 @@ public class CFADeclarationMover {
       }
       case FunctionCallEdge, CallToReturnEdge, FunctionReturnEdge ->
           throw new AssertionError("should never happen");
-      default -> throw new AssertionError("should never happen");
     };
   }
 

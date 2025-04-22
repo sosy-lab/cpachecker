@@ -87,7 +87,6 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
       case ENUM ->
           // There is no such kind of Composit Type.
           throw new AssertionError();
-      default -> throw new AssertionError();
     };
   }
 

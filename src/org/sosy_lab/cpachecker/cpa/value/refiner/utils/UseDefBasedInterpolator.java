@@ -213,7 +213,6 @@ public class UseDefBasedInterpolator {
         case ENUM ->
             // there is no such kind of CompositeType
             throw new AssertionError();
-        default -> throw new AssertionError();
       };
     }
 
