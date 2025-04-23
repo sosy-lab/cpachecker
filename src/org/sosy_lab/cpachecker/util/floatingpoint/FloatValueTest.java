@@ -191,40 +191,36 @@ public class FloatValueTest {
       return new BigFloat(floatValue.toDouble(), BinaryMathContext.BINARY64);
     } else if (pValue instanceof CFloatNative val) {
       CFloatWrapper wrapper = val.getWrapper();
-
-      switch (pValue.getType()) {
+      return switch (pValue.getType()) {
         case SINGLE -> {
           long exponent = wrapper.getExponent() << Format.Float32.sigBits();
           long mantissa = wrapper.getMantissa();
-          return new BigFloat(
+          yield new BigFloat(
               Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
         }
         case DOUBLE -> {
           long exponent = wrapper.getExponent() << Format.Float64.sigBits();
           long mantissa = wrapper.getMantissa();
-          return new BigFloat(
+          yield new BigFloat(
               Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
         }
         case LONG_DOUBLE -> {
           BinaryMathContext context = new BinaryMathContext(64, 15);
           if (val.isNan()) {
-            return val.isNegative()
+            yield val.isNegative()
                 ? BigFloat.NaN(context.precision).negate()
                 : BigFloat.NaN(context.precision);
-          }
-          if (val.isInfinity()) {
-            return val.isNegative()
+          } else if (val.isInfinity()) {
+            yield val.isNegative()
                 ? BigFloat.negativeInfinity(context.precision)
                 : BigFloat.positiveInfinity(context.precision);
+          } else {
+            long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
+            BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+            yield new BigFloat(val.isNegative(), significand, exponent, context);
           }
-
-          long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
-          BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
-
-          return new BigFloat(val.isNegative(), significand, exponent, context);
         }
-        default -> throw new UnsupportedOperationException();
-      }
+      };
     } else {
       throw new UnsupportedOperationException(
           String.format("Unsupported CFloat class \"%s\"", pValue.getClass().getSimpleName()));
