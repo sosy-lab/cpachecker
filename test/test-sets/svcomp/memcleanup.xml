@@ -19,6 +19,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--heap">10000M</option>
   <option name="--benchmark"/>
   <option name="--timelimit">900 s</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
 
   <!-- MemCleanup category synced to SV-COMP25 -->
   <tasks name="MemSafety-MemCleanup">
@@ -42,38 +43,48 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
+  <rundefinition name="Default Parallel Portfolio (no time-limit, no stop after infeasible cex) MathSAT5 (default)">
+    <option name="--smg-parallel-portfolio" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
   <rundefinition name="SV-COMP25 SymEx MathSAT5 (default)">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <!-- Default, but easier to read -->
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access MathSAT5 (default)">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <!-- Default, but easier to read -->
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX MathSAT5 (default)">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <!-- Default, but easier to read -->
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP MathSAT5 (default)">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <!-- Default, but easier to read -->
     <option name="--option">solver.solver=mathsat5</option>
   </rundefinition>
 
   <!-- No SMT solvers needed -->
-  <rundefinition name="SV-COMP25 Value without Concrete Values with CEX">
-    <option name="--svcomp25--smgAnalysis-value-no-concrete-with-cex" />
+  <rundefinition name="SV-COMP25 Value Overapproximate Concrete Values with CEX">
+    <option name="--smgValueAnalysis-overapproximate-concrete-values" />
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25 Value No Abstraction No Stop with CEX">
+    <option name="--smgValueAnalysis-no-abstraction-no-stop" />
   </rundefinition>
 
   <rundefinition name="SV-COMP25 Value with CEX">
-    <option name="--svcomp25--smgAnalysis-value-with-cex" />
+    <option name="--smgValueAnalysis" />
   </rundefinition>
 
 
@@ -84,23 +95,23 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Z3">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Z3">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Z3">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Z3">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">solver.solver=z3</option>
   </rundefinition>
 
@@ -112,23 +123,23 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx CVC4">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access CVC4">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX CVC4">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP CVC4">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">solver.solver=cvc4</option>
   </rundefinition>
 
@@ -140,23 +151,23 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx CVC5">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access CVC5">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX CVC5">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP CVC5">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">solver.solver=cvc5</option>
   </rundefinition>
 
@@ -170,21 +181,21 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx SMTInterpol">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access SMTInterpol">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX SMTInterpol">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
@@ -192,7 +203,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP SMTInterpol">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=smtinterpol</option>
@@ -207,21 +218,21 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Princess">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Princess">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=princess</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Princess">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=princess</option>
@@ -229,7 +240,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Princess">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=princess</option>
@@ -245,21 +256,21 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx OpenSMT2">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access OpenSMT2">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX OpenSMT2">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
@@ -267,7 +278,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP OpenSMT2">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
     <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
     <option name="--option">solver.solver=opensmt</option>
@@ -284,7 +295,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Boolector">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
@@ -292,7 +303,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Boolector">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
@@ -300,7 +311,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Boolector">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
@@ -309,7 +320,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Boolector">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
@@ -325,26 +336,26 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Bitwuzla">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Bitwuzla">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Bitwuzla">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Bitwuzla">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
     <option name="--option">solver.solver=bitwuzla</option>
   </rundefinition>
@@ -359,26 +370,26 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Yices2">
-    <option name="--svcomp25--smgAnalysis-symEx" />
+    <option name="--smgSymbolicExecution" />
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx Concrete Memory Access Yices2">
-    <option name="--svcomp25--smgAnalysis-symEx-concrete-memory-access" />
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>
 
   <rundefinition name="SV-COMP25 SymEx overapproximating with CEX Yices2">
-    <option name="--svcomp25--smgAnalysis-symEx-overapproximating-with-cex" />
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>
 
   <!-- Only in MemCleanup portfolio in SV-COMP25 -->
   <rundefinition name="SV-COMP25 SymEx without List Abstraction or STOP Yices2">
-    <option name="--svcomp25--smgAnalysis-symEx-no-abstraction" />
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
     <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
     <option name="--option">solver.solver=yices2</option>
   </rundefinition>
