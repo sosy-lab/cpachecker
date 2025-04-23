@@ -289,7 +289,7 @@ public class PJBDDRegionManager implements RegionManager {
           builder = Builders.cbddBuilder();
           break;
            */
-        throw new UnsupportedOperationException();
+          throw new UnsupportedOperationException();
         case "TaggedDD":
           builder = Builders.taggedDDBuilder();
           break;
