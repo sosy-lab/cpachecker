@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression.AcslBinaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
@@ -81,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
@@ -1202,6 +1205,11 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(AcslAtTerm pAcslAtTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<CAstNode> visit(AcslUnaryTerm pNode) {
       return ImmutableList.of();
     }
@@ -1253,6 +1261,18 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AcslUnaryExpressionOperator pDecl)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslBuiltinLabel pAcslBuiltinLabel)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslProgramLabel pAcslProgramLabel)
         throws NoException {
       return ImmutableList.of();
     }

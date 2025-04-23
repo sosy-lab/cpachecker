@@ -13,7 +13,8 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AcslTerm implements AcslAstNode
-    permits AcslBinaryTerm,
+    permits AcslAtTerm,
+        AcslBinaryTerm,
         AcslIdTerm,
         AcslLiteralTerm,
         AcslOldTerm,

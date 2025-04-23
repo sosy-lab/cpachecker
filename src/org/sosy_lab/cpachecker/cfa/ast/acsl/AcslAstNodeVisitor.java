@@ -29,4 +29,8 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
   R visit(AcslUnaryTermOperator pDecl) throws X;
 
   R visit(AcslUnaryExpressionOperator pDecl) throws X;
+
+  R visit(AcslBuiltinLabel pAcslBuiltinLabel) throws X;
+
+  R visit(AcslProgramLabel pAcslProgramLabel) throws X;
 }

@@ -234,4 +234,50 @@ public class AcslParserTest {
 
     testParsing(input, output);
   }
+
+  @Test
+  public void parseSimpleAtPredicate() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslBinaryTermComparisonExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslAtTerm(
+                FileLocation.DUMMY,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                AcslBuiltinLabel.PRE),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+            AcslBinaryTermComparisonExpressionOperator.GREATER_THAN);
+    String input = "\\at(x, Pre) > 1";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleAtPredicateWithArbitraryLabel() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslBinaryTermComparisonExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslAtTerm(
+                FileLocation.DUMMY,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslProgramLabel("a", FileLocation.DUMMY)),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+            AcslBinaryTermComparisonExpressionOperator.GREATER_THAN);
+    String input = "\\at(x, a) > 1";
+
+    testParsing(input, output);
+  }
 }

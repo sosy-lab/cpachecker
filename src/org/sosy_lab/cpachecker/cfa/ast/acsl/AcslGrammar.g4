@@ -79,14 +79,18 @@ term
     | '(' type_expr ')' term                            # CastTerm
     | ident '(' term (',' term)* ')'                    # FuncApplicationTerm
     | '(' term ')'                                      # ParenthesesTerm
-    // In the ACSL standard an arbitrary term is allowed here, but
+    // This is allowed in the ACSL standard, but IMO it makes
+    // no sense, since you always want to have a predicate i.e.
+    // a function returning a boolean value on the left side.
+    //
+    // Additionally, in the ACSL standard an arbitrary term is allowed here, but
     // ANTLR cannot handle this due to the ambiguity in the binary
     // operations whenever e.g. '==' is included as a binary operator
     // When the condition is a predicate, which would be formally correct,
     // ANTLR complains that the grammar is left recursive in both term and pred
     // and they depend on each other
     // This is a hack to solve this problem
-    | term (relationalTermOp term)+ '?' term ':' term                # TernaryCondTerm
+    // | term (relationalTermOp term)+ '?' term ':' term                # TernaryCondTerm
     | '\\let' id '=' term ';' term                      # LocalBindingTerm
     | 'sizeof' '(' term ')'                             # SizeofTerm
     | 'sizeof' '(' typeName ')'                         # SizeofTypeTerm
@@ -134,8 +138,12 @@ pred
     | pred binaryPredOp pred            # BinaryPredicate
     // Should be '!', but ANTLR will not be able to parse it if this happens
     | '~' pred                          # NegationPred
-    | term '?' pred ':' pred            # TernaryConditionTermPred
+    // IMO having a term on the left side is not correct,
+    // since in general it must not return a boolean
+    // value, but a predicate must do this
+    // | term '?' pred ':' pred            # TernaryConditionTermPred
     | pred '?' pred ':' pred            # TernaryConditionPred
+    | pred '?' term ':' term            # TernaryConditionTerm
     | '\\let' id '=' term ';' pred      # LocalBindingPred
     | '\\let' id '=' pred ';' pred      # LocalBindingPred
     | '\\forall' binders ';' pred       # UniversalQuantificationPred

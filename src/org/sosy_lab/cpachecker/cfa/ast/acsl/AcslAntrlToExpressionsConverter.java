@@ -22,12 +22,14 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperato
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.AtTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinOpContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryPredOpContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryPredicateContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.CConstantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ComparisonPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.FalseConstantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.Label_idContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicalFalsePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicalTruePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldPredContext;
@@ -250,6 +252,36 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
         leftExpression,
         rightExpression,
         binaryOperator);
+  }
+
+  @Override
+  public AcslAstNode visitLabel_id(Label_idContext ctx) {
+    String identifierName = ctx.getText();
+    if (FluentIterable.from(AcslBuiltinLabel.values())
+        .transform(AcslBuiltinLabel::getLabel)
+        .anyMatch(label -> label.equals(identifierName))) {
+      return AcslBuiltinLabel.of(identifierName);
+    }
+
+    return new AcslProgramLabel(identifierName, FileLocation.DUMMY);
+  }
+
+  @Override
+  public AcslAstNode visitAtTerm(AtTermContext ctx) {
+    // The parsing gives the following structure:
+    // ['\at', '(', term, ',', label, ')']
+    AcslAstNode termNode = visit(ctx.children.get(2));
+    AcslAstNode labelNode = visit(ctx.children.get(4));
+
+    if (!(labelNode instanceof AcslLabel label)) {
+      throw new RuntimeException("Expected a label in at term");
+    }
+
+    if (!(termNode instanceof AcslTerm term)) {
+      throw new RuntimeException("Expected a term in at term");
+    }
+
+    return new AcslAtTerm(FileLocation.DUMMY, term, label);
   }
 
   @Override

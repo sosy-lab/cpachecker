@@ -28,4 +28,6 @@ public interface AcslTermVisitor<R, X extends Exception> {
   R visit(AcslOldTerm pAcslOldTerm) throws X;
 
   R visit(AcslResultTerm pAcslResultTerm) throws X;
+
+  R visit(AcslAtTerm pAcslAtTerm) throws X;
 }
