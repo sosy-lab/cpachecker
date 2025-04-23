@@ -3442,7 +3442,7 @@ cpa.smg2.memoryArrayAllocationFunctionsElemSizeParameter = 1
 cpa.smg2.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
-cpa.smg2.memoryErrors = true
+cpa.smg2.memoryErrors = false
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
@@ -3522,7 +3522,7 @@ cpa.smg2.stop = "SEP"
 cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
-cpa.smg2.trackPredicates = false
+cpa.smg2.trackPredicates = true
 
 # Treat symbolic values as unknowns and assign new concrete values to them.
 cpa.smg2.treatSymbolicValuesAsUnknown = false
@@ -4066,7 +4066,8 @@ dar.removeUnreachableStopStates = false
 dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void.
 datarace.config = no default value
 
 # Whether to consider pointees. Only if this option is set to true, a pointer
@@ -4489,11 +4490,13 @@ locmapper.dumpTokenizedProgramToFile = no default value
 log.usedOptions.export = false
 
 # When checking for memory cleanup properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void.
 memorycleanup.config = no default value
 
 # When checking for memory safety properties, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void.
 memorysafety.config = no default value
 
 # which merge operator to use for LiveVariablesCPA
@@ -4571,7 +4574,8 @@ mpv.propertySeparator = FILE
 overflow.checkUnsigned = false
 
 # When checking for the overflow property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void.
 overflow.config = no default value
 
 # Simplify overflow assumptions.
@@ -5129,7 +5133,8 @@ stop = "SEP"
 termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
-# instead of the current one.
+# instead of the current one, i.e. all previously set config options are
+# void.
 termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
