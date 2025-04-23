@@ -228,10 +228,12 @@ public class CFACreator {
 
   @Option(
       secure = true,
-      name = "cfa.variablesInScope",
-      description = "export all variables in scope at each statement")
+      name = "cfa.pathForExportingVariablesInScopeWithTheirType",
+      description = "the path to export a json mapping which for each"
+          + " location contains the variables"
+          + " in scope and their type")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path cfaVariablesInScope = null;
+  private Path pathForExportingVariablesInScopeWithTheirType = null;
 
   @Option(
       secure = true,
@@ -692,7 +694,7 @@ public class CFACreator {
         || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)
-        || (cfaVariablesInScope != null)) {
+        || (pathForExportingVariablesInScopeWithTheirType != null)) {
       if (exportCfaAsyncOption) {
         exportCFAAsync(immutableCFA);
       } else {
@@ -1225,7 +1227,7 @@ public class CFACreator {
       }
     }
 
-    if (cfaVariablesInScope != null) {
+    if (pathForExportingVariablesInScopeWithTheirType != null) {
       // This is a map from a filename
       Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
           locationToVariablesInScope = new HashMap<>();
@@ -1277,7 +1279,7 @@ public class CFACreator {
       ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
       mapper.setSerializationInclusion(Include.NON_NULL);
 
-      try (Writer writer = IO.openOutputFile(cfaVariablesInScope, Charset.defaultCharset())) {
+      try (Writer writer = IO.openOutputFile(pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
         String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
         writer.write(entryJson);
       } catch (JsonProcessingException e) {
@@ -1288,7 +1290,7 @@ public class CFACreator {
             e,
             "exporting information about what variables are in scope at each statement in the CFA"
                 + " to "
-                + cfaVariablesInScope
+                + pathForExportingVariablesInScopeWithTheirType
                 + " failed due to not being able to write to the output file.");
       }
     }

@@ -916,6 +916,10 @@ cfa.moveDeclarationsToFunctionStart = false
 # Which functions should be interpreted as never returning to their call site
 cfa.nonReturningFunctions = {"abort", "exit"}
 
+# the path to export a json mapping which for each location contains the
+# variables in scope and their type
+cfa.pathForExportingVariablesInScopeWithTheirType = no default value
+
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
@@ -965,9 +969,6 @@ cfa.variableClassification.printStatsOnStartup = false
 
 # Dump variable type mapping to a file.
 cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
-
-# export all variables in scope at each statement
-cfa.variablesInScope = no default value
 
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
