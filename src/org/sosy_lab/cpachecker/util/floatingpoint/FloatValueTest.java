@@ -193,41 +193,37 @@ public class FloatValueTest {
       CFloatWrapper wrapper = val.getWrapper();
 
       switch (pValue.getType()) {
-        case SINGLE:
-          {
-            long exponent = wrapper.getExponent() << Format.Float32.sigBits();
-            long mantissa = wrapper.getMantissa();
-            return new BigFloat(
-                Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
+        case SINGLE -> {
+          long exponent = wrapper.getExponent() << Format.Float32.sigBits();
+          long mantissa = wrapper.getMantissa();
+          return new BigFloat(
+              Float.intBitsToFloat((int) (exponent + mantissa)), BinaryMathContext.BINARY32);
+        }
+        case DOUBLE -> {
+          long exponent = wrapper.getExponent() << Format.Float64.sigBits();
+          long mantissa = wrapper.getMantissa();
+          return new BigFloat(
+              Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
+        }
+        case LONG_DOUBLE -> {
+          BinaryMathContext context = new BinaryMathContext(64, 15);
+          if (val.isNan()) {
+            return val.isNegative()
+                ? BigFloat.NaN(context.precision).negate()
+                : BigFloat.NaN(context.precision);
           }
-        case DOUBLE:
-          {
-            long exponent = wrapper.getExponent() << Format.Float64.sigBits();
-            long mantissa = wrapper.getMantissa();
-            return new BigFloat(
-                Double.longBitsToDouble(exponent + mantissa), BinaryMathContext.BINARY64);
+          if (val.isInfinity()) {
+            return val.isNegative()
+                ? BigFloat.negativeInfinity(context.precision)
+                : BigFloat.positiveInfinity(context.precision);
           }
-        case LONG_DOUBLE:
-          {
-            BinaryMathContext context = new BinaryMathContext(64, 15);
-            if (val.isNan()) {
-              return val.isNegative()
-                  ? BigFloat.NaN(context.precision).negate()
-                  : BigFloat.NaN(context.precision);
-            }
-            if (val.isInfinity()) {
-              return val.isNegative()
-                  ? BigFloat.negativeInfinity(context.precision)
-                  : BigFloat.positiveInfinity(context.precision);
-            }
 
-            long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
-            BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
+          long exponent = (wrapper.getExponent() & 0x7FFF) - Format.Float80.bias();
+          BigInteger significand = new BigInteger(Long.toUnsignedString(wrapper.getMantissa()));
 
-            return new BigFloat(val.isNegative(), significand, exponent, context);
-          }
-        default:
-          throw new UnsupportedOperationException();
+          return new BigFloat(val.isNegative(), significand, exponent, context);
+        }
+        default -> throw new UnsupportedOperationException();
       }
     } else {
       throw new UnsupportedOperationException(
