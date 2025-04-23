@@ -247,10 +247,10 @@ public class PJBDDRegionManager implements RegionManager {
         secure = true,
         description = "Type of Table used in PJBDD",
         values = {"ConcurrentHashBucket", "ConcurrentHashMap", "CASArray", "Array"})
-    private String tableType = "CASArray";
+    private String tableType = "ConcurrentHashMap";
 
     @Option(secure = true, description = "Enable Synchronized Reordering in PJBDD")
-    private boolean synchronizeReordering = false;
+    private boolean synchronizeReordering = true;
 
     @Option(secure = true, description = "Enable Apply Algorithm in PJBDD")
     private boolean useApply = true;

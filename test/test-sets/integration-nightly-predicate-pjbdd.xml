@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
 
   <option name="--no-output-files"/>
   <option name="--heap">10000M</option>
@@ -20,16 +20,19 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
   <rundefinition name="PJBDD-OBDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
-    <option name="--option">bdd.pjbdd.useDDType=BDD</option>
-    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
   </rundefinition>
-  <rundefinition name="PJBDD-IntDD--predicateAnalysis">
+  <rundefinition name="PJBDD-intDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
+    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
   <rundefinition name="PJBDD-TaggedDD--predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=None</option>
+    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
 
   <!--
