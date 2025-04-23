@@ -14,13 +14,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class AcslCType implements AcslType {
 
-  @Serial
-  private static final long serialVersionUID = -81123243801151276L;
+  @Serial private static final long serialVersionUID = -81123243801151276L;
 
   private final CType type;
 
   public AcslCType(CType pType) {
     type = pType;
+  }
+
+  public CType getType() {
+    return type;
   }
 
   @Override

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -75,7 +75,7 @@ public abstract class AExpressionVisitor<R, X extends Exception>
   }
 
   @Override
-  public R visit(AcslBinaryExpression exp) throws X {
+  public R visit(AcslBinaryPredicateExpression exp) throws X {
     return visit((ABinaryExpression) exp);
   }
 

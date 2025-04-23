@@ -12,16 +12,17 @@ import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslBinaryExpression extends ABinaryExpression implements AcslExpression {
+public final class AcslBinaryPredicateExpression extends ABinaryExpression
+    implements AcslExpression {
 
   @Serial private static final long serialVersionUID = 7019956121956900L;
 
-  public AcslBinaryExpression(
+  public AcslBinaryPredicateExpression(
       FileLocation pFileLocation,
       AcslType pType,
       AcslExpression pOperand1,
       AcslExpression pOperand2,
-      AcslBinaryExpressionOperator pOperator) {
+      AcslBinaryPredicateExpressionOperator pOperator) {
     super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
   }
 
@@ -35,7 +36,7 @@ public final class AcslBinaryExpression extends ABinaryExpression implements Acs
     return v.visit(this);
   }
 
-  public enum AcslBinaryExpressionOperator implements ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryPredicateExpressionOperator implements ABinaryOperator, AcslAstNode {
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
@@ -53,13 +54,13 @@ public final class AcslBinaryExpression extends ABinaryExpression implements Acs
     private final String operator;
     private final FileLocation fileLocation;
 
-    AcslBinaryExpressionOperator(String pOperator) {
+    AcslBinaryPredicateExpressionOperator(String pOperator) {
       operator = pOperator;
       fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslBinaryExpressionOperator of(String pOperator) {
-      for (AcslBinaryExpressionOperator op : values()) {
+    public static AcslBinaryPredicateExpressionOperator of(String pOperator) {
+      for (AcslBinaryPredicateExpressionOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }

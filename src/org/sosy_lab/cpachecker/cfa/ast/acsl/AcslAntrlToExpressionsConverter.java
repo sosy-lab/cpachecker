@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
@@ -17,13 +18,14 @@ import javax.annotation.Nullable;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression.AcslBinaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.AtTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinOpContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryOpTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryPredOpContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryPredicateContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.CConstantContext;
@@ -36,12 +38,17 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldPredC
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.RelOpContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ResultTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TernaryConditionPredContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TernaryConditionTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TrueConstantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.UnaryOpContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.UnaryOpTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.VariableTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode> {
@@ -120,7 +127,7 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
   @Override
   public AcslAstNode visitRelOp(RelOpContext ctx) {
     String operator = ctx.getText();
-    return AcslBinaryTermComparisonExpressionOperator.of(operator);
+    return AcslBinaryTermExpressionOperator.of(operator);
   }
 
   @Override
@@ -160,9 +167,72 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
       throw new RuntimeException("Expected a term unary operator");
     }
 
-    // TODO: The type here is definitely wrong for pointer dereferences and so on
-    return new AcslUnaryTerm(
-        FileLocation.DUMMY, pAcslTerm.getExpressionType(), pAcslTerm, pAcslUnaryTermOperator);
+    // Find out the correct type after the operation
+    // TODO: Look at this function `private CAstNode convert(final IASTUnaryExpression e) {` in the
+    //  class ASTConverter to see if this code can be improved/stuff from there can be reused
+    AcslType expressionType = pAcslTerm.getExpressionType();
+    AcslType resultType;
+    if (expressionType instanceof AcslCType pCType) {
+      CType cType = pCType.getType();
+      if (pAcslUnaryTermOperator == AcslUnaryTermOperator.ADDRESS_OF) {
+        resultType = new AcslCType(new CPointerType(cType.isConst(), cType.isVolatile(), cType));
+      } else if (cType instanceof CArrayType pArrayType) {
+        if (pAcslUnaryTermOperator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
+          // We need to get the type of the element
+          resultType = new AcslCType(pArrayType.getType());
+        } else {
+          throw new RuntimeException(
+              "Expected a pointer dereference operator, but got: "
+                  + pAcslUnaryTermOperator
+                  + " for type: "
+                  + cType);
+        }
+      } else if (cType instanceof CPointerType pPointerType) {
+        if (pAcslUnaryTermOperator == AcslUnaryTermOperator.POINTER_DEREFERENCE) {
+          // We need to get the type of the element
+          resultType = new AcslCType(pPointerType.getType());
+        } else {
+          throw new RuntimeException(
+              "Expected a pointer dereference operator, but got: "
+                  + pAcslUnaryTermOperator
+                  + " for type: "
+                  + cType);
+        }
+      } else if (cType instanceof CSimpleType pSimpleType) {
+        if (pAcslUnaryTermOperator == AcslUnaryTermOperator.MINUS
+            || pAcslUnaryTermOperator == AcslUnaryTermOperator.PLUS) {
+          // We need to get the type of the element
+          resultType = new AcslCType(pSimpleType);
+        } else {
+          throw new RuntimeException(
+              "Expected a unary operator, but got: "
+                  + pAcslUnaryTermOperator
+                  + " for type: "
+                  + cType);
+        }
+      } else {
+        throw new RuntimeException(
+            "Expected a unary operator, but got: "
+                + pAcslUnaryTermOperator
+                + " for type: "
+                + cType);
+      }
+    } else if (expressionType instanceof AcslLogicType) {
+      // We are dealing with a logic type, so we just return the same type
+      Verify.verify(
+          pAcslUnaryTermOperator == AcslUnaryTermOperator.MINUS
+              || pAcslUnaryTermOperator == AcslUnaryTermOperator.PLUS
+              || pAcslUnaryTermOperator == AcslUnaryTermOperator.NEGATION);
+      resultType = expressionType;
+    } else {
+      throw new RuntimeException(
+          "Expected a unary operator, but got: "
+              + pAcslUnaryTermOperator
+              + " for type: "
+              + expressionType);
+    }
+
+    return new AcslUnaryTerm(FileLocation.DUMMY, resultType, pAcslTerm, pAcslUnaryTermOperator);
   }
 
   @Override
@@ -223,9 +293,78 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
   }
 
   @Override
+  public AcslAstNode visitTernaryConditionTerm(TernaryConditionTermContext ctx) {
+    // The parsing gives the following structure:
+    // [condition, '?', if_true, ':', if_false]
+    AcslAstNode conditionNode = visit(ctx.children.get(0));
+    AcslAstNode ifTrueNode = visit(ctx.children.get(2));
+    AcslAstNode ifFalseNode = visit(ctx.children.get(4));
+
+    if (!(conditionNode instanceof AcslExpression condition)) {
+      throw new RuntimeException("Expected a predicate as condition in ternary predicate");
+    }
+
+    if (!(ifTrueNode instanceof AcslTerm ifTrue)) {
+      throw new RuntimeException("Expected a predicate as if_true in ternary predicate");
+    }
+
+    if (!(ifFalseNode instanceof AcslTerm ifFalse)) {
+      throw new RuntimeException("Expected a predicate as if_false in ternary predicate");
+    }
+
+    return new AcslTernaryTermExpression(FileLocation.DUMMY, condition, ifTrue, ifFalse);
+  }
+
+  @Override
+  public AcslAstNode visitTernaryConditionPred(TernaryConditionPredContext ctx) {
+    // The parsing gives the following structure:
+    // [condition, '?', if_true, ':', if_false]
+    AcslAstNode conditionNode = visit(ctx.children.get(0));
+    AcslAstNode ifTrueNode = visit(ctx.children.get(2));
+    AcslAstNode ifFalseNode = visit(ctx.children.get(4));
+
+    if (!(conditionNode instanceof AcslExpression condition)) {
+      throw new RuntimeException("Expected a predicate as condition in ternary predicate");
+    }
+
+    if (!(ifTrueNode instanceof AcslExpression ifTrue)) {
+      throw new RuntimeException("Expected a predicate as if_true in ternary predicate");
+    }
+
+    if (!(ifFalseNode instanceof AcslExpression ifFalse)) {
+      throw new RuntimeException("Expected a predicate as if_false in ternary predicate");
+    }
+
+    return new AcslTernaryPredicateExpression(FileLocation.DUMMY, condition, ifTrue, ifFalse);
+  }
+
+  @Override
+  public AcslAstNode visitBinaryOpTerm(BinaryOpTermContext ctx) {
+    AcslAstNode left = visit(ctx.children.get(0));
+    AcslAstNode operator = visit(ctx.children.get(1));
+    AcslAstNode right = visit(ctx.children.get(2));
+
+    if (!(left instanceof AcslTerm leftTerm)) {
+      throw new RuntimeException("Expected a left term in binary term");
+    }
+
+    if (!(right instanceof AcslTerm rightTerm)) {
+      throw new RuntimeException("Expected a right term in binary term");
+    }
+
+    if (!(operator instanceof AcslBinaryTermOperator binaryOperator)) {
+      throw new RuntimeException("Expected a binary operator in binary term");
+    }
+
+    AcslType resultType =
+        AcslType.mostGeneralType(leftTerm.getExpressionType(), rightTerm.getExpressionType());
+    return new AcslBinaryTerm(FileLocation.DUMMY, resultType, leftTerm, rightTerm, binaryOperator);
+  }
+
+  @Override
   public AcslAstNode visitBinaryPredOp(BinaryPredOpContext ctx) {
     String operator = ctx.getText();
-    return AcslBinaryExpressionOperator.of(operator);
+    return AcslBinaryPredicateExpressionOperator.of(operator);
   }
 
   @Override
@@ -242,11 +381,11 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
       throw new RuntimeException("Expected a right expression in binary predicate");
     }
 
-    if (!(operator instanceof AcslBinaryExpressionOperator binaryOperator)) {
+    if (!(operator instanceof AcslBinaryPredicateExpressionOperator binaryOperator)) {
       throw new RuntimeException("Expected a binary operator in binary predicate");
     }
 
-    return new AcslBinaryExpression(
+    return new AcslBinaryPredicateExpression(
         FileLocation.DUMMY,
         AcslBuiltinLogicType.BOOLEAN,
         leftExpression,
@@ -316,24 +455,24 @@ class AcslAntrlToExpressionsConverter extends AcslGrammarBaseVisitor<AcslAstNode
         throw new RuntimeException("Expected a term on the right side of the comparison operator");
       }
 
-      if (!(operatorNode instanceof AcslBinaryTermComparisonExpressionOperator operatorTerm)) {
+      if (!(operatorNode instanceof AcslBinaryTermExpressionOperator operatorTerm)) {
         throw new RuntimeException("Expected a binary operator");
       }
 
       AcslExpression newComparison =
-          new AcslBinaryTermComparisonExpression(
+          new AcslBinaryTermExpression(
               FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, leftTerm, righTerm, operatorTerm);
 
       if (currentExpression == null) {
         currentExpression = newComparison;
       } else {
         currentExpression =
-            new AcslBinaryExpression(
+            new AcslBinaryPredicateExpression(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 currentExpression,
                 newComparison,
-                AcslBinaryExpressionOperator.AND);
+                AcslBinaryPredicateExpressionOperator.AND);
       }
     }
 

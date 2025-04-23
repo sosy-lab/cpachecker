@@ -13,11 +13,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
 public sealed interface AcslExpression extends AExpression, AcslAstNode
-    permits AcslBinaryExpression,
-        AcslBinaryTermComparisonExpression,
+    permits AcslBinaryPredicateExpression,
+        AcslBinaryTermExpression,
         AcslIdExpression,
         AcslLiteralExpression,
         AcslOldExpression,
+        AcslTernaryPredicateExpression,
+        AcslTernaryTermExpression,
         AcslUnaryExpression {
 
   <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X;

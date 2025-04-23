@@ -14,20 +14,20 @@ import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslBinaryTermComparisonExpression implements AcslExpression {
+public final class AcslBinaryTermExpression implements AcslExpression {
   private AcslTerm operand1;
   private AcslTerm operand2;
-  private AcslBinaryTermComparisonExpressionOperator operator;
+  private AcslBinaryTermExpressionOperator operator;
   @Serial private static final long serialVersionUID = 8144911237675011353L;
   private final AcslType type;
   private final FileLocation location;
 
-  public AcslBinaryTermComparisonExpression(
+  public AcslBinaryTermExpression(
       FileLocation pFileLocation,
       AcslType pType,
       AcslTerm pOperand1,
       AcslTerm pOperand2,
-      AcslBinaryTermComparisonExpressionOperator pOperator) {
+      AcslBinaryTermExpressionOperator pOperator) {
     operand1 = pOperand1;
     operand2 = pOperand2;
     operator = pOperator;
@@ -89,7 +89,7 @@ public final class AcslBinaryTermComparisonExpression implements AcslExpression 
       return true;
     }
 
-    return obj instanceof AcslBinaryTermComparisonExpression other
+    return obj instanceof AcslBinaryTermExpression other
         && Objects.equals(other.location, location)
         && Objects.equals(other.type, type)
         && Objects.equals(other.operand1, operand1)
@@ -97,7 +97,7 @@ public final class AcslBinaryTermComparisonExpression implements AcslExpression 
         && Objects.equals(other.operator, operator);
   }
 
-  public enum AcslBinaryTermComparisonExpressionOperator implements ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryTermExpressionOperator implements ABinaryOperator, AcslAstNode {
     EQUALS("=="),
     NOT_EQUALS("!="),
     LESS_EQUAL("<="),
@@ -111,13 +111,13 @@ public final class AcslBinaryTermComparisonExpression implements AcslExpression 
     private final String operator;
     private final FileLocation fileLocation;
 
-    AcslBinaryTermComparisonExpressionOperator(String pOperator) {
+    AcslBinaryTermExpressionOperator(String pOperator) {
       operator = pOperator;
       fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslBinaryTermComparisonExpressionOperator of(String pOperator) {
-      for (AcslBinaryTermComparisonExpressionOperator op : values()) {
+    public static AcslBinaryTermExpressionOperator of(String pOperator) {
+      for (AcslBinaryTermExpressionOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }

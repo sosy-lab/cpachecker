@@ -15,8 +15,9 @@ import java.util.Objects;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression.AcslBinaryExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -38,16 +39,18 @@ public class AcslParserTest {
 
     CProgramScope scope =
         CProgramScope.mutableCoy(CProgramScope.empty().withFunctionScope(currentFunctionName));
-    scope.registerDeclaration(
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            basicInt(),
-            "x",
-            "x",
-            "x",
-            null /* No initializer, we only want it for testing */));
+    for (String var : ImmutableList.of("x", "y", "z")) {
+      scope.registerDeclaration(
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              true,
+              CStorageClass.AUTO,
+              basicInt(),
+              var,
+              var,
+              var,
+              null /* No initializer, we only want it for testing */));
+    }
     scope.registerDeclaration(
         new CFunctionDeclaration(
             FileLocation.DUMMY,
@@ -93,7 +96,7 @@ public class AcslParserTest {
   public void parseSimplePredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslIdTerm(
@@ -103,8 +106,40 @@ public class AcslParserTest {
                         Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-            AcslBinaryTermComparisonExpressionOperator.EQUALS);
+            AcslBinaryTermExpressionOperator.EQUALS);
     String input = "x == 10";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseSimplePredicateWithOperations() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslBinaryTermExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermOperator.PLUS),
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(10)),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(2)),
+                AcslBinaryTermOperator.MINUS),
+            AcslBinaryTermExpressionOperator.EQUALS);
+    String input = "x + 1 == 10 - 2";
 
     testParsing(input, output);
   }
@@ -113,7 +148,7 @@ public class AcslParserTest {
   public void parseSimplePredicateWithUnaryTerm() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslUnaryTerm(
@@ -127,7 +162,7 @@ public class AcslParserTest {
                 AcslUnaryTermOperator.MINUS),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(5)),
-            AcslBinaryTermComparisonExpressionOperator.EQUALS);
+            AcslBinaryTermExpressionOperator.EQUALS);
     String input = "-x == 5";
 
     testParsing(input, output);
@@ -137,11 +172,11 @@ public class AcslParserTest {
   public void parseSimpleBinaryPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryExpression(
+        new AcslBinaryPredicateExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             // first operator
-            new AcslBinaryTermComparisonExpression(
+            new AcslBinaryTermExpression(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -151,9 +186,9 @@ public class AcslParserTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
-                AcslBinaryTermComparisonExpressionOperator.LESS_THAN),
+                AcslBinaryTermExpressionOperator.LESS_THAN),
             // second operator
-            new AcslBinaryTermComparisonExpression(
+            new AcslBinaryTermExpression(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -163,8 +198,8 @@ public class AcslParserTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermComparisonExpressionOperator.GREATER_THAN),
-            AcslBinaryExpressionOperator.AND);
+                AcslBinaryTermExpressionOperator.GREATER_THAN),
+            AcslBinaryPredicateExpressionOperator.AND);
     String input = "x < 10 && x > 0";
 
     testParsing(input, output);
@@ -174,7 +209,7 @@ public class AcslParserTest {
   public void parseSimplePredicateWithOld() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslOldTerm(
@@ -186,7 +221,7 @@ public class AcslParserTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x"))))),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-            AcslBinaryTermComparisonExpressionOperator.LESS_THAN);
+            AcslBinaryTermExpressionOperator.LESS_THAN);
     String input = "\\old(x) < 0";
 
     testParsing(input, output);
@@ -198,7 +233,7 @@ public class AcslParserTest {
     AcslExpression output =
         new AcslOldExpression(
             FileLocation.DUMMY,
-            new AcslBinaryTermComparisonExpression(
+            new AcslBinaryTermExpression(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -208,7 +243,7 @@ public class AcslParserTest {
                             Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
                 new AcslIntegerLiteralTerm(
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(-1)),
-                AcslBinaryTermComparisonExpressionOperator.LESS_EQUAL));
+                AcslBinaryTermExpressionOperator.LESS_EQUAL));
     String input = "\\old(x <= -1)";
 
     testParsing(input, output);
@@ -218,7 +253,7 @@ public class AcslParserTest {
   public void parseSimpleResultPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslResultTerm(
@@ -229,7 +264,7 @@ public class AcslParserTest {
                         .getReturnType())),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermComparisonExpressionOperator.GREATER_THAN);
+            AcslBinaryTermExpressionOperator.GREATER_THAN);
     String input = "\\result > 1";
 
     testParsing(input, output);
@@ -239,7 +274,7 @@ public class AcslParserTest {
   public void parseSimpleAtPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
@@ -252,7 +287,7 @@ public class AcslParserTest {
                 AcslBuiltinLabel.PRE),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermComparisonExpressionOperator.GREATER_THAN);
+            AcslBinaryTermExpressionOperator.GREATER_THAN);
     String input = "\\at(x, Pre) > 1";
 
     testParsing(input, output);
@@ -262,7 +297,7 @@ public class AcslParserTest {
   public void parseSimpleAtPredicateWithArbitraryLabel() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslBinaryTermComparisonExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
@@ -275,8 +310,102 @@ public class AcslParserTest {
                 new AcslProgramLabel("a", FileLocation.DUMMY)),
             new AcslIntegerLiteralTerm(
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-            AcslBinaryTermComparisonExpressionOperator.GREATER_THAN);
+            AcslBinaryTermExpressionOperator.GREATER_THAN);
     String input = "\\at(x, a) > 1";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleTernaryOperatorWithPredicates() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslTernaryPredicateExpression(
+            FileLocation.DUMMY,
+            // Condition
+            new AcslBinaryTermExpression(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            // If true operator
+            new AcslBinaryTermExpression(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.GREATER_THAN),
+            // If false operator
+            new AcslBinaryTermExpression(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.LESS_THAN));
+    String input = "x == 0 ? y > 0 : z < 0";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleTernaryOperatorWithTerms() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslTernaryTermExpression(
+            FileLocation.DUMMY,
+            // Condition
+            new AcslBinaryTermExpression(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            // If true operator
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermOperator.PLUS),
+            // If false operator
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TWO),
+                AcslBinaryTermOperator.MINUS));
+    String input = "x == 0 ? y + 1 : z - 2";
 
     testParsing(input, output);
   }

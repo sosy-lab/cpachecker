@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslBinaryTerm extends AcslTerm {
 
-  @Serial
-  private static final long serialVersionUID = 7019912361956900L;
+  @Serial private static final long serialVersionUID = 7019912361956900L;
 
   private AcslTerm operand1;
   private AcslTerm operand2;
@@ -99,11 +98,6 @@ public final class AcslBinaryTerm extends AcslTerm {
   }
 
   public enum AcslBinaryTermOperator implements ABinaryExpression.ABinaryOperator, AcslAstNode {
-    AND("&&"),
-    OR("||"),
-    XOR("^^"),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
     LESS_EQUAL("<="),
     GREATER_EQUAL(">="),
     LESS_THAN("<"),
@@ -140,16 +134,13 @@ public final class AcslBinaryTerm extends AcslTerm {
 
     public static boolean isComparisonOperator(AcslBinaryTermOperator op) {
       return switch (op) {
-        case EQUALS, NOT_EQUALS, LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN -> true;
+        case LESS_EQUAL, GREATER_EQUAL, LESS_THAN, GREATER_THAN -> true;
         default -> false;
       };
     }
 
     public static boolean isLogicalOperator(AcslBinaryTermOperator op) {
-      return switch (op) {
-        case AND, OR, XOR -> true;
-        default -> false;
-      };
+      return false;
     }
 
     public static boolean isBitwiseOperator(AcslBinaryTermOperator op) {
@@ -168,18 +159,7 @@ public final class AcslBinaryTerm extends AcslTerm {
 
     public static boolean isCommutative(AcslBinaryTermOperator op) {
       return switch (op) {
-        case EQUALS,
-            NOT_EQUALS,
-            AND,
-            OR,
-            XOR,
-            BINARY_AND,
-            BINARY_OR,
-            BINARY_EQUIVALENT,
-            BINARY_XOR,
-            PLUS,
-            MULTIPLY ->
-            true;
+        case BINARY_AND, BINARY_OR, BINARY_EQUIVALENT, BINARY_XOR, PLUS, MULTIPLY -> true;
         default -> false;
       };
     }

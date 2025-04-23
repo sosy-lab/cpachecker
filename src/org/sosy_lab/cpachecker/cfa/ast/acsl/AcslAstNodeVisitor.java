@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryExpression.AcslBinaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermComparisonExpression.AcslBinaryTermComparisonExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 
@@ -20,11 +20,11 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
         AcslInitializerVisitor<R, X>,
         AcslTermVisitor<R, X> {
 
-  R visit(AcslBinaryExpressionOperator pDecl) throws X;
+  R visit(AcslBinaryPredicateExpressionOperator pDecl) throws X;
 
   R visit(AcslBinaryTermOperator pDecl) throws X;
 
-  R visit(AcslBinaryTermComparisonExpressionOperator pDecl) throws X;
+  R visit(AcslBinaryTermExpressionOperator pDecl) throws X;
 
   R visit(AcslUnaryTermOperator pDecl) throws X;
 

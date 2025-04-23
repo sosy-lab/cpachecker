@@ -10,15 +10,19 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 public interface AcslExpressionVisitor<R, X extends Exception> {
 
-  R visit(AcslBinaryExpression pBinaryExpression) throws X;
+  R visit(AcslBinaryPredicateExpression pBinaryExpression) throws X;
 
   R visit(AcslUnaryExpression pAcslUnaryExpression) throws X;
 
   R visit(AcslIdExpression pAcslIdExpression) throws X;
 
-  R visit(AcslBinaryTermComparisonExpression pAcslBinaryTermComparisonExpression) throws X;
+  R visit(AcslBinaryTermExpression pAcslBinaryTermExpression) throws X;
 
   R visit(AcslOldExpression pAcslOldExpression) throws X;
 
   R visit(AcslBooleanLiteralExpression pAcslBooleanLiteralExpression) throws X;
+
+  R visit(AcslTernaryTermExpression pAcslTernaryTermExpression) throws X;
+
+  R visit(AcslTernaryPredicateExpression pAcslTernaryPredicateExpression) throws X;
 }
