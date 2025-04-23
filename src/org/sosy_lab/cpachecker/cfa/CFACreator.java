@@ -229,9 +229,10 @@ public class CFACreator {
   @Option(
       secure = true,
       name = "cfa.pathForExportingVariablesInScopeWithTheirType",
-      description = "the path to export a json mapping which for each"
-          + " location contains the variables"
-          + " in scope and their type")
+      description =
+          "the path to export a json mapping which for each"
+              + " location contains the variables"
+              + " in scope and their type")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pathForExportingVariablesInScopeWithTheirType = null;
 
@@ -1279,7 +1280,9 @@ public class CFACreator {
       ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
       mapper.setSerializationInclusion(Include.NON_NULL);
 
-      try (Writer writer = IO.openOutputFile(pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
+      try (Writer writer =
+          IO.openOutputFile(
+              pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
         String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
         writer.write(entryJson);
       } catch (JsonProcessingException e) {
