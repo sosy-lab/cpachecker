@@ -183,6 +183,7 @@ public abstract sealed class PredicateAbstractState
                       || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
                   && pAstCfaRelation
                       .getVariablesAndParametersInScope(pLocation)
+                      .orElseThrow()
                       .anyMatch(
                           var ->
                               // For local variables
