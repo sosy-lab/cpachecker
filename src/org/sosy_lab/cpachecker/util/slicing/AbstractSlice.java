@@ -74,7 +74,7 @@ abstract class AbstractSlice implements Slice {
               relevantFunctionEntryNode.getReturnVariable();
 
           optionalReturnVariable
-              .filter(returnVariable -> returnVariable instanceof CVariableDeclaration)
+              .filter(CVariableDeclaration.class::isInstance)
               .map(returnVariable -> (CVariableDeclaration) returnVariable)
               .ifPresent(
                   returnVariable -> returnVariable.accept(relevantDeclarationCollectingVisitor));

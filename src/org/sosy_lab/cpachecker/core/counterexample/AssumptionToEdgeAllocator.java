@@ -262,22 +262,19 @@ public class AssumptionToEdgeAllocator {
 
     // Get all Assumptions of this edge
     switch (pCFAEdge.getEdgeType()) {
-      case DeclarationEdge:
-        result.addAll(
-            handleDeclaration(
-                ((ADeclarationEdge) pCFAEdge).getDeclaration(),
-                pCFAEdge.getPredecessor().getFunctionName(),
-                pConcreteState));
-        break;
-      case StatementEdge:
-        result.addAll(
-            handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState));
-        break;
-      case AssumeEdge:
-        result.addAll(handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState));
-        break;
-      default:
-        break;
+      case DeclarationEdge ->
+          result.addAll(
+              handleDeclaration(
+                  ((ADeclarationEdge) pCFAEdge).getDeclaration(),
+                  pCFAEdge.getPredecessor().getFunctionName(),
+                  pConcreteState));
+      case StatementEdge ->
+          result.addAll(
+              handleStatement(
+                  pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState));
+      case AssumeEdge ->
+          result.addAll(handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState));
+      default -> {}
     }
 
     if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge
@@ -1128,48 +1125,46 @@ public class AssumptionToEdgeAllocator {
                 : ((CArrayType) addressType).getType().getCanonicalType();
 
         switch (binaryOperator) {
-          case PLUS:
-          case MINUS:
-            {
-              Value addressValueV = address.accept(this);
+          case PLUS, MINUS -> {
+            Value addressValueV = address.accept(this);
 
-              Value offsetValueV = pointerOffset.accept(this);
+            Value offsetValueV = pointerOffset.accept(this);
 
-              if (addressValueV.isUnknown()
-                  || offsetValueV.isUnknown()
-                  || !addressValueV.isNumericValue()
-                  || !offsetValueV.isNumericValue()) {
-                return Value.UnknownValue.getInstance();
-              }
-
-              Number addressValueNumber = addressValueV.asNumericValue().getNumber();
-              BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
-              // Because address and offset value may be interchanged, use BigDecimal for both
-              Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
-              BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
-              BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
-              BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
-
-              switch (binaryOperator) {
-                case PLUS:
-                  return new NumericValue(addressValue.add(pointerOffsetValue));
-                case MINUS:
-                  if (lVarIsAddress) {
-                    return new NumericValue(addressValue.subtract(pointerOffsetValue));
-                  } else {
-                    throw new UnrecognizedCodeException(
-                        "Expected pointer arithmetic "
-                            + " with + or - but found "
-                            + binaryExp.toASTString(),
-                        binaryExp);
-                  }
-                default:
-                  throw new AssertionError();
-              }
+            if (addressValueV.isUnknown()
+                || offsetValueV.isUnknown()
+                || !addressValueV.isNumericValue()
+                || !offsetValueV.isNumericValue()) {
+              return Value.UnknownValue.getInstance();
             }
 
-          default:
+            Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+            BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
+            // Because address and offset value may be interchanged, use BigDecimal for both
+            Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+            BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
+            BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
+            BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
+
+            switch (binaryOperator) {
+              case PLUS:
+                return new NumericValue(addressValue.add(pointerOffsetValue));
+              case MINUS:
+                if (lVarIsAddress) {
+                  return new NumericValue(addressValue.subtract(pointerOffsetValue));
+                } else {
+                  throw new UnrecognizedCodeException(
+                      "Expected pointer arithmetic "
+                          + " with + or - but found "
+                          + binaryExp.toASTString(),
+                      binaryExp);
+                }
+              default:
+                throw new AssertionError();
+            }
+          }
+          default -> {
             return Value.UnknownValue.getInstance();
+          }
         }
       }
 
@@ -1415,20 +1410,15 @@ public class AssumptionToEdgeAllocator {
       if (pValue instanceof Number pNumber) {
         NumericValue numericValue = new NumericValue(pNumber);
         switch (basicType) {
-          case BOOL:
-          case CHAR:
-          case INT:
-          case INT128:
+          case BOOL, CHAR, INT, INT128 -> {
             Preconditions.checkArgument(
                 numericValue.hasIntegerType(),
                 "Expecting an integer value, but `%s` has type `%s`.",
                 pNumber,
                 pNumber.getClass().getSimpleName());
             return handleIntegerNumbers(pNumber, pSimpleType);
-
-          case FLOAT:
-          case DOUBLE:
-          case FLOAT128:
+          }
+          case FLOAT, DOUBLE, FLOAT128 -> {
             // The value may have any type that implements the Number interface. We accept integers,
             // floats and rationals. The type check here makes sure that the class is known to our
             // implementation
@@ -1445,9 +1435,9 @@ public class AssumptionToEdgeAllocator {
               pNumber = convertToFloat(pNumber, pSimpleType);
             }
             return handleFloatingPointNumbers(pNumber, pSimpleType);
-
-          default:
-            throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
+          }
+          default ->
+              throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
         }
       }
       throw new AssertionError("Values must implement the Number interface.");

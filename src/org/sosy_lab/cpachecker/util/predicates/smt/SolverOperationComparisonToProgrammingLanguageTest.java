@@ -60,8 +60,8 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     TruthJUnit.assume()
         .withMessage(
             "Solver %s does not support the modulo operator for the theory of integers",
-            this.solverToUse())
-        .that(this.solverToUse())
+            solverToUse())
+        .that(solverToUse())
         .isNotEqualTo(Solvers.MATHSAT5);
     for (int dividend = -11; dividend <= 11; dividend++) {
       for (int divisor = -11; divisor <= 11; divisor++) {
@@ -87,8 +87,8 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     TruthJUnit.assume()
         .withMessage(
             "Solver %s does not support the modulo operator for the theory of integers",
-            this.solverToUse())
-        .that(this.solverToUse())
+            solverToUse())
+        .that(solverToUse())
         .isNotEqualTo(Solvers.MATHSAT5);
     int dividend = -11;
     int divisor = 2;
@@ -134,8 +134,8 @@ public class SolverOperationComparisonToProgrammingLanguageTest extends SolverVi
     TruthJUnit.assume()
         .withMessage(
             "Solver %s does not support the smodulo operator for the theory of bitvectors",
-            this.solverToUse())
-        .that(this.solverToUse())
+            solverToUse())
+        .that(solverToUse())
         .isNoneOf(Solvers.OPENSMT, Solvers.SMTINTERPOL, Solvers.PRINCESS);
     int dividend = -11;
     int divisor = 2;

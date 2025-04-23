@@ -664,14 +664,9 @@ class CFAMethodBuilder extends ASTVisitor {
     boolean createSuccessfulEdge = true;
 
     switch (kind) {
-      case ALWAYS_TRUE:
-        createUnsuccessfulEdge = false;
-        break;
-      case ALWAYS_FALSE:
-        createSuccessfulEdge = false;
-        break;
-      default:
-        break;
+      case ALWAYS_TRUE -> createUnsuccessfulEdge = false;
+      case ALWAYS_FALSE -> createSuccessfulEdge = false;
+      default -> {}
     }
 
     BlankEdge blankEdge;
@@ -1369,32 +1364,33 @@ class CFAMethodBuilder extends ASTVisitor {
     String rawSignature = condition.toString();
 
     switch (kind) {
-      case ALWAYS_FALSE:
+      case ALWAYS_FALSE -> {
         // no edge connecting rootNode with thenNode,
         // so the "then" branch won't be connected to the rest of the CFA
-
         final BlankEdge falseEdge =
             new BlankEdge(rawSignature, fileLocation, rootNode, elseNode, "");
 
         addToCFA(falseEdge);
-        break;
-
-      case ALWAYS_TRUE:
+      }
+      case ALWAYS_TRUE -> {
         final BlankEdge trueEdge =
             new BlankEdge(rawSignature, fileLocation, rootNode, thenNode, "");
         addToCFA(trueEdge);
-
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
-        break;
-
-      case NORMAL:
-        buildConditionTree(
-            condition, fileLocation, rootNode, thenNode, elseNode, thenNode, elseNode, true, true);
-
-        break;
-      default:
-        throw new AssertionError("Missing switch clause");
+      }
+      case NORMAL ->
+          buildConditionTree(
+              condition,
+              fileLocation,
+              rootNode,
+              thenNode,
+              elseNode,
+              thenNode,
+              elseNode,
+              true,
+              true);
+      default -> throw new AssertionError("Missing switch clause");
     }
   }
 

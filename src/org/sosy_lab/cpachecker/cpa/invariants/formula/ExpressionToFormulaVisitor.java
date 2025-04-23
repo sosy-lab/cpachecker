@@ -301,44 +301,31 @@ public class ExpressionToFormulaVisitor
 
     final NumeralFormula<CompoundInterval> result;
     switch (pCBinaryExpression.getOperator()) {
-      case BINARY_AND:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_OR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_XOR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case DIVIDE:
-        result = compoundIntervalFormulaManager.divide(left, right);
-        break;
-      case EQUALS:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.equal(left, right));
-        break;
-      case GREATER_EQUAL:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
-        break;
-      case GREATER_THAN:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
-        break;
-      case LESS_EQUAL:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
-        break;
-      case LESS_THAN:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
-        break;
-      case MINUS:
+      case BINARY_AND -> result = allPossibleValues(pCBinaryExpression);
+      case BINARY_OR -> result = allPossibleValues(pCBinaryExpression);
+      case BINARY_XOR -> result = allPossibleValues(pCBinaryExpression);
+      case DIVIDE -> result = compoundIntervalFormulaManager.divide(left, right);
+      case EQUALS ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.equal(left, right));
+      case GREATER_EQUAL ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
+      case GREATER_THAN ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
+      case LESS_EQUAL ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
+      case LESS_THAN ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
+      case MINUS -> {
         if (!(promLeft instanceof CPointerType)
             && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
           result = compoundIntervalFormulaManager.subtract(left, right);
@@ -366,21 +353,16 @@ public class ExpressionToFormulaVisitor
           throw new UnrecognizedCodeException(
               "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
         }
-        break;
-      case MODULO:
-        result = compoundIntervalFormulaManager.modulo(left, right);
-        break;
-      case MULTIPLY:
-        result = compoundIntervalFormulaManager.multiply(left, right);
-        break;
-      case NOT_EQUALS:
-        result =
-            compoundIntervalFormulaManager.fromBoolean(
-                typeInfo,
-                compoundIntervalFormulaManager.logicalNot(
-                    compoundIntervalFormulaManager.equal(left, right)));
-        break;
-      case PLUS:
+      }
+      case MODULO -> result = compoundIntervalFormulaManager.modulo(left, right);
+      case MULTIPLY -> result = compoundIntervalFormulaManager.multiply(left, right);
+      case NOT_EQUALS ->
+          result =
+              compoundIntervalFormulaManager.fromBoolean(
+                  typeInfo,
+                  compoundIntervalFormulaManager.logicalNot(
+                      compoundIntervalFormulaManager.equal(left, right)));
+      case PLUS -> {
         if (!(promLeft instanceof CPointerType)
             && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
           result = compoundIntervalFormulaManager.add(left, right);
@@ -403,16 +385,10 @@ public class ExpressionToFormulaVisitor
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
         }
-        break;
-      case SHIFT_LEFT:
-        result = compoundIntervalFormulaManager.shiftLeft(left, right);
-        break;
-      case SHIFT_RIGHT:
-        result = compoundIntervalFormulaManager.shiftRight(left, right);
-        break;
-      default:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
+      }
+      case SHIFT_LEFT -> result = compoundIntervalFormulaManager.shiftLeft(left, right);
+      case SHIFT_RIGHT -> result = compoundIntervalFormulaManager.shiftRight(left, right);
+      default -> result = allPossibleValues(pCBinaryExpression);
     }
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
@@ -461,40 +437,53 @@ public class ExpressionToFormulaVisitor
         compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = TypeInfo.from(machineModel, pBinaryExpression.getExpressionType());
     switch (pBinaryExpression.getOperator()) {
-      case BINARY_AND:
+      case BINARY_AND -> {
         return allPossibleValues(pBinaryExpression);
-      case BINARY_OR:
+      }
+      case BINARY_OR -> {
         return allPossibleValues(pBinaryExpression);
-      case BINARY_XOR:
+      }
+      case BINARY_XOR -> {
         return allPossibleValues(pBinaryExpression);
-      case CONDITIONAL_AND:
+      }
+      case CONDITIONAL_AND -> {
         return allPossibleValues(pBinaryExpression);
-      case CONDITIONAL_OR:
+      }
+      case CONDITIONAL_OR -> {
         return allPossibleValues(pBinaryExpression);
-      case DIVIDE:
+      }
+      case DIVIDE -> {
         return compoundIntervalFormulaManager.divide(left, right);
-      case EQUALS:
+      }
+      case EQUALS -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.equal(left, right));
-      case GREATER_EQUAL:
+      }
+      case GREATER_EQUAL -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
-      case GREATER_THAN:
+      }
+      case GREATER_THAN -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
-      case LESS_EQUAL:
+      }
+      case LESS_EQUAL -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
-      case LESS_THAN:
+      }
+      case LESS_THAN -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
-      case LOGICAL_AND:
+      }
+      case LOGICAL_AND -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.logicalAnd(logicalLeft, logicalRight));
-      case LOGICAL_OR:
+      }
+      case LOGICAL_OR -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo, compoundIntervalFormulaManager.logicalOr(logicalLeft, logicalRight));
-      case LOGICAL_XOR:
+      }
+      case LOGICAL_XOR -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo,
             compoundIntervalFormulaManager.logicalOr(
@@ -502,26 +491,34 @@ public class ExpressionToFormulaVisitor
                     logicalLeft, compoundIntervalFormulaManager.logicalNot(logicalRight)),
                 compoundIntervalFormulaManager.logicalAnd(
                     compoundIntervalFormulaManager.logicalNot(logicalLeft), logicalRight)));
-      case MINUS:
+      }
+      case MINUS -> {
         return compoundIntervalFormulaManager.subtract(left, right);
-      case MODULO:
+      }
+      case MODULO -> {
         return compoundIntervalFormulaManager.modulo(left, right);
-      case MULTIPLY:
+      }
+      case MULTIPLY -> {
         return compoundIntervalFormulaManager.multiply(left, right);
-      case NOT_EQUALS:
+      }
+      case NOT_EQUALS -> {
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo,
             compoundIntervalFormulaManager.logicalNot(
                 compoundIntervalFormulaManager.equal(left, right)));
-      case PLUS:
+      }
+      case PLUS -> {
         return compoundIntervalFormulaManager.add(left, right);
-      case SHIFT_LEFT:
+      }
+      case SHIFT_LEFT -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         return compoundIntervalFormulaManager.shiftLeft(left, right);
-      case SHIFT_RIGHT_SIGNED:
+      }
+      case SHIFT_RIGHT_SIGNED -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         return compoundIntervalFormulaManager.shiftRight(left, right);
-      case SHIFT_RIGHT_UNSIGNED:
+      }
+      case SHIFT_RIGHT_UNSIGNED -> {
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         CompoundInterval leftEval = left.accept(evaluationVisitor, environment);
         NumeralFormula<CompoundInterval> forPositiveLeft =
@@ -543,11 +540,13 @@ public class ExpressionToFormulaVisitor
           return forNegativeLeft;
         }
         return compoundIntervalFormulaManager.union(forPositiveLeft, forNegativeLeft);
-      case STRING_CONCATENATION:
+      }
+      case STRING_CONCATENATION -> {
         return allPossibleValues(pBinaryExpression);
-      default:
-        throw new AssertionError(
-            "Unhandled enum value in switch: " + pBinaryExpression.getOperator());
+      }
+      default ->
+          throw new AssertionError(
+              "Unhandled enum value in switch: " + pBinaryExpression.getOperator());
     }
   }
 

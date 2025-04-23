@@ -521,14 +521,17 @@ public enum MachineModel {
 
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
-      case BOOL:
+      case BOOL -> {
         return getSizeofBool();
-      case CHAR:
+      }
+      case CHAR -> {
         return getSizeofChar();
-      case FLOAT:
+      }
+      case FLOAT -> {
         return getSizeofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
+      }
+      case UNSPECIFIED, INT -> {
+        // unspecified is the same as int
         if (type.hasLongLongSpecifier()) {
           return getSizeofLongLongInt();
         } else if (type.hasLongSpecifier()) {
@@ -538,18 +541,21 @@ public enum MachineModel {
         } else {
           return getSizeofInt();
         }
-      case INT128:
+      }
+      case INT128 -> {
         return getSizeofInt128();
-      case DOUBLE:
+      }
+      case DOUBLE -> {
         if (type.hasLongSpecifier()) {
           return getSizeofLongDouble();
         } else {
           return getSizeofDouble();
         }
-      case FLOAT128:
+      }
+      case FLOAT128 -> {
         return getSizeofFloat128();
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
+      }
+      default -> throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
   }
 

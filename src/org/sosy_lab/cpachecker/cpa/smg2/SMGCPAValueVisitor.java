@@ -598,114 +598,120 @@ public class SMGCPAValueVisitor
         nonConstLeftValue = ((ConstantSymbolicExpression) leftValue).getValue();
       }
 
-      if (binaryOperator == BinaryOperator.EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        if ((!(nonConstLeftValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstLeftValue, currentState))
-            || (!(nonConstRightValue instanceof AddressExpression)
-                && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+      switch (binaryOperator) {
+        case EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          if ((!(nonConstLeftValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstLeftValue, currentState))
+              || (!(nonConstRightValue instanceof AddressExpression)
+                  && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due non-address value in binary expression evaluated as"
+                        + " pointer arithmetics in ",
+                    cfaEdge));
+          }
+          // address == address or address == not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due non-address value in binary expression evaluated as"
-                      + " pointer arithmetics in ",
-                  cfaEdge));
-        }
-        // address == address or address == not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-        Preconditions.checkArgument(returnType instanceof CSimpleType);
-        // address != address or address != not address
-        return ImmutableList.of(
-            ValueAndSMGState.of(
-                evaluator.checkNonEqualityForAddresses(
-                    nonConstLeftValue, nonConstRightValue, currentState),
-                currentState));
-
-      } else if (binaryOperator == BinaryOperator.PLUS || binaryOperator == BinaryOperator.MINUS) {
-        Value leftAddrExpr = nonConstLeftValue;
-        if (!(nonConstLeftValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstLeftValue, currentState)
-            && !leftAddrExpr.isExplicitlyKnown()) {
-          leftAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
-        }
-        Value rightAddrExpr = nonConstRightValue;
-        if (!(nonConstRightValue instanceof AddressExpression)
-            && evaluator.isPointerValue(nonConstRightValue, currentState)
-            && !rightAddrExpr.isExplicitlyKnown()) {
-          rightAddrExpr =
-              AddressExpression.withZeroOffset(
-                  nonConstRightValue, SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+              ValueAndSMGState.of(
+                  evaluator.checkEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Pointer arithmetics case and fall through (handled inside the method)
-        // i.e. address + 3
-        // (This only handles address +- value!)
-        return calculatePointerArithmetics(
-            leftAddrExpr,
-            rightAddrExpr,
-            binaryOperator,
-            e.getExpressionType(),
-            calculationType,
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
-            SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
-            currentState);
-      } else if (binaryOperator == BinaryOperator.GREATER_EQUAL
-          || binaryOperator == BinaryOperator.LESS_EQUAL
-          || binaryOperator == BinaryOperator.GREATER_THAN
-          || binaryOperator == BinaryOperator.LESS_THAN) {
-        // < <= > >=
-        // For the same memory, we can check < etc.
-
-        // First check that left and right point to the SAME memory region
-        // Check that both Values are truly addresses
-        ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
-        leftValue = leftValueAndState.getValue();
-        ValueAndSMGState rightValueAndState =
-            evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
-        rightValue = rightValueAndState.getValue();
-        currentState = rightValueAndState.getState();
-        if (!evaluator.isPointerValue(rightValue, currentState)
-            || !evaluator.isPointerValue(leftValue, currentState)) {
+        case NOT_EQUALS -> {
+          Preconditions.checkArgument(returnType instanceof CSimpleType);
+          // address != address or address != not address
           return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to non-address value in binary pointer comparison"
-                      + " expression in ",
-                  cfaEdge));
-        }
-        if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
-          // This is undefined behavior in C99/C11
-          // But since we don't really handle this we just return unknown :D
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to address values in binary pointer comparison"
-                      + " expression not pointing to the same target memory in ",
-                  cfaEdge));
+              ValueAndSMGState.of(
+                  evaluator.checkNonEqualityForAddresses(
+                      nonConstLeftValue, nonConstRightValue, currentState),
+                  currentState));
         }
 
-        // Then get the offsets
-        Value offsetLeft = currentState.getPointerOffset(leftValue);
-        Value offsetRight = currentState.getPointerOffset(rightValue);
-        if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
-          return ImmutableList.of(
-              ValueAndSMGState.ofUnknownValue(
-                  currentState,
-                  "Returned unknown value due to unknown offset value(s) in binary pointer"
-                      + " comparison expression in ",
-                  cfaEdge));
+        case PLUS, MINUS -> {
+          Value leftAddrExpr = nonConstLeftValue;
+          if (!(nonConstLeftValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstLeftValue, currentState)
+              && !leftAddrExpr.isExplicitlyKnown()) {
+            leftAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstLeftValue, SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
+          }
+          Value rightAddrExpr = nonConstRightValue;
+          if (!(nonConstRightValue instanceof AddressExpression)
+              && evaluator.isPointerValue(nonConstRightValue, currentState)
+              && !rightAddrExpr.isExplicitlyKnown()) {
+            rightAddrExpr =
+                AddressExpression.withZeroOffset(
+                    nonConstRightValue,
+                    SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+          }
+          // Pointer arithmetics case and fall through (handled inside the method)
+          // i.e. address + 3
+          // (This only handles address +- value!)
+          return calculatePointerArithmetics(
+              leftAddrExpr,
+              rightAddrExpr,
+              binaryOperator,
+              e.getExpressionType(),
+              calculationType,
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand1().getExpressionType()),
+              SMGCPAExpressionEvaluator.getCanonicalType(e.getOperand2().getExpressionType()),
+              currentState);
         }
 
-        // Create binary expr with offsets and restart this with it
-        return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        case GREATER_EQUAL, LESS_EQUAL, GREATER_THAN, LESS_THAN -> {
+          // < <= > >=
+          // For the same memory, we can check < etc.
+          // First check that left and right point to the SAME memory region
+          // Check that both Values are truly addresses
+          ValueAndSMGState leftValueAndState = evaluator.unpackAddressExpression(leftValue, state);
+          leftValue = leftValueAndState.getValue();
+          ValueAndSMGState rightValueAndState =
+              evaluator.unpackAddressExpression(rightValue, leftValueAndState.getState());
+          rightValue = rightValueAndState.getValue();
+          currentState = rightValueAndState.getState();
+          if (!evaluator.isPointerValue(rightValue, currentState)
+              || !evaluator.isPointerValue(leftValue, currentState)) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to non-address value in binary pointer comparison"
+                        + " expression in ",
+                    cfaEdge));
+          }
+          if (!currentState.pointsToSameMemoryRegion(leftValue, rightValue)) {
+            // This is undefined behavior in C99/C11
+            // But since we don't really handle this we just return unknown :D
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to address values in binary pointer comparison"
+                        + " expression not pointing to the same target memory in ",
+                    cfaEdge));
+          }
+
+          // Then get the offsets
+          Value offsetLeft = currentState.getPointerOffset(leftValue);
+          Value offsetRight = currentState.getPointerOffset(rightValue);
+          if (offsetLeft.isUnknown() || offsetRight.isUnknown()) {
+            return ImmutableList.of(
+                ValueAndSMGState.ofUnknownValue(
+                    currentState,
+                    "Returned unknown value due to unknown offset value(s) in binary pointer"
+                        + " comparison expression in ",
+                    cfaEdge));
+          }
+
+          // Create binary expr with offsets and restart this with it
+          return handleBinaryOperation(offsetLeft, offsetRight, e, currentState);
+        }
+
+        default -> {
+          // handled below
+        }
       }
     }
 
@@ -1101,23 +1107,22 @@ public class SMGCPAValueVisitor
         SMGCPAExpressionEvaluator.getCanonicalType(unaryOperand.getExpressionType());
 
     switch (unaryOperator) {
-      case SIZEOF:
+      case SIZEOF -> {
         BigInteger sizeInBits = evaluator.getBitSizeof(state, operandType);
         return ImmutableList.of(
             ValueAndSMGState.of(new NumericValue(sizeInBits.divide(BigInteger.valueOf(8))), state));
-
-      case ALIGNOF:
+      }
+      case ALIGNOF -> {
         return ImmutableList.of(
             ValueAndSMGState.of(
                 new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType())),
                 state));
-
-      case AMPER:
+      }
+      case AMPER -> {
         // Note: this returns AddressExpressions! Unwrap before saving!
         return evaluator.createAddress(unaryOperand, state, cfaEdge);
-
-      default:
-        break;
+      }
+      default -> {}
     }
 
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
@@ -1143,17 +1148,16 @@ public class SMGCPAValueVisitor
 
       final NumericValue numericValue = (NumericValue) value;
       switch (unaryOperator) {
-        case MINUS:
+        case MINUS -> {
           builder.add(ValueAndSMGState.of(numericValue.negate(), currentState));
           continue;
-
-        case TILDE:
+        }
+        case TILDE -> {
           builder.add(
               ValueAndSMGState.of(new NumericValue(~numericValue.longValue()), currentState));
           continue;
-
-        default:
-          throw new AssertionError("Unknown unary operator: " + unaryOperator);
+        }
+        default -> throw new AssertionError("Unknown unary operator: " + unaryOperator);
       }
     }
     return builder.build();
@@ -1345,142 +1349,136 @@ public class SMGCPAValueVisitor
     final CSimpleType st = (CSimpleType) type;
 
     switch (st.getType()) {
-      case BOOL:
+      case BOOL -> {
         return convertToBool(numericValue);
-      case INT128:
-      case INT:
-      case CHAR:
-        {
-          // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
-          // TODO: check for overflow(source larger than the highest number we can store in target
-          // etc.)
+      }
+      case INT128, INT, CHAR -> {
+        // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
+        // TODO: check for overflow(source larger than the highest number we can store in target
+        // etc.)
 
-          boolean targetIsSigned = machineModel.isSigned(st);
-          BigInteger integerValue;
+        boolean targetIsSigned = machineModel.isSigned(st);
+        BigInteger integerValue;
 
-          // Convert the value to integer
-          if (numericValue.hasFloatType()) {
-            // Casting from a floating point value to BigInteger
-            Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
-            if (maybeInteger.isEmpty()) {
-              // If the value was NaN or Infinity the result of the conversion is undefined
-              return UnknownValue.getInstance();
-            } else {
-              integerValue = maybeInteger.orElseThrow();
-            }
+        // Convert the value to integer
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value to BigInteger
+          Optional<BigInteger> maybeInteger = numericValue.getFloatValue().toInteger();
+          if (maybeInteger.isEmpty()) {
+            // If the value was NaN or Infinity the result of the conversion is undefined
+            return UnknownValue.getInstance();
           } else {
-            // Casting from Rational or one of the integer types
-            integerValue = numericValue.bigIntegerValue();
+            integerValue = maybeInteger.orElseThrow();
           }
+        } else {
+          // Casting from Rational or one of the integer types
+          integerValue = numericValue.bigIntegerValue();
+        }
 
-          // Calculate bounds for overflow
-          final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
-          BigInteger signedUpperBound;
-          BigInteger signedLowerBound;
-          if (targetIsSigned) {
-            // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
-            // upper bound maxValue / 2 - 1
-            signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
-            // lower bound -maxValue / 2
-            signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
+        // Calculate bounds for overflow
+        final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
+        BigInteger signedUpperBound;
+        BigInteger signedLowerBound;
+        if (targetIsSigned) {
+          // signed value must be put in interval [-(maxValue/2), (maxValue/2)-1]
+          // upper bound maxValue / 2 - 1
+          signedUpperBound = maxValue.divide(BigInteger.valueOf(2)).subtract(BigInteger.ONE);
+          // lower bound -maxValue / 2
+          signedLowerBound = maxValue.divide(BigInteger.valueOf(2)).negate();
+        } else {
+          signedUpperBound = maxValue.subtract(BigInteger.ONE);
+          signedLowerBound = BigInteger.ZERO;
+        }
+
+        BigInteger result;
+
+        // Check for overflows
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value
+          if (isGreaterThan(integerValue, signedUpperBound)
+              || isLessThan(integerValue, signedLowerBound)) {
+            // If the number does not fit into the target type the result is undefined
+            return UnknownValue.getInstance();
           } else {
-            signedUpperBound = maxValue.subtract(BigInteger.ONE);
-            signedLowerBound = BigInteger.ZERO;
+            result = integerValue;
           }
+        } else {
+          // Casting from Rational or an integer type
+          result = integerValue.remainder(maxValue); // shrink to number of bits
 
-          BigInteger result;
-
-          // Check for overflows
-          if (numericValue.hasFloatType()) {
-            // Casting from a floating point value
-            if (isGreaterThan(integerValue, signedUpperBound)
-                || isLessThan(integerValue, signedLowerBound)) {
-              // If the number does not fit into the target type the result is undefined
-              return UnknownValue.getInstance();
-            } else {
-              result = integerValue;
-            }
-          } else {
-            // Casting from Rational or an integer type
-            result = integerValue.remainder(maxValue); // shrink to number of bits
-
-            if (isGreaterThan(result, signedUpperBound)) {
-              // if result overflows, let it 'roll around' and add overflow to lower bound
-              result = result.subtract(maxValue);
-            } else if (isLessThan(result, signedLowerBound)) {
-              result = result.add(maxValue);
-            }
-          }
-
-          // transform result to a long and fail if it doesn't fit
-          if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
-            return new NumericValue(result.longValueExact());
-          } else {
-            return new NumericValue(result);
+          if (isGreaterThan(result, signedUpperBound)) {
+            // if result overflows, let it 'roll around' and add overflow to lower bound
+            result = result.subtract(maxValue);
+          } else if (isLessThan(result, signedLowerBound)) {
+            result = result.add(maxValue);
           }
         }
 
-      case FLOAT:
-      case DOUBLE:
-      case FLOAT128:
-        {
-          FloatValue.Format target;
-
-          // Find the target format
-          final int bitPerByte = machineModel.getSizeofCharInBits();
-          if (size == machineModel.getSizeofFloat() * bitPerByte) {
-            target = FloatValue.Format.Float32;
-          } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
-            target = FloatValue.Format.Float64;
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
-            // Must be Linux32 or Linux64, otherwise the second clause would have matched
-            target = FloatValue.Format.Float80;
-          } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
-            target = FloatValue.Format.Float128;
-          } else {
-            // Unsupported target format
-            throw new AssertionError(
-                String.format(
-                    "Unsupported target format. Value `%s` with bitwidth %d can't be cast to type"
-                        + "`%s`",
-                    numericValue, size, st.getType()));
-          }
-
-          Number result;
-
-          // Convert to target format
-          // TODO: Add warnings for lossy conversions?
-          if (numericValue.hasFloatType()) {
-            // Casting from a floating point value
-            if (numericValue.getNumber() instanceof FloatValue floatValue) {
-              // Already a FloatValue
-              // We just need to adjust the precision
-              result = floatValue.withPrecision(target);
-            } else {
-              // Either Double or Float
-              // Cast to double and then convert
-              result = FloatValue.fromDouble(numericValue.doubleValue());
-            }
-          } else if (numericValue.hasIntegerType()) {
-            // Casting from an integer
-            result = FloatValue.fromInteger(target, numericValue.bigIntegerValue());
-          } else if (numericValue.getNumber() instanceof Rational rationalValue) {
-            // Casting from a rational
-            result = FloatValue.fromRational(target, rationalValue);
-          } else {
-            // Unsupported value type
-            throw new AssertionError(
-                String.format(
-                    "Unsupported type. Value `%s` has type `%s`, but only integers, floating points"
-                        + "and rationals are allowed.",
-                    numericValue, numericValue.getNumber().getClass().getSimpleName()));
-          }
-
+        // transform result to a long and fail if it doesn't fit
+        if (size < SIZE_OF_JAVA_LONG || (size == SIZE_OF_JAVA_LONG && targetIsSigned)) {
+          return new NumericValue(result.longValueExact());
+        } else {
           return new NumericValue(result);
         }
+      }
 
-      default:
-        throw new AssertionError("Unhandled type: " + type);
+      case FLOAT, DOUBLE, FLOAT128 -> {
+        FloatValue.Format target;
+
+        // Find the target format
+        final int bitPerByte = machineModel.getSizeofCharInBits();
+        if (size == machineModel.getSizeofFloat() * bitPerByte) {
+          target = FloatValue.Format.Float32;
+        } else if (size == machineModel.getSizeofDouble() * bitPerByte) {
+          target = FloatValue.Format.Float64;
+        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+          // Must be Linux32 or Linux64, otherwise the second clause would have matched
+          target = FloatValue.Format.Float80;
+        } else if (size == machineModel.getSizeofFloat128() * bitPerByte) {
+          target = FloatValue.Format.Float128;
+        } else {
+          // Unsupported target format
+          throw new AssertionError(
+              String.format(
+                  "Unsupported target format. Value `%s` with bitwidth %d can't be cast to type"
+                      + "`%s`",
+                  numericValue, size, st.getType()));
+        }
+
+        Number result;
+
+        // Convert to target format
+        // TODO: Add warnings for lossy conversions?
+        if (numericValue.hasFloatType()) {
+          // Casting from a floating point value
+          if (numericValue.getNumber() instanceof FloatValue floatValue) {
+            // Already a FloatValue
+            // We just need to adjust the precision
+            result = floatValue.withPrecision(target);
+          } else {
+            // Either Double or Float
+            // Cast to double and then convert
+            result = FloatValue.fromDouble(numericValue.doubleValue());
+          }
+        } else if (numericValue.hasIntegerType()) {
+          // Casting from an integer
+          result = FloatValue.fromInteger(target, numericValue.bigIntegerValue());
+        } else if (numericValue.getNumber() instanceof Rational rationalValue) {
+          // Casting from a rational
+          result = FloatValue.fromRational(target, rationalValue);
+        } else {
+          // Unsupported value type
+          throw new AssertionError(
+              String.format(
+                  "Unsupported type. Value `%s` has type `%s`, but only integers, floating points"
+                      + "and rationals are allowed.",
+                  numericValue, numericValue.getNumber().getClass().getSimpleName()));
+        }
+
+        return new NumericValue(result);
+      }
+
+      default -> throw new AssertionError("Unhandled type: " + type);
     }
   }
 
@@ -2393,38 +2391,32 @@ public class SMGCPAValueVisitor
 
     try {
       switch (type.getType()) {
-        case INT:
-          {
-            // Both l and r must be of the same type, which in this case is INT, so we can cast to
-            // long.
-            long lVal = lNum.getNumber().longValue();
-            long rVal = rNum.getNumber().longValue();
-            long result = arithmeticOperation(lVal, rVal, op, calculationType);
-            return new NumericValue(result);
-          }
-        case INT128:
-          {
-            BigInteger lVal = lNum.bigIntegerValue();
-            BigInteger rVal = rNum.bigIntegerValue();
-            BigInteger result = arithmeticOperation(lVal, rVal, op);
-            return new NumericValue(result);
-          }
-        case FLOAT:
-        case DOUBLE:
-        case FLOAT128:
-          {
-            return new NumericValue(
-                arithmeticOperation(
-                    op,
-                    castToFloat(machineModel, type, lNum),
-                    castToFloat(machineModel, type, rNum)));
-          }
-        default:
-          {
-            logger.logf(
-                Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-            return Value.UnknownValue.getInstance();
-          }
+        case INT -> {
+          // Both l and r must be of the same type, which in this case is INT, so we can cast to
+          // long.
+          long lVal = lNum.getNumber().longValue();
+          long rVal = rNum.getNumber().longValue();
+          long result = arithmeticOperation(lVal, rVal, op, calculationType);
+          return new NumericValue(result);
+        }
+        case INT128 -> {
+          BigInteger lVal = lNum.bigIntegerValue();
+          BigInteger rVal = rNum.bigIntegerValue();
+          BigInteger result = arithmeticOperation(lVal, rVal, op);
+          return new NumericValue(result);
+        }
+        case FLOAT, DOUBLE, FLOAT128 -> {
+          return new NumericValue(
+              arithmeticOperation(
+                  op,
+                  castToFloat(machineModel, type, lNum),
+                  castToFloat(machineModel, type, rNum)));
+        }
+        default -> {
+          logger.logf(
+              Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+          return Value.UnknownValue.getInstance();
+        }
       }
     } catch (ArithmeticException e) { // log warning and ignore expression
       logger.logf(
@@ -2456,15 +2448,17 @@ public class SMGCPAValueVisitor
     if (st != null) {
       if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.hasUnsignedSpecifier()) {
         switch (op) {
-          case DIVIDE:
+          case DIVIDE -> {
             if (r == 0) {
               logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
               return 0;
             }
             return UnsignedLongs.divide(l, r);
-          case MODULO:
+          }
+          case MODULO -> {
             return UnsignedLongs.remainder(l, r);
-          case SHIFT_RIGHT:
+          }
+          case SHIFT_RIGHT -> {
             /*
              * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
              *
@@ -2473,28 +2467,33 @@ public class SMGCPAValueVisitor
              * after ">>" depends on sign extension.
              */
             return l >>> r;
-          default:
-            // fall-through, calculation is done correct as SINGED_LONG_LONG
+          }
+          default -> {}
         }
       }
     }
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         return l + r;
-      case MINUS:
+      }
+      case MINUS -> {
         return l - r;
-      case DIVIDE:
+      }
+      case DIVIDE -> {
         if (r == 0) {
           logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
           return 0;
         }
         return l / r;
-      case MODULO:
+      }
+      case MODULO -> {
         return l % r;
-      case MULTIPLY:
+      }
+      case MULTIPLY -> {
         return l * r;
-      case SHIFT_LEFT:
+      }
+      case SHIFT_LEFT -> {
         /* There is a difference in the SHIFT-operation in Java and C.
          * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
          *
@@ -2507,17 +2506,20 @@ public class SMGCPAValueVisitor
          * The shift distance actually used is therefore always in the range 0 to 63.
          */
         return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-      case SHIFT_RIGHT:
+      }
+      case SHIFT_RIGHT -> {
         return l >> r;
-      case BINARY_AND:
+      }
+      case BINARY_AND -> {
         return l & r;
-      case BINARY_OR:
+      }
+      case BINARY_OR -> {
         return l | r;
-      case BINARY_XOR:
+      }
+      case BINARY_XOR -> {
         return l ^ r;
-
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
+      }
+      default -> throw new AssertionError("unknown binary operation: " + op);
     }
   }
 
@@ -2533,22 +2535,27 @@ public class SMGCPAValueVisitor
       final BigInteger l, final BigInteger r, final BinaryOperator op) {
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         return l.add(r);
-      case MINUS:
+      }
+      case MINUS -> {
         return l.subtract(r);
-      case DIVIDE:
+      }
+      case DIVIDE -> {
         if (r.equals(BigInteger.ZERO)) {
           // this matches the behavior of long
           logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
           return BigInteger.ZERO;
         }
         return l.divide(r);
-      case MODULO:
+      }
+      case MODULO -> {
         return l.mod(r);
-      case MULTIPLY:
+      }
+      case MULTIPLY -> {
         return l.multiply(r);
-      case SHIFT_LEFT:
+      }
+      case SHIFT_LEFT -> {
         // (C11, 6.5.7p3) "If the value of the right operand is negative
         // or is greater than or equal to the width of the promoted left operand,
         // the behavior is undefined"
@@ -2561,20 +2568,24 @@ public class SMGCPAValueVisitor
               r.toString());
           return BigInteger.ZERO;
         }
-      case SHIFT_RIGHT:
+      }
+      case SHIFT_RIGHT -> {
         if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
           return l.shiftRight(r.intValue());
         } else {
           return BigInteger.ZERO;
         }
-      case BINARY_AND:
+      }
+      case BINARY_AND -> {
         return l.and(r);
-      case BINARY_OR:
+      }
+      case BINARY_OR -> {
         return l.or(r);
-      case BINARY_XOR:
+      }
+      case BINARY_XOR -> {
         return l.xor(r);
-      default:
-        throw new AssertionError("Unknown binary operation: " + op);
+      }
+      default -> throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
@@ -2617,48 +2628,41 @@ public class SMGCPAValueVisitor
     }
 
     switch (type.getType()) {
-      case INT128:
-      case CHAR:
-      case INT:
-        {
-          // TODO: test this in particular!
-          BigInteger leftBigInt = l.bigIntegerValue();
-          BigInteger rightBigInt = r.bigIntegerValue();
-          final int cmp = leftBigInt.compareTo(rightBigInt);
+      case INT128, CHAR, INT -> {
+        // TODO: test this in particular!
+        BigInteger leftBigInt = l.bigIntegerValue();
+        BigInteger rightBigInt = r.bigIntegerValue();
+        final int cmp = leftBigInt.compareTo(rightBigInt);
 
-          // returns True, iff cmp fulfills the boolean operation.
-          boolean result =
-              switch (op) {
-                case GREATER_THAN -> cmp > 0;
-                case GREATER_EQUAL -> cmp >= 0;
-                case LESS_THAN -> cmp < 0;
-                case LESS_EQUAL -> cmp <= 0;
-                case EQUALS -> cmp == 0;
-                case NOT_EQUALS -> cmp != 0;
-                default -> throw new AssertionError("Unknown binary operation: " + op);
-              };
+        // returns True, iff cmp fulfills the boolean operation.
+        boolean result =
+            switch (op) {
+              case GREATER_THAN -> cmp > 0;
+              case GREATER_EQUAL -> cmp >= 0;
+              case LESS_THAN -> cmp < 0;
+              case LESS_EQUAL -> cmp <= 0;
+              case EQUALS -> cmp == 0;
+              case NOT_EQUALS -> cmp != 0;
+              default -> throw new AssertionError("Unknown binary operation: " + op);
+            };
 
-          // return 1 if expression holds, 0 otherwise
-          return new NumericValue(result ? 1 : 0);
-        }
-      case FLOAT:
-      case DOUBLE:
-      case FLOAT128:
-        {
-          boolean result =
-              comparisonOperation(
-                  op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
-          return new NumericValue(result ? 1 : 0);
-        }
-      default:
-        {
-          logger.logf(
-              Level.FINE,
-              "unsupported type %s for result of binary operation %s",
-              type.toString(),
-              op);
-          return Value.UnknownValue.getInstance();
-        }
+        // return 1 if expression holds, 0 otherwise
+        return new NumericValue(result ? 1 : 0);
+      }
+      case FLOAT, DOUBLE, FLOAT128 -> {
+        boolean result =
+            comparisonOperation(
+                op, castToFloat(machineModel, type, l), castToFloat(machineModel, type, r));
+        return new NumericValue(result ? 1 : 0);
+      }
+      default -> {
+        logger.logf(
+            Level.FINE,
+            "unsupported type %s for result of binary operation %s",
+            type.toString(),
+            op);
+        return Value.UnknownValue.getInstance();
+      }
     }
   }
 

@@ -549,15 +549,11 @@ public final class CInitializers {
     currentSubobjects.push(designatedField);
 
     switch (structType.getKind()) {
-      case STRUCT:
-        nextSubobjects.push(CInitializers.safeCast(fields));
-        break;
-      case UNION:
-        // unions only have their first field initialized, ignore the rest
-        nextSubobjects.push(Collections.emptyIterator());
-        break;
-      default:
-        throw new AssertionError();
+      case STRUCT -> nextSubobjects.push(CInitializers.safeCast(fields));
+      case UNION ->
+          // unions only have their first field initialized, ignore the rest
+          nextSubobjects.push(Collections.emptyIterator());
+      default -> throw new AssertionError();
     }
 
     return true;

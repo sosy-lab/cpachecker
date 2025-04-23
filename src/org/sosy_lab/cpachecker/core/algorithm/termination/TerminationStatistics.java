@@ -826,13 +826,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     for (int i = 0; i < extendedInput.length(); i++) {
       c = extendedInput.charAt(i);
       switch (c) {
-        case '(':
-          openBrackets++;
-          break;
-        case ')':
-          openBrackets--;
-          break;
-        case ' ':
+        case '(' -> openBrackets++;
+        case ')' -> openBrackets--;
+        case ' ' -> {
           if (openBrackets == 0) {
             if (bd.length() != 0) {
               args.add(bd.toString());
@@ -841,8 +837,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
             continue;
           }
-          break;
-        default:
+        }
+        default -> {}
       }
       bd.append(c);
     }

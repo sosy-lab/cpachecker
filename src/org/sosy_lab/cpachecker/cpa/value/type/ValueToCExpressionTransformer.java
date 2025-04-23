@@ -76,12 +76,12 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   public CExpression visit(NumericValue pValue) {
     if (type instanceof CSimpleType) {
       switch (((CSimpleType) type).getType()) {
-        case FLOAT:
-        case DOUBLE:
+        case FLOAT, DOUBLE -> {
           return visitFloatingValue(pValue, (CSimpleType) type);
-        default:
+        }
+        default -> {
           // DO NOTHING
-          break;
+        }
       }
     }
 

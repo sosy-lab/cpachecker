@@ -244,8 +244,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
 
   private Supplier<BlockingQueue<DssMessage>> getQueueSupplier() {
     return switch (queue) {
-      case VIOLATION_CONDITION -> () -> new DssPrioritizeViolationConditionQueue();
-      case DEFAULT -> () -> new DssDefaultQueue();
+      case VIOLATION_CONDITION -> DssPrioritizeViolationConditionQueue::new;
+      case DEFAULT -> DssDefaultQueue::new;
     };
   }
 

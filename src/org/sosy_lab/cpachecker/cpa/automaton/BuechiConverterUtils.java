@@ -293,13 +293,11 @@ public final class BuechiConverterUtils {
       ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
 
       switch (pLabelExpr.getType()) {
-        case EXP_OR:
+        case EXP_OR -> {
           transitions.addAll(getTransitions(pLabelExpr.getLeft(), pSuccessorName));
           transitions.addAll(getTransitions(pLabelExpr.getRight(), pSuccessorName));
-          break;
-        default:
-          transitions.add(createTransition(getExpressions(pLabelExpr), pSuccessorName));
-          break;
+        }
+        default -> transitions.add(createTransition(getExpressions(pLabelExpr), pSuccessorName));
       }
 
       return transitions.build();
@@ -311,29 +309,31 @@ public final class BuechiConverterUtils {
 
       Type type = pLabelExpr.getType();
       switch (type) {
-        case EXP_TRUE:
+        case EXP_TRUE -> {
           return ImmutableList.of(assume(TRUE));
-        case EXP_FALSE:
+        }
+        case EXP_FALSE -> {
           return ImmutableList.of(assume(FALSE));
-        case EXP_ATOM:
+        }
+        case EXP_ATOM -> {
           int apIndex = pLabelExpr.getAtom().getAPIndex();
           return ImmutableList.of(assume(storedAutomaton.getStoredHeader().getAPs().get(apIndex)));
-        case EXP_OR:
+        }
+        case EXP_OR -> {
           expBuilder.addAll(getExpressions(pLabelExpr.getLeft()));
           expBuilder.addAll(getExpressions(pLabelExpr.getRight()));
-          break;
-        case EXP_AND:
+        }
+        case EXP_AND -> {
           expBuilder.addAll(getExpressions(pLabelExpr.getLeft()));
           expBuilder.addAll(getExpressions(pLabelExpr.getRight()));
-          break;
-        case EXP_NOT:
+        }
+        case EXP_NOT -> {
           CBinaryExpressionBuilder b = new CBinaryExpressionBuilder(machineModel, logger);
           CExpression exp =
               (CExpression) Iterables.getOnlyElement(getExpressions(pLabelExpr.getLeft()));
           expBuilder.add(b.negateExpressionAndSimplify(exp));
-          break;
-        default:
-          throw new RuntimeException("Unhandled expression type: " + type);
+        }
+        default -> throw new RuntimeException("Unhandled expression type: " + type);
       }
 
       return expBuilder.build();

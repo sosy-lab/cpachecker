@@ -33,7 +33,7 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     ValidVars validVariables = state.getValidVariables();
 
     switch (pCfaEdge.getEdgeType()) {
-      case BlankEdge:
+      case BlankEdge -> {
         if (pCfaEdge.getDescription().equals("Function start dummy edge")
             && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
           validVariables =
@@ -44,14 +44,13 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
           validVariables =
               validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
         }
-        break;
-      case FunctionCallEdge:
-        validVariables =
-            validVariables.extendLocalVarsFunctionCall(
-                pCfaEdge.getSuccessor().getFunctionName(),
-                ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
-        break;
-      case DeclarationEdge:
+      }
+      case FunctionCallEdge ->
+          validVariables =
+              validVariables.extendLocalVarsFunctionCall(
+                  pCfaEdge.getSuccessor().getFunctionName(),
+                  ((FunctionEntryNode) pCfaEdge.getSuccessor()).getFunctionParameterNames());
+      case DeclarationEdge -> {
         CDeclaration declaration = ((CDeclarationEdge) pCfaEdge).getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           if (declaration.isGlobal()) {
@@ -62,13 +61,11 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
                     pCfaEdge.getPredecessor().getFunctionName(), declaration.getName());
           }
         }
-        break;
-      case ReturnStatementEdge:
-        validVariables =
-            validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
-        break;
-      default:
-        break;
+      }
+      case ReturnStatementEdge ->
+          validVariables =
+              validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());
+      default -> {}
     }
 
     if (state.getValidVariables() == validVariables) {

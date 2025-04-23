@@ -380,15 +380,15 @@ public class CFACreator {
     String regExPattern;
     inputLanguage = language;
     switch (language) {
-      case JAVA:
+      case JAVA -> {
         regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
         if (!mainFunctionName.matches(regExPattern)) {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
         parser = Parsers.getJavaParser(logger, config, mainFunctionName);
-        break;
-      case C:
+      }
+      case C -> {
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
         if (!mainFunctionName.matches(regExPattern)) {
           throw new InvalidConfigurationException(
@@ -417,15 +417,13 @@ public class CFACreator {
         } else {
           parser = outerParser;
         }
-
-        break;
-      case LLVM:
+      }
+      case LLVM -> {
         parser = Parsers.getLlvmParser(logger, machineModel);
-        language = Language.C; // After parsing we will have a CFA representing C code
-        break;
-
-      default:
-        throw new AssertionError();
+        language = Language.C;
+        // After parsing we will have a CFA representing C code
+      }
+      default -> throw new AssertionError();
     }
 
     stats.parsingTime = parser.getParseTime();
@@ -488,15 +486,12 @@ public class CFACreator {
       FunctionEntryNode mainFunction;
 
       switch (language) {
-        case JAVA:
+        case JAVA -> {
           mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.functions());
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
-          break;
-        case C:
-          mainFunction = getCMainFunction(sourceFiles, c.functions());
-          break;
-        default:
-          throw new AssertionError();
+        }
+        case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
+        default -> throw new AssertionError();
       }
 
       CFA cfa = createCFA(c, mainFunction);
@@ -686,12 +681,9 @@ public class CFACreator {
     final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        default:
-          throw new AssertionError();
+        case JAVA -> throw new JParserException("No methods found in program");
+        case C -> throw new CParserException("No functions found in program");
+        default -> throw new AssertionError();
       }
     }
 
@@ -717,12 +709,9 @@ public class CFACreator {
 
     if (parseResult.isEmpty()) {
       switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        default:
-          throw new AssertionError();
+        case JAVA -> throw new JParserException("No methods found in program");
+        case C -> throw new CParserException("No functions found in program");
+        default -> throw new AssertionError();
       }
     }
 

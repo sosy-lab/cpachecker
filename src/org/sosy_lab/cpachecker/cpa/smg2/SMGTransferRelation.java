@@ -683,8 +683,8 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     SMGState currentState = pCurrentState;
-    if ((valueType instanceof CArrayType && cParamType instanceof CArrayType)
-        || (valueType instanceof CPointerType && cParamType instanceof CArrayType)) {
+    if ((valueType instanceof CArrayType || valueType instanceof CPointerType)
+        && cParamType instanceof CArrayType) {
       if (paramValue instanceof AddressExpression addrParam) {
         // For pointer -> array we get a addressExpr that wraps the pointer
 

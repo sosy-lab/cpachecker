@@ -545,7 +545,7 @@ public class CPAMain {
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
-    } else if (from(properties).anyMatch(p -> p instanceof CoverFunctionCallProperty)) {
+    } else if (from(properties).anyMatch(CoverFunctionCallProperty.class::isInstance)) {
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
@@ -730,7 +730,7 @@ public class CPAMain {
         throw new InvalidConfigurationException("Cannot parse witness: " + e.getMessage(), e);
       }
       switch (witnessType) {
-        case VIOLATION_WITNESS:
+        case VIOLATION_WITNESS -> {
           validationConfigFile = options.violationWitnessValidationConfig;
 
           if (validationConfigFile == null) {
@@ -740,8 +740,8 @@ public class CPAMain {
           }
 
           appendWitnessToSpecificationOption(options, overrideOptions);
-          break;
-        case CORRECTNESS_WITNESS:
+        }
+        case CORRECTNESS_WITNESS -> {
           validationConfigFile = options.correctnessWitnessValidationConfig;
           if (validationConfigFile == null) {
             throw new InvalidConfigurationException(
@@ -780,14 +780,14 @@ public class CPAMain {
                 "invariantGeneration.kInduction.invariantsAutomatonFile",
                 options.witness.toString());
           }
-          break;
-        default:
-          throw new InvalidConfigurationException(
-              "Witness type "
-                  + witnessType
-                  + " of witness "
-                  + options.witness
-                  + " is not supported");
+        }
+        default ->
+            throw new InvalidConfigurationException(
+                "Witness type "
+                    + witnessType
+                    + " of witness "
+                    + options.witness
+                    + " is not supported");
       }
     }
 

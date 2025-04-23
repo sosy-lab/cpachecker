@@ -155,7 +155,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
         if (node.isLoopStart()) {
           collectedStates.loopInvariants.put(node, pSuccessor);
         } else if (leavingEdges.size() == 1
-            && leavingEdges.anyMatch(e -> e instanceof FunctionCallEdge)) {
+            && leavingEdges.anyMatch(FunctionCallEdge.class::isInstance)) {
           collectedStates.functionCallInvariants.put(node, pSuccessor);
         } else if (node instanceof FunctionEntryNode functionEntryNode) {
           functionEntryStatesCallStack.put(functionEntryNode.getFunctionDefinition(), pSuccessor);

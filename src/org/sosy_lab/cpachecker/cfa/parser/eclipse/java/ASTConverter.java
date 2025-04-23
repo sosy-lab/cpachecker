@@ -2730,13 +2730,16 @@ class ASTConverter {
     JSimpleType t = (JSimpleType) type;
 
     switch (t) {
-      case INT:
+      case INT -> {
         return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
-      case FLOAT:
+      }
+      case FLOAT -> {
         return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-      case DOUBLE:
+      }
+      case DOUBLE -> {
         return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-      default:
+      }
+      default -> {
         if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
           valueStr = valueStr.substring(0, valueStr.length() - 1);
         }
@@ -2748,6 +2751,7 @@ class ASTConverter {
           return new JIntegerLiteralExpression(
               getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
         }
+      }
     }
   }
 
@@ -3150,49 +3154,31 @@ class ASTConverter {
           ModifierKeyword modifierEnum = ((Modifier) modifier).getKeyword();
 
           switch (modifierEnum.toFlagValue()) {
-            case Modifier.FINAL:
-              isFinal = true;
-              break;
-            case Modifier.STATIC:
-              isStatic = true;
-              break;
-            case Modifier.VOLATILE:
-              isVolatile = true;
-              break;
-            case Modifier.TRANSIENT:
-              isTransient = true;
-              break;
-            case Modifier.PUBLIC:
+            case Modifier.FINAL -> isFinal = true;
+            case Modifier.STATIC -> isStatic = true;
+            case Modifier.VOLATILE -> isVolatile = true;
+            case Modifier.TRANSIENT -> isTransient = true;
+            case Modifier.PUBLIC -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PUBLIC;
-              break;
-            case Modifier.PROTECTED:
+            }
+            case Modifier.PROTECTED -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PROTECTED;
-              break;
-            case Modifier.NONE:
+            }
+            case Modifier.NONE -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.NONE;
-              break;
-            case Modifier.PRIVATE:
+            }
+            case Modifier.PRIVATE -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PRIVATE;
-              break;
-            case Modifier.NATIVE:
-              isNative = true;
-              break;
-            case Modifier.ABSTRACT:
-              isAbstract = true;
-              break;
-            case Modifier.STRICTFP:
-              isStrictFp = true;
-              break;
-            case Modifier.SYNCHRONIZED:
-              isSynchronized = true;
-              break;
-
-            default:
-              throw new AssertionError("Unkown  Modifier");
+            }
+            case Modifier.NATIVE -> isNative = true;
+            case Modifier.ABSTRACT -> isAbstract = true;
+            case Modifier.STRICTFP -> isStrictFp = true;
+            case Modifier.SYNCHRONIZED -> isSynchronized = true;
+            default -> throw new AssertionError("Unkown  Modifier");
           }
         }
       }

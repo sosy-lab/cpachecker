@@ -298,15 +298,17 @@ class ExpressionValueVisitor
     CType type = typeIdExp.getType();
 
     switch (typeOperator) {
-      case SIZEOF:
+      case SIZEOF -> {
         SMGSymbolicValue val =
             smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
                 ? SMGZeroValue.INSTANCE
                 : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-      default:
+      }
+      default -> {
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
         // TODO Investigate the other Operators.
+      }
     }
   }
 
@@ -361,117 +363,109 @@ class ExpressionValueVisitor
     }
 
     switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case MODULO:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        {
-          boolean isZero;
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          MULTIPLY,
+          SHIFT_LEFT,
+          MODULO,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR -> {
+        boolean isZero;
 
-          switch (binaryOperator) {
-            case PLUS:
-            case SHIFT_LEFT:
-            case BINARY_OR:
-            case BINARY_XOR:
-            case SHIFT_RIGHT:
-              isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
-              SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-              return singletonList(SMGValueAndState.of(newState, val));
+        switch (binaryOperator) {
+          case PLUS:
+          case SHIFT_LEFT:
+          case BINARY_OR:
+          case BINARY_XOR:
+          case SHIFT_RIGHT:
+            isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
+            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
 
-            case MINUS:
-              if (lVal instanceof SMGKnownAddressValue lValAddress
-                  && rVal instanceof SMGKnownAddressValue rValAddress) {
-                if (lValAddress.getObject().equals(rValAddress.getObject())) {
-                  CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
-                  final CType type;
-                  if (lVarType instanceof CPointerType) {
-                    // normal pointer type
-                    type = ((CPointerType) lVarType).getType();
-                  } else if (lVarType instanceof CSimpleType) {
-                    // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
-                    // Lets assume, that invalid combinations like "int" for 64bit do not appear.
-                    type = lVarType;
-                  } else {
-                    throw new AssertionError(
-                        String.format(
-                            "unhandled type '%s' for pointer comparison using '%s'.",
-                            lVarType, lVarInBinaryExp));
-                  }
-                  BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
-                  SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
-                  diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
-                  return singletonList(SMGValueAndState.of(newState, diff));
+          case MINUS:
+            if (lVal instanceof SMGKnownAddressValue lValAddress
+                && rVal instanceof SMGKnownAddressValue rValAddress) {
+              if (lValAddress.getObject().equals(rValAddress.getObject())) {
+                CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+                final CType type;
+                if (lVarType instanceof CPointerType) {
+                  // normal pointer type
+                  type = ((CPointerType) lVarType).getType();
+                } else if (lVarType instanceof CSimpleType) {
+                  // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
+                  // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+                  type = lVarType;
+                } else {
+                  throw new AssertionError(
+                      String.format(
+                          "unhandled type '%s' for pointer comparison using '%s'.",
+                          lVarType, lVarInBinaryExp));
                 }
+                BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
+                SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+                diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+                return singletonList(SMGValueAndState.of(newState, diff));
               }
-              // else
-              isZero = lVal.equals(rVal);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-              return singletonList(SMGValueAndState.of(newState, val));
-
-            case MODULO:
-              isZero = lVal.equals(rVal);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-              return singletonList(SMGValueAndState.of(newState, val));
-
-            case DIVIDE:
-              // TODO maybe we should signal a division by zero error?
-              if (rVal.equals(SMGZeroValue.INSTANCE)) {
-                return singletonList(SMGValueAndState.withUnknownValue(newState));
-              }
-
-              isZero = lVal.equals(SMGZeroValue.INSTANCE);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-              return singletonList(SMGValueAndState.of(newState, val));
-
-            case MULTIPLY:
-            case BINARY_AND:
-              isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
-              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-              return singletonList(SMGValueAndState.of(newState, val));
-
-            default:
-              throw new AssertionError();
-          }
-        }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        {
-          AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
-
-          List<? extends SMGValueAndState> assumptionValueAndStates =
-              v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
-
-          ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
-
-          for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
-            newState = assumptionValueAndState.getSmgState();
-            SMGValue assumptionVal = assumptionValueAndState.getObject();
-
-            if (assumptionVal.isZero()) {
-              SMGValueAndState resultValueAndState =
-                  SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
-              result.add(resultValueAndState);
-            } else {
-              result.add(SMGValueAndState.withUnknownValue(newState));
             }
-          }
+            // else
+            isZero = lVal.equals(rVal);
+            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
 
-          return result.build();
+          case MODULO:
+            isZero = lVal.equals(rVal);
+            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
+
+          case DIVIDE:
+            // TODO maybe we should signal a division by zero error?
+            if (rVal.equals(SMGZeroValue.INSTANCE)) {
+              return singletonList(SMGValueAndState.withUnknownValue(newState));
+            }
+
+            isZero = lVal.equals(SMGZeroValue.INSTANCE);
+            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
+
+          case MULTIPLY:
+          case BINARY_AND:
+            isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
+            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            return singletonList(SMGValueAndState.of(newState, val));
+
+          default:
+            throw new AssertionError();
+        }
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
+        AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
+
+        List<? extends SMGValueAndState> assumptionValueAndStates =
+            v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
+
+        ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
+
+        for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
+          newState = assumptionValueAndState.getSmgState();
+          SMGValue assumptionVal = assumptionValueAndState.getObject();
+
+          if (assumptionVal.isZero()) {
+            SMGValueAndState resultValueAndState =
+                SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
+            result.add(resultValueAndState);
+          } else {
+            result.add(SMGValueAndState.withUnknownValue(newState));
+          }
         }
 
-      default:
+        return result.build();
+      }
+      default -> {
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+      }
     }
   }
 
