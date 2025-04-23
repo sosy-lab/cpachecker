@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class SubstituteEdgeBuilder {
 
@@ -69,7 +70,8 @@ public class SubstituteEdgeBuilder {
       MPOROptions pOptions, MPORSubstitution pSubstitution, ThreadEdge pThreadEdge) {
 
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
-    Optional<ThreadEdge> callContext = pThreadEdge.callContext;
+    Optional<ThreadEdge> callContext =
+        ThreadUtil.getCallContextOrStartRoutineCall(pThreadEdge.callContext, pSubstitution.thread);
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?
       if (SubstituteUtil.isExcludedDeclarationEdge(pOptions, declarationEdge)) {

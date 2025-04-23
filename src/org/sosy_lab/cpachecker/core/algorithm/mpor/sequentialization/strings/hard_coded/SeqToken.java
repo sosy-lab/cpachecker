@@ -113,7 +113,11 @@ public class SeqToken {
 
   public static final String reach_error = "reach_error";
 
+  public static final String S = "S";
+
   public static final String __SEQUENTIALIZATION_ERROR__ = "__SEQUENTIALIZATION_ERROR__";
+
+  public static final String START_ROUTINE_ARG = "START_ROUTINE_ARG";
 
   public static final String STRING_0 = "\"0\"";
 

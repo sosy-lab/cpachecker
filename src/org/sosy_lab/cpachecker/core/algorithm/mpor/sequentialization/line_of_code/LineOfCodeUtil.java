@@ -152,6 +152,29 @@ public class LineOfCodeUtil {
     return rParameterDeclarations.build();
   }
 
+  public static ImmutableList<LineOfCode> buildStartRoutineArgDeclarations(
+      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+
+    ImmutableList.Builder<LineOfCode> rStartRoutineArgDeclarations = ImmutableList.builder();
+    if (pOptions.comments) {
+      rStartRoutineArgDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
+    }
+    for (MPORSubstitution substitution : pSubstitutions) {
+      ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
+          substitution.getStartRoutineArgDeclarations();
+      for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+        if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
+          rStartRoutineArgDeclarations.add(
+              LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));
+        }
+      }
+    }
+    if (pOptions.comments) {
+      rStartRoutineArgDeclarations.add(LineOfCode.empty());
+    }
+    return rStartRoutineArgDeclarations.build();
+  }
+
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions, ThreadSimulationVariables pThreadSimulationVariables) {
 

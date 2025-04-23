@@ -91,6 +91,15 @@ public class PthreadUtil {
         CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineIndex()));
   }
 
+  public static CExpression extractStartRoutineArgument(CFAEdge pEdge) {
+    checkArgument(
+        callsAnyPthreadFunctionWithStartRoutineParameter(pEdge),
+        "pEdge must be a call to a pthread method with a start_routine parameter");
+
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
+    return CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineArgumentIndex());
+  }
+
   /** Searches the given map of MPORThreads for the given thread object. */
   public static MPORThread getThreadByObject(
       ImmutableSet<MPORThread> pThreads, Optional<CExpression> pThreadObject) {

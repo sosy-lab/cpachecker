@@ -27,11 +27,13 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_BARRIER_WAIT(
       "pthread_barrier_wait",
       false,
       false,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -43,11 +45,13 @@ public enum PthreadFunctionType {
       Optional.of(0),
       Optional.of(false),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_COND_SIGNAL(
       "pthread_cond_signal",
       false,
       false,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -59,6 +63,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(1),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_CREATE(
       "pthread_create",
@@ -67,7 +72,8 @@ public enum PthreadFunctionType {
       Optional.of(0),
       Optional.of(true),
       Optional.empty(),
-      Optional.of(2)),
+      Optional.of(2),
+      Optional.of(3)),
   PTHREAD_DETACH(
       "pthread_detach",
       false,
@@ -75,12 +81,14 @@ public enum PthreadFunctionType {
       Optional.of(0),
       Optional.of(false),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_EQUAL(
       "pthread_equal",
       false,
       false,
       // TODO this method has pthread_t at index 1 and 2 -> add list as param later
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -92,13 +100,16 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
+  // TODO support pthread join retval (second parameter)
   PTHREAD_JOIN(
       "pthread_join",
       true,
       true,
       Optional.of(0),
       Optional.of(false),
+      Optional.empty(),
       Optional.empty(),
       Optional.empty()),
   PTHREAD_KILL(
@@ -110,6 +121,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_DESTROY(
       "pthread_mutex_destroy",
@@ -118,6 +130,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_INIT(
       "pthread_mutex_init",
@@ -126,6 +139,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_LOCK(
       "pthread_mutex_lock",
@@ -134,6 +148,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_TRYLOCK(
       "pthread_mutex_trylock",
@@ -142,6 +157,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_MUTEX_UNLOCK(
       "pthread_mutex_unlock",
@@ -150,11 +166,13 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.of(0),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_ONCE(
       "pthread_once",
       false,
       false,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -166,11 +184,13 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_RWLOCK_TRYRDLOCK(
       "pthread_rwlock_tryrdlock",
       false,
       false,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -182,11 +202,13 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   PTHREAD_RWLOCK_WRLOCK(
       "pthread_rwlock_wrlock",
       false,
       false,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -198,6 +220,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   __VERIFIER_ATOMIC_BEGIN(
       "__VERIFIER_atomic_begin",
@@ -206,11 +229,13 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
+      Optional.empty(),
       Optional.empty()),
   __VERIFIER_ATOMIC_END(
       "__VERIFIER_atomic_end",
       true,
       true,
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty(),
@@ -240,6 +265,8 @@ public enum PthreadFunctionType {
 
   public final Optional<Integer> startRoutineIndex;
 
+  public final Optional<Integer> startRoutineArgumentIndex;
+
   // TODO maybe its best to create a class that states the type of the pthread object, the index /
   //  indices and whether it is never / always / sometimes a pointer
   //  then just create an immutablelist with the desired properties of the function
@@ -250,7 +277,8 @@ public enum PthreadFunctionType {
       Optional<Integer> pPthreadTIndex,
       Optional<Boolean> pIsPthreadTPointer,
       Optional<Integer> pPthreadMutexTIndex,
-      Optional<Integer> pStartRoutineIndex) {
+      Optional<Integer> pStartRoutineIndex,
+      Optional<Integer> pStartRoutineArgumentIndex) {
 
     // pPthreadTIndex and pIsPthreadTPointer have to be equivalent (both empty or both present)
     checkArgument(pPthreadTIndex.isEmpty() || pIsPthreadTPointer.isPresent());
@@ -265,6 +293,7 @@ public enum PthreadFunctionType {
     isPthreadTPointer = pIsPthreadTPointer;
     pthreadMutexTIndex = pPthreadMutexTIndex;
     startRoutineIndex = pStartRoutineIndex;
+    startRoutineArgumentIndex = pStartRoutineArgumentIndex;
   }
 
   public boolean hasPthreadTIndex() {
@@ -294,6 +323,11 @@ public enum PthreadFunctionType {
   }
 
   public int getStartRoutineIndex() {
+    checkArgument(startRoutineIndex.isPresent(), "this PthreadFuncType has no start_routine param");
+    return startRoutineIndex.orElseThrow();
+  }
+
+  public int getStartRoutineArgumentIndex() {
     checkArgument(startRoutineIndex.isPresent(), "this PthreadFuncType has no start_routine param");
     return startRoutineIndex.orElseThrow();
   }

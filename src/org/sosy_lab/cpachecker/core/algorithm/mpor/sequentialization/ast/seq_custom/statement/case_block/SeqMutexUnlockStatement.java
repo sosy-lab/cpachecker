@@ -33,6 +33,7 @@ public class SeqMutexUnlockStatement implements SeqCaseBlockStatement {
   private final CLeftHandSide pcLeftHandSide;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;

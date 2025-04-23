@@ -178,13 +178,7 @@ public class SeqCaseBlockStatementBuilder {
 
       } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
         return buildStatementFromPthreadFunction(
-            pThread,
-            pAllThreads,
-            pThreadEdge,
-            pSubstituteEdge,
-            targetPc,
-            pGhostVariables.pc,
-            pGhostVariables.thread);
+            pThread, pAllThreads, pThreadEdge, pSubstituteEdge, targetPc, pGhostVariables);
       }
     }
     // "leftover" edges should be statement edges
@@ -293,30 +287,42 @@ public class SeqCaseBlockStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadVariables) {
+      GhostVariables pGhostVariables) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFuncType(cfaEdge);
-    CLeftHandSide pcLeftHandSide = pPcVariables.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
           buildThreadCreationStatement(
-              pThread, pAllThreads, pSubstituteEdge, pTargetPc, pPcVariables);
+              pThread,
+              pAllThreads,
+              pThreadEdge,
+              pSubstituteEdge,
+              pTargetPc,
+              pGhostVariables.function,
+              pGhostVariables.pc);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
-              pThread, pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+              pThread,
+              pThreadEdge,
+              pSubstituteEdge,
+              pTargetPc,
+              pcLeftHandSide,
+              pGhostVariables.thread);
       case PTHREAD_MUTEX_UNLOCK ->
-          buildMutexUnlockStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildMutexUnlockStatement(
+              pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case PTHREAD_JOIN ->
           buildThreadJoinStatement(
-              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(
-              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case __VERIFIER_ATOMIC_END ->
-          buildAtomicEndStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide, pThreadVariables);
+          buildAtomicEndStatement(
+              pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       default ->
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
@@ -326,14 +332,28 @@ public class SeqCaseBlockStatementBuilder {
   private static SeqThreadCreationStatement buildThreadCreationStatement(
       MPORThread pThread,
       ImmutableSet<MPORThread> pAllThreads,
+      ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
+      FunctionStatements pFunctionStatements,
       PcVariables pPcVariables) {
 
-    CExpression pthreadT = PthreadUtil.extractPthreadT(pSubstituteEdge.cfaEdge);
-    MPORThread createdThread = PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
+    CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
+    checkArgument(
+        cfaEdge instanceof CFunctionCallEdge || cfaEdge instanceof CStatementEdge,
+        "cfaEdge must be CFunctionCallEdge or CStatementEdge");
+    CExpression pthreadTObject = PthreadUtil.extractPthreadT(cfaEdge);
+    MPORThread createdThread =
+        PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
+    FunctionParameterAssignment argumentAssignment =
+        pFunctionStatements.startRoutineArgumentAssignments.get(pThreadEdge);
     return new SeqThreadCreationStatement(
-        createdThread.id, pThread.id, pPcVariables, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        argumentAssignment,
+        createdThread.id,
+        pThread.id,
+        pPcVariables,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
   }
 
   public static Optional<SeqInjectedStatement> tryBuildInjectedStatement(

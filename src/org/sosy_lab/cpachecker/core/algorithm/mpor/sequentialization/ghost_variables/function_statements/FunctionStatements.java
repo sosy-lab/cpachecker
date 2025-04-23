@@ -18,15 +18,20 @@ public class FunctionStatements {
   public final ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>>
       parameterAssignments;
 
+  public final ImmutableMap<ThreadEdge, FunctionParameterAssignment>
+      startRoutineArgumentAssignments;
+
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 
   public FunctionStatements(
       ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
+      ImmutableMap<ThreadEdge, FunctionParameterAssignment> pStartRoutineArgumentAssignments,
       ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
           pReturnValueAssignments) {
 
     parameterAssignments = pParameterAssignments;
+    startRoutineArgumentAssignments = pStartRoutineArgumentAssignments;
     returnValueAssignments = pReturnValueAssignments;
   }
 }

@@ -10,12 +10,29 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 
 public class ThreadUtil {
+
+  /**
+   * Returns either {@code pCallContext} if present or the start routine call of {@code pThread},
+   * which serves as the default call context.
+   */
+  public static Optional<ThreadEdge> getCallContextOrStartRoutineCall(
+      Optional<ThreadEdge> pCallContext, MPORThread pThread) {
+
+    return pCallContext.isPresent() ? pCallContext : pThread.startRoutineCall;
+  }
+
+  public static Optional<ThreadEdge> getCallContextOrStartRoutineCall(
+      Optional<ThreadEdge> pCallContext, Optional<ThreadEdge> pStartRoutineCall) {
+
+    return pCallContext.isPresent() ? pCallContext : pStartRoutineCall;
+  }
 
   protected static <T extends CFAEdge> ImmutableList<ThreadEdge> getEdgesByClass(
       ImmutableSet<ThreadEdge> pThreadEdges, Class<T> pEdgeClass) {

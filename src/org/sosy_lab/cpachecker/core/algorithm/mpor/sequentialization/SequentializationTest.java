@@ -26,9 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SequentializationTest {
 
-  // TODO this triggers an AssertionError
-  // goblint-regression/36-apron_21-traces-cluster-based-true.c
-
   // TODO this triggers a substitute not found because the pthread_create call passes
   //  a parameter to the start routine and the thread reads it
   // "ring_2w1r-2",
@@ -36,7 +33,8 @@ public class SequentializationTest {
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
 
-  // TODO parsing fails for sequentializations of:
+  // TODO parsing fails for sequentializations of
+  //  (parsing also fails for input .c files, but not for .i...):
   // 28-race_reach_45-escape_racing
   // 28-race_reach_46-escape_racefree
 

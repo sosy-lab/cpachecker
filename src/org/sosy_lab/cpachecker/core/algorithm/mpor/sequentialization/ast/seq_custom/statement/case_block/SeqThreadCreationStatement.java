@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -30,13 +31,20 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
+  /**
+   * The assignment of the parameter given in the {@code pthread_create} call. This is always
+   * present, even if the parameter is not actually used.
+   */
+  private final FunctionParameterAssignment parameterAssignment;
+
   private final int createdThreadId;
 
-  private final int threadId;
+  private final int creatingThreadId;
 
   private final PcVariables pcVariables;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
+
   private final Optional<Integer> targetPc;
 
   private final Optional<String> targetGoto;
@@ -46,15 +54,17 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadCreationStatement(
+      FunctionParameterAssignment pParameterAssignment,
       int pCreatedThreadId,
-      int pThreadId,
+      int pCreatingThreadId,
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
+    parameterAssignment = pParameterAssignment;
     createdThreadId = pCreatedThreadId;
-    threadId = pThreadId;
+    creatingThreadId = pCreatingThreadId;
     pcVariables = pPcVariables;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -65,8 +75,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
   private SeqThreadCreationStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
+      FunctionParameterAssignment pParameterAssignment,
       int pCreatedThreadId,
-      int pThreadId,
+      int pCreatingThreadId,
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -75,8 +86,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
+    parameterAssignment = pParameterAssignment;
     createdThreadId = pCreatedThreadId;
-    threadId = pThreadId;
+    creatingThreadId = pCreatingThreadId;
     pcVariables = pPcVariables;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -92,7 +104,7 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
             pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcVariables.get(threadId),
+            pcVariables.get(creatingThreadId),
             targetPc,
             targetGoto,
             injectedStatements,
@@ -132,8 +144,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
         loopHeadLabel,
+        parameterAssignment,
         createdThreadId,
-        threadId,
+        creatingThreadId,
         pcVariables,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -146,8 +159,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqThreadCreationStatement(
         loopHeadLabel,
+        parameterAssignment,
         createdThreadId,
-        threadId,
+        creatingThreadId,
         pcVariables,
         substituteEdges,
         Optional.empty(),
@@ -162,8 +176,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
     return new SeqThreadCreationStatement(
         loopHeadLabel,
+        parameterAssignment,
         createdThreadId,
-        threadId,
+        creatingThreadId,
         pcVariables,
         substituteEdges,
         targetPc,
@@ -176,8 +191,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqThreadCreationStatement(
         Optional.of(pLoopHeadLabel),
+        parameterAssignment,
         createdThreadId,
-        threadId,
+        creatingThreadId,
         pcVariables,
         substituteEdges,
         targetPc,
@@ -192,8 +208,9 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
 
     return new SeqThreadCreationStatement(
         loopHeadLabel,
+        parameterAssignment,
         createdThreadId,
-        threadId,
+        creatingThreadId,
         pcVariables,
         substituteEdges,
         Optional.empty(),

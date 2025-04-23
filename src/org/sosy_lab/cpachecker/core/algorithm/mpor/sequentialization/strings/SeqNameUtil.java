@@ -116,6 +116,21 @@ public class SeqNameUtil {
         + pParameterDeclaration.getName();
   }
 
+  public static String buildStartRoutineArgName(
+      MPOROptions pOptions,
+      CParameterDeclaration pStartRoutineArgDeclaration,
+      int pThreadId,
+      String pFunctionName) {
+    return (pOptions.shortVariables ? SeqToken.S : SeqToken.START_ROUTINE_ARG)
+        + SeqSyntax.UNDERSCORE
+        + pFunctionName
+        + SeqSyntax.UNDERSCORE
+        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + pThreadId
+        + createVariableId()
+        + pStartRoutineArgDeclaration.getName();
+  }
+
   public static String buildBitVectorName(MPOROptions pOptions, int pThreadId) {
     return pOptions.shortVariables
         ? SeqToken.b + pThreadId

@@ -28,23 +28,27 @@ public class MPORThread {
   /** The {@link CFunctionType} of the startRoutine (pthreads) or main function (main thread). */
   public final CFunctionType startRoutine;
 
+  public final Optional<ThreadEdge> startRoutineCall;
+
   /** The set of context-sensitive local variable declarations of this thread. */
-  public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVars;
+  public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
 
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
   protected MPORThread(
       int pId,
-      CFunctionType pStartRoutine,
       Optional<CIdExpression> pThreadObject,
-      ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVars,
+      CFunctionType pStartRoutine,
+      Optional<ThreadEdge> pStartRoutineCall,
+      ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa) {
 
     id = pId;
-    startRoutine = pStartRoutine;
     threadObject = pThreadObject;
-    localVars = pLocalVars;
+    startRoutine = pStartRoutine;
+    startRoutineCall = pStartRoutineCall;
+    localVariables = pLocalVariables;
     cfa = pCfa;
   }
 

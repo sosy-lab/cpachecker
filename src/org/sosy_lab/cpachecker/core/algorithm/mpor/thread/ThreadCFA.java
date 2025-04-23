@@ -105,6 +105,7 @@ public class ThreadCFA {
   private static void initSuccessors(
       ImmutableList<ThreadEdge> pThreadEdges, ImmutableSet<ThreadNode> pThreadNodes) {
 
+    outerLoop:
     for (ThreadEdge threadEdge : pThreadEdges) {
       CFAEdge cfaEdge = threadEdge.cfaEdge;
       if (!(cfaEdge instanceof CFunctionReturnEdge)) {
@@ -117,13 +118,13 @@ public class ThreadCFA {
               // for call edges, we use the edge as the call context
               if (threadNode.callContext.equals(Optional.of(threadEdge))) {
                 threadEdge.setSuccessor(threadNode);
-                break;
+                continue outerLoop;
               }
             } else {
               // for all other edges, we use the edges respective call context
               if (threadNode.callContext.equals(threadEdge.callContext)) {
                 threadEdge.setSuccessor(threadNode);
-                break;
+                continue outerLoop;
               }
             }
           }

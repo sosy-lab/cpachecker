@@ -18,7 +18,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -84,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -120,7 +120,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -317,23 +316,13 @@ public class CFAUtils {
     throw new IllegalArgumentException("pCfaEdge must be a CFunctionCallStatement");
   }
 
-  /**
-   * Searches all CFAEdges in pCfa for {@link CFunctionCallEdge} and maps the predecessor CFANodes
-   * to their ReturnNodes so that context-sensitive algorithms can be performed on the CFA.
-   *
-   * <p>E.g. a FunctionExitNode may have several leaving Edges, one for each time the function is
-   * called. With the Map, extracting only the leaving Edge resulting in the ReturnNode is possible.
-   * Using FunctionEntryNodes is not possible because the calling context (the node before the
-   * function call) is lost, which is why keys are not FunctionEntryNodes.
-   */
-  public static ImmutableMap<CFANode, CFANode> getFunctionCallMap(CFA pCfa) {
-    ImmutableMap.Builder<CFANode, CFANode> rFunctionCallMap = ImmutableMap.builder();
-    for (CFAEdge cfaEdge : CFAUtils.allEdges(pCfa)) {
-      if (cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
-        rFunctionCallMap.put(functionCallEdge.getPredecessor(), functionCallEdge.getReturnNode());
-      }
+  public static CFunctionDeclaration getFunctionDeclarationByStatementEdge(
+      CStatementEdge pStatementEdge) {
+
+    if (pStatementEdge.getStatement() instanceof CFunctionCallStatement functionCallStatement) {
+      return functionCallStatement.getFunctionCallExpression().getDeclaration();
     }
-    return rFunctionCallMap.buildOrThrow();
+    throw new IllegalArgumentException("pStatementEdge has no function call statement");
   }
 
   /**

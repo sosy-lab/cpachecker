@@ -66,6 +66,9 @@ public class MPORSubstitution {
   public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       parameterSubstitutes;
 
+  public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+      startRoutineArgSubstitutes;
+
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public MPORSubstitution(
@@ -75,12 +78,15 @@ public class MPORSubstitution {
           pLocalSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
+      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+          pStartRoutineArgSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     thread = pThread;
     globalSubstitutes = pGlobalSubstitutes;
     localSubstitutes = pLocalSubstitutes;
     parameterSubstitutes = pParameterSubstitutes;
+    startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
@@ -262,27 +268,33 @@ public class MPORSubstitution {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
-        return Objects.requireNonNull(localSubstitutes.get(variableDeclaration)).get(pCallContext);
+        ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
+            Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
+        return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(
             globalSubstitutes.containsKey(variableDeclaration),
             "no substitute found for %s",
-            pSimpleDeclaration.toASTString());
-        return globalSubstitutes.get(variableDeclaration);
+            variableDeclaration.toASTString());
+        return Objects.requireNonNull(globalSubstitutes.get(variableDeclaration));
       }
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-      assert pCallContext.isPresent();
+      assert pCallContext.isPresent() : "must have call context to substitute parameter";
+      // normal function called within thread always has call context
       ThreadEdge callContext = pCallContext.orElseThrow();
-      checkArgument(
-          parameterSubstitutes.containsKey(callContext),
-          "no substitute found for %s",
-          pSimpleDeclaration.toASTString());
-      ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
-          Objects.requireNonNull(parameterSubstitutes.get(callContext));
-      return substitutes.get(parameterDeclaration);
+      if (parameterSubstitutes.containsKey(callContext)) {
+        ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
+            Objects.requireNonNull(parameterSubstitutes.get(callContext));
+        return Objects.requireNonNull(substitutes.get(parameterDeclaration));
+      } else if (startRoutineArgSubstitutes.containsKey(callContext)) {
+        ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
+            Objects.requireNonNull(startRoutineArgSubstitutes.get(callContext));
+        assert substitutes.size() == 1 : "start routines can have only one parameter";
+        return Objects.requireNonNull(substitutes.get(parameterDeclaration));
+      }
+      throw new IllegalArgumentException("parameter declaration could not be found");
     }
-
     throw new IllegalArgumentException(
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
   }
@@ -348,6 +360,20 @@ public class MPORSubstitution {
       }
     }
     return rParameterDeclarations.build();
+  }
+
+  public ImmutableList<CVariableDeclaration> getStartRoutineArgDeclarations() {
+    ImmutableList.Builder<CVariableDeclaration> rStartRoutineArgDeclarations =
+        ImmutableList.builder();
+    for (ImmutableMap<CParameterDeclaration, CIdExpression> substitutes :
+        startRoutineArgSubstitutes.values()) {
+      for (CIdExpression startRoutineArg : substitutes.values()) {
+        CVariableDeclaration declaration =
+            castTo(startRoutineArg.getDeclaration(), CVariableDeclaration.class);
+        rStartRoutineArgDeclarations.add(declaration);
+      }
+    }
+    return rStartRoutineArgDeclarations.build();
   }
 
   public MPORThread getThread() {

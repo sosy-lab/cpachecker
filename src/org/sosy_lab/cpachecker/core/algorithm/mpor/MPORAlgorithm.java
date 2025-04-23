@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
@@ -22,8 +21,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
@@ -81,7 +78,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "add an additional .yml file with metadata such as algorithm options and input file(s)?")
+          "add an additional .yml file with metadata such as input file(s) and algorithm options?")
   private boolean outputMetadata = true;
 
   @Option(
@@ -103,7 +100,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " to reduce the state space?")
   private boolean porConcat = true;
 
-  // TODO bit vector format option: binary - hex - scalar
   @Option(
       description =
           "add partial order reduction (bit vectors storing global variable accesses) in the"
@@ -137,8 +133,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description =
           "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?"
-              + " may slow down or improve verification"
-              + " depending on the verifier and input program")
+              + " in tests, signed generally slowed down verification performance.")
   private boolean signedNondet = false;
 
   @Option(
@@ -217,12 +212,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  /**
-   * A map from {@link CFunctionCallEdge} predecessors to return nodes, used to perform calling
-   * context-sensitive searches.
-   */
-  private final ImmutableMap<CFANode, CFANode> functionCallMap;
-
   /** The list of threads in the program, including the main thread and all pthreads. */
   private final ImmutableList<MPORThread> threads;
 
@@ -273,9 +262,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    functionCallMap = CFAUtils.getFunctionCallMap(inputCfa);
-    threads = ThreadBuilder.createThreads(inputCfa, functionCallMap);
-
+    threads = ThreadBuilder.createThreads(inputCfa);
     ImmutableSet<CVariableDeclaration> globalVars =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
@@ -296,9 +283,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    functionCallMap = CFAUtils.getFunctionCallMap(inputCfa);
-    threads = ThreadBuilder.createThreads(inputCfa, functionCallMap);
-
+    threads = ThreadBuilder.createThreads(inputCfa);
     ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =

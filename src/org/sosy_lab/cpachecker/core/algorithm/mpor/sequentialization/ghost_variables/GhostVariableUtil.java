@@ -148,6 +148,7 @@ public class GhostVariableUtil {
 
     return new FunctionStatements(
         buildParameterAssignments(pSubstitution),
+        buildStartRoutineArgumentAssignments(pSubstitution),
         buildReturnValueAssignments(pThread, pSubstituteEdges));
   }
 
@@ -317,6 +318,29 @@ public class GhostVariableUtil {
         assignments.add(parameterAssignment);
       }
       rAssignments.put(threadEdge, assignments.build());
+    }
+    return rAssignments.buildOrThrow();
+  }
+
+  private static ImmutableMap<ThreadEdge, FunctionParameterAssignment>
+      buildStartRoutineArgumentAssignments(MPORSubstitution pSubstitution) {
+
+    ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
+        ImmutableMap.builder();
+    for (var entry : pSubstitution.startRoutineArgSubstitutes.entrySet()) {
+      ThreadEdge callContext = entry.getKey();
+      assert entry.getValue().size() == 1 : "start routines must have exactly 1 parameter";
+      for (var innerEntry : entry.getValue().entrySet()) {
+        CIdExpression parameterSubstitute = innerEntry.getValue();
+        CExpression rightHandSide = PthreadUtil.extractStartRoutineArgument(callContext.cfaEdge);
+        FunctionParameterAssignment parameterAssignment =
+            new FunctionParameterAssignment(
+                SeqStatementBuilder.buildExpressionAssignmentStatement(
+                    parameterSubstitute,
+                    pSubstitution.substitute(
+                        rightHandSide, Optional.of(callContext), Optional.empty())));
+        rAssignments.put(callContext, parameterAssignment);
+      }
     }
     return rAssignments.buildOrThrow();
   }

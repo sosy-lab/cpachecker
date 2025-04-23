@@ -25,8 +25,8 @@ public class SeqComment {
   public static final String PARAMETER_VAR_SUBSTITUTES =
       COMMENT_SINGLE + " thread local parameter variables storing function arguments";
 
-  public static final String RETURN_PCS =
-      COMMENT_SINGLE + " thread local function return pc storing calling contexts";
+  public static final String START_ROUTINE_ARG_SUBSTITUTES =
+      COMMENT_SINGLE + " start routine argument substitutes passed via pthread_create";
 
   public static final String THREAD_SIMULATION_VARIABLES =
       COMMENT_SINGLE + " thread and pthread method simulation variables";

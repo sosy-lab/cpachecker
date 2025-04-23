@@ -270,8 +270,8 @@ analysis.algorithm.MPOR.inputTypeDeclarations = true
 # file size
 analysis.algorithm.MPOR.license = false
 
-# add an additional .yml file with metadata such as algorithm options and
-# input file(s)?
+# add an additional .yml file with metadata such as input file(s) and
+# algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
 
 # the path to output the sequentialization and metadata to. ("output/" by
@@ -307,8 +307,8 @@ analysis.algorithm.MPOR.sequentializationErrors = false
 analysis.algorithm.MPOR.shortVariables = true
 
 # use signed __VERIFIER_nondet_int() instead of unsigned
-# __VERIFIER_nondet_uint()? may slow down or improve verification depending
-# on the verifier and input program
+# __VERIFIER_nondet_uint()? in tests, signed generally slowed down
+# verification performance.
 analysis.algorithm.MPOR.signedNondet = false
 
 # use thread modular loops to reduce the amount of evaluated assume
