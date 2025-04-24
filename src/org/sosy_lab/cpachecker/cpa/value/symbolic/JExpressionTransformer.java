@@ -79,71 +79,55 @@ public class JExpressionTransformer extends ExpressionTransformer
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    switch (operator) {
-      case PLUS:
-        return factory.add(operand1Expression, operand2Expression, expressionType, expressionType);
-      case MINUS:
-        return factory.minus(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case MULTIPLY:
-        return factory.multiply(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case DIVIDE:
-        return factory.divide(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case MODULO:
-        return factory.modulo(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_LEFT:
-        return factory.shiftLeft(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRightSigned(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case SHIFT_RIGHT_UNSIGNED:
-        return factory.shiftRightUnsigned(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_AND:
-        return factory.binaryAnd(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_OR:
-        return factory.binaryOr(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case BINARY_XOR:
-        return factory.binaryXor(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case EQUALS:
-        return factory.equal(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case NOT_EQUALS:
-        return factory.notEqual(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case LESS_THAN:
-        return factory.lessThan(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case LESS_EQUAL:
-        return factory.lessThanOrEqual(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case GREATER_THAN:
-        return factory.greaterThan(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_AND:
-      case CONDITIONAL_AND:
-        return factory.logicalAnd(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_OR:
-      case CONDITIONAL_OR:
-        return factory.logicalOr(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      case LOGICAL_XOR:
-        return factory.binaryXor(
-            operand1Expression, operand2Expression, expressionType, expressionType);
-      default:
-        throw new AssertionError("Unhandled operator " + operator);
-    }
+    return switch (operator) {
+      case PLUS ->
+          factory.add(operand1Expression, operand2Expression, expressionType, expressionType);
+      case MINUS ->
+          factory.minus(operand1Expression, operand2Expression, expressionType, expressionType);
+      case MULTIPLY ->
+          factory.multiply(operand1Expression, operand2Expression, expressionType, expressionType);
+      case DIVIDE ->
+          factory.divide(operand1Expression, operand2Expression, expressionType, expressionType);
+      case MODULO ->
+          factory.modulo(operand1Expression, operand2Expression, expressionType, expressionType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(operand1Expression, operand2Expression, expressionType, expressionType);
+      case SHIFT_RIGHT_SIGNED ->
+          factory.shiftRightSigned(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case SHIFT_RIGHT_UNSIGNED ->
+          factory.shiftRightUnsigned(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case BINARY_AND ->
+          factory.binaryAnd(operand1Expression, operand2Expression, expressionType, expressionType);
+      case BINARY_OR ->
+          factory.binaryOr(operand1Expression, operand2Expression, expressionType, expressionType);
+      case BINARY_XOR ->
+          factory.binaryXor(operand1Expression, operand2Expression, expressionType, expressionType);
+      case EQUALS ->
+          factory.equal(operand1Expression, operand2Expression, expressionType, expressionType);
+      case NOT_EQUALS ->
+          factory.notEqual(operand1Expression, operand2Expression, expressionType, expressionType);
+      case LESS_THAN ->
+          factory.lessThan(operand1Expression, operand2Expression, expressionType, expressionType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case GREATER_THAN ->
+          factory.greaterThan(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case LOGICAL_AND, CONDITIONAL_AND ->
+          factory.logicalAnd(
+              operand1Expression, operand2Expression, expressionType, expressionType);
+      case LOGICAL_OR, CONDITIONAL_OR ->
+          factory.logicalOr(operand1Expression, operand2Expression, expressionType, expressionType);
+      case LOGICAL_XOR ->
+          factory.binaryXor(operand1Expression, operand2Expression, expressionType, expressionType);
+      default -> throw new AssertionError("Unhandled operator " + operator);
+    };
   }
 
   @Override
@@ -158,18 +142,13 @@ public class JExpressionTransformer extends ExpressionTransformer
       final JUnaryExpression.UnaryOperator operator = pAUnaryExpression.getOperator();
       final Type expressionType = pAUnaryExpression.getExpressionType();
 
-      switch (operator) {
-        case PLUS:
-          return operand;
-        case MINUS:
-          return factory.negate(operand, expressionType);
-        case NOT:
-          return factory.logicalNot(operand, expressionType);
-        case COMPLEMENT:
-          return factory.binaryNot(operand, expressionType);
-        default:
-          throw new AssertionError("Unhandled operation " + operator);
-      }
+      return switch (operator) {
+        case PLUS -> operand;
+        case MINUS -> factory.negate(operand, expressionType);
+        case NOT -> factory.logicalNot(operand, expressionType);
+        case COMPLEMENT -> factory.binaryNot(operand, expressionType);
+        default -> throw new AssertionError("Unhandled operation " + operator);
+      };
     }
   }
 

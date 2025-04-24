@@ -12,6 +12,7 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Serial;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -25,7 +26,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
     value = "SE_BAD_FIELD")
 public class FunctionContainer extends AbstractUsageStorage {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
   // private final Set<FunctionContainer> internalFunctionContainers;
   private final Multiset<LockEffect> effects;
   private final StorageStatistics stats;
@@ -103,12 +104,12 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public static class StorageStatistics {
-    private StatCounter hitTimes = new StatCounter("Number of hits into cache");
-    private StatCounter totalJoins = new StatCounter("Total number of joins");
-    private StatCounter numberOfFunctionContainers =
+    private final StatCounter hitTimes = new StatCounter("Number of hits into cache");
+    private final StatCounter totalJoins = new StatCounter("Total number of joins");
+    private final StatCounter numberOfFunctionContainers =
         new StatCounter("Total number of function containers");
 
-    private StatTimer copyTimer = new StatTimer("Time for coping usages");
+    private final StatTimer copyTimer = new StatTimer("Time for coping usages");
 
     public void printStatistics(StatisticsWriter out) {
       out.spacer().put(copyTimer).put(totalJoins).put(hitTimes).put(numberOfFunctionContainers);

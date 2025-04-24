@@ -15,6 +15,7 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -23,7 +24,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,9 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** Class collecting and containing information about all loops in a CFA. */
-public final class LoopStructure implements Serializable {
-
-  private static final long serialVersionUID = 1L;
+public final class LoopStructure {
 
   /**
    * Class representing one loop in a CFA. A loop is a subset of CFA nodes which are strongly
@@ -93,9 +91,7 @@ public final class LoopStructure implements Serializable {
    * the inner loop directly leaving both loops). In such cases, both loops are considered only one
    * loop (which is legal according to the definition above).
    */
-  public static class Loop implements Serializable, Comparable<Loop> {
-
-    private static final long serialVersionUID = 1L;
+  public static class Loop implements Comparable<Loop> {
 
     private static final Comparator<Iterable<CFANode>> NODES_COMPARATOR =
         Comparators.lexicographical(Comparator.<CFANode>naturalOrder());
@@ -115,9 +111,17 @@ public final class LoopStructure implements Serializable {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
+    }
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
-      loopHeads = ImmutableSet.of(loopHead);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
+      this(ImmutableSet.of(loopHead), pNodes);
+    }
+
+    public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      return new Loop(pLoopHeads, pNodes);
     }
 
     private void computeSets() {
@@ -285,11 +289,14 @@ public final class LoopStructure implements Serializable {
 
   private final ImmutableListMultimap<String, Loop> loops;
 
-  private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
+  private @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
   // computed lazily
-  private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
-  private transient @Nullable ImmutableSet<String> loopIncDecVariables;
+  private @Nullable ImmutableSet<String> loopExitConditionVariables;
+  private @Nullable ImmutableSet<String> loopIncDecVariables;
+
+  // computed lazily on demand per edge
+  private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
 
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
@@ -323,6 +330,19 @@ public final class LoopStructure implements Serializable {
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
+  }
+
+  /** Get all loops containing this edge */
+  public List<Loop> getLoopsForEdge(CFAEdge pEdge) {
+    if (!loopsContainingEdge.containsKey(pEdge)) {
+      loopsContainingEdge.put(
+          pEdge,
+          FluentIterable.from(getAllLoops())
+              .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
+              .toList());
+    }
+
+    return loopsContainingEdge.get(pEdge);
   }
 
   /**
@@ -448,6 +468,10 @@ public final class LoopStructure implements Serializable {
       loops.putAll(functionName, functionLoops);
     }
     return new LoopStructure(loops.build());
+  }
+
+  public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
+    return new LoopStructure(pLoops);
   }
 
   /**

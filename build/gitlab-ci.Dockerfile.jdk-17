@@ -6,13 +6,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This is a Docker image for running the tests.
+# This is a container image for running the tests.
 # It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
 # and will be used by CI as declared in .gitlab-ci.yml.
 #
 # Commands for updating the image:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:jdk-17 - < build/gitlab-ci.Dockerfile.jdk-17
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
+# podman build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:jdk-17 - < build/gitlab-ci.Dockerfile.jdk-17
+# podman push registry.gitlab.com/sosy-lab/software/cpachecker/test:jdk-17
 
 FROM registry.gitlab.com/sosy-lab/software/java-project-template/test:jdk-17
 RUN apt-get update && apt-get install -y \
@@ -21,4 +21,5 @@ RUN apt-get update && apt-get install -y \
   libgmp10 \
   libgomp1 \
   python3 \
-  clang-9
+  clang-9 \
+  && rm -rf /var/lib/apt/lists/*

@@ -15,6 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -26,20 +30,24 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /** Perform weakening by destructive iterations. */
+@Options(prefix = "cpa.slicing")
 public class DestructiveWeakeningManager {
+
+  @Option(secure = true, description = "Pre-run syntactic weakening")
+  private boolean preRunSyntacticWeakening = true;
 
   private final Solver solver;
   private final BooleanFormulaManager bfmgr;
   private final SyntacticWeakeningManager swmgr;
   private final InductiveWeakeningStatistics statistics;
-  private final WeakeningOptions options;
 
   public DestructiveWeakeningManager(
       Solver pSolver,
       FormulaManagerView pFmgr,
-      WeakeningOptions pOptions,
-      InductiveWeakeningStatistics pStatistics) {
-    options = pOptions;
+      Configuration config,
+      InductiveWeakeningStatistics pStatistics)
+      throws InvalidConfigurationException {
+    config.inject(this);
 
     solver = pSolver;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -57,7 +65,7 @@ public class DestructiveWeakeningManager {
       Set<BooleanFormula> pFromStateLemmas)
       throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
-    if (options.doPreRunSyntacticWeakening()) {
+    if (preRunSyntacticWeakening) {
       selectorsToAbstractOverApproximation =
           swmgr.performWeakening(
               fromSSA, selectionsVarsInfo, transition.getSsa(), pFromStateLemmas);

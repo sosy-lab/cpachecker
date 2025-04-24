@@ -184,20 +184,11 @@ public class OctagonTransferRelation
 
       // Unary operation
     } else if (expression instanceof CUnaryExpression unaryExp) {
-      switch (unaryExp.getOperator()) {
-          // do not change anything besides the expression, minus has no effect
-          // on the == 0 equality check
-        case MINUS:
-          return handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
-
-          // TODO check if some cases could be handled
-        case SIZEOF:
-        case TILDE:
-        case AMPER:
-          return Collections.singleton(state);
-        default:
-          throw new CPATransferException("Unhandled case: " + unaryExp.getOperator());
-      }
+      return switch (unaryExp.getOperator()) {
+        case MINUS -> handleAssumption(cfaEdge, unaryExp.getOperand(), truthAssumption);
+        case SIZEOF, TILDE, AMPER -> Collections.singleton(state);
+        default -> throw new CPATransferException("Unhandled case: " + unaryExp.getOperator());
+      };
 
       // An expression which cannot be simplified anymore
     } else if (expression instanceof CIdExpression
@@ -277,7 +268,7 @@ public class OctagonTransferRelation
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the cfa creation phase)
     switch (binExp.getOperator()) {
-        // TODO check which cases can be handled
+      // TODO check which cases can be handled
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
@@ -286,9 +277,9 @@ public class OctagonTransferRelation
       case MODULO:
         return Collections.singleton(pState);
 
-        // for the following cases we first create a temporary variable where
-        // the result of the operation is saved, afterwards, the equality with == 0
-        // is checked
+      // for the following cases we first create a temporary variable where
+      // the result of the operation is saved, afterwards, the equality with == 0
+      // is checked
       case MINUS:
       case PLUS:
       case MULTIPLY:
@@ -319,10 +310,10 @@ public class OctagonTransferRelation
         }
         return possibleStates;
 
-        // in the following cases we have to check left and right part of the binary
-        // expression, when they are not single variables but contain for example
-        // another binary expression we have to create some temporary variables again
-        // which will be compared afterwards
+      // in the following cases we have to check left and right part of the binary
+      // expression, when they are not single variables but contain for example
+      // another binary expression we have to create some temporary variables again
+      // which will be compared afterwards
       case EQUALS:
       case NOT_EQUALS:
       case GREATER_EQUAL:
@@ -386,8 +377,8 @@ public class OctagonTransferRelation
           op = BinaryOperator.GREATER_THAN;
           break;
 
-          // we do not need to change the binary operator for other cases
-          // (== and != stay the same when swapping the operands)
+        // we do not need to change the binary operator for other cases
+        // (== and != stay the same when swapping the operands)
         default:
           break;
       }
@@ -598,22 +589,15 @@ public class OctagonTransferRelation
       final BinaryOperator op,
       final OctagonNumericValue leftVal,
       final OctagonNumericValue rightVal) {
-    switch (op) {
-      case EQUALS:
-        return leftVal.isEqual(rightVal);
-      case GREATER_EQUAL:
-        return leftVal.greaterEqual(rightVal);
-      case GREATER_THAN:
-        return leftVal.greaterThan(rightVal);
-      case LESS_EQUAL:
-        return leftVal.lessEqual(rightVal);
-      case LESS_THAN:
-        return leftVal.lessThan(rightVal);
-      case NOT_EQUALS:
-        return !leftVal.isEqual(rightVal);
-      default:
-        throw new AssertionError("Unhandled case: " + op);
-    }
+    return switch (op) {
+      case EQUALS -> leftVal.isEqual(rightVal);
+      case GREATER_EQUAL -> leftVal.greaterEqual(rightVal);
+      case GREATER_THAN -> leftVal.greaterThan(rightVal);
+      case LESS_EQUAL -> leftVal.lessEqual(rightVal);
+      case LESS_THAN -> leftVal.lessThan(rightVal);
+      case NOT_EQUALS -> !leftVal.isEqual(rightVal);
+      default -> throw new AssertionError("Unhandled case: " + op);
+    };
   }
 
   /** This method handles all binary assumptions without literals (p.e. a < b) */
@@ -1248,8 +1232,8 @@ public class OctagonTransferRelation
                                   rightVisitorState.sizeOfVariables(), rightVisitorState),
                               rightVisitorState));
                       break;
-                      // unused default statements, all possible values for this switch
-                      // statement are handled above
+                    // unused default statements, all possible values for this switch
+                    // statement are handled above
                     default:
                       throw new AssertionError("Unhandled case in switch clause.");
                   }

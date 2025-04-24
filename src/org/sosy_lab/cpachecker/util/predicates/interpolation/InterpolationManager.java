@@ -289,8 +289,8 @@ public final class InterpolationManager {
 
     itpStrategy =
         switch (strategy) {
-          case SEQ_CPACHECKER -> new SequentialInterpolation(
-              pLogger, pShutdownNotifier, fmgr, config);
+          case SEQ_CPACHECKER ->
+              new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
           case SEQ -> new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
           case TREE_WELLSCOPED -> new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
           case TREE_NESTED -> new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
@@ -336,7 +336,9 @@ public final class InterpolationManager {
       try {
         return callable.call();
       } catch (Exception e) {
-        Throwables.propagateIfPossible(e, CPAException.class, InterruptedException.class);
+        Throwables.throwIfInstanceOf(e, CPAException.class);
+        Throwables.throwIfInstanceOf(e, InterruptedException.class);
+        Throwables.throwIfUnchecked(e);
         throw new UnexpectedCheckedException("refinement", e);
       }
     }
@@ -356,8 +358,9 @@ public final class InterpolationManager {
 
     } catch (ExecutionException e) {
       Throwable t = e.getCause();
-      Throwables.propagateIfPossible(t, CPAException.class, InterruptedException.class);
-
+      Throwables.throwIfInstanceOf(t, CPAException.class);
+      Throwables.throwIfInstanceOf(t, InterruptedException.class);
+      Throwables.throwIfUnchecked(t);
       throw new UnexpectedCheckedException("interpolation", t);
     }
   }
@@ -412,6 +415,23 @@ public final class InterpolationManager {
       final List<AbstractState> pAbstractionStates,
       final Optional<ARGPath> imprecisePath)
       throws RefinementFailedException, InterruptedException {
+
+    if (pFormulas.getSize() == 1) {
+      // If there is only one block, interpolation is meaningless because the list of expected
+      // interpolants is empty. In principle, using the Interpolator below would work fine,
+      // but for formulas with floats, MathSAT fails to return a result for UNSAT formulas
+      // because it would not be able to compute interpolants afterwards. So we use a
+      // non-interpolating solver. This could also be slightly more efficient. We miss out on any
+      // of the advanced heuristics like environment reuse, but for a single block there wouldn't be
+      // anything to reuse anyway.
+      CounterexampleTraceInfo cex =
+          buildCounterexampleTraceWithoutInterpolation0(pFormulas, imprecisePath);
+      if (cex.isSpurious()) {
+        return CounterexampleTraceInfo.infeasible(ImmutableList.of());
+      } else {
+        return cex;
+      }
+    }
 
     cexAnalysisTimer.start();
     try {
@@ -475,7 +495,7 @@ public final class InterpolationManager {
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
       final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
-      throws CPAException, InterruptedException {
+      throws RefinementFailedException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {

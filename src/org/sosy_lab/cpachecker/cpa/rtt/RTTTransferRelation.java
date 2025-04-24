@@ -55,9 +55,9 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JNullType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -90,9 +90,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     JVariableDeclaration decl = (JVariableDeclaration) declaration;
 
-    if (decl.getType() instanceof JSimpleType) {
-      JBasicType simpleType = ((JSimpleType) decl.getType()).getType();
-
+    if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {
         case BOOLEAN:
         case BYTE:
@@ -559,8 +557,25 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
           return handleObjectComparison(leftOperand, rightOperand, binaryExpression.getOperator());
         }
       }
+      if (isNullComparison(binaryExpression)) {
+        return handleNullComparison(leftOperand, rightOperand, binaryExpression.getOperator());
+      }
 
       return null;
+    }
+
+    private boolean isNullComparison(JBinaryExpression pExpression) {
+      final BinaryOperator operator = pExpression.getOperator();
+
+      if (operator != BinaryOperator.EQUALS && operator != BinaryOperator.NOT_EQUALS) {
+        return false;
+      }
+
+      final JExpression leftOperand = pExpression.getOperand1();
+      final JExpression rightOperand = pExpression.getOperand2();
+
+      return leftOperand.getExpressionType() instanceof JNullType
+          || rightOperand.getExpressionType() instanceof JNullType;
     }
 
     private boolean isObjectComparison(JBinaryExpression pExpression) {
@@ -617,6 +632,24 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         default:
           throw new UnrecognizedCodeException("unexpected enum comparison", edge);
       }
+
+      return Boolean.toString(result);
+    }
+
+    private String handleNullComparison(
+        final JExpression pLeftOperand,
+        final JExpression pRightOperand,
+        final BinaryOperator pOperator)
+        throws UnrecognizedCodeException {
+      String value1 = pLeftOperand.accept(this);
+      String value2 = pRightOperand.accept(this);
+
+      value1 = (value1 == null) ? RTTState.NULL_REFERENCE : value1;
+      value2 = (value2 == null) ? RTTState.NULL_REFERENCE : value2;
+
+      boolean result =
+          pOperator == BinaryOperator.NOT_EQUALS
+              ^ (value1.equals(value2) && value2.equals(RTTState.NULL_REFERENCE));
 
       return Boolean.toString(result);
     }

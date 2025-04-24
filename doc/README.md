@@ -22,7 +22,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Using CPAchecker
 
-- [Benchmarking](Benchmark.md) CPAchecker with [BenchExec](https://github.com/sosy-lab/benchexec)
+- [Benchmarking](Benchmark.md) CPAchecker
 - [Configuring](Configuration.md) CPAchecker's analyses
   - [List of Configuration Options](ConfigurationOptions.txt)
 - [Report](Report.md)
@@ -36,6 +36,7 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Developing with CPAchecker
 
+- [Contribution guidelines](../CONTRIBUTING.md)
 - [Developing](Developing.md)
 - [Logging](Logging.md)
 - [Profiling](Profile.md)
@@ -46,5 +47,4 @@ SPDX-License-Identifier: Apache-2.0
 - Testing
   - [Javascript Testing](JavascriptTesting.md)
   - [Testing](Test.md)
-- [Version Control](VersionControl.md)
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.math.BigDecimal;
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,10 +19,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JFloatLiteralExpression extends AFloatLiteralExpression
     implements JLiteralExpression {
 
-  private static final long serialVersionUID = -8344145326316408368L;
+  @Serial private static final long serialVersionUID = -8344145326316408368L;
 
   public JFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
-    super(pFileLocation, JSimpleType.getFloat(), pValue);
+    super(pFileLocation, JSimpleType.FLOAT, pValue);
   }
 
   @Override

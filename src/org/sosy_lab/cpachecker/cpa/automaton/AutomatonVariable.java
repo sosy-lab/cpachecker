@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Splitter;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,7 +17,7 @@ import java.util.Set;
 /** Represents a local variable of the automaton. So far only integer variables are supported. */
 @SuppressWarnings("checkstyle:NoClone") // should be refactored
 public abstract class AutomatonVariable implements Cloneable, Serializable {
-  private static final long serialVersionUID = -6765794863680244559L;
+  @Serial private static final long serialVersionUID = -6765794863680244559L;
   protected final String name;
 
   private AutomatonVariable(String pName) {
@@ -26,7 +27,8 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   public static AutomatonVariable createAutomatonVariable(
       String pType, String pName, String... args) {
     if (pType.equalsIgnoreCase("int") || pType.equalsIgnoreCase("integer")) {
-      return new AutomatonIntVariable(pName);
+      int value = args.length >= 1 ? Integer.parseInt(args[0]) : 0;
+      return new AutomatonIntVariable(pName, value);
     } else if (pType.equalsIgnoreCase("set")) {
       if (args.length > 0) {
         String elementType = args[0];
@@ -84,12 +86,16 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static final class AutomatonIntVariable extends AutomatonVariable {
 
-    private static final long serialVersionUID = -5599402008148488971L;
+    @Serial private static final long serialVersionUID = -5599402008148488971L;
     private int value;
 
     private AutomatonIntVariable(String pName) {
+      this(pName, 0);
+    }
+
+    private AutomatonIntVariable(String pName, int pValue) {
       super(pName);
-      value = 0;
+      value = pValue;
     }
 
     @Override
@@ -136,7 +142,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
 
   public static final class AutomatonSetVariable<T> extends AutomatonVariable {
 
-    private static final long serialVersionUID = 4293998838719160247L;
+    @Serial private static final long serialVersionUID = 4293998838719160247L;
     private Set<T> set;
 
     private AutomatonSetVariable(String pName) {

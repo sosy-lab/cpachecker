@@ -8,13 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class CArrayRangeDesignator extends CDesignator {
 
-  private static final long serialVersionUID = -2956484289176841585L;
+  @Serial private static final long serialVersionUID = -2956484289176841585L;
   private final AExpression rangeFloor;
   private final AExpression rangeCeiling;
 
@@ -36,17 +37,17 @@ public final class CArrayRangeDesignator extends CDesignator {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "["
-        + rangeFloor.toASTString(pQualified)
+        + rangeFloor.toASTString(pAAstNodeRepresentation)
         + " ... "
-        + rangeCeiling.toASTString(pQualified)
+        + rangeCeiling.toASTString(pAAstNodeRepresentation)
         + "]";
   }
 
   @Override
-  public String toParenthesizedASTString(boolean pQualified) {
-    return toASTString(pQualified);
+  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
+    return toASTString(pAAstNodeRepresentation);
   }
 
   @Override

@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public abstract class ConditionFolder {
 
-  public enum FOLDER_TYPE {
+  public enum FolderType {
     CFA,
     FOLD_EXCEPT_LOOPS,
     LOOP_ALWAYS,
@@ -160,7 +160,7 @@ public abstract class ConditionFolder {
         description =
             "Define kind of folder to use when combining condition with folding approach in"
                 + " residual program generation")
-    private FOLDER_TYPE folderType = FOLDER_TYPE.CFA;
+    private FolderType folderType = FolderType.CFA;
   }
 
   public static ConditionFolder createFolder(Configuration pConfig, CFA pCfa)
@@ -168,33 +168,26 @@ public abstract class ConditionFolder {
     FolderOptions opt = new FolderOptions();
     pConfig.inject(opt);
 
-    switch (opt.folderType) {
-      case CFA:
-        return new CFAFolder();
-      case FOLD_EXCEPT_LOOPS:
-        return new ExceptLoopFolder(pCfa);
-      case LOOP_ALWAYS:
-        return new LoopAlwaysFolder(pCfa);
-      case LOOP_BOUND:
-        return new BoundUnrollingLoopFolder(pCfa, pConfig);
-      case LOOP_BOUND_SAME_CONTEXT:
-        return new BoundUnrollingContextLoopFolder(pCfa, pConfig);
-      case LOOP_SAME_CONTEXT:
-        return new ContextLoopFolder(pCfa);
-      default:
-        throw new AssertionError("Unknown condition folder.");
-    }
+    return switch (opt.folderType) {
+      case CFA -> new CFAFolder();
+      case FOLD_EXCEPT_LOOPS -> new ExceptLoopFolder(pCfa);
+      case LOOP_ALWAYS -> new LoopAlwaysFolder(pCfa);
+      case LOOP_BOUND -> new BoundUnrollingLoopFolder(pCfa, pConfig);
+      case LOOP_BOUND_SAME_CONTEXT -> new BoundUnrollingContextLoopFolder(pCfa, pConfig);
+      case LOOP_SAME_CONTEXT -> new ContextLoopFolder(pCfa);
+      default -> throw new AssertionError("Unknown condition folder.");
+    };
   }
 
-  private final FOLDER_TYPE type;
+  private final FolderType type;
 
-  protected ConditionFolder(final FOLDER_TYPE pType) {
+  protected ConditionFolder(final FolderType pType) {
     type = pType;
   }
 
   public abstract ARGState foldARG(final ARGState pARGRoot);
 
-  public FOLDER_TYPE getType() {
+  public FolderType getType() {
     return type;
   }
 
@@ -246,7 +239,7 @@ public abstract class ConditionFolder {
   private static class CFAFolder extends ConditionFolder {
 
     public CFAFolder() {
-      super(FOLDER_TYPE.CFA);
+      super(FolderType.CFA);
     }
 
     @Override
@@ -305,7 +298,7 @@ public abstract class ConditionFolder {
     protected final CFA cfa;
     protected final Set<CFANode> loopHeads;
 
-    protected StructureFolder(final CFA pCfa, final FOLDER_TYPE type) {
+    protected StructureFolder(final CFA pCfa, final FolderType type) {
       super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());
@@ -433,7 +426,7 @@ public abstract class ConditionFolder {
       extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
 
     public LoopAlwaysFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.LOOP_ALWAYS);
+      super(pCfa, FolderType.LOOP_ALWAYS);
     }
 
     @Override
@@ -474,7 +467,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ContextLoopFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.LOOP_SAME_CONTEXT);
+      super(pCfa, FolderType.LOOP_SAME_CONTEXT);
 
       loopInfo = new LoopInfo(cfa);
     }
@@ -549,7 +542,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa, FOLDER_TYPE.LOOP_BOUND);
+      super(pCfa, FolderType.LOOP_BOUND);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -616,7 +609,7 @@ public abstract class ConditionFolder {
 
     private BoundUnrollingContextLoopFolder(final CFA pCfa, final Configuration pConfig)
         throws InvalidConfigurationException {
-      super(pCfa, FOLDER_TYPE.LOOP_BOUND_SAME_CONTEXT);
+      super(pCfa, FolderType.LOOP_BOUND_SAME_CONTEXT);
       pConfig.inject(this);
       loopInfo = new LoopInfo(pCfa);
     }
@@ -695,7 +688,7 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     private ExceptLoopFolder(final CFA pCfa) {
-      super(pCfa, FOLDER_TYPE.FOLD_EXCEPT_LOOPS);
+      super(pCfa, FolderType.FOLD_EXCEPT_LOOPS);
       loopInfo = new LoopInfo(pCfa);
     }
 

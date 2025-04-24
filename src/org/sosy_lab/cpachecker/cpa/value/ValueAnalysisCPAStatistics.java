@@ -15,12 +15,15 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,17 +42,47 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
-  private LongAdder iterations = new LongAdder();
-  private StatCounter assumptions = new StatCounter("Number of assumptions");
-  private StatCounter deterministicAssumptions =
+  @Option(secure = true, description = "target file to hold the exported loop invariants")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path loopInvariantsFile = null;
+
+  private enum LoopInvExport {
+    ALWAYS,
+    IF_NOT_FALSE,
+    IF_TRUE,
+    IF_UNKNOWN
+  }
+
+  @Option(secure = true, description = "configure when to export loop invariants")
+  private LoopInvExport exportLoopInvariants = LoopInvExport.IF_TRUE;
+
+  private final LongAdder iterations = new LongAdder();
+  private final StatCounter assumptions = new StatCounter("Number of assumptions");
+  private final StatCounter deterministicAssumptions =
       new StatCounter("Number of deterministic assumptions");
   private final ValueAnalysisCPA cpa;
+  private final LogManager logger;
+  private final ValueAnalysisResultToLoopInvariants loopInvGenExporter;
 
-  public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config)
+  public ValueAnalysisCPAStatistics(
+      ValueAnalysisCPA cpa,
+      final CFA cfa,
+      Configuration config,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     this.cpa = cpa;
+    logger = pLogger;
 
     config.inject(this, ValueAnalysisCPAStatistics.class);
+
+    if (loopInvariantsFile != null) {
+      loopInvGenExporter =
+          new ValueAnalysisResultToLoopInvariants(
+              cfa.getAllLoopHeads().orElse(null), config, logger, pShutdownNotifier, cfa);
+    } else {
+      loopInvGenExporter = null;
+    }
   }
 
   @Override
@@ -83,6 +116,27 @@ public class ValueAnalysisCPAStatistics implements Statistics {
         .put(assumptions)
         .put(deterministicAssumptions)
         .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+
+    if (loopInvariantsFile != null && shouldExportLoopInvariants(result)) {
+      try (Writer w = IO.openOutputFile(loopInvariantsFile, Charset.defaultCharset())) {
+        loopInvGenExporter.generateAndExportLoopInvariantsAsPredicatePrecision(reached, w);
+        out.println();
+        out.print("Invariant Generation Statistics");
+        out.println();
+        loopInvGenExporter.writeInvariantStatistics(StatisticsWriter.writingStatisticsTo(out));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
+      }
+    }
+  }
+
+  private boolean shouldExportLoopInvariants(final Result result) {
+    return switch (exportLoopInvariants) {
+      case ALWAYS -> true;
+      case IF_NOT_FALSE -> result != Result.FALSE;
+      case IF_TRUE -> result == Result.TRUE;
+      case IF_UNKNOWN -> result == Result.UNKNOWN;
+    };
   }
 
   /**
@@ -110,7 +164,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   }
 
   void incrementDeterministicAssumptions() {
-    assumptions.inc();
+    deterministicAssumptions.inc();
   }
 
   int getCurrentNumberOfIterations() {

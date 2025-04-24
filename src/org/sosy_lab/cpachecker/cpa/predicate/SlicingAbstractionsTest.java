@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -69,7 +68,6 @@ public class SlicingAbstractionsTest {
   private Map<String, String> extraOptions;
 
   @Parameters(name = "{3}: {0}")
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public static Collection<Object[]> data() {
     File taskfolder = new File(TEST_DIR_PATH);
     List<Object> files =

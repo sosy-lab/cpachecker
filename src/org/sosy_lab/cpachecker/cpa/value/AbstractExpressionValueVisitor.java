@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.UnsignedLongs;
+import java.io.Serial;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -74,18 +75,19 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.types.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
@@ -343,17 +345,13 @@ public abstract class AbstractExpressionValueVisitor
 
   private static NumericValue calculateOperationWithFunctionValue(
       BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
-    switch (binaryOperator) {
-      case EQUALS:
-        return new NumericValue(val1.equals(val2) ? 1 : 0);
-
-      case NOT_EQUALS:
-        return new NumericValue(val1.equals(val2) ? 0 : 1);
-
-      default:
-        throw new AssertionError(
-            "Operation " + binaryOperator + " is not supported for function values");
-    }
+    return switch (binaryOperator) {
+      case EQUALS -> new NumericValue(val1.equals(val2) ? 1 : 0);
+      case NOT_EQUALS -> new NumericValue(val1.equals(val2) ? 0 : 1);
+      default ->
+          throw new AssertionError(
+              "Operation " + binaryOperator + " is not supported for function values");
+    };
   }
 
   private static SymbolicValue createSymbolicExpression(
@@ -372,45 +370,36 @@ public abstract class AbstractExpressionValueVisitor
     leftOperand = factory.asConstant(pLeftValue, pLeftType);
     rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    switch (pOperator) {
-      case PLUS:
-        return factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS:
-        return factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY:
-        return factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE:
-        return factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO:
-        return factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT:
-        return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT:
-        return factory.shiftRightSigned(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND:
-        return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR:
-        return factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR:
-        return factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS:
-        return factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS:
-        return factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN:
-        return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL:
-        return factory.lessThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN:
-        return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default:
-        throw new AssertionError("Unhandled binary operation " + pOperator);
-    }
+    return switch (pOperator) {
+      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY ->
+          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT ->
+          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_AND ->
+          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR ->
+          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR ->
+          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS ->
+          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN ->
+          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN ->
+          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
+    };
   }
 
   /**
@@ -520,26 +509,16 @@ public abstract class AbstractExpressionValueVisitor
             && !((CSimpleType) calculationType.getCanonicalType()).hasLongSpecifier(),
         "Value analysis can't compute long double values in a precise manner");
 
-    switch (op) {
-      case PLUS:
-        return l + r;
-      case MINUS:
-        return l - r;
-      case DIVIDE:
-        return l / r;
-      case MODULO:
-        return l % r;
-      case MULTIPLY:
-        return l * r;
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new AssertionError("trying to perform " + op + " on floating point operands");
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
+      case DIVIDE -> l / r;
+      case MODULO -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new AssertionError("trying to perform " + op + " on floating point operands");
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   /**
@@ -609,26 +588,16 @@ public abstract class AbstractExpressionValueVisitor
    */
   private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
 
-    switch (op) {
-      case PLUS:
-        return l + r;
-      case MINUS:
-        return l - r;
-      case DIVIDE:
-        return l / r;
-      case MODULO:
-        return l % r;
-      case MULTIPLY:
-        return l * r;
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new AssertionError("trying to perform " + op + " on floating point operands");
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case PLUS -> l + r;
+      case MINUS -> l - r;
+      case DIVIDE -> l / r;
+      case MODULO -> l % r;
+      case MULTIPLY -> l * r;
+      case SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new AssertionError("trying to perform " + op + " on floating point operands");
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   /**
@@ -810,22 +779,15 @@ public abstract class AbstractExpressionValueVisitor
 
   /** returns True, iff cmp fulfills the boolean operation. */
   private static boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
-    switch (op) {
-      case GREATER_THAN:
-        return cmp > 0;
-      case GREATER_EQUAL:
-        return cmp >= 0;
-      case LESS_THAN:
-        return cmp < 0;
-      case LESS_EQUAL:
-        return cmp <= 0;
-      case EQUALS:
-        return cmp == 0;
-      case NOT_EQUALS:
-        return cmp != 0;
-      default:
-        throw new AssertionError("unknown binary operation: " + op);
-    }
+    return switch (op) {
+      case GREATER_THAN -> cmp > 0;
+      case GREATER_EQUAL -> cmp >= 0;
+      case LESS_THAN -> cmp < 0;
+      case LESS_EQUAL -> cmp <= 0;
+      case EQUALS -> cmp == 0;
+      case NOT_EQUALS -> cmp != 0;
+      default -> throw new AssertionError("unknown binary operation: " + op);
+    };
   }
 
   @Override
@@ -954,6 +916,31 @@ public abstract class AbstractExpressionValueVisitor
                   return Double.isInfinite(numericValue.doubleValue())
                       ? new NumericValue(1)
                       : new NumericValue(0);
+                default:
+                  break;
+              }
+            }
+          }
+        } else if (BuiltinFloatFunctions.matchesIsInfinitySign(calledFunctionName)) {
+          if (parameterValues.size() == 1) {
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  return numericValue.floatValue() == Float.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.floatValue() == Float.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
+                case DOUBLE:
+                  return numericValue.doubleValue() == Double.POSITIVE_INFINITY
+                      ? new NumericValue(1)
+                      : numericValue.doubleValue() == Double.NEGATIVE_INFINITY
+                          ? new NumericValue(-1)
+                          : new NumericValue(0);
                 default:
                   break;
               }
@@ -1546,8 +1533,11 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (idOperator) {
       case SIZEOF:
-        BigInteger size = machineModel.getSizeof(innerType);
-        return new NumericValue(size);
+        if (innerType.hasKnownConstantSize()) {
+          BigInteger size = machineModel.getSizeof(innerType);
+          return new NumericValue(size);
+        }
+        return Value.UnknownValue.getInstance();
 
       case ALIGNOF:
         return new NumericValue(machineModel.getAlignof(innerType));
@@ -1557,10 +1547,54 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
+  /**
+   * Computes size of a type. Result can be an unknown value! Prefer this method over {@link
+   * MachineModel#getSizeof(CType)} because it works for variable-length arrays if the current
+   * visitor instance is able to evalue the length expression.
+   */
+  protected Value sizeof(CType pType) throws UnrecognizedCodeException {
+    return new SizeofVisitor().evaluateSizeof(pType);
+  }
+
+  private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
+
+    private boolean sizeKnown = true;
+
+    SizeofVisitor() {
+      super(machineModel);
+    }
+
+    Value evaluateSizeof(CType pType) throws UnrecognizedCodeException {
+      BigInteger size = machineModel.getSizeof(pType, this);
+      if (sizeKnown) {
+        return new NumericValue(size);
+      } else {
+        return Value.UnknownValue.getInstance();
+      }
+    }
+
+    @Override
+    protected BigInteger evaluateArrayLength(CExpression pLength, CArrayType pArrayType)
+        throws UnrecognizedCodeException {
+      // This covers the most common and relevant case, handling other cases could be unsound
+      // because we would need to use variable values from the declaration time of the array.
+      // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1146
+      if (pLength instanceof CIdExpression idExpression
+          && idExpression.getExpressionType().isConst()) {
+        Value lengthValue = pLength.accept(AbstractExpressionValueVisitor.this);
+        if (lengthValue.isNumericValue()) {
+          return lengthValue.asNumericValue().bigIntegerValue();
+        }
+      }
+
+      sizeKnown = false;
+      return BigInteger.ZERO; // dummy value, will be ignored in evaluateSizeof()
+    }
+  }
+
   @Override
   public Value visit(CIdExpression idExp) throws UnrecognizedCodeException {
     if (idExp.getDeclaration() instanceof CEnumerator enumerator) {
-      // TODO rewrite CEnumerator to handle abstract type Value and not just Long
       return new NumericValue(enumerator.getValue());
     }
 
@@ -1572,44 +1606,58 @@ public abstract class AbstractExpressionValueVisitor
     final UnaryOperator unaryOperator = unaryExpression.getOperator();
     final CExpression unaryOperand = unaryExpression.getOperand();
 
-    if (unaryOperator == UnaryOperator.SIZEOF) {
-      return new NumericValue(machineModel.getSizeof(unaryOperand.getExpressionType()));
-    }
-    if (unaryOperator == UnaryOperator.ALIGNOF) {
-      return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
-    }
-    if (unaryOperator == UnaryOperator.AMPER) {
-      return Value.UnknownValue.getInstance();
-    }
+    return switch (unaryOperator) {
+      case SIZEOF -> sizeof(unaryOperand.getExpressionType());
 
-    final Value value = unaryOperand.accept(this);
+      case ALIGNOF -> new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
 
-    if (value.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
+      case AMPER -> {
+        // We can handle &((struct foo*)0)->field
+        if (unaryOperand instanceof CFieldReference fieldRef
+            && fieldRef.isPointerDereference()
+            && fieldRef.getFieldOwner() instanceof CCastExpression cast
+            && cast.getCastType().getCanonicalType() instanceof CPointerType pointerType
+            && pointerType.getType().getCanonicalType() instanceof CCompositeType structType) {
+          Value baseAddress = cast.getOperand().accept(this);
+          if (baseAddress.isNumericValue()) {
+            Optional<BigInteger> offset =
+                machineModel.getFieldOffsetInBytes(structType, fieldRef.getFieldName());
+            if (offset.isPresent()) {
+              yield new NumericValue(
+                  baseAddress.asNumericValue().bigIntegerValue().add(offset.orElseThrow()));
+            }
+          }
+        }
+        yield Value.UnknownValue.getInstance();
+      }
 
-    if (value instanceof SymbolicValue) {
-      final CType expressionType = unaryExpression.getExpressionType();
-      final CType operandType = unaryOperand.getExpressionType();
+      default -> {
+        final Value value = unaryOperand.accept(this);
 
-      return createSymbolicExpression(value, operandType, unaryOperator, expressionType);
+        if (value.isUnknown()) {
+          yield Value.UnknownValue.getInstance();
+        }
 
-    } else if (!value.isNumericValue()) {
-      logger.logf(Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
-      return Value.UnknownValue.getInstance();
-    }
+        if (value instanceof SymbolicValue) {
+          final CType expressionType = unaryExpression.getExpressionType();
+          final CType operandType = unaryOperand.getExpressionType();
 
-    final NumericValue numericValue = (NumericValue) value;
-    switch (unaryOperator) {
-      case MINUS:
-        return numericValue.negate();
+          yield createSymbolicExpression(value, operandType, unaryOperator, expressionType);
 
-      case TILDE:
-        return new NumericValue(~numericValue.longValue());
+        } else if (!value.isNumericValue()) {
+          logger.logf(
+              Level.FINE, "Invalid argument %s for unary operator %s.", value, unaryOperator);
+          yield Value.UnknownValue.getInstance();
+        }
 
-      default:
-        throw new AssertionError("unknown operator: " + unaryOperator);
-    }
+        final NumericValue numericValue = (NumericValue) value;
+        yield switch (unaryOperator) {
+          case MINUS -> numericValue.negate();
+          case TILDE -> new NumericValue(~numericValue.longValue());
+          default -> throw new AssertionError("unknown operator: " + unaryOperator);
+        };
+      }
+    };
   }
 
   private Value createSymbolicExpression(
@@ -1617,14 +1665,11 @@ public abstract class AbstractExpressionValueVisitor
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
-    switch (pUnaryOperator) {
-      case MINUS:
-        return factory.negate(operand, pExpressionType);
-      case TILDE:
-        return factory.binaryNot(operand, pExpressionType);
-      default:
-        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
-    }
+    return switch (pUnaryOperator) {
+      case MINUS -> factory.negate(operand, pExpressionType);
+      case TILDE -> factory.binaryNot(operand, pExpressionType);
+      default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
+    };
   }
 
   @Override
@@ -1706,16 +1751,16 @@ public abstract class AbstractExpressionValueVisitor
             (NumericValue) pLValue,
             (NumericValue) pRValue,
             pOperator,
-            ((JSimpleType) pLType).getType(),
-            ((JSimpleType) pRType).getType());
+            (JSimpleType) pLType,
+            (JSimpleType) pRType);
 
       } else {
         return calculateIntegerOperation(
             (NumericValue) pLValue,
             (NumericValue) pRValue,
             pOperator,
-            ((JSimpleType) pLType).getType(),
-            ((JSimpleType) pRType).getType());
+            (JSimpleType) pLType,
+            (JSimpleType) pRType);
       }
 
     } else if (pLValue instanceof BooleanValue) {
@@ -1750,53 +1795,42 @@ public abstract class AbstractExpressionValueVisitor
     SymbolicExpression leftOperand = factory.asConstant(pLeftValue, pLeftType);
     SymbolicExpression rightOperand = factory.asConstant(pRightValue, pRightType);
 
-    switch (pOperator) {
-      case PLUS:
-        return factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MINUS:
-        return factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MULTIPLY:
-        return factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case DIVIDE:
-        return factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case MODULO:
-        return factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_LEFT:
-        return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRightSigned(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case SHIFT_RIGHT_UNSIGNED:
-        return factory.shiftRightUnsigned(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_AND:
-        return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_AND:
-        return factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_OR:
-        return factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LOGICAL_OR:
-        return factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case BINARY_XOR:
-      case LOGICAL_XOR:
-        return factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case EQUALS:
-        return factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case NOT_EQUALS:
-        return factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_THAN:
-        return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case LESS_EQUAL:
-        return factory.lessThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_THAN:
-        return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(
-            leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default:
-        throw new AssertionError("Unhandled binary operation " + pOperator);
-    }
+    return switch (pOperator) {
+      case PLUS -> factory.add(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MINUS -> factory.minus(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MULTIPLY ->
+          factory.multiply(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case DIVIDE -> factory.divide(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case MODULO -> factory.modulo(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_LEFT ->
+          factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_SIGNED ->
+          factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case SHIFT_RIGHT_UNSIGNED ->
+          factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_AND ->
+          factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_AND ->
+          factory.logicalAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_OR ->
+          factory.binaryOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LOGICAL_OR ->
+          factory.logicalOr(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case BINARY_XOR, LOGICAL_XOR ->
+          factory.binaryXor(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case EQUALS -> factory.equal(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case NOT_EQUALS ->
+          factory.notEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_THAN ->
+          factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case LESS_EQUAL ->
+          factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_THAN ->
+          factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      case GREATER_EQUAL ->
+          factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
+    };
   }
 
   /*
@@ -1807,8 +1841,8 @@ public abstract class AbstractExpressionValueVisitor
       NumericValue pLeftValue,
       NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftType,
-      JBasicType pRightType)
+      JSimpleType pLeftType,
+      JSimpleType pRightType)
       throws IllegalOperationException {
 
     checkNotNull(pLeftType);
@@ -1868,11 +1902,11 @@ public abstract class AbstractExpressionValueVisitor
               numResult = lVal % rVal;
               break;
 
-              // shift operations' behaviour is determined by whether the left hand side value is of
-              // type
-              // int or long, so we have to cast if the actual type is int.
+            // shift operations' behaviour is determined by whether the left hand side value is of
+            // type
+            // int or long, so we have to cast if the actual type is int.
             case SHIFT_LEFT:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) << rVal;
                 numResult = intResult;
               } else {
@@ -1881,7 +1915,7 @@ public abstract class AbstractExpressionValueVisitor
               break;
 
             case SHIFT_RIGHT_SIGNED:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) >> rVal;
                 numResult = intResult;
               } else {
@@ -1890,7 +1924,7 @@ public abstract class AbstractExpressionValueVisitor
               break;
 
             case SHIFT_RIGHT_UNSIGNED:
-              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+              if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
                 final int intResult = ((int) lVal) >>> rVal;
                 numResult = intResult;
               } else {
@@ -1902,7 +1936,7 @@ public abstract class AbstractExpressionValueVisitor
               throw new AssertionError("Unhandled operator " + pBinaryOperator);
           }
 
-          if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+          if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
             int intNumResult = (int) numResult;
             numResult = intNumResult;
           }
@@ -1943,14 +1977,14 @@ public abstract class AbstractExpressionValueVisitor
       NumericValue pLeftValue,
       NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftOperand,
-      JBasicType pRightOperand)
+      JSimpleType pLeftOperand,
+      JSimpleType pRightOperand)
       throws IllegalOperationException {
 
     final double lVal;
     final double rVal;
 
-    if (pLeftOperand != JBasicType.DOUBLE && pRightOperand != JBasicType.DOUBLE) {
+    if (pLeftOperand != JSimpleType.DOUBLE && pRightOperand != JSimpleType.DOUBLE) {
       lVal = pLeftValue.floatValue();
       rVal = pRightValue.floatValue();
     } else {
@@ -2005,10 +2039,11 @@ public abstract class AbstractExpressionValueVisitor
                 case GREATER_EQUAL -> (lVal >= rVal);
                 case LESS_THAN -> (lVal < rVal);
                 case LESS_EQUAL -> (lVal <= rVal);
-                default -> throw new AssertionError(
-                    "Unsupported binary operation "
-                        + pBinaryOperator
-                        + " on floating point values");
+                default ->
+                    throw new AssertionError(
+                        "Unsupported binary operation "
+                            + pBinaryOperator
+                            + " on floating point values");
               };
           // return 1 if expression holds, 0 otherwise
           return BooleanValue.valueOf(result);
@@ -2022,29 +2057,23 @@ public abstract class AbstractExpressionValueVisitor
   private Value calculateBooleanOperation(
       boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
 
-    switch (operator) {
-      case CONDITIONAL_AND:
-      case LOGICAL_AND:
-        // we do not care about sideeffects through evaluation of the righthandside at this point -
-        // this must be handled
-        // earlier
-        return BooleanValue.valueOf(lVal && rVal);
-
-      case CONDITIONAL_OR:
-      case LOGICAL_OR:
-        // we do not care about sideeffects through evaluation of the righthandside at this point
-        return BooleanValue.valueOf(lVal || rVal);
-
-      case LOGICAL_XOR:
-        return BooleanValue.valueOf(lVal ^ rVal);
-
-      case EQUALS:
-        return BooleanValue.valueOf(lVal == rVal);
-      case NOT_EQUALS:
-        return BooleanValue.valueOf(lVal != rVal);
-      default:
-        throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
-    }
+    return switch (operator) {
+      case CONDITIONAL_AND,
+          LOGICAL_AND -> // we do not care about sideeffects through evaluation of the
+          // righthandside at this point -
+          // this must be handled
+          // earlier
+          BooleanValue.valueOf(lVal && rVal);
+      case CONDITIONAL_OR,
+          LOGICAL_OR -> // we do not care about sideeffects through evaluation of the
+          // righthandside at this point
+          BooleanValue.valueOf(lVal || rVal);
+      case LOGICAL_XOR -> BooleanValue.valueOf(lVal ^ rVal);
+      case EQUALS -> BooleanValue.valueOf(lVal == rVal);
+      case NOT_EQUALS -> BooleanValue.valueOf(lVal != rVal);
+      default ->
+          throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
+    };
   }
 
   private Value calculateComparison(
@@ -2092,20 +2121,15 @@ public abstract class AbstractExpressionValueVisitor
     } else if (valueObject.isNumericValue()) {
       NumericValue value = (NumericValue) valueObject;
 
-      switch (unaryOperator) {
-        case MINUS:
-          return value.negate();
-
-        case COMPLEMENT:
-          return evaluateComplement(unaryOperand, value);
-
-        case PLUS:
-          return value;
-
-        default:
+      return switch (unaryOperator) {
+        case MINUS -> value.negate();
+        case COMPLEMENT -> evaluateComplement(unaryOperand, value);
+        case PLUS -> value;
+        default -> {
           logger.log(Level.FINE, errorMsg);
-          return UnknownValue.getInstance();
-      }
+          yield UnknownValue.getInstance();
+        }
+      };
 
     } else if (valueObject instanceof BooleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
@@ -2132,18 +2156,13 @@ public abstract class AbstractExpressionValueVisitor
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
-    switch (pUnaryOperator) {
-      case COMPLEMENT:
-        return factory.binaryNot(operand, pExpressionType);
-      case NOT:
-        return factory.logicalNot(operand, pExpressionType);
-      case MINUS:
-        return factory.negate(operand, pExpressionType);
-      case PLUS:
-        return pValue;
-      default:
-        throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
-    }
+    return switch (pUnaryOperator) {
+      case COMPLEMENT -> factory.binaryNot(operand, pExpressionType);
+      case NOT -> factory.logicalNot(operand, pExpressionType);
+      case MINUS -> factory.negate(operand, pExpressionType);
+      case PLUS -> pValue;
+      default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
+    };
   }
 
   private Value evaluateComplement(JExpression pExpression, NumericValue value) {
@@ -2159,11 +2178,11 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   private static boolean isIntegerType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).getType().isIntegerType();
+    return type instanceof JSimpleType && ((JSimpleType) type).isIntegerType();
   }
 
   private static boolean isFloatType(JType type) {
-    return type instanceof JSimpleType && ((JSimpleType) type).getType().isFloatingPointType();
+    return type instanceof JSimpleType && ((JSimpleType) type).isFloatingPointType();
   }
 
   @Override
@@ -2646,12 +2665,12 @@ public abstract class AbstractExpressionValueVisitor
       if (isIntegerType(sourceType)) {
         long longValue = numericValue.longValue();
 
-        return createValue(longValue, st.getType());
+        return createValue(longValue, st);
 
       } else if (isFloatType(sourceType)) {
         double doubleValue = numericValue.doubleValue();
 
-        return createValue(doubleValue, st.getType());
+        return createValue(doubleValue, st);
 
       } else {
         throw new AssertionError(
@@ -2662,7 +2681,7 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value createValue(long value, JBasicType targetType) {
+  private static Value createValue(long value, JSimpleType targetType) {
     switch (targetType) {
       case BYTE:
         return new NumericValue((byte) value);
@@ -2690,30 +2709,16 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static Value createValue(double value, JBasicType targetType) {
-    switch (targetType) {
-      case BYTE:
-        return new NumericValue((byte) value);
-
-      case CHAR:
-      case SHORT:
-        return new NumericValue((short) value);
-
-      case INT:
-        return new NumericValue((int) value);
-
-      case LONG:
-        return new NumericValue(value);
-
-      case FLOAT:
-        return new NumericValue((float) value);
-
-      case DOUBLE:
-        return new NumericValue(value);
-
-      default:
-        throw new AssertionError("Trying to cast to unsupported type " + targetType);
-    }
+  private static Value createValue(double value, JSimpleType targetType) {
+    return switch (targetType) {
+      case BYTE -> new NumericValue((byte) value);
+      case CHAR, SHORT -> new NumericValue((short) value);
+      case INT -> new NumericValue((int) value);
+      case LONG -> new NumericValue(value);
+      case FLOAT -> new NumericValue((float) value);
+      case DOUBLE -> new NumericValue(value);
+      default -> throw new AssertionError("Trying to cast to unsupported type " + targetType);
+    };
   }
 
   /**
@@ -2742,7 +2747,7 @@ public abstract class AbstractExpressionValueVisitor
    */
   protected static class IllegalOperationException extends CPAException {
 
-    private static final long serialVersionUID = 5420891133452817345L;
+    @Serial private static final long serialVersionUID = 5420891133452817345L;
 
     public IllegalOperationException(String msg) {
       super(msg);

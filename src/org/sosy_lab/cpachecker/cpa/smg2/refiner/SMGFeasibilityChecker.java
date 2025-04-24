@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -25,8 +25,10 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -41,9 +43,12 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
   private final StrongestPostOperator<SMGState> strongestPostOp;
   private final VariableTrackingPrecision precision;
   private final MachineModel machineModel;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
   private final Configuration config;
   private final CFA cfa;
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   /**
    * This method acts as the constructor of the class.
@@ -53,14 +58,22 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
    */
   public SMGFeasibilityChecker(
       final StrongestPostOperator<SMGState> pStrongestPostOp,
-      final LogManager pLogger,
+      final LogManagerWithoutDuplicates pLogger,
       final CFA pCfa,
-      final Configuration pConfig)
+      final Configuration pConfig,
+      SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics)
       throws InvalidConfigurationException {
 
     super(
         pStrongestPostOp,
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa),
+        SMGState.of(
+            pCfa.getMachineModel(),
+            pLogger,
+            new SMGOptions(pConfig),
+            pCfa,
+            pEvaluator,
+            pStatistics),
         SMGCPA.class,
         pLogger,
         pConfig,
@@ -74,6 +87,8 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
             config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
     logger = pLogger;
+    evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   public List<Pair<SMGState, List<CFAEdge>>> evaluate(final ARGPath path)
@@ -81,7 +96,8 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
-      SMGState next = SMGState.of(machineModel, logger, new SMGOptions(config), cfa);
+      SMGState next =
+          SMGState.of(machineModel, logger, new SMGOptions(config), cfa, evaluator, statistics);
 
       if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
         // Init main

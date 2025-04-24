@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -63,6 +64,8 @@ public class ToCodeFormulaVisitor
 
   private final MachineModel machineModel;
 
+  private final Function<String, String> variableNameConverter;
+
   /**
    * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
    * by using the given formula manager, and evaluation visitor.
@@ -72,9 +75,12 @@ public class ToCodeFormulaVisitor
    * @param pMachineModel the machine model used to find the cast types.
    */
   public ToCodeFormulaVisitor(
-      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor,
+      MachineModel pMachineModel,
+      Function<String, String> pVariableNameConverter) {
     evaluationVisitor = pEvaluationVisitor;
     machineModel = pMachineModel;
+    variableNameConverter = pVariableNameConverter;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
@@ -320,7 +326,7 @@ public class ToCodeFormulaVisitor
   public String visit(
       Variable<CompoundInterval> pVariable,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    return pVariable.getMemoryLocation().getIdentifier();
+    return variableNameConverter.apply(pVariable.getMemoryLocation().getIdentifier());
   }
 
   @Override
@@ -382,17 +388,21 @@ public class ToCodeFormulaVisitor
 
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
-    CompoundInterval op1EvalInvert =
-        pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
+    CompoundInterval op1Eval = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment);
+    CompoundInterval op1EvalInvert = op1Eval.invert();
     // TODO check changes, possibly have to be reverted
-    if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
+    if (op1EvalInvert.isSingleton()
+        && !op1Eval.isSingleton()
+        && pEqual.getOperand2() instanceof Variable) {
       return not(
           Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
               .accept(this, pEnvironment));
     }
-    CompoundInterval op2EvalInvert =
-        pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
-    if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
+    CompoundInterval op2Eval = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment);
+    CompoundInterval op2EvalInvert = op2Eval.invert();
+    if (op2EvalInvert.isSingleton()
+        && !op2Eval.isSingleton()
+        && pEqual.getOperand1() instanceof Variable) {
       return not(
           Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
               .accept(this, pEnvironment));

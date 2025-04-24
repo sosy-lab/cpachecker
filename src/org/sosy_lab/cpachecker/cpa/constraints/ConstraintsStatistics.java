@@ -43,22 +43,24 @@ public class ConstraintsStatistics implements Statistics {
       new StatTimer(StatKind.SUM, "Time for model re-use attempts");
   public final StatTimer timeForSatCheck = new StatTimer(StatKind.SUM, "Time for SMT checks");
 
-  public StatCounter cacheLookups = new StatCounter("Cache lookups");
-  public StatTimer directCacheLookupTime = new StatTimer(StatKind.SUM, "Direct cache lookup time");
-  public StatCounter directCacheHits = new StatCounter("Direct cache hits");
-  public StatTimer subsetLookupTime = new StatTimer(StatKind.SUM, "Subset cache lookup time");
-  public StatCounter subsetCacheHits = new StatCounter("Subset cache hits");
-  public StatTimer supersetLookupTime = new StatTimer(StatKind.SUM, "Superset cache lookup time");
-  public StatCounter supersetCacheHits = new StatCounter("Superset cache hits");
+  public final StatCounter cacheLookups = new StatCounter("Cache lookups");
+  public final StatTimer directCacheLookupTime =
+      new StatTimer(StatKind.SUM, "Direct cache lookup time");
+  public final StatCounter directCacheHits = new StatCounter("Direct cache hits");
+  public final StatTimer subsetLookupTime = new StatTimer(StatKind.SUM, "Subset cache lookup time");
+  public final StatCounter subsetCacheHits = new StatCounter("Subset cache hits");
+  public final StatTimer supersetLookupTime =
+      new StatTimer(StatKind.SUM, "Superset cache lookup time");
+  public final StatCounter supersetCacheHits = new StatCounter("Superset cache hits");
 
-  public StatInt constraintNumberBeforeAdj =
+  public final StatInt constraintNumberBeforeAdj =
       new StatInt(StatKind.SUM, "Constraints before refinement in state");
-  public StatInt constraintNumberAfterAdj =
+  public final StatInt constraintNumberAfterAdj =
       new StatInt(StatKind.SUM, "Constraints after refinement in state");
   public final StatTimer adjustmentTime =
       new StatTimer(StatKind.SUM, "Time for constraints adjustment");
 
-  public StatCounter constraintsRemovedInMerge =
+  public final StatCounter constraintsRemovedInMerge =
       new StatCounter("Number of constraints removed in merge");
   public StatDouble reuseRatio =
       new StatDouble(
@@ -66,7 +68,7 @@ public class ConstraintsStatistics implements Statistics {
           "Ratio of prover reuses (number of reused constraints / number of constraints)");
   public StatTimer timeForProverPreparation = new StatTimer(StatKind.SUM, "Time for stack setup");
 
-  private String name;
+  private final String name;
 
   /**
    * Creates a new <code>ConstraintsStatistics</code> object with a default name. This name is used

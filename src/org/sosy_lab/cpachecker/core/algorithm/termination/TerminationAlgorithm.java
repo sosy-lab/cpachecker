@@ -449,14 +449,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
   }
 
   private boolean isBitwiseBinaryOperation(BinaryOperator pOperator) {
-    switch (pOperator) {
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
-        return true;
-      default:
-        return false;
-    }
+    return switch (pOperator) {
+      case BINARY_AND, BINARY_XOR, BINARY_OR -> true;
+      default -> false;
+    };
   }
 
   /**
@@ -559,6 +555,37 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
     @Override
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
       return pManager.translateFrom(invariant, fmgr);
+    }
+
+    @Override
+    public BooleanFormula getScopedFormulaApproximation(
+        FormulaManagerView pManager, final FunctionEntryNode pFunctionScope) {
+      try {
+        return pManager.renameFreeVariablesAndUFs(
+            pManager.translateFrom(
+                fmgr.filterLiterals(
+                    invariant,
+                    literal -> {
+                      for (String name : fmgr.extractVariableNames(literal)) {
+                        if (name.contains("::")
+                            && !name.startsWith(pFunctionScope.getFunctionName())) {
+                          return false;
+                        }
+                      }
+                      return true;
+                    }),
+                fmgr),
+            name -> {
+              int separatorIndex = name.indexOf("::");
+              if (separatorIndex >= 0) {
+                return name.substring(separatorIndex + 2);
+              } else {
+                return name;
+              }
+            });
+      } catch (InterruptedException e) {
+        return pManager.getBooleanFormulaManager().makeTrue();
+      }
     }
 
     @Override

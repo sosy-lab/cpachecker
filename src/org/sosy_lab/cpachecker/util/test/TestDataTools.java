@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.test;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -29,6 +30,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -159,19 +161,29 @@ public class TestDataTools {
   /**
    * Returns and, if necessary, creates a new empty C or Java program in the given temporary folder.
    */
-  public static String getEmptyProgram(TemporaryFolder pTempFolder, boolean isJava)
+  public static String getEmptyProgram(TemporaryFolder pTempFolder, Language pLanguage)
       throws IOException {
     File tempFile;
     String fileContent;
     String program;
-    if (isJava) {
-      tempFile = getTempFile(pTempFolder, "Main.java");
-      fileContent = "public class Main { public static void main(String... args) {} }";
-      program = "Main";
-    } else {
-      tempFile = getTempFile(pTempFolder, "program.i");
-      fileContent = getProgram();
-      program = tempFile.toString();
+    switch (pLanguage) {
+      case C:
+        tempFile = getTempFile(pTempFolder, "program.i");
+        fileContent = getProgram();
+        program = tempFile.toString();
+        break;
+      case JAVA:
+        tempFile = getTempFile(pTempFolder, "Main.java");
+        fileContent = "public class Main { public static void main(String... args) {} }";
+        program = "Main";
+        break;
+      case LLVM:
+        tempFile = getTempFile(pTempFolder, "program.ll");
+        fileContent = "define i32 @main() { entry:  ret i32 0}";
+        program = tempFile.toString();
+        break;
+      default:
+        throw new AssertionError("Unhandled language: " + pLanguage);
     }
     if (tempFile.createNewFile()) {
       // if the file didn't exist yet, write its content
@@ -187,5 +199,11 @@ public class TestDataTools {
    */
   private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
     return Path.of(pTempFolder.getRoot().toString(), pFileName).toFile();
+  }
+
+  /** Get the edge from the CFA that contains the given string. */
+  public static CFAEdge getEdge(String pStringsInEdge, CFA pCFA) {
+    return Iterables.getOnlyElement(
+        CFAUtils.allEdges(pCFA).filter(edge -> edge.toString().contains(pStringsInEdge)));
   }
 }

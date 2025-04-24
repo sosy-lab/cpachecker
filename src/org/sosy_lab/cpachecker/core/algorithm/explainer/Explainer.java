@@ -125,8 +125,7 @@ public class Explainer extends NestingAlgorithm {
     Algorithm firstStepAlgorithm = secondAlg.algorithm();
     assert firstStepAlgorithm != null;
     // currentReached
-    AlgorithmStatus status;
-    status = firstStepAlgorithm.run(currentReached);
+    AlgorithmStatus status = firstStepAlgorithm.run(currentReached);
     int i = 0;
     while (currentReached.hasWaitingState() && i < stopAfter) {
       status = firstStepAlgorithm.run(currentReached);

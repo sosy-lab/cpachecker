@@ -68,6 +68,12 @@ public class CheckingCfaNetwork implements CfaNetwork {
   }
 
   private static <E> Set<E> checkNoDuplicates(Set<E> pSet) {
+    if (!(pSet instanceof UnmodifiableSetView)) {
+      // UnmodifiableSetView is a set that can contain duplicates (!)
+      // for all other we should assume they behave normally:
+      return pSet;
+    }
+
     ImmutableSet<List<E>> duplicates = UnmodifiableSetView.duplicates(pSet);
     checkArgument(duplicates.isEmpty(), "Set contains duplicates: %s", duplicates);
 

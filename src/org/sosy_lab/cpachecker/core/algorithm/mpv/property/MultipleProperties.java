@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpv.property;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.nio.file.Path;
 import java.util.Set;
 import org.sosy_lab.common.time.TimeSpan;
@@ -47,7 +46,7 @@ public final class MultipleProperties {
     ImmutableList.Builder<AbstractSingleProperty> propertyBuilder = ImmutableList.builder();
     for (Path path : specification.keySet()) {
       switch (propertySeparator) {
-        case FILE:
+        case FILE -> {
           Path propertyFileName = path.getFileName();
           String propertyName;
           if (propertyFileName != null) {
@@ -57,16 +56,15 @@ public final class MultipleProperties {
           }
           propertyName = propertyName.replace(".spc", "");
           propertyBuilder.add(new AutomataSingleProperty(propertyName, specification.get(path)));
-          break;
-        case AUTOMATON:
+        }
+        case AUTOMATON -> {
           for (Automaton automaton : specification.get(path)) {
-            propertyName = automaton.getName();
+            String propertyName = automaton.getName();
             propertyBuilder.add(
-                new AutomataSingleProperty(propertyName, Lists.newArrayList(automaton)));
+                new AutomataSingleProperty(propertyName, ImmutableList.of(automaton)));
           }
-          break;
-        default:
-          assert false;
+        }
+        default -> throw new AssertionError();
       }
     }
     properties = propertyBuilder.build();

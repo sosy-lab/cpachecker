@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -71,11 +72,17 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
         } else {
           otherReportingStates = true;
         }
-        stateInvariant =
-            And.of(
-                stateInvariant,
-                expressionTreeReportingState.getFormulaApproximation(
-                    cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+        ExpressionTree<Object> expressionTree;
+        try {
+          expressionTree =
+              expressionTreeReportingState.getFormulaApproximationAllVariablesInFunctionScope(
+                  cfa.getFunctionHead(pLocation.getFunctionName()), pLocation);
+        } catch (TranslationToExpressionTreeFailedException e) {
+          // Keep consistency with the previous implementation
+          expressionTree = ExpressionTrees.getTrue();
+        }
+
+        stateInvariant = And.of(stateInvariant, expressionTree);
       }
       locationInvariants.add(stateInvariant);
     }
@@ -98,11 +105,17 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
       if (newInvStates.size() < invStates.size()) {
         locationInvariant = ExpressionTrees.getFalse();
         for (InvariantsState state : newInvStates) {
-          locationInvariant =
-              Or.of(
-                  locationInvariant,
-                  state.getFormulaApproximation(
-                      cfa.getFunctionHead(pLocation.getFunctionName()), pLocation));
+          ExpressionTree<Object> expressionTree;
+          try {
+            expressionTree =
+                state.getFormulaApproximationAllVariablesInFunctionScope(
+                    cfa.getFunctionHead(pLocation.getFunctionName()), pLocation);
+          } catch (TranslationToExpressionTreeFailedException e) {
+            // Keep consistency with the previous implementation
+            expressionTree = ExpressionTrees.getTrue();
+          }
+
+          locationInvariant = Or.of(locationInvariant, expressionTree);
         }
       }
     }

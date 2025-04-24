@@ -24,7 +24,6 @@ import com.google.common.truth.Fact;
 import com.google.common.truth.FailureMetadata;
 import com.google.common.truth.StringSubject;
 import com.google.common.truth.Subject;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
@@ -382,7 +381,6 @@ public class AutomatonInternalTest {
    * {@link Subject} subclass for testing ASTMatchers with Truth (allows to use
    * assert_().about(astMatcher).that("ast pattern").matches(...)).
    */
-  @SuppressFBWarnings("EQ_DOESNT_OVERRIDE_EQUALS")
   private class ASTMatcherSubject extends Subject {
 
     private final String pattern;

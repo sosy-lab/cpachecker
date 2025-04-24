@@ -175,10 +175,10 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
       extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
     // statistics
-    private StatTimer timeStrengthen = new StatTimer("strengthen");
-    private StatTimer timeCoverage = new StatTimer("coverage");
-    private StatTimer timePrecision = new StatTimer("precision");
-    private StatTimer timeRemove = new StatTimer("remove");
+    private final StatTimer timeStrengthen = new StatTimer("strengthen");
+    private final StatTimer timeCoverage = new StatTimer("coverage");
+    private final StatTimer timePrecision = new StatTimer("precision");
+    private final StatTimer timeRemove = new StatTimer("remove");
 
     ImpactDelegateRefiner(
         final ValueAnalysisFeasibilityChecker pFeasibilityChecker,

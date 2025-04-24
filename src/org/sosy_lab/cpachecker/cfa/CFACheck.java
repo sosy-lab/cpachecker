@@ -100,9 +100,9 @@ public class CFACheck {
       verify(
           visitedNodes.equals(nodes),
           """
-
           Nodes in CFA but not reachable through traversal: %s
-          Nodes reached that are not in CFA: %s""",
+          Nodes reached that are not in CFA: %s
+          """,
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
     }

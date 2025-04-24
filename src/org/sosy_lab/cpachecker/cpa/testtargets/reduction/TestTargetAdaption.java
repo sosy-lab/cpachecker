@@ -26,8 +26,7 @@ public enum TestTargetAdaption {
     @Override
     public Set<CFAEdge> adaptTestTargets(final Set<CFAEdge> pTargets, final CFA pCfa) {
       // currently only simple heuristic
-      Set<CFAEdge> newGoals;
-      newGoals = new HashSet<>(pTargets);
+      Set<CFAEdge> newGoals = new HashSet<>(pTargets);
       boolean allSuccessorsGoals;
       for (CFAEdge target : pTargets) {
         if (target.getSuccessor().getNumEnteringEdges() == 1) {

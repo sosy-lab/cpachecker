@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasibilityChecker;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -56,7 +55,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
- * fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * fails, optionally delegates also to another refiner.
  */
 @Options(prefix = "cpa.apron.refiner")
 class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
@@ -133,8 +132,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
     // if the path is infeasible, try to refine the precision, this time
     // only with apron states, this is more precise than only using the value analysis
     // refinement
-    OctagonAnalysisFeasibilityChecker apronChecker;
-    apronChecker = createApronFeasibilityChecker(pErrorPath);
+    OctagonAnalysisFeasibilityChecker apronChecker = createApronFeasibilityChecker(pErrorPath);
     if (!apronChecker.isFeasible()) {
       if (performApronAnalysisRefinement(reached, apronChecker)) {
         existsExplicitApronRefinement = true;
@@ -305,7 +303,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
 
       } else {
         ShutdownManager shutdown = ShutdownManager.createWithParent(shutdownNotifier);
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForApronFeasibilityCheck);
+        WalltimeLimit l = WalltimeLimit.create(timeForApronFeasibilityCheck);
         ResourceLimitChecker limits =
             new ResourceLimitChecker(shutdown, Collections.singletonList(l));
 

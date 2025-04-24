@@ -21,7 +21,7 @@ public enum TestTargetType {
   ASSUME {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
-      return edge -> edge instanceof AssumeEdge;
+      return AssumeEdge.class::isInstance;
     }
 
     @Override

@@ -74,7 +74,7 @@ class Benchmark(VcloudBenchmarkBase):
             "--revision",
             dest="revision",
             metavar="(tags/<tag name>|branch_name)[:(HEAD|head|<revision number>)]",
-            default="trunk:HEAD",
+            default="main:HEAD",
             help="The svn revision of CPAchecker to use (if using the web interface of the VerifierCloud).",
         )
 
@@ -139,7 +139,7 @@ class Benchmark(VcloudBenchmarkBase):
                     tool_locator = benchexec.tooladapter.create_tool_locator(
                         self.config
                     )
-                    script = tool_locator.find_executable("cpa.sh", subdir="scripts")
+                    script = tool_locator.find_executable("cpachecker", subdir="bin")
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
                     if (

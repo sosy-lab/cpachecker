@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.Arrays;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  */
 public final class ArrayValue implements Value {
 
-  private static final long serialVersionUID = -3963825961335658001L;
+  @Serial private static final long serialVersionUID = -3963825961335658001L;
 
   // Array type and element type are only used for checking correctness of parameters
   private final JArrayType arrayType;
@@ -111,20 +111,11 @@ public final class ArrayValue implements Value {
       return NullValue.getInstance();
 
     } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
-        case BOOLEAN:
-          return BooleanValue.valueOf(false);
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
-          return new NumericValue(0L);
-        default:
-          throw new AssertionError("Unhandled type " + pType.getClass());
-      }
+      return switch ((JSimpleType) pType) {
+        case BOOLEAN -> BooleanValue.valueOf(false);
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
+        default -> throw new AssertionError("Unhandled type " + pType.getClass());
+      };
     } else {
       throw new AssertionError("Unhandled type " + pType.getClass());
     }
@@ -170,9 +161,7 @@ public final class ArrayValue implements Value {
     } else if (elementType instanceof JClassOrInterfaceType && !isValidComplexValue(pValue)) {
       throw new IllegalArgumentException(errorMessage);
 
-    } else if (elementType instanceof JSimpleType) {
-      JBasicType concreteType = ((JSimpleType) elementType).getType();
-
+    } else if (elementType instanceof JSimpleType concreteType) {
       switch (concreteType) {
         case BYTE:
         case CHAR:

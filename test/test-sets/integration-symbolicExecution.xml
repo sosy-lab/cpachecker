@@ -13,11 +13,11 @@ SPDX-License-Identifier: Apache-2.0
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
 
-  <option name="-noout"/>
-  <option name="-heap">2000M</option>
+  <option name="--no-output-files"/>
+  <option name="--heap">2000M</option>
 
   <rundefinition>
-    <option name="-symbolicExecution-Cegar"/>
+    <option name="--symbolicExecution-Cegar"/>
   </rundefinition>
 
   <tasks>
@@ -38,7 +38,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <includesfile>../programs/benchmarks/Floats.set</includesfile>
     <exclude>../programs/benchmarks/floats-cdfpl/*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/sqrt*</exclude> <!-- mostly timeouts or close to timeout -->
     <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeouts -->
@@ -49,7 +49,7 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_12.yml</exclude> <!-- timeouts -->
@@ -61,7 +61,8 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/VerifyThis-Loops.set</includesfile>
     <exclude>../programs/benchmarks/loop-acceleration/diamond_1-2.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops/trex*</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- mostly timeouts -->
@@ -76,7 +77,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- mostly timeouts -->
@@ -85,7 +86,7 @@ SPDX-License-Identifier: Apache-2.0
   </tasks>
 
   <tasks>
-    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-net-usb-catc.ko.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
@@ -96,6 +97,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hid--*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-skipRecursion"/>
+    <option name="--skip-recursion"/>
   </tasks>
 </benchmark>

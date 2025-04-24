@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
-import java.io.IOException;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -47,13 +45,13 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.DARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummarySynthesis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -85,7 +83,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 
 /** Factory class for the three core components of CPAchecker: algorithm, cpa and reached set. */
 @Options(prefix = "analysis")
@@ -166,6 +163,14 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.DAR",
+      description =
+          "use dual approximated reachability model checking algorithm, "
+              + "works only with PredicateCPA and large-block encoding")
+  private boolean useDAR = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.impact",
       description = "Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
@@ -210,18 +215,6 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "converts a witness to an ACSL annotated program")
   private boolean useWitnessToACSLAlgorithm = false;
-
-  @Option(
-      secure = true,
-      name = "witnessToInvariant",
-      description = "converts a graphml witness to invariant witness")
-  private boolean useWitnessToInvariantAlgorithm = false;
-
-  @Option(
-      secure = true,
-      name = "invariantExport",
-      description = "Runs an algorithm that produces and exports invariants")
-  private boolean useInvariantExportAlgorithm = false;
 
   @Option(
       secure = true,
@@ -380,9 +373,11 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.configurableComponents",
-      description = "Distribute predicate analysis to multiple workers")
-  private boolean useConfigurableComponents = false;
+      name = "algorithm.distributedSummarySynthesis",
+      description =
+          "Use distributed summary synthesis. This decomposes the input program into smaller units"
+              + " that are analyzed concurrently. See https://doi.org/10.1145/3660766 for details.")
+  private boolean useDistributedSummarySynthesis = false;
 
   @Option(
       secure = true,
@@ -448,7 +443,7 @@ public class CoreComponentsFactory {
         && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
-        && (useBMC || useIMC || useInvariantExportAlgorithm);
+        && (useBMC || useIMC || useDAR);
   }
 
   public Algorithm createAlgorithm(
@@ -513,25 +508,6 @@ public class CoreComponentsFactory {
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
-    } else if (useWitnessToInvariantAlgorithm) {
-      try {
-        algorithm =
-            new WitnessToInvariantWitnessAlgorithm(
-                config, logger, shutdownNotifier, cfa, specification);
-      } catch (IOException e) {
-        throw new CPAException("could not instantiate invariant witness writer", e);
-      }
-    } else if (useInvariantExportAlgorithm) {
-      algorithm =
-          new InvariantExportAlgorithm(
-              config,
-              logger,
-              shutdownManager,
-              cfa,
-              specification,
-              reachedSetFactory,
-              new CachingTargetLocationProvider(shutdownNotifier, logger, cfa),
-              aggregatedReachedSets);
     } else if (useFaultLocalizationWithDistanceMetrics) {
       algorithm = new Explainer(config, logger, shutdownNotifier, specification, cfa);
     } else if (useArrayAbstraction) {
@@ -612,6 +588,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new IMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useDAR) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new DARAlgorithm(
                 algorithm,
                 cpa,
                 config,
@@ -713,9 +704,9 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
-      if (useConfigurableComponents) {
+      if (useDistributedSummarySynthesis) {
         algorithm =
-            new DistributedSummaryAnalysis(
+            new DistributedSummarySynthesis(
                 config,
                 logger,
                 cfa,

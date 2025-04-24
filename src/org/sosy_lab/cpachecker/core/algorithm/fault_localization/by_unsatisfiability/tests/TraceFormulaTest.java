@@ -116,7 +116,7 @@ public class TraceFormulaTest {
             AbstractStates.getTargetStates(test.getCheckerResult().getReached()).stream()
                 .filter(state -> ((ARGState) state).getCounterexampleInformation().isPresent())
                 .map(state -> ((ARGState) state).getCounterexampleInformation().orElseThrow())
-                .filter(cex -> cex instanceof FaultLocalizationInfoWithTraceFormula)
+                .filter(FaultLocalizationInfoWithTraceFormula.class::isInstance)
                 .findFirst()
                 .orElseThrow();
 

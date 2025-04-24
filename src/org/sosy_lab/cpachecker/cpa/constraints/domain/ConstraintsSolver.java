@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver.SolverResult.Satisfiability;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
@@ -52,6 +53,34 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.constraints")
 public class ConstraintsSolver {
+
+  /**
+   * c Result of a single constraint solving.
+   *
+   * @param checkedConstraints the constraints checked for satisfiability. This may be only the
+   *     relevant subset of the constraints provided to the solver.
+   * @param satisfiability the satisfiability result of the checked constraints
+   * @param model the model of the checked constraints, if satisfiable.
+   * @param definiteAssignments the definite assignments in the model, if satisfiable.
+   */
+  public record SolverResult(
+      ImmutableSet<Constraint> checkedConstraints,
+      Satisfiability satisfiability,
+      Optional<ImmutableList<ValueAssignment>> model,
+      Optional<ImmutableCollection<ValueAssignment>> definiteAssignments) {
+    public enum Satisfiability {
+      SAT,
+      UNSAT
+    }
+
+    public boolean isSAT() {
+      return satisfiability.equals(Satisfiability.SAT);
+    }
+
+    public boolean isUNSAT() {
+      return satisfiability.equals(Satisfiability.UNSAT);
+    }
+  }
 
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
   private boolean cacheSubsets = false;
@@ -123,12 +152,17 @@ public class ConstraintsSolver {
     }
   }
 
-  public boolean isUnsat(
-      Constraint pConstraint, ImmutableList<ValueAssignment> pAssignment, String pFunctionName)
+  /**
+   * Returns whether the given constraint is unsatisfiable.
+   *
+   * @param pConstraintToCheck the constraint to check
+   * @param pFunctionName the name of this constraints function scope
+   * @return <code>true</code> if this constraint is unsatisfiable, <code>false</code> otherwise
+   */
+  public Satisfiability checkUnsat(Constraint pConstraintToCheck, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
-    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraint));
-    s.setDefiniteAssignment(pAssignment);
-    return isUnsat(s, pFunctionName);
+    ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraintToCheck));
+    return checkUnsat(s, pFunctionName).satisfiability();
   }
 
   /**
@@ -137,29 +171,35 @@ public class ConstraintsSolver {
    *
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
-  public boolean isUnsat(ConstraintsState pConstraints, String pFunctionName)
+  public SolverResult checkUnsat(ConstraintsState pConstraints, String pFunctionName)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (pConstraints.isEmpty()) {
-      return false;
+      return new SolverResult(
+          ImmutableSet.of(),
+          Satisfiability.SAT,
+          Optional.of(ImmutableList.of()),
+          Optional.of(ImmutableList.of()));
     }
 
     try {
       stats.timeForSolving.start();
 
-      Boolean unsat = null; // assign null to fail fast if assignment is missed
-      Set<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+      boolean unsat;
+      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
 
       Map<Constraint, BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas.values());
 
+      ImmutableList<ValueAssignment> satisfyingModel = null;
+      ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
       if (res.isUnsat()) {
         unsat = true;
 
       } else if (res.isSat()) {
         unsat = false;
-        pConstraints.setModel(res.getModelAssignment());
+        satisfyingModel = res.getModelAssignment();
 
       } else {
         try {
@@ -179,29 +219,23 @@ public class ConstraintsSolver {
         }
 
         if (!unsat) {
-          ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
-          pConstraints.setModel(newModelAsAssignment);
-          cache.addSat(constraintsAsFormulas.values(), newModelAsAssignment);
+          satisfyingModel = prover.getModelAssignments();
+          cache.addSat(constraintsAsFormulas, satisfyingModel);
           // doing this while the complete formula is still on the prover environment stack is
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
           if (resolveDefinites) {
-            pConstraints.setDefiniteAssignment(
-                resolveDefiniteAssignments(pConstraints, newModelAsAssignment));
+            definiteAssignmentsInModel = resolveDefiniteAssignments(pConstraints, satisfyingModel);
           }
 
-          assert pConstraints.getModel().containsAll(pConstraints.getDefiniteAssignment())
+          assert satisfyingModel.containsAll(definiteAssignmentsInModel)
               : "Model does not imply definites: "
-                  + pConstraints.getModel()
+                  + satisfyingModel
                   + " !=> "
-                  + pConstraints.getDefiniteAssignment();
+                  + definiteAssignmentsInModel;
 
         } else {
-          assert prover.isUnsat()
-              : "Unsat with definite assignment, but not without. Definite assignment: "
-                  + pConstraints.getDefiniteAssignment();
-
-          cache.addUnsat(constraintsAsFormulas.values());
+          cache.addUnsat(constraintsAsFormulas);
         }
       }
 
@@ -209,7 +243,11 @@ public class ConstraintsSolver {
       // is not used anymore
       //prover.pop();
 
-      return unsat;
+      return new SolverResult(
+          relevantConstraints,
+          unsat ? Satisfiability.UNSAT : Satisfiability.SAT,
+          Optional.ofNullable(satisfyingModel),
+          Optional.ofNullable(definiteAssignmentsInModel));
 
     } finally {
       stats.timeForSolving.stop();
@@ -263,8 +301,8 @@ public class ConstraintsSolver {
     return booleanFormulaManager.implication(pLiteral, pFormula);
   }
 
-  private Set<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
-    Set<Constraint> relevantConstraints = new HashSet<>();
+  private ImmutableSet<Constraint> getRelevantConstraints(ConstraintsState pConstraints) {
+    ImmutableSet.Builder<Constraint> relevantConstraints = ImmutableSet.builder();
     if (performMinimalSatCheck && pConstraints.getLastAddedConstraint().isPresent()) {
       try {
         stats.timeForIndependentComputation.start();
@@ -275,6 +313,7 @@ public class ConstraintsSolver {
         relevantConstraints.add(lastConstraint);
 
         Set<Constraint> leftOverConstraints = new HashSet<>(pConstraints);
+        leftOverConstraints.remove(lastConstraint);
         Set<SymbolicIdentifier> newRelevantIdentifiers = lastConstraint.accept(locator);
         Set<SymbolicIdentifier> relevantIdentifiers;
         do {
@@ -296,10 +335,10 @@ public class ConstraintsSolver {
       }
 
     } else {
-      relevantConstraints = pConstraints;
+      return ImmutableSet.copyOf(pConstraints);
     }
 
-    return relevantConstraints;
+    return relevantConstraints.build();
   }
 
   private void closeProver() {
@@ -399,17 +438,17 @@ public class ConstraintsSolver {
 
   private final class MatchingConstraintsCache implements ConstraintsCache {
 
-    private final Map<ImmutableSet<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
+    private Map<ImmutableSet<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     @Override
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
-      ImmutableSet<BooleanFormula> constraints = ImmutableSet.copyOf(pConstraints);
+      ImmutableSet<BooleanFormula> cacheKey = ImmutableSet.copyOf(pConstraints);
       stats.cacheLookups.inc();
       stats.directCacheLookupTime.start();
       try {
-        if (cacheMap.containsKey(constraints)) {
+        if (cacheMap.containsKey(cacheKey)) {
           stats.directCacheHits.inc();
-          return cacheMap.get(constraints);
+          return cacheMap.get(cacheKey);
 
         } else {
           return CacheResult.getUnknown();

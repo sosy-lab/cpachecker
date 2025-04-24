@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
@@ -69,7 +70,12 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1,
             edge ->
                 nextFieldOffset.equals(edge.getOffset())
-                    && dlls1.getSize().equals(edge.getSizeInBits()));
+                    && dlls1.getSize().isNumericValue()
+                    && dlls1
+                        .getSize()
+                        .asNumericValue()
+                        .bigIntegerValue()
+                        .equals(edge.getSizeInBits()));
 
     SMGValue nextValue = edgeToNextSmgValue.orElseThrow().hasValue();
 
@@ -102,7 +108,9 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
             dlls1.getOffset(),
             dlls1.getHeadOffset(),
             dlls1.getNextOffset(),
+            null,
             dlls1.getPrevOffset(),
+            null,
             0);
     mapping1.addMapping(dlls1, freshCopyDLLS1);
     destSMG = destSMG.copyAndAddObject(freshCopyDLLS1);
@@ -110,15 +118,19 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     recursiveCopyMapAndAddObject(dlls1, pNestingLevelDiff);
 
     // step 9
+    Preconditions.checkArgument(pToEdge1.getOffset().isNumericValue());
     Optional<SMGValue> resultOptional =
         destSMG.findAddressForEdge(
-            freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier());
+            freshCopyDLLS1,
+            pToEdge1.getOffset().asNumericValue().bigIntegerValue(),
+            pToEdge1.targetSpecifier());
     if (resultOptional.isEmpty()) {
-      value = SMGValue.of(pValue1.getNestingLevel() + pNestingLevelDiff);
+      int nestingLvl = inputSMG1.getNestingLevel(pValue1) + pNestingLevelDiff;
+      value = SMGValue.of();
       mapping1.addMapping(pValue1, value);
       destSMG =
           destSMG
-              .copyAndAddValue(value)
+              .copyAndAddValue(value, nestingLvl)
               .copyAndAddPTEdge(
                   new SMGPointsToEdge(
                       freshCopyDLLS1, pToEdge1.getOffset(), pToEdge1.targetSpecifier()),
@@ -145,7 +157,8 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     }
     // step 11 & 12
     SMGHasValueEdge resultHasValueEdge =
-        new SMGHasValueEdge(value, nextFieldOffset, dlls1.getSize());
+        new SMGHasValueEdge(
+            value, nextFieldOffset, dlls1.getSize().asNumericValue().bigIntegerValue());
     destSMG = destSMG.copyAndAddHVEdge(resultHasValueEdge, freshCopyDLLS1);
   }
 
@@ -184,8 +197,10 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
                 if (!mapping1.hasMapping(subSmgValue)) {
                   mappedSubSmgValue = mapping1.getMappedValue(subSmgValue);
                 } else {
-                  mappedSubSmgValue = SMGValue.of(subSmgValue.getNestingLevel());
-                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
+                  // TODO: the nesting level is wrong
+                  // int nestingLvl = subSmgValue.getNestingLevel();
+                  mappedSubSmgValue = SMGValue.of();
+                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue, 0);
                   mapping1.addMapping(subSmgValue, mappedSubSmgValue);
                 }
                 // copy and add edges
@@ -200,10 +215,11 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
               SMGHasValueEdge hValueEdge =
                   new SMGHasValueEdge(mappedSubSmgValue, edge.getOffset(), edge.getSizeInBits());
               if (!destSMG.hasOverlappingEdge(hValueEdge, mappedSubSmgObject)) {
-                if (!destSMG.getValues().contains(mappedSubSmgValue)) {
+                if (!destSMG.getValues().containsKey(mappedSubSmgValue)) {
                   // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make
                   // sense?
-                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue);
+                  // TODO: the nesting level is wrong!
+                  destSMG = destSMG.copyAndAddValue(mappedSubSmgValue, 0);
                 }
                 if (!mapping1.hasMapping(subSmgValue)) {
                   // TODO this is the case if subSmgValue == mappedSubSmgValue, does this make
@@ -256,8 +272,9 @@ public class SMGInsertLeftDlsAndJoin extends SMGAbstractJoin {
     }
     // step 4 - 3
     if (!mapping1.hasMapping(pValue1)) {
-      value = SMGValue.of(pValue1.getNestingLevel());
-      destSMG = destSMG.copyAndAddValue(value);
+      int nestingLevel = inputSMG1.getNestingLevel(pValue1);
+      value = SMGValue.of();
+      destSMG = destSMG.copyAndAddValue(value, nestingLevel);
       SMGPointsToEdge edge = new SMGPointsToEdge(pMappedObject, offset, targetSpecifier);
       destSMG = destSMG.copyAndAddPTEdge(edge, value);
       mapping1.addMapping(pValue1, value);

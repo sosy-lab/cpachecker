@@ -521,39 +521,9 @@ public final class CCfaTransformer {
       }
     }
 
-    private FunctionEntryNode determineMainFunctionEntryNode() {
-
-      Set<CFANode> waitlisted = new HashSet<>();
-      Deque<CFANode> waitlist = new ArrayDeque<>();
-
-      for (CFANode node : graph.nodes()) {
-        if (graph.inDegree(node) == 0) {
-          waitlisted.add(node);
-          waitlist.add(node);
-        }
-      }
-
-      while (!waitlist.isEmpty()) {
-
-        CFANode node = waitlist.remove();
-
-        if (node instanceof FunctionEntryNode) {
-          return (FunctionEntryNode) node;
-        }
-
-        for (CFANode adjacentNode : graph.adjacentNodes(node)) {
-          if (waitlisted.add(adjacentNode)) {
-            waitlist.add(adjacentNode);
-          }
-        }
-      }
-
-      throw new AssertionError("Unable to determine main function node");
-    }
-
     private MutableCFA createUnconnectedFunctionCfa(CFA pOriginalCfa) {
 
-      CFANode oldMainEntryNode = determineMainFunctionEntryNode();
+      CFANode oldMainEntryNode = pOriginalCfa.getMainFunction();
 
       NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
       TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
@@ -627,8 +597,6 @@ public final class CCfaTransformer {
     }
 
     private static final class SummaryPlaceholderEdge extends BlankEdge {
-
-      private static final long serialVersionUID = -4605071143372536460L;
 
       public SummaryPlaceholderEdge(
           String pRawStatement,

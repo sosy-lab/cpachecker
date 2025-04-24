@@ -185,10 +185,11 @@ public class CFloatInf extends CFloat {
   public CFloatWrapper copyWrapper() {
     CFloatWrapper result =
         switch (type) {
-          case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE -> new CFloatWrapper(
-              getExponentMask() ^ (negative ? getSignBitMask() : 0L), 0L);
-          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> new CFloatWrapper(
-              getExponentMask() ^ (negative ? getSignBitMask() : 0L), getNormalizationMask());
+          case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE ->
+              new CFloatWrapper(getExponentMask() ^ (negative ? getSignBitMask() : 0L), 0L);
+          case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
+              new CFloatWrapper(
+                  getExponentMask() ^ (negative ? getSignBitMask() : 0L), getNormalizationMask());
           default -> throw new RuntimeException("Unimplemented floating point type: " + type);
         };
     return result;

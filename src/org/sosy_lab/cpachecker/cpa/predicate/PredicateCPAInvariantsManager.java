@@ -98,7 +98,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -112,7 +111,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
-class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
+final class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
 
   private enum InvariantGenerationStrategy {
     /**
@@ -139,7 +138,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "Which strategy should be used for generating invariants, a comma separated"
               + " list can be specified. Usually later specified strategies serve as"
               + " fallback for earlier ones. (default is no invariant generation at all)")
-  private List<InvariantGenerationStrategy> generationStrategy = new ArrayList<>();
+  private ImmutableList<InvariantGenerationStrategy> generationStrategy = ImmutableList.of();
 
   @Option(
       secure = true,
@@ -234,7 +233,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final FormulaInvariantsSupplier globalInvariants;
   private final Specification specification;
 
-  public PredicateCPAInvariantsManager(
+  PredicateCPAInvariantsManager(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -329,7 +328,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -424,7 +423,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -575,8 +574,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
-          new InductiveWeakeningManager(
-                  new WeakeningOptions(config), solver, logger, shutdownNotifier)
+          new InductiveWeakeningManager(config, solver, shutdownNotifier)
               .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
@@ -664,7 +662,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
           "invGen",
           pLoopsInPath);
 
-      // may be null when -noout is specified
+      // may be null when --no-output-files is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
         IO.writeFile(logPath, Charset.defaultCharset(), spc);

@@ -18,8 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -31,9 +29,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.logging.Level;
-import java.util.zip.GZIPInputStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -45,7 +42,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -166,15 +162,6 @@ public class CPAchecker {
               + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
-
-  @Option(
-      secure = true,
-      name = "analysis.serializedCfaFile",
-      description =
-          "if this option is used, the CFA will be loaded from the given file "
-              + "instead of parsed from sourcefile.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private @Nullable Path serializedCfaFile = null;
 
   @Option(
       secure = true,
@@ -300,28 +287,65 @@ public class CPAchecker {
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
 
     MainCPAStatistics stats = null;
-    Algorithm algorithm = null;
-    ReachedSet reached = null;
     CFA cfa = null;
-    Result result = Result.NOT_YET_STARTED;
-    String targetDescription = "";
-    Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
 
     try {
       stats = new MainCPAStatistics(config, logger, shutdownNotifier);
-
-      // create reached set, cpa, algorithm
       stats.creationTime.start();
 
       cfa = parse(programDenotation, stats);
       shutdownNotifier.shutdownIfNecessary();
 
+      return run0(cfa, stats);
+
+    } catch (InvalidConfigurationException
+        | ParserException
+        | IOException
+        | InterruptedException e) {
+      logErrorMessage(e, logger);
+      return new CPAcheckerResult(Result.NOT_YET_STARTED, "", null, cfa, stats);
+    } finally {
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
+    }
+  }
+
+  public CPAcheckerResult run(CFA cfa, MainCPAStatistics stats) {
+    logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
+
+    final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
+    shutdownNotifier.register(interruptThreadOnShutdown);
+
+    try {
+      return run0(cfa, stats);
+    } finally {
+      shutdownNotifier.unregister(interruptThreadOnShutdown);
+    }
+  }
+
+  private CPAcheckerResult run0(CFA cfa, MainCPAStatistics stats) {
+
+    Algorithm algorithm = null;
+    ReachedSet reached = null;
+    Result result = Result.NOT_YET_STARTED;
+    String targetDescription = "";
+    Specification specification;
+
+    try {
+
+      // create reached set, cpa, algorithm
       ConfigurableProgramAnalysis cpa;
+
+      // When the run method is called from the main entry run method, the creationTime
+      // is already running. In this case, we do not need to start it again.
+      if (!stats.creationTime.isRunning()) {
+        stats.creationTime.start();
+      }
       stats.cpaCreationTime.start();
       try {
+        logAboutSpecification();
         specification =
             Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
         cpa = factory.createCPA(cfa, specification);
@@ -388,83 +412,71 @@ public class CPAchecker {
       } else {
         result = Result.DONE;
       }
-
-    } catch (IOException e) {
-      logger.logUserException(Level.SEVERE, e, "Could not read file");
-
-    } catch (ParserException e) {
-      logger.logUserException(Level.SEVERE, e, "Parsing failed");
-      StringBuilder msg = new StringBuilder();
-      msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      switch (e.getLanguage()) {
-        case C:
-          msg.append(
-              "If the code was not preprocessed, please use a C preprocessor\n"
-                  + "or specify the -preprocess command-line argument.\n");
-          break;
-        case LLVM:
-          msg.append(
-              "If you want to use the LLVM frontend, please make sure that\n"
-                  + "the code can be compiled by clang or input valid LLVM code.\n");
-          break;
-        default:
-          // do not log additional messages
-          break;
-      }
-      msg.append(
-          "If the error still occurs, please send this error message\n"
-              + "together with the input file to cpachecker-users@googlegroups.com.\n");
-      logger.log(Level.INFO, msg);
-
-    } catch (ClassNotFoundException e) {
-      logger.logUserException(Level.SEVERE, e, "Could not read serialized CFA. Class is missing.");
-
-    } catch (InvalidConfigurationException e) {
-      logger.logUserException(Level.SEVERE, e, "Invalid configuration");
-
-    } catch (InterruptedException e) {
-      // CPAchecker must exit because it was asked to
-      // we return normally instead of propagating the exception
-      // so we can return the partial result we have so far
-      logger.logUserException(Level.WARNING, e, "Analysis interrupted");
-
-    } catch (CPAException e) {
-      logger.logUserException(Level.SEVERE, e, null);
-
+    } catch (InvalidConfigurationException | InterruptedException | CPAException e) {
+      logErrorMessage(e, logger);
     } finally {
       CPAs.closeIfPossible(algorithm, logger);
-      shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
     return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
-  private CFA parse(List<String> fileNames, MainCPAStatistics stats)
-      throws InvalidConfigurationException,
-          IOException,
-          ParserException,
-          InterruptedException,
-          ClassNotFoundException {
-
-    final CFA cfa;
-    if (serializedCfaFile == null) {
-      // parse file and create CFA
-      logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
-      CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
-      stats.setCFACreator(cfaCreator);
-      cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
-
-    } else {
-      // load CFA from serialization file
-      logger.logf(Level.INFO, "Reading CFA from file \"%s\"", serializedCfaFile);
-      try (InputStream inputStream = Files.newInputStream(serializedCfaFile);
-          InputStream gzipInputStream = new GZIPInputStream(inputStream);
-          ObjectInputStream ois = new ObjectInputStream(gzipInputStream)) {
-        cfa = (CFA) ois.readObject();
-      }
-
-      assert CFACheck.check(cfa.getMainFunction(), null, cfa.getMachineModel());
+  private static void handleParserException(ParserException e, LogManager pLogger) {
+    pLogger.logUserException(Level.SEVERE, e, "Parsing failed");
+    StringBuilder msg = new StringBuilder();
+    msg.append("Please make sure that the code can be compiled by a compiler.\n");
+    switch (e.getLanguage()) {
+      case C:
+        msg.append(
+            """
+            If the code was not preprocessed, please use a C preprocessor
+            or specify the --preprocess command-line argument.
+            """);
+        break;
+      case LLVM:
+        msg.append(
+            """
+            If you want to use the LLVM frontend, please make sure that
+            the code can be compiled by clang or input valid LLVM code.
+            """);
+        break;
+      default:
+        // do not log additional messages
+        break;
     }
+    msg.append(
+        """
+        If the error still occurs, please send this error message
+        together with the input file to cpachecker-users@googlegroups.com.
+        """);
+    pLogger.log(Level.INFO, msg);
+  }
 
+  private static void logErrorMessage(Exception e, LogManager pLogger) {
+    if (e instanceof IOException) {
+      pLogger.logUserException(Level.SEVERE, e, "Could not read file");
+    } else if (e instanceof InvalidConfigurationException) {
+      pLogger.logUserException(Level.SEVERE, e, "Invalid configuration");
+    } else if (e instanceof ParserException) {
+      handleParserException((ParserException) e, pLogger);
+    } else if (e instanceof InterruptedException) {
+      // CPAchecker must exit because it was asked to
+      // we return normally instead of propagating the exception
+      // so we can return the partial result we have so far
+      pLogger.logUserException(Level.WARNING, e, "Analysis interrupted");
+    } else if (e instanceof CPAException) {
+      pLogger.logUserException(Level.SEVERE, e, null);
+    } else {
+      throw new AssertionError("unexpected exception type", e);
+    }
+  }
+
+  public CFA parse(List<String> fileNames, MainCPAStatistics stats)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
+
+    logger.logf(Level.INFO, "Parsing CFA from file(s) \"%s\"", Joiner.on(", ").join(fileNames));
+    CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
+    stats.setCFACreator(cfaCreator);
+    final CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa);
     return cfa;
   }
@@ -485,6 +497,23 @@ public class CPAchecker {
           "The following options are deprecated and will be removed in the future:\n",
           Joiner.on("\n ").join(deprecatedProperties),
           "\n");
+    }
+  }
+
+  private void logAboutSpecification() {
+    try {
+      Path defaultSpec =
+          Classes.getCodeLocation(CPAchecker.class)
+              .resolveSibling("config/specification/default.spc");
+      if (specificationFiles.size() == 1
+          && Files.isSameFile(specificationFiles.get(0), defaultSpec)) {
+        logger.log(
+            Level.INFO,
+            "Using default specification, which checks for assertion failures and error labels.");
+      }
+    } catch (IOException e) {
+      // This method only logs, we do not want this to disturb CPAchecker execution on failure.
+      logger.logDebugException(e, "Failed to check whether given spec is default spec.");
     }
   }
 
@@ -597,20 +626,23 @@ public class CPAchecker {
               yield Optionals.asSet(pAnalysisEntryFunction.getExitNode());
             }
             case FUNCTION_ENTRIES -> ImmutableSet.copyOf(pCfa.entryNodes());
-            case FUNCTION_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
-                .addAll(getAllFunctionExitNodes(pCfa))
-                .build();
-            case PROGRAM_SINKS -> ImmutableSet.<CFANode>builder()
-                .addAll(
-                    CFAUtils.getProgramSinks(
-                        pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
-                .build();
-            case TARGET -> new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
-                .tryGetAutomatonTargetLocations(
-                    pAnalysisEntryFunction,
-                    Specification.fromFiles(
-                        backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
+            case FUNCTION_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
+                    .addAll(getAllFunctionExitNodes(pCfa))
+                    .build();
+            case PROGRAM_SINKS ->
+                ImmutableSet.<CFANode>builder()
+                    .addAll(
+                        CFAUtils.getProgramSinks(
+                            pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
+                    .build();
+            case TARGET ->
+                new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa)
+                    .tryGetAutomatonTargetLocations(
+                        pAnalysisEntryFunction,
+                        Specification.fromFiles(
+                            backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           };
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
     }

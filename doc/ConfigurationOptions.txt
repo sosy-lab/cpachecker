@@ -56,8 +56,22 @@ output.path = "output/"
 rootDirectory = "."
 
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+
+# Further options for Bitwuzla in addition to the default options. Format: 
+# "option_name=value" with ’,’ to separate options. Option names and values
+# can be found in the Bitwuzla documentation
+# online:https://bitwuzla.github.io/docs/cpp/enums/option.html#_CPPv4N8bitwuzla6OptionEExample:
+# "PRODUCE_MODELS=2,SAT_SOLVER=kissat".
+solver.bitwuzla.furtherOptions = ""
+
+# The SAT solver used by Bitwuzla.
+solver.bitwuzla.satSolver = CADICAL
+  enum:     [LINGELING, CMS, CADICAL, KISSAT]
 
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
@@ -71,6 +85,21 @@ solver.boolector.satSolver = CADICAL
 
 # Counts all operations and interactions towards the SMT solver.
 solver.collectStatistics = false
+
+# apply additional validation checks for interpolation results
+solver.cvc5.validateInterpolants = false
+
+# Enable assertions that make sure that functions are only used in the
+# context that declared them.
+solver.debugMode.noSharedDeclarations = false
+
+# Enable assertions that make sure formula terms are only used in the context
+# that created them.
+solver.debugMode.noSharedFormulas = false
+
+# Enable assertions that make sure that solver instances are only used on the
+# thread that created them.
+solver.debugMode.threadLocal = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -94,6 +123,20 @@ solver.mathsat5.loadOptimathsat5 = false
 # integer and rational arithmetic.
 solver.nonLinearArithmetic = USE
   enum:     [USE, APPROXIMATE_FALLBACK, APPROXIMATE_ALWAYS]
+
+# Algorithm for boolean interpolation
+solver.opensmt.algBool = 0
+
+# Algorithm for LRA interpolation
+solver.opensmt.algLra = 0
+
+# Algorithm for UF interpolation
+solver.opensmt.algUf = 0
+
+# SMT-LIB2 name of the logic to be used by the solver.
+solver.opensmt.logic = QF_AUFLIRA
+  enum:     [CORE, QF_AX, QF_UF, QF_IDL, QF_RDL, QF_LIA, QF_LRA, QF_ALIA, QF_ALRA,
+             QF_UFLIA, QF_UFLRA, QF_AUFLIA, QF_AUFLRA, QF_AUFLIRA]
 
 # Enable additional assertion checks within Princess. The main usage is
 # debugging. This option can cause a performance overhead.
@@ -125,7 +168,8 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -133,6 +177,9 @@ solver.synchronize = false
 # Use provers from a seperate context to solve queries. This allows more
 # parallelity when solving larger queries.
 solver.synchronized.useSeperateProvers = false
+
+# Apply additional checks to catch common user errors.
+solver.useDebugMode = false
 
 # Log solver actions, this may be slow!
 solver.useLogger = false
@@ -158,11 +205,14 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -188,6 +238,10 @@ analysis.algorithm.BMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use dual approximated reachability model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.DAR = false
+
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
@@ -207,8 +261,10 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
-# Distribute predicate analysis to multiple workers
-analysis.algorithm.configurableComponents = false
+# Use distributed summary synthesis. This decomposes the input program into
+# smaller units that are analyzed concurrently. See
+# https://doi.org/10.1145/3660766 for details.
+analysis.algorithm.distributedSummarySynthesis = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
@@ -330,10 +386,11 @@ analysis.initialStatesFor = {InitialStatesFor.ENTRY}
 # run interprocedural analysis
 analysis.interprocedural = true
 
-# Runs an algorithm that produces and exports invariants
-analysis.invariantExport = false
-
-# the machine model, which determines the sizes of types like int
+# the machine model, which determines the sizes of types like int:
+# - LINUX32: ILP32 for Linux on 32-bit x86
+# - LINUX64: LP64 for Linux on 64-bit x86
+# - ARM: ILP32 for Linux on 32-bit ARM
+# - ARM64: LP64 for Linux on 64-bit ARM
 analysis.machineModel = LINUX32
   enum:     [LINUX32, LINUX64, ARM, ARM64]
 
@@ -384,10 +441,6 @@ analysis.restartAfterUnknown = false
 
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
-
-# if this option is used, the CFA will be loaded from the given file instead
-# of parsed from sourcefile.
-analysis.serializedCfaFile = no default value
 
 # Split program in subprograms which can be analyzed separately afterwards
 analysis.split.program = false
@@ -521,9 +574,6 @@ analysis.useTestCaseGeneratorAlgorithm = false
 # converts a witness to an ACSL annotated program
 analysis.useWitnessToACSLAlgorithm = false
 
-# converts a graphml witness to invariant witness
-analysis.witnessToInvariant = false
-
 # Whether to allow imprecise array abstraction that may lead to false alarms.
 arrayAbstraction.allowImprecision = false
 
@@ -650,8 +700,9 @@ bdd.pjbdd.tableParallelism = 10000
 # default
 bdd.pjbdd.threads = Runtime.getRuntime().availableProcessors()
 
-# Use bdd chaining.
-bdd.pjbdd.useChainedBDD = false
+# Type of BDD used in PJBDD.
+bdd.pjbdd.useBDDType = "BDD"
+  allowed values: [BDD, ChainedBDD]
 
 # Use internal a int based bdd representation.
 bdd.pjbdd.useInts = false
@@ -712,7 +763,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -726,8 +777,30 @@ bmc.invariantGeneratorHeadStartStrategy = NONE
 # Export auxiliary invariants used for induction.
 bmc.invariantsExport = no default value
 
-# get candidate invariants from a predicate precision file
+# File with predicate precisions that should be used as candidate invariants
+# in k-induction
 bmc.kinduction.predicatePrecisionFile = no default value
+
+# Maximum number of invariants candidates that are generated for a witness
+# invariants when ignoring the function information of the witness and only
+# using the line number. The option has no effect if the heuristic is not
+# NEAREST_N_LOOPS and option enableSecondaryHeuristic is disabled.
+bmc.kinduction.regression.witness.allowedLineMappings = 3
+
+# Enable to use NEAREST_N_LOOPS heuristic for witness invariants for which
+# the primary heuristic did not generate candidate invariants
+bmc.kinduction.regression.witness.enableSecondaryMappingHeuristic = false
+
+# Heuristic for generating candidate invariants from witness invariants,which
+# determines how witness invariants are mapped to loops 
+bmc.kinduction.regression.witness.mappingHeuristic = ALL_LOOPS_IN_FUNCTION
+  enum:     [ALL_LOOPS_IN_FUNCTION, NEAREST_LOOP_IN_FUNCTION_WITHOUT_CANDIDATE,
+             LOOPS_IN_FUNCTION_IN_ORDER, NEAREST_N_LOOPS]
+
+# Correctness witness in 2.x format (for previous program version) that
+# should be used in regression verificationto get candidate invariants for
+# k-induction
+bmc.kinduction.regression.witnessFile = no default value
 
 # which strategy to use to convert predicate precision to k-induction
 # invariant
@@ -814,10 +887,6 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
-# produce C programs more similar to the input program
-# (only possible for a single input file)
-cfa.exportToC.stayCloserToInput = false
-
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
@@ -846,11 +915,7 @@ cfa.nonReturningFunctions = {"abort", "exit"}
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
-cfa.pixelGraphicFile = "cfaPixel"
-
-# export CFA as .ser file (dump Java objects)
-cfa.serialize = false
-cfa.serializeFile = "cfa.ser.gz"
+cfa.pixelGraphicFile = no default value
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
@@ -991,6 +1056,10 @@ counterexample.checker = CBMC
 # counterexample check, if available
 counterexample.checker.changeCEXInfo = false
 
+# counterexample check checks MemSafety sub-properties (valid-deref,
+# valid-free, valid-memtrack) additionally to the path.
+counterexample.checker.checkMemorySafetySubproperty = false
+
 # configuration file for counterexample checks with CPAchecker
 counterexample.checker.config = no default value
 
@@ -1089,7 +1158,7 @@ counterexample.export.exportExtendedWitness = false
 counterexample.export.exportFaults = true
 
 # export test harness
-counterexample.export.exportHarness = false
+counterexample.export.exportHarness = true
 
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
@@ -1100,9 +1169,6 @@ counterexample.export.exportTestCase = false
 
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
-
-# export counterexample as witness/yaml file
-counterexample.export.exportYamlWitness = false
 
 # Extended witness with specific analysis information file
 counterexample.export.extendedWitnessFile = "extendedWitness.%d.graphml"
@@ -1150,8 +1216,13 @@ counterexample.export.source = "Counterexample.%d.c"
 # export counterexample witness as Dot/Graphviz visualization
 counterexample.export.witnessGraph = "Counterexample.%d.witness.dot"
 
-# export counterexample witness as GraphML automaton
-counterexample.export.yaml = "Counterexample.%d.yaml"
+# The template from which the different versions of the violation witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number. The string %d is replace with the number of the counterexample.
+counterexample.export.yaml = "Counterexample.%d.witness-%s.yml"
+
+# deprecated name for counterexample.export.presenceCondition
+counterexample.presenceConditionFile = "Counterexample.%d.presenceCondition.txt"
 
 # If continueAfterInfeasibleError is true, remove the error state that is
 # proven to be unreachable before continuing. Set this to false if
@@ -1281,8 +1352,78 @@ cpa.arg.dumpAfterIteration = false
 # cache-hit-rate for BAM and a faster sub-analysis for blocks.
 cpa.arg.enableStateReduction = true
 
-# enable witness generation in the new yaml format.
-cpa.arg.enableYamlWitnesses = false
+# deprecated name for counterexample.export.automaton
+cpa.arg.errorPath.automaton = "Counterexample.%d.spc"
+
+# deprecated name for counterexample.export.codeStyle
+cpa.arg.errorPath.codeStyle = CBMC
+  enum:     [CBMC, CONCRETE_EXECUTION]
+
+# deprecated name for counterexample.export.compressWitness
+cpa.arg.errorPath.compressWitness = true
+
+# deprecated name for counterexample.export.core
+cpa.arg.errorPath.core = "Counterexample.%d.core.txt"
+
+# deprecated name for counterexample.export.enabled
+cpa.arg.errorPath.export = true
+
+# deprecated name for counterexample.export.exportAllFoundErrorPaths
+cpa.arg.errorPath.exportAllFoundErrorPaths = false
+
+# deprecated name for counterexample.export.exportAsSource
+cpa.arg.errorPath.exportAsSource = true
+
+# deprecated name for counterexample.export.exportCounterexampleCoverage
+cpa.arg.errorPath.exportCounterexampleCoverage = false
+
+# deprecated name for counterexample.export.exportExtendedWitness
+cpa.arg.errorPath.exportExtendedWitness = false
+
+# deprecated name for counterexample.export.exportFaults
+cpa.arg.errorPath.exportFaults = true
+
+# deprecated name for counterexample.export.exportHarness
+cpa.arg.errorPath.exportHarness = true
+
+# deprecated name for counterexample.export.exportImmediately
+cpa.arg.errorPath.exportImmediately = false
+
+# deprecated name for counterexample.export.exportTestCase
+cpa.arg.errorPath.exportTestCase = false
+
+# deprecated name for counterexample.export.exportWitness
+cpa.arg.errorPath.exportWitness = true
+
+# deprecated name for counterexample.export.extendedWitnessFile
+cpa.arg.errorPath.extendedWitnessFile = "extendedWitness.%d.graphml"
+
+# deprecated name for counterexample.export.file
+cpa.arg.errorPath.file = "Counterexample.%d.txt"
+
+# deprecated name for counterexample.export.filters
+cpa.arg.errorPath.filters = no default value
+
+# deprecated name for counterexample.export.graph
+cpa.arg.errorPath.graph = "Counterexample.%d.dot"
+
+# deprecated name for counterexample.export.graphml
+cpa.arg.errorPath.graphml = "Counterexample.%d.graphml"
+
+# deprecated name for counterexample.export.harness
+cpa.arg.errorPath.harness = "Counterexample.%d.harness.c"
+
+# deprecated name for counterexample.export.prefixCoverageFile
+cpa.arg.errorPath.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
+
+# deprecated name for counterexample.export.source
+cpa.arg.errorPath.source = "Counterexample.%d.c"
+
+# deprecated name for counterexample.export.witnessGraph
+cpa.arg.errorPath.witnessGraph = "Counterexample.%d.witness.dot"
+
+# deprecated name for counterexample.export.yaml
+cpa.arg.errorPath.yaml = "Counterexample.%d.witness-%s.yml"
 
 # export final ARG as .dot file
 cpa.arg.export = true
@@ -1310,6 +1451,12 @@ cpa.arg.export.code.metadataOutput = no default value
 
 # when enabled also write invariant true to correctness-witness automata
 cpa.arg.exportTrueInvariants = false
+
+# export correctness witness in YAML format
+cpa.arg.exportYamlCorrectnessWitness = true
+
+# export witnesses for unknown verdicts
+cpa.arg.exportYamlWitnessesForUnknownVerdict = true
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -1348,7 +1495,7 @@ cpa.arg.mergeOnWrappedSubsumption = false
 # Export final ARG as pixel graphic to the given file name. The suffix is
 # added  corresponding to the value of option pixelgraphic.export.formatIf
 # set to 'null', no pixel graphic is exported.
-cpa.arg.pixelGraphicFile = "ARG"
+cpa.arg.pixelGraphicFile = no default value
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
@@ -1422,8 +1569,10 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
-# export a proof as .yaml file
-cpa.arg.yamlProofWitness = no default value
+# The template from which the different versions of the correctness witnesses
+# will be exported. Each version replaces the string '%s' with its version
+# number.
+cpa.arg.yamlProofWitness = "witness-%s.yml"
 
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
@@ -1598,8 +1747,9 @@ cpa.callstack.skipFunctionPointerRecursion = false
 # same as for functions without bodies)
 cpa.callstack.skipRecursion = false
 
-# Skip recursion if it happens only by going via a void function (this is
-# unsound).
+# Skip recursion if it happens only by going via a void function with no
+# pointers passed as parameters. This is unsound if the function modifies
+# global variables.
 cpa.callstack.skipVoidRecursion = false
 
 # analyse the CFA backwards
@@ -1609,18 +1759,11 @@ cpa.callstack.traverseBackwards = false
 cpa.callstack.unsupportedFunctions = {
           "pthread_create",
           "pthread_key_create",
+          "_longjmp",
           "longjmp",
           "siglongjmp",
           "__builtin_va_arg",
           "atexit"}
-
-# firing relation to be used in the precision adjustment operator
-cpa.chc.firingRelation = "Always"
-  allowed values: [Always, Maxcoeff, Sumcoeff, Homeocoeff]
-
-# generalization operator to be used in the precision adjustment operator
-cpa.chc.generalizationOperator = "Widen"
-  allowed values: [Top, Widen, WidenMax, WidenSum]
 
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
@@ -1924,20 +2067,22 @@ cpa.loopbound.cyclicStopModulus = -1
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
 
-# this option controls how the maxLoopIterations condition is adjusted when a
+# This option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
 cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]
 
-# threshold for unrolling loops of the program (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
+# Bound for the number of complete loop unrollings
+# of the program (0 is used for no bound).
+# Works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound.
 cpa.loopbound.maxLoopIterations = 0
 
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
+# Maximum for adjusting the bound for the number of complete loop unrollings
+# of the
+#  program (0 is used for no maximum).
+# Only relevant in combination with a non-static adjuster for the bound for
+# loop-head visits.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
 # Only checks for error after loops were unrolled at least this amount of
@@ -1950,6 +2095,9 @@ cpa.loopbound.trackStack = false
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
+
+# deprecated name for precision.template.allowedCoefficients
+cpa.lpi.allowedCoefficients = {Rational.NEG_ONE, Rational.ONE}
 
 # Attach extra invariant from other CPAs during the value determination
 # computation
@@ -1971,11 +2119,29 @@ cpa.lpi.delayAbstractionUntilStrengthen = false
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
 
+# deprecated name for precision.template.generateDifferences
+cpa.lpi.generateDifferences = false
+
+# deprecated name for precision.template.generateFromAsserts
+cpa.lpi.generateFromAsserts = true
+
+# deprecated name for precision.template.generateFromStatements
+cpa.lpi.generateFromStatements = false
+
 # Generate new templates using polyhedra convex hull
 cpa.lpi.generateTemplatesUsingConvexHull = false
 
+# deprecated name for precision.template.includeFunctionParameters
+cpa.lpi.includeFunctionParameters = false
+
 # Remove UFs and ITEs from policies.
 cpa.lpi.linearizePolicy = true
+
+# deprecated name for precision.template.maxExpressionSize
+cpa.lpi.maxExpressionSize = 1
+
+# deprecated name for precision.template.performEnumerativeRefinement
+cpa.lpi.performEnumerativeRefinement = true
 
 # Attempt to weaken interpolants in order to make them more general
 cpa.lpi.refinement.generalizeInterpolants = true
@@ -1985,6 +2151,9 @@ cpa.lpi.runHopefulValueDetermination = true
 
 # Remove redundant items when abstract values.
 cpa.lpi.simplifyDotOutput = false
+
+# deprecated name for precision.template.templateConstantThreshold
+cpa.lpi.templateConstantThreshold = 100
 
 # Algorithm for converting a formula to a set of lemmas
 cpa.lpi.toLemmasAlgorithm = "RCNF"
@@ -1999,6 +2168,10 @@ cpa.lpi.useCachingPathFormulaManager = true
 
 # Syntactically pre-compute dependencies for value determination
 cpa.lpi.valDetSyntacticCheck = true
+
+# deprecated name for precision.template.varFiltering
+cpa.lpi.varFiltering = ALL_LIVE
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
 
 # Number of value determination steps allowed before widening is run. Value
 # of '-1' runs value determination until convergence.
@@ -2091,6 +2264,10 @@ cpa.predicate.abstraction.initialPredicates.applyGlobally = false
 cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
   enum:     [DISABLE, INT2BV, BV2INT]
 
+# when reading invariants from YML witness ignore the location context and
+# only consider the function context of the program
+cpa.predicate.abstraction.initialPredicates.ignoreLocationInfoInYMLWitness = false
+
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
@@ -2120,10 +2297,22 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# deprecated name for cpa.predicate.invariants.addToPrecision
+cpa.predicate.addToPrecision = false
+
+# deprecated name for counterexample.export.allowImpreciseCounterexamples
+cpa.predicate.allowImpreciseCounterexamples = false
+
 # Allow the given extern functions and interpret them as pure functions
 # although the predicate analysis does not support their semantics and this
 # can produce wrong results.
 cpa.predicate.allowedUnsupportedFunctions = {}
+
+# deprecated name for counterexample.export.alwaysUseImpreciseCounterexamples
+cpa.predicate.alwaysUseImpreciseCounterexamples = false
+
+# deprecated name for cpa.predicate.invariants.appendToAbstractionFormula
+cpa.predicate.appendToAbstractionFormula = false
 
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
@@ -2158,12 +2347,18 @@ cpa.predicate.blk.alwaysAtExplicitNodes = false
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionCallNodes = false
 
+# abstraction always at function exit nodes.
+cpa.predicate.blk.alwaysAtFunctionExit = false
+
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionHeads = false
 
 # force abstractions at each function calls/returns, regardless of threshold
 cpa.predicate.blk.alwaysAtFunctions = true
+
+# Abstract at predefined locations given as a list of CFANode ids.
+cpa.predicate.blk.alwaysAtGivenNodes = {}
 
 # force abstractions at each join node, regardless of threshold
 cpa.predicate.blk.alwaysAtJoin = false
@@ -2212,12 +2407,29 @@ cpa.predicate.deferUntypedAllocations = true
 cpa.predicate.direction = FORWARD
   enum:     [FORWARD, BACKWARD]
 
+# deprecated name for counterexample.export.formula
+cpa.predicate.dumpCounterexampleFormula = "Counterexample.%d.smt2"
+
+# deprecated name for counterexample.export.model
+cpa.predicate.dumpCounterexampleModel = "Counterexample.%d.assignment.txt"
+
+# deprecated name for
+# cpa.predicate.invariants.dumpInvariantGenerationAutomata
+cpa.predicate.dumpInvariantGenerationAutomata = false
+
+# deprecated name for
+# cpa.predicate.invariants.dumpInvariantGenerationAutomataFile
+cpa.predicate.dumpInvariantGenerationAutomataFile = "invgen.%d.spc"
+
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
 # Enable handling of functions memset, memcopy, memmove. If disabled, using
 # these functions will result in an error.
 cpa.predicate.enableMemoryAssignmentFunctions = false
+
+# Enable to share the information via serialization storage.
+cpa.predicate.enableSharedInformation = false
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
@@ -2258,6 +2470,9 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
+
+# deprecated name for cpa.predicate.invariants.generationStrategy
+cpa.predicate.generationStrategy = []
 
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
@@ -2330,7 +2545,7 @@ cpa.predicate.invariants.file = "invariants.txt"
 # Which strategy should be used for generating invariants, a comma separated
 # list can be specified. Usually later specified strategies serve as fallback
 # for earlier ones. (default is no invariant generation at all)
-cpa.predicate.invariants.generationStrategy = new ArrayList<>()
+cpa.predicate.invariants.generationStrategy = []
 
 # How often should generating invariants from sliced prefixes with
 # k-induction be tried?
@@ -2358,6 +2573,9 @@ cpa.predicate.invariants.useGlobalInvariants = true
 # analysis, however, the found invariants may also be better for loops as
 # interpolation.)
 cpa.predicate.invariants.useStrongInvariantsOnly = true
+
+# deprecated name for cpa.predicate.invariants.kInductionTries
+cpa.predicate.kInductionTries = 3
 
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
@@ -2405,7 +2623,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random", "rand_r", "srand", "time"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2668,6 +2886,25 @@ cpa.predicate.slicingabstractions.optimizeslicing = true
 # Whether to remove parts fo the ARG from which no target state is reachable
 cpa.predicate.slicingabstractions.removeSafeRegions = true
 
+# deprecated name for solver.cacheUnsatCores
+cpa.predicate.solver.cacheUnsatCores = true
+
+# deprecated name for solver.checkUFs
+cpa.predicate.solver.checkUFs = false
+
+# deprecated name for solver.enableLoggingInSolver
+cpa.predicate.solver.enableLoggingInSolver = false
+
+# deprecated name for solver.interpolationSolver
+cpa.predicate.solver.interpolationSolver = no default value
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
+
+# deprecated name for solver.solver
+cpa.predicate.solver.solver = MATHSAT5
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
+
 # C99 only defines the overflow of unsigned integer type.
 cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 
@@ -2705,8 +2942,14 @@ cpa.predicate.symbolicCoverageCheck = false
 # check satisfiability when a target state has been found
 cpa.predicate.targetStateSatCheck = false
 
+# deprecated name for cpa.predicate.invariants.timeForInvariantGeneration
+cpa.predicate.timeForInvariantGeneration = 10s
+
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
+
+# deprecated name for cpa.predicate.invariants.useAllStrategies
+cpa.predicate.useAllStrategies = false
 
 # Use SMT arrays for encoding heap memory instead of uninterpreted function
 # (ignored if useByteArrayForHeap=true). This is more precise but may lead to
@@ -2726,9 +2969,15 @@ cpa.predicate.useByteArrayForHeap = false
 # Use an optimisation for constraint generation
 cpa.predicate.useConstraintOptimization = true
 
+# deprecated name for cpa.predicate.invariants.useGlobalInvariants
+cpa.predicate.useGlobalInvariants = true
+
 # For multithreaded programs this is an overapproximation of possible values
 # of shared variables.
 cpa.predicate.useHavocAbstraction = false
+
+# deprecated name for cpa.predicate.invariants.appendToPathFormula
+cpa.predicate.useInvariantsForAbstraction = false
 
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
@@ -2750,6 +2999,9 @@ cpa.predicate.useParameterVariablesForGlobals = false
 # Use quantifiers when encoding heap accesses. This requires an SMT solver
 # that is capable of quantifiers (e.g. Z3 or PRINCESS).
 cpa.predicate.useQuantifiersOnArrays = false
+
+# deprecated name for cpa.predicate.invariants.useStrongInvariantsOnly
+cpa.predicate.useStrongInvariantsOnly = true
 
 # Do not follow states which can not syntactically lead to a target location
 cpa.property_reachability.noFollowBackwardsUnreachable = true
@@ -2985,6 +3237,17 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg2.GCCZeroLengthArray = false
 
+# aborts the analysis for a non-concrete (this includes symbolic values)
+# memory allocation of any kind.
+cpa.smg2.abortOnNonConcreteMemorySize = true
+
+# Periodically removes concrete values from the memory model and replaces
+# them with symbolic values. Only the newest concrete values above this
+# threshold are removed. For negative numbers this option is ignored. Note: 0
+# also removes the null value, reducing impacting null dereference or free
+# soundness. Currently only supported for given value 0.
+cpa.smg2.abstraction.abstractConcreteValuesAboveThreshold = -1
+
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
@@ -3011,21 +3274,42 @@ cpa.smg2.abstraction.alwaysAtLoop = false
 # computations are performed (and iteration threshold was reached)
 cpa.smg2.abstraction.determinismThreshold = 85
 
-# toggle liveness abstraction
-cpa.smg2.abstraction.doLivenessAbstraction = false
+# toggle memory sensitive liveness abstraction. Liveness abstraction is
+# supposed to simply abstract all variables away (invalidating memory) when
+# unused, even if there is valid outside pointers on them. With this option
+# enabled, it is first checked if there is a valid address still pointing to
+# the variable before removing it. Liveness abstraction might be unsound
+# without this option.
+cpa.smg2.abstraction.doEnforcePointerSensitiveLiveness = true
+
+# toggle liveness abstraction. Is independent of CEGAR, but dependent on the
+# CFAs liveness variables being tracked. Might be unsound for stack-based
+# memory structures like arrays.
+cpa.smg2.abstraction.doLivenessAbstraction = true
 
 # skip abstraction computations until the given number of iterations are
 # reached, after that decision is based on then current level of determinism,
 # setting the option to -1 always performs abstraction computations
 cpa.smg2.abstraction.iterationThreshold = -1
 
+# The minimum list segments that are needed for abstraction may be increased
+# during the analysis based on a heuristic in fixed sized loops. This is the
+# maximum increase that is allowed. E.g. all lists with the length given here
+# are abstracted in any case. If you want to prevent dynamic increase of list
+# abstraction min threshold set this to the same value as
+# listAbstractionMinimumLengthThreshold.
+cpa.smg2.abstraction.listAbstractionMaximumIncreaseLengthThreshold = 6
+
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 12
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshold = 4
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
 cpa.smg2.abstraction.onlyAtNonLinearCFA = false
+
+# Periodically removes unused constraints from the state.
+cpa.smg2.abstraction.removeUnusedConstraints = false
 
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
@@ -3036,9 +3320,6 @@ cpa.smg2.arrayAllocationFunctions = {"calloc"}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.smg2.assignEqualityAssumptions = true
 
-# Treat symbolic values as unknowns and assign new concrete values to them.
-cpa.smg2.assignSymbolicValues = true
-
 # Whether to perform caching of constraint satisfiability results
 cpa.smg2.cache = true
 
@@ -3047,6 +3328,10 @@ cpa.smg2.cacheSubsets = false
 
 # Whether to use superset caching
 cpa.smg2.cacheSupersets = false
+
+# If this Option is enabled, C function atexit() will return a succeeding and
+# failing registration for each registration. Otherwise only succeeding.
+cpa.smg2.canAtexitFail = false
 
 # with this option enabled, memory addresses (pointers) are transformed into
 # a numeric assumption upon casting the pointer to a number. This assumption
@@ -3060,8 +3345,13 @@ cpa.smg2.castMemoryAddressesToNumeric = false
 # function returns, and not only at the end of the main function
 cpa.smg2.checkForMemLeaksAtEveryFrameDrop = true
 
-# Crash on unknown array dereferences
-cpa.smg2.crashOnUnknown = false
+# Maximum amount of concrete assignments before the assigning is aborted. The
+# last offset is then once treated as option
+# overapproximateSymbolicOffsetsAsFallback specifies.
+cpa.smg2.concreteValueForSymbolicOffsetsAssignmentMaximum = 300
+
+# Crash on unknown value when creating constraints of any form.
+cpa.smg2.crashOnUnknownInConstraint = false
 
 # Deallocation functions
 cpa.smg2.deallocationFunctions = {"free"}
@@ -3084,6 +3374,13 @@ cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
+
+# If this Option is enabled, all symbolic offsets used when writing to memory
+# are evaluated into all possible concrete values by an SMT solver. This
+# might be very expensive, as all possible combinations of values for the
+# symbolic offsets are concretely evaluated. May not be used together with
+# option overapproximateForSymbolicWrite.
+cpa.smg2.findConcreteValuesForSymbolicOffsets = false
 
 # Allocation size of memory that cannot be calculated.
 cpa.smg2.guessSize = BigInteger.valueOf(2)
@@ -3110,7 +3407,7 @@ cpa.smg2.handleUnknownFunctions = STRICT
 # If this option is enabled, a memory allocation (e.g. malloc or array
 # declaration) for unknown memory sizes does not abort, but also does not
 # create any memory.
-cpa.smg2.handleUnknownMemoryAllocation = IGNORE
+cpa.smg2.handleUnknownMemoryAllocation = STOP_ANALYSIS
   enum:     [IGNORE, MEMORY_ERROR, STOP_ANALYSIS]
 
 # if there is an assumption like (x!=0), this option sets unknown
@@ -3157,6 +3454,25 @@ cpa.smg2.minimalSatCheck = true
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# If this Option is enabled, all values of a memory region that is written or
+# read with a symbolic offset are overapproximated. I.e. when writing to a
+# memory region, all previous values are deleted and the memory region is
+# overapproximated so that only unknown values are in the memory region after
+# the write. When reading, all possible reads are evaluated. Can not be used
+# at the same time as option findConcreteValuesForSymbolicOffsets.
+cpa.smg2.overapproximateSymbolicOffsets = false
+
+# If this Option is enabled, all values of a memory region that is written to
+# with a symbolic and non-unique offset in symbolically sized memory are
+# deleted and the value itself is overapproximated to unknown in the memory
+# region.
+cpa.smg2.overapproximateValuesForSymbolicSize = false
+
+# with this option enabled, we try to gather information on memory reads from
+# values that are overlapping but not exactly fitting to the read parameters.
+# Example: int value = 1111; char a = (char)((char[])&value)[1];
+cpa.smg2.preciseSMGRead = true
 
 # target file to hold the exported precision
 cpa.smg2.precisionFile = no default value
@@ -3207,6 +3523,9 @@ cpa.smg2.trackErrorPredicates = false
 
 # Enable track predicates on SMG state
 cpa.smg2.trackPredicates = false
+
+# Treat symbolic values as unknowns and assign new concrete values to them.
+cpa.smg2.treatSymbolicValuesAsUnknown = false
 
 # Emit messages when we encounter non-target undefined behavior
 cpa.smg2.unknownOnUndefined = true
@@ -3467,6 +3786,10 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# configure when to export loop invariants
+cpa.value.exportLoopInvariants = IF_TRUE
+  enum:     [ALWAYS, IF_NOT_FALSE, IF_TRUE, IF_UNKNOWN]
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value
@@ -3503,6 +3826,40 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 
 # whether or not to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
+
+# Enable invariants that use  an arithmetic operator(linear invariants are
+# enabled separately)
+cpa.value.invExport.exportArithmetic = true
+
+# Enable to export invariants that include two variables
+cpa.value.invExport.exportBinary = true
+
+# Enable invariants that use a bit operator
+cpa.value.invExport.exportBitops = true
+
+# Enable to export linear equalities or inequalities over variables, e.g., ax
+# + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0
+cpa.value.invExport.exportLinear = true
+
+# Enable invariants that relate (compare) two variables
+cpa.value.invExport.exportRelational = true
+
+# Enable invariants that use a shift operator, note that additionally
+# exportBitops must be enabled
+cpa.value.invExport.exportShiftops = true
+
+# Enable to export invariants that include three variables, currently only
+# effective if exportLinear is enabled, too
+cpa.value.invExport.exportTernary = true
+
+# Enable to export invariants on single variables
+cpa.value.invExport.exportUnary = true
+
+# enable if loop invariant export should consider context
+cpa.value.invExport.invariantsContextSensitive = true
+
+# target file to hold the exported loop invariants
+cpa.value.loopInvariantsFile = no default value
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -3696,6 +4053,18 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# toggle checking forward conditions
+dar.checkForwardConditions = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+dar.fallBack = true
+
+# toggle removing unreachable stop states in ARG
+dar.removeUnreachableStopStates = false
+
+# toggle replace global phase with BMC
+dar.replaceGlobalPhaseWithBMC = false
+
 # When checking for the data race property, use this configuration file
 # instead of the current one.
 datarace.config = no default value
@@ -3778,47 +4147,78 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
-# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
-# blocks from each merge/branching point to the next merge/branching point.
-# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
-# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
-# creates one block around the complete CFA.
-distributedSummaries.decompositionType = BLOCK_OPERATOR
-  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+# Abstraction nodes are added to each block after they are created. They are
+# needed to strengthen the preconditions of blocks. Missing blocks make the
+# analysis slower but not impossible.
+distributedSummaries.allowMissingAbstractionNodes = true
 
-# desired number of BlockNodes
-distributedSummaries.desiredNumberOfBlocks = 5
+# The number of blocks is dependent by the number of functions in the
+# program.A tolerance of 1 means, that we subtract 1 of the total number of
+# functions.
+distributedSummaries.allowSingleBlockDecompositionWhenMerging = false
 
-# Whether to spawn util workers. Util workers listen to every message and
-# create visual output for debugging. Workers consume resources and should
-# not be used for benchmarks.
-distributedSummaries.spawnUtilWorkers = true
+# Where to store the block graph in JSON format
+distributedSummaries.blockCFAFile = "block_analysis/blocks.json"
 
-# Configuration for backward analysis in computation of distributed summaries
-distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
+# Whether to enable debug mode of block-summary analysis. This creates visual
+# output for debugging and exports additional metadata.Creating this
+# information consumes resources and should not be used for benchmarks.
+distributedSummaries.debug = false
 
-# whether error conditions are always checked for unsatisfiability
-distributedSummaries.worker.checkEveryErrorCondition = true
+# Allows to set the algorithm for decomposing the CFA. LINEAR_DECOMPOSITION
+# creates blocks from each merge/branching point to the next merge/branching
+# point. MERGE_DECOMPOSITION merges blocks obtained by LINEAR_DECOMPOSITION.
+# The final number of blocks should converge to the number of functions in
+# the program. NO_DECOMPOSITION creates one block around the CFA.
+distributedSummaries.decompositionType = MERGE_DECOMPOSITION
+  enum:     [LINEAR_DECOMPOSITION, MERGE_DECOMPOSITION, BRIDGE_DECOMPOSITION,
+             NO_DECOMPOSITION]
+
+# Whether to stop after exporting the blockgraph
+distributedSummaries.generateBlockGraphOnly = false
+
+# Import an existing decomposition from a file
+distributedSummaries.importDecomposition = no default value
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'known' by block-summary analysis. Each file must
+# contain a single, valid JSON DssMessage. If at least one file is provided,
+# the block-summary analysis assumes these pre- and verification-conditions.
+# If no file is provided, the block-summary analysis assumes the precondition
+# 'true' and the verification condition 'false'.
+distributedSummaries.knownConditions = []
+
+# List of input files that contain preconditions and verification conditions
+# that should be assumed as 'new' by block-summary analysis. For each message
+# in this list, block-summary analysis will perform a new analysis run in the
+# order of occurrence. Each file must contain a single, valid JSON
+# DssMessage. If at least one file is provided, the block-summary analysis
+# assumes these pre- and verification-conditions. If no file is provided, the
+# block-summary analysis assumes the precondition 'true' and the verification
+# condition 'false'.
+distributedSummaries.newConditions = []
+
+# Where to write responses
+distributedSummaries.outputMessages = "messages/"
+
+# Change the queue type. VIOLATION_CONDITION prioritizes the processing of
+# ViolationConditionMessages. DEFAULT does not differ between PostCondition
+# and ViolationCondition messages.
+distributedSummaries.queue = DEFAULT
+  enum:     [VIOLATION_CONDITION, DEFAULT]
+
+# Whether to spawn a worker for only one block id
+distributedSummaries.spawnWorkerForId = ""
 
 # Configuration for forward analysis in computation of distributed summaries
-distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
+distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-synthesis/dss-block-analysis.properties"
 
-# Destination directory for the logfiles of all BlockSummaryWorkers. The
-# logfiles have the same name as the ID of the worker.
+# Destination directory for the logfiles of all DssWorkers. The logfiles have
+# the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_summary/logfiles"
 
-# Whether loop free programs have to deny all possible error messages. Enable
-# this option to eagerly process every possible error message that occurs
-# after an precondition update.
-distributedSummaries.worker.sendEveryErrorMessage = false
-
-# whether analysis worker store circular post conditions
-distributedSummaries.worker.storeCircularPostConditions = false
-
-# Choose the workers that are spawned for each block. Contrary to DEFAULT
-# workers, SMART workers consume multiple messages at once.
-distributedSummaries.workerType = DEFAULT
-  enum:     [DEFAULT, SMART]
+# output file for visualizing message exchange
+dss.logging.reportFiles = "block_analysis/block_analysis"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
@@ -3913,6 +4313,10 @@ heuristicSelection.complexLoopConfig = no default value
 
 # Configuration for programs containing composite types.
 heuristicSelection.compositeTypeConfig = no default value
+
+# If true, the strategy-selection algorithm does not run the selected config,
+# but only produces the statistics that show what config it would run.
+heuristicSelection.dryRun = false
 
 # Configuration for programs with loops.
 heuristicSelection.loopConfig = no default value
@@ -4014,23 +4418,6 @@ invariantGeneration.kInduction.invariantsAutomatonFile = no default value
 # For correctness-witness validation: Shut down if a candidate invariant is
 # found to be incorrect.
 invariantGeneration.kInduction.terminateOnCounterexample = false
-
-# The directory where the invariants are stored.
-invariantStore.export.outDir = "invariantWitnesses"
-
-# If enabled, this option will not just output loop invariants,but also
-# general location invariants at other locations.
-invariantStore.export.writeLocationInvariants = false
-
-# The directory where the invariants are stored.
-invariantStore.import.storeDirectory = "invariantWitnesses"
-
-# Strategy for generating invariants
-invariantStore.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, REACHED_SET, DO_NOTHING, INVARIANT_STORE]
-
-# The witness from which invariants should be generated.
-invariantStore.witness = "invariantwitness.yaml"
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4210,13 +4597,15 @@ overflow.trackPointers = false
 overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
-# ::supply-reached this signalizes that the (finished) reached set of an
-# analysis can be used in other analyses (e.g. for invariants computation).
-# If you use the suffix ::supply-reached-refinable instead this means that
-# the reached set supplier is additionally continously refined (so one of the
-# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# ::refinable to enable iterative refinement of the analysis precision (one
+# of the CPAs has to be instanceof ReachedSetAdjustingCPA), ::supply-reached
+# to enabled sharing of the (parial or finished) reached set for use in other
+# analyses (e.g. for invariants computation), or ::supply-reached-refinable
+# for both.
 parallelAlgorithm.configFiles = no default value
+
+# toggle to write all the files also for the unsuccessful analyses
+parallelAlgorithm.writeUnsuccessfulAnalysisFiles = false
 
 # The command line for calling the clang preprocessor. May contain binary
 # name and arguments, but won't be expanded by a shell. The source file name
@@ -4548,14 +4937,14 @@ reachedSet.dot = "reached.dot"
 reachedSet.export = false
 reachedSet.file = "reached.txt"
 
+# Add visualization of correctness witnesses to the report (can be costly)
+report.addWitness = false
+
 # Generate HTML report with analysis result.
 report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
-
-# output file for visualizing message exchange
-reportFile = "block_analysis/block_analysis.json"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value
@@ -4670,11 +5059,13 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
+  enum:     [OPENSMT, MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5,
+             YICES2, BITWUZLA]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
@@ -4806,8 +5197,25 @@ termination.violation.witness = "nontermination_witness.graphml"
 # Export termination counterexample to file as dot/graphviz automaton 
 termination.violation.witness.dot = "nontermination_witness.dot"
 
+# compress the produced violation-witness automata using GZIP compression.
+terminationtoreach.compressWitness = false
+
+# do not produce witness for validation
+terminationtoreach.validation = false
+
+# Export termination counterexample to file as GraphML automaton 
+terminationtoreach.violation.witness = "witness.graphml"
+
+# Export termination counterexample to file as dot/graphviz automaton 
+terminationtoreach.violation.witness.dot = "witness.dot"
+
 # Only genenerate for __VERIFIER_nondet calls
 testHarnessExport.onlyVerifierNondet = false
+
+# Provide dummy values for external variable declarations. This is useful
+# when definitions are not implemented yet or missing. But it may introduce
+# conflicts with values from standard libraries.
+testHarnessExport.provideDummyValues = false
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
@@ -4995,6 +5403,10 @@ witness.considerAssumptions = true
 # the witness, so this options can be used to debug those cases.
 witness.debug.checkForMissedInvariants = false
 
+# Fail if invariants in the witness do not match a unique location in the
+# CFA. This is useful to detect errors in the witness file.
+witness.failOnUnmatchedInvariants = false
+
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
@@ -5070,3 +5482,13 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 # When validating a violation witness, use this configuration file instead of
 # the current one.
 witness.validation.violation.config = no default value
+
+# when enabled we also provide an analysis in form of logging output of the
+# likely quality of the produced witnesses
+witness.yamlexporter.analyseWitnessQuality = false
+
+# Export all information contained in the counterexample as a witness.
+witness.yamlexporter.exportCompleteCounterexample = false
+
+# The version for which to export the witness.
+witness.yamlexporter.witnessVersions = [YAMLWitnessVersion.V2]

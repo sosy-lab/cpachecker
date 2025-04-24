@@ -154,7 +154,7 @@ class Scope {
     JType returnType = pMethod.getType().getReturnType();
     String qualifiedReturnVarName = createQualifiedName(RETURN_VAR_NAME);
 
-    if (JSimpleType.getVoid().equals(returnType)) {
+    if (JSimpleType.VOID.equals(returnType)) {
       return null;
     }
 
@@ -394,7 +394,7 @@ class Scope {
       type =
           classBinding.isInterface()
               ? JInterfaceType.createUnresolvableType()
-              : JClassType.createUnresolvableType();
+              : typeHierarchy.getUnresolvableClassType();
     }
 
     toBeAdded.addAll(type.getAllSubTypesOfType());
@@ -523,7 +523,7 @@ class Scope {
     if (containsClassType(newTypeName)) {
       return getClassType(newTypeName);
     } else {
-      return JClassType.createUnresolvableType();
+      return typeHierarchy.getUnresolvableClassType();
     }
   }
 

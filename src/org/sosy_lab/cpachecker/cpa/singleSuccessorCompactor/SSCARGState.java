@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 class SSCARGState extends ARGState {
 
-  private static final long serialVersionUID = 1L;
+  @Serial private static final long serialVersionUID = 1L;
 
   private final ARGState sscState;
 

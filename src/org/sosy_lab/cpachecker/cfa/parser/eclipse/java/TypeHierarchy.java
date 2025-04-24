@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,12 +26,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser.JavaFileAST;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
+import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
 import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 
 final class TypeHierarchy {
@@ -178,6 +185,20 @@ final class TypeHierarchy {
     return (JClassType) types.get(pTypeName);
   }
 
+  /** Returns the class type of the Java 'Object' type. */
+  public JClassType getClassTypeOfObject() {
+    return typeTable.getTypeOfObject();
+  }
+
+  /** Returns the class type that identifies unresolvable Java types. */
+  public JClassType getUnresolvableClassType() {
+    return typeTable.getUnresolvableClassType();
+  }
+
+  public JMethodDeclaration getUnresolvableMethodDeclaration() {
+    return typeTable.getUnresolvableMethodDeclaration();
+  }
+
   void updateTypeHierarchy(ITypeBinding classOrInterfaceBinding) {
 
     checkNotNull(classOrInterfaceBinding);
@@ -231,6 +252,14 @@ final class TypeHierarchy {
     updateFromTypeTable(hierarchyCreator.getTypeTable());
   }
 
+  public JConstructorType getUnresolvableConstructorType() {
+    return typeTable.getUnresolvableConstructorType();
+  }
+
+  public JConstructorDeclaration getUnresolvableConstructorDeclaration() {
+    return typeTable.getUnresolvableConstructorDeclaration();
+  }
+
   static class THTypeTable {
 
     private final Map<String, JClassOrInterfaceType> types = new HashMap<>();
@@ -242,10 +271,57 @@ final class TypeHierarchy {
     private final Map<JClassOrInterfaceType, ImmutableSet<JFieldDeclaration>>
         fieldDeclarationsOfType = new HashMap<>();
 
+    private final JClassType objectType;
+    private final JClassType unresolvableClassType;
+    private final JMethodDeclaration unresolvableMethodDeclaration;
+    private final JConstructorType unresolvableConstructorType;
+    private final JConstructorDeclaration unresolvableConstructorDeclaration;
+
     private THTypeTable() {
       // Create the Object Type.
-      JClassType objectType = JClassType.getTypeOfObject();
+      objectType = JClassType.createObjectType();
       registerType(objectType);
+
+      unresolvableClassType =
+          JClassType.valueOf(
+              "_unspecified_",
+              "_unspecified_",
+              VisibilityModifier.NONE,
+              false,
+              false,
+              false,
+              objectType,
+              new HashSet<>());
+
+      JMethodType unresolvableMethodType =
+          new JMethodType(JSimpleType.UNSPECIFIED, new ArrayList<>(), false);
+      unresolvableMethodDeclaration =
+          new JMethodDeclaration(
+              FileLocation.DUMMY,
+              unresolvableMethodType,
+              "__Unresolved__",
+              "__Unresolved__",
+              new ArrayList<>(),
+              VisibilityModifier.NONE,
+              false,
+              false,
+              false,
+              false,
+              false,
+              false,
+              unresolvableClassType);
+      unresolvableConstructorType =
+          new JConstructorType(unresolvableClassType, new ArrayList<>(), false);
+      unresolvableConstructorDeclaration =
+          new JConstructorDeclaration(
+              FileLocation.DUMMY,
+              unresolvableConstructorType,
+              "__UNRESOLVABLE__",
+              "__UNRESOLVABLE__",
+              new ArrayList<>(),
+              VisibilityModifier.NONE,
+              false,
+              unresolvableClassType);
     }
 
     public Map<String, JClassOrInterfaceType> getTypes() {
@@ -257,9 +333,28 @@ final class TypeHierarchy {
     }
 
     public void registerType(JClassOrInterfaceType pType) {
+      if (pType instanceof JClassType classType) {
+        checkSuperClassConsistency(classType);
+      }
       types.put(pType.getName(), pType);
       methodDeclarationsOfType.put(pType, new HashSet<>());
       fieldDeclarationsOfType.put(pType, ImmutableSet.of());
+    }
+
+    private void checkSuperClassConsistency(JClassType pClassType) {
+      JClassType superClass = pClassType;
+      while (superClass.getParentClass() != null) {
+        superClass = superClass.getParentClass();
+        checkArgument(
+            !superClass.equals(pClassType),
+            "Class %s may not be a super class of itself.",
+            pClassType.getName());
+      }
+
+      checkArgument(
+          objectType.equals(superClass),
+          "Class %s must be a sub-class of Object",
+          pClassType.getName());
     }
 
     /**
@@ -305,6 +400,26 @@ final class TypeHierarchy {
 
     public JClassOrInterfaceType getType(String typeName) {
       return types.get(typeName);
+    }
+
+    public JClassType getTypeOfObject() {
+      return objectType;
+    }
+
+    public JClassType getUnresolvableClassType() {
+      return unresolvableClassType;
+    }
+
+    public JMethodDeclaration getUnresolvableMethodDeclaration() {
+      return unresolvableMethodDeclaration;
+    }
+
+    public JConstructorDeclaration getUnresolvableConstructorDeclaration() {
+      return unresolvableConstructorDeclaration;
+    }
+
+    public JConstructorType getUnresolvableConstructorType() {
+      return unresolvableConstructorType;
     }
 
     public Map<JClassOrInterfaceType, Set<JMethodDeclaration>> getMethodDeclarationsOfType() {

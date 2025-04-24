@@ -20,7 +20,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -45,8 +45,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -70,7 +72,11 @@ public class SMGUseDefBasedInterpolator {
   private final CFA cfa;
 
   private final SMGOptions options;
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
+
+  private final SMGCPAExpressionEvaluator evaluator;
+
+  private final SMGCPAStatistics statistics;
 
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation. This
@@ -82,8 +88,10 @@ public class SMGUseDefBasedInterpolator {
       final UseDefRelation pUseDefRelation,
       final MachineModel pMachineModel,
       final Configuration pConfig,
-      final LogManager pLogger,
-      CFA pCfa) {
+      final LogManagerWithoutDuplicates pLogger,
+      CFA pCfa,
+      final SMGCPAExpressionEvaluator pEvaluator,
+      SMGCPAStatistics pStatistics) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
@@ -95,6 +103,8 @@ public class SMGUseDefBasedInterpolator {
     }
     logger = pLogger;
     cfa = pCfa;
+    evaluator = pEvaluator;
+    statistics = pStatistics;
   }
 
   /**
@@ -112,7 +122,8 @@ public class SMGUseDefBasedInterpolator {
             options,
             machineModel,
             logger,
-            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
+            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
+            statistics);
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -135,7 +146,12 @@ public class SMGUseDefBasedInterpolator {
       if (interpolant != trivialItp) {
         trivialItp =
             SMGInterpolant.createTRUE(
-                options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction());
+                options,
+                machineModel,
+                logger,
+                (CFunctionEntryNode) cfa.getMainFunction(),
+                evaluator,
+                statistics);
       }
     }
 
@@ -195,7 +211,9 @@ public class SMGUseDefBasedInterpolator {
         null,
         (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
         ImmutableSet.of(),
-        ImmutableList.of());
+        ImmutableList.of(),
+        evaluator,
+        statistics);
   }
 
   /**

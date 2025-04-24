@@ -109,8 +109,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = pCompositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors =
+      Collection<? extends AbstractState> componentSuccessors =
           lCurrentTransfer.getAbstractSuccessors(lCurrentElement, lCurrentPrecision);
       resultCount *= componentSuccessors.size();
 
@@ -292,8 +291,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState lCurrentElement = componentElements.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors =
+      Collection<? extends AbstractState> componentSuccessors =
           lCurrentTransfer.getAbstractSuccessorsForEdge(
               lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
@@ -353,7 +351,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         }
 
         final int predIndex =
-            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+            Iterables.indexOf(strengthenedState, PredicateAbstractState.class::isInstance);
         Preconditions.checkState(
             predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
         AbstractState predElement = strengthenedState.get(predIndex);

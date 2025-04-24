@@ -129,42 +129,30 @@ final class FormulaWrappingHandler {
     }
 
     if (type.isIntegerType()) {
-      switch (encodeIntegerAs) {
-        case BITVECTOR:
-          return FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for integers: " + type);
-      }
+      return switch (encodeIntegerAs) {
+        case BITVECTOR -> FormulaType.getBitvectorTypeWithSize(intOptions.getBitsize());
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        default -> throw new AssertionError("unexpected encoding for integers: " + type);
+      };
     }
 
     if (type.isBitvectorType()) {
-      switch (encodeBitvectorAs) {
-        case BITVECTOR:
-          return type;
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for bitvectors: " + type);
-      }
+      return switch (encodeBitvectorAs) {
+        case BITVECTOR -> type;
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        default -> throw new AssertionError("unexpected encoding for bitvectors: " + type);
+      };
     }
 
     if (type.isFloatingPointType()) {
-      switch (encodeFloatAs) {
-        case FLOAT:
-          return type;
-        case INTEGER:
-          return FormulaType.IntegerType;
-        case RATIONAL:
-          return FormulaType.RationalType;
-        default:
-          throw new AssertionError("unexpected encoding for floats: " + type);
-      }
+      return switch (encodeFloatAs) {
+        case FLOAT -> type;
+        case INTEGER -> FormulaType.IntegerType;
+        case RATIONAL -> FormulaType.RationalType;
+        default -> throw new AssertionError("unexpected encoding for floats: " + type);
+      };
     }
 
     return type;

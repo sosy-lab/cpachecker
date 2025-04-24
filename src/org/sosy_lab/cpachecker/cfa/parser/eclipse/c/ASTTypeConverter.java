@@ -13,11 +13,7 @@ import static com.google.common.base.Verify.verify;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
@@ -78,41 +74,17 @@ class ASTTypeConverter {
     converter = pConverter;
     filePrefix = pFilePrefix;
     parseContext = pParseContext;
-    if (!typeConversions.containsKey(filePrefix)) {
-      typeConversions.put(filePrefix, new IdentityHashMap<>());
-    }
-  }
 
-  /**
-   * cache for all ITypes, so that they don't have to be parsed again and again (Eclipse seems to
-   * give us identical objects for identical types already).
-   */
-  private static final Map<String, Map<IType, CType>> typeConversions = new HashMap<>();
-
-  /**
-   * This can be used to rename a CType in case of Types with equal names but different fields, from
-   * different files.
-   */
-  static void overwriteType(IType cdtType, CType ourType, String filePrefix) {
-    typeConversions.get(filePrefix).put(cdtType, ourType);
-  }
-
-  static IType getTypeFromTypeConversion(CType ourCType, String filePrefix) {
-    for (Entry<IType, CType> entry : typeConversions.get(filePrefix).entrySet()) {
-      if (ourCType.equals(entry.getValue())) {
-        return entry.getKey();
-      }
-    }
-    return null;
+    pParseContext.registerTypeMemoizationFilePrefixIfAbsent(filePrefix);
   }
 
   CType convert(IType t) {
-    CType result = typeConversions.get(filePrefix).get(t);
+    CType result = parseContext.getCType(t, filePrefix);
     if (result == null) {
       result = checkNotNull(convert0(t));
       // re-check, in some cases we updated the map already
-      if (!typeConversions.get(filePrefix).containsKey(t)) {
-        typeConversions.get(filePrefix).put(t, result);
+      if (parseContext.getCType(t, filePrefix) == null) {
+        parseContext.rememberCType(t, result, filePrefix);
       }
     }
     return result;
@@ -134,8 +106,9 @@ class ASTTypeConverter {
           switch (ct.getKey()) {
             case ICompositeType.k_struct -> ComplexTypeKind.STRUCT;
             case ICompositeType.k_union -> ComplexTypeKind.UNION;
-            default -> throw new CFAGenerationRuntimeException(
-                "Unknown key " + ct.getKey() + " for composite type " + t);
+            default ->
+                throw new CFAGenerationRuntimeException(
+                    "Unknown key " + ct.getKey() + " for composite type " + t);
           };
       String name = ct.getName();
       String qualifiedName = kind.toASTString() + " " + name;
@@ -163,9 +136,9 @@ class ASTTypeConverter {
       // we cheat and put a CElaboratedType instance in the map.
       // This means that wherever the ICompositeType instance appears, it will be
       // replaced by an CElaboratedType.
-      typeConversions
-          .get(filePrefix)
-          .put(t, new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType));
+      CElaboratedType elaborateType =
+          new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
+      parseContext.rememberCType(t, elaborateType, filePrefix);
 
       compType.setMembers(conv(ct.getFields()));
 
@@ -329,8 +302,8 @@ class ASTTypeConverter {
     final boolean isVolatile = t.isVolatile();
 
     // return a copy of the inner type with isConst and isVolatile overwritten
-    i = isConst ? CTypes.withConst(i) : CTypes.withoutConst(i);
-    i = isVolatile ? CTypes.withVolatile(i) : CTypes.withoutVolatile(i);
+    i = CTypes.withConstSetTo(i, isConst);
+    i = CTypes.withVolatileSetTo(i, isVolatile);
 
     assert i instanceof CProblemType || (isConst == i.isConst() && isVolatile == i.isVolatile());
     return i;
@@ -462,24 +435,16 @@ class ASTTypeConverter {
   }
 
   CStorageClass convertCStorageClass(final IASTDeclSpecifier d) {
-    switch (d.getStorageClass()) {
-      case IASTDeclSpecifier.sc_unspecified:
-      case IASTDeclSpecifier.sc_auto:
-      case IASTDeclSpecifier.sc_register:
-        return CStorageClass.AUTO;
-
-      case IASTDeclSpecifier.sc_static:
-        return CStorageClass.STATIC;
-
-      case IASTDeclSpecifier.sc_extern:
-        return CStorageClass.EXTERN;
-
-      case IASTDeclSpecifier.sc_typedef:
-        return CStorageClass.TYPEDEF;
-
-      default:
-        throw parseContext.parseError("Unsupported storage class", d);
-    }
+    return switch (d.getStorageClass()) {
+      case IASTDeclSpecifier.sc_unspecified,
+          IASTDeclSpecifier.sc_auto,
+          IASTDeclSpecifier.sc_register ->
+          CStorageClass.AUTO;
+      case IASTDeclSpecifier.sc_static -> CStorageClass.STATIC;
+      case IASTDeclSpecifier.sc_extern -> CStorageClass.EXTERN;
+      case IASTDeclSpecifier.sc_typedef -> CStorageClass.TYPEDEF;
+      default -> throw parseContext.parseError("Unsupported storage class", d);
+    };
   }
 
   CElaboratedType convert(final IASTElaboratedTypeSpecifier d) {

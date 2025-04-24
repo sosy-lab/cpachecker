@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.resources;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -80,18 +81,18 @@ public class MemoryStatistics implements Runnable {
 
   private final LogManager logger;
 
-  private long maxHeap = 0;
-  private long sumHeap = 0;
+  private long maxHeapUsed = 0;
+  private long sumHeapUsed = 0;
   private long maxHeapAllocated = 0;
   private long sumHeapAllocated = 0;
-  private long maxNonHeap = 0;
-  private long sumNonHeap = 0;
+  private long maxNonHeapUsed = 0;
+  private long sumNonHeapUsed = 0;
   private long maxNonHeapAllocated = 0;
   private long sumNonHeapAllocated = 0;
 
   private final MemoryPoolMXBean[] pools;
-  private final long[] sumHeapAllocatedPerPool;
-  private final long[] maxHeapAllocatedPerPool;
+  private final long[] sumHeapUsedPerPool;
+  private final long[] maxHeapUsedPerPool;
 
   private long maxProcess = 0;
   private long sumProcess = 0;
@@ -132,11 +133,16 @@ public class MemoryStatistics implements Runnable {
     }
 
     pools = poolList.toArray(new MemoryPoolMXBean[0]);
-    sumHeapAllocatedPerPool = new long[pools.length];
-    maxHeapAllocatedPerPool = new long[pools.length];
+    sumHeapUsedPerPool = new long[pools.length];
+    maxHeapUsedPerPool = new long[pools.length];
   }
 
   @Override
+  @SuppressFBWarnings(
+      value = "AT_NONATOMIC_OPERATIONS_ON_SHARED_VARIABLE",
+      justification =
+          "synchronization guaranteed externally, "
+              + "printStatistics is called only after thread is stopped")
   public void run() {
     while (true) { // no stop condition, call Thread#interrupt() to stop it
       count++;
@@ -154,8 +160,8 @@ public class MemoryStatistics implements Runnable {
         continue;
       }
       long currentHeapUsed = currentHeap.getUsed();
-      maxHeap = Math.max(maxHeap, currentHeapUsed);
-      sumHeap += currentHeapUsed;
+      maxHeapUsed = Math.max(maxHeapUsed, currentHeapUsed);
+      sumHeapUsed += currentHeapUsed;
 
       long currentHeapAllocated = currentHeap.getCommitted();
       maxHeapAllocated = Math.max(maxHeapAllocated, currentHeapAllocated);
@@ -170,8 +176,8 @@ public class MemoryStatistics implements Runnable {
         continue;
       }
       long currentNonHeapUsed = currentNonHeap.getUsed();
-      maxNonHeap = Math.max(maxNonHeap, currentNonHeapUsed);
-      sumNonHeap += currentNonHeapUsed;
+      maxNonHeapUsed = Math.max(maxNonHeapUsed, currentNonHeapUsed);
+      sumNonHeapUsed += currentNonHeapUsed;
 
       long currentNonHeapAllocated = currentNonHeap.getCommitted();
       maxNonHeapAllocated = Math.max(maxNonHeapAllocated, currentNonHeapAllocated);
@@ -179,8 +185,8 @@ public class MemoryStatistics implements Runnable {
 
       for (int i = 0; i < pools.length; i++) {
         long currentPoolUsage = pools[i].getUsage().getUsed();
-        maxHeapAllocatedPerPool[i] = Math.max(maxHeapAllocatedPerPool[i], currentPoolUsage);
-        sumHeapAllocatedPerPool[i] += currentPoolUsage;
+        maxHeapUsedPerPool[i] = Math.max(maxHeapUsedPerPool[i], currentPoolUsage);
+        sumHeapUsedPerPool[i] += currentPoolUsage;
       }
 
       // get process virtual memory usage
@@ -231,17 +237,17 @@ public class MemoryStatistics implements Runnable {
 
     out.println(
         "Used heap memory:             "
-            + formatMem(maxHeap)
+            + formatMem(maxHeapUsed)
             + " max; "
-            + formatMem(sumHeap / count)
+            + formatMem(sumHeapUsed / count)
             + " avg; "
             + formatMem(heapPeak)
             + " peak");
     out.println(
         "Used non-heap memory:         "
-            + formatMem(maxNonHeap)
+            + formatMem(maxNonHeapUsed)
             + " max; "
-            + formatMem(sumNonHeap / count)
+            + formatMem(sumNonHeapUsed / count)
             + " avg; "
             + formatMem(nonHeapPeak)
             + " peak");
@@ -250,9 +256,9 @@ public class MemoryStatistics implements Runnable {
       String name = Strings.padEnd("Used in " + pools[i].getName() + " pool:", 30, ' ');
       out.println(
           name
-              + formatMem(maxHeapAllocatedPerPool[i])
+              + formatMem(maxHeapUsedPerPool[i])
               + " max; "
-              + formatMem(sumHeapAllocatedPerPool[i] / count)
+              + formatMem(sumHeapUsedPerPool[i] / count)
               + " avg; "
               + formatMem(pools[i].getPeakUsage().getUsed())
               + " peak");

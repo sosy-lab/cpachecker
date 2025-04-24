@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.tests;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -89,7 +91,7 @@ public final class ARGToCTranslatorTest {
 
       // translate write ARG to new C program
       String res = translator.translateARG(root, hasGotoDecProblem);
-      Files.write(pTargetPath, res.getBytes("utf-8"));
+      Files.write(pTargetPath, res.getBytes(UTF_8));
     }
 
     @Parameters(name = "{0}")

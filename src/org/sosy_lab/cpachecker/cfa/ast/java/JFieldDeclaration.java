@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -31,12 +32,12 @@ public final class JFieldDeclaration extends JVariableDeclaration {
 
   // TODO Annotation,
 
-  private static final long serialVersionUID = -4482849212846810730L;
+  @Serial private static final long serialVersionUID = -4482849212846810730L;
   private static final boolean IS_FIELD = true;
   private static final JDeclaration UNRESOLVED_DECLARATION =
       new JFieldDeclaration(
           FileLocation.DUMMY,
-          JSimpleType.getUnspecified(),
+          JSimpleType.UNSPECIFIED,
           "_unresolved_",
           "_unresolved_",
           false,
@@ -71,7 +72,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
   }
 
   @Override
-  public String toASTString(boolean pQualified) {
+  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     StringBuilder lASTString = new StringBuilder();
 
     if (visibility != null) {
@@ -86,15 +87,16 @@ public final class JFieldDeclaration extends JVariableDeclaration {
       lASTString.append("static ");
     }
 
-    if (pQualified) {
-      lASTString.append(getType().toASTString(getQualifiedName().replace("::", "__")));
-    } else {
-      lASTString.append(getType().toASTString(getName()));
-    }
+    lASTString.append(
+        switch (pAAstNodeRepresentation) {
+          case DEFAULT -> getType().toASTString(getName());
+          case QUALIFIED -> getType().toASTString(getQualifiedName().replace("::", "__"));
+          case ORIGINAL_NAMES -> getType().toASTString(getOrigName());
+        });
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
-      lASTString.append(getInitializer().toASTString(pQualified));
+      lASTString.append(getInitializer().toASTString(pAAstNodeRepresentation));
     }
 
     lASTString.append(";");

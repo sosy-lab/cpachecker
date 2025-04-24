@@ -76,6 +76,7 @@ public class CParserWithLocationMapper implements CParser {
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
+  @SuppressWarnings("AssignmentExpression")
   private String processCode(
       final Path fileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException {
@@ -184,7 +185,7 @@ public class CParserWithLocationMapper implements CParser {
       Path pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException {
     String tokenizedCode = processCode(pFilename, pCode, pSourceOriginMapping);
-
+    pSourceOriginMapping.addFileInformation(pFilename, tokenizedCode);
     return realParser.parseString(pFilename, tokenizedCode, pSourceOriginMapping, pScope);
   }
 
@@ -201,15 +202,18 @@ public class CParserWithLocationMapper implements CParser {
   @Override
   public ParseResult parseFiles(List<String> pFilenames)
       throws CParserException, IOException, InterruptedException {
+
     CSourceOriginMapping sourceOriginMapping = new CSourceOriginMapping();
 
     List<FileContentToParse> programFragments = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
       Path path = Path.of(f);
       String programCode = tokenizeSourcefile(path, sourceOriginMapping);
+
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
+      sourceOriginMapping.addFileInformation(path, programCode);
       programFragments.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programFragments, sourceOriginMapping);
@@ -226,6 +230,7 @@ public class CParserWithLocationMapper implements CParser {
       if (programCode.isEmpty()) {
         throw new CParserException("Tokenizer returned empty program");
       }
+      sourceOriginMapping.addFileInformation(f.getFileName(), programCode);
       tokenizedFragments.add(new FileContentToParse(f.getFileName(), programCode));
     }
 

@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.io.PrintStream;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -24,7 +25,10 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -43,10 +47,11 @@ import org.sosy_lab.java_smt.api.Tactic;
  * Finds inductive weakening of formulas (originally: formula slicing). This class operates on
  * formulas, and should be orthogonal to CFA- and CPA-specific concepts.
  */
+@Options(prefix = "cpa.slicing")
 public class InductiveWeakeningManager implements StatisticsProvider {
 
   /** Possible weakening strategies. */
-  public enum WEAKENING_STRATEGY {
+  public enum WeakingingStrategy {
 
     /** Remove all atoms containing the literals mentioned in the transition relation. */
     SYNTACTIC,
@@ -58,12 +63,11 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     CEX
   }
 
-  private final WeakeningOptions options;
+  @Option(description = "Inductive weakening strategy", secure = true)
+  private WeakingingStrategy weakeningStrategy = WeakingingStrategy.CEX;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
-
-  @SuppressWarnings({"FieldCanBeLocal", "unused"})
-  private final LogManager logger;
 
   private final InductiveWeakeningStatistics statistics;
   private final SyntacticWeakeningManager syntacticWeakeningManager;
@@ -74,22 +78,19 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   private static final String SELECTOR_VAR_TEMPLATE = "_FS_SEL_VAR_";
 
   public InductiveWeakeningManager(
-      WeakeningOptions pOptions,
-      Solver pSolver,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier) {
+      Configuration config, Solver pSolver, ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
+    config.inject(this);
 
-    options = pOptions;
     statistics = new InductiveWeakeningStatistics();
     fmgr = pSolver.getFormulaManager();
-    logger = pLogger;
     bfmgr = fmgr.getBooleanFormulaManager();
     syntacticWeakeningManager = new SyntacticWeakeningManager(fmgr);
     destructiveWeakeningManager =
-        new DestructiveWeakeningManager(pSolver, fmgr, options, statistics);
+        new DestructiveWeakeningManager(pSolver, fmgr, config, statistics);
     solver = pSolver;
     cexWeakeningManager =
-        new CEXWeakeningManager(fmgr, pSolver, statistics, options, pShutdownNotifier);
+        new CEXWeakeningManager(fmgr, pSolver, statistics, config, pShutdownNotifier);
   }
 
   /**
@@ -217,26 +218,23 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       SSAMap fromSSA,
       Set<BooleanFormula> pFromStateLemmas)
       throws SolverException, InterruptedException {
-    switch (options.getWeakeningStrategy()) {
-      case SYNTACTIC:
-        return syntacticWeakeningManager.performWeakening(
-            fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
-
-      case DESTRUCTIVE:
-        return destructiveWeakeningManager.performWeakening(
-            selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);
-
-      case CEX:
-        return cexWeakeningManager.performWeakening(
-            selectionVarsInfo.keySet(), fromState, transition, toState);
-      default:
-        throw new UnsupportedOperationException("Unexpected enum value");
-    }
+    return switch (weakeningStrategy) {
+      case SYNTACTIC ->
+          syntacticWeakeningManager.performWeakening(
+              fromSSA, selectionVarsInfo, transition.getSsa(), pFromStateLemmas);
+      case DESTRUCTIVE ->
+          destructiveWeakeningManager.performWeakening(
+              selectionVarsInfo, fromState, transition, toState, fromSSA, pFromStateLemmas);
+      case CEX ->
+          cexWeakeningManager.performWeakening(
+              selectionVarsInfo.keySet(), fromState, transition, toState);
+      default -> throw new UnsupportedOperationException("Unexpected enum value");
+    };
   }
 
   private static final class TemporaryException extends RuntimeException {
 
-    private static final long serialVersionUID = -7046164286357019183L;
+    @Serial private static final long serialVersionUID = -7046164286357019183L;
 
     TemporaryException(InterruptedException e) {
       super(e);
@@ -247,7 +245,9 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     }
 
     AssertionError unwrap() throws InterruptedException, SolverException {
-      Throwables.propagateIfPossible(getCause(), InterruptedException.class, SolverException.class);
+      Throwables.throwIfInstanceOf(getCause(), InterruptedException.class);
+      Throwables.throwIfInstanceOf(getCause(), SolverException.class);
+      Throwables.throwIfUnchecked(getCause());
       throw new AssertionError(this);
     }
   }

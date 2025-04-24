@@ -187,4 +187,19 @@ public class SMGErrorInfo {
     // Will not happen
     throw new RuntimeException("Undefined memory error");
   }
+
+  public PersistentList<Object> getInvalidChain() {
+    if (invalidChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return invalidChain;
+  }
+
+  @SuppressWarnings("unused")
+  public PersistentList<Object> getCurrentChain() {
+    if (currentChain == null) {
+      return PersistentLinkedList.of();
+    }
+    return currentChain;
+  }
 }

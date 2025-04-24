@@ -29,10 +29,10 @@ public class SharedRefiner extends GenericSinglePathRefiner {
   private LocalTransferRelation transferRelation;
 
   // Debug counter
-  private StatCounter counter = new StatCounter("Number of cases with empty successors");
+  private final StatCounter counter = new StatCounter("Number of cases with empty successors");
   // private final StatInt totalFalseConditions = new StatInt(StatKind.COUNT, "Number of false
   // conditions that were detected by SharedRefiner");
-  private StatCounter numOfFalseResults = new StatCounter("Number of false results");
+  private final StatCounter numOfFalseResults = new StatCounter("Number of false results");
 
   public SharedRefiner(
       ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,

@@ -38,7 +38,7 @@ How to generate Assumption Automata?
 ------------------------------------
 
 In order to generate Assumption Automata when execution is interrupted, you need to add the following option to the command line when calling CPAchecker:
-`-setprop analysis.collectAssumptions=true`
+`--option analysis.collectAssumptions=true`
 
 However, as it is, the execution will most likely result in an error message like the following: 
 
@@ -52,10 +52,10 @@ Some examples:
 
 In the case of predicate analysis (`config/predicateAnalysis.properties`) we have to add, after the configuration file:
 
-`-setprop CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.predicate.PredicateCPA,cpa.assumptions.storage.AssumptionStorageCPA,cpa.conditions.global.GlobalConditionsCPA`
+`--option CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.predicate.PredicateCPA,cpa.assumptions.storage.AssumptionStorageCPA,cpa.conditions.global.GlobalConditionsCPA`
 
 In the case of explicit value analysis (`config/valueAnalysis.properties`) we have to add, after the configuration file:
 
-`-setprop CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.value.ValueAnalysisCPA,cpa.assumptions.storage.AssumptionStorageCPA,cpa.conditions.global.GlobalConditionsCPA`
+`--option CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.value.ValueAnalysisCPA,cpa.assumptions.storage.AssumptionStorageCPA,cpa.conditions.global.GlobalConditionsCPA`
 
 The Assumption Automaton will be generated in `${output.path}/${assumptions.automatonFile}` (by default output/AssumptionAutomaton.txt).
