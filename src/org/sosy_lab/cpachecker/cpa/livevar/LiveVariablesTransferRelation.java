@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicateExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTermExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -875,11 +874,6 @@ public class LiveVariablesTransferRelation
     @Override
     public Boolean visit(AcslBooleanLiteralExpression pAcslBooleanLiteralExpression)
         throws NoException {
-      return false;
-    }
-
-    @Override
-    public Boolean visit(AcslTernaryTermExpression pAcslTernaryTermExpression) throws NoException {
       return false;
     }
 

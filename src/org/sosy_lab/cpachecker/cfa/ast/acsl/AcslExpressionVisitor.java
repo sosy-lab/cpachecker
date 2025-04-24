@@ -22,7 +22,5 @@ public interface AcslExpressionVisitor<R, X extends Exception> {
 
   R visit(AcslBooleanLiteralExpression pAcslBooleanLiteralExpression) throws X;
 
-  R visit(AcslTernaryTermExpression pAcslTernaryTermExpression) throws X;
-
   R visit(AcslTernaryPredicateExpression pAcslTernaryPredicateExpression) throws X;
 }

@@ -55,22 +55,40 @@ binOp
 unaryOp
     : '+'
     | '-'
-    | '!'
     | '*'
     | '&'
     ;
 
-// This diverges from the ACSL standard, which allows
-// only a single use of all operators except '&&' and '||'
-relationalTermOp
-  : '==' | '!=' | '<=' | '>=' | '>' | '<' | '&&' | '||'
+termTernaryConditionBody
+  : literal                                                     # LiteralTermTernaryConditionBody
+  | ident                                                       # VariableTermTernaryConditionBody
+  | unaryOp termTernaryConditionBody                            # UnaryOpTermTernaryConditionBody
+  | termTernaryConditionBody binOp termTernaryConditionBody     # BinaryOpTermTernaryConditionBody
+  | termTernaryConditionBody '[' termTernaryConditionBody ']'   # ArrayAccessTermTernaryConditionBody
+  | termTernaryConditionBody '->' id                            # PointerStructureFieldAccessTermTernaryConditionBody
+  | termTernaryConditionBody '.' id                             # StructureFieldAccessTermTernaryConditionBody
+  | '(' type_expr ')' termTernaryConditionBody                  # CastTermTernaryConditionBody
+  | '(' termTernaryConditionBody ')'                            # ParenthesesTermTernaryConditionBody
+  | '\\result'                                                  # ResultTermTernaryConditionBody
+  | '\\old' '(' termTernaryConditionBody ')'                    # OldTermTernaryConditionBody
+  | '\\at' '(' termTernaryConditionBody ',' label_id ')'        # AtTermTernaryConditionBody
+  ;
+
+termPredTernaryCondition
+  :'\\true'                                                             # LogicalTrueTermPredTernaryCondition
+  | '\\false'                                                           # LogicalFalseTermPredTernaryCondition
+  | termTernaryConditionBody (relOp termTernaryConditionBody)+          # ComparisonTermPredTernaryCondition
+  | termPredTernaryCondition binaryPredOp termPredTernaryCondition      # BinaryTermPredTernaryCondition
+  | '(' termPredTernaryCondition ')'                                    # ParenthesesTermPredTernaryCondition
+  | unaryPredOp termPredTernaryCondition                                # UnaryTermPredTernaryCondition
+  | '\\old' '(' termPredTernaryCondition ')'                            # OldTermPredTernaryCondition
   ;
 
 term
     : literal                                           # LiteralTerm
     | ident                                             # VariableTerm
-    | unaryOp term                                     # UnaryOpTerm
-    | term binOp term                                  # BinaryOpTerm
+    | unaryOp term                                      # UnaryOpTerm
+    | term binOp term                                   # BinaryOpTerm
     | term '[' term ']'                                 # ArrayAccessTerm
     | '{' term '\\with' '[' term ']' '=' term '}'       # ArrayFuncModifierTerm
     | term '.' id                                       # StructureFieldAccessTerm
@@ -79,18 +97,11 @@ term
     | '(' type_expr ')' term                            # CastTerm
     | ident '(' term (',' term)* ')'                    # FuncApplicationTerm
     | '(' term ')'                                      # ParenthesesTerm
-    // This is allowed in the ACSL standard, but IMO it makes
-    // no sense, since you always want to have a predicate i.e.
-    // a function returning a boolean value on the left side.
-    //
-    // Additionally, in the ACSL standard an arbitrary term is allowed here, but
-    // ANTLR cannot handle this due to the ambiguity in the binary
-    // operations whenever e.g. '==' is included as a binary operator
-    // When the condition is a predicate, which would be formally correct,
-    // ANTLR complains that the grammar is left recursive in both term and pred
-    // and they depend on each other
-    // This is a hack to solve this problem
-    // | term (relationalTermOp term)+ '?' term ':' term                # TernaryCondTerm
+    // The ACSL standard allow a general predicate to be the condition here,
+    // but since this would make the grammmar left recursive between terms and predicates,
+    // we decided to use a more restricted grammar, with a lot of different rules,
+    // since this is the only way to avoid being left recursive
+    | termPredTernaryCondition '?' term ':' term                    # TernaryCondTerm
     | '\\let' id '=' term ';' term                      # LocalBindingTerm
     | 'sizeof' '(' term ')'                             # SizeofTerm
     | 'sizeof' '(' typeName ')'                         # SizeofTypeTerm
@@ -124,6 +135,10 @@ binaryPredOp
     : '&&' | '||' | '^^' | '==>' | '<==>'
     ;
 
+unaryPredOp
+  : '!'
+  ;
+
 // Also called logic expressions in the ACSL standard.
 // We will call them expressions in CPAchecker in order to
 // match the AExpressions.
@@ -131,19 +146,21 @@ pred
     : '\\true'                          # LogicalTruePred
     | '\\false'                         # LogicalFalsePred
     | ident                             # PredicateVariable
+    // Not really part of the ACSL spec, but ACSL has an implicit conversion from terms
+    // to predicates, which works the same way as in C i.e.
+    // 0 is false and everything else is true
+    | term                                                          # PredicateTerm
     // We transform these into binary expressions when parsing
     | term (relOp term)+                # ComparisonPred
     | ident '(' term (',' term)* ')'    # PredicateApplicationPred
     | '(' pred ')'                      # ParenthesesPred
     | pred binaryPredOp pred            # BinaryPredicate
-    // Should be '!', but ANTLR will not be able to parse it if this happens
-    | '~' pred                          # NegationPred
+    | unaryPredOp pred                          # UnaryPred
     // IMO having a term on the left side is not correct,
     // since in general it must not return a boolean
     // value, but a predicate must do this
     // | term '?' pred ':' pred            # TernaryConditionTermPred
     | pred '?' pred ':' pred            # TernaryConditionPred
-    | pred '?' term ':' term            # TernaryConditionTerm
     | '\\let' id '=' term ';' pred      # LocalBindingPred
     | '\\let' id '=' pred ';' pred      # LocalBindingPred
     | '\\forall' binders ';' pred       # UniversalQuantificationPred

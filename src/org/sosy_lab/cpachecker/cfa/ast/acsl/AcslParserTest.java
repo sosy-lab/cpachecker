@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBi
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -108,6 +109,30 @@ public class AcslParserTest {
                 FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
             AcslBinaryTermExpressionOperator.EQUALS);
     String input = "x == 10";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleNegatedPredicate() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslUnaryExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslBinaryTermExpression(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.BOOLEAN,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
+                AcslBinaryTermExpressionOperator.EQUALS),
+            AcslUnaryExpressionOperator.NEGATION);
+    String input = "!(x == 10)";
 
     testParsing(input, output);
   }
@@ -364,48 +389,57 @@ public class AcslParserTest {
   }
 
   @Test
-  public void parseSimpleTernaryOperatorWithTerms() throws AcslParseException {
+  public void parseSimpleTermTernaryOperatorWithTerms() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
-        new AcslTernaryTermExpression(
+        new AcslBinaryTermExpression(
             FileLocation.DUMMY,
-            // Condition
-            new AcslBinaryTermExpression(
+            AcslBuiltinLogicType.BOOLEAN,
+            // First operand
+            new AcslTernaryTermExpression(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
-                new AcslIdTerm(
+                // Condition
+                new AcslBinaryTermExpression(
                     FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
-                AcslBinaryTermExpressionOperator.EQUALS),
-            // If true operator
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                new AcslIdTerm(
+                    AcslBuiltinLogicType.BOOLEAN,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                    AcslBinaryTermExpressionOperator.EQUALS),
+                // If true operator
+                new AcslBinaryTerm(
                     FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
-                AcslBinaryTermOperator.PLUS),
-            // If false operator
-            new AcslBinaryTerm(
-                FileLocation.DUMMY,
-                AcslBuiltinLogicType.INTEGER,
-                new AcslIdTerm(
+                    AcslBuiltinLogicType.INTEGER,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                    AcslBinaryTermOperator.PLUS),
+                // If false operator
+                new AcslBinaryTerm(
                     FileLocation.DUMMY,
-                    new AcslCVariableDeclaration(
-                        (CVariableDeclaration)
-                            Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
-                new AcslIntegerLiteralTerm(
-                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TWO),
-                AcslBinaryTermOperator.MINUS));
-    String input = "x == 0 ? y + 1 : z - 2";
+                    AcslBuiltinLogicType.INTEGER,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TWO),
+                    AcslBinaryTermOperator.MINUS)),
+            // Second operand
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(-1)),
+            // Operator
+            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+    String input = "(x == 0 ? y + 1 : z - 2) != -1";
 
     testParsing(input, output);
   }

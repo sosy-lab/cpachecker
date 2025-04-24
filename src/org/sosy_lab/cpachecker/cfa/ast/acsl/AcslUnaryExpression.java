@@ -14,10 +14,9 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslUnaryExpression extends AUnaryExpression implements AcslExpression {
 
-  @Serial
-  private static final long serialVersionUID = -6073836890768425L;
+  @Serial private static final long serialVersionUID = -6073836890768425L;
 
-  private AcslUnaryExpression(
+  AcslUnaryExpression(
       FileLocation pFileLocation,
       AcslType pType,
       AcslExpression pOperand,
@@ -49,7 +48,7 @@ public final class AcslUnaryExpression extends AUnaryExpression implements AcslE
       return true;
     }
 
-    return obj instanceof AcslUnaryExpression && super.equals(obj);
+    return obj instanceof AcslUnaryExpression other && super.equals(obj);
   }
 
   public enum AcslUnaryExpressionOperator implements AUnaryOperator, AcslAstNode {

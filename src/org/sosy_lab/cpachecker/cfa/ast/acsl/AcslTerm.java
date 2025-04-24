@@ -19,6 +19,7 @@ public abstract sealed class AcslTerm implements AcslAstNode
         AcslLiteralTerm,
         AcslOldTerm,
         AcslResultTerm,
+        AcslTernaryTermExpression,
         AcslUnaryTerm {
 
   @Serial private static final long serialVersionUID = 8144237675011353L;

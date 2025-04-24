@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslTernaryTermExpression implements AcslExpression {
+public final class AcslTernaryTermExpression extends AcslTerm {
 
   @Serial private static final long serialVersionUID = 812812375011353L;
 
-  private final FileLocation fileLocation;
   private final AcslExpression condition;
   private final AcslTerm resultIfTrue;
   private final AcslTerm resultIfFalse;
@@ -27,10 +25,10 @@ public final class AcslTernaryTermExpression implements AcslExpression {
       AcslExpression pCondition,
       AcslTerm pResultIfTrue,
       AcslTerm pResultIfFalse) {
+    super(pFileLocation, pResultIfFalse.getExpressionType());
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
     assert pResultIfFalse.getExpressionType() == pResultIfTrue.getExpressionType();
-    fileLocation = pFileLocation;
     condition = pCondition;
     resultIfTrue = pResultIfTrue;
     resultIfFalse = pResultIfFalse;
@@ -49,23 +47,13 @@ public final class AcslTernaryTermExpression implements AcslExpression {
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslTermVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public Type getExpressionType() {
-    return resultIfTrue.getExpressionType();
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public FileLocation getFileLocation() {
-    return fileLocation;
   }
 
   @Override
@@ -105,7 +93,7 @@ public final class AcslTernaryTermExpression implements AcslExpression {
     }
 
     return obj instanceof AcslTernaryTermExpression other
-        && Objects.equals(other.fileLocation, fileLocation)
+        && super.equals(other)
         && Objects.equals(other.condition, condition)
         && Objects.equals(other.resultIfTrue, resultIfTrue)
         && Objects.equals(other.resultIfFalse, resultIfFalse);

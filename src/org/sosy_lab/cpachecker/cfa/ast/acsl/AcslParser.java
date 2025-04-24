@@ -40,8 +40,8 @@ public class AcslParser {
       throw new AcslParseException(e.getMessage(), e);
     }
 
-    AcslAntrlToExpressionsConverter converter =
-        new AcslAntrlToExpressionsConverter(pCProgramScope, pAcslScope);
+    AntrlPredicateToExpressionsConverter converter =
+        new AntrlPredicateToExpressionsConverter(pCProgramScope, pAcslScope);
 
     AcslAstNode expression = converter.visit(tree);
     if (expression == null || !(expression instanceof AcslExpression)) {
