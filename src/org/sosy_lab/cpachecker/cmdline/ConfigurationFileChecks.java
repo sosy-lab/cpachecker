@@ -623,6 +623,7 @@ public class ConfigurationFileChecks {
               LogRecord result = underlyingIterator.next();
               if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
                 if (result.getMessage().endsWith("finished successfully.")) {
+                  // TODO: log/return the config that triggers this!
                   oneComponentSuccessful = true;
                   underlyingIterator =
                       Iterators.filter(

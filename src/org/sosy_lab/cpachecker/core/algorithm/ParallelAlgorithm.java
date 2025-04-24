@@ -485,10 +485,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {
+      // TODO: log/return the config that triggers this!
       pLogger.logUserException(
           Level.WARNING,
           e,
-          "Skipping one analysis because the configuration file "
+          "Skipping one analysis in building a parallel analysis because the configuration file "
               + singleConfigFileName
               + " could not be read");
       return null;

@@ -288,6 +288,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           currentCpa = currentAlg.cpa();
           currentReached = currentAlg.reached();
         } catch (InvalidConfigurationException e) {
+          // TODO: log/return the config that triggers this!
           logger.logUserException(
               Level.WARNING,
               e,
@@ -296,6 +297,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   + " is invalid");
           continue;
         } catch (IOException e) {
+          // TODO: log/return the config that triggers this!
           String message =
               "Skipping one analysis because the configuration file "
                   + singleConfigFileName
