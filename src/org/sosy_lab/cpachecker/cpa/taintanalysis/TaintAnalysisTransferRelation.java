@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -351,19 +352,34 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     if (pCfaEdge.getStatement() instanceof CExpressionAssignmentStatement) {
       CLeftHandSide lhs =
           ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
+      CExpression rhs =
+          ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getRightHandSide();
+      boolean taintedVarsRHS =
+          TaintAnalysisUtils.getAllVarsAsCExpr(rhs).stream()
+              .anyMatch(var -> pState.getTaintedVariables().contains(var));
+
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
         // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
         // LHS
-        CExpression rhs =
-            ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getRightHandSide();
-        boolean taintedVarsRHS =
-            TaintAnalysisUtils.getAllVarsAsCExpr(rhs).stream()
-                .anyMatch(var -> pState.getTaintedVariables().contains(var));
         if (taintedVarsRHS) {
           generatedVars.add(variableLHS);
         } else {
           killedVars.add(variableLHS);
+        }
+      } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
+        // If the LHS is an array element and the RHS contains a tainted variable,
+        // mark the array variable as tainted
+        CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
+        if (arrayExpr instanceof CIdExpression arrayVariable) {
+          if (taintedVarsRHS) {
+            generatedVars.add(arrayVariable);
+            logger.log(
+                Level.INFO,
+                String.format(
+                    "Marking array '%s' as tainted at %s because a tainted value was assigned to one of its elements.",
+                    arrayVariable.getName(), pCfaEdge.getFileLocation()));
+          }
         }
       }
     } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
