@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -25,26 +22,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class PthreadUtil {
-
-  // TODO move to ThreadUtil
-  public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
-    checkArgument(
-        callsAnyPthreadFuncWithPthreadT(pEdge),
-        "pEdge must be call to a pthread method with a pthread_t param");
-
-    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
-    CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
-
-    if (funcType.isPthreadTPointer()) {
-      return getThreadByObject(pThreads, Optional.of(CFAUtils.getValueFromAddress(pthreadTParam)));
-    } else {
-      return getThreadByObject(pThreads, Optional.of(pthreadTParam));
-    }
-  }
 
   public static CIdExpression extractPthreadT(CFAEdge pEdge) {
     checkArgument(
@@ -100,19 +80,6 @@ public class PthreadUtil {
 
     PthreadFunctionType funcType = getPthreadFuncType(pEdge);
     return CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineArgumentIndex());
-  }
-
-  // TODO move to ThreadUtil
-  /** Searches the given map of MPORThreads for the given thread object. */
-  public static MPORThread getThreadByObject(
-      ImmutableCollection<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
-
-    for (MPORThread rThread : pThreads) {
-      if (rThread.threadObject.equals(pThreadObject)) {
-        return rThread;
-      }
-    }
-    throw new IllegalArgumentException("no MPORThread with pThreadObject found in pThreads");
   }
 
   /**

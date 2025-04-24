@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class SeqCaseBlockStatementBuilder {
 
@@ -344,7 +345,7 @@ public class SeqCaseBlockStatementBuilder {
         "cfaEdge must be CFunctionCallEdge or CStatementEdge");
     CExpression pthreadTObject = PthreadUtil.extractPthreadT(cfaEdge);
     MPORThread createdThread =
-        PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
+        ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadTObject));
     FunctionParameterAssignment argumentAssignment =
         pFunctionStatements.startRoutineArgumentAssignments.get(pThreadEdge);
     return new SeqThreadCreationStatement(
@@ -440,7 +441,7 @@ public class SeqCaseBlockStatementBuilder {
       ThreadSimulationVariables pThreadVariables) {
 
     MPORThread targetThread =
-        PthreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
+        ThreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
     CIdExpression threadJoins =
         Objects.requireNonNull(
                 Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))

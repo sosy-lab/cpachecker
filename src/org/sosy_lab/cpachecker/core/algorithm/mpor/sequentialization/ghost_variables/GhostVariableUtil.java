@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class GhostVariableUtil {
 
@@ -239,7 +240,7 @@ public class GhostVariableUtil {
       for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
         CFAEdge cfaEdge = threadEdge.cfaEdge;
         if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
-          MPORThread targetThread = PthreadUtil.extractThread(pThreads, cfaEdge);
+          MPORThread targetThread = ThreadUtil.extractThread(pThreads, cfaEdge);
           // multiple join calls within one thread to the same thread are possible -> only need one
           if (!targetThreads.containsKey(targetThread)) {
             String varName =

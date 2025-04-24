@@ -8,13 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadUtil {
 
@@ -68,5 +75,33 @@ public class ThreadUtil {
 
   public static MPORThread extractMainThread(ImmutableSet<MPORThread> pThreads) {
     return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
+  }
+
+  public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
+    checkArgument(
+        PthreadUtil.callsAnyPthreadFuncWithPthreadT(pEdge),
+        "pEdge must be call to a pthread method with a pthread_t param");
+
+    PthreadFunctionType funcType = PthreadUtil.getPthreadFuncType(pEdge);
+    CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
+
+    return getThreadByObject(
+        pThreads,
+        Optional.of(
+            funcType.isPthreadTPointer()
+                ? CFAUtils.getValueFromAddress(pthreadTParam)
+                : pthreadTParam));
+  }
+
+  /** Searches the given map of MPORThreads for the given thread object. */
+  public static MPORThread getThreadByObject(
+      ImmutableCollection<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
+
+    for (MPORThread rThread : pThreads) {
+      if (rThread.threadObject.equals(pThreadObject)) {
+        return rThread;
+      }
+    }
+    throw new IllegalArgumentException("no MPORThread with pThreadObject found in pThreads");
   }
 }

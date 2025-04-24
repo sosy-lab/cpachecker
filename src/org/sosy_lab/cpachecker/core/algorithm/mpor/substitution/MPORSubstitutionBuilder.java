@@ -226,7 +226,7 @@ public class MPORSubstitutionBuilder {
           assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
           CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
           MPORThread createdThread =
-              PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
+              ThreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
           // pthread_t matches
           if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
             CFunctionType startRoutineType = PthreadUtil.extractStartRoutine(cfaEdge);
