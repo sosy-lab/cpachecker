@@ -102,6 +102,15 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
+  PTHREAD_GETSPECIFIC(
+      "pthread_getspecific",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
   // TODO support pthread join retval (second parameter)
   PTHREAD_JOIN(
       "pthread_join",
@@ -109,6 +118,15 @@ public enum PthreadFunctionType {
       true,
       Optional.of(0),
       Optional.of(false),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_KEY_CREATE(
+      "pthread_key_create",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
@@ -215,6 +233,15 @@ public enum PthreadFunctionType {
       Optional.empty()),
   PTHREAD_SELF(
       "pthread_self",
+      false,
+      false,
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty(),
+      Optional.empty()),
+  PTHREAD_SETSPECIFIC(
+      "pthread_setspecific",
       false,
       false,
       Optional.empty(),
