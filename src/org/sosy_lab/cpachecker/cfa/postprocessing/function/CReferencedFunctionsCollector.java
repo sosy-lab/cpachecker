@@ -61,32 +61,30 @@ class CReferencedFunctionsCollector {
 
   public void visitEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
+      case AssumeEdge -> {
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
         assumeEdge.getExpression().accept(collector);
-        break;
-      case BlankEdge:
+      }
+      case BlankEdge -> {
         // nothing to do
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
         if (declaration instanceof CVariableDeclaration) {
           visitDeclaration((CVariableDeclaration) declaration);
         }
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
         if (returnEdge.getExpression().isPresent()) {
           returnEdge.getExpression().orElseThrow().accept(collector);
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         CStatementEdge statementEdge = (CStatementEdge) edge;
         statementEdge.getStatement().accept(collector);
-        break;
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 

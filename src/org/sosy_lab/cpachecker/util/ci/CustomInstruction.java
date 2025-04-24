@@ -454,40 +454,34 @@ public class CustomInstruction {
     }
 
     switch (ciEdge.getEdgeType()) {
-      case BlankEdge:
+      case BlankEdge -> {
         // no additional check needed.
-        break;
-      case AssumeEdge:
-        compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
-        break;
-      case StatementEdge:
-        compareStatementEdge(
-            (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
-        break;
-      case DeclarationEdge:
-        compareDeclarationEdge(
-            (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
-        break;
-      case ReturnStatementEdge:
-        compareReturnStatementEdge(
-            (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
-        break;
-      case FunctionCallEdge:
-        compareFunctionCallEdge(
-            (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
-        break;
-      case FunctionReturnEdge:
+      }
+      case AssumeEdge ->
+          compareAssumeEdge((CAssumeEdge) ciEdge, (CAssumeEdge) aciEdge, ciVarToAciVar);
+      case StatementEdge ->
+          compareStatementEdge(
+              (CStatementEdge) ciEdge, (CStatementEdge) aciEdge, ciVarToAciVar, outVariables);
+      case DeclarationEdge ->
+          compareDeclarationEdge(
+              (CDeclarationEdge) ciEdge, (CDeclarationEdge) aciEdge, ciVarToAciVar, outVariables);
+      case ReturnStatementEdge ->
+          compareReturnStatementEdge(
+              (CReturnStatementEdge) ciEdge, (CReturnStatementEdge) aciEdge, ciVarToAciVar);
+      case FunctionCallEdge ->
+          compareFunctionCallEdge(
+              (CFunctionCallEdge) ciEdge, (CFunctionCallEdge) aciEdge, ciVarToAciVar);
+      case FunctionReturnEdge -> {
         // no additional check needed.
-        break;
-      case CallToReturnEdge:
-        compareStatementsOfStatementEdge(
-            ((CFunctionSummaryEdge) ciEdge).getExpression(),
-            ((CFunctionSummaryEdge) aciEdge).getExpression(),
-            ciVarToAciVar,
-            outVariables);
-        break;
-      default:
-        throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
+      }
+      case CallToReturnEdge ->
+          compareStatementsOfStatementEdge(
+              ((CFunctionSummaryEdge) ciEdge).getExpression(),
+              ((CFunctionSummaryEdge) aciEdge).getExpression(),
+              ciVarToAciVar,
+              outVariables);
+      default ->
+          throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
   }
 

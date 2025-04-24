@@ -469,90 +469,64 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCodeException {
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          CExpression exp = ((CAssumeEdge) edge).getExpression();
-          CFANode pre = edge.getPredecessor();
+      case AssumeEdge -> {
+        CExpression exp = ((CAssumeEdge) edge).getExpression();
+        CFANode pre = edge.getPredecessor();
 
-          VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-          Set<String> vars = exp.accept(dcv);
-          if (vars != null) {
-            allVars.addAll(vars);
-            dependencies.addAll(vars, dcv.getValues(), edge, 0);
-          }
-
-          exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
-          exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
-          exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
-          exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
-
-          break;
+        VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+        Set<String> vars = exp.accept(dcv);
+        if (vars != null) {
+          allVars.addAll(vars);
+          dependencies.addAll(vars, dcv.getValues(), edge, 0);
         }
 
-      case DeclarationEdge:
-        {
-          handleDeclarationEdge((CDeclarationEdge) edge);
-          break;
+        exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
+        exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
+        exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
+        exp.accept(new IntOverflowCollectingVisitor(pre, intOverflowVars));
+      }
+      case DeclarationEdge -> handleDeclarationEdge((CDeclarationEdge) edge);
+      case StatementEdge -> {
+        final CStatement statement = ((CStatementEdge) edge).getStatement();
+
+        // normal assignment of variable, rightHandSide can be expression or (external)
+        // functioncall
+        if (statement instanceof CAssignment) {
+          handleAssignment(edge, (CAssignment) statement, cfa);
+
+          // pure external functioncall
+        } else if (statement instanceof CFunctionCallStatement) {
+          handleExternalFunctionCall(
+              edge,
+              ((CFunctionCallStatement) statement)
+                  .getFunctionCallExpression()
+                  .getParameterExpressions());
         }
-
-      case StatementEdge:
-        {
-          final CStatement statement = ((CStatementEdge) edge).getStatement();
-
-          // normal assignment of variable, rightHandSide can be expression or (external)
-          // functioncall
-          if (statement instanceof CAssignment) {
-            handleAssignment(edge, (CAssignment) statement, cfa);
-
-            // pure external functioncall
-          } else if (statement instanceof CFunctionCallStatement) {
-            handleExternalFunctionCall(
-                edge,
-                ((CFunctionCallStatement) statement)
-                    .getFunctionCallExpression()
-                    .getParameterExpressions());
-          }
-
-          break;
+      }
+      case FunctionCallEdge -> handleFunctionCallEdge((CFunctionCallEdge) edge);
+      case FunctionReturnEdge -> {
+        Optional<CVariableDeclaration> returnVar =
+            ((CFunctionReturnEdge) edge).getFunctionEntry().getReturnVariable();
+        if (returnVar.isPresent()) {
+          String scopedVarName = returnVar.orElseThrow().getQualifiedName();
+          dependencies.addVar(scopedVarName);
+          Partition partition = dependencies.getPartitionForVar(scopedVarName);
+          partition.addEdge(edge, 0);
         }
-
-      case FunctionCallEdge:
-        {
-          handleFunctionCallEdge((CFunctionCallEdge) edge);
-          break;
+      }
+      case ReturnStatementEdge -> {
+        // this is the 'x' from 'return (x);
+        // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
+        CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
+        if (returnStatement.asAssignment().isPresent()) {
+          handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
         }
-
-      case FunctionReturnEdge:
-        {
-          Optional<CVariableDeclaration> returnVar =
-              ((CFunctionReturnEdge) edge).getFunctionEntry().getReturnVariable();
-          if (returnVar.isPresent()) {
-            String scopedVarName = returnVar.orElseThrow().getQualifiedName();
-            dependencies.addVar(scopedVarName);
-            Partition partition = dependencies.getPartitionForVar(scopedVarName);
-            partition.addEdge(edge, 0);
-          }
-          break;
-        }
-
-      case ReturnStatementEdge:
-        {
-          // this is the 'x' from 'return (x);
-          // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
-          CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-          if (returnStatement.asAssignment().isPresent()) {
-            handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
-          }
-          break;
-        }
-
-      case BlankEdge:
-      case CallToReturnEdge:
+      }
+      case BlankEdge, CallToReturnEdge -> {
         // other cases are not interesting
-        break;
-
-      default:
-        throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
+      }
+      default ->
+          throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 

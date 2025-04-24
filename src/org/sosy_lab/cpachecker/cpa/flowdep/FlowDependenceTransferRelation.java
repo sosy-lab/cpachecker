@@ -390,25 +390,24 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
       FlowDependenceState nextState = new FlowDependenceState(newReachDefState);
       switch (pCfaEdge.getEdgeType()) {
-        case DeclarationEdge:
+        case DeclarationEdge -> {
           CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
           if (declEdge.getDeclaration() instanceof CVariableDeclaration declaration) {
             nextState =
                 handleDeclarationEdge(
                     declEdge, declaration, nextState, oldReachDefState, oldPointerState);
-          } // else {
+          }
+          // else {
           // Function declarations don't introduce any flow dependencies
           // }
-          break;
-
-        case StatementEdge:
+        }
+        case StatementEdge -> {
           CStatementEdge stmtEdge = (CStatementEdge) pCfaEdge;
           nextState =
               handleStatementEdge(
                   stmtEdge, stmtEdge.getStatement(), nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case AssumeEdge:
+        }
+        case AssumeEdge -> {
           CAssumeEdge assumeEdge = (CAssumeEdge) pCfaEdge;
           nextState =
               handleAssumption(
@@ -417,30 +416,25 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
                   nextState,
                   oldReachDefState,
                   oldPointerState);
-          break;
-
-        case ReturnStatementEdge:
+        }
+        case ReturnStatementEdge -> {
           CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
           nextState =
               handleReturnStatementEdge(
                   returnStatementEdge, nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case FunctionCallEdge:
+        }
+        case FunctionCallEdge -> {
           CFunctionCallEdge callEdge = (CFunctionCallEdge) pCfaEdge;
           nextState =
               handleFunctionCallEdge(
                   callEdge, callEdge.getArguments(), nextState, oldReachDefState, oldPointerState);
-          break;
-
-        case FunctionReturnEdge:
+        }
+        case FunctionReturnEdge -> {
           CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) pCfaEdge;
           nextState =
               handleFunctionReturnEdge(returnEdge, nextState, oldReachDefState, oldPointerState);
-          break;
-
-        default:
-          break;
+        }
+        default -> {}
       }
 
       assert nextState != null;

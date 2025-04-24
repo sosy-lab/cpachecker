@@ -266,19 +266,18 @@ public class WitnessExporterTest {
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {
-      case CORRECTNESS_WITNESS:
+      case CORRECTNESS_WITNESS -> {
         validationConfigFile = "correctnessWitnessValidation.properties";
         overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile",
             witnessPath.uncompressedFilePath.toString());
-        break;
-      case VIOLATION_WITNESS:
+      }
+      case VIOLATION_WITNESS -> {
         validationConfigFile = "violationWitnessValidation.properties";
         specification =
             Joiner.on(',').join(specification, witnessPath.compressedFilePath.toString());
-        break;
-      default:
-        throw new AssertionError("Unsupported witness type " + witnessType);
+      }
+      default -> throw new AssertionError("Unsupported witness type " + witnessType);
     }
     Configuration validationConfig =
         getProperties(validationConfigFile, overrideOptions, specification);
@@ -286,14 +285,9 @@ public class WitnessExporterTest {
     TestResults results = CPATestRunner.run(validationConfig, pFilePath);
 
     switch (pExpected) {
-      case TRUE:
-        results.assertIsSafe();
-        break;
-      case FALSE:
-        results.assertIsUnsafe();
-        break;
-      default:
-        assertWithMessage("Cannot determine expected result.").fail();
+      case TRUE -> results.assertIsSafe();
+      case FALSE -> results.assertIsUnsafe();
+      default -> assertWithMessage("Cannot determine expected result.").fail();
     }
   }
 

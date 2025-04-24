@@ -191,27 +191,24 @@ public class ConstraintFactory {
       CType canonicalType = ((CType) pType).getCanonicalType();
       if (canonicalType instanceof CSimpleType) {
         switch (((CSimpleType) canonicalType).getType()) {
-          case FLOAT:
-          case INT:
+          case FLOAT, INT -> {
             return true;
-          default:
+          }
+          default -> {
             // DO NOTHING, false is returned below
+          }
         }
       }
 
       return false;
     } else if (pType instanceof JSimpleType) {
       switch ((JSimpleType) pType) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> {
           return true;
-        default:
+        }
+        default -> {
           // DO NOTHING, false is returned below
+        }
       }
 
       return false;

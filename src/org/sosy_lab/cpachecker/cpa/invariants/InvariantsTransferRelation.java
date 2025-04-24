@@ -176,28 +176,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException {
     InvariantsState state = pState.setTypes(edgeAnalyzer.getInvolvedVariableTypes(pEdge));
     switch (pEdge.getEdgeType()) {
-      case BlankEdge:
-        break;
-      case FunctionReturnEdge:
-        state = handleFunctionReturn(state, (CFunctionReturnEdge) pEdge, pPrecision);
-        break;
-      case ReturnStatementEdge:
-        state = handleReturnStatement(state, (CReturnStatementEdge) pEdge);
-        break;
-      case AssumeEdge:
-        state = handleAssume(state, (CAssumeEdge) pEdge);
-        break;
-      case DeclarationEdge:
-        state = handleDeclaration(state, (CDeclarationEdge) pEdge);
-        break;
-      case FunctionCallEdge:
-        state = handleFunctionCall(state, (CFunctionCallEdge) pEdge);
-        break;
-      case StatementEdge:
-        state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
-        break;
-      default:
-        throw new UnrecognizedCFAEdgeException(pEdge);
+      case BlankEdge -> {}
+      case FunctionReturnEdge ->
+          state = handleFunctionReturn(state, (CFunctionReturnEdge) pEdge, pPrecision);
+      case ReturnStatementEdge ->
+          state = handleReturnStatement(state, (CReturnStatementEdge) pEdge);
+      case AssumeEdge -> state = handleAssume(state, (CAssumeEdge) pEdge);
+      case DeclarationEdge -> state = handleDeclaration(state, (CDeclarationEdge) pEdge);
+      case FunctionCallEdge -> state = handleFunctionCall(state, (CFunctionCallEdge) pEdge);
+      case StatementEdge -> state = handleStatement(state, (CStatementEdge) pEdge, pPrecision);
+      default -> throw new UnrecognizedCFAEdgeException(pEdge);
     }
     if (state != null && pPrecision != null && !pPrecision.isRelevant(pEdge)) {
       state = state.clear();

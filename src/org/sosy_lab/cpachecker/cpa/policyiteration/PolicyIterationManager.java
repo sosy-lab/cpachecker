@@ -827,8 +827,7 @@ public class PolicyIterationManager {
           Pair<DecompositionStatus, PolicyBound> res =
               computeByDecomposition(template, p, lemmas, startConstraintLemmas, abstraction);
           switch (res.getFirstNotNull()) {
-            case BOUND_COMPUTED:
-
+            case BOUND_COMPUTED -> {
               // Put the computed bound.
               PolicyBound bound = res.getSecondNotNull();
               if (checkPolicyInitialCondition) {
@@ -836,17 +835,16 @@ public class PolicyIterationManager {
               }
               abstraction.put(template, bound);
               continue;
-            case UNBOUNDED:
-
+            }
+            case UNBOUNDED -> {
               // Any of the components is unbounded => the sum is unbounded as
               // well.
               continue;
-            case ABSTRACTION_REQUIRED:
-
+            }
+            case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
-              break;
-            default:
-              throw new UnsupportedOperationException("Unexpected case");
+            }
+            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 
@@ -886,7 +884,7 @@ public class PolicyIterationManager {
         }
 
         switch (status) {
-          case OPT:
+          case OPT -> {
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
             Optional<PolicyBound> policyBound =
                 getPolicyBound(
@@ -903,17 +901,14 @@ public class PolicyIterationManager {
             }
 
             logger.log(Level.FINE, "Got bound: ", bound);
-            break;
-
-          case UNSAT:
-            throw new CPAException("Unexpected UNSAT");
-
-          case UNDEF:
+          }
+          case UNSAT -> throw new CPAException("Unexpected UNSAT");
+          case UNDEF -> {
             logger.log(Level.WARNING, "Solver returned undefined status on the problem: ");
             logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
-          default:
-            throw new AssertionError("Unhandled enum value in switch: " + status);
+          }
+          default -> throw new AssertionError("Unhandled enum value in switch: " + status);
         }
       }
     } catch (SolverException e) {
@@ -1177,18 +1172,20 @@ public class PolicyIterationManager {
     }
 
     switch (abstractionLocations) {
-      case ALL:
+      case ALL -> {
         return true;
-      case LOOPHEAD:
+      }
+      case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
         return (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
-      case MERGE:
+      }
+      case MERGE -> {
         return node.getNumEnteringEdges() > 1;
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
+      }
+      default -> throw new UnsupportedOperationException("Unexpected state");
     }
   }
 

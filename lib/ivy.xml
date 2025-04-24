@@ -136,8 +136,8 @@ SPDX-License-Identifier: Apache-2.0
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
         <!-- Synchronize version with REFASTER_VERSION in ../.gitlab-ci.yml! -->
-        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.37.0" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.37.0" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_core" rev="2.38.0" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.38.0" conf="build->default; contrib->sources" />
 
         <!-- Policeman's Forbidden API Checker
              Useful for detecting uses of unwanted API -->
@@ -165,15 +165,15 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case.
-             A user can either replace the configuration of JavaSMT with the 'complete' runtime configuration:
+             A user can either replace the configuration of JavaSMT below with the 'complete' runtime configuration:
              <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime; contrib->sources">
              or just add the additional dependency 'javasmt-yices2':
-             <dependency org="org.sosy_lab" name="javasmt-yices2" rev="4.1.1-734-g3732f7e08" conf="runtime->runtime; contrib->sources"/>
+             <dependency org="org.sosy_lab" name="javasmt-yices2" rev="5.0.0" conf="runtime->runtime; contrib->sources"/>
         -->
+        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
         </dependency>
@@ -198,7 +198,7 @@ SPDX-License-Identifier: Apache-2.0
         </dependency>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.37.0"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.38.0"/>
 
         <!-- SpotBugs has a dependency on log4j-core without an exact revision.
              This causes Ivy to loook up versions only and breaks CPAchecker builds without internet.

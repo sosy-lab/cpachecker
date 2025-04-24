@@ -437,7 +437,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
         boolean wasSuccessful = false;
 
         switch (generation) {
-          case PF_CNF_KIND:
+          case PF_CNF_KIND -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -448,9 +448,8 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case PF_INDUCTIVE_WEAKENING:
+          }
+          case PF_INDUCTIVE_WEAKENING -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -461,16 +460,12 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case RF_INTERPOLANT_KIND:
-            wasSuccessful =
-                findInvariantInterpolants(
-                    allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
-            break;
-
-          default:
-            throw new AssertionError("Unhandled case statement");
+          }
+          case RF_INTERPOLANT_KIND ->
+              wasSuccessful =
+                  findInvariantInterpolants(
+                      allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
+          default -> throw new AssertionError("Unhandled case statement");
         }
 
         if (wasSuccessful) {

@@ -249,87 +249,82 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results)
       throws UnrecognizedCodeException, InterruptedException {
     switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              final String functionName = ((AIdExpression) functionNameExp).getName();
-              if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
-                throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
-              }
-              switch (functionName) {
-                case THREAD_START:
-                  return startNewThread(threadingState, statement, results, cfaEdge);
-                case THREAD_MUTEX_LOCK:
-                  return addLock(threadingState, activeThread, extractLockId(statement), results);
-                case THREAD_MUTEX_UNLOCK:
-                  return removeLock(activeThread, extractLockId(statement), results);
-                case THREAD_JOIN:
-                  return joinThread(threadingState, statement, results);
-                case THREAD_EXIT:
-                  // this function-call is already handled in the beginning with isLastNodeOfThread.
-                  // return exitThread(threadingState, activeThread, results);
-                  break;
-                case VERIFIER_ATOMIC_BEGIN:
-                  if (useAtomicLocks) {
-                    return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                case VERIFIER_ATOMIC_END:
-                  if (useAtomicLocks) {
-                    return removeLock(activeThread, ATOMIC_LOCK, results);
-                  }
-                  break;
-                default:
-                  // nothing to do, return results
-              }
+      case StatementEdge -> {
+        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            final String functionName = ((AIdExpression) functionNameExp).getName();
+            if (UNSUPPORTED_THREAD_FUNCTIONS.contains(functionName)) {
+              throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
+            }
+            switch (functionName) {
+              case THREAD_START:
+                return startNewThread(threadingState, statement, results, cfaEdge);
+              case THREAD_MUTEX_LOCK:
+                return addLock(threadingState, activeThread, extractLockId(statement), results);
+              case THREAD_MUTEX_UNLOCK:
+                return removeLock(activeThread, extractLockId(statement), results);
+              case THREAD_JOIN:
+                return joinThread(threadingState, statement, results);
+              case THREAD_EXIT:
+                // this function-call is already handled in the beginning with isLastNodeOfThread.
+                // return exitThread(threadingState, activeThread, results);
+                break;
+              case VERIFIER_ATOMIC_BEGIN:
+                if (useAtomicLocks) {
+                  return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+                }
+                break;
+              case VERIFIER_ATOMIC_END:
+                if (useAtomicLocks) {
+                  return removeLock(activeThread, ATOMIC_LOCK, results);
+                }
+                break;
+              default:
+                // nothing to do, return results
             }
           }
-          break;
         }
-      case FunctionCallEdge:
-        {
-          if (useAtomicLocks) {
-            // cloning changes the function-name -> we use 'startsWith'.
-            // we have 2 different atomic sequences:
-            //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
-            //      (@Deprecated, for old benchmark tasks)
-            //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be
-            // anything
-            final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
-            if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-            } else if (calledFunction.startsWith(VERIFIER_ATOMIC)
-                && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
-            }
+      }
+      case FunctionCallEdge -> {
+        if (useAtomicLocks) {
+          // cloning changes the function-name -> we use 'startsWith'.
+          // we have 2 different atomic sequences:
+          //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+          //      (@Deprecated, for old benchmark tasks)
+          //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be
+          // anything
+          final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
+          if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+            return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+          } else if (calledFunction.startsWith(VERIFIER_ATOMIC)
+              && !calledFunction.startsWith(VERIFIER_ATOMIC_END)) {
+            return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
           }
-          break;
         }
-      case FunctionReturnEdge:
-        {
-          if (useAtomicLocks) {
-            // cloning changes the function-name -> we use 'startsWith'.
-            // we have 2 different atomic sequences:
-            //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
-            //      (@Deprecated, for old benchmark tasks)
-            //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be
-            // anything
-            final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
-            if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
-            } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)
-                && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
-              return removeLock(activeThread, ATOMIC_LOCK, results);
-            }
+      }
+      case FunctionReturnEdge -> {
+        if (useAtomicLocks) {
+          // cloning changes the function-name -> we use 'startsWith'.
+          // we have 2 different atomic sequences:
+          //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+          //      (@Deprecated, for old benchmark tasks)
+          //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be
+          // anything
+          final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
+          if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
+            return removeLock(activeThread, ATOMIC_LOCK, results);
+          } else if (exitedFunction.startsWith(VERIFIER_ATOMIC)
+              && !exitedFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
+            return removeLock(activeThread, ATOMIC_LOCK, results);
           }
-          break;
         }
-      default:
+      }
+      default -> {
         // nothing to do
+      }
     }
     return results;
   }
@@ -732,26 +727,28 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private static boolean isImporantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-          if (statement instanceof AFunctionCall) {
-            AExpression functionNameExp =
-                ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
-            if (functionNameExp instanceof AIdExpression) {
-              return THREAD_FUNCTIONS.contains(((AIdExpression) functionNameExp).getName());
-            }
+      case StatementEdge -> {
+        AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            return THREAD_FUNCTIONS.contains(((AIdExpression) functionNameExp).getName());
           }
-          return false;
         }
-      case FunctionCallEdge:
+        return false;
+      }
+      case FunctionCallEdge -> {
         // @Deprecated, for old benchmark tasks
         return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // @Deprecated, for old benchmark tasks
         return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC);
-      default:
+      }
+      default -> {
         return false;
+      }
     }
   }
 

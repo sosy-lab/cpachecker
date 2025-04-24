@@ -105,27 +105,18 @@ public class TargetFunctionsProvider {
 
     for (FunctionSet functionSet : functionSets) {
       switch (functionSet) {
-        case ALL:
+        case ALL -> {
           // do nothing
-          break;
-        case EQ_PARAM_COUNT:
-          predicates.add(this::checkParamCount);
-          break;
-        case EQ_PARAM_SIZES:
-          predicates.add(this::checkReturnAndParamSizes);
-          break;
-        case EQ_PARAM_TYPES:
-          predicates.add(this::checkReturnAndParamTypes);
-          break;
-        case RETURN_VALUE:
-          predicates.add(this::checkReturnValue);
-          break;
-        case USED_IN_CODE:
+        }
+        case EQ_PARAM_COUNT -> predicates.add(this::checkParamCount);
+        case EQ_PARAM_SIZES -> predicates.add(this::checkReturnAndParamSizes);
+        case EQ_PARAM_TYPES -> predicates.add(this::checkReturnAndParamTypes);
+        case RETURN_VALUE -> predicates.add(this::checkReturnValue);
+        case USED_IN_CODE -> {
           // Not necessary, only matching functions are in the
           // candidateFunctions set
-          break;
-        default:
-          throw new AssertionError();
+        }
+        default -> throw new AssertionError();
       }
     }
     return predicates.stream().reduce((a, b) -> true, BiPredicate::and);

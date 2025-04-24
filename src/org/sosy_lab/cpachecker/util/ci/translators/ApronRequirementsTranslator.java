@@ -201,23 +201,12 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
     sb.append("(");
 
     switch (constraint.kind) {
-      case Tcons0.EQ:
-        sb.append("=");
-        break;
-      case Tcons0.SUPEQ:
-        sb.append(">=");
-        break;
-      case Tcons0.SUP:
-        sb.append(">");
-        break;
-      case Tcons0.DISEQ:
-        sb.append("not (=");
-        break;
-      case Tcons0.EQMOD:
-        sb.append("= (mod");
-        break;
-      default:
-        throw new AssertionError();
+      case Tcons0.EQ -> sb.append("=");
+      case Tcons0.SUPEQ -> sb.append(">=");
+      case Tcons0.SUP -> sb.append(">");
+      case Tcons0.DISEQ -> sb.append("not (=");
+      case Tcons0.EQMOD -> sb.append("= (mod");
+      default -> throw new AssertionError();
     }
 
     String left = convertLeftConstraintPartToFormula(constraint, varNames, map, varsConsidered);
@@ -281,23 +270,12 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
         sb.append(" (");
 
         switch (((Texpr0BinNode) current).getOperation()) {
-          case Texpr0BinNode.OP_ADD:
-            sb.append("+");
-            break;
-          case Texpr0BinNode.OP_SUB:
-            sb.append("-");
-            break;
-          case Texpr0BinNode.OP_MUL:
-            sb.append("*");
-            break;
-          case Texpr0BinNode.OP_DIV:
-            sb.append("/");
-            break;
-          case Texpr0BinNode.OP_MOD:
-            sb.append("mod");
-            break;
-          default:
-            throw new AssertionError("Unsupported binary operator.");
+          case Texpr0BinNode.OP_ADD -> sb.append("+");
+          case Texpr0BinNode.OP_SUB -> sb.append("-");
+          case Texpr0BinNode.OP_MUL -> sb.append("*");
+          case Texpr0BinNode.OP_DIV -> sb.append("/");
+          case Texpr0BinNode.OP_MOD -> sb.append("mod");
+          default -> throw new AssertionError("Unsupported binary operator.");
         }
 
         stack.push(
@@ -306,11 +284,8 @@ public class ApronRequirementsTranslator extends CartesianRequirementsTranslator
       } else if (current instanceof Texpr0UnNode) {
 
         switch (((Texpr0UnNode) current).getOperation()) {
-          case Texpr0UnNode.OP_NEG:
-            sb.append(" (-");
-            break;
-          default:
-            throw new AssertionError("Unsupported unary operator.");
+          case Texpr0UnNode.OP_NEG -> sb.append(" (-");
+          default -> throw new AssertionError("Unsupported unary operator.");
         }
 
         stack.push(Pair.of(((Texpr0UnNode) current).getArgument(), currentPair.getSecond() + 1));
