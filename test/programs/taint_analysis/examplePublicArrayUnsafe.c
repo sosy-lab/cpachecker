@@ -13,5 +13,5 @@ int main() {
     int d[1];
     d[0] = x;
 
-    __VERIFIER_is_public(d[0], 0);
+    __VERIFIER_is_public(d, 0);
 }
