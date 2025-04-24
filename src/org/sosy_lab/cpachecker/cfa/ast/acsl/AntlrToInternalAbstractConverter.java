@@ -138,6 +138,6 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
       throw new RuntimeException(
           "Expected a unary operator, but got: " + operator + " for type: " + expressionType);
     }
-    return expressionType;
+    return resultType;
   }
 }

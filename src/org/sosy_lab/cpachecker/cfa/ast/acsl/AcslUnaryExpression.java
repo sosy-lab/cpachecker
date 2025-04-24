@@ -48,7 +48,7 @@ public final class AcslUnaryExpression extends AUnaryExpression implements AcslE
       return true;
     }
 
-    return obj instanceof AcslUnaryExpression other && super.equals(obj);
+    return obj instanceof AcslUnaryExpression && super.equals(obj);
   }
 
   public enum AcslUnaryExpressionOperator implements AUnaryOperator, AcslAstNode {

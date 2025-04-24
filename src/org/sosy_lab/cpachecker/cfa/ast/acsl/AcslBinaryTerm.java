@@ -139,6 +139,7 @@ public final class AcslBinaryTerm extends AcslTerm {
       };
     }
 
+    @SuppressWarnings("unused")
     public static boolean isLogicalOperator(AcslBinaryTermOperator op) {
       return false;
     }
