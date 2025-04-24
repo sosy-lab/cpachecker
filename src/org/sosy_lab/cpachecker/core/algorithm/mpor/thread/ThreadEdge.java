@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class ThreadEdge {
 
+  public final int threadId;
+
   public final CFAEdge cfaEdge;
 
   /** Not all edges have a calling context, e.g. {@code main()} function statements. */
@@ -25,7 +27,8 @@ public class ThreadEdge {
 
   private ThreadNode successor = null;
 
-  public ThreadEdge(CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
+  public ThreadEdge(int pThreadId, CFAEdge pCfaEdge, Optional<ThreadEdge> pCallContext) {
+    threadId = pThreadId;
     cfaEdge = pCfaEdge;
     callContext = pCallContext;
   }

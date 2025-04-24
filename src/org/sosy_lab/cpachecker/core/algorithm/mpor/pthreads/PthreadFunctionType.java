@@ -328,7 +328,9 @@ public enum PthreadFunctionType {
   }
 
   public int getStartRoutineArgumentIndex() {
-    checkArgument(startRoutineIndex.isPresent(), "this PthreadFuncType has no start_routine param");
-    return startRoutineIndex.orElseThrow();
+    checkArgument(
+        startRoutineArgumentIndex.isPresent(),
+        "this PthreadFuncType has no start_routine arg param");
+    return startRoutineArgumentIndex.orElseThrow();
   }
 }

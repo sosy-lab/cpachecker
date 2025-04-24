@@ -26,37 +26,24 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SequentializationTest {
 
-  // TODO this triggers a substitute not found because the pthread_create call passes
-  //  a parameter to the start routine and the thread reads it
-  // "ring_2w1r-2",
-
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
 
-  // TODO parsing fails for sequentializations of
-  //  (parsing also fails for input .c files, but not for .i...):
-  // 28-race_reach_45-escape_racing
-  // 28-race_reach_46-escape_racefree
-
-  // TODO substitute assertion error
-  // pthread-divine/tls-basic.i
-
   @Test
-  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
-    // this program contains multiple loops whose condition only contains local variables
-    Path path =
-        Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
+  public void testCompileSeq_28_race_reach_45_escape_racing() throws Exception {
+    // this program contains a start_routine argument passed via pthread_create
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/28-race_reach_45-escape_racing.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            true,
             false,
             true,
             true,
+            true,
+            true,
+            BitVectorEncoding.HEXADECIMAL,
+            true,
             false,
-            BitVectorEncoding.NONE,
-            true,
-            true,
             false,
             true,
             true,
@@ -79,8 +66,31 @@ public class SequentializationTest {
             true,
             true,
             BitVectorEncoding.SCALAR,
+            false,
+            false,
+            false,
             true,
             false,
+            false);
+    testCompile(path, options);
+  }
+
+  @Test
+  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
+    // this program contains multiple loops whose condition only contains local variables
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            false,
+            true,
+            true,
+            false,
+            BitVectorEncoding.NONE,
+            true,
+            true,
             false,
             true,
             true,
@@ -126,6 +136,28 @@ public class SequentializationTest {
             false,
             true,
             true,
+            true,
+            false,
+            false);
+    testCompile(path, options);
+  }
+
+  @Test
+  public void testCompileSeq_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            false,
+            true,
+            false,
+            false,
+            false,
+            BitVectorEncoding.NONE,
+            false,
+            true,
+            false,
             true,
             false,
             false);
@@ -214,28 +246,6 @@ public class SequentializationTest {
             true,
             false,
             true);
-    testCompile(path, options);
-  }
-
-  @Test
-  public void testCompileSeq_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
-    Path path =
-        Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
-    assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            false,
-            true,
-            false,
-            false,
-            false,
-            BitVectorEncoding.NONE,
-            false,
-            true,
-            false,
-            true,
-            false,
-            false);
     testCompile(path, options);
   }
 

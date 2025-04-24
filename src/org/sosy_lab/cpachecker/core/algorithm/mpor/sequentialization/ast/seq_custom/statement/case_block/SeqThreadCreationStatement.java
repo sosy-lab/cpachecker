@@ -110,6 +110,8 @@ public class SeqThreadCreationStatement implements SeqCaseBlockStatement {
             injectedStatements,
             concatenatedStatements);
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
+        + parameterAssignment.statement.toASTString()
+        + SeqSyntax.SPACE
         + createdPcWrite.toASTString()
         + SeqSyntax.SPACE
         + targetStatements;

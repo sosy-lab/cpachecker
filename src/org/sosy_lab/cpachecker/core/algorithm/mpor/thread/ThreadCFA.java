@@ -25,11 +25,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 
 public class ThreadCFA {
 
-  /** FunctionEntryNode of the main function (main thread) or start routine (pthreads). */
+  public final int threadId;
+
+  /** FunctionEntryNode of the main function (main thread) or start_routine (pthreads). */
   public final FunctionEntryNode entryNode;
 
   /**
-   * FunctionExitNode of the main function (main thread) or start routine (pthreads). Can be empty,
+   * FunctionExitNode of the main function (main thread) or start_routine (pthreads). Can be empty,
    * see {@link FunctionEntryNode#getExitNode()}.
    */
   public final Optional<FunctionExitNode> exitNode;
@@ -40,10 +42,12 @@ public class ThreadCFA {
   public final ImmutableList<ThreadEdge> threadEdges;
 
   protected ThreadCFA(
+      int pThreadId,
       FunctionEntryNode pEntryNode,
       ImmutableSet<ThreadNode> pThreadNodes,
       ImmutableList<ThreadEdge> pThreadEdges) {
 
+    threadId = pThreadId;
     entryNode = pEntryNode;
     exitNode = entryNode.getExitNode();
     threadNodes = pThreadNodes;

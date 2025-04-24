@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MPORSubstitution {
 
+  // TODO public final boolean isDummy (for debugging)
+
   public final MPORThread thread;
 
   /**
@@ -52,6 +54,7 @@ public class MPORSubstitution {
    */
   public final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
 
+  // TODO what if multiple declarations have no call context - duplicate key in map?
   /**
    * The map of thread local variable declarations to their substitutes. Not every local variable
    * declaration has a calling context, hence {@link Optional}s.
@@ -290,7 +293,7 @@ public class MPORSubstitution {
       } else if (startRoutineArgSubstitutes.containsKey(callContext)) {
         ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
             Objects.requireNonNull(startRoutineArgSubstitutes.get(callContext));
-        assert substitutes.size() == 1 : "start routines can have only one parameter";
+        assert substitutes.size() == 1 : "start_routines can have only one parameter";
         return Objects.requireNonNull(substitutes.get(parameterDeclaration));
       }
       throw new IllegalArgumentException("parameter declaration could not be found");

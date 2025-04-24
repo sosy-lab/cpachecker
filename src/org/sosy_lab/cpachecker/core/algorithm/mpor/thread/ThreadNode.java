@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 
 public class ThreadNode {
 
+  public final int threadId;
+
   /** The corresponding CFANode of the input CFA. */
   public final CFANode cfaNode;
 
@@ -30,11 +32,13 @@ public class ThreadNode {
   private final List<ThreadEdge> leavingEdges;
 
   protected ThreadNode(
+      int pThreadId,
       CFANode pCfaNode,
       int pPc,
       Optional<ThreadEdge> pCallContext,
       List<ThreadEdge> pLeavingEdges) {
 
+    threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;
     callContext = pCallContext;

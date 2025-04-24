@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class PthreadUtil {
 
+  // TODO move to ThreadUtil
   public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
         callsAnyPthreadFuncWithPthreadT(pEdge),
@@ -100,9 +102,10 @@ public class PthreadUtil {
     return CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineArgumentIndex());
   }
 
+  // TODO move to ThreadUtil
   /** Searches the given map of MPORThreads for the given thread object. */
   public static MPORThread getThreadByObject(
-      ImmutableSet<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
+      ImmutableCollection<MPORThread> pThreads, Optional<CExpression> pThreadObject) {
 
     for (MPORThread rThread : pThreads) {
       if (rThread.threadObject.equals(pThreadObject)) {

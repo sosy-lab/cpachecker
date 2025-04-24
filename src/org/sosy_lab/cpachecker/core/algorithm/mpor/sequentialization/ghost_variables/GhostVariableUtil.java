@@ -328,18 +328,22 @@ public class GhostVariableUtil {
     ImmutableMap.Builder<ThreadEdge, FunctionParameterAssignment> rAssignments =
         ImmutableMap.builder();
     for (var entry : pSubstitution.startRoutineArgSubstitutes.entrySet()) {
+      // this call context is the call to pthread_create
       ThreadEdge callContext = entry.getKey();
-      assert entry.getValue().size() == 1 : "start routines must have exactly 1 parameter";
-      for (var innerEntry : entry.getValue().entrySet()) {
-        CIdExpression parameterSubstitute = innerEntry.getValue();
-        CExpression rightHandSide = PthreadUtil.extractStartRoutineArgument(callContext.cfaEdge);
-        FunctionParameterAssignment parameterAssignment =
-            new FunctionParameterAssignment(
-                SeqStatementBuilder.buildExpressionAssignmentStatement(
-                    parameterSubstitute,
-                    pSubstitution.substitute(
-                        rightHandSide, Optional.of(callContext), Optional.empty())));
-        rAssignments.put(callContext, parameterAssignment);
+      // only the thread calling pthread_create assigns the start_routine arg
+      if (pSubstitution.thread.id == callContext.threadId) {
+        assert entry.getValue().size() == 1 : "start_routines must have exactly 1 parameter";
+        for (CIdExpression parameterSubstitute : entry.getValue().values()) {
+          CExpression rightHandSide = PthreadUtil.extractStartRoutineArgument(callContext.cfaEdge);
+          FunctionParameterAssignment parameterAssignment =
+              new FunctionParameterAssignment(
+                  SeqStatementBuilder.buildExpressionAssignmentStatement(
+                      parameterSubstitute,
+                      pSubstitution.substitute(
+                          // the inner call context is the context in which pthread_create is called
+                          rightHandSide, callContext.callContext, Optional.empty())));
+          rAssignments.put(callContext, parameterAssignment);
+        }
       }
     }
     return rAssignments.buildOrThrow();
@@ -349,7 +353,7 @@ public class GhostVariableUtil {
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
    * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
    *
-   * <p>Note that {@code main} functions and start routines of threads oftentimes do not have
+   * <p>Note that {@code main} functions and start_routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
   private static ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>

@@ -77,7 +77,7 @@ public class ThreadBuilder {
         assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
         // extract the first parameter of pthread_create, i.e. the pthread_t value
         CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-        // extract the third parameter of pthread_create which points to the start routine function
+        // extract the third parameter of pthread_create which points to the start_routine function
         CFunctionType startRoutine = PthreadUtil.extractStartRoutine(cfaEdge);
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
@@ -103,9 +103,10 @@ public class ThreadBuilder {
         pEntryNode.getFunction().getType() instanceof CFunctionType,
         "pEntryNode function must be CFunctionType");
     currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
-    ThreadCFA threadCfa = buildThreadCfa(pEntryNode, pStartRoutineCall);
+    int newThreadId = currentThreadId++;
+    ThreadCFA threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
     return new MPORThread(
-        currentThreadId++,
+        newThreadId,
         pThreadObject,
         (CFunctionType) pEntryNode.getFunction().getType(),
         pStartRoutineCall,
@@ -114,7 +115,7 @@ public class ThreadBuilder {
   }
 
   private static ThreadCFA buildThreadCfa(
-      FunctionEntryNode pEntryNode, Optional<ThreadEdge> pStartRoutineCall) {
+      int pThreadId, FunctionEntryNode pEntryNode, Optional<ThreadEdge> pStartRoutineCall) {
 
     // check if node is present already in a specific calling context
     Multimap<CFANode, Optional<ThreadEdge>> visitedNodes = ArrayListMultimap.create();
@@ -123,9 +124,18 @@ public class ThreadBuilder {
     ImmutableMap.Builder<ThreadEdge, CFAEdge> threadEdges = ImmutableMap.builder();
 
     initThreadCfaVariables(
-        visitedNodes, threadNodes, threadEdges, pEntryNode, Optional.empty(), pStartRoutineCall);
+        pThreadId,
+        visitedNodes,
+        threadNodes,
+        threadEdges,
+        pEntryNode,
+        Optional.empty(),
+        pStartRoutineCall);
     return new ThreadCFA(
-        pEntryNode, threadNodes.build(), ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
+        pThreadId,
+        pEntryNode,
+        threadNodes.build(),
+        ImmutableList.copyOf(threadEdges.buildOrThrow().keySet()));
   }
 
   /**
@@ -133,6 +143,7 @@ public class ThreadBuilder {
    * and pExitNode.
    */
   private static void initThreadCfaVariables(
+      final int pThreadId,
       Multimap<CFANode, Optional<ThreadEdge>> pVisitedCfaNodes,
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableMap.Builder<ThreadEdge, CFAEdge> pThreadEdges,
@@ -152,16 +163,17 @@ public class ThreadBuilder {
 
     FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
     BiMap<ThreadEdge, CFAEdge> threadEdges =
-        createThreadEdgesFromCfaEdges(leavingCfaEdges, callContext);
+        createThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);
     pThreadEdges.putAll(threadEdges);
     List<ThreadEdge> edgeList = new ArrayList<>(threadEdges.keySet());
 
     // recursively build cfa nodes and edges
     if (leavingCfaEdges.isEmpty()) {
       pThreadNodes.add(
-          new ThreadNode(pCurrentNode, Sequentialization.EXIT_PC, callContext, edgeList));
+          new ThreadNode(
+              pThreadId, pCurrentNode, Sequentialization.EXIT_PC, callContext, edgeList));
     } else {
-      pThreadNodes.add(new ThreadNode(pCurrentNode, currentPc++, callContext, edgeList));
+      pThreadNodes.add(new ThreadNode(pThreadId, pCurrentNode, currentPc++, callContext, edgeList));
       for (CFAEdge cfaEdge : leavingCfaEdges) {
         // exclude function returns, their successors may be in other threads.
         // the original, same-thread successor is included due to the function summary edge.
@@ -171,6 +183,7 @@ public class ThreadBuilder {
             callContext = Optional.of(threadEdges.inverse().get(cfaEdge));
           }
           initThreadCfaVariables(
+              pThreadId,
               pVisitedCfaNodes,
               pThreadNodes,
               pThreadEdges,
@@ -209,11 +222,11 @@ public class ThreadBuilder {
   // (Private) Helpers =============================================================================
 
   private static BiMap<ThreadEdge, CFAEdge> createThreadEdgesFromCfaEdges(
-      FluentIterable<CFAEdge> pCfaEdges, Optional<ThreadEdge> pCallContext) {
+      int pThreadId, FluentIterable<CFAEdge> pCfaEdges, Optional<ThreadEdge> pCallContext) {
 
     BiMap<ThreadEdge, CFAEdge> rThreadEdges = HashBiMap.create();
     for (CFAEdge cfaEdge : pCfaEdges) {
-      rThreadEdges.put(new ThreadEdge(cfaEdge, pCallContext), cfaEdge);
+      rThreadEdges.put(new ThreadEdge(pThreadId, cfaEdge, pCallContext), cfaEdge);
     }
     return rThreadEdges;
   }

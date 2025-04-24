@@ -493,7 +493,7 @@ public class SeqCaseBlockStatementBuilder {
   private static boolean yieldsBlankCaseBlock(
       MPORThread pThread, SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
 
-    // exiting start routine of thread -> blank, just set pc[i] = -1;
+    // exiting start_routine of thread -> blank, just set pc[i] = -1;
     if (pSuccessor instanceof FunctionExitNode
         && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
       // TODO this needs to be refactored once we support start routine return values

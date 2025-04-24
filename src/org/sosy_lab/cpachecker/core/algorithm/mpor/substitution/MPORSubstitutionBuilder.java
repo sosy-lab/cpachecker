@@ -55,6 +55,9 @@ public class MPORSubstitutionBuilder {
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
         getGlobalVariableSubstitutes(
             pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder);
+    // use same start_routine arg substitutes across threads, so that all threads can access them
+    ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
+        startRoutineArgSubstitutes = getStartRoutineArgSubstitutes(pOptions, pThreads);
 
     ImmutableList.Builder<MPORSubstitution> rSubstitutions = ImmutableList.builder();
 
@@ -62,8 +65,6 @@ public class MPORSubstitutionBuilder {
     for (MPORThread thread : pThreads) {
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           parameterSubstitutes = getParameterSubstitutes(pOptions, thread);
-      ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-          startRoutineArgSubstitutes = getStartRoutineArgSubstitutes(pOptions, thread, pThreads);
       ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
           localVarSubstitutes =
               buildVariableDeclarationSubstitutes(
@@ -212,47 +213,43 @@ public class MPORSubstitutionBuilder {
   // Start Routine Args ============================================================================
 
   private static ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
-      getStartRoutineArgSubstitutes(
-          MPOROptions pOptions, MPORThread pThread, ImmutableList<MPORThread> pAllThreads) {
+      getStartRoutineArgSubstitutes(MPOROptions pOptions, ImmutableList<MPORThread> pAllThreads) {
 
     ImmutableMap.Builder<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
         rArgSubstitutes = ImmutableMap.builder();
 
-    if (pThread.isMain()) {
-      return ImmutableMap.of(); // main thread cannot have start routine arg
-    }
-    for (MPORThread otherThread : pAllThreads) {
-      if (!otherThread.equals(pThread)) {
-        for (ThreadEdge threadEdge : otherThread.cfa.threadEdges) {
-          CFAEdge cfaEdge = threadEdge.cfaEdge;
-          if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
-            // TODO if we support pthread return values, this may not hold
-            assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
-            CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
-            // pthread_t matches
-            if (pthreadT.equals(pThread.threadObject.orElseThrow())) {
-              CFunctionType startRoutineType = PthreadUtil.extractStartRoutine(cfaEdge);
-              CFunctionDeclaration startRoutineDeclaration =
-                  (CFunctionDeclaration) pThread.cfa.entryNode.getFunction();
-              // start_routine matches
-              if (startRoutineDeclaration.getType().equals(startRoutineType)) {
-                // start routines only have one parameter
-                CParameterDeclaration parameterDeclaration =
-                    startRoutineDeclaration.getParameters().get(0);
-                String varName =
-                    SeqNameUtil.buildStartRoutineArgName(
-                        pOptions,
-                        parameterDeclaration,
-                        pThread.id,
-                        startRoutineDeclaration.getOrigName());
-                // we use variable declarations for start routine args in the sequentialization
-                CVariableDeclaration variableDeclaration =
-                    substituteVariableDeclaration(
-                        parameterDeclaration.asVariableDeclaration(), varName);
-                CIdExpression substitute =
-                    SeqExpressionBuilder.buildIdExpression(variableDeclaration);
-                rArgSubstitutes.put(threadEdge, ImmutableMap.of(parameterDeclaration, substitute));
-              }
+    for (MPORThread thread : pAllThreads) {
+      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
+        CFAEdge cfaEdge = threadEdge.cfaEdge;
+        if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_CREATE)) {
+          // TODO if we support pthread return values, this may not hold
+          assert cfaEdge instanceof CStatementEdge : "pthread_create must be CStatementEdge";
+          CIdExpression pthreadT = PthreadUtil.extractPthreadT(cfaEdge);
+          MPORThread createdThread =
+              PthreadUtil.getThreadByObject(pAllThreads, Optional.of(pthreadT));
+          // pthread_t matches
+          if (pthreadT.equals(createdThread.threadObject.orElseThrow())) {
+            CFunctionType startRoutineType = PthreadUtil.extractStartRoutine(cfaEdge);
+            CFunctionDeclaration startRoutineDeclaration =
+                (CFunctionDeclaration) createdThread.cfa.entryNode.getFunction();
+            // start_routine matches
+            if (startRoutineDeclaration.getType().equals(startRoutineType)) {
+              // start_routines only have one parameter
+              CParameterDeclaration parameterDeclaration =
+                  startRoutineDeclaration.getParameters().get(0);
+              String varName =
+                  SeqNameUtil.buildStartRoutineArgName(
+                      pOptions,
+                      parameterDeclaration,
+                      createdThread.id,
+                      startRoutineDeclaration.getOrigName());
+              // we use variable declarations for start_routine args in the sequentialization
+              CVariableDeclaration variableDeclaration =
+                  substituteVariableDeclaration(
+                      parameterDeclaration.asVariableDeclaration(), varName);
+              CIdExpression substitute =
+                  SeqExpressionBuilder.buildIdExpression(variableDeclaration);
+              rArgSubstitutes.put(threadEdge, ImmutableMap.of(parameterDeclaration, substitute));
             }
           }
         }

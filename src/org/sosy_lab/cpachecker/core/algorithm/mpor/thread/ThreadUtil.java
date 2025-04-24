@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 public class ThreadUtil {
 
   /**
-   * Returns either {@code pCallContext} if present or the start routine call of {@code pThread},
+   * Returns either {@code pCallContext} if present or the start_routine call of {@code pThread},
    * which serves as the default call context.
    */
   public static Optional<ThreadEdge> getCallContextOrStartRoutineCall(

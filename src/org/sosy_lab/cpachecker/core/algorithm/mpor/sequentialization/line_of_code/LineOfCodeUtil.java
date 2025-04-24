@@ -153,20 +153,18 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildStartRoutineArgDeclarations(
-      MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rStartRoutineArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
       rStartRoutineArgDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
     }
-    for (MPORSubstitution substitution : pSubstitutions) {
-      ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
-          substitution.getStartRoutineArgDeclarations();
-      for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
-        if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
-          rStartRoutineArgDeclarations.add(
-              LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));
-        }
+    ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
+        pMainThreadSubstitution.getStartRoutineArgDeclarations();
+    for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+      if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
+        rStartRoutineArgDeclarations.add(
+            LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));
       }
     }
     if (pOptions.comments) {

@@ -163,7 +163,7 @@ public class Sequentialization {
     // first initialize some variables needed for the declarations and definitions
     ImmutableSet<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
     MPORThread mainThread = ThreadUtil.extractMainThread(threads);
-    MPORSubstitution mainThreadSubstitution =
+    MPORSubstitution mainSubstitution =
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
@@ -176,10 +176,10 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
     // add function, struct, variable declarations in the order: global, local, parameters
-    rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainThreadSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
 
     // add variable declarations for ghost variables
     rProgram.addAll(
