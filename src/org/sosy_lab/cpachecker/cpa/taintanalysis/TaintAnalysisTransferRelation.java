@@ -377,7 +377,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             logger.log(
                 Level.INFO,
                 String.format(
-                    "Marking array '%s' as tainted at %s because a tainted value was assigned to one of its elements.",
+                    "Marking array '%s' as tainted at %s because a tainted value was assigned to"
+                        + " one of its elements.",
                     arrayVariable.getName(), pCfaEdge.getFileLocation()));
           }
         }
