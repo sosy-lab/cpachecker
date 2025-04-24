@@ -25,8 +25,7 @@ public class AntlrTsetToMemorySetConverter
 
   @Override
   public AcslMemoryLocationSet visitTsetEmpty(TsetEmptyContext ctx) {
-    return new AcslMemoryLocationSetEmpty(
-        FileLocation.DUMMY, new AcslSetType(AcslBuiltinLogicType.ANY));
+    return new AcslMemoryLocationSetEmpty(FileLocation.DUMMY);
   }
 
   @Override

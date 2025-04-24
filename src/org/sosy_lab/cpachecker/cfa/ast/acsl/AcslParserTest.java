@@ -490,6 +490,19 @@ public class AcslParserTest {
   }
 
   @Test
+  public void parseSimpleEmptyValidPredicate() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslValidExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));
+    String input = "\\valid(\\empty)";
+
+    testParsing(input, output);
+  }
+
+  @Test
   public void parseLogicalFunctionDeclaration() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
