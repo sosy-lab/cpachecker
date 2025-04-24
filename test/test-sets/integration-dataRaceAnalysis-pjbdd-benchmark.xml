@@ -19,16 +19,16 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="JAVADD--dataRaceAnalysis">
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD--dataRaceAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
   </rundefinition>
-  <rundefinition name="PJBDD-intDD--predicateAnalysis">
+  <rundefinition name="PJBDD-intDD--dataRaceAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
     <option name="--option">bdd.pjbdd.tableType=CASArray</option>
     <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
-  <rundefinition name="PJBDD-TaggedDD--predicateAnalysis">
+  <rundefinition name="PJBDD-TaggedDD--dataRaceAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=None</option>
