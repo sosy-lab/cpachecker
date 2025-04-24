@@ -319,6 +319,32 @@ public class AcslParserTest {
   }
 
   @Test
+  public void parseSimpleImplicitTermToPredicateConversion() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslBinaryTermExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslBinaryTerm(
+                FileLocation.DUMMY,
+                AcslBuiltinLogicType.INTEGER,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                new AcslIntegerLiteralTerm(
+                    FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                AcslBinaryTermOperator.PLUS),
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+            AcslBinaryTermExpressionOperator.EQUALS);
+    String input = "x + 1";
+
+    testParsing(input, output);
+  }
+
+  @Test
   public void parseSimpleAtPredicateWithArbitraryLabel() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =

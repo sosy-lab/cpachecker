@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicalF
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicalTruePredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ParenthesesPredContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.PredicateTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TernaryConditionPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.UnaryPredContext;
 
@@ -76,6 +78,18 @@ class AntrlPredicateToExpressionsConverter
 
     return new AcslUnaryExpression(
         FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, expression, operator);
+  }
+
+  @Override
+  public AcslExpression visitPredicateTerm(PredicateTermContext ctx) {
+    AcslTerm term = antrlToTermConverter.visit(ctx.getChild(0));
+    return new AcslBinaryTermExpression(
+        FileLocation.DUMMY,
+        AcslBuiltinLogicType.BOOLEAN,
+        term,
+        new AcslIntegerLiteralTerm(
+            FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+        AcslBinaryTermExpressionOperator.EQUALS);
   }
 
   @Override
