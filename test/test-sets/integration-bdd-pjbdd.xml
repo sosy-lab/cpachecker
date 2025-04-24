@@ -24,21 +24,8 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="JAVADD-bdd-bool">
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD-bdd-bool">
+  <rundefinition name="PJBDD-OBDD-dataRaceAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
-  </rundefinition>
-  <rundefinition name="PJBDD-intDD-bdd-bool">
-    <option name="--option">bdd.package=PJBDD</option>
-    <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
-    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
-    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
-  </rundefinition>
-  <rundefinition name="PJBDD-TaggedDD-bdd-bool">
-    <option name="--option">bdd.package=PJBDD</option>
-    <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
-    <option name="--option">bdd.pjbdd.parallelizationType=None</option>
-    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
-    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
 
   <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
