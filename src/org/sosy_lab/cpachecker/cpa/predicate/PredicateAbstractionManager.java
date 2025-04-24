@@ -935,14 +935,24 @@ public class PredicateAbstractionManager {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     Map<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
-    BooleanFormula primaryFormula = bfmgr.and(pAbstractionFormula.asInstantiatedFormula(), pPathFormula.getFormula());
+    BooleanFormula instantiatedAbstractFormula = pAbstractionFormula.asInstantiatedFormula();
+    BooleanFormula primaryFormula = bfmgr.and(instantiatedAbstractFormula, pPathFormula.getFormula());
 
     if (FormulaManagerView.isUsingTPA() && !amgr.getVarNameToTransitionPredicates().isEmpty()) {
       Set<String> varNamesWithIdx = fmgr.extractVariableNames(pPathFormula.getFormula());
       Set<String> varNames = transformedImmutableSetCopy(varNamesWithIdx, s -> fmgr.splitIndexSeparator(s).get(0));
       ListMultimap<String, AbstractionPredicate> varNameToTransPredsMap = amgr.getVarNameToTransitionPredicates();
       for (String varName : varNames) {
+        // Field use only when using index -1 for prime variable
+        List<AbstractionPredicate> satTransitionPredicateForVariable = new ArrayList<>();
+        boolean transitionPredicateInAbstractFormula = false;
 
+        if (options.isUseDefaultIndexForPrimeVariable()) {
+          Set<String> varInInstantiatedAbsFormula = fmgr.extractVariableNames(instantiatedAbstractFormula);
+          if (varInInstantiatedAbsFormula.contains(varName + FormulaManagerView.INDEX_SEPARATOR +FormulaManagerView.PRIME_DEFAULT_INDEX)) {
+            transitionPredicateInAbstractFormula = true;
+          }
+        }
         if (!varNameToTransPredsMap.containsKey(varName)
         || !ssaMap.containsVariable(varName)) {
           continue;
@@ -951,13 +961,14 @@ public class PredicateAbstractionManager {
         List<AbstractionPredicate> transPredList = varNameToTransPredsMap.get(varName);
 
         SSAMapBuilder builder = ssaMap.builder();
-        if (varNameToMinIdx.get(varName) != null) {
+        if (options.isUseDefaultIndexForPrimeVariable()) {
+          builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), FormulaManagerView.PRIME_DEFAULT_INDEX);
+        } else if (varNameToMinIdx.get(varName) != null) {
           builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
-          ssaMap = builder.build();
         } else {
           builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
-          ssaMap = builder.build();
         }
+        ssaMap = builder.build();
 
         for (int i = 0; i < transPredList.size(); i++) {
           AbstractionPredicate transPred = transPredList.get(i);
@@ -968,24 +979,70 @@ public class PredicateAbstractionManager {
             satTransitionPredicateList.add(transPred);
             break;
           }
-          BooleanFormula conj = fmgr.makeAnd(primaryFormula, instantiatedTransitionPredicate);
+          BooleanFormula conj;
+          if (options.isUseDefaultIndexForPrimeVariable()){
+            conj = fmgr.makeImplication(primaryFormula, instantiatedTransitionPredicate);
+          } else {
+            conj = fmgr.makeAnd(primaryFormula, instantiatedTransitionPredicate);
+          }
 
           try {
             boolean isUnsat = solver.isUnsat(conj);
-            if (isUnsat && i == transPredList.size() - 2) {
-              // The last generated transition predicate in list is sat
-              AbstractionPredicate satTransPred = transPredList.get(i + 1);
-              satTransitionPredicateList.add(satTransPred);
-              break;
-            } else if (!isUnsat) {
-              satTransitionPredicateList.add(transPred);
-              break;
+            if (!options.isUseDefaultIndexForPrimeVariable()) {
+              if (isUnsat && i == transPredList.size() - 2) {
+                // The last generated transition predicate in list is sat
+                satTransitionPredicateList.add(transPredList.get(i + 1));
+                break;
+              } else if (!isUnsat) {
+                satTransitionPredicateList.add(transPred);
+                break;
+              }
+            } else {
+              if (transitionPredicateInAbstractFormula) {
+                if (!isUnsat) {
+                  satTransitionPredicateForVariable.add(transPred);
+                  break;
+                }
+              } else {
+                // If the abstract formula has no transition predicate for the variable,
+                // all transition predicate with index -1 are satisfied
+                // Recheck satisfiability with minimal index in path
+                if (varNameToMinIdx.get(varName) != null) {
+                  builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+                } else {
+                  builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
+                }
+                ssaMap = builder.build();
+                BooleanFormula instantiatedTransitionPredicateWithMinIndex = fmgr.instantiate(transitionSymbAtom, ssaMap);
+                BooleanFormula conj2 = fmgr.makeImplication(primaryFormula, instantiatedTransitionPredicateWithMinIndex);
+                boolean isUnsat2 = solver.isUnsat(conj2);
+                if (isUnsat2 && i == transPredList.size() - 2) {
+                  satTransitionPredicateForVariable.add(transPredList.get(i + 1));
+                  // Rebuild ssa map with prime variable index of -1
+                  builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), FormulaManagerView.PRIME_DEFAULT_INDEX);
+                  ssaMap = builder.build();
+                  break;
+                } else if (!isUnsat2) {
+                  satTransitionPredicateForVariable.add(transPred);
+                  builder.setIndexTPA(varName + FormulaManagerView.PRIME_SUFFIX, builder.getType(varName), FormulaManagerView.PRIME_DEFAULT_INDEX);
+                  ssaMap = builder.build();
+                  break;
+                }
+              }
             }
           } catch (SolverException | InterruptedException e) {
             logger.log(Level.INFO, "Error when checking satisfiability of conjunction between path formula and transition predicates");
             throw new RuntimeException(e);
           }
         }
+        if (options.isUseDefaultIndexForPrimeVariable())
+          if (satTransitionPredicateForVariable.isEmpty()) {
+            satTransitionPredicateList.add(makeFalsePredicate());
+          } else if (satTransitionPredicateForVariable.size() > 1){
+            throw new RuntimeException("Multiple transition predicates of a variable are satisfiable at the same time.");
+          } else {
+            satTransitionPredicateList.add(satTransitionPredicateForVariable.get(0));
+          }
       }
     }
     return satTransitionPredicateList;

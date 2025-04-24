@@ -1133,6 +1133,7 @@ public class FormulaManagerView {
   public static final char INDEX_SEPARATOR = '@';
   // Suffix for distinguish prime variable in formula.
   public static final String PRIME_SUFFIX = "_prime";
+  public static final int PRIME_DEFAULT_INDEX = -1;
   // Flag when applying
   private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
@@ -1650,6 +1651,9 @@ public class FormulaManagerView {
     BitvectorFormula varPrime = makeVariable(FormulaType.getBitvectorTypeWithSize(32), varName + PRIME_SUFFIX);
     formulaList.add(makeGreaterOrEqual(var, varPrime, true));
     formulaList.add(makeLessThan(var, varPrime, true));
+//    formulaList.add(makeGreaterThan(var, varPrime, false));
+//    formulaList.add(makeEqual(var, varPrime));
+//    formulaList.add(makeLessThan(var, varPrime, false));
     return formulaList;
   }
 
@@ -2333,6 +2337,9 @@ public class FormulaManagerView {
     return cache.get(f);
   }
 
+  public BooleanFormula makeImplication(BooleanFormula pF1, BooleanFormula pF2) {
+    return booleanFormulaManager.implication(pF1, pF2);
+  }
   public static void usingTPA() {
     FormulaManagerView.useTPA = true;
   }

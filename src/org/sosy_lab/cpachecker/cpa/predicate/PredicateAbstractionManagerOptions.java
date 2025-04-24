@@ -84,6 +84,13 @@ public class PredicateAbstractionManagerOptions {
               + " Require option to generate.")
   private boolean addTransitionPredicatesToPrecision = false;
 
+  @Option(
+      secure = true,
+      name = "abstraction.useDefaultIndexForPrimeVariable",
+      description =
+          "Use -1 as the index value when instantiate prime value in TPA instead of minimal index in path formula")
+  private boolean useDefaultIndexForPrimeVariable = false;
+
   public PredicateAbstractionManagerOptions(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -130,5 +137,8 @@ public class PredicateAbstractionManagerOptions {
   }
   boolean isAddTransitionPredicatesToPrecision() {
     return addTransitionPredicatesToPrecision;
+  }
+  boolean isUseDefaultIndexForPrimeVariable() {
+    return useDefaultIndexForPrimeVariable;
   }
 }
