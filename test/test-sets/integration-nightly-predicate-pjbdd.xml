@@ -16,18 +16,18 @@ SPDX-License-Identifier: Apache-2.0
   <option name="--no-output-files"/>
   <option name="--heap">10000M</option>
 
-  <rundefinition name="JAVADD--predicateAnalysis">
+  <rundefinition name="JAVADD-predicateAnalysis">
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--predicateAnalysis">
+  <rundefinition name="PJBDD-OBDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
   </rundefinition>
-  <rundefinition name="PJBDD-intDD--predicateAnalysis">
+  <rundefinition name="PJBDD-intDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
     <option name="--option">bdd.pjbdd.tableType=CASArray</option>
     <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
-  <rundefinition name="PJBDD-TaggedDD--predicateAnalysis">
+  <rundefinition name="PJBDD-TaggedDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=None</option>

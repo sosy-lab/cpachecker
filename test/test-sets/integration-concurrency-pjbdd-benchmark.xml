@@ -14,20 +14,21 @@ SPDX-License-Identifier: Apache-2.0
 <benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="2000 s" memlimit="32 GB" cpuCores="8">
 
   <option name="--no-output-files"/>
-  <option name="--heap">1500M</option>
+  <option name="--heap">16000M</option>
+  <option name="--stack" reason="needs a larger stack">50M</option>
 
-  <rundefinition name="JAVADD--concurrency">
+  <rundefinition name="JAVADD-concurrency">
   </rundefinition>
-  <rundefinition name="PJBDD-OBDD--concurrency">
+  <rundefinition name="PJBDD-OBDD-concurrency">
     <option name="--option">bdd.package=PJBDD</option>
   </rundefinition>
-  <rundefinition name="PJBDD-intDD--concurrency">
+  <rundefinition name="PJBDD-intDD-concurrency">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
     <option name="--option">bdd.pjbdd.tableType=CASArray</option>
     <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
-  <rundefinition name="PJBDD-TaggedDD--concurrency">
+  <rundefinition name="PJBDD-TaggedDD-concurrency">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
     <option name="--option">bdd.pjbdd.parallelizationType=None</option>
