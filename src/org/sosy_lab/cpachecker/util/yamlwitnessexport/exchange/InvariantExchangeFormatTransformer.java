@@ -25,20 +25,15 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ACSLParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -147,24 +142,10 @@ public class InvariantExchangeFormatTransformer {
     return createACSLExpressionTreeFromString(invariantString, scope);
   }
 
-  public PathFormula parseLemmaEntry(
-      LemmaEntry pLemmaEntry, PathFormulaManagerImpl pPathFormulaManagerImpl, CProgramScope pScope)
-      throws InterruptedException {
-    CExpression expression;
-
-    try {
-      expression = ACSLParserUtils.parseACSLExpression(pLemmaEntry.value(), cparser, pScope);
-    } catch (InvalidAutomatonException e) {
-      throw new InterruptedException(
-          "Could not parse statement as CExpression:" + pLemmaEntry.value());
-    }
-    try {
-      return pPathFormulaManagerImpl.makeAnd(
-          pPathFormulaManagerImpl.makeEmptyPathFormula(), expression);
-    } catch (CPATransferException e) {
-      throw new InterruptedException(
-          "Could not create path formula from statement: " + pLemmaEntry.value());
-    }
+  public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry, CProgramScope pScope)
+      throws Exception {
+    return ACSLParserUtils.parseACSLStatementAsExpressionTree(
+        pLemmaEntry.value(), cparser, pScope, parserTools);
   }
 
   /**

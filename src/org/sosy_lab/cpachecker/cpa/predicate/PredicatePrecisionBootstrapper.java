@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
@@ -61,11 +60,10 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaException;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
@@ -242,8 +240,8 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
-  public ImmutableSet<PathFormula> prepareInitialLemmas()
-      throws InterruptedException, InvalidConfigurationException {
+  public LemmaPrecision prepareInitialLemmas()
+      throws InterruptedException, InvalidConfigurationException, CPATransferException {
     ImmutableList.Builder<LemmaSetEntry> lemmaSetEntriesBuilder = ImmutableList.builder();
     ImmutableList.Builder<LemmaEntry> lemmaSetBuilder = ImmutableList.builder();
     ImmutableList.Builder<String> declarationEntriesBuilder = ImmutableList.builder();
@@ -274,9 +272,6 @@ public final class PredicatePrecisionBootstrapper {
 
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
-    PathFormulaManagerImpl pathFormulaManagerImpl =
-        new PathFormulaManagerImpl(
-            formulaManagerView, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
 
     List<CDeclaration> declarations = ACSLParserUtils.parseDeclarations(declarationEntries);
 
@@ -287,11 +282,15 @@ public final class PredicatePrecisionBootstrapper {
     for (CDeclaration declaration : declarations) {
       scope.addDeclarationToScope(declaration);
     }
-    ImmutableSet.Builder<PathFormula> lemmas = new ImmutableSet.Builder<>();
-    for (LemmaEntry e : lemmaSet) {
-      lemmas.add(transformer.parseLemmaEntry(e, pathFormulaManagerImpl, scope));
+    ImmutableSet.Builder<AbstractionLemma> lemmas = new ImmutableSet.Builder<>();
+    for (LemmaEntry lemma : lemmaSet) {
+      try {
+        lemmas.add(new AbstractionLemma(toFormula(transformer.parseLemmaEntry(lemma, scope))));
+      } catch (Exception e) {
+        logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
+      }
     }
-    return lemmas.build();
+    return new LemmaPrecision(lemmas.build());
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

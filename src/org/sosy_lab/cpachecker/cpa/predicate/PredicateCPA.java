@@ -125,6 +125,7 @@ public class PredicateCPA
   private final PredicateTransferRelation transfer;
 
   private final PredicatePrecision initialPrecision;
+  private final LemmaPrecision initialLemmas;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
   private final PredicateCPAStatistics stats;
@@ -212,7 +213,7 @@ public class PredicateCPA
             shutdownNotifier,
             pathFormulaManager,
             predAbsManager);
-    ImmutableSet<PathFormula> initialLemmas = precisionBootstraper.prepareInitialLemmas();
+    initialLemmas = precisionBootstraper.prepareInitialLemmas();
     logger.log(Level.FINEST, "Initial lemmas are", initialLemmas);
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
@@ -236,7 +237,8 @@ public class PredicateCPA
             blk,
             predAbsManager,
             invariantsManager,
-            predicateProvider);
+            predicateProvider,
+            initialLemmas);
     stop =
         switch (stopType) {
           case "SEP" -> new PredicateStopOperator(domain);
