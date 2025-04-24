@@ -99,4 +99,28 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("exampleTaintPublicVariableUnsafe.c");
     results.assertIsUnsafe();
   }
+
+  @Test
+  public void testExamplePublicArraySafe() throws Exception {
+    TestResults results = runCPAchecker("examplePublicArraySafe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testExamplePublicArrayUnsafe() throws Exception {
+    TestResults results = runCPAchecker("examplePublicArrayUnsafe.c");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testExampleSecretArraySafe() throws Exception {
+    TestResults results = runCPAchecker("exampleSecretArraySafe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testExampleSecretArrayUnsafe() throws Exception {
+    TestResults results = runCPAchecker("exampleSecretArrayUnsafe.c");
+    results.assertIsUnsafe();
+  }
 }
