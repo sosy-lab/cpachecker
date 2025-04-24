@@ -18,7 +18,8 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
     extends AcslExpressionVisitor<R, X>,
         AcslSimpleDeclarationVisitor<R, X>,
         AcslInitializerVisitor<R, X>,
-        AcslTermVisitor<R, X> {
+        AcslTermVisitor<R, X>,
+        AcslMemoryLocationSetVisitor<R, X> {
 
   R visit(AcslBinaryPredicateExpressionOperator pDecl) throws X;
 

@@ -67,11 +67,12 @@ termTernaryConditionBody
   | termTernaryConditionBody '[' termTernaryConditionBody ']'   # ArrayAccessTermTernaryConditionBody
   | termTernaryConditionBody '->' id                            # PointerStructureFieldAccessTermTernaryConditionBody
   | termTernaryConditionBody '.' id                             # StructureFieldAccessTermTernaryConditionBody
-  | '(' type_expr ')' termTernaryConditionBody                  # CastTermTernaryConditionBody
+  | '(' typeExpr ')' termTernaryConditionBody                   # CastTermTernaryConditionBody
   | '(' termTernaryConditionBody ')'                            # ParenthesesTermTernaryConditionBody
   | '\\result'                                                  # ResultTermTernaryConditionBody
   | '\\old' '(' termTernaryConditionBody ')'                    # OldTermTernaryConditionBody
   | '\\at' '(' termTernaryConditionBody ',' label_id ')'        # AtTermTernaryConditionBody
+  | ident '(' term (',' term)* ')'                              # FuncApplicationTermTernaryConditionBody
   ;
 
 termPredTernaryCondition
@@ -94,7 +95,7 @@ term
     | term '.' id                                       # StructureFieldAccessTerm
     | '{' term '\\with' '.' id '=' term '}'             # FieldFuncModifierTerm
     | term '->' id                                      # PointerStructureFieldAccessTerm
-    | '(' type_expr ')' term                            # CastTerm
+    | '(' typeExpr ')' term                            # CastTerm
     | ident '(' term (',' term)* ')'                    # FuncApplicationTerm
     | '(' term ')'                                      # ParenthesesTerm
     // The ACSL standard allow a general predicate to be the condition here,
@@ -120,10 +121,6 @@ term
     | '\\exit_status'                                   # ExitStatusTerm
 // at.tex
     | '\\at' '(' term ',' label_id ')'                  # AtTerm
-    ;
-
-poly_id
-    : Identifier
     ;
 
 // predicate.tex
@@ -192,18 +189,25 @@ binders
     ;
 
 binder
-    : type_expr variable_ident (',' variable_ident)*
+    : typeExpr variable_ident (',' variable_ident)*
     ;
 
-type_expr
-    : logic_type_expr | typeName
+typeVar
+    : id
     ;
 
-logic_type_expr
-    : built_in_logic_type | id
+typeExpr
+    : logicTypeExpr
+    | typeName
     ;
 
-built_in_logic_type
+logicTypeExpr
+    : builtInLogicType
+    | typeVar
+    | '<' typeExpr (',' typeExpr)* '>'
+    ;
+
+builtInLogicType
     : 'boolean' | 'integer' | 'real'
     ;
 
@@ -274,6 +278,7 @@ completeness_clause
     ;
 
 // loc.tex
+// This represents a set of memory locations
 tset
     : '\\empty'                         # TsetEmpty
     | tset '->' id                      # TsetPointerAccess
@@ -411,4 +416,46 @@ named_behavior_stmt
 
 behavior_body_stmt
     : assumes_clause* requires_clause* simple_clause_stmt*
+    ;
+
+// logic.tex
+
+logicDef
+    : logicConstDef
+    | logicFunctionDef
+    | logicPredicateDef
+    | lemmaDef
+    ;
+
+typeVarBinders
+    : '<' typeVar (',' typeVar)* '>'
+    ;
+
+polyId
+    : id typeVarBinders?  // polymorphic object identifier
+    ;
+
+logicConstDef
+    : typeExpr polyId '=' term
+    ;
+
+logicFunctionDef
+    : typeExpr polyId parameters '=' term
+    ;
+
+logicPredicateDef
+    : polyId parameters? '=' pred
+    ;
+
+
+parameters
+    : '(' parameter ( ',' parameter )* ')'
+    ;
+
+parameter
+    : typeExpr id
+    ;
+
+lemmaDef
+    : polyId ':' pred
     ;

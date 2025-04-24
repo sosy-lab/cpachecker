@@ -16,7 +16,7 @@ public final class AcslUnaryExpression extends AUnaryExpression implements AcslE
 
   @Serial private static final long serialVersionUID = -6073836890768425L;
 
-  AcslUnaryExpression(
+  public AcslUnaryExpression(
       FileLocation pFileLocation,
       AcslType pType,
       AcslExpression pOperand,

@@ -24,6 +24,7 @@ public sealed interface AcslAstNode extends AAstNode
         AcslExpression,
         AcslInitializer,
         AcslLabel,
+        AcslMemoryLocationSet,
         AcslSimpleDeclaration,
         AcslTerm,
         AcslUnaryExpressionOperator,

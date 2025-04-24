@@ -469,4 +469,80 @@ public class AcslParserTest {
 
     testParsing(input, output);
   }
+
+  @Test
+  public void parseSimpleValidPredicate() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslValidExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            new AcslMemoryLocationSetTerm(
+                FileLocation.DUMMY,
+                new AcslIdTerm(
+                    FileLocation.DUMMY,
+                    new AcslCVariableDeclaration(
+                        (CVariableDeclaration)
+                            Objects.requireNonNull(cProgramScope.lookupVariable("x"))))));
+    String input = "\\valid(x)";
+
+    testParsing(input, output);
+  }
+
+  @Test
+  public void parseLogicalFunctionDeclaration() throws AcslParseException {
+    CProgramScope cProgramScope = getCProgramScope();
+    AcslExpression output =
+        new AcslBinaryTermExpression(
+            FileLocation.DUMMY,
+            AcslBuiltinLogicType.BOOLEAN,
+            // First operand
+            new AcslTernaryTermExpression(
+                FileLocation.DUMMY,
+                // Condition
+                new AcslBinaryTermExpression(
+                    FileLocation.DUMMY,
+                    AcslBuiltinLogicType.BOOLEAN,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("x")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
+                    AcslBinaryTermExpressionOperator.EQUALS),
+                // If true operator
+                new AcslBinaryTerm(
+                    FileLocation.DUMMY,
+                    AcslBuiltinLogicType.INTEGER,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("y")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE),
+                    AcslBinaryTermOperator.PLUS),
+                // If false operator
+                new AcslBinaryTerm(
+                    FileLocation.DUMMY,
+                    AcslBuiltinLogicType.INTEGER,
+                    new AcslIdTerm(
+                        FileLocation.DUMMY,
+                        new AcslCVariableDeclaration(
+                            (CVariableDeclaration)
+                                Objects.requireNonNull(cProgramScope.lookupVariable("z")))),
+                    new AcslIntegerLiteralTerm(
+                        FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TWO),
+                    AcslBinaryTermOperator.MINUS)),
+            // Second operand
+            new AcslIntegerLiteralTerm(
+                FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.valueOf(-1)),
+            // Operator
+            AcslBinaryTermExpressionOperator.NOT_EQUALS);
+    String input =
+        "integer MaxArray<T>(T* a,integer i) = (i == 0) ? a[0] : (a[i] < MaxArray(a, i - 1) ? a[i] : MaxArray(a, i - 1))";
+
+    testParsing(input, output);
+  }
 }

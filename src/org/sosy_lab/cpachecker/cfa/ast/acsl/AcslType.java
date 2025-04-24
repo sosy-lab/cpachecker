@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 public sealed interface AcslType extends Type
-    permits AcslCType, AcslFunctionType, AcslLogicType, AcslPredicateType {
+    permits AcslCType, AcslFunctionType, AcslLogicType, AcslPredicateType, AcslSetType {
 
   private static boolean canBePromotedToInteger(AcslCType pCType) {
     return pCType.getType() instanceof CSimpleType pSimpleType

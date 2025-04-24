@@ -19,7 +19,8 @@ public sealed interface AcslExpression extends AExpression, AcslAstNode
         AcslLiteralExpression,
         AcslOldExpression,
         AcslTernaryPredicateExpression,
-        AcslUnaryExpression {
+        AcslUnaryExpression,
+        AcslValidExpression {
 
   <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X;
 

@@ -23,16 +23,21 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.Parenthe
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.PredicateTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TernaryConditionPredContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.UnaryPredContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ValidPredContext;
 
 class AntrlPredicateToExpressionsConverter
     extends AntlrToInternalAbstractConverter<AcslExpression> {
 
   private final AntlrTermToTermConverter antrlToTermConverter;
+  private final AntlrTsetToMemorySetConverter antrlTsetToMemorySetConverter;
+  private final AntlrLabelToLabelConverter labelConverter;
 
   protected AntrlPredicateToExpressionsConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope) {
     super(pCProgramScope, pAcslScope);
     antrlToTermConverter = new AntlrTermToTermConverter(pCProgramScope, pAcslScope);
+    antrlTsetToMemorySetConverter = new AntlrTsetToMemorySetConverter(pCProgramScope, pAcslScope);
+    labelConverter = new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope);
   }
 
   @Override
@@ -90,6 +95,28 @@ class AntrlPredicateToExpressionsConverter
         new AcslIntegerLiteralTerm(
             FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
         AcslBinaryTermExpressionOperator.EQUALS);
+  }
+
+  @Override
+  public AcslExpression visitValidPred(ValidPredContext ctx) {
+    // The parsing gives the following structure:
+    // [\valid, '(', term, ')'] or [\valid, label,  '(', term, ')']
+    if (ctx.getChildCount() == 4) {
+      // We are in the case: [\valid, '(', term, ')']
+      AcslMemoryLocationSet memoryLocationSet =
+          antrlTsetToMemorySetConverter.visit(ctx.getChild(2));
+      return new AcslValidExpression(
+          FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, memoryLocationSet);
+    } else if (ctx.getChildCount() == 5) {
+      // We are in the case: [\valid, ['{', label, '}'],  '(', term, ')']
+      AcslLabel label = labelConverter.visit(ctx.getChild(1).getChild(1));
+      AcslMemoryLocationSet memoryLocationSet =
+          antrlTsetToMemorySetConverter.visit(ctx.getChild(3));
+      return new AcslValidExpression(
+          FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, memoryLocationSet, label);
+    } else {
+      throw new RuntimeException("Unexpected number of children when creating a valid predicate");
+    }
   }
 
   @Override
