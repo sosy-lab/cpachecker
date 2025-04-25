@@ -585,7 +585,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("FUNC(abort)"),
             new InstrumentationOperation(
-                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error();}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t7 =
@@ -593,7 +593,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("FUNC(exit)"),
             new InstrumentationOperation(
-                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error();}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t8 =
@@ -601,7 +601,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("FUNC(return 0;)"),
             new InstrumentationOperation(
-                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error();}"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t9 =
@@ -609,7 +609,7 @@ public class InstrumentationAutomaton {
             q2,
             new InstrumentationPattern("FUNC(reach_error)"),
             new InstrumentationOperation(
-                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error()}"),
+                "if (__instrumentation_track_allocated_pointer != 0)" + "{reach_error();}"),
             InstrumentationOrder.BEFORE,
             q2);
     this.instrumentationTransitions = ImmutableList.of(t1, t2, t3, t4, t5, t6, t7, t8, t9);
