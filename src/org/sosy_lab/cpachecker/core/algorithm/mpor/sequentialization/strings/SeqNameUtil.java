@@ -133,7 +133,7 @@ public class SeqNameUtil {
         + pStartRoutineArgDeclaration.getName();
   }
 
-  public static String buildIntermediateExitVariableName(MPOROptions pOptions, int pThreadId) {
+  public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {
     return (pOptions.shortVariables ? SeqToken.E : SeqToken.EXIT)
         + SeqSyntax.UNDERSCORE
         + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)

@@ -115,8 +115,8 @@ public class ThreadBuilder {
     currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
     int newThreadId = currentThreadId++;
     ThreadCFA threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
-    Optional<CIdExpression> intermediateExitVariable =
-        tryGetIntermediateExitVariable(pOptions, threadCfa);
+    Optional<CIdExpression> startRoutineExitVariable =
+        tryCreateStartRoutineExitVariable(pOptions, threadCfa);
     ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables =
         getLocalVariableDeclarations(threadCfa.threadEdges);
     return new MPORThread(
@@ -124,7 +124,7 @@ public class ThreadBuilder {
         pThreadObject,
         (CFunctionType) pEntryNode.getFunction().getType(),
         pStartRoutineCall,
-        intermediateExitVariable,
+        startRoutineExitVariable,
         localVariables,
         threadCfa);
   }
@@ -215,18 +215,18 @@ public class ThreadBuilder {
    * pthread_exit}, or {@link Optional#empty()} if the thread does not call {@code pthread_exit} at
    * all.
    */
-  private static Optional<CIdExpression> tryGetIntermediateExitVariable(
+  private static Optional<CIdExpression> tryCreateStartRoutineExitVariable(
       MPOROptions pOptions, ThreadCFA pThreadCFA) {
 
     for (ThreadEdge threadEdge : pThreadCFA.threadEdges) {
       if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
-        String name = SeqNameUtil.buildIntermediateExitVariableName(pOptions, pThreadCFA.threadId);
+        String name = SeqNameUtil.buildStartRoutineExitVariableName(pOptions, pThreadCFA.threadId);
         CVariableDeclaration declaration =
             SeqDeclarationBuilder.buildVariableDeclaration(
                 true, SeqPointerType.VOID_POINTER, name, null);
-        CIdExpression intermediateExitVariable =
+        CIdExpression startRoutineExitVariable =
             SeqExpressionBuilder.buildIdExpression(declaration);
-        return Optional.of(intermediateExitVariable);
+        return Optional.of(startRoutineExitVariable);
       }
     }
     return Optional.empty();

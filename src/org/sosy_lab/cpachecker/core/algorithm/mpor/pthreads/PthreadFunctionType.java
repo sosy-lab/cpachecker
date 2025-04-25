@@ -121,7 +121,6 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
-  // TODO support pthread join retval (second parameter)
   PTHREAD_JOIN(
       "pthread_join",
       true,

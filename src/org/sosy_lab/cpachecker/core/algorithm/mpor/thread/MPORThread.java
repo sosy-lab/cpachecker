@@ -35,7 +35,7 @@ public class MPORThread {
    * The intermediate variable storing the {@code retval} given to {@code pthread_exit}, if called
    * anywhere in this thread.
    */
-  public final Optional<CIdExpression> intermediateExitVariable;
+  public final Optional<CIdExpression> startRoutineExitVariable;
 
   /** The set of context-sensitive local variable declarations of this thread. */
   public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
@@ -48,7 +48,7 @@ public class MPORThread {
       Optional<CIdExpression> pThreadObject,
       CFunctionType pStartRoutine,
       Optional<ThreadEdge> pStartRoutineCall,
-      Optional<CIdExpression> pIntermediateExitVariable,
+      Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa) {
 
@@ -56,7 +56,7 @@ public class MPORThread {
     threadObject = pThreadObject;
     startRoutine = pStartRoutine;
     startRoutineCall = pStartRoutineCall;
-    intermediateExitVariable = pIntermediateExitVariable;
+    startRoutineExitVariable = pStartRoutineExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
   }

@@ -409,7 +409,7 @@ public class GhostVariableUtil {
   /**
    * Links {@link ThreadEdge}s that call {@code pthread_exit} to {@link
    * FunctionReturnValueAssignment} where the {@code retval} is stored in an intermediate value that
-   * can be retrieved by other threads calling {@code }.
+   * can be retrieved by other threads calling {@code pthread_join}.
    */
   private static ImmutableMap<ThreadEdge, FunctionReturnValueAssignment>
       buildStartRoutineExitAssignments(
@@ -419,12 +419,12 @@ public class GhostVariableUtil {
         ImmutableMap.builder();
     for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
       if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
-        assert pThread.intermediateExitVariable.isPresent()
+        assert pThread.startRoutineExitVariable.isPresent()
             : "thread calls pthread_exit but has no intermediateExitVariable";
         SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
         FunctionReturnValueAssignment assignment =
             new FunctionReturnValueAssignment(
-                pThread.intermediateExitVariable.orElseThrow(),
+                pThread.startRoutineExitVariable.orElseThrow(),
                 PthreadUtil.extractExitReturnValue(substituteEdge.cfaEdge));
         rStartRoutineExitAssignments.put(threadEdge, assignment);
       }

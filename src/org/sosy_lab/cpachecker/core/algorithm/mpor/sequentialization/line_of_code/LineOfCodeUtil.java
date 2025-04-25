@@ -181,7 +181,7 @@ public class LineOfCodeUtil {
       rStartRoutineExitDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_EXIT_VARIABLES));
     }
     for (MPORThread thread : pThreads) {
-      Optional<CIdExpression> exitVariable = thread.intermediateExitVariable;
+      Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable;
       if (exitVariable.isPresent()) {
         rStartRoutineExitDeclarations.add(
             LineOfCode.of(0, exitVariable.orElseThrow().getDeclaration().toASTString()));

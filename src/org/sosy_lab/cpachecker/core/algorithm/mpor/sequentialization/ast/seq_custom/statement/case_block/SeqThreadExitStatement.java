@@ -23,18 +23,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
- * Represents a statement that simulates calls to {@code pthread_exit} of the form:
- *
- * <p>{@code ; pc[j] = n; } where thread {@code j} creates thread {@code i}.
+ * Represents a statement that simulates calls to {@code pthread_exit}, where the second parameter
+ * {@code void* retval} is assigned to the respective threads intermediate exit variable. This
+ * intermediate variable can then be accessed by threads calling {@code pthread_join} on this
+ * exiting thread.
  */
 public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
-  /**
-   * The assignment of the parameter given in the {@code pthread_create} call. This is always
-   * present, even if the parameter is not actually used.
-   */
   private final FunctionReturnValueAssignment returnValueAssignment;
 
   private final CLeftHandSide pcLeftHandSide;

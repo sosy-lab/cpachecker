@@ -291,7 +291,7 @@ public class SeqCaseBlockStatementBuilder {
       GhostVariables pGhostVariables) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
-    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFuncType(cfaEdge);
+    PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
     return switch (pthreadFunctionType) {
@@ -426,7 +426,7 @@ public class SeqCaseBlockStatementBuilder {
                 Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
             .idExpression;
     return new SeqThreadJoinStatement(
-        targetThread.intermediateExitVariable,
+        targetThread.startRoutineExitVariable,
         threadJoins,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,

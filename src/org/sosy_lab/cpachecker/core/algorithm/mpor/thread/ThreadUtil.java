@@ -79,10 +79,10 @@ public class ThreadUtil {
 
   public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
-        PthreadUtil.callsAnyPthreadFuncWithPthreadT(pEdge),
+        PthreadUtil.callsAnyPthreadFunctionWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
 
-    PthreadFunctionType funcType = PthreadUtil.getPthreadFuncType(pEdge);
+    PthreadFunctionType funcType = PthreadUtil.getPthreadFunctionType(pEdge);
     CExpression pthreadTParam = CFAUtils.getParameterAtIndex(pEdge, funcType.getPthreadTIndex());
 
     return getThreadByObject(
