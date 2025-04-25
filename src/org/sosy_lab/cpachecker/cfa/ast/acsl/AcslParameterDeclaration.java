@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslParameterDeclaration extends AParameterDeclaration
     implements AcslSimpleDeclaration {
+
+  @Serial private static final long serialVersionUID = 145675929875456789L;
 
   public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {
     super(pFileLocation, pType, pName);

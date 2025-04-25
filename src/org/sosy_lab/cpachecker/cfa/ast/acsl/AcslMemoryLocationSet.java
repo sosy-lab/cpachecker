@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
     permits AcslMemoryLocationSetEmpty, AcslMemoryLocationSetTerm {
+
+  @Serial private static final long serialVersionUID = 1456718713245456789L;
 
   private final FileLocation fileLocation;
   private final AcslSetType type;
@@ -22,6 +25,7 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
     type = pType;
   }
 
+  @Override
   public FileLocation getFileLocation() {
     return fileLocation;
   }

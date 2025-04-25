@@ -8,9 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslMemoryLocationSetEmpty extends AcslMemoryLocationSet {
+
+  @Serial private static final long serialVersionUID = 141239875456789L;
+
   public AcslMemoryLocationSetEmpty(FileLocation pFileLocation) {
     super(pFileLocation, new AcslSetType(AcslBuiltinLogicType.ANY));
   }

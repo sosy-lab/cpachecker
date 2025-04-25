@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import java.io.Serial;
 import java.util.Objects;
 
 public final class AcslPolymorphicType implements AcslLogicType {
+
+  @Serial private static final long serialVersionUID = 1456598245975456789L;
 
   private final String name;
 

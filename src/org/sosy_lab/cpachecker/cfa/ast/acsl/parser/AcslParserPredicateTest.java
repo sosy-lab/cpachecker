@@ -516,7 +516,6 @@ public class AcslParserPredicateTest {
 
   @Test
   public void parseSimpleEmptyValidPredicate() throws AcslParseException {
-    CProgramScope cProgramScope = getCProgramScope();
     AcslExpression output =
         new AcslValidExpression(
             FileLocation.DUMMY,
