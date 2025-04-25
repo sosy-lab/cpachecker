@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -181,9 +182,16 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
         abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
       }
 
+      List<AbstractionPredicate> satTransitionPredicates = new ArrayList<>();
       if (formulaManager.getOptions().isAddTransitionPredicatesToPrecision()
       && !formulaManager.getAmgr().getVarNameToTransitionPredicates().isEmpty()) {
-        List<AbstractionPredicate> satTransitionPredicates = formulaManager.getSatTransitionPredicates(pathFormula, abstractionFormula);
+        Pair<List<AbstractionPredicate>, PathFormula> result = formulaManager.getSatTransitionPredicates(pathFormula, abstractionFormula);
+        if (result.getFirst() != null) {
+          satTransitionPredicates = result.getFirst();
+        }
+        if (result.getSecond() != null) {
+          pathFormula = result.getSecond();
+        }
         additionalPredicates = removeUnsatTransitionPredicates(additionalPredicates, satTransitionPredicates);
         pathFormula = addGeneratedTransitionPredicateToPathFormula(satTransitionPredicates, pathFormula);
       } else {
@@ -198,7 +206,6 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
     } finally {
       computingAbstractionTime.stop();
     }
-
     // if the abstraction is false, return bottom (represented by empty set)
     if (newAbstractionFormula.isFalse()) {
       statistics.numAbstractionsFalse.inc();
@@ -310,13 +317,16 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
       Set<String> varNames = fmgr.extractVariableNames(predicateTerm);
       for (String varName : varNames) {
         if (!varName.contains(PRIME_SUFFIX)) {
-          SSAMapBuilder builder = ssaMap.builder();
-          if (varNameToMinIdx.get(varName) != null) {
-            builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
-          } else {
-            builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
+          if (!ssaMap.containsVariable(varName + PRIME_SUFFIX)
+              || (ssaMap.containsVariable(varName + PRIME_SUFFIX) && ssaMap.getIndex(varName + PRIME_SUFFIX) != -1)) {
+            SSAMapBuilder builder = ssaMap.builder();
+            if (varNameToMinIdx.get(varName) != null) {
+              builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), varNameToMinIdx.get(varName));
+            } else {
+              builder.setIndexTPA(varName + PRIME_SUFFIX, builder.getType(varName), ssaMap.getIndex(varName));
+            }
+            ssaMap = builder.build();
           }
-          ssaMap = builder.build();
           BooleanFormula instantiatedPredicateTerm = fmgr.instantiate(predicateTerm, ssaMap);
           resultPathFormula =
               pathFormulaManager.makeAndWithInstantiatedFormula(
@@ -330,3 +340,4 @@ public class TPAPrecisionAdjustment extends PredicatePrecisionAdjustment {
     return resultPathFormula;
   }
 }
+

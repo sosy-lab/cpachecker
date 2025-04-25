@@ -2258,6 +2258,10 @@ cpa.predicate.abstraction.simplify = false
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]
 
+# Use -1 as the index value when instantiate prime value in TPA instead of
+# minimal index in path formula
+cpa.predicate.abstraction.useDefaultIndexForPrimeVariable = false
+
 # Export abstraction formulas as (way more readable) expressions.
 cpa.predicate.abstractions.asExpressions = false
 

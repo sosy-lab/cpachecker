@@ -604,12 +604,19 @@ public class PredicateAbstractionManager {
     }
 
     List<AbstractionPredicate> satTransitionPredicates = new ArrayList<>();
+    PathFormula blockFormula = pathFormula;
     // If this option is true, the transition predicates are already in precision and also path formula
     // and handled in computeAbstraction.
     if (!options.isAddTransitionPredicatesToPrecision()) {
-        satTransitionPredicates = getSatTransitionPredicates(pathFormula, abstractionFormula);
+      Pair<List<AbstractionPredicate>, PathFormula> result = getSatTransitionPredicates(pathFormula, abstractionFormula);
+      if (result.getFirst() != null) {
+        satTransitionPredicates = result.getFirst();
+      }
+      if (result.getSecond() != null) {
+        blockFormula = result.getSecond();
+      }
     }
-    AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, ssa, pathFormula, satTransitionPredicates);
+    AbstractionFormulaTPA result = makeAbstractionFormulaTPA(abs, blockFormula.getSsa(), blockFormula, satTransitionPredicates);
 
     if (options.isUseCache()) {
       abstractionCache.put(absKey, result);
@@ -931,7 +938,7 @@ public class PredicateAbstractionManager {
     return region;
   }
 
-  public List<AbstractionPredicate> getSatTransitionPredicates(PathFormula pPathFormula, AbstractionFormula pAbstractionFormula) {
+  public Pair<List<AbstractionPredicate>, PathFormula> getSatTransitionPredicates(PathFormula pPathFormula, AbstractionFormula pAbstractionFormula) {
     List<AbstractionPredicate> satTransitionPredicateList = new ArrayList<>(amgr.getVarNameToTransitionPredicates().size());
     Map<String, Integer> varNameToMinIdx = pfmgr.extractVariablesWithTransition(pPathFormula);
     SSAMap ssaMap = pPathFormula.getSsa();
@@ -1045,7 +1052,8 @@ public class PredicateAbstractionManager {
           }
       }
     }
-    return satTransitionPredicateList;
+    PathFormula newPathFormulaWithNewSsaMap = pfmgr.makeAndWithInstantiatedFormula(pPathFormula, bfmgr.makeTrue(), ssaMap);
+    return Pair.of(satTransitionPredicateList, newPathFormulaWithNewSsaMap);
   }
 
   /**

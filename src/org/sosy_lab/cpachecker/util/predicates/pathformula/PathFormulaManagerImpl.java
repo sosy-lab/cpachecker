@@ -397,7 +397,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                                                     BooleanFormula pOtherFormula,
                                                     @Nullable SSAMap newSSAMap) {
     SSAMap ssa = newSSAMap != null ? newSSAMap : pPathFormula.getSsa();
-    BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), pOtherFormula);
+    BooleanFormula resultFormula;
+    if (bfmgr.isTrue(pOtherFormula)) {
+      resultFormula = pPathFormula.getFormula();
+    } else {
+      resultFormula = bfmgr.and(pPathFormula.getFormula(), pOtherFormula);
+    }
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
     return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
   }
