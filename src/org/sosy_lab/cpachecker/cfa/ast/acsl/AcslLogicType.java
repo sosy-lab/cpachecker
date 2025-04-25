@@ -8,5 +8,5 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-// TODO: Missing polymorphic types
-public sealed interface AcslLogicType extends AcslType permits AcslBuiltinLogicType {}
+public sealed interface AcslLogicType extends AcslType
+    permits AcslBuiltinLogicType, AcslPolymorphicType {}

@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class AcslInitializerExpression extends AInitializerExpression
     implements AcslInitializer {
 
-  @Serial
-  private static final long serialVersionUID = -814550243123276L;
+  @Serial private static final long serialVersionUID = -814550243123276L;
 
   public AcslInitializerExpression(FileLocation pFileLocation, AcslExpression pExpression) {
     super(pFileLocation, pExpression);

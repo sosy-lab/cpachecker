@@ -72,7 +72,7 @@ termTernaryConditionBody
   | '\\result'                                                  # ResultTermTernaryConditionBody
   | '\\old' '(' termTernaryConditionBody ')'                    # OldTermTernaryConditionBody
   | '\\at' '(' termTernaryConditionBody ',' label_id ')'        # AtTermTernaryConditionBody
-  | ident '(' term (',' term)* ')'                              # FuncApplicationTermTernaryConditionBody
+  | ident '(' termTernaryConditionBody (',' termTernaryConditionBody)* ')'                              # FuncApplicationTermTernaryConditionBody
   ;
 
 termPredTernaryCondition

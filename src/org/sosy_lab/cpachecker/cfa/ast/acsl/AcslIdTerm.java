@@ -15,27 +15,26 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslIdTerm extends AcslTerm {
 
-  @Serial
-  private static final long serialVersionUID = -81455024312376L;
+  @Serial private static final long serialVersionUID = -81455024312376L;
 
   private final String name;
-  private final AcslDeclaration declaration;
+  private final AcslSimpleDeclaration declaration;
 
   private AcslIdTerm(
       FileLocation pFileLocation,
       AcslType pType,
       final String pName,
-      final AcslDeclaration pDeclaration) {
+      final AcslSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     name = pName.intern();
     declaration = pDeclaration;
   }
 
-  public AcslIdTerm(FileLocation pFileLocation, AcslDeclaration pDeclaration) {
+  public AcslIdTerm(FileLocation pFileLocation, AcslSimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
   }
 
-  public AcslDeclaration getDeclaration() {
+  public AcslSimpleDeclaration getDeclaration() {
     return declaration;
   }
 

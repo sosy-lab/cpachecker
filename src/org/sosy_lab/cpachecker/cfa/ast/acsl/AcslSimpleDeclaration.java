@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 
 public sealed interface AcslSimpleDeclaration extends ASimpleDeclaration, AcslAstNode
-    permits AcslDeclaration {
+    permits AcslDeclaration, AcslParameterDeclaration {
 
   @Override
   AcslType getType();

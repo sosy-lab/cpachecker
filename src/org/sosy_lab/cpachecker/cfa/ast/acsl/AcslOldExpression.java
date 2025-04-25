@@ -17,8 +17,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class AcslOldExpression extends AbstractExpression implements AcslExpression {
 
-  @Serial
-  private static final long serialVersionUID = -81455023251276L;
+  @Serial private static final long serialVersionUID = -81455023251276L;
 
   private AcslExpression expression;
 

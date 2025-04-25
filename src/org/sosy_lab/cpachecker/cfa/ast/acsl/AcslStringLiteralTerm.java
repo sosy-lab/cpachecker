@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslStringLiteralTerm extends AcslLiteralTerm {
@@ -36,16 +35,5 @@ public final class AcslStringLiteralTerm extends AcslLiteralTerm {
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslStringLiteralTerm other
-        && super.equals(other)
-        && Objects.equals(other.value, value);
   }
 }

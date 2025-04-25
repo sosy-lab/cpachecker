@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
@@ -77,20 +78,24 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicateExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTermExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
@@ -1081,6 +1086,18 @@ public class CFAUtils {
     }
 
     @Override
+    public Iterable<? extends AAstNode> visit(AcslFunctionDeclaration pAcslFunctionDeclaration)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslParameterDeclaration pAcslParameterDeclaration)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
     public Iterable<CAstNode> visit(CDesignatedInitializer pNode) {
       return Iterables.concat(pNode.getDesignators(), ImmutableList.of(pNode.getRightHandSide()));
     }
@@ -1306,7 +1323,18 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslTernaryTermExpression pAcslTernaryTermExpression)
+    public Iterable<? extends AAstNode> visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslFunctionCallTerm pAcslFunctionCallTerm)
+        throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm)
         throws NoException {
       return ImmutableList.of();
     }
@@ -1332,6 +1360,12 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(AcslMemoryLocationSetTerm pAcslMemoryLocationSetTerm)
         throws NoException {
+      return ImmutableList.of();
+    }
+
+    @Override
+    public Iterable<? extends AAstNode> visit(
+        AcslLogicFunctionDefinition pAcslLogicFunctionDefinition) throws NoException {
       return ImmutableList.of();
     }
   }

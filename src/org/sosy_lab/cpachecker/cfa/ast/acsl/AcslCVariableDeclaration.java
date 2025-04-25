@@ -17,8 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 public final class AcslCVariableDeclaration extends AVariableDeclaration
     implements AcslDeclaration {
 
-  @Serial
-  private static final long serialVersionUID = -814550243801231276L;
+  @Serial private static final long serialVersionUID = -814550243801231276L;
 
   private CVariableDeclaration variableDeclaration;
 

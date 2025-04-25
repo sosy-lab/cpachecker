@@ -13,8 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslBooleanLiteralTerm extends AcslLiteralTerm {
 
-  @Serial
-  private static final long serialVersionUID = 7019956361236900L;
+  @Serial private static final long serialVersionUID = 7019956361236900L;
 
   private final boolean value;
 
@@ -46,21 +45,5 @@ public final class AcslBooleanLiteralTerm extends AcslLiteralTerm {
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "(" + toASTString(pAAstNodeRepresentation) + ")";
-  }
-
-  @Override
-  public int hashCode() {
-    return getValue() ? 1 : 0;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslBooleanLiteralTerm other
-        && super.equals(other)
-        && other.value == value;
   }
 }

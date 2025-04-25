@@ -25,8 +25,7 @@ public abstract sealed class AcslLiteralTerm extends AcslTerm
         AcslRealLiteralTerm,
         AcslStringLiteralTerm {
 
-  @Serial
-  private static final long serialVersionUID = -81455251151276L;
+  @Serial private static final long serialVersionUID = -81455251151276L;
 
   protected AcslLiteralTerm(FileLocation pLocation, AcslType pType) {
     super(pLocation, pType);
@@ -47,5 +46,16 @@ public abstract sealed class AcslLiteralTerm extends AcslTerm
   @Override
   public int hashCode() {
     return getValue().hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof AcslLiteralTerm other
+        && super.equals(other)
+        && other.getValue().equals(getValue());
   }
 }

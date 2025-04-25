@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
@@ -28,6 +30,11 @@ public final class AcslBinaryTermExpression implements AcslExpression {
       AcslTerm pOperand1,
       AcslTerm pOperand2,
       AcslBinaryTermExpressionOperator pOperator) {
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pOperand1);
+    checkNotNull(pOperand2);
+    checkNotNull(pOperator);
     operand1 = pOperand1;
     operand2 = pOperand2;
     operator = pOperator;

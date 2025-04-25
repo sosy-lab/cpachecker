@@ -12,7 +12,7 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslTernaryTermExpression extends AcslTerm {
+public final class AcslTernaryTerm extends AcslTerm {
 
   @Serial private static final long serialVersionUID = 812812375011353L;
 
@@ -20,7 +20,7 @@ public final class AcslTernaryTermExpression extends AcslTerm {
   private final AcslTerm resultIfTrue;
   private final AcslTerm resultIfFalse;
 
-  public AcslTernaryTermExpression(
+  public AcslTernaryTerm(
       FileLocation pFileLocation,
       AcslExpression pCondition,
       AcslTerm pResultIfTrue,
@@ -92,7 +92,7 @@ public final class AcslTernaryTermExpression extends AcslTerm {
       return true;
     }
 
-    return obj instanceof AcslTernaryTermExpression other
+    return obj instanceof AcslTernaryTerm other
         && super.equals(other)
         && Objects.equals(other.condition, condition)
         && Objects.equals(other.resultIfTrue, resultIfTrue)

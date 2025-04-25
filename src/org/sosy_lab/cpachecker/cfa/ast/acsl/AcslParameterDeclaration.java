@@ -8,25 +8,29 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import java.io.Serial;
+import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslTypeVariableDeclaration extends AcslTypeDeclaration {
+public final class AcslParameterDeclaration extends AParameterDeclaration
+    implements AcslSimpleDeclaration {
 
-  @Serial private static final long serialVersionUID = -6073836511235L;
-
-  public AcslTypeVariableDeclaration(
-      FileLocation pFileLocation,
-      boolean pIsGlobal,
-      AcslType pType,
-      String pName,
-      String pQualifiedName) {
-    super(pFileLocation, pIsGlobal, pType, pName, pQualifiedName);
+  public AcslParameterDeclaration(FileLocation pFileLocation, AcslType pType, String pName) {
+    super(pFileLocation, pType, pName);
   }
 
   @Override
   public <R, X extends Exception> R accept(AcslSimpleDeclarationVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public String getQualifiedName() {
+    return "";
+  }
+
+  @Override
+  public AcslType getType() {
+    return (AcslType) super.getType();
   }
 
   @Override

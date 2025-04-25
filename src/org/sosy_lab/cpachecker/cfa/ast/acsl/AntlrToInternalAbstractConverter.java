@@ -41,7 +41,7 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
     return cProgramScope;
   }
 
-  AcslAstNode getVariableDeclarationForName(String pName) {
+  AcslSimpleDeclaration getVariableDeclarationForName(String pName) {
     @Nullable CSimpleDeclaration cVariableDeclaration = cProgramScope.lookupVariable(pName);
     @Nullable AcslSimpleDeclaration acslVariableDeclaration = acslScope.lookupVariable(pName);
     if (cVariableDeclaration != null && acslVariableDeclaration == null) {
@@ -134,6 +134,9 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
               || operator == AcslUnaryTermOperator.PLUS
               || operator == AcslUnaryTermOperator.NEGATION);
       resultType = expressionType;
+    } else if (expressionType instanceof AcslPointerType pPointerType) {
+      Verify.verify(operator == AcslUnaryTermOperator.POINTER_DEREFERENCE);
+      resultType = pPointerType.getType();
     } else {
       throw new RuntimeException(
           "Expected a unary operator, but got: " + operator + " for type: " + expressionType);

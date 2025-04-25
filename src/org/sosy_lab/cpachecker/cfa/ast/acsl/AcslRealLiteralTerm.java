@@ -10,13 +10,11 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 import java.math.BigDecimal;
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslRealLiteralTerm extends AcslLiteralTerm {
 
-  @Serial
-  private static final long serialVersionUID = -81455024380768976L;
+  @Serial private static final long serialVersionUID = -81455024380768976L;
 
   private final BigDecimal value;
 
@@ -39,16 +37,5 @@ public final class AcslRealLiteralTerm extends AcslLiteralTerm {
   @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslRealLiteralTerm other
-        && super.equals(other)
-        && Objects.equals(other.value, value);
   }
 }

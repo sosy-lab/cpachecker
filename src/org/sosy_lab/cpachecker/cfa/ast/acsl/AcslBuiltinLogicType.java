@@ -29,6 +29,15 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
     type = pType;
   }
 
+  public static AcslType of(String pText) {
+    for (AcslBuiltinLogicType builtin : values()) {
+      if (builtin.type.equals(pText)) {
+        return builtin;
+      }
+    }
+    throw new IllegalArgumentException("Unknown builtin logic type: " + pText);
+  }
+
   @Override
   public String toASTString(String declarator) {
     return type;

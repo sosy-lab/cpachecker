@@ -13,8 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslResultTerm extends AcslTerm {
 
-  @Serial
-  private static final long serialVersionUID = -814550243801154576L;
+  @Serial private static final long serialVersionUID = -814550243801154576L;
 
   public AcslResultTerm(FileLocation pLocation, AcslType pType) {
     super(pLocation, pType);

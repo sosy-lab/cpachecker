@@ -8,15 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ArrayAccessTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.AtTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryOpTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.CConstantContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.FalseConstantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.FuncApplicationTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ParenthesesTermContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ResultTermContext;
@@ -40,18 +43,47 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
   }
 
   @Override
-  public AcslTerm visitVariableTerm(VariableTermContext ctx) {
-    String identifierName = ctx.getText();
-    AcslAstNode variable = getVariableDeclarationForName(identifierName);
-    if (!(variable instanceof AcslDeclaration pDeclaration)) {
-      throw new RuntimeException(
-          "Expected a variable declaration, but got: "
-              + variable
-              + " for identifier: "
-              + identifierName);
+  public AcslTerm visitArrayAccessTerm(ArrayAccessTermContext ctx) {
+    // The parsing gives the following structure:
+    // [term, '[', term, ']']
+    AcslTerm array = visit(ctx.getChild(0));
+    AcslTerm index = visit(ctx.getChild(2));
+
+    return new AcslArraySubscriptTerm(
+        FileLocation.DUMMY,
+        findResultTypeAfterUnaryOperation(
+            AcslUnaryTermOperator.POINTER_DEREFERENCE, array.getExpressionType()),
+        array,
+        index);
+  }
+
+  @Override
+  public AcslTerm visitFuncApplicationTerm(FuncApplicationTermContext ctx) {
+    // The parsing gives the following structure:
+    // [term, '(', term ',' term ')']
+    // TODO: In general this is wrong if this is a function pointer
+    String functionName = ctx.getChild(0).getText();
+    ImmutableList.Builder<AcslTerm> arguments = ImmutableList.builder();
+    for (int i = 2; i < ctx.getChildCount() - 1; i += 2) {
+      arguments.add(visit(ctx.getChild(i)));
     }
 
-    return new AcslIdTerm(FileLocation.DUMMY, pDeclaration);
+    AcslFunctionDeclaration functionDeclaration =
+        Objects.requireNonNull(getAcslScope().lookupFunction(functionName));
+
+    return new AcslFunctionCallTerm(
+        FileLocation.DUMMY,
+        (AcslType) functionDeclaration.getType().getReturnType(),
+        new AcslIdTerm(FileLocation.DUMMY, functionDeclaration),
+        arguments.build(),
+        functionDeclaration);
+  }
+
+  @Override
+  public AcslTerm visitVariableTerm(VariableTermContext ctx) {
+    String identifierName = ctx.getText();
+    AcslSimpleDeclaration variable = getVariableDeclarationForName(identifierName);
+    return new AcslIdTerm(FileLocation.DUMMY, variable);
   }
 
   @Override
@@ -124,7 +156,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     AcslTerm ifTrue = visit(ctx.getChild(2));
     AcslTerm ifFalse = visit(ctx.getChild(4));
 
-    return new AcslTernaryTermExpression(FileLocation.DUMMY, condition, ifTrue, ifFalse);
+    return new AcslTernaryTerm(FileLocation.DUMMY, condition, ifTrue, ifFalse);
   }
 
   @Override

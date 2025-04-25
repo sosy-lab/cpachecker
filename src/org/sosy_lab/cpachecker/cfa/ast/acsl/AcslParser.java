@@ -10,46 +10,65 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Function;
 import java.io.Serial;
+import java.util.Objects;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser;
 
 public class AcslParser {
 
-  public static AcslExpression parsePredicate(
-      String pRaw, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
-    checkNotNull(pRaw);
+  private static ParseTree generateParseTree(
+      String pInput, Function<@NonNull AcslGrammarParser, ParseTree> pRuleToBeApplied)
+      throws AcslParseException {
+    checkNotNull(pInput);
 
     ParseTree tree;
     try {
       // create a lexer that feeds off of input CharStream
-      AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pRaw));
+      AcslGrammarLexer lexer = new AcslGrammarLexer(CharStreams.fromString(pInput));
       // create a buffer of tokens pulled from the lexer
       CommonTokenStream tokens = new CommonTokenStream(lexer);
       // create a parser that feeds off the tokens buffer
       AcslGrammarParser parser = new AcslGrammarParser(tokens);
 
-      tree = parser.pred();
+      tree = pRuleToBeApplied.apply(parser);
 
     } catch (ParseCancellationException e) {
       throw new AcslParseException(e.getMessage(), e);
     }
+    return Objects.requireNonNull(tree);
+  }
 
+  public static AcslExpression parsePredicate(
+      String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
+
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
     AntrlPredicateToExpressionsConverter converter =
         new AntrlPredicateToExpressionsConverter(pCProgramScope, pAcslScope);
 
-    AcslAstNode expression = converter.visit(tree);
-    if (expression == null || !(expression instanceof AcslExpression)) {
-      throw new AcslParseException(
-          "Conversion of the parse tree to an internal expression failed.");
-    }
+    AcslExpression expression = converter.visit(tree);
 
-    return (AcslExpression) expression;
+    return expression;
+  }
+
+  public static AcslLogicDefinition parseLogicalDefinition(String pInput, AcslScope pAcslScope)
+      throws AcslParseException {
+
+    ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
+
+    AntlrLogicalDefinitionToLogicalDefinitionConverter converter =
+        new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope);
+
+    AcslLogicDefinition definition = converter.visit(tree);
+
+    return definition;
   }
 
   public static class AcslParseException extends Exception {
@@ -61,6 +80,14 @@ public class AcslParser {
 
     public AcslParseException(String pMsg, Throwable pCause) {
       super(checkNotNull(pMsg), checkNotNull(pCause));
+    }
+  }
+
+  public static class AntlrToInternalNotImplementedException extends RuntimeException {
+    private static final long serialVersionUID = 14291283541286835L;
+
+    public AntlrToInternalNotImplementedException(String message) {
+      super(message);
     }
   }
 }

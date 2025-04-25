@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+public sealed interface AcslLogicDeclaration extends AcslDeclaration
+    permits AcslFunctionDeclaration, AcslPredicateDeclaration {
 
-public sealed interface AcslDeclaration extends AcslSimpleDeclaration, ADeclaration
-    permits AcslCVariableDeclaration,
-        AcslLogicDeclaration,
-        AcslTypeDeclaration,
-        AcslVariableDeclaration {}
+  String typedDeclarationString();
+}

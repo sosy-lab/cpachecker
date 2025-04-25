@@ -13,13 +13,15 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AcslTerm implements AcslAstNode
-    permits AcslAtTerm,
+    permits AcslArraySubscriptTerm,
+        AcslAtTerm,
         AcslBinaryTerm,
+        AcslFunctionCallTerm,
         AcslIdTerm,
         AcslLiteralTerm,
         AcslOldTerm,
         AcslResultTerm,
-        AcslTernaryTermExpression,
+        AcslTernaryTerm,
         AcslUnaryTerm {
 
   @Serial private static final long serialVersionUID = 8144237675011353L;

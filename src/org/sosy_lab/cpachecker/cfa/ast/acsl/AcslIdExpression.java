@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslIdExpression extends AIdExpression implements AcslExpression {
 
-  @Serial
-  private static final long serialVersionUID = -814550123151276L;
+  @Serial private static final long serialVersionUID = -814550123151276L;
 
   public AcslIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
     super(pFileLocation, pDeclaration);

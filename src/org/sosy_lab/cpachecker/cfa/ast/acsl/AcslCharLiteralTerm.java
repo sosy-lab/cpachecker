@@ -35,15 +35,4 @@ public final class AcslCharLiteralTerm extends AcslLiteralTerm {
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslCharLiteralTerm other
-        && super.equals(other)
-        && other.character == character;
-  }
 }

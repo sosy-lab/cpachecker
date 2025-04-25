@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 
 public abstract sealed class AcslTypeDeclaration extends AbstractDeclaration
     implements AcslDeclaration permits AcslTypeVariableDeclaration {
@@ -52,6 +51,6 @@ public abstract sealed class AcslTypeDeclaration extends AbstractDeclaration
       return true;
     }
 
-    return obj instanceof CTypeDeclaration && super.equals(obj);
+    return obj instanceof AcslTypeDeclaration && super.equals(obj);
   }
 }
