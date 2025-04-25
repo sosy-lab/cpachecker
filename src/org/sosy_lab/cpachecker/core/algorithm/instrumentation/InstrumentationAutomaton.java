@@ -548,8 +548,7 @@ public class InstrumentationAutomaton {
                     + "     __instrumentation_track_allocated_length = size;\\n"
                     + "   }\\n"
                     + "   return p;\\n"
-                    + " }\\n"
-                    + " "),
+                    + " }\\n"),
             InstrumentationOrder.BEFORE,
             q2);
     InstrumentationTransition t2 =
