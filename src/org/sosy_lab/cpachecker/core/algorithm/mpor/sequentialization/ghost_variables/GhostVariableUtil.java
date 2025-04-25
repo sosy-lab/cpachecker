@@ -150,7 +150,8 @@ public class GhostVariableUtil {
     return new FunctionStatements(
         buildParameterAssignments(pSubstitution),
         buildStartRoutineArgumentAssignments(pSubstitution),
-        buildReturnValueAssignments(pThread, pSubstituteEdges));
+        buildReturnValueAssignments(pThread, pSubstituteEdges),
+        buildStartRoutineExitAssignments(pThread, pSubstituteEdges));
   }
 
   public static ThreadSimulationVariables buildThreadSimulationVariables(
@@ -354,6 +355,8 @@ public class GhostVariableUtil {
    * Maps {@link ThreadEdge}s whose {@link CFAEdge} is a {@link CReturnStatementEdge} to {@link
    * FunctionReturnValueAssignment}s where the CPAchecker_TMP vars are assigned the return value.
    *
+   * <p>The return statement may be linked to multiple function calls, thus the inner set.
+   *
    * <p>Note that {@code main} functions and start_routines of threads oftentimes do not have
    * corresponding {@link CFunctionSummaryEdge}s.
    */
@@ -383,6 +386,7 @@ public class GhostVariableUtil {
                   AFunctionType functionTypeA = functionDeclarationA.getType();
                   AFunctionType functionTypeB =
                       functionSummary.getFunctionEntry().getFunction().getType();
+                  // TODO compare declarations here instead?
                   if (functionTypeA.equals(functionTypeB)) {
                     assert functionDeclarationA instanceof CFunctionDeclaration;
                     FunctionReturnValueAssignment assign =
@@ -400,5 +404,31 @@ public class GhostVariableUtil {
       }
     }
     return rReturnStatements.buildOrThrow();
+  }
+
+  /**
+   * Links {@link ThreadEdge}s that call {@code pthread_exit} to {@link
+   * FunctionReturnValueAssignment} where the {@code retval} is stored in an intermediate value that
+   * can be retrieved by other threads calling {@code }.
+   */
+  private static ImmutableMap<ThreadEdge, FunctionReturnValueAssignment>
+      buildStartRoutineExitAssignments(
+          MPORThread pThread, ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+
+    ImmutableMap.Builder<ThreadEdge, FunctionReturnValueAssignment> rStartRoutineExitAssignments =
+        ImmutableMap.builder();
+    for (ThreadEdge threadEdge : pThread.cfa.threadEdges) {
+      if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        assert pThread.intermediateExitVariable.isPresent()
+            : "thread calls pthread_exit but has no intermediateExitVariable";
+        SubstituteEdge substituteEdge = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
+        FunctionReturnValueAssignment assignment =
+            new FunctionReturnValueAssignment(
+                pThread.intermediateExitVariable.orElseThrow(),
+                PthreadUtil.extractExitReturnValue(substituteEdge.cfaEdge));
+        rStartRoutineExitAssignments.put(threadEdge, assignment);
+      }
+    }
+    return rStartRoutineExitAssignments.buildOrThrow();
   }
 }

@@ -34,9 +34,14 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqPointerType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadBuilder {
@@ -54,19 +59,22 @@ public class ThreadBuilder {
    * <p>This functions needs to be called after functionCallMap was initialized so that we can track
    * the calling context of each thread.
    */
-  public static ImmutableList<MPORThread> createThreads(CFA pCfa) {
+  public static ImmutableList<MPORThread> createThreads(MPOROptions pOptions, CFA pCfa) {
     currentThreadId = 0; // reset thread id (necessary only for unit tests)
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();
-    MPORThread mainThread = createThread(Optional.empty(), Optional.empty(), mainEntryNode);
+    MPORThread mainThread =
+        createThread(pOptions, Optional.empty(), Optional.empty(), mainEntryNode);
     rThreads.add(mainThread);
     // recursively search the thread CFAs for pthread_create calls, and store in rThreads
-    rThreads.addAll(recursivelyFindThreadCreations(pCfa, mainThread, ImmutableList.builder()));
+    rThreads.addAll(
+        recursivelyFindThreadCreations(pOptions, pCfa, mainThread, ImmutableList.builder()));
     return rThreads.build();
   }
 
   private static ImmutableList<MPORThread> recursivelyFindThreadCreations(
+      MPOROptions pOptions,
       final CFA pCfa,
       MPORThread pCurrentThread,
       ImmutableList.Builder<MPORThread> pSearchedThreads) {
@@ -82,8 +90,9 @@ public class ThreadBuilder {
         FunctionEntryNode entryNode =
             CFAUtils.getFunctionEntryNodeFromCFunctionType(pCfa, startRoutine);
         MPORThread newThread =
-            createThread(Optional.ofNullable(pthreadT), Optional.of(threadEdge), entryNode);
-        recursivelyFindThreadCreations(pCfa, newThread, pSearchedThreads);
+            createThread(
+                pOptions, Optional.ofNullable(pthreadT), Optional.of(threadEdge), entryNode);
+        recursivelyFindThreadCreations(pOptions, pCfa, newThread, pSearchedThreads);
         pSearchedThreads.add(newThread);
       }
     }
@@ -94,6 +103,7 @@ public class ThreadBuilder {
    * Initializes a MPORThread object with the corresponding CFANodes and CFAEdges and returns it.
    */
   private static MPORThread createThread(
+      MPOROptions pOptions,
       Optional<CIdExpression> pThreadObject,
       Optional<ThreadEdge> pStartRoutineCall,
       FunctionEntryNode pEntryNode) {
@@ -105,12 +115,17 @@ public class ThreadBuilder {
     currentPc = Sequentialization.INIT_PC; // reset pc for every thread created
     int newThreadId = currentThreadId++;
     ThreadCFA threadCfa = buildThreadCfa(newThreadId, pEntryNode, pStartRoutineCall);
+    Optional<CIdExpression> intermediateExitVariable =
+        tryGetIntermediateExitVariable(pOptions, threadCfa);
+    ImmutableListMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables =
+        getLocalVariableDeclarations(threadCfa.threadEdges);
     return new MPORThread(
         newThreadId,
         pThreadObject,
         (CFunctionType) pEntryNode.getFunction().getType(),
         pStartRoutineCall,
-        getLocalVariableDeclarations(threadCfa.threadEdges),
+        intermediateExitVariable,
+        localVariables,
         threadCfa);
   }
 
@@ -193,6 +208,28 @@ public class ThreadBuilder {
         }
       }
     }
+  }
+
+  /**
+   * Returns the intermediate exit variable that stores the {@code retval} given to {@code
+   * pthread_exit}, or {@link Optional#empty()} if the thread does not call {@code pthread_exit} at
+   * all.
+   */
+  private static Optional<CIdExpression> tryGetIntermediateExitVariable(
+      MPOROptions pOptions, ThreadCFA pThreadCFA) {
+
+    for (ThreadEdge threadEdge : pThreadCFA.threadEdges) {
+      if (PthreadUtil.callsPthreadFunction(threadEdge.cfaEdge, PthreadFunctionType.PTHREAD_EXIT)) {
+        String name = SeqNameUtil.buildIntermediateExitVariableName(pOptions, pThreadCFA.threadId);
+        CVariableDeclaration declaration =
+            SeqDeclarationBuilder.buildVariableDeclaration(
+                true, SeqPointerType.VOID_POINTER, name, null);
+        CIdExpression intermediateExitVariable =
+            SeqExpressionBuilder.buildIdExpression(declaration);
+        return Optional.of(intermediateExitVariable);
+      }
+    }
+    return Optional.empty();
   }
 
   /** Extracts all local variable declarations from pThreadEdges. */

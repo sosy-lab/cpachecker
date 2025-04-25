@@ -28,6 +28,9 @@ public class SeqComment {
   public static final String START_ROUTINE_ARG_SUBSTITUTES =
       COMMENT_SINGLE + " start_routine argument substitutes passed via pthread_create";
 
+  public static final String START_ROUTINE_EXIT_VARIABLES =
+      COMMENT_SINGLE + " return values of start_routines passed via pthread_exit";
+
   public static final String THREAD_SIMULATION_VARIABLES =
       COMMENT_SINGLE + " thread and pthread method simulation variables";
 

@@ -173,6 +173,26 @@ public class LineOfCodeUtil {
     return rStartRoutineArgDeclarations.build();
   }
 
+  public static ImmutableList<LineOfCode> buildStartRoutineExitDeclarations(
+      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+
+    ImmutableList.Builder<LineOfCode> rStartRoutineExitDeclarations = ImmutableList.builder();
+    if (pOptions.comments) {
+      rStartRoutineExitDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_EXIT_VARIABLES));
+    }
+    for (MPORThread thread : pThreads) {
+      Optional<CIdExpression> exitVariable = thread.intermediateExitVariable;
+      if (exitVariable.isPresent()) {
+        rStartRoutineExitDeclarations.add(
+            LineOfCode.of(0, exitVariable.orElseThrow().getDeclaration().toASTString()));
+      }
+    }
+    if (pOptions.comments) {
+      rStartRoutineExitDeclarations.add(LineOfCode.empty());
+    }
+    return rStartRoutineExitDeclarations.build();
+  }
+
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
       MPOROptions pOptions, ThreadSimulationVariables pThreadSimulationVariables) {
 

@@ -304,6 +304,12 @@ public class SeqCaseBlockStatementBuilder {
               pTargetPc,
               pGhostVariables.function,
               pGhostVariables.pc);
+      case PTHREAD_EXIT ->
+          buildThreadExitStatement(
+              pThreadEdge, pSubstituteEdge, pTargetPc, pGhostVariables.function, pcLeftHandSide);
+      case PTHREAD_JOIN ->
+          buildThreadJoinStatement(
+              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
               pThread,
@@ -315,9 +321,6 @@ public class SeqCaseBlockStatementBuilder {
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
-      case PTHREAD_JOIN ->
-          buildThreadJoinStatement(
-              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case __VERIFIER_ATOMIC_BEGIN ->
           buildAtomicBeginStatement(
               pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
@@ -367,7 +370,8 @@ public class SeqCaseBlockStatementBuilder {
       return Optional.of(buildThreadLocksMutexStatement(mutexLockStatement.threadLocksMutex));
 
     } else if (pStatement instanceof SeqThreadJoinStatement threadJoinStatement) {
-      return Optional.of(buildThreadJoinsThreadStatement(threadJoinStatement.threadJoinsThread));
+      return Optional.of(
+          buildThreadJoinsThreadStatement(threadJoinStatement.threadJoinsThreadVariable));
     }
     return Optional.empty();
   }
@@ -388,6 +392,45 @@ public class SeqCaseBlockStatementBuilder {
       CIdExpression pThreadJoinsThread) {
 
     return new SeqThreadJoinsThreadStatement(pThreadJoinsThread);
+  }
+
+  private static SeqThreadExitStatement buildThreadExitStatement(
+      ThreadEdge pThreadEdge,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      FunctionStatements pFunctionStatements,
+      CLeftHandSide pPcLeftHandSide) {
+
+    checkArgument(
+        pFunctionStatements.startRoutineExitAssignments.containsKey(pThreadEdge),
+        "could not find pThreadEdge in returnValueAssignments");
+
+    return new SeqThreadExitStatement(
+        pFunctionStatements.startRoutineExitAssignments.get(pThreadEdge),
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc);
+  }
+
+  private static SeqThreadJoinStatement buildThreadJoinStatement(
+      MPORThread pThread,
+      SubstituteEdge pSubstituteEdge,
+      int pTargetPc,
+      CLeftHandSide pPcLeftHandSide,
+      ThreadSimulationVariables pThreadVariables) {
+
+    MPORThread targetThread =
+        ThreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
+    CIdExpression threadJoins =
+        Objects.requireNonNull(
+                Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
+            .idExpression;
+    return new SeqThreadJoinStatement(
+        targetThread.intermediateExitVariable,
+        threadJoins,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc,
+        pPcLeftHandSide);
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(
@@ -431,23 +474,6 @@ public class SeqCaseBlockStatementBuilder {
             SeqIntegerLiteralExpression.INT_0);
     return new SeqMutexUnlockStatement(
         lockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
-  }
-
-  private static SeqThreadJoinStatement buildThreadJoinStatement(
-      MPORThread pThread,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
-
-    MPORThread targetThread =
-        ThreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
-    CIdExpression threadJoins =
-        Objects.requireNonNull(
-                Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
-            .idExpression;
-    return new SeqThreadJoinStatement(
-        threadJoins, ImmutableSet.of(pSubstituteEdge), pTargetPc, pPcLeftHandSide);
   }
 
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(

@@ -64,6 +64,10 @@ public class SeqToken {
 
   public static final String dummy = "dummy";
 
+  public static final String E = "E";
+
+  public static final String EXIT = "EXIT";
+
   public static final String __file = "__file";
 
   public static final String __FILE_NAME_PLACEHOLDER__ = "__FILE_NAME_PLACEHOLDER__";
@@ -112,6 +116,8 @@ public class SeqToken {
   public static final String r = "r";
 
   public static final String reach_error = "reach_error";
+
+  public static final String return_value = "return_value";
 
   public static final String S = "S";
 

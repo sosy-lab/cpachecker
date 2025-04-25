@@ -24,14 +24,17 @@ public class FunctionStatements {
   public final ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
       returnValueAssignments;
 
+  public final ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> startRoutineExitAssignments;
+
   public FunctionStatements(
       ImmutableMap<ThreadEdge, ImmutableList<FunctionParameterAssignment>> pParameterAssignments,
       ImmutableMap<ThreadEdge, FunctionParameterAssignment> pStartRoutineArgumentAssignments,
-      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>>
-          pReturnValueAssignments) {
+      ImmutableMap<ThreadEdge, ImmutableSet<FunctionReturnValueAssignment>> pReturnValueAssignments,
+      ImmutableMap<ThreadEdge, FunctionReturnValueAssignment> pStartRoutineExitAssignments) {
 
     parameterAssignments = pParameterAssignments;
     startRoutineArgumentAssignments = pStartRoutineArgumentAssignments;
     returnValueAssignments = pReturnValueAssignments;
+    startRoutineExitAssignments = pStartRoutineExitAssignments;
   }
 }

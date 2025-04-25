@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
 
+  // TODO make list
   public static ImmutableSet<MPORThread> extractThreads(
       ImmutableList<MPORSubstitution> pSubstitutions) {
 

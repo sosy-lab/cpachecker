@@ -82,6 +82,15 @@ public class PthreadUtil {
     return CFAUtils.getParameterAtIndex(pEdge, funcType.getStartRoutineArgumentIndex());
   }
 
+  public static CExpression extractExitReturnValue(CFAEdge pEdge) {
+    checkArgument(
+        callsAnyPthreadFunctionWithReturnValue(pEdge),
+        "pEdge must be a call to a pthread method with a start_routine parameter");
+
+    PthreadFunctionType funcType = getPthreadFuncType(pEdge);
+    return CFAUtils.getParameterAtIndex(pEdge, funcType.getReturnValueIndex());
+  }
+
   /**
    * Returns true if {@code pCfaEdge} assigns a {@code PTHREAD_MUTEX_INITIALIZER}:
    *
@@ -179,6 +188,17 @@ public class PthreadUtil {
     for (PthreadFunctionType funcType : PthreadFunctionType.values()) {
       if (funcType.startRoutineIndex.isPresent()) {
         if (callsPthreadFunction(pEdge, funcType)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public static boolean callsAnyPthreadFunctionWithReturnValue(CFAEdge pEdge) {
+    for (PthreadFunctionType functionType : PthreadFunctionType.values()) {
+      if (functionType.returnValueIndex.isPresent()) {
+        if (callsPthreadFunction(pEdge, functionType)) {
           return true;
         }
       }

@@ -180,6 +180,7 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
 
     // add variable declarations for ghost variables
     rProgram.addAll(

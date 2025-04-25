@@ -30,6 +30,13 @@ public class MPORThread {
 
   public final Optional<ThreadEdge> startRoutineCall;
 
+  // TODO also need a bool flag is_retrieved, because it can only be retrieved once (multiple joins)
+  /**
+   * The intermediate variable storing the {@code retval} given to {@code pthread_exit}, if called
+   * anywhere in this thread.
+   */
+  public final Optional<CIdExpression> intermediateExitVariable;
+
   /** The set of context-sensitive local variable declarations of this thread. */
   public final ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> localVariables;
 
@@ -41,6 +48,7 @@ public class MPORThread {
       Optional<CIdExpression> pThreadObject,
       CFunctionType pStartRoutine,
       Optional<ThreadEdge> pStartRoutineCall,
+      Optional<CIdExpression> pIntermediateExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
       ThreadCFA pCfa) {
 
@@ -48,6 +56,7 @@ public class MPORThread {
     threadObject = pThreadObject;
     startRoutine = pStartRoutine;
     startRoutineCall = pStartRoutineCall;
+    intermediateExitVariable = pIntermediateExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
   }

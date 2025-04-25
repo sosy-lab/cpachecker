@@ -12,22 +12,30 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
-  public final CIdExpression threadJoinsThread;
+  private final Optional<CIdExpression> joinedThreadExitVariable;
+
+  public final CIdExpression threadJoinsThreadVariable;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -42,12 +50,15 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   private final ImmutableList<SeqCaseBlockStatement> concatenatedStatements;
 
   SeqThreadJoinStatement(
-      CIdExpression pThreadJoins,
+      Optional<CIdExpression> pJoinedThreadExitVariable,
+      CIdExpression pThreadJoinsThreadVariable,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide) {
+
     loopHeadLabel = Optional.empty();
-    threadJoinsThread = pThreadJoins;
+    joinedThreadExitVariable = pJoinedThreadExitVariable;
+    threadJoinsThreadVariable = pThreadJoinsThreadVariable;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -58,7 +69,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
   private SeqThreadJoinStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
-      CIdExpression pThreadJoins,
+      Optional<CIdExpression> pJoinedThreadExitVariable,
+      CIdExpression pThreadJoinsThreadVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -67,7 +79,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
-    threadJoinsThread = pThreadJoins;
+    joinedThreadExitVariable = pJoinedThreadExitVariable;
+    threadJoinsThreadVariable = pThreadJoinsThreadVariable;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
@@ -80,14 +93,39 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     CExpressionAssignmentStatement setJoinsFalse =
         new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadJoinsThread, SeqIntegerLiteralExpression.INT_0);
+            FileLocation.DUMMY, threadJoinsThreadVariable, SeqIntegerLiteralExpression.INT_0);
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
+    Optional<String> returnValueRead = Optional.empty();
+    if (joinedThreadExitVariable.isPresent()) {
+      SubstituteEdge substituteEdge = substituteEdges.iterator().next();
+      CExpression retvalParameter =
+          CFAUtils.getParameterAtIndex(
+              substituteEdge.cfaEdge, PthreadFunctionType.PTHREAD_JOIN.getReturnValueIndex());
+      if (retvalParameter instanceof CUnaryExpression unaryExpression) {
+        // extract retval from unary expression &retval
+        if (unaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+          if (unaryExpression.getOperand() instanceof CIdExpression idExpression) {
+            CExpressionAssignmentStatement assignment =
+                SeqStatementBuilder.buildExpressionAssignmentStatement(
+                    idExpression, joinedThreadExitVariable.orElseThrow());
+            returnValueRead = Optional.of(assignment.toASTString());
+          } else {
+            // just in case
+            throw new IllegalArgumentException("pthread_join retval must be CIdExpression");
+          }
+        }
+      }
+    }
+
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
         + setJoinsFalse.toASTString()
+        + (returnValueRead.isPresent()
+            ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
+            : SeqSyntax.EMPTY_STRING)
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -121,7 +159,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadJoinStatement(
         loopHeadLabel,
-        threadJoinsThread,
+        joinedThreadExitVariable,
+        threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -134,7 +173,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithTargetGoto(String pLabel) {
     return new SeqThreadJoinStatement(
         loopHeadLabel,
-        threadJoinsThread,
+        joinedThreadExitVariable,
+        threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -149,7 +189,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
     return new SeqThreadJoinStatement(
         loopHeadLabel,
-        threadJoinsThread,
+        joinedThreadExitVariable,
+        threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -162,7 +203,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqThreadJoinStatement(
         Optional.of(pLoopHeadLabel),
-        threadJoinsThread,
+        joinedThreadExitVariable,
+        threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -177,7 +219,8 @@ public class SeqThreadJoinStatement implements SeqCaseBlockStatement {
 
     return new SeqThreadJoinStatement(
         loopHeadLabel,
-        threadJoinsThread,
+        joinedThreadExitVariable,
+        threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),

@@ -61,18 +61,18 @@ public class SeqDeclarations {
 
     public static final CParameterDeclaration ASSERTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__assertion);
+            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__assertion);
 
     public static final CParameterDeclaration FILE =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__file);
+            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__file);
 
     public static final CParameterDeclaration LINE =
         new CParameterDeclaration(FileLocation.DUMMY, SeqSimpleType.UNSIGNED_INT, SeqToken.__line);
 
     public static final CParameterDeclaration FUNCTION =
         new CParameterDeclaration(
-            FileLocation.DUMMY, SeqPointerType.POINTER_CONST_CHAR, SeqToken.__function);
+            FileLocation.DUMMY, SeqPointerType.CONST_CHAR_POINTER, SeqToken.__function);
   }
 
   public static class SeqFunctionDeclaration {

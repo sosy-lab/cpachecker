@@ -262,7 +262,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    threads = ThreadBuilder.createThreads(inputCfa);
+    threads = ThreadBuilder.createThreads(options, inputCfa);
     ImmutableSet<CVariableDeclaration> globalVars =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
@@ -283,7 +283,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
-    threads = ThreadBuilder.createThreads(inputCfa);
+    threads = ThreadBuilder.createThreads(options, inputCfa);
     ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =

@@ -17,48 +17,66 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 /**
- * Represents an injected call to {@code reach_error} so that the sequentialization actually adopts
- * {@code reach_error}s from the input program for the property {@code unreach-call.prp} instead of
- * inlining the function.
+ * Represents a statement that simulates calls to {@code pthread_exit} of the form:
+ *
+ * <p>{@code ; pc[j] = n; } where thread {@code j} creates thread {@code i}.
  */
-public class SeqReachErrorStatement implements SeqCaseBlockStatement {
+public class SeqThreadExitStatement implements SeqCaseBlockStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
+
+  /**
+   * The assignment of the parameter given in the {@code pthread_create} call. This is always
+   * present, even if the parameter is not actually used.
+   */
+  private final FunctionReturnValueAssignment returnValueAssignment;
 
   private final CLeftHandSide pcLeftHandSide;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
 
-  private final int targetPc;
+  private final Optional<Integer> targetPc;
+
+  private final Optional<String> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  SeqReachErrorStatement(
-      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
+  SeqThreadExitStatement(
+      FunctionReturnValueAssignment pReturnValueAssignment,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableSet<SubstituteEdge> pSubstituteEdges,
+      int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
+    returnValueAssignment = pReturnValueAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
-    targetPc = pTargetPc;
+    targetPc = Optional.of(pTargetPc);
+    targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
   }
 
-  private SeqReachErrorStatement(
+  private SeqThreadExitStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
+      FunctionReturnValueAssignment pReturnValueAssignment,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc,
+      Optional<Integer> pTargetPc,
+      Optional<String> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
+    returnValueAssignment = pReturnValueAssignment;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
+    targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
   }
 
@@ -66,13 +84,9 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public String toASTString() {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide,
-            Optional.of(targetPc),
-            Optional.empty(),
-            injectedStatements,
-            ImmutableList.of());
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements, ImmutableList.of());
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + Sequentialization.inputReachErrorDummy
+        + returnValueAssignment.statement.toASTString()
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -84,7 +98,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public Optional<Integer> getTargetPc() {
-    return Optional.of(targetPc);
+    return targetPc;
   }
 
   @Override
@@ -104,12 +118,19 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   }
 
   @Override
-  public SeqReachErrorStatement cloneWithTargetPc(int pTargetPc) {
+  public SeqThreadExitStatement cloneWithTargetPc(int pTargetPc) {
     checkArgument(
         pTargetPc == Sequentialization.EXIT_PC,
         "reach_errors should only be cloned with exit pc %s",
         Sequentialization.EXIT_PC);
-    return new SeqReachErrorStatement(pcLeftHandSide, substituteEdges, pTargetPc);
+    return new SeqThreadExitStatement(
+        loopHeadLabel,
+        returnValueAssignment,
+        pcLeftHandSide,
+        substituteEdges,
+        Optional.of(pTargetPc),
+        Optional.empty(),
+        injectedStatements);
   }
 
   @Override
@@ -122,14 +143,26 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
   public SeqCaseBlockStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    return new SeqReachErrorStatement(
-        loopHeadLabel, pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
+    return new SeqThreadExitStatement(
+        loopHeadLabel,
+        returnValueAssignment,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        pInjectedStatements);
   }
 
   @Override
   public SeqCaseBlockStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqReachErrorStatement(
-        Optional.of(pLoopHeadLabel), pcLeftHandSide, substituteEdges, targetPc, injectedStatements);
+    return new SeqThreadExitStatement(
+        Optional.of(pLoopHeadLabel),
+        returnValueAssignment,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        injectedStatements);
   }
 
   @Override
@@ -137,7 +170,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
       ImmutableList<SeqCaseBlockStatement> pConcatenatedStatements) {
 
     throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have concatenated statements");
+        this.getClass().getSimpleName() + " do not have target goto");
   }
 
   @Override
@@ -147,7 +180,7 @@ public class SeqReachErrorStatement implements SeqCaseBlockStatement {
 
   @Override
   public boolean isCriticalSectionStart() {
-    return true;
+    return false;
   }
 
   @Override

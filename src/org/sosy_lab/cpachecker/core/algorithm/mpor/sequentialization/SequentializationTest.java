@@ -24,10 +24,46 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
+/**
+ * Tests if programs with different characteristics are correctly transformed by our implementation
+ * i.e. parse correctly. The programs are in part taken from SV-Benchmarks, but may be altered to
+ * include more varying characteristics, such as additional pthread functions.
+ */
 public class SequentializationTest {
 
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
+
+  // TODO this program has "0;" statements, that can be pruned (probably "pre-evaluated" statements
+  //  by CPAchecker during CFA creation)
+  // pthread-divine/tls_basic
+
+  // TODO this program is analyzed as false by multiple tools (Bubaak, CBMC, CPAchecker, ESBMC,
+  //  Symbiotic) even though its true, but only when porConcat is enabled
+  // weaver/chl-match-symm.wvr.c
+
+  @Test
+  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
+    // this program contains multiple loops whose condition only contains local variables
+    Path path =
+        Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            false,
+            true,
+            true,
+            false,
+            BitVectorEncoding.NONE,
+            true,
+            true,
+            false,
+            true,
+            true,
+            false);
+    testCompile(path, options);
+  }
 
   @Test
   public void testCompileSeq_28_race_reach_45_escape_racing() throws Exception {
@@ -52,7 +88,7 @@ public class SequentializationTest {
   }
 
   @Test
-  public void testCompileSeq_13_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
+  public void testCompileSeq_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
     // this program contains only local variables, no global variables
     Path path =
         Path.of(
@@ -71,29 +107,6 @@ public class SequentializationTest {
             false,
             true,
             false,
-            false);
-    testCompile(path, options);
-  }
-
-  @Test
-  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
-    // this program contains multiple loops whose condition only contains local variables
-    Path path =
-        Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
-    assertThat(Files.exists(path)).isTrue();
-    MPOROptions options =
-        MPOROptions.testInstance(
-            true,
-            false,
-            true,
-            true,
-            false,
-            BitVectorEncoding.NONE,
-            true,
-            true,
-            false,
-            true,
-            true,
             false);
     testCompile(path, options);
   }
@@ -144,6 +157,7 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeq_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
+    // this program is ... very large
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
     assertThat(Files.exists(path)).isTrue();
@@ -166,6 +180,7 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeq_queue_longest() throws Exception {
+    // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
@@ -187,6 +202,7 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeq_simple_two() throws Exception {
+    // this program contains no return statements for the created threads
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
@@ -208,6 +224,7 @@ public class SequentializationTest {
 
   @Test
   public void testCompileSeq_singleton_with_uninit_problems_b() throws Exception {
+    // this program has thread creations inside a non-main thread
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
     assertThat(Files.exists(path)).isTrue();

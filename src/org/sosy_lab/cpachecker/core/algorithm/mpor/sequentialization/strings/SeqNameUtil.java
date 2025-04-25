@@ -118,9 +118,11 @@ public class SeqNameUtil {
 
   public static String buildStartRoutineArgName(
       MPOROptions pOptions,
+      // TODO make name (String) parameter directly
       CParameterDeclaration pStartRoutineArgDeclaration,
       int pThreadId,
       String pFunctionName) {
+
     return (pOptions.shortVariables ? SeqToken.S : SeqToken.START_ROUTINE_ARG)
         + SeqSyntax.UNDERSCORE
         + pFunctionName
@@ -129,6 +131,15 @@ public class SeqNameUtil {
         + pThreadId
         + createVariableId()
         + pStartRoutineArgDeclaration.getName();
+  }
+
+  public static String buildIntermediateExitVariableName(MPOROptions pOptions, int pThreadId) {
+    return (pOptions.shortVariables ? SeqToken.E : SeqToken.EXIT)
+        + SeqSyntax.UNDERSCORE
+        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + pThreadId
+        + createVariableId()
+        + SeqToken.return_value;
   }
 
   public static String buildBitVectorName(MPOROptions pOptions, int pThreadId) {
