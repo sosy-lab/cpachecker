@@ -6,12 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TsetEmptyContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TsetTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TsetEmptyContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TsetTermContext;
 
 public class AntlrTsetToMemorySetConverter
     extends AntlrToInternalAbstractConverter<AcslMemoryLocationSet> {

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.base.Verify;
 import java.math.BigDecimal;
@@ -14,8 +14,20 @@ import java.math.BigInteger;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;

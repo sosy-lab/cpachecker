@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -19,8 +19,11 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarLexer;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
 
 public class AcslParser {
 

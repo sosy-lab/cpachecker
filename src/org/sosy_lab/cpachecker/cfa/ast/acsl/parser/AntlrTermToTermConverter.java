@@ -6,27 +6,47 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLabel;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ArrayAccessTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.AtTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BinaryOpTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.CConstantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.FalseConstantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.FuncApplicationTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.OldTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ParenthesesTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ResultTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TernaryCondTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TrueConstantContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.UnaryOpTermContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.VariableTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ArrayAccessTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AtTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinaryOpTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.CConstantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FalseConstantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.FuncApplicationTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.OldTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ParenthesesTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ResultTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TernaryCondTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TrueConstantContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UnaryOpTermContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.VariableTermContext;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm> {

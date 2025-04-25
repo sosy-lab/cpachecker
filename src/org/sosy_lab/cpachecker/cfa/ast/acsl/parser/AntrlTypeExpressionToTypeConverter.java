@@ -6,20 +6,24 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParser.AntlrToInternalNotImplementedException;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.AbstractDeclaratorContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.BuiltInLogicTypeContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicTypeExprContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.SpecifierQualifierListContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypeExprContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypeNameContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypeSpecifierContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypeVarContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypedefNameContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AntlrToInternalNotImplementedException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.AbstractDeclaratorContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BuiltInLogicTypeContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicTypeExprContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.SpecifierQualifierListContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypeExprContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypeNameContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypeSpecifierContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypeVarContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypedefNameContext;
 
 public class AntrlTypeExpressionToTypeConverter extends AntlrToInternalAbstractConverter<AcslType> {
   protected AntrlTypeExpressionToTypeConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {

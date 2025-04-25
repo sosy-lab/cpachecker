@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class AcslMemoryLocationSetTerm extends AcslMemoryLocationSet {
   private final AcslTerm term;
 
-  AcslMemoryLocationSetTerm(FileLocation pFileLocation, AcslTerm pTerm) {
+  public AcslMemoryLocationSetTerm(FileLocation pFileLocation, AcslTerm pTerm) {
     super(pFileLocation, new AcslSetType(pTerm.getExpressionType()));
     term = pTerm;
   }

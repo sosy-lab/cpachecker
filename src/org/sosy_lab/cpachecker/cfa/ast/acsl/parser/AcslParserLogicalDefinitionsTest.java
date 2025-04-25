@@ -6,15 +6,33 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPointerType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 
 public class AcslParserLogicalDefinitionsTest {
 

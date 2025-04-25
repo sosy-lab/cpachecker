@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.ast.acsl;
+package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -15,10 +15,20 @@ import java.util.Objects;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.LogicFunctionDefContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.ParametersContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.PolyIdContext;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.generated.AcslGrammarParser.TypeVarBindersContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPolymorphicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicFunctionDefContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ParametersContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.PolyIdContext;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.TypeVarBindersContext;
 
 public class AntlrLogicalDefinitionToLogicalDefinitionConverter
     extends AntlrToInternalAbstractConverter<AcslLogicDefinition> {
