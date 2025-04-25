@@ -28,6 +28,8 @@ public class MPOROptions {
 
   public final boolean comments;
 
+  public final boolean consecutiveLabels;
+
   public final boolean inputFunctionDeclarations;
 
   public final boolean inputTypeDeclarations;
@@ -45,6 +47,8 @@ public class MPOROptions {
   public final boolean porBitVector;
 
   public final BitVectorEncoding porBitVectorEncoding;
+
+  public final boolean pruneEmpty;
 
   public final boolean scalarPc;
 
@@ -64,6 +68,7 @@ public class MPOROptions {
 
   public MPOROptions(
       boolean pComments,
+      boolean pConsecutiveLabels,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
@@ -73,6 +78,7 @@ public class MPOROptions {
       boolean pPorConcat,
       boolean pPorBitVector,
       BitVectorEncoding pPorBitVectorEncoding,
+      boolean pPruneEmpty,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -91,6 +97,7 @@ public class MPOROptions {
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
 
     comments = pComments;
+    consecutiveLabels = pConsecutiveLabels;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
@@ -100,6 +107,7 @@ public class MPOROptions {
     porConcat = pPorConcat;
     porBitVector = pPorBitVector;
     porBitVectorEncoding = pPorBitVectorEncoding;
+    pruneEmpty = pPruneEmpty;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
     shortVariables = pShortVariables;
@@ -127,6 +135,8 @@ public class MPOROptions {
 
     return new MPOROptions(
         pComments,
+        // always use consecutive labels, disabling is only for debugging, not for release
+        true,
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
@@ -137,6 +147,8 @@ public class MPOROptions {
         pPorConcat,
         pPorBitVector,
         pPorBitVectorEncoding,
+        // always prune empty, disabling is only for debugging, not for release
+        true,
         pScalarPc,
         pSequentializationErrors,
         pShortVariables,

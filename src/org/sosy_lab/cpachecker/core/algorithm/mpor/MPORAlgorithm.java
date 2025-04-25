@@ -61,6 +61,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the"
+              + " number of statements")
+  private boolean consecutiveLabels = true;
+
+  @Option(
+      secure = true,
+      description =
           "include original function declarations from input file? true -> bigger file size")
   private boolean inputFunctionDeclarations = false;
 
@@ -111,6 +118,11 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
   // using optional for @Options is not allowed, unfortunately...
   private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
+
+  @Option(
+      secure = true,
+      description = "prune empty statements (with only pc writes) from the sequentialization?")
+  private boolean pruneEmpty = true;
 
   @Option(
       secure = true,
@@ -234,6 +246,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     options =
         new MPOROptions(
             comments,
+            consecutiveLabels,
             inputFunctionDeclarations,
             inputTypeDeclarations,
             license,
@@ -243,6 +256,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             porConcat,
             porBitVector,
             porBitVectorEncoding,
+            pruneEmpty,
             scalarPc,
             sequentializationErrors,
             shortVariables,

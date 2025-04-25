@@ -258,6 +258,10 @@ analysis.algorithm.MPOR = false
 # bigger file size
 analysis.algorithm.MPOR.comments = false
 
+# make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
+# the number of statements
+analysis.algorithm.MPOR.consecutiveLabels = true
+
 # include original function declarations from input file? true -> bigger file
 # size
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
@@ -293,6 +297,9 @@ analysis.algorithm.MPOR.porBitVectorEncoding = NONE
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.porConcat = true
+
+# prune empty statements (with only pc writes) from the sequentialization?
+analysis.algorithm.MPOR.pruneEmpty = true
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays? may slow down or improve verification depending on the verifier and

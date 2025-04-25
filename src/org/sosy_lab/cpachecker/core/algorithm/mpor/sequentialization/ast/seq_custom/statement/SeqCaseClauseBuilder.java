@@ -64,9 +64,9 @@ public class SeqCaseClauseBuilder {
     // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
         initCaseClauses(pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
-    // prune case clauses so that no case clause has only pc writes
+    // if enabled, prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
-        SeqPruner.pruneCaseClauses(initialCaseClauses);
+        pOptions.pruneEmpty ? SeqPruner.pruneCaseClauses(initialCaseClauses) : initialCaseClauses;
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
         PartialOrderReducer.reduce(
@@ -77,13 +77,13 @@ public class SeqCaseClauseBuilder {
             pBinaryExpressionBuilder);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
-        SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases);
+        pOptions.consecutiveLabels
+            ? SeqCaseClauseUtil.cloneWithConsecutiveLabels(reducedCases)
+            : reducedCases;
     // if enabled, ensure that all label and target pc are valid
-    if (pOptions.validatePc) {
-      return SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger);
-    } else {
-      return consecutiveLabelCases;
-    }
+    return pOptions.validatePc
+        ? SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger)
+        : consecutiveLabelCases;
   }
 
   /** Maps threads to the case clauses they potentially execute. */
