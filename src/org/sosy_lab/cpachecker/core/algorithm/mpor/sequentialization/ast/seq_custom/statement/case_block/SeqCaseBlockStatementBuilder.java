@@ -70,9 +70,10 @@ public class SeqCaseBlockStatementBuilder {
 
     ImmutableList.Builder<SeqCaseBlockStatement> rStatements = ImmutableList.builder();
 
-    int leavingEdgesSize = pThreadNode.leavingEdges().size();
-    for (int i = 0; i < leavingEdgesSize; i++) {
-      ThreadEdge threadEdge = pThreadNode.leavingEdges().get(i);
+    ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
+    int numLeavingEdges = leavingEdges.size();
+    for (int i = 0; i < numLeavingEdges; i++) {
+      ThreadEdge threadEdge = leavingEdges.get(i);
 
       // handle const CPAchecker_TMP first because it requires successor nodes and edges
       if (MPORUtil.isConstCpaCheckerTmpDeclaration(threadEdge.cfaEdge)) {
@@ -89,7 +90,7 @@ public class SeqCaseBlockStatementBuilder {
                   pThread,
                   pAllThreads,
                   i == 0,
-                  i == leavingEdgesSize - 1,
+                  i == numLeavingEdges - 1,
                   threadEdge,
                   substitute,
                   pGhostVariables);
@@ -109,11 +110,11 @@ public class SeqCaseBlockStatementBuilder {
     // ensure there are two single successors that are both statement edges
     ThreadNode successorA = pThreadEdge.getSuccessor();
     assert successorA.leavingEdges().size() == 1;
-    ThreadEdge statementA = successorA.leavingEdges().iterator().next();
+    ThreadEdge statementA = successorA.firstLeavingEdge();
     assert statementA.cfaEdge instanceof CStatementEdge;
     ThreadNode successorB = statementA.getSuccessor();
     assert successorB.leavingEdges().size() == 1;
-    ThreadEdge statementB = successorB.leavingEdges().iterator().next();
+    ThreadEdge statementB = successorB.firstLeavingEdge();
     assert statementB.cfaEdge instanceof CStatementEdge;
 
     // add successors to visited edges / nodes
@@ -157,7 +158,7 @@ public class SeqCaseBlockStatementBuilder {
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
-    if (yieldsBlankCaseBlock(pThread, pSubstituteEdge, successor)) {
+    if (yieldsNoStatement(pThread, pSubstituteEdge, successor)) {
       return buildBlankStatement(pcLeftHandSide, targetPc);
 
     } else {
@@ -514,10 +515,10 @@ public class SeqCaseBlockStatementBuilder {
   }
 
   /**
-   * Returns true if the resulting case block has only pc adjustments, i.e. no code changing the
+   * Returns true if the resulting statement has only pc adjustments, i.e. no code changing the
    * input program state.
    */
-  private static boolean yieldsBlankCaseBlock(
+  private static boolean yieldsNoStatement(
       MPORThread pThread, SubstituteEdge pSubstituteEdge, CFANode pSuccessor) {
 
     // exiting start_routine of thread -> blank, just set pc[i] = -1;

@@ -30,7 +30,8 @@ public class MPORThread {
 
   public final Optional<ThreadEdge> startRoutineCall;
 
-  // TODO also need a bool flag is_retrieved, because it can only be retrieved once (multiple joins)
+  // TODO also need a bool flag is_retrieved, because it can only be retrieved once
+  //  (multiple joins to the same thread are undefined behavior)
   /**
    * The intermediate variable storing the {@code retval} given to {@code pthread_exit}, if called
    * anywhere in this thread.

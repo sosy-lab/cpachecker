@@ -160,6 +160,9 @@ public class ThreadCFA {
     return Optional.empty();
   }
 
+  /**
+   * Returns all {@link ThreadNode}s associated with {@code pCfaNode}, one for each call context.
+   */
   private ImmutableSet<ThreadNode> getThreadNodesByCfaNode(CFANode pCfaNode) {
     return threadNodes.stream()
         .filter(threadNode -> threadNode.cfaNode.equals(pCfaNode))

@@ -115,7 +115,38 @@ public class SeqCaseClauseBuilder {
       rCaseClauses.put(thread, caseClauses.build());
     }
     // TODO add optional pc validation here
-    return rCaseClauses.buildOrThrow();
+    return reorderCaseClauses(rCaseClauses.buildOrThrow());
+  }
+
+  /**
+   * Reorders the given {@link SeqCaseClause}s so that the first non-blank is at the start at label
+   * {@code 0}. This may not be given by default if a start_routine starts with a function call.
+   */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reorderCaseClauses(
+      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rReordered =
+        ImmutableMap.builder();
+    for (var entry : pCaseClauses.entrySet()) {
+      ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
+      ImmutableMap<Integer, SeqCaseClause> labelCaseMap =
+          SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
+      SeqCaseClause first = caseClauses.get(0);
+      SeqCaseClause nonBlank = SeqPruner.findNonBlankCaseClause(first, labelCaseMap);
+      if (SeqCaseClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelCaseMap)) {
+        rReordered.put(entry); // put case clauses as they were
+      } else {
+        ImmutableList.Builder<SeqCaseClause> reordered = ImmutableList.builder();
+        // add nonBlank, then add all other case clauses as they were
+        reordered.add(nonBlank);
+        reordered.addAll(
+            caseClauses.stream()
+                .filter(c -> !c.equals(nonBlank))
+                .collect(ImmutableList.toImmutableList()));
+        rReordered.put(entry.getKey(), reordered.build());
+      }
+    }
+    return rReordered.buildOrThrow();
   }
 
   /** Builds the case clauses for the single thread {@code pThread}. */
@@ -161,14 +192,14 @@ public class SeqCaseClauseBuilder {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
 
-    List<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
+    ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {
       // no edges -> exit node of thread reached -> no case because no edges with code
       assert pThreadNode.pc == Sequentialization.EXIT_PC;
       return Optional.empty();
 
     } else if (pThreadNode.cfaNode instanceof FunctionExitNode) {
-      int targetPc = pThreadNode.leavingEdges().get(0).getSuccessor().pc;
+      int targetPc = pThreadNode.firstLeavingEdge().getSuccessor().pc;
       statements.add(SeqCaseBlockStatementBuilder.buildBlankStatement(pcLeftHandSide, targetPc));
 
     } else {

@@ -201,6 +201,24 @@ public class SeqPruner {
   }
 
   /**
+   * Returns the first non-prunable {@link SeqCaseClause} in the {@code case} path, starting in
+   * pInitial. Does not make additional prunable assertions.
+   */
+  public static SeqCaseClause findNonBlankCaseClause(
+      SeqCaseClause pCurrent, final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
+
+    if (pCurrent.onlyWritesPc()) {
+      SeqCaseBlockStatement singleStatement = pCurrent.block.statements.get(0);
+      int targetPc = singleStatement.getTargetPc().orElseThrow();
+      if (targetPc != Sequentialization.EXIT_PC) {
+        SeqCaseClause nextCaseClause = requireNonNull(pLabelValueMap.get(targetPc));
+        return findNonBlankCaseClause(nextCaseClause, pLabelValueMap);
+      }
+    }
+    return pCurrent;
+  }
+
+  /**
    * Returns {@code true} if {@code pCaseClause} has exactly 1 {@link SeqBlankStatement} and a
    * target {@code pc} and throws a {@link IllegalArgumentException} otherwise.
    */

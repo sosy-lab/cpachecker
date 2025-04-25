@@ -201,6 +201,30 @@ public class SequentializationTest {
   }
 
   @Test
+  public void testCompileSeq_read_write_lock_2() throws Exception {
+    // this program contains start_routines that start directly with a function call.
+    // this forces us to reorder the thread statements, because function statements are usually
+    // at the bottom of a thread simulation.
+    Path path = Path.of("./test/programs/mpor_seq/seq_compilable/read_write_lock-2.c");
+    assertThat(Files.exists(path)).isTrue();
+    MPOROptions options =
+        MPOROptions.testInstance(
+            true,
+            true,
+            true,
+            true,
+            true,
+            BitVectorEncoding.BINARY,
+            true,
+            false,
+            false,
+            true,
+            false,
+            false);
+    testCompile(path, options);
+  }
+
+  @Test
   public void testCompileSeq_simple_two() throws Exception {
     // this program contains no return statements for the created threads
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");

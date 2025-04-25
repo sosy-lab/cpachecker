@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,8 +46,13 @@ public class ThreadNode {
     leavingEdges = pLeavingEdges;
   }
 
-  public List<ThreadEdge> leavingEdges() {
-    return leavingEdges;
+  public ThreadEdge firstLeavingEdge() {
+    checkArgument(!leavingEdges.isEmpty(), "cannot get first leaving edge, list is empty");
+    return leavingEdges.get(0);
+  }
+
+  public ImmutableList<ThreadEdge> leavingEdges() {
+    return ImmutableList.copyOf(leavingEdges);
   }
 
   protected void pruneLeavingEdge(ThreadEdge pThreadEdge) {

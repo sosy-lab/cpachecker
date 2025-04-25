@@ -291,4 +291,26 @@ public class SeqCaseClauseUtil {
     }
     return false;
   }
+
+  // Path ==========================================================================================
+
+  /** Returns {@code true} if the path from A to B has consecutive labels. */
+  public static boolean isConsecutiveLabelPath(
+      SeqCaseClause pCurrent,
+      final SeqCaseClause pTarget,
+      final ImmutableMap<Integer, SeqCaseClause> pLabelCaseMap) {
+
+    if (pCurrent.equals(pTarget)) {
+      return true;
+    } else {
+      SeqCaseBlockStatement firstStatement = pCurrent.block.getFirstStatement();
+      SeqCaseClause next = pLabelCaseMap.get(firstStatement.getTargetPc().orElseThrow());
+      assert next != null : "could not find target case clause";
+      if (pCurrent.label.value + 1 == next.label.value) {
+        return isConsecutiveLabelPath(next, pTarget, pLabelCaseMap);
+      } else {
+        return false;
+      }
+    }
+  }
 }
