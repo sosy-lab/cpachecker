@@ -15,17 +15,22 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /** A class to write the sequentialized program to a file. */
 public class SeqWriter {
+
+  private static final int YML_TAB_SIZE = 2;
 
   public enum FileExtension {
     I(".i"),
@@ -157,8 +162,8 @@ public class SeqWriter {
   private void handleMetadata(String pMetadataPath) {
     if (options.outputMetadata) {
       File seqMetadataFile = new File(pMetadataPath);
-      try (Writer writer =
-          Files.newBufferedWriter(seqMetadataFile.toPath(), StandardCharsets.UTF_8)) {
+      Path path = seqMetadataFile.toPath();
+      try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
         writer.write(createMetadata());
       } catch (IllegalAccessException e) {
         logger.log(Level.SEVERE, OutputError.OPTIONS_ILLEGAL_ACCESS.message, e);
@@ -171,20 +176,42 @@ public class SeqWriter {
 
   private String createMetadata() throws IllegalAccessException {
     StringBuilder rMetadata = new StringBuilder();
-    rMetadata.append("input_files:\n");
-    for (Path inputFilePath : inputFilePaths) {
-      rMetadata.append(createNameAndPathEntry(inputFilePath));
+    rMetadata.append("metadata:\n");
+    rMetadata.append(createCPAcheckerVersionEntry());
+    rMetadata.append(createCreationTimeEntry());
+    rMetadata.append(buildTab(1)).append("input_files:\n");
+    for (Path path : inputFilePaths) {
+      rMetadata.append(createInputFileNameEntry(path.getFileName()));
+      rMetadata.append(createInputFilePathEntry(path));
     }
     rMetadata.append("\n");
     rMetadata.append("algorithm_options:\n");
     for (Field field : options.getClass().getDeclaredFields()) {
-      rMetadata.append("  ").append(field.getName()).append(": ");
+      rMetadata.append(buildTab(1)).append(field.getName()).append(": ");
       rMetadata.append(field.get(options)).append("\n");
     }
     return rMetadata.toString();
   }
 
-  private String createNameAndPathEntry(Path pPath) {
-    return "  - name: " + pPath.getFileName() + "\n" + "    path: " + pPath + "\n";
+  private String createCPAcheckerVersionEntry() {
+    return buildTab(1) + "CPAchecker_version: " + CPAchecker.getPlainVersion() + "\n";
+  }
+
+  private String createCreationTimeEntry() {
+    Instant now = Instant.now(); // retrieve current UTC time
+    String date = DateTimeFormatter.ISO_INSTANT.format(now); // format in ISO 8601
+    return buildTab(1) + "UTC_creation_time: " + date + "\n";
+  }
+
+  private String createInputFileNameEntry(Path pFileName) {
+    return buildTab(1) + "- name: " + pFileName + "\n";
+  }
+
+  private String createInputFilePathEntry(Path pPath) {
+    return buildTab(2) + "path: " + pPath + "\n";
+  }
+
+  private static String buildTab(int pTabs) {
+    return " ".repeat(YML_TAB_SIZE).repeat(Math.max(0, pTabs));
   }
 }
