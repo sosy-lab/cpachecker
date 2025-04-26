@@ -62,6 +62,22 @@ public class ConstraintsStatistics implements Statistics {
 
   public final StatCounter constraintsRemovedInMerge =
       new StatCounter("Number of constraints removed in merge");
+  public final StatCounter distinctFreshProversUsed =
+      new StatCounter("Number of times a new prover was used for a SAT check");
+  public final StatCounter persistentProverUsed =
+      new StatCounter("Number of times the persistent prover was used for a SAT check");
+  public final StatCounter persistentProverUsedIncrementallyFormulasPopdAndRepushed =
+      new StatCounter(
+          "Number of times the persistent provers stack removed constraints and re-pushed them to"
+              + " the stack because a constraint below had to be removed");
+  public final StatCounter persistentProverUsedIncrementallyPushedWithoutPop =
+      new StatCounter(
+          "Number of times the persistent provers stack pushed new constraints to the top of the"
+              + " stack without removing any constraints");
+  public final StatCounter persistentProverUsedIncrementallyFormulasPopdAndNotRepushed =
+      new StatCounter(
+          "Number of times the persistent provers stack removed constraints from the top of the"
+              + " stack and then pushed new constraints (that were not removed in the pop)");
   public StatDouble reuseRatio =
       new StatDouble(
           StatKind.AVG,
@@ -120,7 +136,13 @@ public class ConstraintsStatistics implements Statistics {
         .spacer() // Precision adjustment
         .putIfUpdatedAtLeastOnce(constraintNumberAfterAdj)
         .putIfUpdatedAtLeastOnce(constraintNumberBeforeAdj)
-        .putIfUpdatedAtLeastOnce(adjustmentTime);
+        .putIfUpdatedAtLeastOnce(adjustmentTime)
+        .put(constraintsRemovedInMerge)
+        .put(distinctFreshProversUsed)
+        .put(persistentProverUsed)
+        .put(persistentProverUsedIncrementallyFormulasPopdAndRepushed)
+        .put(persistentProverUsedIncrementallyFormulasPopdAndNotRepushed)
+        .put(persistentProverUsedIncrementallyPushedWithoutPop);
   }
 
   @Nullable
