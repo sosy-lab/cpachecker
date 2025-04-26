@@ -96,21 +96,26 @@ public class StatDouble extends AbstractStatValue implements DoubleConsumer {
   @Override
   public String toString() {
     return switch (getMainStatisticKind()) {
-      case SUM -> String.format(
-          "%8f (count: %d, min: %f, max: %f, avg: %.2f)",
-          getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
-      case AVG -> String.format(
-          "%.2f (sum: %f, count: %d, min: %f, max: %f)",
-          getAverage(), getValueSum(), getValueCount(), getMinValue(), getMaxValue());
-      case COUNT -> String.format(
-          "%8d (sum: %f, min: %f, max: %f, avg: %.2f)",
-          getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
-      case MIN -> String.format(
-          "%8f (sum: %f, count: %d, max: %f, avg: %.2f)",
-          getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
-      case MAX -> String.format(
-          "%8f (sum: %f, count: %d, min: %f, avg: %.2f)",
-          getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
+      case SUM ->
+          String.format(
+              "%8f (count: %d, min: %f, max: %f, avg: %.2f)",
+              getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
+      case AVG ->
+          String.format(
+              "%.2f (sum: %f, count: %d, min: %f, max: %f)",
+              getAverage(), getValueSum(), getValueCount(), getMinValue(), getMaxValue());
+      case COUNT ->
+          String.format(
+              "%8d (sum: %f, min: %f, max: %f, avg: %.2f)",
+              getValueCount(), getValueSum(), getMinValue(), getMaxValue(), getAverage());
+      case MIN ->
+          String.format(
+              "%8f (sum: %f, count: %d, max: %f, avg: %.2f)",
+              getMinValue(), getValueSum(), getValueCount(), getMaxValue(), getAverage());
+      case MAX ->
+          String.format(
+              "%8f (sum: %f, count: %d, min: %f, avg: %.2f)",
+              getMaxValue(), getValueSum(), getValueCount(), getMinValue(), getAverage());
     };
   }
 }
