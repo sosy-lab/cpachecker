@@ -30,7 +30,10 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 public final class ConstraintsState extends ForwardingSet<Constraint>
     implements AbstractState, Graphable {
 
-  /** The constraints of this state */
+  /**
+   * The constraints of this state. This doubles as prover stack and should always be ordered such
+   * that the most recent constraint is the last in its order, while the oldest is the first etc.
+   */
   private final ImmutableSet<Constraint> constraints;
 
   /**
