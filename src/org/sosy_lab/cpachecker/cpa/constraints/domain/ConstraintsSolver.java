@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -100,12 +101,26 @@ public class ConstraintsSolver {
       name = "cache")
   private boolean doCaching = true;
 
-  @Option(secure = true, description = "Resolve definite assignments", name = "resolveDefinites")
+  @Option(
+      secure = true,
+      description =
+          "Resolve definite assignments. Note: Currently not working properly. Might result in"
+              + " inefficient SMT solver usage with freshProverForEachSATCheck = false.",
+      name = "resolveDefinites")
   private boolean resolveDefinites = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Whether to create a new, fresh prover for each SAT check with an SMT solver or, if"
+              + " false, try to reuse the prover stack as far as possible (may be helpful when"
+              + " formulas are built on top of each other often).",
+      name = "freshProverForEachSATCheck")
+  private boolean freshProverForEachSATCheck = false;
 
   private ConstraintsCache cache;
   private Solver solver;
-  private ProverEnvironment prover;
+  private ProverEnvironment persistentProver;
   private FormulaManagerView formulaManager;
   private BooleanFormulaManagerView booleanFormulaManager;
 
@@ -119,7 +134,7 @@ public class ConstraintsSolver {
 
   private ConstraintsStatistics stats;
 
-  private Deque<Constraint> currentConstraintsOnProver = new ArrayDeque<>();
+  private Deque<BooleanFormula> currentConstraintsOnProver = new ArrayDeque<>();
 
   public ConstraintsSolver(
       final Configuration pConfig,
@@ -137,7 +152,7 @@ public class ConstraintsSolver {
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
     stats = pStats;
-    prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    persistentProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
 
     if (doCaching) {
       cache = new MatchingConstraintsCache();
@@ -153,28 +168,47 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns whether the given constraint is unsatisfiable.
+   * Returns whether the given constraint is unsatisfiable. A state without constraints (that is, an
+   * empty state), is always satisfiable. Will try to reuse the existing provers stack as far as
+   * possible if useFreshDistinctProver=false.
    *
    * @param pConstraintToCheck the constraint to check
    * @param pFunctionName the name of this constraints function scope
+   * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
+   *     the method is finished. If false, will reuse the exising prover and tries to reuse the
+   *     current solver stack as far as possible. This might also lose cached information in the
+   *     solver (making it slower) if the old constraints are not a subset of the new constraints.
    * @return <code>true</code> if this constraint is unsatisfiable, <code>false</code> otherwise
    */
-  public Satisfiability checkUnsat(Constraint pConstraintToCheck, String pFunctionName)
+  public Satisfiability checkUnsat(
+      Constraint pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
     ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraintToCheck));
-    return checkUnsat(s, pFunctionName).satisfiability();
+    return checkUnsat(s, pFunctionName, forceFreshDistinctProver).satisfiability();
   }
 
   /**
    * Returns whether this state is unsatisfiable. A state without constraints (that is, an empty
-   * state), is always satisfiable.
+   * state), is always satisfiable. Will try to reuse the existing provers stack as far as possible
+   * if useFreshDistinctProver=false.
    *
+   * @param pConstraintToCheck the constraint to check
+   * @param pFunctionName the name of this constraints function scope
+   * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
+   *     the method is finished. If false, will reuse the exising prover and tries to reuse the
+   *     current solver stack as far as possible. This might also lose cached information in the
+   *     solver (making it slower) if the old constraints are not a subset of the new constraints.
    * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
    */
-  public SolverResult checkUnsat(ConstraintsState pConstraints, String pFunctionName)
+  public SolverResult checkUnsat(
+      ConstraintsState pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    if (pConstraints.isEmpty()) {
+    if (freshProverForEachSATCheck) {
+      forceFreshDistinctProver = true;
+    }
+
+    if (pConstraintToCheck.isEmpty()) {
       return new SolverResult(
           ImmutableSet.of(),
           Satisfiability.SAT,
@@ -182,15 +216,17 @@ public class ConstraintsSolver {
           Optional.of(ImmutableList.of()));
     }
 
+    ProverEnvironment prover = persistentProver;
+
     try {
       stats.timeForSolving.start();
 
       boolean unsat;
-      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraints);
+      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintToCheck);
 
-      Map<Constraint, BooleanFormula> constraintsAsFormulas =
+      Collection<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
-      CacheResult res = cache.getCachedResult(constraintsAsFormulas.values());
+      CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
       ImmutableList<ValueAssignment> satisfyingModel = null;
       ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
@@ -204,13 +240,22 @@ public class ConstraintsSolver {
       } else {
         try {
           stats.timeForProverPreparation.start();
-          prepareProverForCheck(constraintsAsFormulas);
+          if (forceFreshDistinctProver) {
+            stats.distinctFreshProversUsed.inc();
+            prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+            BooleanFormula definitesAndConstraints =
+                combineWithDefinites(constraintsAsFormulas, pConstraintToCheck);
+            prover.push(definitesAndConstraints);
+
+          } else {
+            stats.persistentProverUsed.inc();
+            // def assignments are automatically applied by the persistentProver
+            preparePersistentProverForCheck(constraintsAsFormulas);
+          }
         } finally {
           stats.timeForProverPreparation.stop();
         }
 
-        // TODO: make def assignments work
-        //prover.push(getDefAssignmentsFormula(pConstraints));
         try {
           stats.timeForSatCheck.start();
           unsat = prover.isUnsat();
@@ -225,23 +270,24 @@ public class ConstraintsSolver {
           // cheaper than performing another complete SAT check when the assignment is really
           // requested
           if (resolveDefinites) {
-            definiteAssignmentsInModel = resolveDefiniteAssignments(pConstraints, satisfyingModel);
+            definiteAssignmentsInModel =
+                resolveDefiniteAssignments(pConstraintToCheck, satisfyingModel, prover);
+            assert satisfyingModel.containsAll(definiteAssignmentsInModel)
+                : "Model does not imply definites: "
+                    + satisfyingModel
+                    + " !=> "
+                    + definiteAssignmentsInModel;
           }
-
-          assert satisfyingModel.containsAll(definiteAssignmentsInModel)
-              : "Model does not imply definites: "
-                  + satisfyingModel
-                  + " !=> "
-                  + definiteAssignmentsInModel;
 
         } else {
           cache.addUnsat(constraintsAsFormulas);
         }
       }
 
+      // TODO:
       // pop definite assignments. this can only happen after the model produced by the unsat-check
       // is not used anymore
-      //prover.pop();
+      // prover.pop();
 
       return new SolverResult(
           relevantConstraints,
@@ -251,44 +297,88 @@ public class ConstraintsSolver {
 
     } finally {
       stats.timeForSolving.stop();
+      if (forceFreshDistinctProver) {
+        checkState(prover != persistentProver);
+        prover.close();
+      }
     }
   }
 
-  private void prepareProverForCheck(Map<Constraint, BooleanFormula> constraintsAsFormulas)
+  private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
       throws InterruptedException {
-    Set<Constraint> relevantConstraints = new HashSet<>(constraintsAsFormulas.keySet());
-    int kept = 0;
-    int removed = 0;
-    // this iterator goes from the bottom of the stack to the top
-    Iterator<Constraint> it = currentConstraintsOnProver.descendingIterator();
-    while (it.hasNext()) {
-      Constraint constraintOnStack = it.next();
-      if (relevantConstraints.contains(constraintOnStack)) {
-        relevantConstraints.remove(constraintOnStack);
-        kept++;
+    int totalKept = 0;
+    int totalRemoved = 0;
+    Set<BooleanFormula> retainedFormulas = new HashSet<>();
+    Set<BooleanFormula> formulasToRemove = new HashSet<>();
+
+    // This iterator goes from the top of the stack to the bottom
+    Iterator<BooleanFormula> currentStack = currentConstraintsOnProver.descendingIterator();
+    // Descending iterator through current stack
+    //   If stackFormula is not in constraintsToCheck and retained empty, remove from top
+    //   eif stackformula is not in constraintsToCheck and retained not empty,
+    //     remember all retained from stack as we need to pop them and set retained == empty
+    //   eIf stackFormula is in constraintsToCheck, don't remove from stack,
+    //     add to retained
+    // End iterator
+    // Remove remembered retained levels that should be popped from stack
+    // At the end, add constraints missing to the stack in order
+    while (currentStack.hasNext()) {
+      BooleanFormula constraintOnStack = currentStack.next();
+
+      if (constraintsToCheck.contains(constraintOnStack)) {
+        totalKept++;
+        retainedFormulas.add(constraintOnStack);
       } else {
-        // continue with popping the remaining elements from the stack, including the current
-        // element
-        removed++;
-        it.remove();
-        prover.pop();
-        break;
+        totalRemoved++;
+        currentStack.remove();
+        // Potentially problematic on level 1 for some solvers!
+        persistentProver.pop();
+        if (!retainedFormulas.isEmpty()) {
+          // We need to remove levels that we already iterated through, they are found in
+          // retainedFormulas
+          formulasToRemove.addAll(retainedFormulas);
+          for (int i = 0; i < retainedFormulas.size(); i++) {
+            persistentProver.pop();
+            totalRemoved++;
+          }
+          retainedFormulas = new HashSet<>();
+        }
       }
     }
-    while (it.hasNext()) {
-      it.next();
-      it.remove();
-      prover.pop();
-      removed++;
+
+    if (totalKept + totalRemoved > 0) {
+      stats.reuseRatio.setNextValue((double) totalKept / (totalKept + totalRemoved));
     }
-    if (kept + removed > 0) {
-      stats.reuseRatio.setNextValue((double) kept / (kept + removed));
+
+    if (totalRemoved == 0) {
+      // We know that we had no cache hit, so it is a constraint combination that we know -> there
+      // is new constraints
+      stats.persistentProverUsedIncrementallyPushedWithoutPop.inc();
     }
-    for (Constraint c : relevantConstraints) {
-      BooleanFormula f = constraintsAsFormulas.get(c);
-      currentConstraintsOnProver.push(c);
-      prover.push(f);
+
+    if (formulasToRemove.isEmpty()) {
+      if (totalRemoved != 0) {
+        stats.persistentProverUsedIncrementallyFormulasPopdAndNotRepushed.inc();
+      }
+    } else {
+      stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
+      currentConstraintsOnProver.removeAll(formulasToRemove);
     }
+
+    for (BooleanFormula f : constraintsToCheck) {
+      if (!currentConstraintsOnProver.contains(f)) {
+        currentConstraintsOnProver.push(f);
+        persistentProver.push(f);
+      }
+    }
+  }
+
+  private BooleanFormula combineWithDefinites(
+      Collection<BooleanFormula> pConstraintsAsFormulas, ConstraintsState pConstraints) {
+
+    BooleanFormula singleConstraintFormula = booleanFormulaManager.and(pConstraintsAsFormulas);
+    BooleanFormula definites = getDefAssignmentsFormula(pConstraints);
+    return booleanFormulaManager.and(definites, singleConstraintFormula);
   }
 
   private BooleanFormula getDefAssignmentsFormula(ConstraintsState pConstraints) {
@@ -341,20 +431,13 @@ public class ConstraintsSolver {
     return relevantConstraints.build();
   }
 
-  private void closeProver() {
-    if (prover != null) {
-      prover.close();
-      prover = null;
-    }
-  }
-
   private ImmutableCollection<ValueAssignment> resolveDefiniteAssignments(
-      ConstraintsState pConstraints, List<ValueAssignment> pModel)
+      ConstraintsState pConstraints, List<ValueAssignment> pModel, ProverEnvironment prover)
       throws InterruptedException, SolverException {
     try {
       stats.timeForDefinitesComputation.start();
 
-      return computeDefiniteAssignment(pConstraints, pModel);
+      return computeDefiniteAssignment(pConstraints, pModel, prover);
 
     } finally {
       stats.timeForDefinitesComputation.stop();
@@ -362,7 +445,7 @@ public class ConstraintsSolver {
   }
 
   private ImmutableCollection<ValueAssignment> computeDefiniteAssignment(
-      ConstraintsState pState, List<ValueAssignment> pModel)
+      ConstraintsState pState, List<ValueAssignment> pModel, ProverEnvironment prover)
       throws SolverException, InterruptedException {
 
     ImmutableCollection<ValueAssignment> existingDefinites = pState.getDefiniteAssignment();
@@ -370,7 +453,7 @@ public class ConstraintsSolver {
 
     for (ValueAssignment val : pModel) {
       if (SymbolicValues.isSymbolicTerm(val.getName())
-          && (existingDefinites.contains(val) || isOnlySatisfyingAssignment(val))) {
+          && (existingDefinites.contains(val) || isOnlySatisfyingAssignment(val, prover))) {
         stats.definiteAssignmentsFound.inc();
         newDefinites.add(val);
       }
@@ -378,7 +461,9 @@ public class ConstraintsSolver {
     return newDefinites.build();
   }
 
-  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
+  // TODO: use distinct prover? Is more inefficient on this check, but this check might make the
+  //  other checks more inefficient for persistent provers.
+  private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, ProverEnvironment prover)
       throws SolverException, InterruptedException {
 
     BooleanFormula prohibitAssignment = formulaManager.makeNot(pTerm.getAssignmentAsFormula());
@@ -404,16 +489,16 @@ public class ConstraintsSolver {
    * @throws UnrecognizedCodeException see {@link FormulaCreator#createFormula(Constraint)}
    * @throws InterruptedException see {@link FormulaCreator#createFormula(Constraint)}
    */
-  private Map<Constraint, BooleanFormula> getFullFormula(
+  private Collection<BooleanFormula> getFullFormula(
       Collection<Constraint> pConstraints, String pFunctionName)
       throws UnrecognizedCodeException, InterruptedException {
 
-    Map<Constraint, BooleanFormula> formulas = new HashMap<>();
+    List<BooleanFormula> formulas = new ArrayList<>(pConstraints.size());
     for (Constraint c : pConstraints) {
       if (!constraintFormulas.containsKey(c)) {
         constraintFormulas.put(c, createConstraintFormulas(c, pFunctionName));
       }
-      formulas.put(c, constraintFormulas.get(c));
+      formulas.add(constraintFormulas.get(c));
     }
 
     return formulas;

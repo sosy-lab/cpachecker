@@ -1266,7 +1266,9 @@ public class SMGCPAExpressionEvaluator {
         currentState = currentState.updateLastCheckedMemoryBounds(constraint);
         SolverResult satResAndModel =
             solver.checkUnsat(
-                currentState.getConstraints().copyWithNew(constraint), stackFrameFunctionName);
+                currentState.getConstraints().copyWithNew(constraint),
+                stackFrameFunctionName,
+                true);
         if (satResAndModel.isSAT()) {
           return SatisfiabilityAndSMGState.of(
               satResAndModel.satisfiability(),
@@ -1403,9 +1405,12 @@ public class SMGCPAExpressionEvaluator {
     try {
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
           solver.checkUnsat(
-              currentState.getConstraints().copyWithNew(newConstraints), stackFrameFunctionName);
+              currentState.getConstraints().copyWithNew(newConstraints),
+              stackFrameFunctionName,
+              true);
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         for (Constraint newConstraint : newConstraints) {
           if (!newConstraint.isTrivial()) {
@@ -1426,12 +1431,14 @@ public class SMGCPAExpressionEvaluator {
     return SatisfiabilityAndSMGState.of(Satisfiability.UNSAT, currentState);
   }
 
+  // Used for finding value assignments
   public SatisfiabilityAndSMGState checkIsUnsatWithCurrentConstraints(SMGState currentState)
       throws SMGSolverException {
     try {
+      // TODO: think about reusing the solver
       SolverResult satResAndModel =
           solver.checkUnsat(
-              currentState.getConstraints(), currentState.getStackFrameTopFunctionName());
+              currentState.getConstraints(), currentState.getStackFrameTopFunctionName(), true);
       if (satResAndModel.satisfiability().equals(Satisfiability.SAT)) {
         return SatisfiabilityAndSMGState.of(
             satResAndModel.satisfiability(),

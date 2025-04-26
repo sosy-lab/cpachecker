@@ -672,7 +672,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         for (SMGState stateWithConstraint : statesWithConstraints) {
           if (getInitialVisitorOptions().isSatCheckStrategyAtAssume()) {
             SolverResult solverResult =
-                solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName);
+                solver.checkUnsat(stateWithConstraint.getConstraints(), callerFunctionName, false);
             if (solverResult.satisfiability().equals(Satisfiability.SAT)) {
               resultStateBuilder.add(
                   stateWithConstraint.replaceModelAndDefAssignmentAndCopy(
@@ -729,7 +729,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       // TODO: is this still correct for more than one returned constraint? I.e. can a trivial
       //   constraint be non-trivial with a second constraint?
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, callerFunctionName).equals(Satisfiability.SAT)) {
+        if (solver.checkUnsat(newConstraint, callerFunctionName, true).equals(Satisfiability.SAT)) {
           // Iff SAT -> we go that path with this state
           // We don't add the constraint as it is trivial
           stateBuilder.add(currentState);

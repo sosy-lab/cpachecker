@@ -172,7 +172,7 @@ public class ConstraintsTransferRelation
       // If a constraint is trivial, its satisfiability is not influenced by other constraints.
       // So to evade more expensive SAT checks, we just check the constraint on its own.
       if (newConstraint.isTrivial()) {
-        if (solver.checkUnsat(newConstraint, functionName) == Satisfiability.UNSAT) {
+        if (solver.checkUnsat(newConstraint, functionName, false) == Satisfiability.UNSAT) {
           return null;
         }
       } else {
@@ -332,7 +332,7 @@ public class ConstraintsTransferRelation
   private static ConstraintsState getIfSatisfiable(
       ConstraintsState pStateToCheck, String functionName, ConstraintsSolver solver)
       throws UnrecognizedCodeException, SolverException, InterruptedException {
-    SolverResult solverResult = solver.checkUnsat(pStateToCheck, functionName);
+    SolverResult solverResult = solver.checkUnsat(pStateToCheck, functionName, false);
     if (solverResult.satisfiability() == Satisfiability.SAT) {
       ConstraintsState newState = pStateToCheck;
       if (solverResult.model().isPresent()) {
