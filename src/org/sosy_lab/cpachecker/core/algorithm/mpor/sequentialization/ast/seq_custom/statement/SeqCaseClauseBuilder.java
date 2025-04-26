@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -152,7 +151,7 @@ public class SeqCaseClauseBuilder {
   /** Builds the case clauses for the single thread {@code pThread}. */
   private static ImmutableList<SeqCaseClause> initCaseClauses(
       MPORThread pThread,
-      ImmutableSet<MPORThread> pAllThreads,
+      ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       GhostVariables pGhostVariables) {
@@ -179,7 +178,7 @@ public class SeqCaseClauseBuilder {
    */
   private static Optional<SeqCaseClause> buildCaseClauseFromThreadNode(
       final MPORThread pThread,
-      final ImmutableSet<MPORThread> pAllThreads,
+      final ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,

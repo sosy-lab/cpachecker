@@ -61,7 +61,7 @@ public class SeqCaseBlockStatementBuilder {
 
   public static ImmutableList<SeqCaseBlockStatement> buildStatementsFromThreadNode(
       MPORThread pThread,
-      ImmutableSet<MPORThread> pAllThreads,
+      ImmutableList<MPORThread> pAllThreads,
       ThreadNode pThreadNode,
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
@@ -146,7 +146,7 @@ public class SeqCaseBlockStatementBuilder {
 
   private static SeqCaseBlockStatement buildCaseBlockStatementFromEdge(
       final MPORThread pThread,
-      final ImmutableSet<MPORThread> pAllThreads,
+      final ImmutableList<MPORThread> pAllThreads,
       boolean pFirstEdge,
       boolean pLastEdge,
       ThreadEdge pThreadEdge,
@@ -285,7 +285,7 @@ public class SeqCaseBlockStatementBuilder {
 
   private static SeqCaseBlockStatement buildStatementFromPthreadFunction(
       MPORThread pThread,
-      ImmutableSet<MPORThread> pAllThreads,
+      ImmutableList<MPORThread> pAllThreads,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
@@ -336,7 +336,7 @@ public class SeqCaseBlockStatementBuilder {
 
   private static SeqThreadCreationStatement buildThreadCreationStatement(
       MPORThread pThread,
-      ImmutableSet<MPORThread> pAllThreads,
+      ImmutableList<MPORThread> pAllThreads,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,

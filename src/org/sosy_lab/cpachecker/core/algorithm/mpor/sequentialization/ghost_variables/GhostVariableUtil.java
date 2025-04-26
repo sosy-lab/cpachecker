@@ -63,7 +63,7 @@ public class GhostVariableUtil {
 
   public static Optional<BitVectorVariables> buildBitVectorVariables(
       MPOROptions pOptions,
-      ImmutableSet<MPORThread> pThreads,
+      ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     if (pOptions.porBitVector) {
@@ -97,7 +97,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, CIdExpression> buildBitVectorVariables(
-      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, CIdExpression> rBitVectors = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {
@@ -114,7 +114,7 @@ public class GhostVariableUtil {
   private static ImmutableMap<CVariableDeclaration, ScalarBitVectorAccessVariables>
       buildScalarBitVectorAccessVariables(
           MPOROptions pOptions,
-          ImmutableSet<MPORThread> pThreads,
+          ImmutableList<MPORThread> pThreads,
           ImmutableList<CVariableDeclaration> pAllGlobalVariables) {
 
     ImmutableMap.Builder<CVariableDeclaration, ScalarBitVectorAccessVariables> rAccessVariables =
@@ -131,7 +131,7 @@ public class GhostVariableUtil {
 
   private static ImmutableMap<MPORThread, CIdExpression> buildAccessVariables(
       MPOROptions pOptions,
-      ImmutableSet<MPORThread> pThreads,
+      ImmutableList<MPORThread> pThreads,
       CVariableDeclaration pVariableDeclaration) {
 
     ImmutableMap.Builder<MPORThread, CIdExpression> rAccessVariables = ImmutableMap.builder();
@@ -156,7 +156,7 @@ public class GhostVariableUtil {
 
   public static ThreadSimulationVariables buildThreadSimulationVariables(
       MPOROptions pOptions,
-      ImmutableSet<MPORThread> pThreads,
+      ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     return new ThreadSimulationVariables(
@@ -169,7 +169,7 @@ public class GhostVariableUtil {
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
       MPOROptions pOptions,
-      ImmutableSet<MPORThread> pThreads,
+      ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
@@ -200,7 +200,7 @@ public class GhostVariableUtil {
   private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       buildThreadAwaitsMutexVariables(
           MPOROptions pOptions,
-          ImmutableSet<MPORThread> pThreads,
+          ImmutableList<MPORThread> pThreads,
           ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
@@ -232,7 +232,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
-      buildThreadJoinsThreadVariables(MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+      buildThreadJoinsThreadVariables(MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> rVars =
         ImmutableMap.builder();
@@ -259,7 +259,7 @@ public class GhostVariableUtil {
   }
 
   private static ImmutableMap<MPORThread, ThreadBeginsAtomic> buildThreadBeginsAtomicVariables(
-      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();
     for (MPORThread thread : pThreads) {

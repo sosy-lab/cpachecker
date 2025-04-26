@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -161,7 +160,7 @@ public class Sequentialization {
     ImmutableList.Builder<LineOfCode> rProgram = ImmutableList.builder();
 
     // first initialize some variables needed for the declarations and definitions
-    ImmutableSet<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
+    ImmutableList<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
     MPORThread mainThread = ThreadUtil.extractMainThread(threads);
     MPORSubstitution mainSubstitution =
         substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();

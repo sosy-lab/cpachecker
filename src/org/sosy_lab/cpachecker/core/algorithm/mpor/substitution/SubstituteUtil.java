@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -22,13 +21,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SubstituteUtil {
 
-  // TODO make list
-  public static ImmutableSet<MPORThread> extractThreads(
+  public static ImmutableList<MPORThread> extractThreads(
       ImmutableList<MPORSubstitution> pSubstitutions) {
 
     return pSubstitutions.stream()
         .map(MPORSubstitution::getThread)
-        .collect(ImmutableSet.toImmutableSet());
+        .collect(ImmutableList.toImmutableList());
   }
 
   public static boolean isExcludedDeclarationEdge(

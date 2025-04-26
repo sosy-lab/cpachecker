@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_co
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -53,7 +52,7 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildOriginalDeclarations(
-      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<LineOfCode> rOriginalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
@@ -174,7 +173,7 @@ public class LineOfCodeUtil {
   }
 
   public static ImmutableList<LineOfCode> buildStartRoutineExitDeclarations(
-      MPOROptions pOptions, ImmutableSet<MPORThread> pThreads) {
+      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<LineOfCode> rStartRoutineExitDeclarations = ImmutableList.builder();
     if (pOptions.comments) {

@@ -73,11 +73,11 @@ public class ThreadUtil {
     return rNonVariableDeclarations.build();
   }
 
-  public static MPORThread extractMainThread(ImmutableSet<MPORThread> pThreads) {
+  public static MPORThread extractMainThread(ImmutableCollection<MPORThread> pThreads) {
     return pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
   }
 
-  public static MPORThread extractThread(ImmutableSet<MPORThread> pThreads, CFAEdge pEdge) {
+  public static MPORThread extractThread(ImmutableCollection<MPORThread> pThreads, CFAEdge pEdge) {
     checkArgument(
         PthreadUtil.callsAnyPthreadFunctionWithPthreadT(pEdge),
         "pEdge must be call to a pthread method with a pthread_t param");
