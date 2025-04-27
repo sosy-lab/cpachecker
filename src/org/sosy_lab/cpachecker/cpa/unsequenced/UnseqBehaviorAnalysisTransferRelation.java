@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -77,6 +79,7 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       if (expr instanceof CBinaryExpression binaryExpr) {
         detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
+        newState.clearTmpMappings();
       }
 
       // TODO: *f() = g()
@@ -89,6 +92,7 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
+
     if (declaration instanceof CVariableDeclaration varDecl) {
       if (varDecl.getInitializer() instanceof CInitializerExpression init) {
         CExpression initExpr = init.getExpression();
@@ -100,6 +104,7 @@ public class UnseqBehaviorAnalysisTransferRelation
             CBinaryExpression
                 binaryExpr) { // to detect unseq behavior like int y = (f() + g()) + x;
           detectConflictsInUnsequencedBinaryExprs(binaryExpr, declarationEdge, newState);
+          newState.clearTmpMappings();
         }
       }
     }
@@ -118,10 +123,19 @@ public class UnseqBehaviorAnalysisTransferRelation
     newState.setFunctionCalled(true);
     newState.setCalledFunctionName(calledFunctionName);
 
-    // TODO: record side effects for parameters, if a function is called
+    Map<CExpression, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
 
-    // TODO: detect unseq behavior in function arguments like f(g(), a() + b())
 
+    for (CExpression argument : arguments) {
+      //unseq behavior inside single argument
+      if (argument
+          instanceof
+          CBinaryExpression
+              binaryExpr) {
+        detectConflictsInUnsequencedBinaryExprs(binaryExpr, callEdge, newState);
+      }
+
+    }
     return newState;
   }
 
@@ -130,6 +144,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
+    newState.setFunctionCalled(false);
+    newState.setCalledFunctionName(null);
 
     // map tmp name and function name
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
@@ -137,12 +153,17 @@ public class UnseqBehaviorAnalysisTransferRelation
       CFunctionCallExpression rhs = assignStmt.getRightHandSide();
 
       if (lhs instanceof CIdExpression tmpVar) {
-        String tmpName = tmpVar.getName();
-
+        String tmpName = tmpVar.getDeclaration().getQualifiedName();
         newState.mapTmpToFunction(tmpName, rhs);
+
+        logger.log(Level.INFO, String.format(
+            "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')",
+            tmpName,
+            rhs.toASTString(),
+            callerFunctionName
+        ));
       }
     }
-
     return newState;
   }
 
@@ -162,13 +183,11 @@ public class UnseqBehaviorAnalysisTransferRelation
           CBinaryExpression
               returnBinExpr) { // to detect unseq behavior like return (f() + g()) + x;
         detectConflictsInUnsequencedBinaryExprs(returnBinExpr, returnEdge, newState);
+        newState.clearTmpMappings();
       }
     }
 
     // TODO: detect unseq behavior like return *f() = g();
-
-    newState.setFunctionCalled(false);
-    newState.setCalledFunctionName(null);
 
     return newState;
   }
@@ -193,13 +212,25 @@ public class UnseqBehaviorAnalysisTransferRelation
   private void recordSideEffectsIfInFunctionCall(
       CExpression expr, CFAEdge edge, AccessType accessType, UnseqBehaviorAnalysisState pState)
       throws UnrecognizedCodeException {
+
     String funName = pState.getCalledFunctionName();
     if (funName != null) {
       ExpressionBehaviorGatherVisitor visitor = new ExpressionBehaviorGatherVisitor(pState, edge, accessType, logger);
       ExpressionAnalysisSummary summary = expr.accept(visitor);
-      pState.addSideEffectsToFunction(funName, summary.getSideEffects());
+      Set<SideEffectInfo> effects = summary.getSideEffects();
+      if (!effects.isEmpty()) {
+        pState.addSideEffectsToFunction(funName, effects);
+
+        logger.log(Level.INFO, String.format(
+            "[CollectSideEffect] Function='%s', Expr='%s', Effects=%s",
+            funName,
+            expr.toASTString(),
+            effects
+        ));
+      }
     }
   }
+
 
   /**
    * Detect conflicts inside unsequenced binary expressions.
@@ -229,7 +260,6 @@ public class UnseqBehaviorAnalysisTransferRelation
         pState.addConflicts(conflicts);
       }
     }
-    pState.clearTmpMappings();
   }
 
   /**
@@ -269,6 +299,27 @@ public class UnseqBehaviorAnalysisTransferRelation
         && (sideEffectInfo1.isWrite() || sideEffectInfo2.isWrite());
   }
 
+  private void detectCrossArgumentConflicts(
+      List<CExpression> arguments,
+      Map<CExpression, Set<SideEffectInfo>> sideEffectsPerSubExpr,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState) {
+
+    for (int i = 0; i < arguments.size(); i++) {
+      for (int j = i + 1; j < arguments.size(); j++) {
+        CExpression arg1 = arguments.get(i);
+        CExpression arg2 = arguments.get(j);
+
+        Set<SideEffectInfo> effects1 = sideEffectsPerSubExpr.getOrDefault(arg1, Set.of());
+        Set<SideEffectInfo> effects2 = sideEffectsPerSubExpr.getOrDefault(arg2, Set.of());
+
+        Set<ConflictPair> conflicts = getUnsequencedConflicts(effects1, effects2, edge, arg1.toASTString(), arg2.toASTString());
+        if (!conflicts.isEmpty()) {
+          pState.addConflicts(conflicts);
+        }
+      }
+    }
+  }
 
 
 }
