@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -39,9 +40,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-
 public class UnseqBehaviorAnalysisTransferRelation
-    extends ForwardingTransferRelation<UnseqBehaviorAnalysisState, UnseqBehaviorAnalysisState, Precision> {
+    extends ForwardingTransferRelation<
+        UnseqBehaviorAnalysisState, UnseqBehaviorAnalysisState, Precision> {
 
   private final LogManager logger;
 
@@ -50,22 +51,26 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   @Override
-  protected UnseqBehaviorAnalysisState handleStatementEdge(CStatementEdge statementEdge, CStatement stat)
-      throws UnrecognizedCodeException {
+  protected UnseqBehaviorAnalysisState handleStatementEdge(
+      CStatementEdge statementEdge, CStatement stat) throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
-    if (stat instanceof CExpressionAssignmentStatement exprAssign) {// to detect unseq behavior like y = (f() + g()) + x
+    if (stat
+        instanceof
+        CExpressionAssignmentStatement
+            exprAssign) { // to detect unseq behavior like y = (f() + g()) + x;
       CExpression lhsExpr = exprAssign.getLeftHandSide();
       CExpression rhsExpr = exprAssign.getRightHandSide();
 
-      //if functioncall true, then record side effects inside it
+      // if functioncall true, then record side effects inside it
       recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState);
       recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState);
 
-      //check if there exists unsequenced behavior and cause conflict
-      if (rhsExpr instanceof CBinaryExpression binaryExpr){
+      // check if there exists unsequenced behavior and cause conflict
+      if (rhsExpr instanceof CBinaryExpression binaryExpr) {
         detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
       }
-    }else if (stat instanceof CExpressionStatement exStat) {// to detect unseq behavior like (f() + g()) + x
+    } else if (stat
+        instanceof CExpressionStatement exStat) { // to detect unseq behavior like (f() + g()) + x;
       CExpression expr = exStat.getExpression();
 
       recordSideEffectsIfInFunctionCall(expr, statementEdge, AccessType.READ, newState);
@@ -74,7 +79,7 @@ public class UnseqBehaviorAnalysisTransferRelation
         detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
       }
 
-      //TODO: *f() = g()
+      // TODO: *f() = g()
     }
 
     return newState;
@@ -87,10 +92,13 @@ public class UnseqBehaviorAnalysisTransferRelation
     if (declaration instanceof CVariableDeclaration varDecl) {
       if (varDecl.getInitializer() instanceof CInitializerExpression init) {
         CExpression initExpr = init.getExpression();
-        //if functioncall true, then record side effects rhs
+        // if functioncall true, then record side effects rhs
         recordSideEffectsIfInFunctionCall(initExpr, declarationEdge, AccessType.READ, newState);
 
-        if (initExpr instanceof CBinaryExpression binaryExpr){ //to detect unseq behavior like int y = (f() + g()) + x
+        if (initExpr
+            instanceof
+            CBinaryExpression
+                binaryExpr) { // to detect unseq behavior like int y = (f() + g()) + x;
           detectConflictsInUnsequencedBinaryExprs(binaryExpr, declarationEdge, newState);
         }
       }
@@ -101,15 +109,18 @@ public class UnseqBehaviorAnalysisTransferRelation
 
   @Override
   protected UnseqBehaviorAnalysisState handleFunctionCallEdge(
-      CFunctionCallEdge callEdge, List<CExpression> arguments, List<CParameterDeclaration> parameters, String calledFunctionName)
+      CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> parameters,
+      String calledFunctionName)
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
     newState.setFunctionCalled(true);
     newState.setCalledFunctionName(calledFunctionName);
 
-    //TODO: record side effects for parameters, if a function is called
+    // TODO: record side effects for parameters, if a function is called
 
-    //TODO: detect unseq behavior in function arguments like f(g(), a() + b())
+    // TODO: detect unseq behavior in function arguments like f(g(), a() + b())
 
     return newState;
   }
@@ -118,30 +129,47 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleFunctionReturnEdge(
       CFunctionReturnEdge cfaEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
+    UnseqBehaviorAnalysisState newState = state;
 
-    //map tmp name and function name
+    // map tmp name and function name
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
       CExpression lhs = assignStmt.getLeftHandSide();
       CFunctionCallExpression rhs = assignStmt.getRightHandSide();
 
       if (lhs instanceof CIdExpression tmpVar) {
         String tmpName = tmpVar.getName();
-        String funName = rhs.getDeclaration().getName();
 
-        state.mapTmpToFunction(tmpName, funName);
+        newState.mapTmpToFunction(tmpName, rhs);
       }
     }
 
-    return state;
+    return newState;
   }
 
   @Override
   protected UnseqBehaviorAnalysisState handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
+
+    Optional<CExpression> expressionOptional = returnEdge.getExpression();
+
+    if (expressionOptional.isPresent()) {
+      CExpression returnExpr = expressionOptional.get();
+      recordSideEffectsIfInFunctionCall(returnExpr, returnEdge, AccessType.READ, newState);
+
+      if (returnExpr
+          instanceof
+          CBinaryExpression
+              returnBinExpr) { // to detect unseq behavior like return (f() + g()) + x;
+        detectConflictsInUnsequencedBinaryExprs(returnBinExpr, returnEdge, newState);
+      }
+    }
+
+    // TODO: detect unseq behavior like return *f() = g();
+
     newState.setFunctionCalled(false);
     newState.setCalledFunctionName(null);
-    // TODO: detect unseq behavior in return statement
+
     return newState;
   }
 
@@ -159,36 +187,44 @@ public class UnseqBehaviorAnalysisTransferRelation
     return state;
   }
 
+  /**
+   * Record side effects inside a function call.
+   */
   private void recordSideEffectsIfInFunctionCall(
-      CExpression expr,
-      CFAEdge edge,
-      AccessType accessType,
-      UnseqBehaviorAnalysisState pstate
-  ) throws UnrecognizedCodeException {
-    String funName = pstate.getCalledFunctionName();
+      CExpression expr, CFAEdge edge, AccessType accessType, UnseqBehaviorAnalysisState pState)
+      throws UnrecognizedCodeException {
+    String funName = pState.getCalledFunctionName();
     if (funName != null) {
-      SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pstate, edge, accessType, logger);
-      Set<SideEffectInfo> effects = expr.accept(visitor);
-      pstate.addSideEffectsToFunction(funName, effects);
+      ExpressionBehaviorGatherVisitor visitor = new ExpressionBehaviorGatherVisitor(pState, edge, accessType, logger);
+      ExpressionAnalysisSummary summary = expr.accept(visitor);
+      pState.addSideEffectsToFunction(funName, summary.getSideEffects());
     }
   }
 
+  /**
+   * Detect conflicts inside unsequenced binary expressions.
+   */
   private void detectConflictsInUnsequencedBinaryExprs(
-      CExpression binaryExprs,
-      CFAEdge pCFAEdge,
-      UnseqBehaviorAnalysisState pState) throws UnrecognizedCodeException {
+      CExpression expr, CFAEdge edge, UnseqBehaviorAnalysisState pState)
+      throws UnrecognizedCodeException {
 
-    BinaryExpressionGatherVisitor binaryVisitor = new BinaryExpressionGatherVisitor(logger);
-    Set<CBinaryExpression> unseqBinExprs = binaryExprs.accept(binaryVisitor);
+    ExpressionBehaviorGatherVisitor visitor = new ExpressionBehaviorGatherVisitor(pState, edge, AccessType.READ, logger);
+    ExpressionAnalysisSummary summary = expr.accept(visitor);
 
-    for (CBinaryExpression unseqExpr : unseqBinExprs) {
+    for (CBinaryExpression unseqExpr : summary.getUnsequencedBinaryExprs()) {
       CExpression left = unseqExpr.getOperand1();
       CExpression right = unseqExpr.getOperand2();
 
-      Set<SideEffectInfo> leftEffects = resolveSideEffectsFromExpr(left, pState, pCFAEdge);
-      Set<SideEffectInfo> rightEffects = resolveSideEffectsFromExpr(right, pState, pCFAEdge);
+      ExpressionAnalysisSummary leftSummary = left.accept(visitor);
+      ExpressionAnalysisSummary rightSummary = right.accept(visitor);
 
-      Set<ConflictPair> conflicts = getUnsequencedConflicts(leftEffects, rightEffects, pCFAEdge, left, right);
+      Set<SideEffectInfo> leftEffects = leftSummary.getSideEffects();
+      Set<SideEffectInfo> rightEffects = rightSummary.getSideEffects();
+
+      String leftExprStr = leftSummary.getOriginalExpressionStr();
+      String rightExprStr = rightSummary.getOriginalExpressionStr();
+
+      Set<ConflictPair> conflicts = getUnsequencedConflicts(leftEffects, rightEffects, edge, leftExprStr, rightExprStr);
       if (!conflicts.isEmpty()) {
         pState.addConflicts(conflicts);
       }
@@ -196,71 +232,43 @@ public class UnseqBehaviorAnalysisTransferRelation
     pState.clearTmpMappings();
   }
 
+  /**
+   * Find conflict pairs from two sets of side effects.
+   */
   private Set<ConflictPair> getUnsequencedConflicts(
       Set<SideEffectInfo> op1Effects,
       Set<SideEffectInfo> op2Effects,
       CFAEdge location,
-      CExpression op1Expr,
-      CExpression op2Expr) {
-
-    TmpReplacingToStringVisitor visitor = new TmpReplacingToStringVisitor(state.getTmpNameFunNameMap());
-
-    String exprStrA, exprStrB;
-
-    try {
-      exprStrA = op1Expr.accept(visitor);
-      exprStrB = op2Expr.accept(visitor);
-    } catch (Exception e) {
-      exprStrA = op1Expr.toASTString();
-      exprStrB = op2Expr.toASTString();
-    }
+      String op1ExprStr,
+      String op2ExprStr) {
 
     Set<ConflictPair> result = new HashSet<>();
     for (SideEffectInfo s1 : op1Effects) {
       for (SideEffectInfo s2 : op2Effects) {
         if (conflictOnSameLocation(s1, s2)) {
-          result.add(new ConflictPair(s1, s2, location, exprStrA, exprStrB));
+          result.add(new ConflictPair(s1, s2, location, op1ExprStr, op2ExprStr));
+
+          logger.log(Level.INFO, String.format(
+              "[Conflict] Unsequenced conflict detected at %s: '%s' vs '%s' on location '%s' (access: %s / %s)",
+              location.getFileLocation(),
+              op1ExprStr,
+              op2ExprStr,
+              s1.getMemoryLocation(),
+              s1.getAccessType(),
+              s2.getAccessType()
+          ));
         }
       }
     }
     return result;
   }
 
-  private boolean conflictOnSameLocation(SideEffectInfo sideEffectInfo1, SideEffectInfo sideEffectInfo2) {
-    return sideEffectInfo1.getMemoryLocation().equals(sideEffectInfo2.getMemoryLocation()) &&
-        (sideEffectInfo1.isWrite() || sideEffectInfo2.isWrite());
+  private boolean conflictOnSameLocation(
+      SideEffectInfo sideEffectInfo1, SideEffectInfo sideEffectInfo2) {
+    return sideEffectInfo1.getMemoryLocation().equals(sideEffectInfo2.getMemoryLocation())
+        && (sideEffectInfo1.isWrite() || sideEffectInfo2.isWrite());
   }
 
-  private Set<SideEffectInfo> resolveSideEffectsFromExpr(CExpression expr, UnseqBehaviorAnalysisState pState, CFAEdge pCFAEdge) {
-    Set<SideEffectInfo> result = new HashSet<>();
-
-    if (expr instanceof CIdExpression idExpr) {
-      String tmp = idExpr.getName();
-      String fun = pState.getFunctionForTmp(tmp);
-
-      if (fun != null) {
-        Set<SideEffectInfo> effects = pState.getSideEffectsInFun().getOrDefault(fun, Set.of());
-        logger.log(Level.INFO, String.format(
-            "[resolveSideEffects] TMP: %s → Function: %s → SideEffects: %d → %s",
-            tmp, fun, effects.size(), effects
-        ));
-        result.addAll(effects);
-        return result;
-      }
-    }
-
-    try {
-      SideEffectGatherVisitor visitor = new SideEffectGatherVisitor(pState, pCFAEdge, AccessType.READ, logger);
-      result.addAll(expr.accept(visitor));
-    } catch (Exception e) {
-      logger.log(Level.WARNING, "[resolveSideEffects] Exception while visiting expr: " + expr.toASTString(), e);
-    }
-
-    logger.log(Level.INFO, String.format(
-        "[resolveSideEffects] Final side effects for expr: %s → %s",
-        expr.toASTString(), result));
-    return result;
-  }
 
 
 }

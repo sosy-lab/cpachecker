@@ -13,28 +13,30 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
+public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable {
 
   private final Map<String, Set<SideEffectInfo>> sideEffectsInFun;
   private boolean isFunctionCalled;
   private String calledFunctionName;
   private final Set<ConflictPair> detectedConflicts;
-  private final Map<String, String> tmpNameFunNameMap;
+  private final Map<String, CRightHandSide> tmpToOriginalExprMap;
 
   public UnseqBehaviorAnalysisState(
       Map<String, Set<SideEffectInfo>> pSideEffectsInFun,
       boolean pIsFunctionCalled,
       String pCalledFunctionName,
       Set<ConflictPair> pDetectedConflicts,
-      Map<String, String> pTmpNameFunNameMap) {
+      Map<String, CRightHandSide> pTmpToOriginalExprMap) {
     sideEffectsInFun = pSideEffectsInFun;
     isFunctionCalled = pIsFunctionCalled;
     calledFunctionName = pCalledFunctionName;
     detectedConflicts = pDetectedConflicts;
-    tmpNameFunNameMap = pTmpNameFunNameMap;
+    tmpToOriginalExprMap = pTmpToOriginalExprMap;
   }
 
   public UnseqBehaviorAnalysisState() {
@@ -42,19 +44,20 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     isFunctionCalled = false;
     calledFunctionName = null;
     detectedConflicts = new HashSet<>();
-    tmpNameFunNameMap = new HashMap<>();
+    tmpToOriginalExprMap = new HashMap<>();
   }
 
+
+  // === Side effect management ===
   public Map<String, Set<SideEffectInfo>> getSideEffectsInFun() {
     return sideEffectsInFun;
   }
 
   public void addSideEffectsToFunction(String functionName, Set<SideEffectInfo> newEffects) {
-    sideEffectsInFun
-        .computeIfAbsent(functionName, k -> new HashSet<>())
-        .addAll(newEffects);
+    sideEffectsInFun.computeIfAbsent(functionName, k -> new HashSet<>()).addAll(newEffects);
   }
 
+  // === Conflict tracking ===
   public void addConflicts(Set<ConflictPair> conflicts) {
     detectedConflicts.addAll(conflicts);
   }
@@ -63,6 +66,7 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     return detectedConflicts;
   }
 
+  // === Function call tracking ===
   public boolean hasFunctionCallOccurred() {
     return isFunctionCalled;
   }
@@ -79,20 +83,21 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
     isFunctionCalled = pFunctionCalled;
   }
 
-  public Map<String, String> getTmpNameFunNameMap() {
-    return tmpNameFunNameMap;
+  // === TMP to expression mapping ===
+  public Map<String,  CRightHandSide> getTmpToOriginalExprMap() {
+    return tmpToOriginalExprMap;
   }
 
-  public void mapTmpToFunction(String tmpVar, String functionName) {
-    tmpNameFunNameMap.put(tmpVar, functionName);
+  public void mapTmpToFunction(String tmpVar,  CRightHandSide function) {
+    tmpToOriginalExprMap.put(tmpVar, function);
   }
 
-  public String getFunctionForTmp(String tmpVar) {
-    return tmpNameFunNameMap.get(tmpVar);
+  public CRightHandSide getFunctionForTmp(String tmpVar) {
+    return tmpToOriginalExprMap.get(tmpVar);
   }
 
   public void clearTmpMappings() {
-    tmpNameFunNameMap.clear();
+    tmpToOriginalExprMap.clear();
   }
 
   @Override
@@ -103,7 +108,7 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
         && Objects.equals(calledFunctionName, other.calledFunctionName)
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
         && Objects.equals(detectedConflicts, other.detectedConflicts)
-        && Objects.equals(tmpNameFunNameMap, other.tmpNameFunNameMap);
+        && Objects.equals(tmpToOriginalExprMap, other.tmpToOriginalExprMap);
   }
 
   @Override
@@ -113,9 +118,7 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
         isFunctionCalled,
         calledFunctionName,
         detectedConflicts,
-        tmpNameFunNameMap
-    );
-
+        tmpToOriginalExprMap);
   }
 
   public String printConflict() {
@@ -123,7 +126,7 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
       return "conflicts[]";
     }
 
-    StringBuilder sb = new StringBuilder("conflicts[");
+    StringBuilder sb = new StringBuilder(detectedConflicts.size() + " conflicts[");
 
     boolean first = true;
     for (ConflictPair conflict : detectedConflicts) {
@@ -147,5 +150,92 @@ public class UnseqBehaviorAnalysisState implements AbstractState, Graphable {
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  @Override
+  public UnseqBehaviorAnalysisState join(UnseqBehaviorAnalysisState other)
+      throws CPAException, InterruptedException {
+    if (this.isFunctionCalled != other.isFunctionCalled) {
+      throw new CPAException("Cannot join states with different function call status.");
+    }
+    if (!Objects.equals(this.calledFunctionName, other.calledFunctionName)) {
+      throw new CPAException("Cannot join states with different called function names.");
+    }
+
+    UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState();
+
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
+      newState.getSideEffectsInFun()
+          .put(entry.getKey(), new HashSet<>(entry.getValue()));
+    }
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : other.getSideEffectsInFun().entrySet()) {
+      newState.getSideEffectsInFun()
+          .merge(entry.getKey(), new HashSet<>(entry.getValue()), (oldSet, newSet) -> {
+            oldSet.addAll(newSet);
+            return oldSet;
+          });
+    }
+
+    for (Map.Entry<String, CRightHandSide> entry : this.getTmpToOriginalExprMap().entrySet()) {
+      newState.getTmpToOriginalExprMap().put(entry.getKey(), entry.getValue());
+    }
+    for (Map.Entry<String, CRightHandSide> entry : other.getTmpToOriginalExprMap().entrySet()) {
+      newState.getTmpToOriginalExprMap().merge(
+          entry.getKey(),
+          entry.getValue(),
+          (v1, v2) -> {
+            if (!v1.equals(v2)) {
+              throw new IllegalStateException("Conflicting tmp mappings during join: " + v1 + " vs " + v2);
+            }
+            return v1;
+          }
+      );
+    }
+
+    newState.getDetectedConflicts().addAll(this.getDetectedConflicts());
+    newState.getDetectedConflicts().addAll(other.getDetectedConflicts());
+
+    newState.setFunctionCalled(this.isFunctionCalled);
+    newState.setCalledFunctionName(this.calledFunctionName);
+
+    return newState;
+  }
+
+  @Override
+  public boolean isLessOrEqual(UnseqBehaviorAnalysisState reachedState)
+      throws CPAException, InterruptedException {
+    // Compare function call status
+    if (this.isFunctionCalled != reachedState.isFunctionCalled) {
+      return false;
+    }
+
+    // Compare called function name
+    if (!Objects.equals(this.calledFunctionName, reachedState.calledFunctionName)) {
+      return false;
+    }
+
+    // Compare side effects in functions
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
+      String functionName = entry.getKey();
+      Set<SideEffectInfo> thisEffects = entry.getValue();
+      Set<SideEffectInfo> reachedStateEffects = reachedState.getSideEffectsInFun().get(functionName);
+
+      if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
+        return false;
+      }
+    }
+
+    // Compare TMP → Original Expression mappings
+    if (!reachedState.getTmpToOriginalExprMap().entrySet().containsAll(this.getTmpToOriginalExprMap().entrySet())) {
+      return false;
+    }
+
+    // Compare detected conflicts
+    if (!reachedState.getDetectedConflicts().containsAll(this.getDetectedConflicts())) {
+      return false;
+    }
+
+    return true;
+
   }
 }

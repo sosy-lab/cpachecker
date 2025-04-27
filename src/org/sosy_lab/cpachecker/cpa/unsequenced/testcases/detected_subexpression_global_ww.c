@@ -13,6 +13,9 @@ int g() {
 }
 
 int main() {
-  int y = f() + g(); // Potential unsequenced write-write conflict on 'x'
-  return 0;
+  // Potential unsequenced write-write conflict on 'x'
+  int y = f() + g(); //Declaration
+  f() + g(); //CExpressionStatement
+  y = f() + g(); //CExpressionAssignmentStatement
+  return f() + g(); //ReturnStatement
 }

@@ -52,7 +52,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
   private final StateToFormulaWriter writer;
   private final LogManager logger;
 
-  private UnseqBehaviorAnalysisCPA (
+  private UnseqBehaviorAnalysisCPA(
       Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
       throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
@@ -79,11 +79,13 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
   public TransferRelation getTransferRelation() {
     return new UnseqBehaviorAnalysisTransferRelation(logger);
   }
+
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new UnseqBehaviorAnalysisState();
   }
+
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     writer.collectStatistics(pStatsCollection);

@@ -21,7 +21,7 @@ public class SideEffectInfo {
 
   private final MemoryLocation memoryLocation;
   private final AccessType accessType;
-  private final CFAEdge cfaEdge;
+  private final CFAEdge cfaEdge; // location of side effect
 
   public SideEffectInfo(MemoryLocation pMemoryLocation, AccessType pAccessType, CFAEdge pCfaEdge) {
     memoryLocation = pMemoryLocation;
@@ -74,6 +74,7 @@ public class SideEffectInfo {
         cfaEdge.getFileLocation().getStartingLineInOrigin(),
         cfaEdge.getFileLocation().getStartColumnInLine());
   }
+
   public String toStringSimple() {
     return String.format(
         "%s@%s:line %d",
