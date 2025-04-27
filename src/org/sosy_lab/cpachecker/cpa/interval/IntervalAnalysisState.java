@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -560,7 +561,7 @@ public class IntervalAnalysisState
     }
   }
 
-  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) {
+  public IntervalAnalysisState adaptToVariableAssignment(CIdExpression changedVariable, Set<NormalFormExpression> expressions) { //TODO replace with forAllArrays() method
 
     PersistentMap<String, FunArray> adaptedArrays = arrays.empty();
 
@@ -577,4 +578,51 @@ public class IntervalAnalysisState
         adaptedArrays
     );
   }
+
+  public IntervalAnalysisState satisfyStrictLessThan(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet) {
+
+    IntervalAnalysisState modifiedState = this;
+
+    for (NormalFormExpression lesser : lesserSet) {
+      for (NormalFormExpression greater : greaterSet) {
+
+        if (lesser.equals(greater)) {
+          System.out.println("äsdf");
+        }
+
+        modifiedState = modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater));
+      }
+    }
+
+    return modifiedState;
+  }
+
+  public IntervalAnalysisState satisfyLessEqual(Set<NormalFormExpression> lesserSet, Set<NormalFormExpression> greaterSet) {
+    IntervalAnalysisState modifiedState = this;
+
+    for (NormalFormExpression lesser : lesserSet) {
+      for (NormalFormExpression greater : greaterSet) {
+        modifiedState = modifiedState.forAllArrays(e -> e.satisfyLessEqual(lesser, greater));
+      }
+    }
+
+    return modifiedState;
+  }
+
+  public IntervalAnalysisState forAllArrays(Function<FunArray, FunArray> function) {
+    PersistentMap<String, FunArray> modifiedArrays = arrays.empty();
+    for (Entry<String, FunArray> entry : arrays.entrySet()) {
+      modifiedArrays = modifiedArrays.putAndCopy(
+          entry.getKey(),
+          function.apply(entry.getValue())
+      );
+    }
+
+    return new IntervalAnalysisState(
+        intervals,
+        referenceCounts,
+        modifiedArrays
+    );
+  }
+
 }

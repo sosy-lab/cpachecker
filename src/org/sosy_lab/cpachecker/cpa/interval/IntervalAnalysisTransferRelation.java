@@ -239,6 +239,24 @@ public class IntervalAnalysisTransferRelation
                 operator.getSwitchOperandsSidesLogicalOperator(),
                 operand1.accept(visitor))
                 .stream())
+        .map(e -> {
+          Set<NormalFormExpression> operand1Normalization;
+          Set<NormalFormExpression> operand2Normalization;
+          try {
+            operand1Normalization = normalizeExpression(operand1, new ExpressionValueVisitor(state, cfaEdge));
+            operand2Normalization = normalizeExpression(operand2, new ExpressionValueVisitor(state, cfaEdge));
+          } catch (UnrecognizedCodeException ignored) {
+            return e;
+          }
+
+          return switch (operator) {
+            case LESS_THAN -> e.satisfyStrictLessThan(operand1Normalization, operand2Normalization);
+            case LESS_EQUAL -> e.satisfyLessEqual(operand1Normalization, operand2Normalization);
+            case GREATER_THAN -> e.satisfyStrictLessThan(operand2Normalization, operand1Normalization);
+            case GREATER_EQUAL -> e.satisfyLessEqual(operand2Normalization, operand1Normalization);
+            default -> e;
+          };
+        })
         .collect(ImmutableList.toImmutableList());
   }
 
