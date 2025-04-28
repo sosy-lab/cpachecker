@@ -17,13 +17,13 @@ public final class AcslInitializerExpression extends AInitializerExpression
 
   @Serial private static final long serialVersionUID = -814550243123276L;
 
-  public AcslInitializerExpression(FileLocation pFileLocation, AcslExpression pExpression) {
+  public AcslInitializerExpression(FileLocation pFileLocation, AcslPredicate pExpression) {
     super(pFileLocation, pExpression);
   }
 
   @Override
-  public AcslExpression getExpression() {
-    return (AcslExpression) super.getExpression();
+  public AcslPredicate getExpression() {
+    return (AcslPredicate) super.getExpression();
   }
 
   @Override

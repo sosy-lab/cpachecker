@@ -13,20 +13,20 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslTernaryPredicateExpression implements AcslExpression {
+public final class AcslTernaryPredicate implements AcslPredicate {
 
   @Serial private static final long serialVersionUID = 81297456675011353L;
 
   private final FileLocation fileLocation;
-  private final AcslExpression condition;
-  private final AcslExpression resultIfTrue;
-  private final AcslExpression resultIfFalse;
+  private final AcslPredicate condition;
+  private final AcslPredicate resultIfTrue;
+  private final AcslPredicate resultIfFalse;
 
-  public AcslTernaryPredicateExpression(
+  public AcslTernaryPredicate(
       FileLocation pFileLocation,
-      AcslExpression pCondition,
-      AcslExpression pResultIfTrue,
-      AcslExpression pResultIfFalse) {
+      AcslPredicate pCondition,
+      AcslPredicate pResultIfTrue,
+      AcslPredicate pResultIfFalse) {
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
     assert pResultIfFalse.getExpressionType() == pResultIfTrue.getExpressionType();
@@ -36,20 +36,20 @@ public final class AcslTernaryPredicateExpression implements AcslExpression {
     resultIfFalse = pResultIfFalse;
   }
 
-  public AcslExpression getCondition() {
+  public AcslPredicate getCondition() {
     return condition;
   }
 
-  public AcslExpression getResultIfTrue() {
+  public AcslPredicate getResultIfTrue() {
     return resultIfTrue;
   }
 
-  public AcslExpression getResultIfFalse() {
+  public AcslPredicate getResultIfFalse() {
     return resultIfFalse;
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -104,7 +104,7 @@ public final class AcslTernaryPredicateExpression implements AcslExpression {
       return true;
     }
 
-    return obj instanceof AcslTernaryPredicateExpression other
+    return obj instanceof AcslTernaryPredicate other
         && Objects.equals(other.fileLocation, fileLocation)
         && Objects.equals(other.condition, condition)
         && Objects.equals(other.resultIfTrue, resultIfTrue)

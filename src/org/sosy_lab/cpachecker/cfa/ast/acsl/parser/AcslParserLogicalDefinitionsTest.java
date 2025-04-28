@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
@@ -90,7 +90,7 @@ public class AcslParserLogicalDefinitionsTest {
             new AcslTernaryTerm(
                 FileLocation.DUMMY,
                 // Condition
-                new AcslBinaryTermExpression(
+                new AcslBinaryTermPredicate(
                     FileLocation.DUMMY,
                     AcslBuiltinLogicType.BOOLEAN,
                     new AcslIdTerm(FileLocation.DUMMY, inputIndex),
@@ -108,7 +108,7 @@ public class AcslParserLogicalDefinitionsTest {
                 new AcslTernaryTerm(
                     FileLocation.DUMMY,
                     // condition
-                    new AcslBinaryTermExpression(
+                    new AcslBinaryTermPredicate(
                         FileLocation.DUMMY,
                         AcslBuiltinLogicType.BOOLEAN,
                         new AcslArraySubscriptTerm(

@@ -19,7 +19,7 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
@@ -49,14 +49,14 @@ public class AcslParser {
     return Objects.requireNonNull(tree);
   }
 
-  public static AcslExpression parsePredicate(
+  public static AcslPredicate parsePredicate(
       String pInput, CProgramScope pCProgramScope, AcslScope pAcslScope) throws AcslParseException {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
-    AntrlPredicateToExpressionsConverter converter =
-        new AntrlPredicateToExpressionsConverter(pCProgramScope, pAcslScope);
+    AntrlPredicateToPredicateConverter converter =
+        new AntrlPredicateToPredicateConverter(pCProgramScope, pAcslScope);
 
-    AcslExpression expression = converter.visit(tree);
+    AcslPredicate expression = converter.visit(tree);
 
     return expression;
   }

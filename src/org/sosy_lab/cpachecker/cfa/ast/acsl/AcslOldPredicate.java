@@ -15,20 +15,20 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslOldExpression extends AbstractExpression implements AcslExpression {
+public final class AcslOldPredicate extends AbstractExpression implements AcslPredicate {
 
   @Serial private static final long serialVersionUID = -81455023251276L;
 
-  private AcslExpression expression;
+  private AcslPredicate expression;
 
-  public AcslOldExpression(FileLocation pLocation, AcslExpression pExpression) {
+  public AcslOldPredicate(FileLocation pLocation, AcslPredicate pExpression) {
     super(pLocation, pExpression.getExpressionType());
     checkNotNull(pExpression);
     expression = pExpression;
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -72,7 +72,7 @@ public final class AcslOldExpression extends AbstractExpression implements AcslE
       return true;
     }
 
-    return obj instanceof AcslOldExpression other
+    return obj instanceof AcslOldPredicate other
         && super.equals(obj)
         && expression.equals(other.expression);
   }

@@ -14,7 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslValidExpression implements AcslExpression {
+public final class AcslValidPredicate implements AcslPredicate {
   @Serial private static final long serialVersionUID = -69678901611906290L;
   private final FileLocation fileLocation;
   private final AcslType type;
@@ -22,7 +22,7 @@ public final class AcslValidExpression implements AcslExpression {
 
   private final Optional<AcslLabel> optionalLabel;
 
-  public AcslValidExpression(
+  public AcslValidPredicate(
       FileLocation pFileLocation,
       AcslType pType,
       AcslMemoryLocationSet pMemoryLocationSet,
@@ -33,7 +33,7 @@ public final class AcslValidExpression implements AcslExpression {
     optionalLabel = Optional.of(pLabel);
   }
 
-  public AcslValidExpression(
+  public AcslValidPredicate(
       FileLocation pFileLocation, AcslType pType, AcslMemoryLocationSet pMemoryLocationSet) {
     fileLocation = pFileLocation;
     type = pType;
@@ -42,7 +42,7 @@ public final class AcslValidExpression implements AcslExpression {
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -88,7 +88,7 @@ public final class AcslValidExpression implements AcslExpression {
       return true;
     }
 
-    return obj instanceof AcslValidExpression other
+    return obj instanceof AcslValidPredicate other
         && Objects.equals(other.type, type)
         && Objects.equals(other.fileLocation, fileLocation)
         && Objects.equals(other.memoryLocationSet, memoryLocationSet)

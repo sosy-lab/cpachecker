@@ -16,13 +16,13 @@ public final class AcslTernaryTerm extends AcslTerm {
 
   @Serial private static final long serialVersionUID = 812812375011353L;
 
-  private final AcslExpression condition;
+  private final AcslPredicate condition;
   private final AcslTerm resultIfTrue;
   private final AcslTerm resultIfFalse;
 
   public AcslTernaryTerm(
       FileLocation pFileLocation,
-      AcslExpression pCondition,
+      AcslPredicate pCondition,
       AcslTerm pResultIfTrue,
       AcslTerm pResultIfFalse) {
     super(pFileLocation, pResultIfFalse.getExpressionType());
@@ -34,7 +34,7 @@ public final class AcslTernaryTerm extends AcslTerm {
     resultIfFalse = pResultIfFalse;
   }
 
-  public AcslExpression getCondition() {
+  public AcslPredicate getCondition() {
     return condition;
   }
 

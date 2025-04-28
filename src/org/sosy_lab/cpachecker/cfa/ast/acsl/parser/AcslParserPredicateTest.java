@@ -17,34 +17,34 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicateExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -104,7 +104,7 @@ public class AcslParserPredicateTest {
 
   @Test
   public void parseConstantTruePredicate() throws AcslParseException {
-    AcslExpression output = new AcslBooleanLiteralExpression(FileLocation.DUMMY, true);
+    AcslPredicate output = new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true);
     String input = "\\true";
 
     testPredicateParsing(input, output);
@@ -112,7 +112,7 @@ public class AcslParserPredicateTest {
 
   @Test
   public void parseConstantFalsePredicate() throws AcslParseException {
-    AcslExpression output = new AcslBooleanLiteralExpression(FileLocation.DUMMY, false);
+    AcslPredicate output = new AcslBooleanLiteralPredicate(FileLocation.DUMMY, false);
     String input = "\\false";
 
     testPredicateParsing(input, output);
@@ -121,8 +121,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimplePredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslIdTerm(
@@ -141,11 +141,11 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleNegatedPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslUnaryExpression(
+    AcslPredicate output =
+        new AcslUnaryPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -165,8 +165,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimplePredicateWithOperations() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslBinaryTerm(
@@ -197,8 +197,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimplePredicateWithUnaryTerm() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslUnaryTerm(
@@ -221,12 +221,12 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleBinaryPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryPredicateExpression(
+    AcslPredicate output =
+        new AcslBinaryPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             // first operator
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -238,7 +238,7 @@ public class AcslParserPredicateTest {
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TEN),
                 AcslBinaryTermExpressionOperator.LESS_THAN),
             // second operator
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -258,8 +258,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimplePredicateWithOld() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslOldTerm(
@@ -280,10 +280,10 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleOldPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslOldExpression(
+    AcslPredicate output =
+        new AcslOldPredicate(
             FileLocation.DUMMY,
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -302,8 +302,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleResultPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslResultTerm(
@@ -323,8 +323,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleAtPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
@@ -346,8 +346,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleImplicitTermToPredicateConversion() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslBinaryTerm(
@@ -372,8 +372,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleAtPredicateWithArbitraryLabel() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
@@ -395,11 +395,11 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleTernaryOperatorWithPredicates() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslTernaryPredicateExpression(
+    AcslPredicate output =
+        new AcslTernaryPredicate(
             FileLocation.DUMMY,
             // Condition
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -411,7 +411,7 @@ public class AcslParserPredicateTest {
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
                 AcslBinaryTermExpressionOperator.EQUALS),
             // If true operator
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -423,7 +423,7 @@ public class AcslParserPredicateTest {
                     FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
                 AcslBinaryTermExpressionOperator.GREATER_THAN),
             // If false operator
-            new AcslBinaryTermExpression(
+            new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
@@ -442,15 +442,15 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleTermTernaryOperatorWithTerms() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslBinaryTermExpression(
+    AcslPredicate output =
+        new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             // First operand
             new AcslTernaryTerm(
                 FileLocation.DUMMY,
                 // Condition
-                new AcslBinaryTermExpression(
+                new AcslBinaryTermPredicate(
                     FileLocation.DUMMY,
                     AcslBuiltinLogicType.BOOLEAN,
                     new AcslIdTerm(
@@ -498,8 +498,8 @@ public class AcslParserPredicateTest {
   @Test
   public void parseSimpleValidPredicate() throws AcslParseException {
     CProgramScope cProgramScope = getCProgramScope();
-    AcslExpression output =
-        new AcslValidExpression(
+    AcslPredicate output =
+        new AcslValidPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslMemoryLocationSetTerm(
@@ -516,8 +516,8 @@ public class AcslParserPredicateTest {
 
   @Test
   public void parseSimpleEmptyValidPredicate() throws AcslParseException {
-    AcslExpression output =
-        new AcslValidExpression(
+    AcslPredicate output =
+        new AcslValidPredicate(
             FileLocation.DUMMY,
             AcslBuiltinLogicType.BOOLEAN,
             new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));

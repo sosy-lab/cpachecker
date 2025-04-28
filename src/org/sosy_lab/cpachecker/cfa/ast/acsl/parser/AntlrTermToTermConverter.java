@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
@@ -52,14 +52,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm> {
 
   private final AntlrLabelToLabelConverter labelConverter;
-  private final AntlrTermPredTernaryConditionToExpressionConverter
+  private final AntlrTermPredTernaryConditionToPredicateConverter
       termPredTernaryConditionToExpressionConverter;
 
   protected AntlrTermToTermConverter(CProgramScope pCProgramScope, AcslScope pAcslScope) {
     super(pCProgramScope, pAcslScope);
     labelConverter = new AntlrLabelToLabelConverter(pCProgramScope, pAcslScope);
     termPredTernaryConditionToExpressionConverter =
-        new AntlrTermPredTernaryConditionToExpressionConverter(pCProgramScope, pAcslScope);
+        new AntlrTermPredTernaryConditionToPredicateConverter(pCProgramScope, pAcslScope);
   }
 
   @Override
@@ -172,7 +172,7 @@ class AntlrTermToTermConverter extends AntlrToInternalAbstractConverter<AcslTerm
     // The parsing gives the following structure:
     // [cond, '?', if_true, ':', if_false]
 
-    AcslExpression condition = termPredTernaryConditionToExpressionConverter.visit(ctx.getChild(0));
+    AcslPredicate condition = termPredTernaryConditionToExpressionConverter.visit(ctx.getChild(0));
     AcslTerm ifTrue = visit(ctx.getChild(2));
     AcslTerm ifFalse = visit(ctx.getChild(4));
 

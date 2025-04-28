@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
 /** Interface for side-effect free expressions. */
@@ -37,7 +37,7 @@ public sealed interface CExpression extends CRightHandSide, AExpression
           X3 extends Exception,
           V extends
               CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
-                  & AcslExpressionVisitor<R3, X3>>
+                  & AcslPredicateVisitor<R3, X3>>
       R accept_(V pV) throws X1 {
     return accept(pV);
   }

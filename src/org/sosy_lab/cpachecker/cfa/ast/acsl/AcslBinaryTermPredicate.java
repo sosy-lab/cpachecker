@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression.ABinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public final class AcslBinaryTermExpression implements AcslExpression {
+public final class AcslBinaryTermPredicate implements AcslPredicate {
   private AcslTerm operand1;
   private AcslTerm operand2;
   private AcslBinaryTermExpressionOperator operator;
@@ -24,7 +24,7 @@ public final class AcslBinaryTermExpression implements AcslExpression {
   private final AcslType type;
   private final FileLocation location;
 
-  public AcslBinaryTermExpression(
+  public AcslBinaryTermPredicate(
       FileLocation pFileLocation,
       AcslType pType,
       AcslTerm pOperand1,
@@ -43,7 +43,7 @@ public final class AcslBinaryTermExpression implements AcslExpression {
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -96,7 +96,7 @@ public final class AcslBinaryTermExpression implements AcslExpression {
       return true;
     }
 
-    return obj instanceof AcslBinaryTermExpression other
+    return obj instanceof AcslBinaryTermPredicate other
         && Objects.equals(other.location, location)
         && Objects.equals(other.type, type)
         && Objects.equals(other.operand1, operand1)

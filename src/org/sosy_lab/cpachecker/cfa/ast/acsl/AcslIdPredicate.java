@@ -13,16 +13,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslIdExpression extends AIdExpression implements AcslExpression {
+public final class AcslIdPredicate extends AIdExpression implements AcslPredicate {
 
   @Serial private static final long serialVersionUID = -814550123151276L;
 
-  public AcslIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
+  public AcslIdPredicate(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
     super(pFileLocation, pDeclaration);
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 

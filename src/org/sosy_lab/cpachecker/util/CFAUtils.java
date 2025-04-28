@@ -69,38 +69,38 @@ import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicFunctionDefinition;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicateExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTypeVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm.AcslUnaryTermOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
@@ -935,9 +935,9 @@ public class CFAUtils {
       Traverser.forTree(node -> node.accept_(LeftHandSideVisitor.INSTANCE));
 
   private static final Traverser<AAstNode> AST_TRAVERSER =
-      Traverser.forTree(node -> node.accept_(ChildExpressionVisitor.INSTANCE));
+      Traverser.forTree(node -> node.accept_(ChildPredicateVisitor.INSTANCE));
 
-  private static final class LeftHandSideVisitor extends ChildExpressionVisitor {
+  private static final class LeftHandSideVisitor extends ChildPredicateVisitor {
 
     private static final LeftHandSideVisitor INSTANCE = new LeftHandSideVisitor();
 
@@ -947,10 +947,10 @@ public class CFAUtils {
     }
   }
 
-  private static class ChildExpressionVisitor
+  private static class ChildPredicateVisitor
       extends AAstNodeVisitor<Iterable<? extends AAstNode>, NoException> {
 
-    private static final ChildExpressionVisitor INSTANCE = new ChildExpressionVisitor();
+    private static final ChildPredicateVisitor INSTANCE = new ChildPredicateVisitor();
 
     @Override
     public Iterable<AAstNode> visit(AArraySubscriptExpression pE) {
@@ -1300,25 +1300,25 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslIdExpression pAcslIdExpression) {
+    public Iterable<? extends AAstNode> visit(AcslIdPredicate pAcslIdPredicate) {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslBinaryTermExpression pAcslBinaryTermExpression)
+    public Iterable<? extends AAstNode> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslOldExpression pAcslOldExpression)
+    public Iterable<? extends AAstNode> visit(AcslOldPredicate pAcslOldPredicate)
         throws NoException {
       return ImmutableList.of();
     }
 
     @Override
     public Iterable<? extends AAstNode> visit(
-        AcslBooleanLiteralExpression pAcslBooleanLiteralExpression) throws NoException {
+        AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) throws NoException {
       return ImmutableList.of();
     }
 
@@ -1340,13 +1340,13 @@ public class CFAUtils {
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(
-        AcslTernaryPredicateExpression pAcslTernaryPredicateExpression) throws NoException {
+    public Iterable<? extends AAstNode> visit(AcslTernaryPredicate pAcslTernaryPredicate)
+        throws NoException {
       return ImmutableList.of();
     }
 
     @Override
-    public Iterable<? extends AAstNode> visit(AcslValidExpression pAcslValidExpression)
+    public Iterable<? extends AAstNode> visit(AcslValidPredicate pAcslValidPredicate)
         throws NoException {
       return ImmutableList.of();
     }

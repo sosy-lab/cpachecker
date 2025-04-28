@@ -9,25 +9,23 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
-import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslBinaryPredicateExpression extends ABinaryExpression
-    implements AcslExpression {
+public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPredicate {
 
-  @Serial private static final long serialVersionUID = 7019956121956900L;
+  @Serial private static final long serialVersionUID = -6073836890768425L;
 
-  public AcslBinaryPredicateExpression(
+  public AcslUnaryPredicate(
       FileLocation pFileLocation,
       AcslType pType,
-      AcslExpression pOperand1,
-      AcslExpression pOperand2,
-      AcslBinaryPredicateExpressionOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
+      AcslPredicate pOperand,
+      AcslUnaryExpressionOperator pOperator) {
+    super(pFileLocation, pType, pOperand, pOperator);
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
@@ -36,31 +34,37 @@ public final class AcslBinaryPredicateExpression extends ABinaryExpression
     return v.visit(this);
   }
 
-  public enum AcslBinaryPredicateExpressionOperator implements ABinaryOperator, AcslAstNode {
-    IMPLICATION("==>"),
-    EQUIVALENT("<==>"),
-    AND("&&"),
-    OR("||"),
-    EQUALS("=="),
-    NOT_EQUALS("!="),
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
-    ;
+  @Override
+  public int hashCode() {
+    final int prime = 37;
+    int result = 2;
+    result = prime * result + super.hashCode();
+    return result;
+  }
 
-    @Serial private static final long serialVersionUID = 701123361956900L;
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof AcslUnaryPredicate && super.equals(obj);
+  }
+
+  public enum AcslUnaryExpressionOperator implements AUnaryOperator, AcslAstNode {
+    NEGATION("!"),
+    ;
 
     private final String operator;
     private final FileLocation fileLocation;
 
-    AcslBinaryPredicateExpressionOperator(String pOperator) {
+    AcslUnaryExpressionOperator(String pOperator) {
       operator = pOperator;
       fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslBinaryPredicateExpressionOperator of(String pOperator) {
-      for (AcslBinaryPredicateExpressionOperator op : values()) {
+    public static AcslUnaryExpressionOperator of(String pOperator) {
+      for (AcslUnaryExpressionOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }

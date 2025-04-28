@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 
-public abstract class AExpressionVisitor<R, X extends Exception>
-    implements CExpressionVisitor<R, X>, JExpressionVisitor<R, X>, AcslExpressionVisitor<R, X> {
+public abstract class APredicateVisitor<R, X extends Exception>
+    implements CExpressionVisitor<R, X>, JExpressionVisitor<R, X>, AcslPredicateVisitor<R, X> {
 
   /*
    * only language common expressions here, all other have to be implemented by
@@ -75,7 +75,7 @@ public abstract class AExpressionVisitor<R, X extends Exception>
   }
 
   @Override
-  public R visit(AcslBinaryPredicateExpression exp) throws X {
+  public R visit(AcslBinaryPredicate exp) throws X {
     return visit((ABinaryExpression) exp);
   }
 
@@ -152,7 +152,7 @@ public abstract class AExpressionVisitor<R, X extends Exception>
   }
 
   @Override
-  public R visit(AcslUnaryExpression exp) throws X {
+  public R visit(AcslUnaryPredicate exp) throws X {
     return visit((AUnaryExpression) exp);
   }
 

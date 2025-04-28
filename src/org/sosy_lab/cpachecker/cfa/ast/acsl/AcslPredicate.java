@@ -12,17 +12,17 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
-public sealed interface AcslExpression extends AExpression, AcslAstNode
-    permits AcslBinaryPredicateExpression,
-        AcslBinaryTermExpression,
-        AcslIdExpression,
-        AcslLiteralExpression,
-        AcslOldExpression,
-        AcslTernaryPredicateExpression,
-        AcslUnaryExpression,
-        AcslValidExpression {
+public sealed interface AcslPredicate extends AExpression, AcslAstNode
+    permits AcslBinaryPredicate,
+        AcslBinaryTermPredicate,
+        AcslIdPredicate,
+        AcslLiteralPredicate,
+        AcslOldPredicate,
+        AcslTernaryPredicate,
+        AcslUnaryPredicate,
+        AcslValidPredicate {
 
-  <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X;
+  <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
@@ -37,7 +37,7 @@ public sealed interface AcslExpression extends AExpression, AcslAstNode
           X3 extends Exception,
           V extends
               CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
-                  & AcslExpressionVisitor<R3, X3>>
+                  & AcslPredicateVisitor<R3, X3>>
       R accept_(V pV) throws X3 {
     return accept(pV);
   }

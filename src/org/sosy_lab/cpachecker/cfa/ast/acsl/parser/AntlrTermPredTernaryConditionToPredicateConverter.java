@@ -10,18 +10,18 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicateExpression.AcslBinaryPredicateExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermExpression.AcslBinaryTermExpressionOperator;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryExpression.AcslUnaryExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.BinaryTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ComparisonTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.LogicalFalseTermPredTernaryConditionContext;
@@ -30,13 +30,13 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.O
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.ParenthesesTermPredTernaryConditionContext;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser.UnaryTermPredTernaryConditionContext;
 
-public class AntlrTermPredTernaryConditionToExpressionConverter
-    extends AntlrToInternalAbstractConverter<AcslExpression> {
+public class AntlrTermPredTernaryConditionToPredicateConverter
+    extends AntlrToInternalAbstractConverter<AcslPredicate> {
 
   private final AntlrTermTernaryConditionBodyToTermConverter
       antrlTermTernaryConditionToTermConverter;
 
-  protected AntlrTermPredTernaryConditionToExpressionConverter(
+  protected AntlrTermPredTernaryConditionToPredicateConverter(
       CProgramScope pCProgramScope, AcslScope pAcslScope) {
     super(pCProgramScope, pAcslScope);
     antrlTermTernaryConditionToTermConverter =
@@ -44,52 +44,52 @@ public class AntlrTermPredTernaryConditionToExpressionConverter
   }
 
   @Override
-  public AcslExpression visitOldTermPredTernaryCondition(OldTermPredTernaryConditionContext ctx) {
+  public AcslPredicate visitOldTermPredTernaryCondition(OldTermPredTernaryConditionContext ctx) {
     // The second child is the term inside the old, the others are
     // '\old' '(' term ')'
-    AcslExpression expression = visit(ctx.getChild(2));
+    AcslPredicate expression = visit(ctx.getChild(2));
 
-    return new AcslOldExpression(FileLocation.DUMMY, expression);
+    return new AcslOldPredicate(FileLocation.DUMMY, expression);
   }
 
   @Override
-  public AcslExpression visitLogicalTrueTermPredTernaryCondition(
+  public AcslPredicate visitLogicalTrueTermPredTernaryCondition(
       LogicalTrueTermPredTernaryConditionContext ctx) {
-    return new AcslBooleanLiteralExpression(FileLocation.DUMMY, true);
+    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, true);
   }
 
   @Override
-  public AcslExpression visitLogicalFalseTermPredTernaryCondition(
+  public AcslPredicate visitLogicalFalseTermPredTernaryCondition(
       LogicalFalseTermPredTernaryConditionContext ctx) {
-    return new AcslBooleanLiteralExpression(FileLocation.DUMMY, false);
+    return new AcslBooleanLiteralPredicate(FileLocation.DUMMY, false);
   }
 
   @Override
-  public AcslExpression visitParenthesesTermPredTernaryCondition(
+  public AcslPredicate visitParenthesesTermPredTernaryCondition(
       ParenthesesTermPredTernaryConditionContext ctx) {
     return visit(ctx.getChild(1));
   }
 
   @Override
-  public AcslExpression visitUnaryTermPredTernaryCondition(
+  public AcslPredicate visitUnaryTermPredTernaryCondition(
       UnaryTermPredTernaryConditionContext ctx) {
     AcslUnaryExpressionOperator operator =
         AcslUnaryExpressionOperator.of(ctx.getChild(0).getText());
-    AcslExpression expression = visit(ctx.getChild(1));
+    AcslPredicate expression = visit(ctx.getChild(1));
 
-    return new AcslUnaryExpression(
+    return new AcslUnaryPredicate(
         FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, expression, operator);
   }
 
   @Override
-  public AcslExpression visitBinaryTermPredTernaryCondition(
+  public AcslPredicate visitBinaryTermPredTernaryCondition(
       BinaryTermPredTernaryConditionContext ctx) {
-    AcslExpression leftExpression = visit(ctx.getChild(0));
+    AcslPredicate leftExpression = visit(ctx.getChild(0));
     AcslBinaryPredicateExpressionOperator operator =
         AcslBinaryPredicateExpressionOperator.of(ctx.getChild(1).getText());
-    AcslExpression rightExpression = visit(ctx.getChild(2));
+    AcslPredicate rightExpression = visit(ctx.getChild(2));
 
-    return new AcslBinaryPredicateExpression(
+    return new AcslBinaryPredicate(
         FileLocation.DUMMY,
         AcslBuiltinLogicType.BOOLEAN,
         leftExpression,
@@ -98,11 +98,11 @@ public class AntlrTermPredTernaryConditionToExpressionConverter
   }
 
   @Override
-  public AcslExpression visitComparisonTermPredTernaryCondition(
+  public AcslPredicate visitComparisonTermPredTernaryCondition(
       ComparisonTermPredTernaryConditionContext ctx) {
     // In ACSL it is allowed to write something like `0 <= i <= n`, which we get as the list
     // [`0`, `<=`, `i`, `<=`, `n`]
-    AcslExpression currentExpression = null;
+    AcslPredicate currentExpression = null;
     int amountOfChildren = ctx.getChildCount();
     int i;
     for (i = 0; i + 1 < amountOfChildren; i += 2) {
@@ -116,15 +116,15 @@ public class AntlrTermPredTernaryConditionToExpressionConverter
           AcslBinaryTermExpressionOperator.of(ctx.getChild(i + 1).getText());
       AcslTerm righTerm = antrlTermTernaryConditionToTermConverter.visit(ctx.getChild(i + 2));
 
-      AcslExpression newComparison =
-          new AcslBinaryTermExpression(
+      AcslPredicate newComparison =
+          new AcslBinaryTermPredicate(
               FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, leftTerm, righTerm, operator);
 
       if (currentExpression == null) {
         currentExpression = newComparison;
       } else {
         currentExpression =
-            new AcslBinaryPredicateExpression(
+            new AcslBinaryPredicate(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.BOOLEAN,
                 currentExpression,

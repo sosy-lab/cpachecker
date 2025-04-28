@@ -13,12 +13,12 @@ import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-public abstract sealed class AcslLiteralExpression extends ALiteralExpression
-    implements AcslExpression permits AcslBooleanLiteralExpression {
+public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
+    implements AcslPredicate permits AcslBooleanLiteralPredicate {
 
   @Serial private static final long serialVersionUID = -8145502432341276L;
 
-  protected AcslLiteralExpression(FileLocation pFileLocation, Type pType) {
+  protected AcslLiteralPredicate(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);
   }
 

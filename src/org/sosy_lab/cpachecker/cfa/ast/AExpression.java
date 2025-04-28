@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
@@ -33,6 +33,6 @@ public interface AExpression extends ARightHandSide {
           X3 extends Exception,
           V extends
               CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
-                  & AcslExpressionVisitor<R3, X3>>
+                  & AcslPredicateVisitor<R3, X3>>
       R accept_(V v) throws X1, X2, X3;
 }

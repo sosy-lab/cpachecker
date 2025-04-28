@@ -11,13 +11,13 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslBooleanLiteralExpression extends AcslLiteralExpression {
+public final class AcslBooleanLiteralPredicate extends AcslLiteralPredicate {
 
   @Serial private static final long serialVersionUID = 7019912361956900L;
 
   private final boolean value;
 
-  public AcslBooleanLiteralExpression(FileLocation pFileLocation, boolean pValue) {
+  public AcslBooleanLiteralPredicate(FileLocation pFileLocation, boolean pValue) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
     value = pValue;
   }
@@ -43,13 +43,13 @@ public final class AcslBooleanLiteralExpression extends AcslLiteralExpression {
       return true;
     }
 
-    return obj instanceof AcslBooleanLiteralExpression other
+    return obj instanceof AcslBooleanLiteralPredicate other
         && super.equals(other)
         && other.value == value;
   }
 
   @Override
-  public <R, X extends Exception> R accept(AcslExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
