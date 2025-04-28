@@ -157,7 +157,7 @@ public class SeqMainFunction extends SeqFunction {
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
+    if (pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
       return ImmutableList.of();
     }
     return switch (pOptions.porBitVectorEncoding) {
@@ -198,7 +198,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private ImmutableList<SeqBitVectorDeclaration> createScalarBitVectorDeclarations(
       MPOROptions pOptions,
-      ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables> pScalarBitVectorAccessVariables,
+      ImmutableListMultimap<CVariableDeclaration, ScalarBitVectorVariables>
+          pScalarBitVectorAccessVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
@@ -208,7 +209,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
               firstCase, pOptions.porBitVectorReductionType);
-      for (var entryB : pScalarBitVectorAccessVariables.entrySet()) {
+      for (var entryB : pScalarBitVectorAccessVariables.entries()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables =
             entryB.getValue().getIdExpressions();
         assert accessVariables.containsKey(thread) : "thread must have access variable";

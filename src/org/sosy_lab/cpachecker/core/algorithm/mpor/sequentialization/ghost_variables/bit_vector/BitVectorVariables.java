@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -92,18 +93,24 @@ public class BitVectorVariables {
     return rAll.build();
   }
 
-  public ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>
+  public ImmutableListMultimap<CVariableDeclaration, ScalarBitVectorVariables>
       getAllScalarBitVectorVariables() {
 
-    ImmutableMap.Builder<CVariableDeclaration, ScalarBitVectorVariables> rAll =
-        ImmutableMap.builder();
+    ImmutableListMultimap.Builder<CVariableDeclaration, ScalarBitVectorVariables> rAll =
+        ImmutableListMultimap.builder();
     if (scalarBitVectorAccessVariables.isPresent()) {
       assert scalarBitVectorReadVariables.isEmpty() && scalarBitVectorWriteVariables.isEmpty();
-      rAll.putAll(scalarBitVectorAccessVariables.orElseThrow());
+      for (var entry : scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+        rAll.putAll(entry.getKey(), entry.getValue());
+      }
     } else if (scalarBitVectorReadVariables.isPresent()) {
       assert scalarBitVectorWriteVariables.isPresent();
-      rAll.putAll(scalarBitVectorReadVariables.orElseThrow());
-      rAll.putAll(scalarBitVectorWriteVariables.orElseThrow());
+      for (var entry : scalarBitVectorReadVariables.orElseThrow().entrySet()) {
+        rAll.putAll(entry.getKey(), entry.getValue());
+      }
+      for (var entry : scalarBitVectorWriteVariables.orElseThrow().entrySet()) {
+        rAll.putAll(entry.getKey(), entry.getValue());
+      }
     }
     return rAll.build();
   }
