@@ -5,14 +5,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 public class ExpressionAnalysisSummary {
 
   private final Set<SideEffectInfo> sideEffects = new HashSet<>();
   private final Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
   private String originalExpressionStr = null;
-  private final Map<CExpression, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>(); //to tracking side effects for designator, arguments
+  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr = new HashMap<>(); // tracking side effects per subexpression (by string)
 
   public static ExpressionAnalysisSummary empty() {
     return new ExpressionAnalysisSummary();
@@ -50,20 +49,22 @@ public class ExpressionAnalysisSummary {
     this.originalExpressionStr = exprStr;
   }
 
-  public Map<CExpression, Set<SideEffectInfo>> getSideEffectsPerSubExpr() {
-    return sideEffectsPerSubExpr;
+  public Map<String, Set<SideEffectInfo>> getSideEffectsPerSubExpr() {
+    return sideEffectsPerSubExprStr;
   }
 
-  public void addSideEffectsForSubExprs(Map<CExpression, Set<SideEffectInfo>> pSideEffectsPerSubExpr){
-    for (Map.Entry<CExpression, Set<SideEffectInfo>> entry : pSideEffectsPerSubExpr.entrySet()) {
-      CExpression subExpr = entry.getKey();
+  /**
+   * Add side effects for subexpressions (recorded by their AST string representation).
+   */
+  public void addSideEffectsForSubExprs(Map<String, Set<SideEffectInfo>> pSideEffectsPerSubExpr){
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : pSideEffectsPerSubExpr.entrySet()) {
+      String subExprStr = entry.getKey();
       Set<SideEffectInfo> effects = entry.getValue();
       if (!effects.isEmpty()) {
-        sideEffectsPerSubExpr.computeIfAbsent(subExpr, k -> new HashSet<>()).addAll(effects);
+        sideEffectsPerSubExprStr.computeIfAbsent(subExprStr, k -> new HashSet<>()).addAll(effects);
       }
     }
   }
-
 
   @Override
   public String toString() {

@@ -57,7 +57,7 @@ public class ExpressionBehaviorGatherVisitor
   protected ExpressionAnalysisSummary visitDefault(CExpression exp)
       throws UnrecognizedCodeException {
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
-    result.setOriginalExpressionStr(exp.toASTString());
+    result.setOriginalExpressionStr(exp.toQualifiedASTString());
     return result;
   }
 
@@ -69,7 +69,7 @@ public class ExpressionBehaviorGatherVisitor
     CRightHandSide originalExpr = state.getFunctionForTmp(varName);
     if (originalExpr != null) {
       ExpressionAnalysisSummary resolvedSummary = originalExpr.accept(this);
-      resolvedSummary.setOriginalExpressionStr(originalExpr.toASTString());
+      resolvedSummary.setOriginalExpressionStr(originalExpr.toQualifiedASTString());
       return resolvedSummary;
     }
 
@@ -89,7 +89,7 @@ public class ExpressionBehaviorGatherVisitor
       }
     }
 
-    result.setOriginalExpressionStr(idExpr.toASTString());
+    result.setOriginalExpressionStr(idExpr.toQualifiedASTString());
     return result;
   }
 
@@ -98,7 +98,7 @@ public class ExpressionBehaviorGatherVisitor
       throws UnrecognizedCodeException {
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
-    Map<CExpression, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
+    Map<String, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
 
     CExpression funcExpr = funCallExpr.getFunctionNameExpression();
 
@@ -106,23 +106,27 @@ public class ExpressionBehaviorGatherVisitor
       ExpressionAnalysisSummary funcExprSummary = funcExpr.accept(this);
       Set<SideEffectInfo> funcExprEffects = funcExprSummary.getSideEffects();
       sideEffects.addAll(funcExprEffects);
-      sideEffectsPerSubExpr.put(funcExpr, funcExprEffects);
+      sideEffectsPerSubExpr.put(funcExpr.toQualifiedASTString(), funcExprEffects);
     } else if(funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
       String functionName = idExpr.getName();
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
       }
+
     }
 
     // Gather side effects for each function parameter
     for (CExpression param : funCallExpr.getParameterExpressions()) {
-      Set<SideEffectInfo> paramEffects = param.accept(this).getSideEffects();
+      ExpressionAnalysisSummary paramSummary = param.accept(this);
+      Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
       sideEffects.addAll(paramEffects);
-      sideEffectsPerSubExpr.put(param, paramEffects);
+
+      String exprStr = getExpressionStrOrFallback(paramSummary, param);
+      sideEffectsPerSubExpr.put(exprStr, paramEffects);
     }
 
     result.addSideEffects(sideEffects);
-    result.setOriginalExpressionStr(funCallExpr.toASTString());
+    result.setOriginalExpressionStr(funCallExpr.toQualifiedASTString());
     result.addSideEffectsForSubExprs(sideEffectsPerSubExpr);
     return result;
   }
@@ -175,7 +179,7 @@ public class ExpressionBehaviorGatherVisitor
     sideEffects.addAll(indexSummary.getSideEffects());
 
     result.addSideEffects(sideEffects);
-    result.setOriginalExpressionStr(arrayExpr.toASTString());
+    result.setOriginalExpressionStr(arrayExpr.toQualifiedASTString());
 
     return result;
   }
@@ -229,13 +233,17 @@ public class ExpressionBehaviorGatherVisitor
       CBinaryExpression binExpr,
       ExpressionAnalysisSummary leftSummary,
       ExpressionAnalysisSummary rightSummary) {
-    String leftStr = (leftSummary.getOriginalExpressionStr() != null)
-                     ? leftSummary.getOriginalExpressionStr()
-                     : binExpr.getOperand1().toASTString();
-    String rightStr = (rightSummary.getOriginalExpressionStr() != null)
-                      ? rightSummary.getOriginalExpressionStr()
-                      : binExpr.getOperand2().toASTString();
-    return "(" + leftStr  + binExpr.getOperator().getOperator() +  rightStr + ")";
+
+    String leftStr = getExpressionStrOrFallback(leftSummary, binExpr.getOperand1());
+    String rightStr = getExpressionStrOrFallback(rightSummary, binExpr.getOperand2());
+    return "(" + leftStr + binExpr.getOperator().getOperator() + rightStr + ")";
+  }
+
+  private String getExpressionStrOrFallback(ExpressionAnalysisSummary summary, CExpression fallbackExpr) {
+    if (summary.getOriginalExpressionStr() != null) {
+      return summary.getOriginalExpressionStr();
+    }
+    return fallbackExpr.toQualifiedASTString();
   }
 
   private boolean isDesignator(CExpression expr) {
