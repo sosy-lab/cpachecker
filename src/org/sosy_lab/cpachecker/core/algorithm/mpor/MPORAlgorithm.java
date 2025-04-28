@@ -120,6 +120,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
 
   @Option(
+      description =
+          "add partial order reduction (bit vectors storing reads and writes to global variable"
+              + " access) in the sequentialization to reduce the state space?")
+  private boolean porBitVectorReadWrite = false;
+
+  @Option(
       secure = true,
       description = "prune empty statements (with only pc writes) from the sequentialization?")
   private boolean pruneEmpty = true;
@@ -256,6 +262,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             porConcat,
             porBitVector,
             porBitVectorEncoding,
+            porBitVectorReadWrite,
             pruneEmpty,
             scalarPc,
             sequentializationErrors,

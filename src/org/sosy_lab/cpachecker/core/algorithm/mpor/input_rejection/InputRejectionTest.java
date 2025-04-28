@@ -61,6 +61,7 @@ public class InputRejectionTest {
             false,
             false,
             false,
+            false,
             false);
     T throwable =
         assertThrows(

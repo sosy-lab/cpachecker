@@ -48,6 +48,8 @@ public class MPOROptions {
 
   public final BitVectorEncoding porBitVectorEncoding;
 
+  public final boolean porBitVectorReadWrite;
+
   public final boolean pruneEmpty;
 
   public final boolean scalarPc;
@@ -78,6 +80,7 @@ public class MPOROptions {
       boolean pPorConcat,
       boolean pPorBitVector,
       BitVectorEncoding pPorBitVectorEncoding,
+      boolean pPorBitVectorReadWrite,
       boolean pPruneEmpty,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -107,6 +110,7 @@ public class MPOROptions {
     porConcat = pPorConcat;
     porBitVector = pPorBitVector;
     porBitVectorEncoding = pPorBitVectorEncoding;
+    porBitVectorReadWrite = pPorBitVectorReadWrite;
     pruneEmpty = pPruneEmpty;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
@@ -126,6 +130,7 @@ public class MPOROptions {
       boolean pPorConcat,
       boolean pPorBitVector,
       BitVectorEncoding pPorBitVectorEncoding,
+      boolean pPorBitVectorReadWrite,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -147,6 +152,7 @@ public class MPOROptions {
         pPorConcat,
         pPorBitVector,
         pPorBitVectorEncoding,
+        pPorBitVectorReadWrite,
         // always prune empty, disabling is only for debugging, not for release
         true,
         pScalarPc,

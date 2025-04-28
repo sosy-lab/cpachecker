@@ -294,6 +294,10 @@ analysis.algorithm.MPOR.porBitVector = false
 analysis.algorithm.MPOR.porBitVectorEncoding = NONE
   enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
 
+# add partial order reduction (bit vectors storing reads and writes to global
+# variable access) in the sequentialization to reduce the state space?
+analysis.algorithm.MPOR.porBitVectorReadWrite = false
+
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.porConcat = true
