@@ -102,8 +102,12 @@ public class UnseqBehaviorAnalysisState
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof UnseqBehaviorAnalysisState other)) return false;
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof UnseqBehaviorAnalysisState other)) {
+      return false;
+    }
     return isFunctionCalled == other.isFunctionCalled
         && Objects.equals(calledFunctionName, other.calledFunctionName)
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)

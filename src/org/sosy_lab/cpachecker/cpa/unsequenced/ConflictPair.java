@@ -55,8 +55,12 @@ public class ConflictPair {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (!(obj instanceof ConflictPair other)) return false;
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof ConflictPair other)) {
+      return false;
+    }
     return Objects.equals(location, other.location)
         && Objects.equals(accessA, other.accessA)
         && Objects.equals(accessB, other.accessB);

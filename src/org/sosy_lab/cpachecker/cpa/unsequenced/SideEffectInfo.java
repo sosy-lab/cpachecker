@@ -51,12 +51,15 @@ public class SideEffectInfo {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof SideEffectInfo)) return false;
-    SideEffectInfo that = (SideEffectInfo) o;
-    return Objects.equals(memoryLocation, that.memoryLocation)
-        && accessType == that.accessType
-        && Objects.equals(cfaEdge, that.cfaEdge);
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SideEffectInfo other)) {
+      return false;
+    }
+    return Objects.equals(memoryLocation, other.memoryLocation)
+        && accessType == other.accessType
+        && Objects.equals(cfaEdge, other.cfaEdge);
   }
 
   @Override
