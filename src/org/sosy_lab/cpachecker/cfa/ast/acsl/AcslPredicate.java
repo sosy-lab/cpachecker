@@ -32,12 +32,14 @@ public sealed interface AcslPredicate extends AExpression, AcslAstNode
           R1 extends R,
           R2 extends R,
           R3 extends R,
+          R4 extends R,
           X1 extends Exception,
           X2 extends Exception,
           X3 extends Exception,
+          X4 extends Exception,
           V extends
-              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>
-                  & AcslPredicateVisitor<R3, X3>>
+              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2> & AcslPredicateVisitor<R3, X3>
+                  & AcslTermVisitor<R4, X4>>
       R accept_(V pV) throws X3 {
     return accept(pV);
   }

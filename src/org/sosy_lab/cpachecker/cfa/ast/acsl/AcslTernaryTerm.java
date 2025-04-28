@@ -12,26 +12,29 @@ import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslTernaryTerm extends AcslTerm {
+public final class AcslTernaryTerm implements AcslTerm {
 
   @Serial private static final long serialVersionUID = 812812375011353L;
 
   private final AcslPredicate condition;
   private final AcslTerm resultIfTrue;
   private final AcslTerm resultIfFalse;
+  private final AcslType type;
+  private final FileLocation fileLocation;
 
   public AcslTernaryTerm(
       FileLocation pFileLocation,
       AcslPredicate pCondition,
       AcslTerm pResultIfTrue,
       AcslTerm pResultIfFalse) {
-    super(pFileLocation, pResultIfFalse.getExpressionType());
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
     assert pResultIfFalse.getExpressionType() == pResultIfTrue.getExpressionType();
     condition = pCondition;
     resultIfTrue = pResultIfTrue;
     resultIfFalse = pResultIfFalse;
+    type = pResultIfTrue.getExpressionType();
+    fileLocation = pFileLocation;
   }
 
   public AcslPredicate getCondition() {
@@ -44,6 +47,16 @@ public final class AcslTernaryTerm extends AcslTerm {
 
   public AcslTerm getResultIfFalse() {
     return resultIfFalse;
+  }
+
+  @Override
+  public AcslType getExpressionType() {
+    return type;
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
@@ -93,7 +106,8 @@ public final class AcslTernaryTerm extends AcslTerm {
     }
 
     return obj instanceof AcslTernaryTerm other
-        && super.equals(other)
+        && Objects.equals(fileLocation, other.fileLocation)
+        && Objects.equals(other.type, type)
         && Objects.equals(other.condition, condition)
         && Objects.equals(other.resultIfTrue, resultIfTrue)
         && Objects.equals(other.resultIfFalse, resultIfFalse);

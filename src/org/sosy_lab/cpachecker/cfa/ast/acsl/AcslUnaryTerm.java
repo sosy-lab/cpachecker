@@ -9,32 +9,25 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression.AUnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslUnaryTerm extends AcslTerm {
+public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
 
   @Serial private static final long serialVersionUID = 8458828043123590886L;
-  private final AcslTerm operand;
-  private final AcslUnaryTermOperator operator;
 
   public AcslUnaryTerm(
       FileLocation pFileLocation,
       AcslType pType,
       AcslTerm pOperand,
       AcslUnaryTermOperator pOperator) {
-    super(pFileLocation, pType);
-    operand = pOperand;
-    operator = pOperator;
+    super(pFileLocation, pType, pOperand, pOperator);
   }
 
+  @Override
   public AcslTerm getOperand() {
-    return operand;
-  }
-
-  public AcslUnaryTermOperator getOperator() {
-    return operator;
+    return (AcslTerm) super.getOperand();
   }
 
   @Override
@@ -43,43 +36,18 @@ public final class AcslUnaryTerm extends AcslTerm {
   }
 
   @Override
+  public AcslType getExpressionType() {
+    return (AcslType) super.getExpressionType();
+  }
+
+  @Override
+  public AcslUnaryTermOperator getOperator() {
+    return (AcslUnaryTermOperator) super.getOperator();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
-  }
-
-  @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return toParenthesizedASTString(pAAstNodeRepresentation);
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "("
-        + operand.toParenthesizedASTString(pAAstNodeRepresentation)
-        + operand.toParenthesizedASTString(pAAstNodeRepresentation)
-        + ")";
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 37;
-    int result = 11;
-    result = prime * result + super.hashCode();
-    result = prime * result + Objects.hashCode(operand);
-    result = prime * result + Objects.hashCode(operator);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslUnaryTerm other
-        && super.equals(obj)
-        && Objects.equals(other.operator, operator)
-        && Objects.equals(other.operand, operand);
   }
 
   public enum AcslUnaryTermOperator implements AUnaryOperator, AcslAstNode {

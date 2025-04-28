@@ -9,14 +9,20 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
+import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslResultTerm extends AcslTerm {
+public final class AcslResultTerm implements AcslTerm, AExpression {
 
   @Serial private static final long serialVersionUID = -814550243801154576L;
 
+  private final AcslType type;
+  private final FileLocation fileLocation;
+
   public AcslResultTerm(FileLocation pLocation, AcslType pType) {
-    super(pLocation, pType);
+    type = pType;
+    fileLocation = pLocation;
   }
 
   @Override
@@ -25,8 +31,18 @@ public final class AcslResultTerm extends AcslTerm {
   }
 
   @Override
+  public AcslType getExpressionType() {
+    return type;
+  }
+
+  @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
@@ -50,6 +66,8 @@ public final class AcslResultTerm extends AcslTerm {
       return true;
     }
 
-    return obj instanceof AcslResultTerm other && super.equals(other);
+    return obj instanceof AcslResultTerm other
+        && Objects.equals(fileLocation, other.fileLocation)
+        && Objects.equals(type, other.type);
   }
 }

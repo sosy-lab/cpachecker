@@ -10,15 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 import java.util.List;
-import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslFunctionCallTerm extends AcslTerm {
+public final class AcslFunctionCallTerm extends AFunctionCallExpression implements AcslTerm {
 
   @Serial private static final long serialVersionUID = -612040123327639887L;
-  private final AcslTerm functionName;
-  private final List<AcslTerm> parameters;
-  private final AcslFunctionDeclaration declaration;
 
   public AcslFunctionCallTerm(
       FileLocation pLocation,
@@ -26,22 +23,20 @@ public final class AcslFunctionCallTerm extends AcslTerm {
       AcslTerm pFunctionName,
       List<AcslTerm> pParameters,
       AcslFunctionDeclaration pDeclaration) {
-    super(pLocation, pType);
-    functionName = pFunctionName;
-    parameters = pParameters;
-    declaration = pDeclaration;
+    super(pLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
-  public AcslTerm getFunctionName() {
-    return functionName;
+  @Override
+  public AcslTerm getFunctionNameExpression() {
+    return (AcslTerm) super.getFunctionNameExpression();
   }
 
-  public List<AcslTerm> getParameters() {
-    return parameters;
+  public List<AcslTerm> getParameterExpressions() {
+    return (List<AcslTerm>) super.getParameterExpressions();
   }
 
   public AcslFunctionDeclaration getDeclaration() {
-    return declaration;
+    return (AcslFunctionDeclaration) super.getDeclaration();
   }
 
   @Override
@@ -50,52 +45,17 @@ public final class AcslFunctionCallTerm extends AcslTerm {
   }
 
   @Override
+  public AcslType getExpressionType() {
+    return (AcslType) getDeclaration().getType().getReturnType();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return functionName.toASTString(pAAstNodeRepresentation)
-        + "("
-        + parameters.stream()
-            .map(p -> p.toASTString(pAAstNodeRepresentation))
-            .reduce((a, b) -> a + ", " + b)
-            .orElse("")
-        + ")";
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return functionName.toParenthesizedASTString(pAAstNodeRepresentation)
-        + "("
-        + parameters.stream()
-            .map(p -> p.toParenthesizedASTString(pAAstNodeRepresentation))
-            .reduce((a, b) -> a + ", " + b)
-            .orElse("")
-        + ")";
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 5;
-    int result = 7;
-    result = prime * result + functionName.hashCode();
-    result = prime * result + parameters.hashCode();
-    result = prime * result + declaration.hashCode();
-    return prime * result + super.hashCode();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslFunctionCallTerm other
-        && super.equals(other)
-        && Objects.equals(other.functionName, functionName)
-        && Objects.equals(other.parameters, parameters)
-        && Objects.equals(other.declaration, declaration);
+  public FileLocation getFileLocation() {
+    return null;
   }
 }

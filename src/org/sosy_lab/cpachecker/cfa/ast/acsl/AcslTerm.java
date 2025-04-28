@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import java.io.Serial;
-import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
-public abstract sealed class AcslTerm implements AcslAstNode
+public abstract sealed interface AcslTerm extends AcslAstNode, AExpression
     permits AcslArraySubscriptTerm,
         AcslAtTerm,
         AcslBinaryTerm,
@@ -24,43 +24,26 @@ public abstract sealed class AcslTerm implements AcslAstNode
         AcslTernaryTerm,
         AcslUnaryTerm {
 
-  @Serial private static final long serialVersionUID = 8144237675011353L;
-  private final AcslType type;
-  private final FileLocation location;
-
-  protected AcslTerm(FileLocation pLocation, AcslType pType) {
-    type = pType;
-    location = pLocation;
-  }
-
-  public AcslType getExpressionType() {
-    return type;
-  }
+  <R, X extends Exception> R accept(AcslTermVisitor<R, X> v) throws X;
 
   @Override
-  public FileLocation getFileLocation() {
-    return location;
-  }
-
-  public abstract <R, X extends Exception> R accept(AcslTermVisitor<R, X> v) throws X;
+  AcslType getExpressionType();
 
   @Override
-  public int hashCode() {
-    final int prime = 37;
-    int result = 8;
-    result = prime * result + Objects.hashCode(type);
-    result = prime * result + Objects.hashCode(location);
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslTerm other
-        && Objects.equals(other.type, type)
-        && Objects.equals(other.location, location);
+  default <
+          R,
+          R1 extends R,
+          R2 extends R,
+          R3 extends R,
+          R4 extends R,
+          X1 extends Exception,
+          X2 extends Exception,
+          X3 extends Exception,
+          X4 extends Exception,
+          V extends
+              CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2> & AcslPredicateVisitor<R3, X3>
+                  & AcslTermVisitor<R4, X4>>
+      R accept_(V pV) throws X4 {
+    return accept(pV);
   }
 }

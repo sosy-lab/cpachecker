@@ -10,15 +10,17 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public final class AcslOldTerm extends AcslTerm {
+public final class AcslOldTerm implements AcslTerm, AExpression {
 
   @Serial private static final long serialVersionUID = -81455024380567276L;
-  private AcslTerm term;
+  private final AcslTerm term;
+  private final FileLocation fileLocation;
 
   public AcslOldTerm(FileLocation pLocation, AcslTerm pTerm) {
-    super(pLocation, pTerm.getExpressionType());
+    fileLocation = pLocation;
     term = pTerm;
   }
 
@@ -32,8 +34,18 @@ public final class AcslOldTerm extends AcslTerm {
   }
 
   @Override
+  public AcslType getExpressionType() {
+    return term.getExpressionType();
+  }
+
+  @Override
   public <R, X extends Exception> R accept(AcslAstNodeVisitor<R, X> v) throws X {
     return v.visit(this);
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
@@ -50,7 +62,7 @@ public final class AcslOldTerm extends AcslTerm {
   public int hashCode() {
     int prime = 35;
     int result = 3;
-    result = prime * result + super.hashCode();
+    result = prime * result + fileLocation.hashCode();
     result = prime * result + term.hashCode();
     return result;
   }
@@ -62,7 +74,7 @@ public final class AcslOldTerm extends AcslTerm {
     }
 
     return obj instanceof AcslOldTerm other
-        && super.equals(other)
+        && Objects.equals(fileLocation, other.fileLocation)
         && Objects.equals(other.term, term);
   }
 }

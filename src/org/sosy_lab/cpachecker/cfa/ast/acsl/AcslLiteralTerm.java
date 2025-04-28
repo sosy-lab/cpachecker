@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 /**
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * we consider this too an expression. The semantics of this is the same as in C i.e. 0 is
  * equivalent false and everything else is equivalent to true.
  */
-public abstract sealed class AcslLiteralTerm extends AcslTerm
+public abstract sealed class AcslLiteralTerm extends ALiteralExpression implements AcslTerm
     permits AcslBooleanLiteralTerm,
         AcslCharLiteralTerm,
         AcslIntegerLiteralTerm,
@@ -32,6 +33,11 @@ public abstract sealed class AcslLiteralTerm extends AcslTerm
   }
 
   public abstract Object getValue();
+
+  @Override
+  public AcslType getExpressionType() {
+    return (AcslType) super.getExpressionType();
+  }
 
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
