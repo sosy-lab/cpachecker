@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredic
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -77,8 +76,7 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
         AcslUnaryExpressionOperator.of(ctx.getChild(0).getText());
     AcslPredicate expression = visit(ctx.getChild(1));
 
-    return new AcslUnaryPredicate(
-        FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, expression, operator);
+    return new AcslUnaryPredicate(FileLocation.DUMMY, expression, operator);
   }
 
   @Override
@@ -89,12 +87,7 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
         AcslBinaryPredicateExpressionOperator.of(ctx.getChild(1).getText());
     AcslPredicate rightExpression = visit(ctx.getChild(2));
 
-    return new AcslBinaryPredicate(
-        FileLocation.DUMMY,
-        AcslBuiltinLogicType.BOOLEAN,
-        leftExpression,
-        rightExpression,
-        operator);
+    return new AcslBinaryPredicate(FileLocation.DUMMY, leftExpression, rightExpression, operator);
   }
 
   @Override
@@ -117,8 +110,7 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
       AcslTerm righTerm = antrlTermTernaryConditionToTermConverter.visit(ctx.getChild(i + 2));
 
       AcslPredicate newComparison =
-          new AcslBinaryTermPredicate(
-              FileLocation.DUMMY, AcslBuiltinLogicType.BOOLEAN, leftTerm, righTerm, operator);
+          new AcslBinaryTermPredicate(FileLocation.DUMMY, leftTerm, righTerm, operator);
 
       if (currentExpression == null) {
         currentExpression = newComparison;
@@ -126,7 +118,6 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
         currentExpression =
             new AcslBinaryPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 currentExpression,
                 newComparison,
                 AcslBinaryPredicateExpressionOperator.AND);

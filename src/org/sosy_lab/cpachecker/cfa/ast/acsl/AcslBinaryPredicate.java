@@ -18,11 +18,10 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
 
   public AcslBinaryPredicate(
       FileLocation pFileLocation,
-      AcslType pType,
       AcslPredicate pOperand1,
       AcslPredicate pOperand2,
       AcslBinaryPredicateExpressionOperator pOperator) {
-    super(pFileLocation, pType, pOperand1, pOperand2, pOperator);
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
   }
 
   @Override

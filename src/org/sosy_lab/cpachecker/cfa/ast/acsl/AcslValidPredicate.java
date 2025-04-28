@@ -23,20 +23,16 @@ public final class AcslValidPredicate implements AcslPredicate {
   private final Optional<AcslLabel> optionalLabel;
 
   public AcslValidPredicate(
-      FileLocation pFileLocation,
-      AcslType pType,
-      AcslMemoryLocationSet pMemoryLocationSet,
-      AcslLabel pLabel) {
+      FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet, AcslLabel pLabel) {
     fileLocation = pFileLocation;
-    type = pType;
+    type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
     optionalLabel = Optional.of(pLabel);
   }
 
-  public AcslValidPredicate(
-      FileLocation pFileLocation, AcslType pType, AcslMemoryLocationSet pMemoryLocationSet) {
+  public AcslValidPredicate(FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet) {
     fileLocation = pFileLocation;
-    type = pType;
+    type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
     optionalLabel = Optional.empty();
   }

@@ -17,11 +17,8 @@ public final class AcslUnaryPredicate extends AUnaryExpression implements AcslPr
   @Serial private static final long serialVersionUID = -6073836890768425L;
 
   public AcslUnaryPredicate(
-      FileLocation pFileLocation,
-      AcslType pType,
-      AcslPredicate pOperand,
-      AcslUnaryExpressionOperator pOperator) {
-    super(pFileLocation, pType, pOperand, pOperator);
+      FileLocation pFileLocation, AcslPredicate pOperand, AcslUnaryExpressionOperator pOperator) {
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand, pOperator);
   }
 
   @Override

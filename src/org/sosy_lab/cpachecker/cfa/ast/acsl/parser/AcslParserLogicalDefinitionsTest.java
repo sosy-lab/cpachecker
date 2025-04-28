@@ -92,7 +92,6 @@ public class AcslParserLogicalDefinitionsTest {
                 // Condition
                 new AcslBinaryTermPredicate(
                     FileLocation.DUMMY,
-                    AcslBuiltinLogicType.BOOLEAN,
                     new AcslIdTerm(FileLocation.DUMMY, inputIndex),
                     new AcslIntegerLiteralTerm(
                         FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO),
@@ -110,7 +109,6 @@ public class AcslParserLogicalDefinitionsTest {
                     // condition
                     new AcslBinaryTermPredicate(
                         FileLocation.DUMMY,
-                        AcslBuiltinLogicType.BOOLEAN,
                         new AcslArraySubscriptTerm(
                             FileLocation.DUMMY,
                             polymorphicType,

@@ -10,15 +10,19 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslIdPredicate extends AIdExpression implements AcslPredicate {
 
   @Serial private static final long serialVersionUID = -814550123151276L;
 
-  public AcslIdPredicate(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
+  public AcslIdPredicate(FileLocation pFileLocation, AcslPredicateDeclaration pDeclaration) {
     super(pFileLocation, pDeclaration);
+  }
+
+  @Override
+  public AcslPredicateDeclaration getDeclaration() {
+    return (AcslPredicateDeclaration) super.getDeclaration();
   }
 
   @Override

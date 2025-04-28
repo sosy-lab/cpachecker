@@ -18,7 +18,7 @@ public final class AcslBooleanLiteralPredicate extends AcslLiteralPredicate {
   private final boolean value;
 
   public AcslBooleanLiteralPredicate(FileLocation pFileLocation, boolean pValue) {
-    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    super(pFileLocation);
     value = pValue;
   }
 

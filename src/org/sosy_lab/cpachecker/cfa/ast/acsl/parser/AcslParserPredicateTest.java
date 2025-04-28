@@ -28,13 +28,13 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
@@ -124,7 +124,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslIdTerm(
                 FileLocation.DUMMY,
                 new AcslCVariableDeclaration(
@@ -144,10 +143,8 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslUnaryPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -168,7 +165,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslBinaryTerm(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.INTEGER,
@@ -200,7 +196,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslUnaryTerm(
                 FileLocation.DUMMY,
                 new AcslCType(Objects.requireNonNull(cProgramScope.lookupVariable("x")).getType()),
@@ -224,11 +219,9 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             // first operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -240,7 +233,6 @@ public class AcslParserPredicateTest {
             // second operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -261,7 +253,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslOldTerm(
                 FileLocation.DUMMY,
                 new AcslIdTerm(
@@ -285,7 +276,6 @@ public class AcslParserPredicateTest {
             FileLocation.DUMMY,
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -305,7 +295,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslResultTerm(
                 FileLocation.DUMMY,
                 new AcslCType(
@@ -326,7 +315,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
                 FileLocation.DUMMY,
                 new AcslIdTerm(
@@ -349,7 +337,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslBinaryTerm(
                 FileLocation.DUMMY,
                 AcslBuiltinLogicType.INTEGER,
@@ -375,7 +362,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslAtTerm(
                 FileLocation.DUMMY,
                 new AcslIdTerm(
@@ -401,7 +387,6 @@ public class AcslParserPredicateTest {
             // Condition
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -413,7 +398,6 @@ public class AcslParserPredicateTest {
             // If true operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -425,7 +409,6 @@ public class AcslParserPredicateTest {
             // If false operator
             new AcslBinaryTermPredicate(
                 FileLocation.DUMMY,
-                AcslBuiltinLogicType.BOOLEAN,
                 new AcslIdTerm(
                     FileLocation.DUMMY,
                     new AcslCVariableDeclaration(
@@ -445,14 +428,12 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslBinaryTermPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             // First operand
             new AcslTernaryTerm(
                 FileLocation.DUMMY,
                 // Condition
                 new AcslBinaryTermPredicate(
                     FileLocation.DUMMY,
-                    AcslBuiltinLogicType.BOOLEAN,
                     new AcslIdTerm(
                         FileLocation.DUMMY,
                         new AcslCVariableDeclaration(
@@ -501,7 +482,6 @@ public class AcslParserPredicateTest {
     AcslPredicate output =
         new AcslValidPredicate(
             FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
             new AcslMemoryLocationSetTerm(
                 FileLocation.DUMMY,
                 new AcslIdTerm(
@@ -518,9 +498,7 @@ public class AcslParserPredicateTest {
   public void parseSimpleEmptyValidPredicate() throws AcslParseException {
     AcslPredicate output =
         new AcslValidPredicate(
-            FileLocation.DUMMY,
-            AcslBuiltinLogicType.BOOLEAN,
-            new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));
+            FileLocation.DUMMY, new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));
     String input = "\\valid(\\empty)";
 
     testPredicateParsing(input, output);

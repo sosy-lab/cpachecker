@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serial;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -23,6 +24,7 @@ public final class AcslOldPredicate extends AbstractExpression implements AcslPr
 
   public AcslOldPredicate(FileLocation pLocation, AcslPredicate pExpression) {
     super(pLocation, pExpression.getExpressionType());
+    assert Objects.equals(pExpression.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
     checkNotNull(pExpression);
     expression = pExpression;
   }

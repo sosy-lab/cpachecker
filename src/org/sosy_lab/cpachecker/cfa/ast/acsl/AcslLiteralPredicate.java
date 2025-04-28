@@ -11,15 +11,14 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
     implements AcslPredicate permits AcslBooleanLiteralPredicate {
 
   @Serial private static final long serialVersionUID = -8145502432341276L;
 
-  protected AcslLiteralPredicate(FileLocation pFileLocation, Type pType) {
-    super(pFileLocation, pType);
+  protected AcslLiteralPredicate(FileLocation pFileLocation) {
+    super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
   }
 
   @Override

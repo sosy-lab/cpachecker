@@ -29,7 +29,8 @@ public final class AcslTernaryPredicate implements AcslPredicate {
       AcslPredicate pResultIfFalse) {
     // Currently we do not allow the return types to be different.
     // This will likely be relaxed once we have polymorphic types.
-    assert pResultIfFalse.getExpressionType() == pResultIfTrue.getExpressionType();
+    assert Objects.equals(pResultIfFalse.getExpressionType(), pResultIfTrue.getExpressionType());
+    assert Objects.equals(pResultIfFalse.getExpressionType(), AcslBuiltinLogicType.BOOLEAN);
     fileLocation = pFileLocation;
     condition = pCondition;
     resultIfTrue = pResultIfTrue;
