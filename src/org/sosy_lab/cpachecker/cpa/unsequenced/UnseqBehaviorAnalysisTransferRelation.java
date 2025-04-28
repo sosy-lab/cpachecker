@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -57,21 +58,34 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleStatementEdge(
       CStatementEdge statementEdge, CStatement stat) throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
+
     if (stat
         instanceof
         CExpressionAssignmentStatement
-            exprAssign) { // to detect unseq behavior like y = (f() + g()) + x;
+            exprAssign) {
       CExpression lhsExpr = exprAssign.getLeftHandSide();
       CExpression rhsExpr = exprAssign.getRightHandSide();
 
       // if functioncall true, then record side effects inside it
-      recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState);
-      recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState);
+      if(lhsExpr instanceof CIdExpression){
+        recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState);
+        recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState);
+      }else if(lhsExpr instanceof CPointerExpression pointerExpr){
+        recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.READ, newState);
+        recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState);
+
+        if (pointerExpr.getOperand() instanceof CBinaryExpression binaryExpr){ // to detect unseq behavior like *(f() + x) = 3;
+          detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
+        }
+
+      }
 
       // check if there exists unsequenced behavior and cause conflict
+      // to detect unseq behavior like y = (f() + g()) + x;
       if (rhsExpr instanceof CBinaryExpression binaryExpr) {
         detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
       }
+
     } else if (stat
         instanceof CExpressionStatement exStat) { // to detect unseq behavior like (f() + g()) + x;
       CExpression expr = exStat.getExpression();

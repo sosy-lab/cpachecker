@@ -114,12 +114,7 @@ public class ExpressionBehaviorGatherVisitor
       reconstructedArguments.add(exprStr);
     }
 
-    if (isDesignator(funcExpr)) { // side effects for designator: *p(x),pf[i](x),p->f(x), p.f(x)
-      ExpressionAnalysisSummary funcExprSummary = funcExpr.accept(this);
-      Set<SideEffectInfo> funcExprEffects = funcExprSummary.getSideEffects();
-      sideEffects.addAll(funcExprEffects);
-      sideEffectsPerSubExpr.put(funcExpr.toQualifiedASTString(), funcExprEffects);
-    } else if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
+    if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
       String functionName = idExpr.getName();
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
@@ -257,11 +252,5 @@ public class ExpressionBehaviorGatherVisitor
       return summary.getOriginalExpressionStr();
     }
     return fallbackExpr.toQualifiedASTString();
-  }
-
-  private boolean isDesignator(CExpression expr) {
-    return (expr instanceof CPointerExpression)
-        || (expr instanceof CArraySubscriptExpression)
-        || (expr instanceof CFieldReference);
   }
 }
