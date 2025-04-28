@@ -298,7 +298,7 @@ public class ConstraintsSolver {
 
     } finally {
       stats.timeForSolving.stop();
-      if (forceFreshDistinctProver) {
+      if (forceFreshDistinctProver && prover != null) {
         checkState(prover != persistentProver);
         prover.close();
       }
