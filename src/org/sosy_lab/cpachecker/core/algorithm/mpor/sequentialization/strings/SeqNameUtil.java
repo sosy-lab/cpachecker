@@ -142,11 +142,25 @@ public class SeqNameUtil {
         + SeqToken.return_value;
   }
 
-  public static String buildBitVectorName(MPOROptions pOptions, int pThreadId) {
+  public static String buildBitVectorAccessName(MPOROptions pOptions, int pThreadId) {
     return pOptions.shortVariables
-        ? SeqToken.b + pThreadId
-        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR;
+        ? SeqToken.ba + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_ACCESS;
   }
+
+  public static String buildBitVectorReadName(MPOROptions pOptions, int pThreadId) {
+    return pOptions.shortVariables
+        ? SeqToken.br + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_READ;
+  }
+
+  public static String buildBitVectorWriteName(MPOROptions pOptions, int pThreadId) {
+    return pOptions.shortVariables
+        ? SeqToken.bw + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_WRITE;
+  }
+
+  // Scalar Bit Vector =============================================================================
 
   public static String buildBitVectorScalarAccessVariableName(
       MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
@@ -154,12 +168,40 @@ public class SeqNameUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
     return pOptions.shortVariables
-        ? SeqToken.b + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        ? SeqToken.ba + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
-            + SeqToken.BIT_VECTOR
+            + SeqToken.BIT_VECTOR_ACCESS
             + SeqSyntax.UNDERSCORE
             + variableName;
   }
+
+  public static String buildBitVectorScalarReadVariableName(
+      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+
+    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    String variableName = pVariableDeclaration.getName();
+    return pOptions.shortVariables
+        ? SeqToken.br + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        : buildThreadPrefix(pOptions, pThreadId)
+            + SeqToken.BIT_VECTOR_READ
+            + SeqSyntax.UNDERSCORE
+            + variableName;
+  }
+
+  public static String buildBitVectorScalarWriteVariableName(
+      MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
+
+    checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
+    String variableName = pVariableDeclaration.getName();
+    return pOptions.shortVariables
+        ? SeqToken.bw + pThreadId + SeqSyntax.UNDERSCORE + variableName
+        : buildThreadPrefix(pOptions, pThreadId)
+            + SeqToken.BIT_VECTOR_WRITE
+            + SeqSyntax.UNDERSCORE
+            + variableName;
+  }
+
+  // Mutex =========================================================================================
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {

@@ -44,7 +44,7 @@ public class MPOROptions {
 
   public final boolean porConcat;
 
-  public final boolean porBitVector;
+  public final boolean porBitVectorAccess;
 
   public final BitVectorEncoding porBitVectorEncoding;
 
@@ -78,9 +78,9 @@ public class MPOROptions {
       String pOutputPath,
       boolean pOverwriteFiles,
       boolean pPorConcat,
-      boolean pPorBitVector,
-      BitVectorEncoding pPorBitVectorEncoding,
+      boolean pPorBitVectorAccess,
       boolean pPorBitVectorReadWrite,
+      BitVectorEncoding pPorBitVectorEncoding,
       boolean pPruneEmpty,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -108,7 +108,7 @@ public class MPOROptions {
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
     porConcat = pPorConcat;
-    porBitVector = pPorBitVector;
+    porBitVectorAccess = pPorBitVectorAccess;
     porBitVectorEncoding = pPorBitVectorEncoding;
     porBitVectorReadWrite = pPorBitVectorReadWrite;
     pruneEmpty = pPruneEmpty;
@@ -128,9 +128,9 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pPorConcat,
-      boolean pPorBitVector,
-      BitVectorEncoding pPorBitVectorEncoding,
+      boolean pPorBitVectorAccess,
       boolean pPorBitVectorReadWrite,
+      BitVectorEncoding pPorBitVectorEncoding,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -150,9 +150,9 @@ public class MPOROptions {
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
         pPorConcat,
-        pPorBitVector,
-        pPorBitVectorEncoding,
+        pPorBitVectorAccess,
         pPorBitVectorReadWrite,
+        pPorBitVectorEncoding,
         // always prune empty, disabling is only for debugging, not for release
         true,
         pScalarPc,
@@ -199,17 +199,21 @@ public class MPOROptions {
 
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   protected void handleOptionWarnings(LogManager pLogger) {
-    if (!porConcat && porBitVector) {
+    if (!porConcat && (porBitVectorAccess || porBitVectorReadWrite)) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: POR bit vectors are only created with porConcat enabled. Either enable"
-              + " porConcat or disable porBitVector.");
+          "WARNING: porBitVectorAccess and porBitVectorReadWrite are only considered with porConcat"
+              + " enabled. Either enable porConcat or disable porBitVectorAccess or"
+              + " porBitVectorReadWrite.");
     }
-    if (!porBitVector && !porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+    if (!porBitVectorAccess
+        && !porBitVectorReadWrite
+        && !porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorEncoding is not NONE, but porBitVector is disabled. Either"
-              + " disable porBitVector or set porBitVectorEncoding to NONE.");
+          "WARNING: porBitVectorEncoding is not NONE, but both porBitVectorAccess and"
+              + " porBitVectorReadWrite are disabled. Either enable porBitVectorAccess or"
+              + " porBitVectorReadWrite or set porBitVectorEncoding to NONE.");
     }
     if (!threadLoops && threadLoopsNext) {
       pLogger.log(

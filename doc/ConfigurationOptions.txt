@@ -287,7 +287,7 @@ analysis.algorithm.MPOR.overwriteFiles = true
 
 # add partial order reduction (bit vectors storing global variable accesses)
 # in the sequentialization to reduce the state space?
-analysis.algorithm.MPOR.porBitVector = false
+analysis.algorithm.MPOR.porBitVectorAccess = false
 
 # the encoding (binary, hex, scalar) of the partial order reduction bit
 # vectors.

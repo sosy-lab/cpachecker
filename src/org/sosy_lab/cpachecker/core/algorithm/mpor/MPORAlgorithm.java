@@ -111,19 +111,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "add partial order reduction (bit vectors storing global variable accesses) in the"
               + " sequentialization to reduce the state space?")
-  private boolean porBitVector = false;
-
-  @Option(
-      description =
-          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
-  // using optional for @Options is not allowed, unfortunately...
-  private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
+  private boolean porBitVectorAccess = false;
 
   @Option(
       description =
           "add partial order reduction (bit vectors storing reads and writes to global variable"
               + " access) in the sequentialization to reduce the state space?")
   private boolean porBitVectorReadWrite = false;
+
+  @Option(
+      description =
+          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
+  // using optional for @Options is not allowed, unfortunately...
+  private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
 
   @Option(
       secure = true,
@@ -260,9 +260,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             outputPath,
             overwriteFiles,
             porConcat,
-            porBitVector,
-            porBitVectorEncoding,
+            porBitVectorAccess,
             porBitVectorReadWrite,
+            porBitVectorEncoding,
             pruneEmpty,
             scalarPc,
             sequentializationErrors,

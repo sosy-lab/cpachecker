@@ -107,7 +107,7 @@ public class SeqExpressionBuilder {
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
-        CIdExpression bitVector = pBitVectorVariables.getBitVectorExpression(pActiveThread);
+        CIdExpression bitVector = pBitVectorVariables.getBitVectorExpressionByThread(pActiveThread);
         ImmutableSet<CExpression> otherBitVectors =
             pBitVectorVariables.getOtherBitVectorExpressions(bitVector);
         CBinaryExpression binaryExpression =
@@ -142,12 +142,12 @@ public class SeqExpressionBuilder {
   private static Optional<SeqExpression> buildScalarBitVectorEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.scalarBitVectors.isEmpty()) {
+    if (pBitVectorVariables.scalarBitVectorAccessVariables.isEmpty()) {
       return Optional.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.scalarBitVectors.entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().accessVariables;
+    for (var entry : pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().getIdExpressions();
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeVariable = accessVariables.get(pActiveThread);
       assert activeVariable != null;

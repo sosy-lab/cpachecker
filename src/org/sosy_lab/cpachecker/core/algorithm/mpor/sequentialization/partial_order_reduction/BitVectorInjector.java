@@ -165,8 +165,10 @@ class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry : pBitVectorVariables.scalarBitVectors.entrySet()) {
-        ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().accessVariables;
+      for (var entry :
+          pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+        ImmutableMap<MPORThread, CIdExpression> accessVariables =
+            entry.getValue().getIdExpressions();
         boolean value = pAccessedVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(
@@ -174,7 +176,7 @@ class BitVectorInjector {
                 accessVariables.get(pThread), scalarBitVectorExpression));
       }
     } else {
-      CIdExpression bitVectorVariable = pBitVectorVariables.getBitVectorExpression(pThread);
+      CIdExpression bitVectorVariable = pBitVectorVariables.getBitVectorExpressionByThread(pThread);
       BitVectorExpression bitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);

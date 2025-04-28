@@ -86,7 +86,7 @@ public class SeqCaseClauseUtil {
       ImmutableList.Builder<CVariableDeclaration> pFound, SeqCaseBlockStatement pStatement) {
 
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
-      for (CVariableDeclaration variable : substituteEdge.globalVariables) {
+      for (CVariableDeclaration variable : substituteEdge.accessedGlobalVariables) {
         assert variable.isGlobal();
         pFound.add(variable);
       }

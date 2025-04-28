@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -101,8 +102,8 @@ public class MPORSubstitution {
       final CExpression pExpression,
       final Optional<ThreadEdge> pCallContext,
       boolean pIsAssignmentLeftHandSide,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
 
     checkArgument(
         !pIsAssignmentLeftHandSide || pWrittenGlobalVariables.isPresent(),
@@ -239,8 +240,8 @@ public class MPORSubstitution {
   public CStatement substitute(
       CStatement pStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
 
@@ -316,8 +317,8 @@ public class MPORSubstitution {
   public CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
@@ -336,8 +337,8 @@ public class MPORSubstitution {
   public CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
       // return as-is if there is no expression to substitute

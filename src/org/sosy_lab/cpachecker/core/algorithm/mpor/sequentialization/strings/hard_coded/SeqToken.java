@@ -42,11 +42,22 @@ public class SeqToken {
 
   public static final String ATOMIC = "ATOMIC";
 
-  public static final String b = "b";
+  /** "bit vector access" */
+  public static final String ba = "ba";
+
+  /** "bit vector read" */
+  public static final String br = "br";
+
+  /** "bit vector write" */
+  public static final String bw = "bw";
 
   public static final String BEGINS = "BEGINS";
 
-  public static final String BIT_VECTOR = "BIT_VECTOR";
+  public static final String BIT_VECTOR_ACCESS = "BIT_VECTOR_ACCESS";
+
+  public static final String BIT_VECTOR_READ = "BIT_VECTOR_READ";
+
+  public static final String BIT_VECTOR_WRITE = "BIT_VECTOR_WRITE";
 
   public static final String _break = "break";
 

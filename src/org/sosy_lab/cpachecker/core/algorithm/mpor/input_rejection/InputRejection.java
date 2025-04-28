@@ -103,17 +103,18 @@ public class InputRejection {
 
   /** Checks if the options specified by the user are valid i.e. non-conflicting. */
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (pOptions.porBitVector && pOptions.porBitVectorReadWrite) {
+    if (pOptions.porBitVectorAccess && pOptions.porBitVectorReadWrite) {
       pLogger.log(
           Level.SEVERE,
           "porBitVector and porBitVectorReadWrite cannot be enabled at the same time, disable"
               + " either or both.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }
-    if (pOptions.porBitVector && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+    if (pOptions.porBitVectorAccess
+        && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,
-          "porBitVector is enabled, but porBitVectorEncoding is not set. Either disable"
+          "porBitVectorAccess is enabled, but porBitVectorEncoding is not set. Either disable"
               + " porBitVector or specify porBitVectorEncoding.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }
@@ -121,7 +122,7 @@ public class InputRejection {
         && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,
-          "porBitVector is enabled, but porBitVectorEncoding is not set. Either disable"
+          "porBitVectorReadWrite is enabled, but porBitVectorEncoding is not set. Either disable"
               + " porBitVector or specify porBitVectorEncoding.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }

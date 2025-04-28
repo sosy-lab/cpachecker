@@ -33,7 +33,7 @@ public class PartialOrderReducer {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.porConcat && pOptions.porBitVector) {
+    if (pOptions.porConcat && pOptions.porBitVectorAccess) {
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat =
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
       return BitVectorInjector.inject(

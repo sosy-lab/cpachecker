@@ -86,7 +86,7 @@ public class BitVectorUtil {
 
   // Vector Length =================================================================================
 
-  public static BitVectorDataType getTypeByLength(int pLength) {
+  public static BitVectorDataType getDataTypeByLength(int pLength) {
     for (BitVectorDataType type : BitVectorDataType.values()) {
       if (type.size == pLength) {
         return type;
@@ -132,18 +132,37 @@ public class BitVectorUtil {
   // Scalar ========================================================================================
 
   public static CIdExpression createScalarAccessVariable(
-      MPOROptions pOptions, MPORThread pThread, CVariableDeclaration pVariableDeclaration) {
+      MPOROptions pOptions,
+      MPORThread pThread,
+      CVariableDeclaration pVariableDeclaration,
+      BitVectorAccessType pAccessType) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     // we use the original variable name here, not the substitute -> less code
     String name =
-        SeqNameUtil.buildBitVectorScalarAccessVariableName(
-            pOptions, pThread.id, pVariableDeclaration);
+        getBitVectorScalarVariableNameByAccessType(
+            pOptions, pThread.id, pVariableDeclaration, pAccessType);
     // TODO initializer? would be best to adjust to 0/1 directly here, if possible
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
             true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);
     return SeqExpressionBuilder.buildIdExpression(declaration);
+  }
+
+  private static String getBitVectorScalarVariableNameByAccessType(
+      MPOROptions pOptions,
+      int pThreadId,
+      CVariableDeclaration pDeclaration,
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case ACCESS ->
+          SeqNameUtil.buildBitVectorScalarAccessVariableName(pOptions, pThreadId, pDeclaration);
+      case READ ->
+          SeqNameUtil.buildBitVectorScalarReadVariableName(pOptions, pThreadId, pDeclaration);
+      case WRITE ->
+          SeqNameUtil.buildBitVectorScalarWriteVariableName(pOptions, pThreadId, pDeclaration);
+    };
   }
 
   // Helpers =======================================================================================

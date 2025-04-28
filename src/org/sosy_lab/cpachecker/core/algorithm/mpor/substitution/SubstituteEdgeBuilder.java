@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -53,7 +54,7 @@ public class SubstituteEdgeBuilder {
               threadEdge,
               substitute.isPresent()
                   ? substitute.orElseThrow()
-                  : new SubstituteEdge(cfaEdge, ImmutableList.of(), ImmutableList.of()));
+                  : new SubstituteEdge(cfaEdge, ImmutableSet.of(), ImmutableSet.of()));
         }
       }
     }
@@ -86,14 +87,14 @@ public class SubstituteEdgeBuilder {
           return Optional.of(
               new SubstituteEdge(
                   substituteDeclarationEdge(declarationEdge, variableDeclaration),
-                  ImmutableList.of(),
-                  ImmutableList.of()));
+                  ImmutableSet.of(),
+                  ImmutableSet.of()));
         }
       }
 
     } else if (cfaEdge instanceof CAssumeEdge assume) {
-      ImmutableList.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableList.builder();
-      ImmutableList.Builder<CVariableDeclaration> globalVariables = ImmutableList.builder();
+      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
       CExpression substituteAssumption =
           pSubstitution.substitute(
               assume.getExpression(),
@@ -108,8 +109,8 @@ public class SubstituteEdgeBuilder {
               globalVariables.build()));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
-      ImmutableList.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableList.builder();
-      ImmutableList.Builder<CVariableDeclaration> globalVariables = ImmutableList.builder();
+      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
       CStatement substituteStatement =
           pSubstitution.substitute(
               statement.getStatement(),
@@ -125,9 +126,8 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
-        ImmutableList.Builder<CVariableDeclaration> writtenGlobalVariables =
-            ImmutableList.builder();
-        ImmutableList.Builder<CVariableDeclaration> globalVariables = ImmutableList.builder();
+        ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
+        ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
         CStatement substituteAssignment =
             pSubstitution.substitute(
                 assignment,
@@ -143,8 +143,8 @@ public class SubstituteEdgeBuilder {
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
-      ImmutableList.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableList.builder();
-      ImmutableList.Builder<CVariableDeclaration> globalVariables = ImmutableList.builder();
+      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(
               functionCall.getFunctionCall(),
@@ -158,8 +158,8 @@ public class SubstituteEdgeBuilder {
               globalVariables.build()));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
-      ImmutableList.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableList.builder();
-      ImmutableList.Builder<CVariableDeclaration> globalVariables = ImmutableList.builder();
+      ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CVariableDeclaration> globalVariables = ImmutableSet.builder();
       CReturnStatement substituteReturnStatement =
           pSubstitution.substitute(
               returnStatement.getReturnStatement(),

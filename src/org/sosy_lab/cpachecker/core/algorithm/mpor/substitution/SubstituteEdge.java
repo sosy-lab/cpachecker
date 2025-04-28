@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -17,10 +18,12 @@ public class SubstituteEdge {
 
   public final CFAEdge cfaEdge;
 
-  public final ImmutableList<CVariableDeclaration> writtenGlobalVariables;
-
   /** The list of global variable declarations that this edge accesses. */
-  public final ImmutableList<CVariableDeclaration> globalVariables;
+  public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
+
+  public final ImmutableSet<CVariableDeclaration> readGlobalVariables;
+
+  public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
 
   // TODO parameters are a bit trickier due to passed on parameters
   /** The list of parameters pointing to global variable declarations that this edge accesses. */
@@ -28,11 +31,13 @@ public class SubstituteEdge {
 
   public SubstituteEdge(
       CFAEdge pCfaEdge,
-      ImmutableList<CVariableDeclaration> pWrittenGlobalVariables,
-      ImmutableList<CVariableDeclaration> pGlobalVariables) {
+      ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
+      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
 
     cfaEdge = pCfaEdge;
     writtenGlobalVariables = pWrittenGlobalVariables;
-    globalVariables = pGlobalVariables;
+    accessedGlobalVariables = pAccessedGlobalVariables;
+    readGlobalVariables =
+        Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
   }
 }
