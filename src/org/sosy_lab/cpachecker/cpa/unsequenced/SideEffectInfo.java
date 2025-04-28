@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -50,13 +51,14 @@ public class SideEffectInfo {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(o instanceof SideEffectInfo other)) {
+    if (pOther == null || getClass() != pOther.getClass()) {
       return false;
     }
+    SideEffectInfo other = (SideEffectInfo) pOther;
     return Objects.equals(memoryLocation, other.memoryLocation)
         && accessType == other.accessType
         && Objects.equals(cfaEdge, other.cfaEdge);

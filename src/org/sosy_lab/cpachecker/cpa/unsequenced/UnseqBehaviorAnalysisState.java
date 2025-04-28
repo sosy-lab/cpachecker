@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -101,19 +102,21 @@ public class UnseqBehaviorAnalysisState
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(o instanceof UnseqBehaviorAnalysisState other)) {
+    if (pOther == null || getClass() != pOther.getClass()) {
       return false;
     }
+    UnseqBehaviorAnalysisState other = (UnseqBehaviorAnalysisState) pOther;
     return isFunctionCalled == other.isFunctionCalled
         && Objects.equals(calledFunctionName, other.calledFunctionName)
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
         && Objects.equals(detectedConflicts, other.detectedConflicts)
         && Objects.equals(tmpToOriginalExprMap, other.tmpToOriginalExprMap);
   }
+
 
   @Override
   public int hashCode() {

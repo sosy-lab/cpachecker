@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class ConflictPair {
@@ -54,13 +55,14 @@ public class ConflictPair {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
+  public boolean equals(@Nullable Object pOther) {
+    if (this == pOther) {
       return true;
     }
-    if (!(obj instanceof ConflictPair other)) {
+    if (pOther == null || getClass() != pOther.getClass()) {
       return false;
     }
+    ConflictPair other = (ConflictPair) pOther;
     return Objects.equals(location, other.location)
         && Objects.equals(accessA, other.accessA)
         && Objects.equals(accessB, other.accessB);
