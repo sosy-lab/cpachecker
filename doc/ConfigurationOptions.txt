@@ -293,7 +293,7 @@ analysis.algorithm.MPOR.porBitVectorEncoding = NONE
 # add partial order reduction (bit vectors storing global variable) in the
 # sequentialization to reduce the state space? distinguishing between global
 # variable reads and writes, not just accesses, reduces the state space more.
-analysis.algorithm.MPOR.porBitVectorReductionType = NONE
+analysis.algorithm.MPOR.porBitVectorReduction = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # add partial order reduction (grouping commuting statements) in the

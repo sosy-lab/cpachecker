@@ -44,8 +44,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReadVariable;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables.ScalarBitVectorAccessVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables.ScalarBitVectorVariables;
@@ -73,16 +74,16 @@ public class GhostVariableUtil {
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
+    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)) {
       // collect all global variables accessed in substitute edges, and assign unique ids
       ImmutableList<CVariableDeclaration> allGlobalVariables =
           SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
       ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
           assignGlobalVariableIds(allGlobalVariables);
 
-      if (pOptions.porBitVectorReductionType.equals(BitVectorReductionType.ACCESS_ONLY)) {
+      if (pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
         // create bit vector access variables for all threads, e.g. __uint8_t ba0
-        Optional<ImmutableSet<BitVectorAccessVariable>> bitVectorAccessVariables =
+        Optional<ImmutableSet<BitVectorVariable>> bitVectorAccessVariables =
             buildBitVectorAccessVariables(pOptions, pThreads);
         // create access variables for all global variables for all threads (for scalar bit vectors)
         Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
@@ -101,9 +102,9 @@ public class GhostVariableUtil {
 
       } else {
         // create bit vector read + write variables for all threads, e.g. __uint8_t br0, bw0
-        Optional<ImmutableSet<BitVectorReadVariable>> bitVectorReadVariables =
+        Optional<ImmutableSet<BitVectorVariable>> bitVectorReadVariables =
             buildBitVectorReadVariables(pOptions, pThreads);
-        Optional<ImmutableSet<BitVectorWriteVariable>> bitVectorWriteVariables =
+        Optional<ImmutableSet<BitVectorVariable>> bitVectorWriteVariables =
             buildBitVectorWriteVariables(pOptions, pThreads);
         // create read + write variables (for scalar bit vectors)
         Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
@@ -116,7 +117,7 @@ public class GhostVariableUtil {
                     pOptions, pThreads, allGlobalVariables, BitVectorAccessType.WRITE);
         return Optional.of(
             new BitVectorVariables(
-                ImmutableMap.of(),
+                globalVariableIds,
                 Optional.empty(),
                 Optional.empty(),
                 bitVectorReadVariables,
@@ -142,13 +143,13 @@ public class GhostVariableUtil {
 
   // Bit Vector Access =============================================================================
 
-  private static Optional<ImmutableSet<BitVectorAccessVariable>> buildBitVectorAccessVariables(
+  private static Optional<ImmutableSet<BitVectorVariable>> buildBitVectorAccessVariables(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
-    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.ACCESS_ONLY)) {
+    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
       return Optional.empty();
     }
-    ImmutableSet.Builder<BitVectorAccessVariable> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<BitVectorVariable> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
       String name = SeqNameUtil.buildBitVectorAccessName(pOptions, thread.id);
       // this declaration is not actually used, we only need it for the CIdExpression
@@ -198,13 +199,13 @@ public class GhostVariableUtil {
 
   // Bit Vector Read/Write =========================================================================
 
-  private static Optional<ImmutableSet<BitVectorReadVariable>> buildBitVectorReadVariables(
+  private static Optional<ImmutableSet<BitVectorVariable>> buildBitVectorReadVariables(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       return Optional.empty();
     }
-    ImmutableSet.Builder<BitVectorReadVariable> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<BitVectorVariable> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
       String readName = SeqNameUtil.buildBitVectorReadName(pOptions, thread.id);
       // this declaration is not actually used, we only need it for the CIdExpression
@@ -218,13 +219,13 @@ public class GhostVariableUtil {
     return Optional.of(rBitVectors.build());
   }
 
-  private static Optional<ImmutableSet<BitVectorWriteVariable>> buildBitVectorWriteVariables(
+  private static Optional<ImmutableSet<BitVectorVariable>> buildBitVectorWriteVariables(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       return Optional.empty();
     }
-    ImmutableSet.Builder<BitVectorWriteVariable> rBitVectors = ImmutableSet.builder();
+    ImmutableSet.Builder<BitVectorVariable> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
       String writeName = SeqNameUtil.buildBitVectorWriteName(pOptions, thread.id);
       // this declaration is not actually used, we only need it for the CIdExpression

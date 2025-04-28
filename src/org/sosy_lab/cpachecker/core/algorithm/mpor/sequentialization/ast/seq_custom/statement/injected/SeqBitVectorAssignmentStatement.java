@@ -9,15 +9,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected;
 
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqBitVectorAssignmentStatement implements SeqInjectedStatement {
-  private final CIdExpression variable;
+  private final CExpression variable;
   public final BitVectorExpression value;
 
-  public SeqBitVectorAssignmentStatement(CIdExpression pVariable, BitVectorExpression pValue) {
+  public SeqBitVectorAssignmentStatement(CExpression pVariable, BitVectorExpression pValue) {
     variable = pVariable;
     value = pValue;
   }

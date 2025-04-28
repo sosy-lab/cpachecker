@@ -23,14 +23,14 @@ public class BitVectorVariables {
 
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
-  public final Optional<ImmutableSet<BitVectorAccessVariable>> bitVectorAccessVariables;
+  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorAccessVariables;
 
   public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
       scalarBitVectorAccessVariables;
 
-  public final Optional<ImmutableSet<BitVectorReadVariable>> bitVectorReadVariables;
+  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorReadVariables;
 
-  public final Optional<ImmutableSet<BitVectorWriteVariable>> bitVectorWriteVariables;
+  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorWriteVariables;
 
   public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
       scalarBitVectorReadVariables;
@@ -40,11 +40,11 @@ public class BitVectorVariables {
 
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
-      Optional<ImmutableSet<BitVectorAccessVariable>> pBitVectors,
+      Optional<ImmutableSet<BitVectorVariable>> pBitVectors,
       Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
           pScalarBitVectorVariables,
-      Optional<ImmutableSet<BitVectorReadVariable>> pBitVectorReadVariables,
-      Optional<ImmutableSet<BitVectorWriteVariable>> pBitVectorWriteVariables,
+      Optional<ImmutableSet<BitVectorVariable>> pBitVectorReadVariables,
+      Optional<ImmutableSet<BitVectorVariable>> pBitVectorWriteVariables,
       Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
           pScalarBitVectorReadVariables,
       Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
@@ -60,30 +60,46 @@ public class BitVectorVariables {
     scalarBitVectorWriteVariables = pScalarBitVectorWriteVariables;
   }
 
-  public CIdExpression getBitVectorExpressionByThread(MPORThread pThread) {
-    for (BitVectorAccessVariable accessVariable : bitVectorAccessVariables.orElseThrow()) {
-      if (accessVariable.thread.equals(pThread)) {
-        return accessVariable.getIdExpression();
+  public CExpression getBitVectorVariableByAccessType(
+      BitVectorAccessType pAccessType, MPORThread pThread) {
+
+    for (BitVectorVariable variable : getBitVectorVariablesByAccessType(pAccessType)) {
+      if (variable.getThread().equals(pThread)) {
+        return variable.getExpression();
       }
     }
     throw new IllegalArgumentException("could not find pThread");
   }
 
-  public ImmutableSet<CExpression> getOtherBitVectorExpressions(CIdExpression pBitVector) {
-    ImmutableSet.Builder<CExpression> rExpressions = ImmutableSet.builder();
-    for (BitVectorAccessVariable accessVariable : bitVectorAccessVariables.orElseThrow()) {
-      CIdExpression idExpression = accessVariable.getIdExpression();
-      if (!idExpression.equals(pBitVector)) {
-        rExpressions.add(idExpression);
+  // TODO CIdExpression?
+  public ImmutableSet<CExpression> getOtherBitVectorVariablesByAccessType(
+      BitVectorAccessType pAccessType, MPORThread pThread) {
+
+    ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
+    for (BitVectorVariable variable : getBitVectorVariablesByAccessType(pAccessType)) {
+      if (!variable.getThread().equals(pThread)) {
+        rVariables.add(variable.getExpression());
       }
     }
-    return rExpressions.build(); // this can also be empty, if there is only one global variable
+    return rVariables.build();
+  }
+
+  private ImmutableSet<BitVectorVariable> getBitVectorVariablesByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> ImmutableSet.of();
+      case ACCESS -> bitVectorAccessVariables.orElseThrow();
+      case READ -> bitVectorReadVariables.orElseThrow();
+      case WRITE -> bitVectorWriteVariables.orElseThrow();
+    };
   }
 
   public ImmutableSet<BitVectorVariable> getAllBitVectorVariables() {
     ImmutableSet.Builder<BitVectorVariable> rAll = ImmutableSet.builder();
     if (bitVectorAccessVariables.isPresent()) {
-      assert scalarBitVectorAccessVariables.isEmpty();
+      // TODO ensure only either is present
+      // assert scalarBitVectorAccessVariables.isEmpty();
       rAll.addAll(bitVectorAccessVariables.orElseThrow());
     } else if (bitVectorReadVariables.isPresent()) {
       assert bitVectorWriteVariables.isPresent();

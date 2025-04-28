@@ -51,18 +51,18 @@ public class BitVectorUtil {
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
       @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
-      @NonNull ImmutableList<CVariableDeclaration> pAccessedVariables) {
+      @NonNull ImmutableList<CVariableDeclaration> pVariables) {
 
     checkArgument(
         !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
         "no bit vector encoding specified");
     checkArgument(
-        pAllVariables.keySet().containsAll(pAccessedVariables),
-        "pAllVariables must contain all pAccessedVariables as keys.");
+        pAllVariables.keySet().containsAll(pVariables),
+        "pAllVariables must contain all pVariables as keys.");
 
-    // retrieve all variable ids from pAllVariables that are in pAccessedVariables
+    // retrieve all variable ids from pAllVariables that are in pVariables
     ImmutableSet<Integer> setBits =
-        pAccessedVariables.stream()
+        pVariables.stream()
             .map(pAllVariables::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());

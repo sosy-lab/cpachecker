@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorAccessVariable implements BitVectorVariable {
 
-  public final MPORThread thread;
+  private final MPORThread thread;
 
   private final CIdExpression idExpression;
 
@@ -28,7 +28,7 @@ public class BitVectorAccessVariable implements BitVectorVariable {
   }
 
   @Override
-  public CIdExpression getIdExpression() {
+  public CIdExpression getExpression() {
     return idExpression;
   }
 }

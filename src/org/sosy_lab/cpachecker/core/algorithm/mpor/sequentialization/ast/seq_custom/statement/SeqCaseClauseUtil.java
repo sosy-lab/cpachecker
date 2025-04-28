@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -75,7 +75,7 @@ public class SeqCaseClauseUtil {
   }
 
   public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByReductionType(
-      SeqCaseClause pCaseClause, BitVectorReductionType pReductionType) {
+      SeqCaseClause pCaseClause, BitVectorReduction pReductionType) {
 
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
     switch (pReductionType) {

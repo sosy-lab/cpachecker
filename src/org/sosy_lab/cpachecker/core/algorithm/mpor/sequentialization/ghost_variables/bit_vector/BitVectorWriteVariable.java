@@ -13,9 +13,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorWriteVariable implements BitVectorVariable {
 
-  public final MPORThread thread;
+  private final MPORThread thread;
 
-  public final CIdExpression idExpression;
+  private final CIdExpression idExpression;
 
   public BitVectorWriteVariable(MPORThread pThread, CIdExpression pIdExpression) {
     thread = pThread;
@@ -28,7 +28,7 @@ public class BitVectorWriteVariable implements BitVectorVariable {
   }
 
   @Override
-  public CIdExpression getIdExpression() {
+  public CIdExpression getExpression() {
     return idExpression;
   }
 }

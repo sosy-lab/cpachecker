@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -30,17 +31,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class BitVectorInjector {
+class BitVectorReadWriteReducer {
 
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> inject(
+  protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduce(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
@@ -52,7 +54,7 @@ class BitVectorInjector {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       BitVectorEvaluationExpression bitVectorEvaluation =
-          SeqExpressionBuilder.buildBitVectorEvaluationByEncoding(
+          SeqExpressionBuilder.buildBitVectorReadWriteEvaluationByEncoding(
               pOptions.porBitVectorEncoding, thread, pBitVectorVariables, pBinaryExpressionBuilder);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
@@ -140,12 +142,11 @@ class BitVectorInjector {
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
-        // TODO read-write
-        ImmutableList<CVariableDeclaration> accessedVariables =
+        ImmutableList<CVariableDeclaration> readWriteVariables =
             SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
-                newTarget, BitVectorReductionType.ACCESS_ONLY);
+                newTarget, BitVectorReduction.READ_AND_WRITE);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
+            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, readWriteVariables);
         newInjected.addAll(bitVectorAssignments);
         Optional<SeqBitVectorEvaluationStatement> evaluation =
             buildBitVectorEvaluationStatements(
@@ -168,8 +169,7 @@ class BitVectorInjector {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry :
-          pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables =
             entry.getValue().getIdExpressions();
         boolean value = pAccessedVariables.contains(entry.getKey());
@@ -179,11 +179,13 @@ class BitVectorInjector {
                 accessVariables.get(pThread), scalarBitVectorExpression));
       }
     } else {
-      CIdExpression bitVectorVariable = pBitVectorVariables.getBitVectorExpressionByThread(pThread);
+      CExpression readBitVectorVariable =
+          pBitVectorVariables.getBitVectorVariableByAccessType(BitVectorAccessType.READ, pThread);
       BitVectorExpression bitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);
-      rStatements.add(new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression));
+      rStatements.add(
+          new SeqBitVectorAssignmentStatement(readBitVectorVariable, bitVectorExpression));
     }
     return rStatements.build();
   }

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
-public enum BitVectorReductionType {
+public enum BitVectorReduction {
   NONE,
   ACCESS_ONLY,
   READ_AND_WRITE

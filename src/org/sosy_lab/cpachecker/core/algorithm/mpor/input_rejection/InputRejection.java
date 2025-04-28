@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
@@ -104,7 +104,7 @@ public class InputRejection {
 
   /** Checks if the options specified by the user are valid i.e. non-conflicting. */
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)
+    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)
         && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,

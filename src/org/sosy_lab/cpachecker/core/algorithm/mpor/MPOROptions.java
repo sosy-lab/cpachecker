@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 
 /**
  * For better overview so that not all {@link Option}s passed to {@code analysis.algorithm.MPOR}
@@ -45,7 +45,7 @@ public class MPOROptions {
 
   public final boolean porConcat;
 
-  public final BitVectorReductionType porBitVectorReductionType;
+  public final BitVectorReduction porBitVectorReduction;
 
   public final BitVectorEncoding porBitVectorEncoding;
 
@@ -77,7 +77,7 @@ public class MPOROptions {
       String pOutputPath,
       boolean pOverwriteFiles,
       boolean pPorConcat,
-      BitVectorReductionType pPorBitVectorReductionType,
+      BitVectorReduction pPorBitVectorReduction,
       BitVectorEncoding pPorBitVectorEncoding,
       boolean pPruneEmpty,
       boolean pScalarPc,
@@ -106,7 +106,7 @@ public class MPOROptions {
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
     porConcat = pPorConcat;
-    porBitVectorReductionType = pPorBitVectorReductionType;
+    porBitVectorReduction = pPorBitVectorReduction;
     porBitVectorEncoding = pPorBitVectorEncoding;
     pruneEmpty = pPruneEmpty;
     scalarPc = pScalarPc;
@@ -125,7 +125,7 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pPorConcat,
-      BitVectorReductionType pPorBitVectorReductionType,
+      BitVectorReduction pPorBitVectorReduction,
       BitVectorEncoding pPorBitVectorEncoding,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -146,7 +146,7 @@ public class MPOROptions {
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
         pPorConcat,
-        pPorBitVectorReductionType,
+        pPorBitVectorReduction,
         pPorBitVectorEncoding,
         // always prune empty, disabling is only for debugging, not for release
         true,
@@ -194,18 +194,18 @@ public class MPOROptions {
 
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   protected void handleOptionWarnings(LogManager pLogger) {
-    if (!porConcat && !porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
+    if (!porConcat && !porBitVectorReduction.equals(BitVectorReduction.NONE)) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorAccessType is only considered with porConcat"
-              + " enabled. Either enable porConcat or set porBitVectorAccessType.");
+          "WARNING: porBitVectorReduction is only considered with porConcat "
+              + " enabled. Either enable porConcat or set porBitVectorReduction to NONE.");
     }
-    if (porBitVectorReductionType.equals(BitVectorReductionType.NONE)
+    if (porBitVectorReduction.equals(BitVectorReduction.NONE)
         && !porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorEncoding is not NONE, but both porBitVectorAccessType is NONE."
-              + " Either set porBitVectorAccessType  or set porBitVectorEncoding to NONE.");
+          "WARNING: porBitVectorEncoding is only considered when porBitVectorReduction is not NONE."
+              + " Either set porBitVectorEncoding to NONE or set porBitVectorReduction.");
     }
     if (!threadLoops && threadLoopsNext) {
       pLogger.log(

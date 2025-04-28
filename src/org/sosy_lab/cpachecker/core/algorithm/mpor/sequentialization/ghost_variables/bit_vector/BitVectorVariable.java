@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public interface BitVectorVariable {
   MPORThread getThread();
 
-  CIdExpression getIdExpression();
+  CExpression getExpression();
 }

@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -97,7 +100,9 @@ public class SeqExpressionBuilder {
         BinaryOperator.NOT_EQUALS);
   }
 
-  public static BitVectorEvaluationExpression buildBitVectorEvaluationByEncoding(
+  // Bit Vector Access Reduction ===================================================================
+
+  public static BitVectorEvaluationExpression buildBitVectorAccessEvaluationByEncoding(
       BitVectorEncoding pEncoding,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables,
@@ -107,11 +112,14 @@ public class SeqExpressionBuilder {
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
-        CIdExpression bitVector = pBitVectorVariables.getBitVectorExpressionByThread(pActiveThread);
+        CExpression bitVector =
+            pBitVectorVariables.getBitVectorVariableByAccessType(
+                BitVectorAccessType.ACCESS, pActiveThread);
         ImmutableSet<CExpression> otherBitVectors =
-            pBitVectorVariables.getOtherBitVectorExpressions(bitVector);
+            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+                BitVectorAccessType.ACCESS, pActiveThread);
         CBinaryExpression binaryExpression =
-            SeqExpressionBuilder.buildBitVectorEvaluation(
+            SeqExpressionBuilder.buildBitVectorAccessEvaluation(
                 bitVector, otherBitVectors, pBinaryExpressionBuilder);
         yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
       }
@@ -123,8 +131,8 @@ public class SeqExpressionBuilder {
     };
   }
 
-  private static CBinaryExpression buildBitVectorEvaluation(
-      CIdExpression pActiveBitVector,
+  private static CBinaryExpression buildBitVectorAccessEvaluation(
+      CExpression pActiveBitVector,
       // TODO make list
       ImmutableSet<CExpression> pOtherBitVectors,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -137,6 +145,45 @@ public class SeqExpressionBuilder {
         nestBinaryExpressions(pOtherBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
+  }
+
+  private static CBinaryExpression buildBitVectorReadWriteEvaluation(
+      CExpression pActiveReadBitVector,
+      CExpression pActiveWriteBitVector,
+      // TODO make list
+      ImmutableSet<CExpression> pOtherReadBitVectors,
+      ImmutableSet<CExpression> pOtherWriteBitVectors,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pOtherReadBitVectors.isEmpty() && !pOtherWriteBitVectors.isEmpty());
+    checkArgument(!pOtherReadBitVectors.contains(pActiveReadBitVector));
+    checkArgument(!pOtherWriteBitVectors.contains(pActiveWriteBitVector));
+
+    CExpression otherWrites =
+        nestBinaryExpressions(
+            pOtherWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
+        ImmutableSet.<CExpression>builder()
+            .addAll(pOtherReadBitVectors)
+            .addAll(pOtherWriteBitVectors)
+            .build();
+    CExpression otherReadsAndWrites =
+        nestBinaryExpressions(
+            otherReadAndWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+    // (R & (W' | W'' | ...))
+    CExpression leftHandSide =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
+    // (W & (R' | R'' | ... | W' | W''))
+    CExpression rightHandSide =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        // we binary negate both bit vectors with ~
+        buildUnaryTildeExpression(leftHandSide),
+        buildUnaryTildeExpression(rightHandSide),
+        BinaryOperator.BINARY_AND);
   }
 
   private static Optional<SeqExpression> buildScalarBitVectorEvaluation(
@@ -164,6 +211,49 @@ public class SeqExpressionBuilder {
     }
     return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
   }
+
+  // Bit Vector Read/Write Reduction ===============================================================
+
+  public static BitVectorEvaluationExpression buildBitVectorReadWriteEvaluationByEncoding(
+      BitVectorEncoding pEncoding,
+      MPORThread pActiveThread,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pEncoding) {
+      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
+      case BINARY, HEXADECIMAL -> {
+        CExpression readBitVector =
+            pBitVectorVariables.getBitVectorVariableByAccessType(
+                BitVectorAccessType.READ, pActiveThread);
+        CExpression writeBitVector =
+            pBitVectorVariables.getBitVectorVariableByAccessType(
+                BitVectorAccessType.WRITE, pActiveThread);
+        ImmutableSet<CExpression> otherReadBitVectors =
+            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+                BitVectorAccessType.READ, pActiveThread);
+        ImmutableSet<CExpression> otherWriteBitVectors =
+            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+                BitVectorAccessType.WRITE, pActiveThread);
+        CBinaryExpression binaryExpression =
+            SeqExpressionBuilder.buildBitVectorReadWriteEvaluation(
+                readBitVector,
+                writeBitVector,
+                otherReadBitVectors,
+                otherWriteBitVectors,
+                pBinaryExpressionBuilder);
+        yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
+      }
+      case SCALAR -> {
+        Optional<SeqExpression> seqExpression =
+            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables);
+        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
+      }
+    };
+  }
+
+  // Binary Expression Helpers =====================================================================
 
   private static CExpression nestBinaryExpressions(
       ImmutableCollection<CExpression> pAllExpressions,
@@ -289,5 +379,13 @@ public class SeqExpressionBuilder {
 
   public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
     return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
+  }
+
+  // CUnaryExpression ==============================================================================
+
+  public static CUnaryExpression buildUnaryTildeExpression(CExpression pOperand) {
+    // TODO use the actual type here later, though it doesnt really matter
+    return new CUnaryExpression(
+        FileLocation.DUMMY, SeqSimpleType.UNSIGNED_CHAR, pOperand, UnaryOperator.TILDE);
   }
 }

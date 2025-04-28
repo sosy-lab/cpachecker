@@ -62,7 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -157,7 +157,7 @@ public class SeqMainFunction extends SeqFunction {
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    if (pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
+    if (pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)) {
       return ImmutableList.of();
     }
     return switch (pOptions.porBitVectorEncoding) {
@@ -185,12 +185,12 @@ public class SeqMainFunction extends SeqFunction {
       SeqCaseClause firstCase = Objects.requireNonNull(pCaseClauses.get(thread)).get(0);
       ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
-              firstCase, pOptions.porBitVectorReductionType);
+              firstCase, pOptions.porBitVectorReduction);
       BitVectorExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
               options, pBitVectorVariables.globalVariableIds, firstCaseGlobalVariables);
       SeqBitVectorDeclaration declaration =
-          new SeqBitVectorDeclaration(type, bitVectorVariable.getIdExpression(), initializer);
+          new SeqBitVectorDeclaration(type, bitVectorVariable.getExpression(), initializer);
       rDeclarations.add(declaration);
     }
     return rDeclarations.build();
@@ -208,7 +208,7 @@ public class SeqMainFunction extends SeqFunction {
       SeqCaseClause firstCase = Objects.requireNonNull(entryA.getValue()).get(0);
       ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
-              firstCase, pOptions.porBitVectorReductionType);
+              firstCase, pOptions.porBitVectorReduction);
       for (var entryB : pScalarBitVectorAccessVariables.entries()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables =
             entryB.getValue().getIdExpressions();
@@ -369,7 +369,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // if enabled: bit vectors (for partial order reductions)
-    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
+    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
         rVariableDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
       }
@@ -631,8 +631,7 @@ public class SeqMainFunction extends SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)
-          && pOptions.porConcat) {
+      if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE) && pOptions.porConcat) {
         SeqThreadLoopLabelStatement switchLabel =
             new SeqThreadLoopLabelStatement(
                 SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
