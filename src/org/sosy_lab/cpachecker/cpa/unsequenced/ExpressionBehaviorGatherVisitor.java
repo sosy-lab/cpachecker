@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -65,11 +67,10 @@ public class ExpressionBehaviorGatherVisitor
   public ExpressionAnalysisSummary visit(CIdExpression idExpr) throws UnrecognizedCodeException {
     String varName = idExpr.getDeclaration().getQualifiedName();
 
-    // 1. Check if this is a TMP variable mapped to original expression
+    // 1. Check if this is a TMP variable mapped to the original expression
     CRightHandSide originalExpr = state.getFunctionForTmp(varName);
     if (originalExpr != null) {
       ExpressionAnalysisSummary resolvedSummary = originalExpr.accept(this);
-      resolvedSummary.setOriginalExpressionStr(originalExpr.toQualifiedASTString());
       return resolvedSummary;
     }
 
@@ -97,8 +98,21 @@ public class ExpressionBehaviorGatherVisitor
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
     Map<String, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
+    StringBuilder reconstructedCall = new StringBuilder();
 
     CExpression funcExpr = funCallExpr.getFunctionNameExpression();
+
+    // Gather side effects for each function parameter
+    List<String> reconstructedArguments = new ArrayList<>();
+    for (CExpression param : funCallExpr.getParameterExpressions()) {
+      ExpressionAnalysisSummary paramSummary = param.accept(this);
+      Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
+      sideEffects.addAll(paramEffects);
+
+      String exprStr = getExpressionStrOrFallback(paramSummary, param);
+      sideEffectsPerSubExpr.put(exprStr, paramEffects);
+      reconstructedArguments.add(exprStr);
+    }
 
     if (isDesignator(funcExpr)) { // side effects for designator: *p(x),pf[i](x),p->f(x), p.f(x)
       ExpressionAnalysisSummary funcExprSummary = funcExpr.accept(this);
@@ -110,20 +124,15 @@ public class ExpressionBehaviorGatherVisitor
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
       }
-    }
 
-    // Gather side effects for each function parameter
-    for (CExpression param : funCallExpr.getParameterExpressions()) {
-      ExpressionAnalysisSummary paramSummary = param.accept(this);
-      Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
-      sideEffects.addAll(paramEffects);
-
-      String exprStr = getExpressionStrOrFallback(paramSummary, param);
-      sideEffectsPerSubExpr.put(exprStr, paramEffects);
+      reconstructedCall.append(functionName);
+      reconstructedCall.append("(");
+      reconstructedCall.append(String.join(", ", reconstructedArguments));
+      reconstructedCall.append(")");
     }
 
     result.addSideEffects(sideEffects);
-    result.setOriginalExpressionStr(funCallExpr.toQualifiedASTString());
+    result.setOriginalExpressionStr(reconstructedCall.toString());
     result.addSideEffectsForSubExprs(sideEffectsPerSubExpr);
     return result;
   }
