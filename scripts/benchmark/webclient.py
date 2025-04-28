@@ -1296,11 +1296,17 @@ def _handle_result(
     run_identifier,
 ):
     files = set(resultZipFile.namelist())
+    logging.debug("All files in ZIP for run %s: %s", run_identifier, sorted(files))
+    logging.debug("Output path for run %s: %s", run_identifier, output_path)
+    logging.debug("Output path exists: %s", os.path.exists(output_path))
+    logging.debug("Output path is directory: %s", os.path.isdir(output_path))
 
     # extract run info
+    run_info_values = {}
     if RESULT_FILE_RUN_INFO in files:
         with resultZipFile.open(RESULT_FILE_RUN_INFO) as runInformation:
-            return_value = handle_run_info(_parse_cloud_file(runInformation))
+            run_info_values = _parse_cloud_file(runInformation)
+            return_value = handle_run_info(run_info_values)
     else:
         return_value = None
         logging.warning("Missing result for run %s.", run_identifier)
@@ -1327,10 +1333,82 @@ def _handle_result(
     if result_files_patterns:
         result_files = set()
         for pattern in result_files_patterns:
-            result_files.update(fnmatch.filter(files, pattern))
+            matched_files = fnmatch.filter(files, pattern)
+            logging.debug(
+                "Files matching pattern '%s' for run %s: %s",
+                pattern,
+                run_identifier,
+                sorted(matched_files),
+            )
+            result_files.update(matched_files)
         result_files = result_files - SPECIAL_RESULT_FILES
+
+        # Debug logging for result files
+        logging.debug(
+            "Result files for run %s: %s", run_identifier, sorted(result_files)
+        )
+        logging.debug("Number of result files: %d", len(result_files))
+
+        # Ensure output directory exists
+        if not os.path.isdir(output_path):
+            logging.debug("Creating output directory: %s", output_path)
+            os.makedirs(output_path, exist_ok=True)
+
         if result_files:
+            logging.debug("Extracting result files to %s", output_path)
             resultZipFile.extractall(output_path, result_files)
+            logging.debug(
+                "After extraction, output path exists: %s", os.path.exists(output_path)
+            )
+            logging.debug(
+                "After extraction, output path is directory: %s",
+                os.path.isdir(output_path),
+            )
+            if os.path.isdir(output_path):
+                logging.debug(
+                    "Files in output path after extraction: %s",
+                    sorted(os.listdir(output_path)),
+                )
+
+        # Perform the file count validation
+        actual_files = os.listdir(output_path) if os.path.exists(output_path) else []
+        logging.debug(
+            "All files in result_files_folder for run %s: %s",
+            run_identifier,
+            sorted(actual_files),
+        )
+        actual_count = len(actual_files)
+
+        # Retrieve the expected count from the run information
+        if "matchedResultFilesCount" in run_info_values:
+            expected_count = int(run_info_values["matchedResultFilesCount"])
+            logging.debug(
+                "Expected result files count for run %s: %d",
+                run_identifier,
+                expected_count,
+            )
+            logging.debug(
+                "Actual result files count for run %s: %d", run_identifier, actual_count
+            )
+
+            if expected_count != actual_count:
+                logging.warning(
+                    "Number of result files received (%d) does not match the expected count (%d) for run %s.",
+                    actual_count,
+                    expected_count,
+                    run_identifier,
+                )
+            else:
+                logging.debug(
+                    "Number of result files received (%d) matches the expected count for run %s.",
+                    actual_count,
+                    run_identifier,
+                )
+        else:
+            logging.warning(
+                "'matchedResultFilesCount' not found in run info for run %s.",
+                run_identifier,
+            )
 
     return return_value
 
