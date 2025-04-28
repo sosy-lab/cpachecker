@@ -216,7 +216,7 @@ public class ConstraintsSolver {
           Optional.of(ImmutableList.of()));
     }
 
-    ProverEnvironment prover = persistentProver;
+    ProverEnvironment prover = null;
 
     try {
       stats.timeForSolving.start();
@@ -249,6 +249,7 @@ public class ConstraintsSolver {
 
           } else {
             stats.persistentProverUsed.inc();
+            prover = persistentProver;
             // def assignments are automatically applied by the persistentProver
             preparePersistentProverForCheck(constraintsAsFormulas);
           }
