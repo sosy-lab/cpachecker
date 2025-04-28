@@ -177,7 +177,7 @@ public class UnseqBehaviorAnalysisTransferRelation
     Optional<CExpression> expressionOptional = returnEdge.getExpression();
 
     if (expressionOptional.isPresent()) {
-      CExpression returnExpr = expressionOptional.get();
+      CExpression returnExpr = expressionOptional.orElseThrow();
       recordSideEffectsIfInFunctionCall(returnExpr, returnEdge, AccessType.READ, newState);
 
       if (returnExpr
