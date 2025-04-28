@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
 public class SubstituteEdge {
@@ -39,5 +40,15 @@ public class SubstituteEdge {
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
         Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
+  }
+
+  public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(
+      BitVectorAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE -> ImmutableSet.of();
+      case ACCESS -> accessedGlobalVariables;
+      case READ -> readGlobalVariables;
+      case WRITE -> writtenGlobalVariables;
+    };
   }
 }

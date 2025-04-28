@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
@@ -103,26 +104,11 @@ public class InputRejection {
 
   /** Checks if the options specified by the user are valid i.e. non-conflicting. */
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (pOptions.porBitVectorAccess && pOptions.porBitVectorReadWrite) {
-      pLogger.log(
-          Level.SEVERE,
-          "porBitVector and porBitVectorReadWrite cannot be enabled at the same time, disable"
-              + " either or both.");
-      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
-    }
-    if (pOptions.porBitVectorAccess
+    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)
         && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,
-          "porBitVectorAccess is enabled, but porBitVectorEncoding is not set. Either disable"
-              + " porBitVector or specify porBitVectorEncoding.");
-      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
-    }
-    if (pOptions.porBitVectorReadWrite
-        && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
-      pLogger.log(
-          Level.SEVERE,
-          "porBitVectorReadWrite is enabled, but porBitVectorEncoding is not set. Either disable"
+          "porBitVectorReductionType is set, but porBitVectorEncoding is not set. Either disable"
               + " porBitVector or specify porBitVectorEncoding.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }

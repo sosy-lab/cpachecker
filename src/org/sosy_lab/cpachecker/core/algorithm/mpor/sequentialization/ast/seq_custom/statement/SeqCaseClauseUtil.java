@@ -21,6 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -72,28 +74,58 @@ public class SeqCaseClauseUtil {
     return rAllStatements.build();
   }
 
-  public static ImmutableList<CVariableDeclaration> findAllGlobalVariablesInCaseClause(
-      SeqCaseClause pCaseClause) {
+  public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByReductionType(
+      SeqCaseClause pCaseClause, BitVectorReductionType pReductionType) {
+
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    for (SeqCaseBlockStatement statement : pCaseClause.block.statements) {
-      rGlobalVariables.addAll(recursivelyFindGlobalVariables(ImmutableList.builder(), statement));
+    switch (pReductionType) {
+      case NONE:
+        return ImmutableList.of();
+      case ACCESS_ONLY:
+        rGlobalVariables.addAll(
+            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.ACCESS));
+        break;
+      case READ_AND_WRITE:
+        rGlobalVariables.addAll(
+            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.READ));
+        rGlobalVariables.addAll(
+            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.WRITE));
+        break;
     }
     return rGlobalVariables.build();
   }
 
-  /** Searches {@code pStatement} and all concatenated statements for their global variables. */
-  private static ImmutableList<CVariableDeclaration> recursivelyFindGlobalVariables(
-      ImmutableList.Builder<CVariableDeclaration> pFound, SeqCaseBlockStatement pStatement) {
+  private static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByAccessType(
+      SeqCaseClause pCaseClause, BitVectorAccessType pAccessType) {
+
+    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
+    for (SeqCaseBlockStatement statement : pCaseClause.block.statements) {
+      rGlobalVariables.addAll(
+          recursivelyFindGlobalVariablesByAccessType(
+              ImmutableList.builder(), statement, pAccessType));
+    }
+    return rGlobalVariables.build();
+  }
+
+  /**
+   * Searches {@code pStatement} and all concatenated statements for their global variables based on
+   * {@code pAccessType}.
+   */
+  private static ImmutableList<CVariableDeclaration> recursivelyFindGlobalVariablesByAccessType(
+      ImmutableList.Builder<CVariableDeclaration> pFound,
+      SeqCaseBlockStatement pStatement,
+      BitVectorAccessType pAccessType) {
 
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
-      for (CVariableDeclaration variable : substituteEdge.accessedGlobalVariables) {
+      for (CVariableDeclaration variable :
+          substituteEdge.getGlobalVariablesByAccessType(pAccessType)) {
         assert variable.isGlobal();
         pFound.add(variable);
       }
     }
     if (pStatement.isConcatenable()) {
       for (SeqCaseBlockStatement concatStatement : pStatement.getConcatenatedStatements()) {
-        return recursivelyFindGlobalVariables(pFound, concatStatement);
+        return recursivelyFindGlobalVariablesByAccessType(pFound, concatStatement, pAccessType);
       }
     }
     return pFound.build();

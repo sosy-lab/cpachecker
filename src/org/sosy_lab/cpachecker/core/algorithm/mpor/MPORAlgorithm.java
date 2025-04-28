@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
@@ -109,15 +110,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "add partial order reduction (bit vectors storing global variable accesses) in the"
-              + " sequentialization to reduce the state space?")
-  private boolean porBitVectorAccess = false;
-
-  @Option(
-      description =
-          "add partial order reduction (bit vectors storing reads and writes to global variable"
-              + " access) in the sequentialization to reduce the state space?")
-  private boolean porBitVectorReadWrite = false;
+          "add partial order reduction (bit vectors storing global variable) in the"
+              + " sequentialization to reduce the state space? distinguishing between global"
+              + " variable reads and writes, not just accesses, reduces the state space more.")
+  private BitVectorReductionType porBitVectorReductionType = BitVectorReductionType.NONE;
 
   @Option(
       description =
@@ -260,8 +256,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             outputPath,
             overwriteFiles,
             porConcat,
-            porBitVectorAccess,
-            porBitVectorReadWrite,
+            porBitVectorReductionType,
             porBitVectorEncoding,
             pruneEmpty,
             scalarPc,

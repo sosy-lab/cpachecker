@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 public class InputRejectionTest {
@@ -54,8 +55,7 @@ public class InputRejectionTest {
             false,
             false,
             false,
-            false,
-            false,
+            BitVectorReductionType.NONE,
             BitVectorEncoding.NONE,
             false,
             false,

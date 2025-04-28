@@ -156,6 +156,9 @@ public class BitVectorUtil {
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot create bit vector variable name for access type none");
       case ACCESS ->
           SeqNameUtil.buildBitVectorScalarAccessVariableName(pOptions, pThreadId, pDeclaration);
       case READ ->

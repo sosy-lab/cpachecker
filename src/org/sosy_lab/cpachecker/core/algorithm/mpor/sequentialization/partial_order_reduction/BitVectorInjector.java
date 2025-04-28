@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -139,8 +140,10 @@ class BitVectorInjector {
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
+        // TODO read-write
         ImmutableList<CVariableDeclaration> accessedVariables =
-            SeqCaseClauseUtil.findAllGlobalVariablesInCaseClause(newTarget);
+            SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
+                newTarget, BitVectorReductionType.ACCESS_ONLY);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
         newInjected.addAll(bitVectorAssignments);

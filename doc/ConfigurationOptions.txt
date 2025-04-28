@@ -285,18 +285,16 @@ analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true
 
-# add partial order reduction (bit vectors storing global variable accesses)
-# in the sequentialization to reduce the state space?
-analysis.algorithm.MPOR.porBitVectorAccess = false
-
 # the encoding (binary, hex, scalar) of the partial order reduction bit
 # vectors.
 analysis.algorithm.MPOR.porBitVectorEncoding = NONE
   enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
 
-# add partial order reduction (bit vectors storing reads and writes to global
-# variable access) in the sequentialization to reduce the state space?
-analysis.algorithm.MPOR.porBitVectorReadWrite = false
+# add partial order reduction (bit vectors storing global variable) in the
+# sequentialization to reduce the state space? distinguishing between global
+# variable reads and writes, not just accesses, reduces the state space more.
+analysis.algorithm.MPOR.porBitVectorReductionType = NONE
+  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # add partial order reduction (grouping commuting statements) in the
 # sequentialization to reduce the state space?

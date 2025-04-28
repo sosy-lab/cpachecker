@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReadVariable;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReductionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables.ScalarBitVectorAccessVariables;
@@ -72,14 +73,14 @@ public class GhostVariableUtil {
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    if (pOptions.porBitVectorAccess || pOptions.porBitVectorReadWrite) {
+    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.NONE)) {
       // collect all global variables accessed in substitute edges, and assign unique ids
       ImmutableList<CVariableDeclaration> allGlobalVariables =
           SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
       ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
           assignGlobalVariableIds(allGlobalVariables);
 
-      if (pOptions.porBitVectorAccess) {
+      if (pOptions.porBitVectorReductionType.equals(BitVectorReductionType.ACCESS_ONLY)) {
         // create bit vector access variables for all threads, e.g. __uint8_t ba0
         Optional<ImmutableSet<BitVectorAccessVariable>> bitVectorAccessVariables =
             buildBitVectorAccessVariables(pOptions, pThreads);
@@ -144,7 +145,7 @@ public class GhostVariableUtil {
   private static Optional<ImmutableSet<BitVectorAccessVariable>> buildBitVectorAccessVariables(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
 
-    if (!pOptions.porBitVectorAccess) {
+    if (!pOptions.porBitVectorReductionType.equals(BitVectorReductionType.ACCESS_ONLY)) {
       return Optional.empty();
     }
     ImmutableSet.Builder<BitVectorAccessVariable> rBitVectors = ImmutableSet.builder();
