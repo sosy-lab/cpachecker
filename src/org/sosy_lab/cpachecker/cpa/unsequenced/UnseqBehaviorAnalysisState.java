@@ -18,7 +18,8 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable {
+public class UnseqBehaviorAnalysisState
+    implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable {
 
   private final Map<String, Set<SideEffectInfo>> sideEffectsInFun;
   private boolean isFunctionCalled;
@@ -46,7 +47,6 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
     detectedConflicts = new HashSet<>();
     tmpToOriginalExprMap = new HashMap<>();
   }
-
 
   // === Side effect management ===
   public Map<String, Set<SideEffectInfo>> getSideEffectsInFun() {
@@ -84,11 +84,11 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
   }
 
   // === TMP to expression mapping ===
-  public Map<String,  CRightHandSide> getTmpToOriginalExprMap() {
+  public Map<String, CRightHandSide> getTmpToOriginalExprMap() {
     return tmpToOriginalExprMap;
   }
 
-  public void mapTmpToFunction(String tmpVar,  CRightHandSide function) {
+  public void mapTmpToFunction(String tmpVar, CRightHandSide function) {
     tmpToOriginalExprMap.put(tmpVar, function);
   }
 
@@ -165,31 +165,36 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
     UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState();
 
     for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
-      newState.getSideEffectsInFun()
-          .put(entry.getKey(), new HashSet<>(entry.getValue()));
+      newState.getSideEffectsInFun().put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
     for (Map.Entry<String, Set<SideEffectInfo>> entry : other.getSideEffectsInFun().entrySet()) {
-      newState.getSideEffectsInFun()
-          .merge(entry.getKey(), new HashSet<>(entry.getValue()), (oldSet, newSet) -> {
-            oldSet.addAll(newSet);
-            return oldSet;
-          });
+      newState
+          .getSideEffectsInFun()
+          .merge(
+              entry.getKey(),
+              new HashSet<>(entry.getValue()),
+              (oldSet, newSet) -> {
+                oldSet.addAll(newSet);
+                return oldSet;
+              });
     }
 
     for (Map.Entry<String, CRightHandSide> entry : this.getTmpToOriginalExprMap().entrySet()) {
       newState.getTmpToOriginalExprMap().put(entry.getKey(), entry.getValue());
     }
     for (Map.Entry<String, CRightHandSide> entry : other.getTmpToOriginalExprMap().entrySet()) {
-      newState.getTmpToOriginalExprMap().merge(
-          entry.getKey(),
-          entry.getValue(),
-          (v1, v2) -> {
-            if (!v1.equals(v2)) {
-              throw new IllegalStateException("Conflicting tmp mappings during join: " + v1 + " vs " + v2);
-            }
-            return v1;
-          }
-      );
+      newState
+          .getTmpToOriginalExprMap()
+          .merge(
+              entry.getKey(),
+              entry.getValue(),
+              (v1, v2) -> {
+                if (!v1.equals(v2)) {
+                  throw new IllegalStateException(
+                      "Conflicting tmp mappings during join: " + v1 + " vs " + v2);
+                }
+                return v1;
+              });
     }
 
     newState.getDetectedConflicts().addAll(this.getDetectedConflicts());
@@ -218,7 +223,8 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
     for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
       String functionName = entry.getKey();
       Set<SideEffectInfo> thisEffects = entry.getValue();
-      Set<SideEffectInfo> reachedStateEffects = reachedState.getSideEffectsInFun().get(functionName);
+      Set<SideEffectInfo> reachedStateEffects =
+          reachedState.getSideEffectsInFun().get(functionName);
 
       if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
         return false;
@@ -226,7 +232,10 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
     }
 
     // Compare TMP → Original Expression mappings
-    if (!reachedState.getTmpToOriginalExprMap().entrySet().containsAll(this.getTmpToOriginalExprMap().entrySet())) {
+    if (!reachedState
+        .getTmpToOriginalExprMap()
+        .entrySet()
+        .containsAll(this.getTmpToOriginalExprMap().entrySet())) {
       return false;
     }
 
@@ -236,6 +245,5 @@ public class UnseqBehaviorAnalysisState implements LatticeAbstractState<UnseqBeh
     }
 
     return true;
-
   }
 }

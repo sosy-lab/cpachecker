@@ -62,7 +62,7 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CIdExpression idExpr) throws UnrecognizedCodeException{
+  public ExpressionAnalysisSummary visit(CIdExpression idExpr) throws UnrecognizedCodeException {
     String varName = idExpr.getDeclaration().getQualifiedName();
 
     // 1. Check if this is a TMP variable mapped to original expression
@@ -73,19 +73,17 @@ public class ExpressionBehaviorGatherVisitor
       return resolvedSummary;
     }
 
-    //2. Handel side effect
+    // 2. Handel side effect
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
 
     if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
       MemoryLocation loc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
       if (!loc.isOnFunctionStack()) {
         result.addSideEffect(new SideEffectInfo(loc, accessType, cfaEdge));
-        logger.log(Level.INFO, String.format(
-            "[GlobalAccess] %s on %s at %s",
-            accessType,
-            loc,
-            cfaEdge.getFileLocation()
-        ));
+        logger.log(
+            Level.INFO,
+            String.format(
+                "[GlobalAccess] %s on %s at %s", accessType, loc, cfaEdge.getFileLocation()));
       }
     }
 
@@ -102,17 +100,16 @@ public class ExpressionBehaviorGatherVisitor
 
     CExpression funcExpr = funCallExpr.getFunctionNameExpression();
 
-    if (isDesignator(funcExpr)) { //side effects for designator: *p(x),pf[i](x),p->f(x), p.f(x)
+    if (isDesignator(funcExpr)) { // side effects for designator: *p(x),pf[i](x),p->f(x), p.f(x)
       ExpressionAnalysisSummary funcExprSummary = funcExpr.accept(this);
       Set<SideEffectInfo> funcExprEffects = funcExprSummary.getSideEffects();
       sideEffects.addAll(funcExprEffects);
       sideEffectsPerSubExpr.put(funcExpr.toQualifiedASTString(), funcExprEffects);
-    } else if(funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
+    } else if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
       String functionName = idExpr.getName();
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
       }
-
     }
 
     // Gather side effects for each function parameter
@@ -132,7 +129,8 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CBinaryExpression binaryExpr) throws UnrecognizedCodeException {
+  public ExpressionAnalysisSummary visit(CBinaryExpression binaryExpr)
+      throws UnrecognizedCodeException {
 
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     ExpressionAnalysisSummary leftSummary = binaryExpr.getOperand1().accept(this);
@@ -146,13 +144,15 @@ public class ExpressionBehaviorGatherVisitor
     String newExpr = reconstructBinaryExpr(binaryExpr, leftSummary, rightSummary);
     result.setOriginalExpressionStr(newExpr);
 
-    //Check if current binary operator itself is unsequenced
+    // Check if current binary operator itself is unsequenced
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
       result.addUnsequencedBinaryExpr(binaryExpr);
 
-      logger.log(Level.INFO, String.format(
-          "Detected unsequenced binary expression '%s' at %s",
-          result.getOriginalExpressionStr(), binaryExpr.getFileLocation()));
+      logger.log(
+          Level.INFO,
+          String.format(
+              "Detected unsequenced binary expression '%s' at %s",
+              result.getOriginalExpressionStr(), binaryExpr.getFileLocation()));
     }
 
     return result;
@@ -169,7 +169,8 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CArraySubscriptExpression arrayExpr) throws UnrecognizedCodeException {
+  public ExpressionAnalysisSummary visit(CArraySubscriptExpression arrayExpr)
+      throws UnrecognizedCodeException {
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
 
@@ -191,7 +192,8 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CCastExpression castExpr) throws UnrecognizedCodeException {
+  public ExpressionAnalysisSummary visit(CCastExpression castExpr)
+      throws UnrecognizedCodeException {
     return castExpr.getOperand().accept(this);
   }
 
@@ -202,7 +204,8 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CPointerExpression pointExpr) throws UnrecognizedCodeException {
+  public ExpressionAnalysisSummary visit(CPointerExpression pointExpr)
+      throws UnrecognizedCodeException {
     return pointExpr.getOperand().accept(this);
   }
 
@@ -210,19 +213,19 @@ public class ExpressionBehaviorGatherVisitor
     return switch (op) {
       case BINARY_AND, BINARY_OR -> false;
       case MULTIPLY,
-           DIVIDE,
-           MODULO,
-           PLUS,
-           MINUS,
-           SHIFT_LEFT,
-           SHIFT_RIGHT,
-           BINARY_XOR,
-           LESS_EQUAL,
-           LESS_THAN,
-           GREATER_EQUAL,
-           GREATER_THAN,
-           EQUALS,
-           NOT_EQUALS ->
+          DIVIDE,
+          MODULO,
+          PLUS,
+          MINUS,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_XOR,
+          LESS_EQUAL,
+          LESS_THAN,
+          GREATER_EQUAL,
+          GREATER_THAN,
+          EQUALS,
+          NOT_EQUALS ->
           true;
       default ->
           throw new AssertionError("Unhandled operator in isUnsequencedBinaryOperator: " + op);
@@ -239,7 +242,8 @@ public class ExpressionBehaviorGatherVisitor
     return "(" + leftStr + binExpr.getOperator().getOperator() + rightStr + ")";
   }
 
-  private String getExpressionStrOrFallback(ExpressionAnalysisSummary summary, CExpression fallbackExpr) {
+  private String getExpressionStrOrFallback(
+      ExpressionAnalysisSummary summary, CExpression fallbackExpr) {
     if (summary.getOriginalExpressionStr() != null) {
       return summary.getOriginalExpressionStr();
     }
@@ -251,5 +255,4 @@ public class ExpressionBehaviorGatherVisitor
         || (expr instanceof CArraySubscriptExpression)
         || (expr instanceof CFieldReference);
   }
-
 }

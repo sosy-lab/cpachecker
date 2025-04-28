@@ -11,7 +11,8 @@ public class ExpressionAnalysisSummary {
   private final Set<SideEffectInfo> sideEffects = new HashSet<>();
   private final Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
   private String originalExpressionStr = null;
-  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr = new HashMap<>(); // tracking side effects per subexpression (by string)
+  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr =
+      new HashMap<>(); // tracking side effects per subexpression (by string)
 
   public static ExpressionAnalysisSummary empty() {
     return new ExpressionAnalysisSummary();
@@ -53,10 +54,8 @@ public class ExpressionAnalysisSummary {
     return sideEffectsPerSubExprStr;
   }
 
-  /**
-   * Add side effects for subexpressions (recorded by their AST string representation).
-   */
-  public void addSideEffectsForSubExprs(Map<String, Set<SideEffectInfo>> pSideEffectsPerSubExpr){
+  /** Add side effects for subexpressions (recorded by their AST string representation). */
+  public void addSideEffectsForSubExprs(Map<String, Set<SideEffectInfo>> pSideEffectsPerSubExpr) {
     for (Map.Entry<String, Set<SideEffectInfo>> entry : pSideEffectsPerSubExpr.entrySet()) {
       String subExprStr = entry.getKey();
       Set<SideEffectInfo> effects = entry.getValue();
@@ -70,7 +69,8 @@ public class ExpressionAnalysisSummary {
   public String toString() {
     return String.format(
         "[Effects=%d, UnsequencedExprs=%d, OriginalExpr='%s']",
-        sideEffects.size(), unsequencedBinaryExprs.size(),
+        sideEffects.size(),
+        unsequencedBinaryExprs.size(),
         originalExpressionStr == null ? "null" : originalExpressionStr);
   }
 }
