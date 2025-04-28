@@ -34,7 +34,7 @@ public class TaintAnalysisState
 
   private boolean violatesProperty = false;
   private Set<CIdExpression> taintedVariables;
-  private static final String PROPERTY_TAINTED = "taintViolation";
+  private static final String PROPERTY_TAINTED = "informationFlowViolation";
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     this.taintedVariables = pElements;
@@ -109,7 +109,7 @@ public class TaintAnalysisState
   public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
     if (isTarget()) {
       Set<TargetInformation> resSet = new HashSet<>();
-      resSet.add(SimpleTargetInformation.create("Leaking inforation"));
+      resSet.add(SimpleTargetInformation.create("Wrong assertion"));
       return resSet;
     } else {
       return new HashSet<>();

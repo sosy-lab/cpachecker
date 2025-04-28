@@ -6,11 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-CONTROL AUTOMATON taintAnalysis
+CONTROL AUTOMATON informationFlow
 
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK("taintViolation") -> ERROR("taint: tainted variable in $location");
+  CHECK("informationFlowViolation") -> ERROR("information-flow violation in $location");
 
 END AUTOMATON
