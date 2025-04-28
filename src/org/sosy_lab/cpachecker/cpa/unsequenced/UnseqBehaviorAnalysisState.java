@@ -106,17 +106,16 @@ public class UnseqBehaviorAnalysisState
     if (this == pOther) {
       return true;
     }
-    if (pOther == null || getClass() != pOther.getClass()) {
+    // Intentionally using instanceof instead of getClass() to comply with ErrorProne
+    if (!(pOther instanceof UnseqBehaviorAnalysisState other)) {
       return false;
     }
-    UnseqBehaviorAnalysisState other = (UnseqBehaviorAnalysisState) pOther;
     return isFunctionCalled == other.isFunctionCalled
         && Objects.equals(calledFunctionName, other.calledFunctionName)
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
         && Objects.equals(detectedConflicts, other.detectedConflicts)
         && Objects.equals(tmpToOriginalExprMap, other.tmpToOriginalExprMap);
   }
-
 
   @Override
   public int hashCode() {

@@ -1,3 +1,10 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 import java.util.Objects;
@@ -59,10 +66,10 @@ public class ConflictPair {
     if (this == pOther) {
       return true;
     }
-    if (pOther == null || getClass() != pOther.getClass()) {
+    // Intentionally using instanceof instead of getClass() to comply with ErrorProne
+    if (!(pOther instanceof ConflictPair other)) {
       return false;
     }
-    ConflictPair other = (ConflictPair) pOther;
     return Objects.equals(location, other.location)
         && Objects.equals(accessA, other.accessA)
         && Objects.equals(accessB, other.accessB);

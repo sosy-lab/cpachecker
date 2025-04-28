@@ -124,7 +124,6 @@ public class UnseqBehaviorAnalysisTransferRelation
     newState.setFunctionCalled(true);
     newState.setCalledFunctionName(calledFunctionName);
 
-
     for (CExpression argument : arguments) {
       recordSideEffectsIfInFunctionCall(argument, callEdge, AccessType.READ, newState);
       // to detect unseq behavior inside single argument
@@ -311,8 +310,10 @@ public class UnseqBehaviorAnalysisTransferRelation
         String expr1 = exprStrs.get(i);
         String expr2 = exprStrs.get(j);
 
-        Set<SideEffectInfo> effects1 = sideEffectsPerSubExprStr.getOrDefault(expr1, ImmutableSet.of());
-        Set<SideEffectInfo> effects2 = sideEffectsPerSubExprStr.getOrDefault(expr2, ImmutableSet.of());
+        Set<SideEffectInfo> effects1 =
+            sideEffectsPerSubExprStr.getOrDefault(expr1, ImmutableSet.of());
+        Set<SideEffectInfo> effects2 =
+            sideEffectsPerSubExprStr.getOrDefault(expr2, ImmutableSet.of());
 
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);

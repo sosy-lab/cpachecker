@@ -55,10 +55,10 @@ public class SideEffectInfo {
     if (this == pOther) {
       return true;
     }
-    if (pOther == null || getClass() != pOther.getClass()) {
+    // Intentionally using instanceof instead of getClass() to comply with ErrorProne
+    if (!(pOther instanceof SideEffectInfo other)) {
       return false;
     }
-    SideEffectInfo other = (SideEffectInfo) pOther;
     return Objects.equals(memoryLocation, other.memoryLocation)
         && accessType == other.accessType
         && Objects.equals(cfaEdge, other.cfaEdge);
