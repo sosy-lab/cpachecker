@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -311,8 +311,8 @@ public class UnseqBehaviorAnalysisTransferRelation
         String expr1 = exprStrs.get(i);
         String expr2 = exprStrs.get(j);
 
-        Set<SideEffectInfo> effects1 = sideEffectsPerSubExprStr.getOrDefault(expr1, Set.of());
-        Set<SideEffectInfo> effects2 = sideEffectsPerSubExprStr.getOrDefault(expr2, Set.of());
+        Set<SideEffectInfo> effects1 = sideEffectsPerSubExprStr.getOrDefault(expr1, ImmutableSet.of());
+        Set<SideEffectInfo> effects2 = sideEffectsPerSubExprStr.getOrDefault(expr2, ImmutableSet.of());
 
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);
