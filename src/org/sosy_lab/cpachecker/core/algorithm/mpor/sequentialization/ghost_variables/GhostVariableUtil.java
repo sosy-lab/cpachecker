@@ -316,7 +316,11 @@ public class GhostVariableUtil {
                 SeqStatementBuilder.buildExpressionAssignmentStatement(
                     parameterSubstitute,
                     pSubstitution.substitute(
-                        rightHandSide, threadEdge.callContext, Optional.empty())));
+                        rightHandSide,
+                        threadEdge.callContext,
+                        false,
+                        Optional.empty(),
+                        Optional.empty())));
         assignments.add(parameterAssignment);
       }
       rAssignments.put(threadEdge, assignments.build());
@@ -343,7 +347,11 @@ public class GhostVariableUtil {
                       parameterSubstitute,
                       pSubstitution.substitute(
                           // the inner call context is the context in which pthread_create is called
-                          rightHandSide, callContext.callContext, Optional.empty())));
+                          rightHandSide,
+                          callContext.callContext,
+                          false,
+                          Optional.empty(),
+                          Optional.empty())));
           rAssignments.put(callContext, parameterAssignment);
         }
       }

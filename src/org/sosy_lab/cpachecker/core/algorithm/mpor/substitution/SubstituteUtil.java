@@ -52,7 +52,7 @@ public class SubstituteUtil {
       ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
 
     return pSubstituteEdges.stream()
-        .flatMap(s -> s.getGlobalVariables().stream())
+        .flatMap(s -> s.globalVariables.stream())
         .distinct() // ensure that each variable present only once
         .collect(ImmutableList.toImmutableList());
   }

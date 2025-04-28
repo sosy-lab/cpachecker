@@ -93,10 +93,20 @@ public class MPORSubstitution {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
+  /**
+   * Substitutes the given expression, and tracks if any global variable was substituted alongside
+   * in {@code pAccessedGlobalVariables}.
+   */
   public CExpression substitute(
       final CExpression pExpression,
       final Optional<ThreadEdge> pCallContext,
-      Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
+      boolean pIsAssignmentLeftHandSide,
+      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableList.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
+
+    checkArgument(
+        !pIsAssignmentLeftHandSide || pWrittenGlobalVariables.isPresent(),
+        "if pIsAssignmentLeftHandSide is true, pWrittenGlobalVariables must be present");
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
@@ -104,8 +114,13 @@ public class MPORSubstitution {
     if (pExpression instanceof CIdExpression idExpression) {
       if (isSubstitutable(idExpression.getDeclaration())) {
         if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-          if (variableDeclaration.isGlobal() && pGlobalVariables.isPresent()) {
-            pGlobalVariables.orElseThrow().add(variableDeclaration);
+          if (variableDeclaration.isGlobal()) {
+            if (pAccessedGlobalVariables.isPresent()) {
+              pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
+            }
+            if (pWrittenGlobalVariables.isPresent() && pIsAssignmentLeftHandSide) {
+              pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
+            }
           }
         }
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
@@ -113,8 +128,22 @@ public class MPORSubstitution {
 
     } else if (pExpression instanceof CBinaryExpression binary) {
       // recursively substitute operands of binary expressions
-      CExpression op1 = substitute(binary.getOperand1(), pCallContext, pGlobalVariables);
-      CExpression op2 = substitute(binary.getOperand2(), pCallContext, pGlobalVariables);
+      CExpression op1 =
+          substitute(
+              binary.getOperand1(),
+              pCallContext,
+              // binary expressions are never LHS in assignments
+              false,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables);
+      CExpression op2 =
+          substitute(
+              binary.getOperand2(),
+              pCallContext,
+              // binary expressions are never LHS in assignments
+              false,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables);
       // only create a new expression if any operand was substituted (compare references)
       if (op1 != binary.getOperand1() || op2 != binary.getOperand2()) {
         try {
@@ -128,9 +157,21 @@ public class MPORSubstitution {
     } else if (pExpression instanceof CArraySubscriptExpression arraySubscript) {
       CExpression arrayExpression = arraySubscript.getArrayExpression();
       CExpression subscriptExpression = arraySubscript.getSubscriptExpression();
-      CExpression arraySubstitute = substitute(arrayExpression, pCallContext, pGlobalVariables);
+      CExpression arraySubstitute =
+          substitute(
+              arrayExpression,
+              pCallContext,
+              pIsAssignmentLeftHandSide,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables);
+      // the subscript is not a LHS in an assignment
       CExpression subscriptSubstitute =
-          substitute(subscriptExpression, pCallContext, pGlobalVariables);
+          substitute(
+              subscriptExpression,
+              pCallContext,
+              false,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables);
       // only create a new expression if any expr was substituted (compare references)
       if (arraySubstitute != arrayExpression || subscriptSubstitute != subscriptExpression) {
         return new CArraySubscriptExpression(
@@ -139,7 +180,12 @@ public class MPORSubstitution {
 
     } else if (pExpression instanceof CFieldReference fieldReference) {
       CExpression fieldOwnerSubstitute =
-          substitute(fieldReference.getFieldOwner(), pCallContext, pGlobalVariables);
+          substitute(
+              fieldReference.getFieldOwner(),
+              pCallContext,
+              pIsAssignmentLeftHandSide,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables);
       // only create a new expression if any expr was substituted (compare references)
       if (fieldOwnerSubstitute != fieldReference.getFieldOwner()) {
         return new CFieldReference(
@@ -154,20 +200,37 @@ public class MPORSubstitution {
       return new CUnaryExpression(
           unary.getFileLocation(),
           unary.getExpressionType(),
-          substitute(unary.getOperand(), pCallContext, pGlobalVariables),
+          substitute(
+              unary.getOperand(),
+              pCallContext,
+              // unary expressions such as '&var' are never LHS in assignments
+              false,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables),
           unary.getOperator());
 
     } else if (pExpression instanceof CPointerExpression pointer) {
       return new CPointerExpression(
           pointer.getFileLocation(),
           pointer.getExpressionType(),
-          substitute(pointer.getOperand(), pCallContext, pGlobalVariables));
+          substitute(
+              pointer.getOperand(),
+              pCallContext,
+              pIsAssignmentLeftHandSide,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables));
 
     } else if (pExpression instanceof CCastExpression cast) {
       return new CCastExpression(
           cast.getFileLocation(),
           cast.getCastType(),
-          substitute(cast.getOperand(), pCallContext, pGlobalVariables));
+          substitute(
+              cast.getOperand(),
+              pCallContext,
+              // cast expressions are never LHS
+              false,
+              pWrittenGlobalVariables,
+              pAccessedGlobalVariables));
     }
 
     return pExpression;
@@ -176,6 +239,7 @@ public class MPORSubstitution {
   public CStatement substitute(
       CStatement pStatement,
       Optional<ThreadEdge> pCallContext,
+      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     FileLocation fileLocation = pStatement.getFileLocation();
@@ -184,23 +248,29 @@ public class MPORSubstitution {
     if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignment) {
       CLeftHandSide leftHandSide = functionCallAssignment.getLeftHandSide();
       if (leftHandSide instanceof CIdExpression idExpression) {
-        CExpression substitute = substitute(idExpression, pCallContext, pGlobalVariables);
+        CExpression substitute =
+            substitute(idExpression, pCallContext, true, pWrittenGlobalVariables, pGlobalVariables);
         if (substitute instanceof CIdExpression idExpressionSubstitute) {
           CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
           return new CFunctionCallAssignmentStatement(
               fileLocation,
               idExpressionSubstitute,
-              substitute(rightHandSide, pCallContext, pGlobalVariables));
+              substitute(rightHandSide, pCallContext, pWrittenGlobalVariables, pGlobalVariables));
         }
       } else if (leftHandSide instanceof CArraySubscriptExpression arraySubscriptExpression) {
         CExpression substitute =
-            substitute(arraySubscriptExpression, pCallContext, pGlobalVariables);
+            substitute(
+                arraySubscriptExpression,
+                pCallContext,
+                true,
+                pWrittenGlobalVariables,
+                pGlobalVariables);
         if (substitute instanceof CArraySubscriptExpression arraySubscriptExpressionSubstitute) {
           CFunctionCallExpression rightHandSide = functionCallAssignment.getRightHandSide();
           return new CFunctionCallAssignmentStatement(
               fileLocation,
               arraySubscriptExpressionSubstitute,
-              substitute(rightHandSide, pCallContext, pGlobalVariables));
+              substitute(rightHandSide, pCallContext, pWrittenGlobalVariables, pGlobalVariables));
         }
       }
 
@@ -208,22 +278,36 @@ public class MPORSubstitution {
     } else if (pStatement instanceof CFunctionCallStatement functionCall) {
       return new CFunctionCallStatement(
           functionCall.getFileLocation(),
-          substitute(functionCall.getFunctionCallExpression(), pCallContext, pGlobalVariables));
+          substitute(
+              functionCall.getFunctionCallExpression(),
+              pCallContext,
+              pWrittenGlobalVariables,
+              pGlobalVariables));
 
+      // e.g. int x = 42;
     } else if (pStatement instanceof CExpressionAssignmentStatement expressionAssignment) {
       CLeftHandSide leftHandSide = expressionAssignment.getLeftHandSide();
       CExpression rightHandSide = expressionAssignment.getRightHandSide();
-      CExpression substitute = substitute(leftHandSide, pCallContext, pGlobalVariables);
+      CExpression substitute =
+          substitute(leftHandSide, pCallContext, true, pWrittenGlobalVariables, pGlobalVariables);
       if (substitute instanceof CLeftHandSide leftHandSideSubstitute) {
         return new CExpressionAssignmentStatement(
             fileLocation,
             leftHandSideSubstitute,
-            substitute(rightHandSide, pCallContext, pGlobalVariables));
+            // for the RHS, it's not a left hand side of an assignment
+            substitute(
+                rightHandSide, pCallContext, false, pWrittenGlobalVariables, pGlobalVariables));
       }
 
     } else if (pStatement instanceof CExpressionStatement expression) {
       return new CExpressionStatement(
-          fileLocation, substitute(expression.getExpression(), pCallContext, pGlobalVariables));
+          fileLocation,
+          substitute(
+              expression.getExpression(),
+              pCallContext,
+              false,
+              pWrittenGlobalVariables,
+              pGlobalVariables));
     }
 
     return pStatement;
@@ -232,12 +316,14 @@ public class MPORSubstitution {
   public CFunctionCallExpression substitute(
       CFunctionCallExpression pFunctionCallExpression,
       Optional<ThreadEdge> pCallContext,
+      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     // substitute all parameters in the function call expression
     List<CExpression> parameters = new ArrayList<>();
     for (CExpression expression : pFunctionCallExpression.getParameterExpressions()) {
-      parameters.add(substitute(expression, pCallContext, pGlobalVariables));
+      parameters.add(
+          substitute(expression, pCallContext, false, pWrittenGlobalVariables, pGlobalVariables));
     }
     return new CFunctionCallExpression(
         pFunctionCallExpression.getFileLocation(),
@@ -250,6 +336,7 @@ public class MPORSubstitution {
   public CReturnStatement substitute(
       CReturnStatement pReturnStatement,
       Optional<ThreadEdge> pCallContext,
+      Optional<ImmutableList.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<ImmutableList.Builder<CVariableDeclaration>> pGlobalVariables) {
 
     if (pReturnStatement.getReturnValue().isEmpty()) {
@@ -260,7 +347,9 @@ public class MPORSubstitution {
       // TODO it would be cleaner to also substitute the assignment...
       return new CReturnStatement(
           pReturnStatement.getFileLocation(),
-          Optional.of(substitute(expression, pCallContext, pGlobalVariables)),
+          Optional.of(
+              substitute(
+                  expression, pCallContext, false, pWrittenGlobalVariables, pGlobalVariables)),
           pReturnStatement.asAssignment());
     }
   }

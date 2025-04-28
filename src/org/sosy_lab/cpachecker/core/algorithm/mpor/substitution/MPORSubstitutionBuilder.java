@@ -126,7 +126,11 @@ public class MPORSubstitutionBuilder {
                 initializerExpression,
                 dummySubstitution.substitute(
                     // no call context for global variables
-                    initializerExpression.getExpression(), Optional.empty(), Optional.empty()));
+                    initializerExpression.getExpression(),
+                    Optional.empty(),
+                    false,
+                    Optional.empty(),
+                    Optional.empty()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
         rFinalSubstitutes.put(finalSub, idExpression);
@@ -318,7 +322,11 @@ public class MPORSubstitutionBuilder {
               substituteInitializerExpression(
                   initializerExpression,
                   dummySubstitution.substitute(
-                      initializerExpression.getExpression(), callContext, Optional.empty()));
+                      initializerExpression.getExpression(),
+                      callContext,
+                      false,
+                      Optional.empty(),
+                      Optional.empty()));
           CVariableDeclaration finalSubstitute =
               substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
 
