@@ -22,14 +22,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorEvaluationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorReadWriteEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
@@ -53,6 +52,8 @@ class BitVectorReadWriteReducer {
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
+      // TODO create and simplify this dynamically, based on the values that where just set for the
+      //  bit vectors
       BitVectorEvaluationExpression bitVectorEvaluation =
           SeqExpressionBuilder.buildBitVectorReadWriteEvaluationByEncoding(
               pOptions.porBitVectorEncoding, thread, pBitVectorVariables, pBinaryExpressionBuilder);
@@ -148,8 +149,8 @@ class BitVectorReadWriteReducer {
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, readWriteVariables);
         newInjected.addAll(bitVectorAssignments);
-        Optional<SeqBitVectorEvaluationStatement> evaluation =
-            buildBitVectorEvaluationStatements(
+        Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
+            buildBitVectorReadWriteEvaluationStatements(
                 pCurrentStatement, bitVectorAssignments, pBitVectorEvaluation, pSwitchLabel);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());
@@ -190,22 +191,21 @@ class BitVectorReadWriteReducer {
     return rStatements.build();
   }
 
-  private static Optional<SeqBitVectorEvaluationStatement> buildBitVectorEvaluationStatements(
-      SeqCaseBlockStatement pCurrentStatement,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
-      BitVectorEvaluationExpression pBitVectorEvaluation,
-      SeqThreadLoopLabelStatement pSwitchLabel) {
+  private static Optional<SeqBitVectorReadWriteEvaluationStatement>
+      buildBitVectorReadWriteEvaluationStatements(
+          SeqCaseBlockStatement pCurrentStatement,
+          ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
+          BitVectorEvaluationExpression pBitVectorEvaluation,
+          SeqThreadLoopLabelStatement pSwitchLabel) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
     if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
       boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
       // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
-      Optional<SeqLogicalNotExpression> expression =
-          allZero
-              ? Optional.empty()
-              : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
-      SeqBitVectorEvaluationStatement rEvaluation =
-          new SeqBitVectorEvaluationStatement(expression, pSwitchLabel);
+      Optional<BitVectorEvaluationExpression> expression =
+          allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
+      SeqBitVectorReadWriteEvaluationStatement rEvaluation =
+          new SeqBitVectorReadWriteEvaluationStatement(expression, pSwitchLabel);
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

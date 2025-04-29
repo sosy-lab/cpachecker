@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqGotoStatement;
@@ -18,14 +18,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqBitVectorEvaluationStatement implements SeqInjectedStatement {
+public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStatement {
 
-  private final Optional<SeqLogicalNotExpression> threadBitVectors;
+  private final Optional<BitVectorEvaluationExpression> threadBitVectors;
 
   private final SeqThreadLoopLabelStatement gotoLabel;
 
-  public SeqBitVectorEvaluationStatement(
-      Optional<SeqLogicalNotExpression> pThreadBitVectors, SeqThreadLoopLabelStatement pGotoLabel) {
+  public SeqBitVectorReadWriteEvaluationStatement(
+      Optional<BitVectorEvaluationExpression> pThreadBitVectors,
+      SeqThreadLoopLabelStatement pGotoLabel) {
 
     threadBitVectors = pThreadBitVectors;
     gotoLabel = pGotoLabel;

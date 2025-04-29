@@ -30,8 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
@@ -46,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
@@ -147,7 +146,7 @@ public class SeqExpressionBuilder {
         pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
   }
 
-  private static CBinaryExpression buildBitVectorReadWriteEvaluation(
+  private static SeqLogicalAndExpression buildBitVectorReadWriteEvaluation(
       CExpression pActiveReadBitVector,
       CExpression pActiveWriteBitVector,
       // TODO make list
@@ -179,11 +178,9 @@ public class SeqExpressionBuilder {
     CExpression rightHandSide =
         pBinaryExpressionBuilder.buildBinaryExpression(
             pActiveWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        // we binary negate both bit vectors with ~
-        buildUnaryTildeExpression(leftHandSide),
-        buildUnaryTildeExpression(rightHandSide),
-        BinaryOperator.BINARY_AND);
+    return new SeqLogicalAndExpression(
+        // we negate with !, not the bit-wise negation ~
+        new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
   }
 
   private static Optional<SeqExpression> buildScalarBitVectorEvaluation(
@@ -236,14 +233,15 @@ public class SeqExpressionBuilder {
         ImmutableSet<CExpression> otherWriteBitVectors =
             pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
                 BitVectorAccessType.WRITE, pActiveThread);
-        CBinaryExpression binaryExpression =
+        SeqLogicalAndExpression evaluationExpression =
             SeqExpressionBuilder.buildBitVectorReadWriteEvaluation(
                 readBitVector,
                 writeBitVector,
                 otherReadBitVectors,
                 otherWriteBitVectors,
                 pBinaryExpressionBuilder);
-        yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
+        yield new BitVectorEvaluationExpression(
+            Optional.empty(), Optional.of(evaluationExpression));
       }
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
@@ -379,13 +377,5 @@ public class SeqExpressionBuilder {
 
   public static CStringLiteralExpression buildStringLiteralExpression(String pValue) {
     return new CStringLiteralExpression(FileLocation.DUMMY, pValue);
-  }
-
-  // CUnaryExpression ==============================================================================
-
-  public static CUnaryExpression buildUnaryTildeExpression(CExpression pOperand) {
-    // TODO use the actual type here later, though it doesnt really matter
-    return new CUnaryExpression(
-        FileLocation.DUMMY, SeqSimpleType.UNSIGNED_CHAR, pOperand, UnaryOperator.TILDE);
   }
 }

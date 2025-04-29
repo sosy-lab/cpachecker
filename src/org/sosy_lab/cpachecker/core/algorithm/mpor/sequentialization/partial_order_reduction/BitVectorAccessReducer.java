@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
@@ -149,7 +149,7 @@ class BitVectorAccessReducer {
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
         newInjected.addAll(bitVectorAssignments);
-        Optional<SeqBitVectorEvaluationStatement> evaluation =
+        Optional<SeqBitVectorAccessEvaluationStatement> evaluation =
             buildBitVectorEvaluationStatements(
                 pCurrentStatement, bitVectorAssignments, pBitVectorEvaluation, pSwitchLabel);
         if (evaluation.isPresent()) {
@@ -191,7 +191,7 @@ class BitVectorAccessReducer {
     return rStatements.build();
   }
 
-  private static Optional<SeqBitVectorEvaluationStatement> buildBitVectorEvaluationStatements(
+  private static Optional<SeqBitVectorAccessEvaluationStatement> buildBitVectorEvaluationStatements(
       SeqCaseBlockStatement pCurrentStatement,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorEvaluationExpression pBitVectorEvaluation,
@@ -205,8 +205,8 @@ class BitVectorAccessReducer {
           allZero
               ? Optional.empty()
               : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
-      SeqBitVectorEvaluationStatement rEvaluation =
-          new SeqBitVectorEvaluationStatement(expression, pSwitchLabel);
+      SeqBitVectorAccessEvaluationStatement rEvaluation =
+          new SeqBitVectorAccessEvaluationStatement(expression, pSwitchLabel);
       return Optional.of(rEvaluation);
     }
     return Optional.empty();
