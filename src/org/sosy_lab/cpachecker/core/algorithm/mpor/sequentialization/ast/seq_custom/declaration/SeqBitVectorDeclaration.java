@@ -14,8 +14,11 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqBitVectorDeclaration implements SeqDeclaration {
+
   private final BitVectorDataType type;
+
   private final CExpression variable;
+
   private final BitVectorExpression initializer;
 
   public SeqBitVectorDeclaration(

@@ -171,7 +171,10 @@ public class GhostVariableUtil {
               false, SeqSimpleType.UNSIGNED_LONG_INT, readName, SeqInitializer.INT_MINUS_1);
       rBitVectors.add(
           new DenseBitVector(
-              thread, SeqExpressionBuilder.buildIdExpression(readDeclaration), pAccessType));
+              thread,
+              SeqExpressionBuilder.buildIdExpression(readDeclaration),
+              pAccessType,
+              pOptions.porBitVectorEncoding));
     }
     return Optional.of(rBitVectors.build());
   }

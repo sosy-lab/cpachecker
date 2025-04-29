@@ -34,19 +34,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class BitVectorUtil {
 
   public static final int MIN_BINARY_LENGTH = BitVectorDataType.__UINT8_T.size;
+
   public static final int MAX_BINARY_LENGTH = BitVectorDataType.__UINT64_T.size;
 
   // Creation ======================================================================================
-
-  public static BitVectorExpression buildZeroBitVector(
-      MPOROptions pOptions, int pNumGlobalVariables) {
-
-    checkArgument(
-        !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE),
-        "no bit vector encoding specified");
-    return buildBitVectorExpressionByEncoding(
-        pOptions.porBitVectorEncoding, pNumGlobalVariables, ImmutableSet.of());
-  }
 
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,

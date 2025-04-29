@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -19,11 +21,18 @@ public class DenseBitVector {
 
   public final BitVectorAccessType accessType;
 
-  public DenseBitVector(
-      MPORThread pThread, CIdExpression pIdExpression, BitVectorAccessType pAccessType) {
+  public final BitVectorEncoding encoding;
 
+  public DenseBitVector(
+      MPORThread pThread,
+      CIdExpression pIdExpression,
+      BitVectorAccessType pAccessType,
+      BitVectorEncoding pEncoding) {
+
+    checkArgument(pEncoding.isDense, "encoding must be dense");
     thread = pThread;
     idExpression = pIdExpression;
     accessType = pAccessType;
+    encoding = pEncoding;
   }
 }

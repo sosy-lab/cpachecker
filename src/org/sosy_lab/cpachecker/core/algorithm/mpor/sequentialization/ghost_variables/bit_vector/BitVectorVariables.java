@@ -21,11 +21,11 @@ public class BitVectorVariables {
 
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
-  public final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
+  private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
-  public final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
+  private final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
 
-  public final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
+  private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
   public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarAccessBitVectors;
 
@@ -76,7 +76,7 @@ public class BitVectorVariables {
     return rVariables.build();
   }
 
-  private ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(
+  public ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {

@@ -12,7 +12,6 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -179,58 +178,43 @@ public class SeqMainFunction extends SeqFunction {
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    int numGlobalVariables = pBitVectorVariables.numGlobalVariables;
-    ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
-        pBitVectorVariables.globalVariableIds;
     return switch (pOptions.porBitVectorReduction) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
-          createBitVectorDeclarations(
-              numGlobalVariables,
-              globalVariableIds,
-              pBitVectorVariables.denseAccessBitVectors.orElseThrow(),
-              BitVectorAccessType.ACCESS,
-              pCaseClauses);
+          createDenseBitVectorDeclarationsByAccessType(
+              pBitVectorVariables, BitVectorAccessType.ACCESS, pCaseClauses);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
-                  createBitVectorDeclarations(
-                      numGlobalVariables,
-                      globalVariableIds,
-                      pBitVectorVariables.denseReadBitVectors.orElseThrow(),
-                      BitVectorAccessType.READ,
-                      pCaseClauses))
+                  createDenseBitVectorDeclarationsByAccessType(
+                      pBitVectorVariables, BitVectorAccessType.READ, pCaseClauses))
               .addAll(
-                  createBitVectorDeclarations(
-                      numGlobalVariables,
-                      globalVariableIds,
-                      pBitVectorVariables.denseWriteBitVectors.orElseThrow(),
-                      BitVectorAccessType.WRITE,
-                      pCaseClauses))
+                  createDenseBitVectorDeclarationsByAccessType(
+                      pBitVectorVariables, BitVectorAccessType.WRITE, pCaseClauses))
               .build();
     };
   }
 
-  private ImmutableList<SeqBitVectorDeclaration> createBitVectorDeclarations(
-      int pNumGlobalVariables,
-      ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
-      ImmutableSet<DenseBitVector> pBitVectorVariables,
+  private ImmutableList<SeqBitVectorDeclaration> createDenseBitVectorDeclarationsByAccessType(
+      BitVectorVariables pBitVectorVariables,
       BitVectorAccessType pAccessType,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
-    int binaryLength = BitVectorUtil.getBinaryLength(pNumGlobalVariables);
+    int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.numGlobalVariables);
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    for (DenseBitVector bitVectorVariable : pBitVectorVariables) {
-      MPORThread thread = bitVectorVariable.thread;
+    for (DenseBitVector denseBitVector :
+        pBitVectorVariables.getDenseBitVectorsByAccessType(pAccessType)) {
+
+      MPORThread thread = denseBitVector.thread;
       SeqCaseClause firstCase = Objects.requireNonNull(pCaseClauses.get(thread)).get(0);
       ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
           SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByAccessType(firstCase, pAccessType);
       BitVectorExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
-              options, pGlobalVariableIds, firstCaseGlobalVariables);
+              options, pBitVectorVariables.globalVariableIds, firstCaseGlobalVariables);
       SeqBitVectorDeclaration declaration =
-          new SeqBitVectorDeclaration(type, bitVectorVariable.idExpression, initializer);
+          new SeqBitVectorDeclaration(type, denseBitVector.idExpression, initializer);
       rDeclarations.add(declaration);
     }
     return rDeclarations.build();
