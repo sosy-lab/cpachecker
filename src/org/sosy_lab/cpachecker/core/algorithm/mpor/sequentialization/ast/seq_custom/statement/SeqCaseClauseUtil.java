@@ -77,22 +77,20 @@ public class SeqCaseClauseUtil {
   public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByReductionType(
       SeqCaseClause pCaseClause, BitVectorReduction pReductionType) {
 
-    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    switch (pReductionType) {
-      case NONE:
-        return ImmutableList.of();
-      case ACCESS_ONLY:
-        rGlobalVariables.addAll(
-            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.ACCESS));
-        break;
-      case READ_AND_WRITE:
-        rGlobalVariables.addAll(
-            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.READ));
-        rGlobalVariables.addAll(
-            findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.WRITE));
-        break;
-    }
-    return rGlobalVariables.build();
+    return switch (pReductionType) {
+      case NONE -> ImmutableList.of();
+      case ACCESS_ONLY ->
+          findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.ACCESS);
+      case READ_AND_WRITE ->
+          ImmutableList.<CVariableDeclaration>builder()
+              .addAll(
+                  findGlobalVariablesInCaseClauseByAccessType(
+                      pCaseClause, BitVectorAccessType.READ))
+              .addAll(
+                  findGlobalVariablesInCaseClauseByAccessType(
+                      pCaseClause, BitVectorAccessType.WRITE))
+              .build();
+    };
   }
 
   private static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByAccessType(

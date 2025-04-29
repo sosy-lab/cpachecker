@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -118,13 +119,12 @@ public class SeqExpressionBuilder {
             pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
                 BitVectorAccessType.ACCESS, pActiveThread);
         CBinaryExpression binaryExpression =
-            SeqExpressionBuilder.buildBitVectorAccessEvaluation(
-                bitVector, otherBitVectors, pBinaryExpressionBuilder);
+            buildBitVectorAccessEvaluation(bitVector, otherBitVectors, pBinaryExpressionBuilder);
         yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
       }
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
-            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables);
+            buildScalarBitVectorAccessEvaluation(pActiveThread, pBitVectorVariables);
         yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
       }
     };
@@ -146,44 +146,7 @@ public class SeqExpressionBuilder {
         pActiveBitVector, rightHandSide, BinaryOperator.BINARY_AND);
   }
 
-  private static SeqLogicalAndExpression buildBitVectorReadWriteEvaluation(
-      CExpression pActiveReadBitVector,
-      CExpression pActiveWriteBitVector,
-      // TODO make list
-      ImmutableSet<CExpression> pOtherReadBitVectors,
-      ImmutableSet<CExpression> pOtherWriteBitVectors,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pOtherReadBitVectors.isEmpty() && !pOtherWriteBitVectors.isEmpty());
-    checkArgument(!pOtherReadBitVectors.contains(pActiveReadBitVector));
-    checkArgument(!pOtherWriteBitVectors.contains(pActiveWriteBitVector));
-
-    CExpression otherWrites =
-        nestBinaryExpressions(
-            pOtherWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
-    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
-        ImmutableSet.<CExpression>builder()
-            .addAll(pOtherReadBitVectors)
-            .addAll(pOtherWriteBitVectors)
-            .build();
-    CExpression otherReadsAndWrites =
-        nestBinaryExpressions(
-            otherReadAndWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
-    // (R & (W' | W'' | ...))
-    CExpression leftHandSide =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            pActiveReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
-    // (W & (R' | R'' | ... | W' | W''))
-    CExpression rightHandSide =
-        pBinaryExpressionBuilder.buildBinaryExpression(
-            pActiveWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
-    return new SeqLogicalAndExpression(
-        // we negate with !, not the bit-wise negation ~
-        new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
-  }
-
-  private static Optional<SeqExpression> buildScalarBitVectorEvaluation(
+  private static Optional<SeqExpression> buildScalarBitVectorAccessEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarBitVectorAccessVariables.isEmpty()) {
@@ -245,10 +208,115 @@ public class SeqExpressionBuilder {
       }
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
-            buildScalarBitVectorEvaluation(pActiveThread, pBitVectorVariables);
+            buildScalarBitVectorReadWriteEvaluation(pActiveThread, pBitVectorVariables);
         yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
       }
     };
+  }
+
+  private static SeqLogicalAndExpression buildBitVectorReadWriteEvaluation(
+      CExpression pActiveReadBitVector,
+      CExpression pActiveWriteBitVector,
+      // TODO make list
+      ImmutableSet<CExpression> pOtherReadBitVectors,
+      ImmutableSet<CExpression> pOtherWriteBitVectors,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    checkArgument(!pOtherReadBitVectors.isEmpty() && !pOtherWriteBitVectors.isEmpty());
+    checkArgument(!pOtherReadBitVectors.contains(pActiveReadBitVector));
+    checkArgument(!pOtherWriteBitVectors.contains(pActiveWriteBitVector));
+
+    CExpression otherWrites =
+        nestBinaryExpressions(
+            pOtherWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
+        ImmutableSet.<CExpression>builder()
+            .addAll(pOtherReadBitVectors)
+            .addAll(pOtherWriteBitVectors)
+            .build();
+    CExpression otherReadsAndWrites =
+        nestBinaryExpressions(
+            otherReadAndWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+    // (R & (W' | W'' | ...))
+    CExpression leftHandSide =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
+    // (W & (R' | R'' | ... | W' | W''))
+    CExpression rightHandSide =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pActiveWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
+    // this can also be a binary and & instead of logical and &&, but CBinaryExpression cannot take
+    // our SeqLogicalNotExpression as operands and here they are equivalent since we work with 0/1
+    return new SeqLogicalAndExpression(
+        // we negate with !, not the bit-wise negation ~
+        new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
+  }
+
+  private static Optional<SeqExpression> buildScalarBitVectorReadWriteEvaluation(
+      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
+
+    if (pBitVectorVariables.scalarBitVectorReadVariables.isEmpty()
+        && pBitVectorVariables.scalarBitVectorWriteVariables.isEmpty()) {
+      return Optional.empty();
+    }
+    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
+    for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
+      CVariableDeclaration variableDeclaration = entry.getKey();
+      ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().getIdExpressions();
+      assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
+      CIdExpression activeReadVariable = readVariables.get(pActiveThread);
+      assert activeReadVariable != null;
+      // convert from CExpression to SeqExpression
+      ImmutableList<SeqExpression> otherReadVariables =
+          readVariables.values().stream()
+              .filter(v -> !v.equals(activeReadVariable))
+              .map(CToSeqExpression::new)
+              .collect(ImmutableList.toImmutableList());
+      ImmutableMap<MPORThread, CIdExpression> writeVariables =
+          Objects.requireNonNull(
+                  pBitVectorVariables
+                      .scalarBitVectorWriteVariables
+                      .orElseThrow()
+                      .get(variableDeclaration))
+              .getIdExpressions();
+      assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
+      CIdExpression activeWriteVariable = writeVariables.get(pActiveThread);
+      assert activeWriteVariable != null;
+      // convert from CExpression to SeqExpression
+      ImmutableList<SeqExpression> otherWriteVariables =
+          writeVariables.values().stream()
+              .filter(v -> !v.equals(activeWriteVariable))
+              .map(CToSeqExpression::new)
+              .collect(ImmutableList.toImmutableList());
+      variableExpressions.add(
+          buildSingleVariableScalarBitVectorReadWriteEvaluation(
+              activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
+    }
+    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND));
+  }
+
+  private static SeqLogicalAndExpression buildSingleVariableScalarBitVectorReadWriteEvaluation(
+      CIdExpression pActiveReadVariable,
+      ImmutableList<SeqExpression> pOtherReadVariables,
+      CIdExpression pActiveWriteVariable,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    SeqLogicalAndExpression leftHandSide =
+        new SeqLogicalAndExpression(
+            new CToSeqExpression(pActiveReadVariable),
+            nestLogicalExpressions(pOtherWriteVariables, SeqLogicalOperator.OR));
+    ImmutableList<SeqExpression> otherReadAndWriteVariables =
+        ImmutableList.<SeqExpression>builder()
+            .addAll(pOtherReadVariables)
+            .addAll(pOtherWriteVariables)
+            .build();
+    SeqLogicalAndExpression rightHandSide =
+        new SeqLogicalAndExpression(
+            new CToSeqExpression(pActiveWriteVariable),
+            nestLogicalExpressions(otherReadAndWriteVariables, SeqLogicalOperator.OR));
+    return new SeqLogicalAndExpression(
+        new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
   }
 
   // Binary Expression Helpers =====================================================================
