@@ -93,7 +93,7 @@ public class SeqCaseClauseUtil {
     };
   }
 
-  private static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByAccessType(
+  public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByAccessType(
       SeqCaseClause pCaseClause, BitVectorAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();

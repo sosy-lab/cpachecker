@@ -139,7 +139,8 @@ class BitVectorReadWriteReducer {
       if (intTargetPc == Sequentialization.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
         newInjected.addAll(
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, ImmutableList.of()));
+            buildBitVectorReadWriteAssignments(
+                pOptions, pThread, pBitVectorVariables, ImmutableList.of()));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
@@ -147,7 +148,8 @@ class BitVectorReadWriteReducer {
             SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
                 newTarget, BitVectorReduction.READ_AND_WRITE);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, readWriteVariables);
+            buildBitVectorReadWriteAssignments(
+                pOptions, pThread, pBitVectorVariables, readWriteVariables);
         newInjected.addAll(bitVectorAssignments);
         Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
             buildBitVectorReadWriteEvaluationStatements(
@@ -162,7 +164,7 @@ class BitVectorReadWriteReducer {
     return pCurrentStatement;
   }
 
-  private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorAssignments(
+  private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorReadWriteAssignments(
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -21,6 +20,7 @@ public class BitVectorVariables {
 
   public final int numGlobalVariables;
 
+  // TODO this should also be optional, its only required when using non-scalar bit vectors
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
   public final Optional<ImmutableSet<BitVectorVariable>> bitVectorAccessVariables;
@@ -93,42 +93,6 @@ public class BitVectorVariables {
       case READ -> bitVectorReadVariables.orElseThrow();
       case WRITE -> bitVectorWriteVariables.orElseThrow();
     };
-  }
-
-  public ImmutableSet<BitVectorVariable> getAllBitVectorVariables() {
-    ImmutableSet.Builder<BitVectorVariable> rAll = ImmutableSet.builder();
-    if (bitVectorAccessVariables.isPresent()) {
-      // TODO ensure only either is present
-      // assert scalarBitVectorAccessVariables.isEmpty();
-      rAll.addAll(bitVectorAccessVariables.orElseThrow());
-    } else if (bitVectorReadVariables.isPresent()) {
-      assert bitVectorWriteVariables.isPresent();
-      rAll.addAll(bitVectorReadVariables.orElseThrow());
-      rAll.addAll(bitVectorWriteVariables.orElseThrow());
-    }
-    return rAll.build();
-  }
-
-  public ImmutableListMultimap<CVariableDeclaration, ScalarBitVectorVariables>
-      getAllScalarBitVectorVariables() {
-
-    ImmutableListMultimap.Builder<CVariableDeclaration, ScalarBitVectorVariables> rAll =
-        ImmutableListMultimap.builder();
-    if (scalarBitVectorAccessVariables.isPresent()) {
-      assert scalarBitVectorReadVariables.isEmpty() && scalarBitVectorWriteVariables.isEmpty();
-      for (var entry : scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
-        rAll.putAll(entry.getKey(), entry.getValue());
-      }
-    } else if (scalarBitVectorReadVariables.isPresent()) {
-      assert scalarBitVectorWriteVariables.isPresent();
-      for (var entry : scalarBitVectorReadVariables.orElseThrow().entrySet()) {
-        rAll.putAll(entry.getKey(), entry.getValue());
-      }
-      for (var entry : scalarBitVectorWriteVariables.orElseThrow().entrySet()) {
-        rAll.putAll(entry.getKey(), entry.getValue());
-      }
-    }
-    return rAll.build();
   }
 
   // TODO maybe separate file here
