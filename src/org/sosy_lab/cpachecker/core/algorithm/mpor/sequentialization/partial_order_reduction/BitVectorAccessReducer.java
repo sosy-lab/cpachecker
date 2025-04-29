@@ -63,9 +63,9 @@ class BitVectorAccessReducer {
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      BitVectorEvaluationExpression bitVectorEvaluation =
+      Optional<BitVectorEvaluationExpression> fullBitVectorEvaluation =
           SeqExpressionBuilder.buildBitVectorAccessEvaluationByEncoding(
-              pOptions.porBitVectorEncoding, thread, pBitVectorVariables, pBinaryExpressionBuilder);
+              pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
               SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
@@ -76,7 +76,7 @@ class BitVectorAccessReducer {
               entry.getKey(),
               pBitVectorVariables,
               entry.getValue(),
-              bitVectorEvaluation,
+              fullBitVectorEvaluation,
               switchLabel));
     }
     return rInjected.buildOrThrow();
@@ -87,7 +87,7 @@ class BitVectorAccessReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
-      BitVectorEvaluationExpression pBitVectorEvaluation,
+      Optional<BitVectorEvaluationExpression> pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
@@ -114,7 +114,7 @@ class BitVectorAccessReducer {
   private static SeqCaseBlockStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
-      final BitVectorEvaluationExpression pBitVectorEvaluation,
+      final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
@@ -130,7 +130,7 @@ class BitVectorAccessReducer {
               recursivelyInjectBitVectors(
                   pOptions,
                   pThread,
-                  pBitVectorEvaluation,
+                  pFullBitVectorEvaluation,
                   pSwitchLabel,
                   concatStatement,
                   pBitVectorVariables,
@@ -161,7 +161,15 @@ class BitVectorAccessReducer {
         newInjected.addAll(bitVectorAssignments);
         Optional<SeqBitVectorAccessEvaluationStatement> evaluation =
             buildBitVectorEvaluationStatements(
-                pCurrentStatement, bitVectorAssignments, pBitVectorEvaluation, pSwitchLabel);
+                pCurrentStatement,
+                bitVectorAssignments,
+                SeqExpressionBuilder.buildPrunedBitVectorAccessEvaluationByEncoding(
+                    pOptions,
+                    pThread,
+                    bitVectorAssignments,
+                    pBitVectorVariables,
+                    pFullBitVectorEvaluation),
+                pSwitchLabel);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());
         }

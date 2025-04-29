@@ -86,4 +86,15 @@ public class BitVectorVariables {
       case WRITE -> denseWriteBitVectors.orElseThrow();
     };
   }
+
+  public ImmutableMap<CVariableDeclaration, ScalarBitVector> getScalarBitVectorsByAccessType(
+      BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> ImmutableMap.of();
+      case ACCESS -> scalarAccessBitVectors.orElseThrow();
+      case READ -> scalarReadBitVectors.orElseThrow();
+      case WRITE -> scalarWriteBitVectors.orElseThrow();
+    };
+  }
 }

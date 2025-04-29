@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -27,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BinaryBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.HexadecimalBitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -157,6 +159,21 @@ public class BitVectorUtil {
       case WRITE ->
           SeqNameUtil.buildBitVectorScalarWriteVariableName(pOptions, pThreadId, pDeclaration);
     };
+  }
+
+  // Assignments ===================================================================================
+
+  /**
+   * Returns all bit vectors in {@code pAssignments} that are assigned a {@code 0}. Also considers
+   * binary {@code 0b00000000} and hex {@code 0x00}.
+   */
+  public static ImmutableSet<CExpression> getZeroesFromBitVectorAssignments(
+      ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
+
+    return pAssignments.stream()
+        .filter(a -> a.value.isZero())
+        .map(a -> a.variable)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   // Helpers =======================================================================================

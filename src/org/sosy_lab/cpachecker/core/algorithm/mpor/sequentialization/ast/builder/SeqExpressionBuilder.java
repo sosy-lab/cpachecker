@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
@@ -47,8 +48,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -102,14 +105,91 @@ public class SeqExpressionBuilder {
 
   // Bit Vector Access Reduction ===================================================================
 
-  public static BitVectorEvaluationExpression buildBitVectorAccessEvaluationByEncoding(
-      BitVectorEncoding pEncoding,
+  /**
+   * Builds a pruned evaluation expression for the given bit vectors based on the variables assigned
+   * to the bit vectors in {@code pBitVectorAssignments}.
+   */
+  public static BitVectorEvaluationExpression buildPrunedBitVectorAccessEvaluationByEncoding(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
+      BitVectorVariables pBitVectorVariables,
+      Optional<BitVectorEvaluationExpression> pFullEvaluation) {
+
+    if (pFullEvaluation.isPresent()) {
+      assert !pOptions.pruneBitVectorEvaluation
+          : "full evaluation is present, but pruneBitVectorEvaluation is enabled";
+      return pFullEvaluation.orElseThrow();
+    }
+    return switch (pOptions.porBitVectorEncoding) {
+      // we only prune for scalar bit vectors
+      case NONE, BINARY, HEXADECIMAL ->
+          throw new IllegalArgumentException(
+              "cannot prune for encoding " + pOptions.porBitVectorEncoding);
+      case SCALAR -> {
+        Optional<SeqExpression> seqExpression =
+            buildPrunedScalarAccessBitVectorAccessEvaluation(
+                pActiveThread, pBitVectorVariables, pBitVectorAssignments);
+        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
+      }
+    };
+  }
+
+  private static Optional<SeqExpression> buildPrunedScalarAccessBitVectorAccessEvaluation(
+      MPORThread pActiveThread,
+      BitVectorVariables pBitVectorVariables,
+      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
+
+    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
+      return Optional.empty();
+    }
+    ImmutableSet<CExpression> zeroes =
+        BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
+    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
+    for (var entry :
+        pBitVectorVariables
+            .getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS)
+            .entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
+      assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
+      CIdExpression activeVariable = accessVariables.get(pActiveThread);
+      assert activeVariable != null;
+      // if the LHS (activeVariable) is 0, then the entire && expression is 0 -> prune
+      if (!zeroes.contains(activeVariable)) {
+        // convert from CExpression to SeqExpression
+        ImmutableList<SeqExpression> otherVariables =
+            accessVariables.values().stream()
+                .filter(v -> !v.equals(activeVariable))
+                .map(CToSeqExpression::new)
+                .collect(ImmutableList.toImmutableList());
+        SeqExpression rightHandSide = nestLogicalExpressions(otherVariables, SeqLogicalOperator.OR);
+        SeqLogicalAndExpression andExpression =
+            new SeqLogicalAndExpression(new CToSeqExpression(activeVariable), rightHandSide);
+        variableExpressions.add(andExpression);
+      }
+    }
+    if (variableExpressions.build().isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
+  }
+
+  /**
+   * Builds a generalized evaluation expression for the given bit vectors, based on {@code
+   * pActiveThread}. This expression does not factor in which values where just assigned to the
+   * bitvectors.
+   */
+  public static Optional<BitVectorEvaluationExpression> buildBitVectorAccessEvaluationByEncoding(
+      MPOROptions pOptions,
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return switch (pEncoding) {
+    if (pOptions.pruneBitVectorEvaluation) {
+      return Optional.empty(); // if we prune, we later build evaluations dynamically
+    }
+    return switch (pOptions.porBitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression bitVector =
@@ -120,12 +200,13 @@ public class SeqExpressionBuilder {
                 BitVectorAccessType.ACCESS, pActiveThread);
         CBinaryExpression binaryExpression =
             buildBitVectorAccessEvaluation(bitVector, otherBitVectors, pBinaryExpressionBuilder);
-        yield new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
+        yield Optional.of(
+            new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty()));
       }
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
             buildScalarBitVectorAccessEvaluation(pActiveThread, pBitVectorVariables);
-        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
+        yield Optional.of(new BitVectorEvaluationExpression(Optional.empty(), seqExpression));
       }
     };
   }
@@ -153,7 +234,10 @@ public class SeqExpressionBuilder {
       return Optional.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
+    for (var entry :
+        pBitVectorVariables
+            .getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS)
+            .entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeVariable = accessVariables.get(pActiveThread);
@@ -174,6 +258,11 @@ public class SeqExpressionBuilder {
 
   // Bit Vector Read/Write Reduction ===============================================================
 
+  /**
+   * Builds a generalized evaluation expression for the given bit vectors, based on {@code
+   * pActiveThread}. This expression does not factor in which values where just assigned to the bit
+   * vectors.
+   */
   public static BitVectorEvaluationExpression buildBitVectorReadWriteEvaluationByEncoding(
       BitVectorEncoding pEncoding,
       MPORThread pActiveThread,
@@ -350,6 +439,8 @@ public class SeqExpressionBuilder {
     }
     return rNested;
   }
+
+
 
   // CFunctionCallExpression =======================================================================
 

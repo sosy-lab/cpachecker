@@ -15,7 +15,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqBitVectorAssignmentStatement implements SeqInjectedStatement {
-  private final CExpression variable;
+
+  // TODO CIdExpression?
+  public final CExpression variable;
+
   public final BitVectorExpression value;
 
   public SeqBitVectorAssignmentStatement(CExpression pVariable, BitVectorExpression pValue) {
@@ -28,6 +31,7 @@ public class SeqBitVectorAssignmentStatement implements SeqInjectedStatement {
     return false;
   }
 
+  // TODO remove this or add another interface, its confusing...
   @Override
   public Optional<CIdExpression> getIdExpression() {
     return Optional.empty();
