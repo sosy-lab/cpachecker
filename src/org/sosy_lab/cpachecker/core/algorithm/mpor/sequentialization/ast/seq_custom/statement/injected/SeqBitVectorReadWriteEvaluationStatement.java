@@ -20,15 +20,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStatement {
 
-  private final Optional<BitVectorEvaluationExpression> threadBitVectors;
+  private final Optional<BitVectorEvaluationExpression> evaluationExpression;
 
   private final SeqThreadLoopLabelStatement gotoLabel;
 
   public SeqBitVectorReadWriteEvaluationStatement(
-      Optional<BitVectorEvaluationExpression> pThreadBitVectors,
+      Optional<BitVectorEvaluationExpression> pEvaluationExpression,
       SeqThreadLoopLabelStatement pGotoLabel) {
 
-    threadBitVectors = pThreadBitVectors;
+    evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
   }
 
@@ -46,10 +46,10 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStat
   public String toASTString() {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.labelName);
     // if bit vectors present: evaluate in if statement
-    if (threadBitVectors.isPresent()) {
+    if (evaluationExpression.isPresent()) {
       SeqControlFlowStatement ifStatement =
           new SeqControlFlowStatement(
-              threadBitVectors.orElseThrow(), SeqControlFlowStatementType.IF);
+              evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE
           + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());

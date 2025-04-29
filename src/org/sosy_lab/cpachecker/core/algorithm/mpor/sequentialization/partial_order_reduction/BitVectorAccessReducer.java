@@ -163,7 +163,7 @@ class BitVectorAccessReducer {
             buildBitVectorEvaluationStatements(
                 pCurrentStatement,
                 bitVectorAssignments,
-                SeqExpressionBuilder.buildPrunedBitVectorAccessEvaluationByEncoding(
+                SeqExpressionBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
                     pOptions,
                     pThread,
                     bitVectorAssignments,

@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 public class BitVectorEvaluationExpression implements SeqExpression {
 
   public final Optional<CBinaryExpression> binaryExpression;
+  // TODO use SeqLogicalExpression here
   public final Optional<SeqExpression> logicalExpression;
 
   public BitVectorEvaluationExpression(

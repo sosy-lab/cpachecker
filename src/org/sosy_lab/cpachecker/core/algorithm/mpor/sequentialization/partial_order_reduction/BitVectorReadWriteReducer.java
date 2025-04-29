@@ -60,11 +60,9 @@ class BitVectorReadWriteReducer {
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      // TODO create and simplify this dynamically, based on the values that where just set for the
-      //  bit vectors
-      BitVectorEvaluationExpression bitVectorEvaluation =
+      Optional<BitVectorEvaluationExpression> bitVectorEvaluation =
           SeqExpressionBuilder.buildBitVectorReadWriteEvaluationByEncoding(
-              pOptions.porBitVectorEncoding, thread, pBitVectorVariables, pBinaryExpressionBuilder);
+              pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
               SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
@@ -86,7 +84,7 @@ class BitVectorReadWriteReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
-      BitVectorEvaluationExpression pBitVectorEvaluation,
+      Optional<BitVectorEvaluationExpression> pBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
@@ -113,7 +111,7 @@ class BitVectorReadWriteReducer {
   private static SeqCaseBlockStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
-      final BitVectorEvaluationExpression pBitVectorEvaluation,
+      final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
@@ -129,7 +127,7 @@ class BitVectorReadWriteReducer {
               recursivelyInjectBitVectors(
                   pOptions,
                   pThread,
-                  pBitVectorEvaluation,
+                  pFullBitVectorEvaluation,
                   pSwitchLabel,
                   concatStatement,
                   pBitVectorVariables,
@@ -164,7 +162,15 @@ class BitVectorReadWriteReducer {
         newInjected.addAll(bitVectorAssignments);
         Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
             buildBitVectorReadWriteEvaluationStatements(
-                pCurrentStatement, bitVectorAssignments, pBitVectorEvaluation, pSwitchLabel);
+                pCurrentStatement,
+                bitVectorAssignments,
+                SeqExpressionBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
+                    pOptions,
+                    pThread,
+                    bitVectorAssignments,
+                    pBitVectorVariables,
+                    pFullBitVectorEvaluation),
+                pSwitchLabel);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());
         }
