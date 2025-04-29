@@ -167,7 +167,7 @@ public class Sequentialization {
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
     Optional<BitVectorVariables> bitVectorVariables =
-        GhostVariableUtil.buildBitVectorAccessVariables(options, threads, substituteEdges);
+        GhostVariableUtil.buildBitVectorVariables(options, threads, substituteEdges);
     ThreadSimulationVariables threadSimulationVariables =
         GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
 

@@ -184,7 +184,7 @@ class BitVectorReadWriteReducer {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
         boolean value = pReadVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
@@ -192,7 +192,7 @@ class BitVectorReadWriteReducer {
             new SeqBitVectorAssignmentStatement(
                 readVariables.get(pThread), scalarBitVectorExpression));
       }
-      for (var entry : pBitVectorVariables.scalarBitVectorWriteVariables.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.scalarWriteBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
         boolean value = pWrittenVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
@@ -202,14 +202,14 @@ class BitVectorReadWriteReducer {
       }
     } else {
       CExpression readBitVectorVariable =
-          pBitVectorVariables.getBitVectorVariableByAccessType(BitVectorAccessType.READ, pThread);
+          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.READ, pThread);
       BitVectorExpression readBitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pReadVariables);
       rStatements.add(
           new SeqBitVectorAssignmentStatement(readBitVectorVariable, readBitVectorExpression));
       CExpression writeBitVectorVariable =
-          pBitVectorVariables.getBitVectorVariableByAccessType(BitVectorAccessType.WRITE, pThread);
+          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.WRITE, pThread);
       BitVectorExpression writeBitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pWrittenVariables);

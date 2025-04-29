@@ -11,24 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class BitVectorAccessVariable implements BitVectorVariable {
+public class DenseBitVector {
 
-  private final MPORThread thread;
+  public final MPORThread thread;
 
-  private final CIdExpression idExpression;
+  public final CIdExpression idExpression;
 
-  public BitVectorAccessVariable(MPORThread pThread, CIdExpression pIdExpression) {
+  public final BitVectorAccessType accessType;
+
+  public DenseBitVector(
+      MPORThread pThread, CIdExpression pIdExpression, BitVectorAccessType pAccessType) {
+
     thread = pThread;
     idExpression = pIdExpression;
-  }
-
-  @Override
-  public MPORThread getThread() {
-    return thread;
-  }
-
-  @Override
-  public CIdExpression getExpression() {
-    return idExpression;
+    accessType = pAccessType;
   }
 }

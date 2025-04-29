@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
@@ -140,6 +141,16 @@ public class SeqNameUtil {
         + pThreadId
         + createVariableId()
         + SeqToken.return_value;
+  }
+
+  public static String buildBitVectorNameByAccessType(
+      MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
+      case ACCESS -> buildBitVectorAccessName(pOptions, pThreadId);
+      case READ -> buildBitVectorReadName(pOptions, pThreadId);
+      case WRITE -> buildBitVectorWriteName(pOptions, pThreadId);
+    };
   }
 
   public static String buildBitVectorAccessName(MPOROptions pOptions, int pThreadId) {

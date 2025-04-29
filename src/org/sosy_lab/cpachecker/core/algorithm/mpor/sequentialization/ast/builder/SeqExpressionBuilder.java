@@ -113,10 +113,10 @@ public class SeqExpressionBuilder {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression bitVector =
-            pBitVectorVariables.getBitVectorVariableByAccessType(
+            pBitVectorVariables.getDenseBitVectorByAccessType(
                 BitVectorAccessType.ACCESS, pActiveThread);
         ImmutableSet<CExpression> otherBitVectors =
-            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
                 BitVectorAccessType.ACCESS, pActiveThread);
         CBinaryExpression binaryExpression =
             buildBitVectorAccessEvaluation(bitVector, otherBitVectors, pBinaryExpressionBuilder);
@@ -149,11 +149,11 @@ public class SeqExpressionBuilder {
   private static Optional<SeqExpression> buildScalarBitVectorAccessEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.scalarBitVectorAccessVariables.isEmpty()) {
+    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
       return Optional.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+    for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeVariable = accessVariables.get(pActiveThread);
@@ -185,16 +185,16 @@ public class SeqExpressionBuilder {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression readBitVector =
-            pBitVectorVariables.getBitVectorVariableByAccessType(
+            pBitVectorVariables.getDenseBitVectorByAccessType(
                 BitVectorAccessType.READ, pActiveThread);
         CExpression writeBitVector =
-            pBitVectorVariables.getBitVectorVariableByAccessType(
+            pBitVectorVariables.getDenseBitVectorByAccessType(
                 BitVectorAccessType.WRITE, pActiveThread);
         ImmutableSet<CExpression> otherReadBitVectors =
-            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
                 BitVectorAccessType.READ, pActiveThread);
         ImmutableSet<CExpression> otherWriteBitVectors =
-            pBitVectorVariables.getOtherBitVectorVariablesByAccessType(
+            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
                 BitVectorAccessType.WRITE, pActiveThread);
         SeqLogicalAndExpression evaluationExpression =
             SeqExpressionBuilder.buildBitVectorReadWriteEvaluation(
@@ -256,12 +256,12 @@ public class SeqExpressionBuilder {
   private static Optional<SeqExpression> buildScalarBitVectorReadWriteEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.scalarBitVectorReadVariables.isEmpty()
-        && pBitVectorVariables.scalarBitVectorWriteVariables.isEmpty()) {
+    if (pBitVectorVariables.scalarReadBitVectors.isEmpty()
+        && pBitVectorVariables.scalarWriteBitVectors.isEmpty()) {
       return Optional.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
+    for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
       assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
@@ -275,10 +275,7 @@ public class SeqExpressionBuilder {
               .collect(ImmutableList.toImmutableList());
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
           Objects.requireNonNull(
-                  pBitVectorVariables
-                      .scalarBitVectorWriteVariables
-                      .orElseThrow()
-                      .get(variableDeclaration))
+                  pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(variableDeclaration))
               .variables;
       assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeWriteVariable = writeVariables.get(pActiveThread);

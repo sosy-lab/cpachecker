@@ -180,8 +180,7 @@ class BitVectorAccessReducer {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry :
-          pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pAccessedVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
@@ -191,7 +190,7 @@ class BitVectorAccessReducer {
       }
     } else {
       CExpression bitVectorVariable =
-          pBitVectorVariables.getBitVectorVariableByAccessType(BitVectorAccessType.ACCESS, pThread);
+          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.ACCESS, pThread);
       BitVectorExpression bitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);

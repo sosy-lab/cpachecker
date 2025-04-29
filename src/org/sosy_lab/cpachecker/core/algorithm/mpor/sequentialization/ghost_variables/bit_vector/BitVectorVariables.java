@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
@@ -22,94 +19,71 @@ public class BitVectorVariables {
 
   public final int numGlobalVariables;
 
-  // TODO this should also be optional, its only required when using non-scalar bit vectors
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
-  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorAccessVariables;
+  public final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-      scalarBitVectorAccessVariables;
+  public final Optional<ImmutableSet<DenseBitVector>> denseReadBitVectors;
 
-  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorReadVariables;
+  public final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
-  public final Optional<ImmutableSet<BitVectorVariable>> bitVectorWriteVariables;
+  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarAccessBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-      scalarBitVectorReadVariables;
+  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarReadBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-      scalarBitVectorWriteVariables;
+  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarWriteBitVectors;
 
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
-      Optional<ImmutableSet<BitVectorVariable>> pBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-          pScalarBitVectorVariables,
-      Optional<ImmutableSet<BitVectorVariable>> pBitVectorReadVariables,
-      Optional<ImmutableSet<BitVectorVariable>> pBitVectorWriteVariables,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-          pScalarBitVectorReadVariables,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables>>
-          pScalarBitVectorWriteVariables) {
+      Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
+      Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
+      Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarAccessBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarReadBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarWriteBitVectors) {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
-    bitVectorAccessVariables = pBitVectors;
-    scalarBitVectorAccessVariables = pScalarBitVectorVariables;
-    bitVectorReadVariables = pBitVectorReadVariables;
-    bitVectorWriteVariables = pBitVectorWriteVariables;
-    scalarBitVectorReadVariables = pScalarBitVectorReadVariables;
-    scalarBitVectorWriteVariables = pScalarBitVectorWriteVariables;
+    denseReadBitVectors = pDenseReadBitVectors;
+    denseWriteBitVectors = pDenseWriteBitVectors;
+    denseAccessBitVectors = pDenseAccessBitVectors;
+    scalarAccessBitVectors = pScalarAccessBitVectors;
+    scalarReadBitVectors = pScalarReadBitVectors;
+    scalarWriteBitVectors = pScalarWriteBitVectors;
   }
 
-  public CExpression getBitVectorVariableByAccessType(
+  public CExpression getDenseBitVectorByAccessType(
       BitVectorAccessType pAccessType, MPORThread pThread) {
 
-    for (BitVectorVariable variable : getBitVectorVariablesByAccessType(pAccessType)) {
-      if (variable.getThread().equals(pThread)) {
-        return variable.getExpression();
+    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
+      if (variable.thread.equals(pThread)) {
+        return variable.idExpression;
       }
     }
     throw new IllegalArgumentException("could not find pThread");
   }
 
   // TODO CIdExpression?
-  public ImmutableSet<CExpression> getOtherBitVectorVariablesByAccessType(
+  public ImmutableSet<CExpression> getOtherDenseBitVectorsByAccessType(
       BitVectorAccessType pAccessType, MPORThread pThread) {
 
     ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
-    for (BitVectorVariable variable : getBitVectorVariablesByAccessType(pAccessType)) {
-      if (!variable.getThread().equals(pThread)) {
-        rVariables.add(variable.getExpression());
+    for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
+      if (!variable.thread.equals(pThread)) {
+        rVariables.add(variable.idExpression);
       }
     }
     return rVariables.build();
   }
 
-  private ImmutableSet<BitVectorVariable> getBitVectorVariablesByAccessType(
+  private ImmutableSet<DenseBitVector> getDenseBitVectorsByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableSet.of();
-      case ACCESS -> bitVectorAccessVariables.orElseThrow();
-      case READ -> bitVectorReadVariables.orElseThrow();
-      case WRITE -> bitVectorWriteVariables.orElseThrow();
+      case ACCESS -> denseAccessBitVectors.orElseThrow();
+      case READ -> denseReadBitVectors.orElseThrow();
+      case WRITE -> denseWriteBitVectors.orElseThrow();
     };
-  }
-
-  // TODO maybe separate file here
-  public static class ScalarBitVectorVariables {
-
-    public final ImmutableMap<MPORThread, CIdExpression> variables;
-
-    public final BitVectorAccessType accessType;
-
-    public ScalarBitVectorVariables(
-        ImmutableMap<MPORThread, CIdExpression> pAccessVariables, BitVectorAccessType pAccessType) {
-
-      checkArgument(!pAccessType.equals(BitVectorAccessType.NONE));
-      variables = pAccessVariables;
-      accessType = pAccessType;
-    }
   }
 }

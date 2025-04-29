@@ -9,8 +9,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
 public enum BitVectorEncoding {
-  NONE,
-  BINARY,
-  HEXADECIMAL,
-  SCALAR
+  NONE(false),
+  BINARY(true),
+  HEXADECIMAL(true),
+  SCALAR(false);
+
+  public final boolean isDense;
+
+  BitVectorEncoding(boolean pIsDense) {
+    isDense = pIsDense;
+  }
 }
