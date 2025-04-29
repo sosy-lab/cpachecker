@@ -154,7 +154,7 @@ public class SeqExpressionBuilder {
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().getIdExpressions();
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       assert accessVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeVariable = accessVariables.get(pActiveThread);
       assert activeVariable != null;
@@ -263,7 +263,7 @@ public class SeqExpressionBuilder {
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
-      ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().getIdExpressions();
+      ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
       assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeReadVariable = readVariables.get(pActiveThread);
       assert activeReadVariable != null;
@@ -279,7 +279,7 @@ public class SeqExpressionBuilder {
                       .scalarBitVectorWriteVariables
                       .orElseThrow()
                       .get(variableDeclaration))
-              .getIdExpressions();
+              .variables;
       assert readVariables.containsKey(pActiveThread) : "no variable found for active thread";
       CIdExpression activeWriteVariable = writeVariables.get(pActiveThread);
       assert activeWriteVariable != null;

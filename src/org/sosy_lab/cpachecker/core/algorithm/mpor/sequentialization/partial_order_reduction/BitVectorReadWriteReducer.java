@@ -137,7 +137,7 @@ class BitVectorReadWriteReducer {
       newInjected.addAll(pCurrentStatement.getInjectedStatements());
       int intTargetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (intTargetPc == Sequentialization.EXIT_PC) {
-        // for the exit pc, reset the bit vector to just 0s
+        // exit pc -> reset bit vector to 0s so that no interference with still active threads
         newInjected.addAll(
             buildBitVectorReadWriteAssignments(
                 pOptions, pThread, pBitVectorVariables, ImmutableList.of()));
@@ -173,13 +173,12 @@ class BitVectorReadWriteReducer {
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       for (var entry : pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow().entrySet()) {
-        ImmutableMap<MPORThread, CIdExpression> accessVariables =
-            entry.getValue().getIdExpressions();
+        ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
         boolean value = pAccessedVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                accessVariables.get(pThread), scalarBitVectorExpression));
+                readVariables.get(pThread), scalarBitVectorExpression));
       }
     } else {
       CExpression readBitVectorVariable =

@@ -245,40 +245,33 @@ public class SeqMainFunction extends SeqFunction {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           createScalarBitVectorDeclarations(
-              pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow(),
-              BitVectorAccessType.ACCESS,
-              pCaseClauses);
+              pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow(), pCaseClauses);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
                   createScalarBitVectorDeclarations(
-                      pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow(),
-                      BitVectorAccessType.READ,
-                      pCaseClauses))
+                      pBitVectorVariables.scalarBitVectorReadVariables.orElseThrow(), pCaseClauses))
               .addAll(
                   createScalarBitVectorDeclarations(
                       pBitVectorVariables.scalarBitVectorWriteVariables.orElseThrow(),
-                      BitVectorAccessType.WRITE,
                       pCaseClauses))
               .build();
     };
   }
 
   private ImmutableList<SeqBitVectorDeclaration> createScalarBitVectorDeclarations(
-      // TODO link access type to ScalarBitVectorVariables
       ImmutableMap<CVariableDeclaration, ScalarBitVectorVariables> pScalarBitVectorAccessVariables,
-      BitVectorAccessType pAccessType,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    for (var entryA : pCaseClauses.entrySet()) {
-      MPORThread thread = entryA.getKey();
-      SeqCaseClause firstCase = Objects.requireNonNull(entryA.getValue()).get(0);
-      ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
-          SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByAccessType(firstCase, pAccessType);
-      for (var entryB : pScalarBitVectorAccessVariables.entrySet()) {
-        ImmutableMap<MPORThread, CIdExpression> accessVariables =
-            entryB.getValue().getIdExpressions();
+    for (var entryB : pScalarBitVectorAccessVariables.entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entryB.getValue().variables;
+      BitVectorAccessType accessType = entryB.getValue().accessType;
+      for (var entryA : pCaseClauses.entrySet()) {
+        MPORThread thread = entryA.getKey();
+        SeqCaseClause firstCase = Objects.requireNonNull(entryA.getValue()).get(0);
+        ImmutableList<CVariableDeclaration> firstCaseGlobalVariables =
+            SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByAccessType(firstCase, accessType);
         assert accessVariables.containsKey(thread) : "thread must have access variable";
         CIdExpression variable = accessVariables.get(thread);
         boolean value = firstCaseGlobalVariables.contains(entryB.getKey());

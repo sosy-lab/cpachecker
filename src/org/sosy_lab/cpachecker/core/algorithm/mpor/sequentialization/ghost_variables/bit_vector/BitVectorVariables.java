@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
@@ -96,47 +98,18 @@ public class BitVectorVariables {
   }
 
   // TODO maybe separate file here
-  public interface ScalarBitVectorVariables {
-    ImmutableMap<MPORThread, CIdExpression> getIdExpressions();
-  }
+  public static class ScalarBitVectorVariables {
 
-  public static class ScalarBitVectorAccessVariables implements ScalarBitVectorVariables {
-    private final ImmutableMap<MPORThread, CIdExpression> accessVariables;
+    public final ImmutableMap<MPORThread, CIdExpression> variables;
 
-    public ScalarBitVectorAccessVariables(
-        ImmutableMap<MPORThread, CIdExpression> pAccessVariables) {
-      accessVariables = pAccessVariables;
-    }
+    public final BitVectorAccessType accessType;
 
-    @Override
-    public ImmutableMap<MPORThread, CIdExpression> getIdExpressions() {
-      return accessVariables;
-    }
-  }
+    public ScalarBitVectorVariables(
+        ImmutableMap<MPORThread, CIdExpression> pAccessVariables, BitVectorAccessType pAccessType) {
 
-  public static class ScalarBitVectorReadVariables implements ScalarBitVectorVariables {
-    public final ImmutableMap<MPORThread, CIdExpression> readVariables;
-
-    public ScalarBitVectorReadVariables(ImmutableMap<MPORThread, CIdExpression> pReadVariables) {
-      readVariables = pReadVariables;
-    }
-
-    @Override
-    public ImmutableMap<MPORThread, CIdExpression> getIdExpressions() {
-      return readVariables;
-    }
-  }
-
-  public static class ScalarBitVectorWriteVariables implements ScalarBitVectorVariables {
-    public final ImmutableMap<MPORThread, CIdExpression> writeVariables;
-
-    public ScalarBitVectorWriteVariables(ImmutableMap<MPORThread, CIdExpression> pWriteVariables) {
-      writeVariables = pWriteVariables;
-    }
-
-    @Override
-    public ImmutableMap<MPORThread, CIdExpression> getIdExpressions() {
-      return writeVariables;
+      checkArgument(!pAccessType.equals(BitVectorAccessType.NONE));
+      variables = pAccessVariables;
+      accessType = pAccessType;
     }
   }
 }

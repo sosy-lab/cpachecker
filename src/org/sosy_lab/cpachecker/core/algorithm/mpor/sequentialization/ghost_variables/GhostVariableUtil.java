@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables.ScalarBitVectorAccessVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables.ScalarBitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorWriteVariable;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
@@ -173,10 +172,10 @@ public class GhostVariableUtil {
         ImmutableMap.builder();
     for (CVariableDeclaration variableDeclaration : pAllGlobalVariables) {
       assert variableDeclaration.isGlobal() : "variable declaration for bit vector must be global";
-      ImmutableMap<MPORThread, CIdExpression> accessVariables =
+      ImmutableMap<MPORThread, CIdExpression> variables =
           buildScalarVariablesByAccessType(pOptions, pThreads, variableDeclaration, pAccessType);
       rAccessVariables.put(
-          variableDeclaration, new ScalarBitVectorAccessVariables(accessVariables));
+          variableDeclaration, new ScalarBitVectorVariables(variables, pAccessType));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }
