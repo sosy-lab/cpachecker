@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -31,7 +32,8 @@ public class PartialOrderReducer {
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
     if (pOptions.porConcat
@@ -39,14 +41,14 @@ public class PartialOrderReducer {
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat =
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
       return BitVectorAccessReducer.reduce(
-          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder);
+          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat =
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
       return BitVectorReadWriteReducer.reduce(
-          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder);
+          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat) {
       return StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);

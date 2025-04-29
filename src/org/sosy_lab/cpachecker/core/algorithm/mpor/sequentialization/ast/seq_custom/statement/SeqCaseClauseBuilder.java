@@ -73,7 +73,8 @@ public class SeqCaseClauseBuilder {
             pUpdatedVariables,
             pBitVectorVariables,
             prunedCases,
-            pBinaryExpressionBuilder);
+            pBinaryExpressionBuilder,
+            pLogger);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> consecutiveLabelCases =
         pOptions.consecutiveLabels

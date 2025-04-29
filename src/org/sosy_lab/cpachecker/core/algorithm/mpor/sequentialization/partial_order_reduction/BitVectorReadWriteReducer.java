@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -44,9 +46,16 @@ class BitVectorReadWriteReducer {
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    if (pBitVectorVariables.globalVariableIds.isEmpty()) {
+      pLogger.log(
+          Level.INFO,
+          "bit vectors are enabled, but the program does not contain any global variables.");
+      return pCaseClauses; // no global variables -> no bit vectors
+    }
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rInjected =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {

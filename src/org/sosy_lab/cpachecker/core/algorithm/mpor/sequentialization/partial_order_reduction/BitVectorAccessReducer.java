@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -46,9 +48,17 @@ class BitVectorAccessReducer {
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    if (pBitVectorVariables.globalVariableIds.isEmpty()) {
+      pLogger.log(
+          Level.WARNING,
+          "Bit Vectors over global variables are enabled, but the input program does not contain"
+              + " any global variables.");
+      return pCaseClauses; // no global variables -> no bit vectors
+    }
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rInjected =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
@@ -172,8 +182,7 @@ class BitVectorAccessReducer {
     if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       for (var entry :
           pBitVectorVariables.scalarBitVectorAccessVariables.orElseThrow().entrySet()) {
-        ImmutableMap<MPORThread, CIdExpression> accessVariables =
-            entry.getValue().getIdExpressions();
+        ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pAccessedVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(

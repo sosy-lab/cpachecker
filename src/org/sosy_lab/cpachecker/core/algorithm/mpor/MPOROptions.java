@@ -197,7 +197,7 @@ public class MPOROptions {
     if (!porConcat && !porBitVectorReduction.equals(BitVectorReduction.NONE)) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorReduction is only considered with porConcat "
+          "WARNING: porBitVectorReduction is only considered with porConcat"
               + " enabled. Either enable porConcat or set porBitVectorReduction to NONE.");
     }
     if (porBitVectorReduction.equals(BitVectorReduction.NONE)
@@ -211,7 +211,7 @@ public class MPOROptions {
       pLogger.log(
           Level.WARNING,
           "WARNING: threadLoopsNext is only considered with threadLoops enabled. Either enable"
-              + "threadLoops or disable threadLoopsNext.");
+              + " threadLoops or disable threadLoopsNext.");
     }
   }
 }
