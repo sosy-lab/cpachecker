@@ -32,8 +32,6 @@ public abstract sealed class AcslLiteralTerm extends ALiteralExpression implemen
     super(pLocation, pType);
   }
 
-  public abstract Object getValue();
-
   @Override
   public AcslType getExpressionType() {
     return (AcslType) super.getExpressionType();
@@ -42,11 +40,6 @@ public abstract sealed class AcslLiteralTerm extends ALiteralExpression implemen
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return getValue().toString();
-  }
-
-  @Override
-  public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
-    return "(" + toASTString(pAAstNodeRepresentation) + ")";
   }
 
   @Override

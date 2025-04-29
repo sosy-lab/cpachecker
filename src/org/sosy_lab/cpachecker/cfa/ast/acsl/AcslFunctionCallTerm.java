@@ -31,10 +31,14 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
     return (AcslTerm) super.getFunctionNameExpression();
   }
 
+  @Override
+  @SuppressWarnings(
+      "unchecked") // This is always correct per construction, but checkstyle complains
   public List<AcslTerm> getParameterExpressions() {
     return (List<AcslTerm>) super.getParameterExpressions();
   }
 
+  @Override
   public AcslFunctionDeclaration getDeclaration() {
     return (AcslFunctionDeclaration) super.getDeclaration();
   }

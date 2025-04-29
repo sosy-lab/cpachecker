@@ -40,6 +40,7 @@ public final class AcslBinaryTerm extends ABinaryExpression implements AcslTerm 
     return (AcslType) super.getExpressionType();
   }
 
+  @Override
   public AcslBinaryTermOperator getOperator() {
     return (AcslBinaryTermOperator) super.getOperator();
   }

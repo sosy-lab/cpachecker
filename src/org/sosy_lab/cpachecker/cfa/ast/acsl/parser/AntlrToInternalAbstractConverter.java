@@ -65,10 +65,13 @@ abstract class AntlrToInternalAbstractConverter<T> extends AcslGrammarBaseVisito
       }
     } else if (acslVariableDeclaration != null && cVariableDeclaration == null) {
       return acslVariableDeclaration;
-    } else {
+    } else if (cVariableDeclaration != null && acslVariableDeclaration != null) {
       throw new RuntimeException(
-          "Variable " + pName + " is not declared in neither the C program nor the ACSL scope.");
+          "Variable " + pName + " is declared in both the Acsl and the C scope");
     }
+
+    throw new RuntimeException(
+        "Variable " + pName + " is not declared in neither the C program nor the ACSL scope.");
   }
 
   AcslTerm getConstantForString(String pStringValue) {

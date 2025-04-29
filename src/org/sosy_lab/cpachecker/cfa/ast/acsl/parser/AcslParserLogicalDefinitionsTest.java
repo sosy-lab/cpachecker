@@ -160,4 +160,10 @@ public class AcslParserLogicalDefinitionsTest {
 
     testLogicalFunctionParsing(input, output);
   }
+
+  // TODO: Add the following things as tests
+  //  - Sorted predicate
+  //  - Min function
+  //  - Sum function
+  //  - Fibonacci function
 }

@@ -28,12 +28,15 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslProgramLabel;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
@@ -500,6 +503,66 @@ public class AcslParserPredicateTest {
         new AcslValidPredicate(
             FileLocation.DUMMY, new AcslMemoryLocationSetEmpty(FileLocation.DUMMY));
     String input = "\\valid(\\empty)";
+
+    testPredicateParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleForallPredicate() throws AcslParseException {
+    AcslParameterDeclaration x =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
+    AcslParameterDeclaration y =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
+    AcslPredicate output =
+        new AcslForallPredicate(
+            FileLocation.DUMMY,
+            ImmutableList.of(x, y),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, x),
+                new AcslIdTerm(FileLocation.DUMMY, y),
+                AcslBinaryTermExpressionOperator.EQUALS));
+    String input = "\\forall integer ax, real ay ; ax == ay";
+
+    testPredicateParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleForallPredicate2() throws AcslParseException {
+    AcslParameterDeclaration x =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
+    AcslParameterDeclaration y =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ay");
+    AcslPredicate output =
+        new AcslForallPredicate(
+            FileLocation.DUMMY,
+            ImmutableList.of(x, y),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, x),
+                new AcslIdTerm(FileLocation.DUMMY, y),
+                AcslBinaryTermExpressionOperator.EQUALS));
+    String input = "\\forall integer ax, ay ; ax == ay";
+
+    testPredicateParsing(input, output);
+  }
+
+  @Test
+  public void parseSimpleExistsPredicate() throws AcslParseException {
+    AcslParameterDeclaration x =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, "ax");
+    AcslParameterDeclaration y =
+        new AcslParameterDeclaration(FileLocation.DUMMY, AcslBuiltinLogicType.REAL, "ay");
+    AcslPredicate output =
+        new AcslExistsPredicate(
+            FileLocation.DUMMY,
+            ImmutableList.of(x, y),
+            new AcslBinaryTermPredicate(
+                FileLocation.DUMMY,
+                new AcslIdTerm(FileLocation.DUMMY, x),
+                new AcslIdTerm(FileLocation.DUMMY, y),
+                AcslBinaryTermExpressionOperator.EQUALS));
+    String input = "\\exists integer ax, real ay ; ax == ay";
 
     testPredicateParsing(input, output);
   }

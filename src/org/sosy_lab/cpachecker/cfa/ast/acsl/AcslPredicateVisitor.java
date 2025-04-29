@@ -25,4 +25,8 @@ public interface AcslPredicateVisitor<R, X extends Exception> {
   R visit(AcslTernaryPredicate pAcslTernaryPredicate) throws X;
 
   R visit(AcslValidPredicate pAcslValidPredicate) throws X;
+
+  R visit(AcslForallPredicate pForallPredicate) throws X;
+
+  R visit(AcslExistsPredicate pAcslExistsPredicate) throws X;
 }

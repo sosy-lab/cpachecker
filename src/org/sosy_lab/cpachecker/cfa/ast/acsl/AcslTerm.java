@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
 
-public abstract sealed interface AcslTerm extends AcslAstNode, AExpression
+public sealed interface AcslTerm extends AcslAstNode, AExpression
     permits AcslArraySubscriptTerm,
         AcslAtTerm,
         AcslBinaryTerm,

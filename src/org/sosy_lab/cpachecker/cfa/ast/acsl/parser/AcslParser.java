@@ -19,8 +19,8 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jspecify.annotations.NonNull;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslLogicDefinition;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarLexer;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.generated.AcslGrammarParser;
@@ -54,7 +54,7 @@ public class AcslParser {
 
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.pred());
     AntrlPredicateToPredicateConverter converter =
-        new AntrlPredicateToPredicateConverter(pCProgramScope, pAcslScope);
+        new AntrlPredicateToPredicateConverter(pCProgramScope, AcslScope.mutableCopy(pAcslScope));
 
     AcslPredicate expression = converter.visit(tree);
 
@@ -67,7 +67,7 @@ public class AcslParser {
     ParseTree tree = generateParseTree(pInput, pParser -> pParser.logicDef());
 
     AntlrLogicalDefinitionToLogicalDefinitionConverter converter =
-        new AntlrLogicalDefinitionToLogicalDefinitionConverter(pAcslScope);
+        new AntlrLogicalDefinitionToLogicalDefinitionConverter(AcslScope.mutableCopy(pAcslScope));
 
     AcslLogicDefinition definition = converter.visit(tree);
 

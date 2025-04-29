@@ -28,6 +28,7 @@ public final class AcslIdTerm extends AIdExpression implements AcslTerm {
     this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
   }
 
+  @Override
   public AcslSimpleDeclaration getDeclaration() {
     return (AcslSimpleDeclaration) super.getDeclaration();
   }
