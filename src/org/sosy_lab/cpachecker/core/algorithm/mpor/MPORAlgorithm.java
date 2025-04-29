@@ -265,6 +265,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             porConcat,
             porBitVectorReduction,
             porBitVectorEncoding,
+            pruneBitVectorEvaluation,
             pruneEmptyStatements,
             scalarPc,
             sequentializationErrors,
