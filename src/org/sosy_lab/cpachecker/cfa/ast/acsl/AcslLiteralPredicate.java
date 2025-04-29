@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,6 +21,7 @@ public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
 
   protected AcslLiteralPredicate(FileLocation pFileLocation) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN);
+    checkNotNull(pFileLocation);
   }
 
   @Override

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,6 +23,8 @@ public final class AcslProgramLabel implements AcslLabel {
   public AcslProgramLabel(String pLabel, FileLocation pLocation) {
     label = pLabel;
     location = pLocation;
+    checkNotNull(pLabel);
+    checkNotNull(pLocation);
   }
 
   @Override

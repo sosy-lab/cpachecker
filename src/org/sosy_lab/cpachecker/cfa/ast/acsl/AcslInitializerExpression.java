@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,6 +21,8 @@ public final class AcslInitializerExpression extends AInitializerExpression
 
   public AcslInitializerExpression(FileLocation pFileLocation, AcslPredicate pExpression) {
     super(pFileLocation, pExpression);
+    checkNotNull(pFileLocation);
+    checkNotNull(pExpression);
   }
 
   @Override

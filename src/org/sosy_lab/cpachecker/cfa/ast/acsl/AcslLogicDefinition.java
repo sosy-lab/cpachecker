@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,6 +28,9 @@ public abstract sealed class AcslLogicDefinition implements AcslAstNode
     fileLocation = pFileLocation;
     declaration = pDeclaration;
     body = pBody;
+    checkNotNull(pFileLocation);
+    checkNotNull(pDeclaration);
+    checkNotNull(pBody);
   }
 
   @Override

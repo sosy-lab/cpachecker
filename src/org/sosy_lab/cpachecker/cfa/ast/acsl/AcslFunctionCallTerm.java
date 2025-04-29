@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
@@ -24,6 +26,11 @@ public final class AcslFunctionCallTerm extends AFunctionCallExpression implemen
       List<AcslTerm> pParameters,
       AcslFunctionDeclaration pDeclaration) {
     super(pLocation, pType, pFunctionName, pParameters, pDeclaration);
+    checkNotNull(pLocation);
+    checkNotNull(pType);
+    checkNotNull(pFunctionName);
+    checkNotNull(pParameters);
+    checkNotNull(pDeclaration);
   }
 
   @Override

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -23,6 +25,8 @@ public abstract sealed class AcslMemoryLocationSet implements AcslAstNode
   protected AcslMemoryLocationSet(FileLocation pFileLocation, AcslSetType pType) {
     fileLocation = pFileLocation;
     type = pType;
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
   }
 
   @Override

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.AbstractFunctionType;
@@ -19,5 +21,8 @@ public final class AcslFunctionType extends AbstractFunctionType implements Acsl
 
   public AcslFunctionType(Type pReturnType, List<AcslType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
+    checkNotNull(pReturnType);
+    checkNotNull(pParameters);
+    checkNotNull(pTakesVarArgs);
   }
 }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import java.io.Serial;
@@ -31,6 +33,12 @@ public final class AcslFunctionDeclaration extends AFunctionDeclaration
       List<AcslParameterDeclaration> pParameters) {
     super(pFileLocation, pType, pName, pOrigName, pParameters);
     polymorphicTypes = pPolymorphicTypes;
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pName);
+    checkNotNull(pOrigName);
+    checkNotNull(pParameters);
+    checkNotNull(pPolymorphicTypes);
   }
 
   public List<AcslTypeVariableDeclaration> getPolymorphicTypes() {

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -20,6 +22,7 @@ public final class AcslCType implements AcslType {
 
   public AcslCType(CType pType) {
     type = pType;
+    checkNotNull(pType);
   }
 
   public CType getType() {

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -22,6 +24,10 @@ public final class AcslUnaryTerm extends AUnaryExpression implements AcslTerm {
       AcslTerm pOperand,
       AcslUnaryTermOperator pOperator) {
     super(pFileLocation, pType, pOperand, pOperator);
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pOperand);
+    checkNotNull(pOperator);
   }
 
   @Override

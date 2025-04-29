@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 
@@ -19,6 +21,7 @@ public final class AcslPolymorphicType implements AcslLogicType {
 
   public AcslPolymorphicType(String pName) {
     name = pName;
+    checkNotNull(pName);
   }
 
   @Override

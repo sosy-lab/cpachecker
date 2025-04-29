@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -22,6 +24,10 @@ public final class AcslTypeVariableDeclaration extends AcslTypeDeclaration {
       String pName,
       String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, pName, pQualifiedName);
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pName);
+    checkNotNull(pQualifiedName);
   }
 
   @Override

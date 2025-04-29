@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -19,6 +21,8 @@ public final class AcslCharLiteralTerm extends AcslLiteralTerm {
   public AcslCharLiteralTerm(FileLocation pFileLocation, AcslType pType, char pCharacter) {
     super(pFileLocation, pType);
     character = pCharacter;
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
   }
 
   @Override

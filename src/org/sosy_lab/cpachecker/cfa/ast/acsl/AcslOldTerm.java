@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -22,6 +24,8 @@ public final class AcslOldTerm implements AcslTerm, AExpression {
   public AcslOldTerm(FileLocation pLocation, AcslTerm pTerm) {
     fileLocation = pLocation;
     term = pTerm;
+    checkNotNull(pLocation);
+    checkNotNull(pTerm);
   }
 
   public AcslTerm getTerm() {

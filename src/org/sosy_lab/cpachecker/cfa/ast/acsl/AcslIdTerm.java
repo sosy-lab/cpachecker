@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -22,10 +24,16 @@ public final class AcslIdTerm extends AIdExpression implements AcslTerm {
       final String pName,
       final AcslSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
+    checkNotNull(pFileLocation);
+    checkNotNull(pDeclaration);
+    checkNotNull(pType);
+    checkNotNull(pName);
   }
 
   public AcslIdTerm(FileLocation pFileLocation, AcslSimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(), pDeclaration.getName(), pDeclaration);
+    checkNotNull(pFileLocation);
+    checkNotNull(pDeclaration);
   }
 
   @Override

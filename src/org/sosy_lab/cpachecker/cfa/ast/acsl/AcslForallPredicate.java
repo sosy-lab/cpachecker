@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -17,6 +19,9 @@ public final class AcslForallPredicate extends AcslQuantifiedPredicate {
       List<AcslParameterDeclaration> pBinders,
       AcslPredicate pPredicate) {
     super(pFileLocation, pBinders, pPredicate);
+    checkNotNull(pFileLocation);
+    checkNotNull(pBinders);
+    checkNotNull(pPredicate);
   }
 
   @Override

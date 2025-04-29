@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 
 public enum AcslBuiltinLogicType implements AcslLogicType {
@@ -27,6 +29,7 @@ public enum AcslBuiltinLogicType implements AcslLogicType {
 
   AcslBuiltinLogicType(String pType) {
     type = pType;
+    checkNotNull(pType);
   }
 
   public static AcslType of(String pText) {

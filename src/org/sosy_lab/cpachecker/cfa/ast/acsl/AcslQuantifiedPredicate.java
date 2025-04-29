@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Joiner;
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +30,9 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     fileLocation = pFileLocation;
     binders = pBinders;
     predicate = pPredicate;
+    checkNotNull(pFileLocation);
+    checkNotNull(pBinders);
+    checkNotNull(pPredicate);
   }
 
   public List<AcslParameterDeclaration> getBinders() {

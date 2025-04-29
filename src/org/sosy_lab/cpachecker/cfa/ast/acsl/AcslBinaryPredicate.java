@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -22,6 +24,10 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
       AcslPredicate pOperand2,
       AcslBinaryPredicateExpressionOperator pOperator) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
+    checkNotNull(pFileLocation);
+    checkNotNull(pOperand1);
+    checkNotNull(pOperand2);
+    checkNotNull(pOperator);
   }
 
   @Override

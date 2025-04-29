@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,6 +23,9 @@ public final class AcslAtTerm implements AcslTerm {
   private final FileLocation fileLocation;
 
   public AcslAtTerm(FileLocation pLocation, AcslTerm pTerm, AcslLabel pLabel) {
+    checkNotNull(pLocation);
+    checkNotNull(pTerm);
+    checkNotNull(pLabel);
     fileLocation = pLocation;
     term = pTerm;
     label = pLabel;

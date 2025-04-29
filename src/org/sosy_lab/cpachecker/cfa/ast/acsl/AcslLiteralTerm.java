@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
@@ -30,6 +32,8 @@ public abstract sealed class AcslLiteralTerm extends ALiteralExpression implemen
 
   protected AcslLiteralTerm(FileLocation pLocation, AcslType pType) {
     super(pLocation, pType);
+    checkNotNull(pLocation);
+    checkNotNull(pType);
   }
 
   @Override

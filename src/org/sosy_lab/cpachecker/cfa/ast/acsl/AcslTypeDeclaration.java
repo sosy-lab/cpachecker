@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -26,6 +28,10 @@ public abstract sealed class AcslTypeDeclaration extends AbstractDeclaration
       String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, pName, pName);
     qualifiedName = pQualifiedName;
+    checkNotNull(pFileLocation);
+    checkNotNull(pType);
+    checkNotNull(pName);
+    checkNotNull(pQualifiedName);
   }
 
   @Override

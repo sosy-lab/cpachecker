@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -29,6 +31,7 @@ public enum AcslBuiltinLabel implements AcslLabel {
   AcslBuiltinLabel(String pLabel) {
     label = pLabel;
     location = FileLocation.DUMMY;
+    checkNotNull(pLabel);
   }
 
   public static AcslBuiltinLabel of(String pLabel) {

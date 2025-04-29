@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +30,9 @@ public final class AcslValidPredicate implements AcslPredicate {
     type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
     optionalLabel = Optional.of(pLabel);
+    checkNotNull(pFileLocation);
+    checkNotNull(memoryLocationSet);
+    checkNotNull(pLabel);
   }
 
   public AcslValidPredicate(FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet) {
@@ -35,6 +40,8 @@ public final class AcslValidPredicate implements AcslPredicate {
     type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
     optionalLabel = Optional.empty();
+    checkNotNull(pFileLocation);
+    checkNotNull(memoryLocationSet);
   }
 
   @Override

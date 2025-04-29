@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -17,6 +19,7 @@ public final class AcslMemoryLocationSetEmpty extends AcslMemoryLocationSet {
 
   public AcslMemoryLocationSetEmpty(FileLocation pFileLocation) {
     super(pFileLocation, new AcslSetType(AcslBuiltinLogicType.ANY));
+    checkNotNull(pFileLocation);
   }
 
   @Override

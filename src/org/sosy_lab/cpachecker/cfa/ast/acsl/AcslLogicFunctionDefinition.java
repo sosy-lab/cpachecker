@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -18,6 +20,9 @@ public final class AcslLogicFunctionDefinition extends AcslLogicDefinition {
   public AcslLogicFunctionDefinition(
       FileLocation pFileLocation, AcslFunctionDeclaration pDeclaration, AcslTerm pBody) {
     super(pFileLocation, pDeclaration, pBody);
+    checkNotNull(pFileLocation);
+    checkNotNull(pDeclaration);
+    checkNotNull(pBody);
   }
 
   @Override

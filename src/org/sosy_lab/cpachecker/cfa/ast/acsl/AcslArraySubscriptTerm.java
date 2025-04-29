@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,6 +21,10 @@ public final class AcslArraySubscriptTerm extends AArraySubscriptExpression impl
   public AcslArraySubscriptTerm(
       FileLocation pLocation, AcslType pType, AcslTerm pArrayTerm, AcslTerm pSubscriptTerm) {
     super(pLocation, pType, pArrayTerm, pSubscriptTerm);
+    checkNotNull(pLocation);
+    checkNotNull(pType);
+    checkNotNull(pArrayTerm);
+    checkNotNull(pSubscriptTerm);
   }
 
   @Override
