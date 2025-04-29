@@ -300,8 +300,12 @@ analysis.algorithm.MPOR.porBitVectorReduction = NONE
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.porConcat = true
 
+# prune and simplify bit vector evaluation expressions based on the previous 
+# bit vector assignments? true -> (should) improve verification performance
+analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
+
 # prune empty statements (with only pc writes) from the sequentialization?
-analysis.algorithm.MPOR.pruneEmpty = true
+analysis.algorithm.MPOR.pruneEmptyStatements = true
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays? may slow down or improve verification depending on the verifier and

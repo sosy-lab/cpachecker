@@ -65,7 +65,9 @@ public class SeqCaseClauseBuilder {
         initCaseClauses(pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
     // if enabled, prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
-        pOptions.pruneEmpty ? SeqPruner.pruneCaseClauses(initialCaseClauses) : initialCaseClauses;
+        pOptions.pruneEmptyStatements
+            ? SeqPruner.pruneCaseClauses(initialCaseClauses)
+            : initialCaseClauses;
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reducedCases =
         PartialOrderReducer.reduce(

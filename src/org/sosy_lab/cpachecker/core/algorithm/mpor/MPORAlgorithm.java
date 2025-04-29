@@ -123,8 +123,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       secure = true,
+      description =
+          "prune and simplify bit vector evaluation expressions based on the previous "
+              + " bit vector assignments? true -> (should) improve verification performance")
+  private boolean pruneBitVectorEvaluation = false;
+
+  @Option(
+      secure = true,
       description = "prune empty statements (with only pc writes) from the sequentialization?")
-  private boolean pruneEmpty = true;
+  private boolean pruneEmptyStatements = true;
 
   @Option(
       secure = true,
@@ -258,7 +265,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             porConcat,
             porBitVectorReduction,
             porBitVectorEncoding,
-            pruneEmpty,
+            pruneEmptyStatements,
             scalarPc,
             sequentializationErrors,
             shortVariables,
