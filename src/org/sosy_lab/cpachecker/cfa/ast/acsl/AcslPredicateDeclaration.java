@@ -24,14 +24,14 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
     implements AcslLogicDeclaration {
 
   @Serial private static final long serialVersionUID = -814553465151276L;
-  private final List<AcslPolymorphicType> polymorphicTypes;
+  private final List<AcslTypeVariableDeclaration> polymorphicTypes;
 
-  private AcslPredicateDeclaration(
+  public AcslPredicateDeclaration(
       FileLocation pFileLocation,
       AcslPredicateType pType,
       String pName,
       String pOrigName,
-      List<AcslPolymorphicType> pPolymorphicTypes,
+      List<AcslTypeVariableDeclaration> pPolymorphicTypes,
       List<AcslParameterDeclaration> pParameters) {
     super(pFileLocation, pType, pName, pOrigName, pParameters);
     polymorphicTypes = pPolymorphicTypes;
@@ -43,7 +43,7 @@ public final class AcslPredicateDeclaration extends AFunctionDeclaration
     checkNotNull(pParameters);
   }
 
-  public List<AcslPolymorphicType> getPolymorphicTypes() {
+  public List<AcslTypeVariableDeclaration> getPolymorphicTypes() {
     return polymorphicTypes;
   }
 

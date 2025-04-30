@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm.AcslBinaryTermOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
@@ -22,7 +22,7 @@ public interface AcslAstNodeVisitor<R, X extends Exception>
         AcslMemoryLocationSetVisitor<R, X>,
         AcslLogicDefinitionVisitor<R, X> {
 
-  R visit(AcslBinaryPredicateExpressionOperator pDecl) throws X;
+  R visit(AcslBinaryPredicateOperator pDecl) throws X;
 
   R visit(AcslBinaryTermOperator pDecl) throws X;
 

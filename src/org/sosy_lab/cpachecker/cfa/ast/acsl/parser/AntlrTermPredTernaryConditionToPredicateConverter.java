@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
@@ -83,8 +83,8 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
   public AcslPredicate visitBinaryTermPredTernaryCondition(
       BinaryTermPredTernaryConditionContext ctx) {
     AcslPredicate leftExpression = visit(ctx.getChild(0));
-    AcslBinaryPredicateExpressionOperator operator =
-        AcslBinaryPredicateExpressionOperator.of(ctx.getChild(1).getText());
+    AcslBinaryPredicateOperator operator =
+        AcslBinaryPredicateOperator.of(ctx.getChild(1).getText());
     AcslPredicate rightExpression = visit(ctx.getChild(2));
 
     return new AcslBinaryPredicate(FileLocation.DUMMY, leftExpression, rightExpression, operator);
@@ -120,7 +120,7 @@ public class AntlrTermPredTernaryConditionToPredicateConverter
                 FileLocation.DUMMY,
                 currentExpression,
                 newComparison,
-                AcslBinaryPredicateExpressionOperator.AND);
+                AcslBinaryPredicateOperator.AND);
       }
     }
 

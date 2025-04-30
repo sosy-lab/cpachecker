@@ -10,4 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 public interface AcslLogicDefinitionVisitor<R, X extends Exception> {
   R visit(AcslLogicFunctionDefinition pAcslLogicFunctionDefinition) throws X;
+
+  R visit(AcslLogicPredicateDefinition pAcslLogicPredicateDefinition) throws X;
 }

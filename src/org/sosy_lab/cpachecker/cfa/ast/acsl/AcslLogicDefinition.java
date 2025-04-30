@@ -15,7 +15,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract sealed class AcslLogicDefinition implements AcslAstNode
-    permits AcslLogicFunctionDefinition {
+    permits AcslLogicFunctionDefinition, AcslLogicPredicateDefinition {
 
   @Serial private static final long serialVersionUID = 19841239875456789L;
 

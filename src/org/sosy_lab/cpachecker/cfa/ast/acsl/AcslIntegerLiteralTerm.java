@@ -28,6 +28,15 @@ public final class AcslIntegerLiteralTerm extends AcslLiteralTerm {
     checkNotNull(pType);
   }
 
+  public static final AcslIntegerLiteralTerm ZERO =
+      new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ZERO);
+
+  public static final AcslIntegerLiteralTerm ONE =
+      new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.ONE);
+
+  public static final AcslIntegerLiteralTerm TWO =
+      new AcslIntegerLiteralTerm(FileLocation.DUMMY, AcslBuiltinLogicType.INTEGER, BigInteger.TWO);
+
   @Override
   public BigInteger getValue() {
     return value;

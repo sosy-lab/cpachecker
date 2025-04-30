@@ -17,7 +17,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateExpressionOperator;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate.AcslBinaryPredicateOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate.AcslBinaryTermExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
@@ -147,8 +147,8 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
   @Override
   public AcslPredicate visitBinaryPredicate(BinaryPredicateContext ctx) {
     AcslPredicate leftExpression = visit(ctx.getChild(0));
-    AcslBinaryPredicateExpressionOperator operator =
-        AcslBinaryPredicateExpressionOperator.of(ctx.getChild(1).getText());
+    AcslBinaryPredicateOperator operator =
+        AcslBinaryPredicateOperator.of(ctx.getChild(1).getText());
     AcslPredicate rightExpression = visit(ctx.getChild(2));
 
     return new AcslBinaryPredicate(FileLocation.DUMMY, leftExpression, rightExpression, operator);
@@ -162,7 +162,7 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
     int amountOfChildren = ctx.getChildCount();
     int i;
     for (i = 0; i + 1 < amountOfChildren; i += 2) {
-      if (i + 3 < amountOfChildren) {
+      if (i + 3 > amountOfChildren) {
         throw new RuntimeException(
             "Unexpected number of children when creating comparison operator");
       }
@@ -181,9 +181,9 @@ class AntrlPredicateToPredicateConverter extends AntlrToInternalAbstractConverte
         currentExpression =
             new AcslBinaryPredicate(
                 FileLocation.DUMMY,
-                currentExpression,
                 newComparison,
-                AcslBinaryPredicateExpressionOperator.AND);
+                currentExpression,
+                AcslBinaryPredicateOperator.AND);
       }
     }
 

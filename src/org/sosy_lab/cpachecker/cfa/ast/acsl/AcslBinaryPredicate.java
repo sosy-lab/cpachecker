@@ -22,7 +22,7 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
       FileLocation pFileLocation,
       AcslPredicate pOperand1,
       AcslPredicate pOperand2,
-      AcslBinaryPredicateExpressionOperator pOperator) {
+      AcslBinaryPredicateOperator pOperator) {
     super(pFileLocation, AcslBuiltinLogicType.BOOLEAN, pOperand1, pOperand2, pOperator);
     checkNotNull(pFileLocation);
     checkNotNull(pOperand1);
@@ -40,7 +40,7 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     return v.visit(this);
   }
 
-  public enum AcslBinaryPredicateExpressionOperator implements ABinaryOperator, AcslAstNode {
+  public enum AcslBinaryPredicateOperator implements ABinaryOperator, AcslAstNode {
     IMPLICATION("==>"),
     EQUIVALENT("<==>"),
     AND("&&"),
@@ -58,13 +58,13 @@ public final class AcslBinaryPredicate extends ABinaryExpression implements Acsl
     private final String operator;
     private final FileLocation fileLocation;
 
-    AcslBinaryPredicateExpressionOperator(String pOperator) {
+    AcslBinaryPredicateOperator(String pOperator) {
       operator = pOperator;
       fileLocation = FileLocation.DUMMY;
     }
 
-    public static AcslBinaryPredicateExpressionOperator of(String pOperator) {
-      for (AcslBinaryPredicateExpressionOperator op : values()) {
+    public static AcslBinaryPredicateOperator of(String pOperator) {
+      for (AcslBinaryPredicateOperator op : values()) {
         if (op.operator.equals(pOperator)) {
           return op;
         }
