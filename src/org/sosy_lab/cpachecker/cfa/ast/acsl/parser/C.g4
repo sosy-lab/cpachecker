@@ -1,3 +1,10 @@
+// This file is part of ANTLR grammars
+// https://github.com/antlr/grammars-v4/blob/master/c/C.g4
+//
+// SPDX-FileCopyrightText: 2013-2025 Sam Harwell
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
 /*
  [The "BSD licence"]
  Copyright (c) 2013 Sam Harwell
