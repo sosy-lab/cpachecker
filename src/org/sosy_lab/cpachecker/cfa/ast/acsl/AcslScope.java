@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
@@ -39,10 +40,10 @@ public class AcslScope implements Scope {
 
   public static AcslScope empty() {
     return new AcslScope(
-        ImmutableMultimap.of(),
-        ImmutableMultimap.of(),
-        ImmutableMultimap.of(),
-        ImmutableMultimap.of());
+        ImmutableListMultimap.of(),
+        ImmutableListMultimap.of(),
+        ImmutableListMultimap.of(),
+        ImmutableListMultimap.of());
   }
 
   public static AcslScope mutableCopy(AcslScope pScope) {

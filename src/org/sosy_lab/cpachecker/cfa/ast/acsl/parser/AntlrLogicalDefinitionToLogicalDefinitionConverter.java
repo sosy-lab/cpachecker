@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -120,9 +122,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             new AcslPredicateType(
-                FluentIterable.from(parameters)
-                    .transform(AcslParameterDeclaration::getType)
-                    .toList(),
+                transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType),
                 false),
             functionName,
             functionName,
@@ -166,9 +166,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
             FileLocation.DUMMY,
             new AcslFunctionType(
                 returnType,
-                FluentIterable.from(parameters)
-                    .transform(AcslParameterDeclaration::getType)
-                    .toList(),
+                transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType),
                 false),
             functionName,
             functionName,
