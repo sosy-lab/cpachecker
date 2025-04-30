@@ -408,6 +408,8 @@ public class ConfigurationFileChecks {
         || isOptionEnabled(config, "analysis.algorithm.nonterminationWitnessCheck")
         || basePath.toString().contains("validation-termination")) {
       assertThat(Strings.nullToEmpty(spec)).isEmpty();
+    } else if (basePath.toString().contains("unseqBeh")) {
+      assertThat(spec).endsWith("specification/deterministic-execution-order.spc");
     } else if (basePath.toString().contains("overflow")) {
       if (isSvcompConfig) {
         assertThat(spec).endsWith("specification/sv-comp-overflow.spc");

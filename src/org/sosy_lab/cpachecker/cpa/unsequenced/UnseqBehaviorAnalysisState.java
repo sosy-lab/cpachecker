@@ -16,11 +16,16 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 public class UnseqBehaviorAnalysisState
-    implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable {
+    implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable, AbstractQueryableState {
+
+  // Property
+  private static final String UNSEQUENCED = "has-unsequenced-execution";
 
   private final Map<String, Set<SideEffectInfo>> sideEffectsInFun; // total side effects
   private boolean isFunctionCalled;
@@ -251,5 +256,28 @@ public class UnseqBehaviorAnalysisState
     }
 
     return true;
+  }
+
+  // TODO: implement me or change me in checkProperty()
+  private boolean isUnsequenced() {
+    return false;
+  }
+
+  @Override
+  public String getCPAName() {
+    // Keep this in sync with config/specification/deterministic-execution-order.spc
+    return "UnseqBehaviorAnalysisCPA";
+  }
+
+  // Flags the current state as target state if it returns true. Is automatically queried.
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals(UNSEQUENCED) && isUnsequenced()) {
+      // Unsequenced/Unspecified behavior found according to C11 standard annex J.
+      // TODO: give more information
+      // logger.log(Level.FINE, "Found possible unsequenced execution order ...");
+      return true;
+    }
+    return false;
   }
 }
