@@ -10,10 +10,15 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serial;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslExistsPredicate extends AcslQuantifiedPredicate {
+
+  @Serial
+  private static final long serialVersionUID = -81455123251151276L;
+
   public AcslExistsPredicate(
       FileLocation pFileLocation,
       List<AcslParameterDeclaration> pBinders,

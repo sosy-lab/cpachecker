@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -18,6 +19,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     permits AcslExistsPredicate, AcslForallPredicate {
+
+  @Serial private static final long serialVersionUID = -81123952385151276L;
 
   private final FileLocation fileLocation;
   private final List<AcslParameterDeclaration> binders;
@@ -70,7 +73,6 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     result = prime * result + Objects.hash(fileLocation);
     result = prime * result + Objects.hash(binders);
     result = prime * result + Objects.hash(predicate);
-    result = prime * result + super.hashCode();
     return result;
   }
 

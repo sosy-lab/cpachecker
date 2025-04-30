@@ -23,7 +23,6 @@ public final class AcslBooleanLiteralPredicate extends AcslLiteralPredicate {
     super(pFileLocation);
     value = pValue;
     checkNotNull(pFileLocation);
-    checkNotNull(pValue);
   }
 
   @Override

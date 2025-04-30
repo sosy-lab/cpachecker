@@ -23,6 +23,5 @@ public final class AcslFunctionType extends AbstractFunctionType implements Acsl
     super(pReturnType, pParameters, pTakesVarArgs);
     checkNotNull(pReturnType);
     checkNotNull(pParameters);
-    checkNotNull(pTakesVarArgs);
   }
 }

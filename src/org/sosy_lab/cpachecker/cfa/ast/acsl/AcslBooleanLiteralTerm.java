@@ -23,7 +23,6 @@ public final class AcslBooleanLiteralTerm extends AcslLiteralTerm {
     super(pLocation, AcslBuiltinLogicType.BOOLEAN);
     value = pValue;
     checkNotNull(pLocation);
-    checkNotNull(pValue);
   }
 
   @Override

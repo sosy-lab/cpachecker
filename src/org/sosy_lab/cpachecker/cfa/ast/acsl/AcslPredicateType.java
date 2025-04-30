@@ -21,6 +21,5 @@ public final class AcslPredicateType extends AbstractFunctionType implements Acs
   public AcslPredicateType(List<AcslType> pParameters, boolean pTakesVarArgs) {
     super(AcslBuiltinLogicType.BOOLEAN, pParameters, pTakesVarArgs);
     checkNotNull(pParameters);
-    checkNotNull(pTakesVarArgs);
   }
 }
