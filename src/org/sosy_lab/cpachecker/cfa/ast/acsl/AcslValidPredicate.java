@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serial;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
@@ -22,14 +23,15 @@ public final class AcslValidPredicate implements AcslPredicate {
   private final AcslType type;
   private final AcslMemoryLocationSet memoryLocationSet;
 
-  private final Optional<AcslLabel> optionalLabel;
+  // Needs to be null for serialization
+  @Nullable private final AcslLabel optionalLabel;
 
   public AcslValidPredicate(
       FileLocation pFileLocation, AcslMemoryLocationSet pMemoryLocationSet, AcslLabel pLabel) {
     fileLocation = pFileLocation;
     type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
-    optionalLabel = Optional.of(pLabel);
+    optionalLabel = pLabel;
     checkNotNull(pFileLocation);
     checkNotNull(memoryLocationSet);
     checkNotNull(pLabel);
@@ -39,7 +41,7 @@ public final class AcslValidPredicate implements AcslPredicate {
     fileLocation = pFileLocation;
     type = AcslBuiltinLogicType.BOOLEAN;
     memoryLocationSet = pMemoryLocationSet;
-    optionalLabel = Optional.empty();
+    optionalLabel = null;
     checkNotNull(pFileLocation);
     checkNotNull(memoryLocationSet);
   }
@@ -52,6 +54,10 @@ public final class AcslValidPredicate implements AcslPredicate {
   @Override
   public Type getExpressionType() {
     return type;
+  }
+
+  public Optional<AcslLabel> getLabel() {
+    return Optional.ofNullable(optionalLabel);
   }
 
   @Override

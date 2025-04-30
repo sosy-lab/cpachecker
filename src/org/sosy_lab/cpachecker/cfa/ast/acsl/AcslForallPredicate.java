@@ -47,13 +47,4 @@ public final class AcslForallPredicate extends AcslQuantifiedPredicate {
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toString("\\forall");
   }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslForallPredicate other && super.equals(other);
-  }
 }

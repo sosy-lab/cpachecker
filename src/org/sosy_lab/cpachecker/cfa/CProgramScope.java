@@ -450,10 +450,8 @@ public class CProgramScope implements Scope {
 
     if (pDeclaration instanceof CFunctionDeclaration) {
       // Function declarations are not stored in the simple declarations map
-      assert pDeclaration instanceof CFunctionDeclaration;
       functionDeclarations.put(pDeclaration.getOrigName(), (CFunctionDeclaration) pDeclaration);
     } else if (pDeclaration instanceof CSimpleDeclaration) {
-      assert pDeclaration instanceof CSimpleDeclaration;
       simpleDeclarations.put(pDeclaration.getOrigName(), (CSimpleDeclaration) pDeclaration);
     } else {
       throw new AssertionError("Unsupported declaration type: " + pDeclaration);

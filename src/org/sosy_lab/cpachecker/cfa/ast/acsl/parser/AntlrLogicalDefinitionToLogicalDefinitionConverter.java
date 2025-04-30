@@ -122,8 +122,7 @@ public class AntlrLogicalDefinitionToLogicalDefinitionConverter
         new AcslPredicateDeclaration(
             FileLocation.DUMMY,
             new AcslPredicateType(
-                transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType),
-                false),
+                transformedImmutableListCopy(parameters, AcslParameterDeclaration::getType), false),
             functionName,
             functionName,
             polymorphicTypes,

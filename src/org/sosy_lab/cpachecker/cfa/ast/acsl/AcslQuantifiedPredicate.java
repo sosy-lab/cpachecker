@@ -83,6 +83,7 @@ public abstract sealed class AcslQuantifiedPredicate implements AcslPredicate
     }
 
     return obj instanceof AcslQuantifiedPredicate other
+        && Objects.equals(other.getClass(), getClass())
         && Objects.equals(other.fileLocation, fileLocation)
         && Objects.equals(other.binders, binders)
         && Objects.equals(other.predicate, predicate);

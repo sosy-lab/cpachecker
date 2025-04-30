@@ -897,7 +897,7 @@ public class LiveVariablesTransferRelation
 
     @Override
     public Boolean visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-      return null;
+      return false;
     }
   }
 }

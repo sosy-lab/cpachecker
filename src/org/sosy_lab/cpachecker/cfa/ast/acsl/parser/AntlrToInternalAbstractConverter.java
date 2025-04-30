@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.acsl.parser;
 import com.google.common.base.Verify;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;

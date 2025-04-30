@@ -1506,10 +1506,8 @@ class ASTConverter {
     if (declaration != null
         // We cannot use declaration in case (B).
         && !(declaration instanceof CEnumerator enumerator && enumerator.getEnum() == null)) {
-      Type lookupType = declaration.getType();
-      assert lookupType instanceof CType : "Expected C type, but got " + lookupType;
-
-      type = (CType) lookupType;
+      CType lookupType = declaration.getType();
+      type = lookupType;
     } else {
       type = typeConverter.convert(e.getExpressionType());
     }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import org.checkerframework.checker.nullness.qual.Nullable;

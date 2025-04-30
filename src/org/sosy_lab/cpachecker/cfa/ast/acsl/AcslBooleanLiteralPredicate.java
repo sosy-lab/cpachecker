@@ -41,17 +41,6 @@ public final class AcslBooleanLiteralPredicate extends AcslLiteralPredicate {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslBooleanLiteralPredicate other
-        && super.equals(other)
-        && other.value == value;
-  }
-
-  @Override
   public <R, X extends Exception> R accept(AcslPredicateVisitor<R, X> v) throws X {
     return v.visit(this);
   }

@@ -16,8 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class AcslExistsPredicate extends AcslQuantifiedPredicate {
 
-  @Serial
-  private static final long serialVersionUID = -81455123251151276L;
+  @Serial private static final long serialVersionUID = -81455123251151276L;
 
   public AcslExistsPredicate(
       FileLocation pFileLocation,
@@ -47,14 +46,5 @@ public final class AcslExistsPredicate extends AcslQuantifiedPredicate {
   @Override
   public String toParenthesizedASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return toString("\\exists");
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    return obj instanceof AcslExistsPredicate other && super.equals(other);
   }
 }

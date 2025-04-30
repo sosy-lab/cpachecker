@@ -521,7 +521,8 @@ public class AcslParserLogicalDefinitionsTest {
                         AcslBinaryTermExpressionOperator.LESS_THAN),
                     AcslBinaryPredicateOperator.IMPLICATION)));
     String input =
-        "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] < a[l]";
+        "Sorted<T>(T* a, integer i, integer j) = \\forall integer k, l ; i <= k < l <= j ==> a[k] <"
+            + " a[l]";
 
     testLogicalFunctionParsing(input, output);
   }

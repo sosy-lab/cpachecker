@@ -31,4 +31,15 @@ public abstract sealed class AcslLiteralPredicate extends ALiteralExpression
   public int hashCode() {
     return getValue().hashCode();
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+
+    return obj instanceof AcslBooleanLiteralPredicate other
+        && super.equals(other)
+        && other.getValue().equals(getValue());
+  }
 }
