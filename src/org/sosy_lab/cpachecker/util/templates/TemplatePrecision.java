@@ -422,22 +422,26 @@ public class TemplatePrecision implements Precision {
 
   private Collection<LinearExpression<CIdExpression>> extractTemplatesFromEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
-      case ReturnStatementEdge:
+      case ReturnStatementEdge -> {
         CReturnStatementEdge e = (CReturnStatementEdge) edge;
         if (e.getExpression().isPresent()) {
           return expressionToTemplate(e.getExpression().orElseThrow());
         }
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
         return from(callEdge.getArguments()).transformAndConcat(this::expressionToTemplate).toSet();
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
         return expressionToTemplate(assumeEdge.getExpression());
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return extractTemplatesFromStatementEdge((CStatementEdge) edge);
-      default:
+      }
+      default -> {
         // nothing to do here
+      }
     }
     return ImmutableSet.of();
   }

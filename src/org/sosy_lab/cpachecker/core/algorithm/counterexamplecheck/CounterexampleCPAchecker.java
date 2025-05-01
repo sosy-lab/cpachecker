@@ -278,7 +278,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               Collections3.filterByClass(lReached.stream(), ARGState.class)
                   .filter(AbstractStates::isTargetState)
                   .findFirst()
-                  .map(s -> s.getTargetInformation());
+                  .map(ARGState::getTargetInformation);
           if (foundErrors.isPresent() && !foundErrors.orElseThrow().containsAll(originalError)) {
             // Check that the first found memory error matches
             return false;

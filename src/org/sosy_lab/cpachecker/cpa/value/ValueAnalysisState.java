@@ -953,6 +953,7 @@ public final class ValueAnalysisState
                     || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
                 && pAstCfaRelation
                     .getVariablesAndParametersInScope(pLocation)
+                    .orElseThrow()
                     .anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);

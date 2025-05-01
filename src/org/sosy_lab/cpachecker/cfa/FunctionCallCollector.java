@@ -35,21 +35,17 @@ public class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
   @Override
   public CFATraversal.TraversalProcess visitEdge(final CFAEdge pEdge) {
     switch (pEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          final AStatementEdge edge = (AStatementEdge) pEdge;
-          if (edge.getStatement() instanceof AFunctionCall) {
-            functionCalls.add(edge);
-          }
-          break;
+      case StatementEdge -> {
+        final AStatementEdge edge = (AStatementEdge) pEdge;
+        if (edge.getStatement() instanceof AFunctionCall) {
+          functionCalls.add(edge);
         }
-
-      case FunctionCallEdge:
-      case FunctionReturnEdge:
-      case CallToReturnEdge:
-        throw new AssertionError("functioncall- and return-edges should not exist at this time.");
-      default:
+      }
+      case FunctionCallEdge, FunctionReturnEdge, CallToReturnEdge ->
+          throw new AssertionError("functioncall- and return-edges should not exist at this time.");
+      default -> {
         // nothing to do
+      }
     }
     return CFATraversal.TraversalProcess.CONTINUE;
   }

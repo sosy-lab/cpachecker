@@ -634,12 +634,13 @@ public final class LoopStructure {
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       switch (language) {
-        case C:
-          throw new CParserException("Code structure is too complex, could not detect all loops!");
-        case JAVA:
-          throw new JParserException("Code structure is too complex, could not detect all loops!");
-        default:
-          throw new AssertionError("unknown language");
+        case C ->
+            throw new CParserException(
+                "Code structure is too complex, could not detect all loops!");
+        case JAVA ->
+            throw new JParserException(
+                "Code structure is too complex, could not detect all loops!");
+        default -> throw new AssertionError("unknown language");
       }
     }
 

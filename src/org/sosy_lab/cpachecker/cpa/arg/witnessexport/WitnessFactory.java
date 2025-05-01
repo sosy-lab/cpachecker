@@ -848,39 +848,38 @@ class WitnessFactory implements EdgeAppender {
         if (functionNameExp instanceof AIdExpression) {
           final String functionName = ((AIdExpression) functionNameExp).getName();
           switch (functionName) {
-            case ThreadingTransferRelation.THREAD_START:
-              {
-                Optional<ARGState> possibleChild =
-                    pState.getChildren().stream()
-                        .filter(c -> pEdge == pState.getEdgeToChild(c))
-                        .findFirst();
-                if (!possibleChild.isPresent()) {
-                  // this can happen e.g. if the ARG was not discovered completely.
-                  return Collections.singletonList(pResult);
-                }
-                ARGState child = possibleChild.orElseThrow();
-                // search the new created thread-id
-                ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
-                for (String threadId : succThreadingState.getThreadIds()) {
-                  if (!threadingState.getThreadIds().contains(threadId)) {
-                    // we found the new created thread-id. we assume there is only 'one' match
-                    spawnedThreadId = OptionalInt.of(getUniqueThreadNum(threadId));
-                    pResult =
-                        pResult.putAndCopy(
-                            KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.orElseThrow()));
-                    String calledFunctionName =
-                        succThreadingState
-                            .getThreadLocation(threadId)
-                            .getLocationNode()
-                            .getFunction()
-                            .getOrigName();
-                    threadInitialFunctionName = Optional.of(calledFunctionName);
-                  }
-                }
-                break;
+            case ThreadingTransferRelation.THREAD_START -> {
+              Optional<ARGState> possibleChild =
+                  pState.getChildren().stream()
+                      .filter(c -> pEdge == pState.getEdgeToChild(c))
+                      .findFirst();
+              if (!possibleChild.isPresent()) {
+                // this can happen e.g. if the ARG was not discovered completely.
+                return Collections.singletonList(pResult);
               }
-            default:
+              ARGState child = possibleChild.orElseThrow();
+              // search the new created thread-id
+              ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
+              for (String threadId : succThreadingState.getThreadIds()) {
+                if (!threadingState.getThreadIds().contains(threadId)) {
+                  // we found the new created thread-id. we assume there is only 'one' match
+                  spawnedThreadId = OptionalInt.of(getUniqueThreadNum(threadId));
+                  pResult =
+                      pResult.putAndCopy(
+                          KeyDef.CREATETHREAD, Integer.toString(spawnedThreadId.orElseThrow()));
+                  String calledFunctionName =
+                      succThreadingState
+                          .getThreadLocation(threadId)
+                          .getLocationNode()
+                          .getFunction()
+                          .getOrigName();
+                  threadInitialFunctionName = Optional.of(calledFunctionName);
+                }
+              }
+            }
+            default -> {
               // nothing to do
+            }
           }
         }
       }

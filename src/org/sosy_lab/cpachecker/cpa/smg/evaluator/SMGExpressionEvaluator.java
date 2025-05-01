@@ -447,88 +447,73 @@ public class SMGExpressionEvaluator {
     BinaryOperator binaryOperator = binaryExp.getOperator();
 
     switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-        {
-          ImmutableList.Builder<SMGAddressValueAndState> result =
-              ImmutableList.builderWithExpectedSize(4);
+      case PLUS, MINUS -> {
+        ImmutableList.Builder<SMGAddressValueAndState> result =
+            ImmutableList.builderWithExpectedSize(4);
 
-          for (SMGAddressValueAndState addressValueAndState :
-              evaluateAddress(initialSmgState, cfaEdge, address)) {
+        for (SMGAddressValueAndState addressValueAndState :
+            evaluateAddress(initialSmgState, cfaEdge, address)) {
 
-            SMGAddressValue addressValue = addressValueAndState.getObject();
-            SMGState newState = addressValueAndState.getSmgState();
-            for (SMGExplicitValueAndState offsetValueAndState :
-                evaluateExplicitValue(newState, cfaEdge, pointerOffset)) {
+          SMGAddressValue addressValue = addressValueAndState.getObject();
+          SMGState newState = addressValueAndState.getSmgState();
+          for (SMGExplicitValueAndState offsetValueAndState :
+              evaluateExplicitValue(newState, cfaEdge, pointerOffset)) {
 
-              SMGExplicitValue offsetValue = offsetValueAndState.getObject();
-              newState = offsetValueAndState.getSmgState();
+            SMGExplicitValue offsetValue = offsetValueAndState.getObject();
+            newState = offsetValueAndState.getSmgState();
 
-              if (addressValue.isUnknown() || offsetValue.isUnknown()) {
-                result.add(SMGAddressValueAndState.of(newState));
-                continue;
-              }
-
-              SMGExplicitValue typeSize =
-                  SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge, typeOfPointer, newState, address));
-              SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
-              SMGObject target = addressValue.getObject();
-              SMGExplicitValue addressOffset = addressValue.getOffset();
-
-              SMGExplicitValue newAddressOffset;
-              switch (binaryOperator) {
-                case PLUS:
-                  newAddressOffset = addressOffset.add(pointerOffsetValue);
-                  break;
-                case MINUS:
-                  if (lVarIsAddress) {
-                    newAddressOffset = addressOffset.subtract(pointerOffsetValue);
-                    break;
-                  } else {
-                    throw new UnrecognizedCodeException(
-                        "Expected pointer arithmetic "
-                            + " with + or - but found "
-                            + binaryExp.toASTString(),
-                        binaryExp);
-                  }
-                default:
-                  throw new AssertionError();
-              }
-              result.addAll(createAddress(newState, target, newAddressOffset));
+            if (addressValue.isUnknown() || offsetValue.isUnknown()) {
+              result.add(SMGAddressValueAndState.of(newState));
+              continue;
             }
+
+            SMGExplicitValue typeSize =
+                SMGKnownExpValue.valueOf(getBitSizeof(cfaEdge, typeOfPointer, newState, address));
+            SMGExplicitValue pointerOffsetValue = offsetValue.multiply(typeSize);
+            SMGObject target = addressValue.getObject();
+            SMGExplicitValue addressOffset = addressValue.getOffset();
+
+            SMGExplicitValue newAddressOffset;
+            switch (binaryOperator) {
+              case PLUS:
+                newAddressOffset = addressOffset.add(pointerOffsetValue);
+                break;
+              case MINUS:
+                if (lVarIsAddress) {
+                  newAddressOffset = addressOffset.subtract(pointerOffsetValue);
+                  break;
+                } else {
+                  throw new UnrecognizedCodeException(
+                      "Expected pointer arithmetic "
+                          + " with + or - but found "
+                          + binaryExp.toASTString(),
+                      binaryExp);
+                }
+              default:
+                throw new AssertionError();
+            }
+            result.addAll(createAddress(newState, target, newAddressOffset));
           }
-          return result.build();
         }
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-        throw new UnrecognizedCodeException(
-            "Misinterpreted the expression type of " + binaryExp + " as pointer type",
-            cfaEdge,
-            binaryExp);
-      case DIVIDE:
-      case MULTIPLY:
-      case MODULO:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        throw new UnrecognizedCodeException(
-            "The operands of binary Expression "
-                + binaryExp.toASTString()
-                + " must have arithmetic types. "
-                + address.toASTString()
-                + " has a non arithmetic type",
-            cfaEdge,
-            binaryExp);
-
-      default:
+        return result.build();
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
+          throw new UnrecognizedCodeException(
+              "Misinterpreted the expression type of " + binaryExp + " as pointer type",
+              cfaEdge,
+              binaryExp);
+      case DIVIDE, MULTIPLY, MODULO, SHIFT_LEFT, SHIFT_RIGHT, BINARY_AND, BINARY_OR, BINARY_XOR ->
+          throw new UnrecognizedCodeException(
+              "The operands of binary Expression "
+                  + binaryExp.toASTString()
+                  + " must have arithmetic types. "
+                  + address.toASTString()
+                  + " has a non arithmetic type",
+              cfaEdge,
+              binaryExp);
+      default -> {
         return singletonList(SMGAddressValueAndState.of(initialSmgState));
+      }
     }
   }
 

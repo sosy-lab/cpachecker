@@ -291,38 +291,29 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
       final InterpolationGroup<T> formula = formulasWithStatesAndGroupdIds.get(positionOfA);
 
       switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START:
-          {
+        case START ->
             // start new left subtree, i.e. next formula is left leaf of a subtree.
             // current formula will be used as merge-formula (common root of new subtree and
             // previous formulas)
             stack.addLast(Pair.of(formula, formulas.size()));
-            break;
-          }
-        case END:
-          {
-            // first add the last inner formula
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
+        case END -> {
+          // first add the last inner formula
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(formula);
 
-            // then add the common root (merge-formula)
-            final Pair<InterpolationGroup<T>, Integer> commonRoot = stack.removeLast();
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(commonRoot.getFirst());
+          // then add the common root (merge-formula)
+          final Pair<InterpolationGroup<T>, Integer> commonRoot = stack.removeLast();
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(commonRoot.getFirst());
 
-            assert commonRoot.getSecond() >= stack.getLast().getSecond()
-                : "adding a complete subtree can only be done on the right side";
-
-            break;
-          }
-        case MIDDLE:
-          {
-            startOfSubTree.add(stack.getLast().getSecond());
-            formulas.add(formula);
-            break;
-          }
-        default:
-          throw new AssertionError();
+          assert commonRoot.getSecond() >= stack.getLast().getSecond()
+              : "adding a complete subtree can only be done on the right side";
+        }
+        case MIDDLE -> {
+          startOfSubTree.add(stack.getLast().getSecond());
+          formulas.add(formula);
+        }
+        default -> throw new AssertionError();
       }
     }
     ImmutableIntArray resultingStartOfSubtree = startOfSubTree.build();
@@ -377,26 +368,15 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
       final BooleanFormula itp;
       switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START:
-          {
-            itp = bfmgr.makeTrue();
-            break;
-          }
-        case END:
-          {
-            // add the last inner formula and the common root (merge-formula)
-            final BooleanFormula functionSummary = iter.next();
-            final BooleanFormula functionExecution = iter.next();
-            itp = rebuildInterpolant(functionSummary, functionExecution);
-            break;
-          }
-        case MIDDLE:
-          {
-            itp = iter.next();
-            break;
-          }
-        default:
-          throw new AssertionError();
+        case START -> itp = bfmgr.makeTrue();
+        case END -> {
+          // add the last inner formula and the common root (merge-formula)
+          final BooleanFormula functionSummary = iter.next();
+          final BooleanFormula functionExecution = iter.next();
+          itp = rebuildInterpolant(functionSummary, functionExecution);
+        }
+        case MIDDLE -> itp = iter.next();
+        default -> throw new AssertionError();
       }
       interpolants.add(itp);
     }

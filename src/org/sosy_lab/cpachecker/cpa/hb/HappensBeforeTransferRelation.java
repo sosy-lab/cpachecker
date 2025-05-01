@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.hb;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 
 import com.google.common.base.Preconditions;
@@ -72,48 +73,45 @@ public class HappensBeforeTransferRelation extends SingleEdgeTransferRelation {
       }
 
       switch (cfaEdge.getEdgeType()) {
-        case StatementEdge:
-          {
-            AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
-            if (statement instanceof AFunctionCall pAFunctionCall) {
-              AExpression functionNameExp =
-                  pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
-              if (functionNameExp instanceof AIdExpression pFunctionName) {
-                final String functionName = pFunctionName.getName();
-                switch (functionName) {
-                  case "pthread_create":
-                    final var params =
-                        pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
-                    Preconditions.checkState(
-                        params.size() == 4,
-                        "Malformed pthread_create (not 4 params): " + pAFunctionCall);
-                    Preconditions.checkState(
-                        params.get(2) instanceof CUnaryExpression
-                            && ((CUnaryExpression) params.get(2)).getOperator()
-                                == UnaryOperator.AMPER,
-                        "Malformed pthread_create (Thread not unary expression with reference): "
-                            + params.get(2));
-                    Preconditions.checkState(
-                        ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
-                        "Malformed pthread_create (Thread not CIdExpression): "
-                            + ((CUnaryExpression) params.get(2)).getOperand());
-                    prevState =
-                        addNewThread(
-                            prevState,
-                            ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
-                                .getName());
-                    break;
-                  default:
-                    // nothing to do
-                    break;
+        case StatementEdge -> {
+          AStatement statement = ((AStatementEdge) cfaEdge).getStatement();
+          if (statement instanceof AFunctionCall pAFunctionCall) {
+            AExpression functionNameExp =
+                pAFunctionCall.getFunctionCallExpression().getFunctionNameExpression();
+            if (functionNameExp instanceof AIdExpression pFunctionName) {
+              final String functionName = pFunctionName.getName();
+              switch (functionName) {
+                case "pthread_create" -> {
+                  final var params =
+                      pAFunctionCall.getFunctionCallExpression().getParameterExpressions();
+                  checkState(
+                      params.size() == 4,
+                      "Malformed pthread_create (not 4 params): %s",
+                      pAFunctionCall);
+                  checkState(
+                      params.get(2) instanceof CUnaryExpression
+                          && ((CUnaryExpression) params.get(2)).getOperator()
+                              == UnaryOperator.AMPER,
+                      "Malformed pthread_create (Thread not unary expression with reference): %s",
+                      params.get(2));
+                  checkState(
+                      ((CUnaryExpression) params.get(2)).getOperand() instanceof CIdExpression,
+                      "Malformed pthread_create (Thread not CIdExpression): %s",
+                      ((CUnaryExpression) params.get(2)).getOperand());
+                  prevState =
+                      addNewThread(
+                          prevState,
+                          ((CIdExpression) ((CUnaryExpression) params.get(2)).getOperand())
+                              .getName());
+                }
+                default -> {
+                  // nothing to do
                 }
               }
             }
-            break;
           }
-        default:
-          {
-          }
+        }
+        default -> {}
       }
 
       final var old = prevState;

@@ -468,18 +468,14 @@ abstract class SpecialOperation {
 
             if (optConstantValue.isPresent()) {
 
-              Operator operationOperator;
-              if (operator == CBinaryExpression.BinaryOperator.LESS_THAN) {
-                operationOperator = Operator.LESS_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.GREATER_THAN) {
-                operationOperator = Operator.GREATER_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.LESS_EQUAL) {
-                operationOperator = Operator.LESS_EQUAL;
-              } else if (operator == CBinaryExpression.BinaryOperator.GREATER_EQUAL) {
-                operationOperator = Operator.GREATER_EQUAL;
-              } else {
-                throw new AssertionError("Unknown operator: " + operator);
-              }
+              Operator operationOperator =
+                  switch (operator) {
+                    case LESS_THAN -> Operator.LESS_EQUAL;
+                    case GREATER_THAN -> Operator.GREATER_EQUAL;
+                    case LESS_EQUAL -> Operator.LESS_EQUAL;
+                    case GREATER_EQUAL -> Operator.GREATER_EQUAL;
+                    default -> throw new AssertionError("Unknown operator: " + operator);
+                  };
 
               CSimpleDeclaration variableDeclaration = ((CIdExpression) operand1).getDeclaration();
               BigInteger constantValue = optConstantValue.orElseThrow();

@@ -578,19 +578,20 @@ class CExpressionVisitorWithPointerAliasing
     final BinaryOperator op = exp.getOperator();
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         if (t1 instanceof CPointerType) {
           addressHandler.addEqualBaseAddressConstraint(result, f1);
         }
         if (t2 instanceof CPointerType) {
           addressHandler.addEqualBaseAddressConstraint(result, f2);
         }
-        break;
-      case MINUS:
-      // TODO addEqualBaseAddressConstraints here, too?
-      default:
+      }
+      case MINUS -> {
+        // TODO addEqualBaseAddressConstraints here, too?
+      }
+      default -> {
         // Does not occur for pointers
-        break;
+      }
     }
 
     return Value.ofValue(result);

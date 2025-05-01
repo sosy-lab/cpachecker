@@ -212,11 +212,13 @@ public class DARAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (performLocalStrengthening(dualSequence, partitionedFormulas)
           == StrengtheningStatus.FAILED) {
         switch (performGlobalStrengthening(partitionedFormulas, dualSequence, pReachedSet)) {
-          case SUCCEEDED_AND_COMPLETE:
+          case SUCCEEDED_AND_COMPLETE -> {
             return AlgorithmStatus.SOUND_AND_PRECISE;
-          case FAILED:
+          }
+          case FAILED -> {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          default:
+          }
+          default -> {}
         }
       }
     }

@@ -117,8 +117,8 @@ public class CFADeclarationMover {
   private CFAEdge moveEdgeToOtherPredecessor(CFAEdge edge, CFANode pred) {
     CFANode succ = edge.getSuccessor();
     succ.removeEnteringEdge(edge);
-    switch (edge.getEdgeType()) {
-      case AssumeEdge:
+    return switch (edge.getEdgeType()) {
+      case AssumeEdge -> {
         edge =
             new CAssumeEdge(
                 edge.getRawStatement(),
@@ -131,8 +131,9 @@ public class CFADeclarationMover {
                 ((CAssumeEdge) edge).isArtificialIntermediate());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case BlankEdge:
+        yield edge;
+      }
+      case BlankEdge -> {
         edge =
             new BlankEdge(
                 edge.getRawStatement(),
@@ -142,8 +143,9 @@ public class CFADeclarationMover {
                 edge.getDescription());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case DeclarationEdge:
+        yield edge;
+      }
+      case DeclarationEdge -> {
         edge =
             new CDeclarationEdge(
                 edge.getRawStatement(),
@@ -153,8 +155,9 @@ public class CFADeclarationMover {
                 ((CDeclarationEdge) edge).getDeclaration());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case ReturnStatementEdge:
+        yield edge;
+      }
+      case ReturnStatementEdge -> {
         edge =
             new CReturnStatementEdge(
                 edge.getRawStatement(),
@@ -164,8 +167,9 @@ public class CFADeclarationMover {
                 (FunctionExitNode) edge.getSuccessor());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case StatementEdge:
+        yield edge;
+      }
+      case StatementEdge -> {
         edge =
             new CStatementEdge(
                 edge.getRawStatement(),
@@ -175,12 +179,11 @@ public class CFADeclarationMover {
                 edge.getSuccessor());
         pred.addLeavingEdge(edge);
         succ.addEnteringEdge(edge);
-        return edge;
-      case CallToReturnEdge:
-      case FunctionReturnEdge:
-      default:
-        throw new AssertionError("should never happen");
-    }
+        yield edge;
+      }
+      case FunctionCallEdge, CallToReturnEdge, FunctionReturnEdge ->
+          throw new AssertionError("should never happen");
+    };
   }
 
   private void moveDeclEdgeToNewLocation(CDeclarationEdge edge, CFANode pred, CFANode succ) {
