@@ -335,6 +335,12 @@ public class UnseqBehaviorAnalysisTransferRelation
         Set<SideEffectInfo> effects2 =
             sideEffectsPerSubExprStr.getOrDefault(expr2, ImmutableSet.of());
 
+        logger.log(
+            Level.INFO,
+            String.format(
+                "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s)\n  → Argument 1 Side Effects: %s\n  → Argument 2 Side Effects: %s",
+                expr1, expr2, effects1, effects2));
+
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);
         if (!conflicts.isEmpty()) {
@@ -355,6 +361,15 @@ public class UnseqBehaviorAnalysisTransferRelation
         new ExpressionBehaviorGatherVisitor(pState, edge, AccessType.READ, logger);
     ExpressionAnalysisSummary lhsSummary = lhsExpr.accept(visitor);
     ExpressionAnalysisSummary rhsSummary = rhsExpr.accept(visitor);
+
+    logger.log(
+        Level.INFO,
+        String.format(
+            "[AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s)\n  → LHS Side Effects: %s\n  → RHS Side Effects: %s",
+            lhsSummary.getOriginalExpressionStr(),
+            rhsSummary.getOriginalExpressionStr(),
+            lhsSummary.getSideEffects(),
+            rhsSummary.getSideEffects()));
 
     Set<ConflictPair> conflicts =
         getUnsequencedConflicts(

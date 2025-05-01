@@ -61,12 +61,12 @@ public class SideEffectInfo {
     }
     return Objects.equals(memoryLocation, other.memoryLocation)
         && accessType == other.accessType
-        && Objects.equals(cfaEdge, other.cfaEdge);
+        && Objects.equals(cfaEdge.getCode(), other.cfaEdge.getCode());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(memoryLocation, accessType, cfaEdge);
+    return Objects.hash(memoryLocation, accessType, cfaEdge.getCode());
   }
 
   @Override
@@ -78,7 +78,7 @@ public class SideEffectInfo {
         cfaEdge.getFileLocation().getNiceFileName(),
         cfaEdge.getFileLocation().getStartingLineInOrigin(),
         cfaEdge.getFileLocation().getStartColumnInLine(),
-        cfaEdge.toString());
+        cfaEdge.getCode());
   }
 
   public String toStringSimple() {
