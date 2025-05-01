@@ -284,8 +284,10 @@ public class UnseqBehaviorAnalysisTransferRelation
             → Left Side Effects: %s
             → Right Side Effects: %s
           """,
-          leftExprStr, rightExprStr, leftEffects, rightEffects
-      );
+          leftExprStr,
+          rightExprStr,
+          leftEffects,
+          rightEffects);
 
       Set<ConflictPair> conflicts =
           getUnsequencedConflicts(leftEffects, rightEffects, edge, leftExprStr, rightExprStr);
@@ -356,8 +358,10 @@ public class UnseqBehaviorAnalysisTransferRelation
               → Argument 1 Side Effects: %s
               → Argument 2 Side Effects: %s
             """,
-            expr1, expr2, effects1, effects2
-        );
+            expr1,
+            expr2,
+            effects1,
+            effects2);
 
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);
@@ -387,8 +391,7 @@ public class UnseqBehaviorAnalysisTransferRelation
         lhsSummary.getOriginalExpressionStr(),
         rhsSummary.getOriginalExpressionStr(),
         lhsSummary.getSideEffects(),
-        rhsSummary.getSideEffects()
-    );
+        rhsSummary.getSideEffects());
 
     Set<ConflictPair> conflicts =
         getUnsequencedConflicts(
