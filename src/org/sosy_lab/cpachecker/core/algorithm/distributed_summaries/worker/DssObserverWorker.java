@@ -67,7 +67,7 @@ public class DssObserverWorker extends DssWorker {
       }
       case STATISTICS -> {
         stats.put(pMessage.getBlockId(), ((DssStatisticsMessage) pMessage).getStats());
-        shutdown = stats.keySet().size() == numberOfBlocks;
+        shutdown = stats.size() == numberOfBlocks;
       }
       default -> throw new AssertionError("Unknown message type: " + pMessage.getType());
     }

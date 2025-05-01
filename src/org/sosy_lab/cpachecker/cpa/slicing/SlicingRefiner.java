@@ -515,7 +515,7 @@ public class SlicingRefiner implements Refiner {
 
   private ARGState getRefinementRoot(final ARGPath pPath, final Collection<CFAEdge> relevantEdges) {
     switch (restartStrategy) {
-      case PIVOT:
+      case PIVOT -> {
         PathIterator iterator = pPath.fullPathIterator();
         while (iterator.hasNext()) {
           if (relevantEdges.contains(iterator.getOutgoingEdge())) {
@@ -524,11 +524,12 @@ public class SlicingRefiner implements Refiner {
           iterator.advance();
         }
         throw new AssertionError("Infeasible target path has empty program slice");
-      case ROOT:
+      }
+      case ROOT -> {
         // use first state after ARG root as refinement root
         return pPath.asStatesList().get(1);
-      default:
-        throw new AssertionError("Unhandled restart strategy: " + restartStrategy);
+      }
+      default -> throw new AssertionError("Unhandled restart strategy: " + restartStrategy);
     }
   }
 

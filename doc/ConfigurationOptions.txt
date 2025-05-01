@@ -880,6 +880,10 @@ cfa.expandFunctionPointerArrayAssignments = false
 # export CFA as .dot file
 cfa.export = true
 
+# export the information of the CFA asyncronously or synchronously.A new
+# thread will be created to export the CFA if `true` is given.
+cfa.exportCfaAsync = true
+
 # export individual CFAs for function as .dot files
 cfa.exportPerFunction = true
 
@@ -911,6 +915,10 @@ cfa.moveDeclarationsToFunctionStart = false
 
 # Which functions should be interpreted as never returning to their call site
 cfa.nonReturningFunctions = {"abort", "exit"}
+
+# the path to export a json mapping which for each location contains the
+# variables in scope and their type
+cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to

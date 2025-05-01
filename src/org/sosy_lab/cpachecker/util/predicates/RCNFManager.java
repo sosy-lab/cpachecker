@@ -135,15 +135,15 @@ public class RCNFManager implements StatisticsProvider {
 
     BooleanFormula result;
     switch (boundVarsHandling) {
-      case QE_LIGHT_THEN_DROP:
+      case QE_LIGHT_THEN_DROP -> {
         try {
           statistics.lightQuantifierElimination.start();
           result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
         } finally {
           statistics.lightQuantifierElimination.stop();
         }
-        break;
-      case QE:
+      }
+      case QE -> {
         try {
           statistics.quantifierElimination.start();
           result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
@@ -152,12 +152,9 @@ public class RCNFManager implements StatisticsProvider {
         } finally {
           statistics.quantifierElimination.stop();
         }
-        break;
-      case DROP:
-        result = input;
-        break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
+      }
+      case DROP -> result = input;
+      default -> throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
     }
     BooleanFormula noBoundVars = dropBoundVariables(result);
 

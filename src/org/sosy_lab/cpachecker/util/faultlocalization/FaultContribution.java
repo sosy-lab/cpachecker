@@ -72,15 +72,9 @@ public class FaultContribution {
 
     for (FaultInfo faultInfo : copy) {
       switch (faultInfo.getType()) {
-        case RANK_INFO:
-          out.append(" ".repeat(2));
-          break;
-        case REASON:
-          out.append(" ".repeat(5));
-          break;
-        case FIX:
-          out.append(" ".repeat(8));
-          break;
+        case RANK_INFO -> out.append(" ".repeat(2));
+        case REASON -> out.append(" ".repeat(5));
+        case FIX -> out.append(" ".repeat(8));
       }
       out.append(faultInfo).append("\n");
     }

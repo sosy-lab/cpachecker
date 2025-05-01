@@ -425,23 +425,21 @@ public class CPAchecker {
     StringBuilder msg = new StringBuilder();
     msg.append("Please make sure that the code can be compiled by a compiler.\n");
     switch (e.getLanguage()) {
-      case C:
-        msg.append(
-            """
-            If the code was not preprocessed, please use a C preprocessor
-            or specify the --preprocess command-line argument.
-            """);
-        break;
-      case LLVM:
-        msg.append(
-            """
-            If you want to use the LLVM frontend, please make sure that
-            the code can be compiled by clang or input valid LLVM code.
-            """);
-        break;
-      default:
+      case C ->
+          msg.append(
+              """
+              If the code was not preprocessed, please use a C preprocessor
+              or specify the --preprocess command-line argument.
+              """);
+      case LLVM ->
+          msg.append(
+              """
+              If you want to use the LLVM frontend, please make sure that
+              the code can be compiled by clang or input valid LLVM code.
+              """);
+      default -> {
         // do not log additional messages
-        break;
+      }
     }
     msg.append(
         """

@@ -194,34 +194,31 @@ public class SequentialInterpolation extends ITPStrategy {
     Preconditions.checkNotNull(backward);
 
     switch (sequentialStrategy) {
-      case CONJUNCTION:
-        {
-          final ImmutableList.Builder<BooleanFormula> interpolants =
-              ImmutableList.builderWithExpectedSize(forward.size());
-          for (int i = 0; i < forward.size(); i++) {
-            interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
-          }
-          return interpolants.build();
+      case CONJUNCTION -> {
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
+        for (int i = 0; i < forward.size(); i++) {
+          interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-      case DISJUNCTION:
-        {
-          final ImmutableList.Builder<BooleanFormula> interpolants =
-              ImmutableList.builderWithExpectedSize(forward.size());
-          for (int i = 0; i < forward.size(); i++) {
-            interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
-          }
-          return interpolants.build();
+        return interpolants.build();
+      }
+      case DISJUNCTION -> {
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
+        for (int i = 0; i < forward.size(); i++) {
+          interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
         }
-      case WEIGHTED:
+        return interpolants.build();
+      }
+      case WEIGHTED -> {
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);
         return weightFwd <= weightBwd ? forward : backward;
-
-      case RANDOM:
+      }
+      case RANDOM -> {
         return rnd.nextBoolean() ? forward : backward;
-
-      default:
-        throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
+      }
+      default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
     }
   }
 

@@ -195,7 +195,7 @@ public class ExpressionToFormulaVisitor
     final Formula ret;
 
     switch (op) {
-      case PLUS:
+      case PLUS -> {
         if (!(promT1 instanceof CPointerType)
             && !(promT2 instanceof CPointerType)) { // Just an addition e.g. 6 + 7
           ret = mgr.makePlus(f1, f2);
@@ -214,8 +214,8 @@ public class ExpressionToFormulaVisitor
         } else {
           throw new UnrecognizedCodeException("Can't add pointers", edge, exp);
         }
-        break;
-      case MINUS:
+      }
+      case MINUS -> {
         if (!(promT1 instanceof CPointerType)
             && !(promT2 instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
           ret = mgr.makeMinus(f1, f2);
@@ -241,65 +241,43 @@ public class ExpressionToFormulaVisitor
           throw new UnrecognizedCodeException(
               "Can't subtract a pointer from a non-pointer", edge, exp);
         }
-        break;
-      case MULTIPLY:
-        ret = mgr.makeMultiply(f1, f2);
-        break;
-      case DIVIDE:
-        ret = mgr.makeDivide(f1, f2, signed);
-        break;
-      case MODULO:
+      }
+      case MULTIPLY -> ret = mgr.makeMultiply(f1, f2);
+      case DIVIDE -> ret = mgr.makeDivide(f1, f2, signed);
+      case MODULO -> {
         // Modulo in C is remainder in SMTLIB2
         ret = mgr.makeRemainder(f1, f2, signed);
 
         addModuloConstraints(exp, f1, f2, signed, ret);
-
-        break;
-      case BINARY_AND:
-        ret = mgr.makeAnd(f1, f2);
-        break;
-      case BINARY_OR:
-        ret = mgr.makeOr(f1, f2);
-        break;
-      case BINARY_XOR:
-        ret = mgr.makeXor(f1, f2);
-        break;
-      case SHIFT_LEFT:
-
-        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-        ret = mgr.makeShiftLeft(f1, f2);
-        break;
-      case SHIFT_RIGHT:
-        // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
-        ret = mgr.makeShiftRight(f1, f2, signed);
-        break;
-
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case EQUALS:
-      case NOT_EQUALS:
-        {
-          BooleanFormula result =
-              switch (op) {
-                case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
-                case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
-                case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
-                case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
-                case EQUALS -> handleEquals(exp, f1, f2);
-                case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
-                default -> throw new AssertionError();
-              };
-          // Here we directly use the returnFormulaType instead of the calculcationType
-          // to avoid a useless cast.
-          // However, this means that we may not call makeCast() below
-          // because it expects the input in the calculationType.
-          // So we return here directly.
-          return conv.ifTrueThenOneElseZero(returnFormulaType, result);
-        }
-      default:
-        throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);
+      }
+      case BINARY_AND -> ret = mgr.makeAnd(f1, f2);
+      case BINARY_OR -> ret = mgr.makeOr(f1, f2);
+      case BINARY_XOR -> ret = mgr.makeXor(f1, f2);
+      case SHIFT_LEFT ->
+          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+          ret = mgr.makeShiftLeft(f1, f2);
+      case SHIFT_RIGHT ->
+          // NOTE: The type of the result is that of the promoted left operand. (6.5.7 3)
+          ret = mgr.makeShiftRight(f1, f2, signed);
+      case GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL, EQUALS, NOT_EQUALS -> {
+        BooleanFormula result =
+            switch (op) {
+              case GREATER_THAN -> mgr.makeGreaterThan(f1, f2, signed);
+              case GREATER_EQUAL -> mgr.makeGreaterOrEqual(f1, f2, signed);
+              case LESS_THAN -> mgr.makeLessThan(f1, f2, signed);
+              case LESS_EQUAL -> mgr.makeLessOrEqual(f1, f2, signed);
+              case EQUALS -> handleEquals(exp, f1, f2);
+              case NOT_EQUALS -> conv.bfmgr.not(mgr.makeEqual(f1, f2));
+              default -> throw new AssertionError();
+            };
+        // Here we directly use the returnFormulaType instead of the calculcationType
+        // to avoid a useless cast.
+        // However, this means that we may not call makeCast() below
+        // because it expects the input in the calculationType.
+        // So we return here directly.
+        return conv.ifTrueThenOneElseZero(returnFormulaType, result);
+      }
+      default -> throw new UnrecognizedCodeException("Unknown binary operator", edge, exp);
     }
 
     // The CalculationType could be different from returnType, so we cast the result.
@@ -477,53 +455,49 @@ public class ExpressionToFormulaVisitor
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
     switch (op) {
-      case MINUS:
-      case TILDE:
-        {
-          // Handle Integer Promotion
-          CType t = operand.getExpressionType();
-          CType promoted = t.getCanonicalType();
-          if (CTypes.isIntegerType(promoted)) {
-            // Integer types smaller than int are promoted when an operation is performed on them.
-            promoted = conv.machineModel.applyIntegerPromotion(promoted);
-          }
-          Formula operandFormula = toFormula(operand);
-          operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
-          Formula ret;
-          if (op == UnaryOperator.MINUS) {
-            ret = mgr.makeNegate(operandFormula);
-          } else {
-            assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
-            ret = mgr.makeNot(operandFormula);
-          }
-
-          CType returnType = exp.getExpressionType();
-          FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-          if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-            ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
-          }
-          assert returnFormulaType.equals(mgr.getFormulaType(ret))
-              : "Returntype "
-                  + returnFormulaType
-                  + " and Formulatype "
-                  + mgr.getFormulaType(ret)
-                  + " do not match in visit(CUnaryExpression) for "
-                  + exp;
-          return ret;
+      case MINUS, TILDE -> {
+        // Handle Integer Promotion
+        CType t = operand.getExpressionType();
+        CType promoted = t.getCanonicalType();
+        if (CTypes.isIntegerType(promoted)) {
+          // Integer types smaller than int are promoted when an operation is performed on them.
+          promoted = conv.machineModel.applyIntegerPromotion(promoted);
+        }
+        Formula operandFormula = toFormula(operand);
+        operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
+        Formula ret;
+        if (op == UnaryOperator.MINUS) {
+          ret = mgr.makeNegate(operandFormula);
+        } else {
+          assert op == UnaryOperator.TILDE : "This case should be impossible because of switch";
+          ret = mgr.makeNot(operandFormula);
         }
 
-      case AMPER:
+        CType returnType = exp.getExpressionType();
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+        if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
+          ret = conv.makeCast(promoted, returnType, ret, constraints, edge);
+        }
+        assert returnFormulaType.equals(mgr.getFormulaType(ret))
+            : "Returntype "
+                + returnFormulaType
+                + " and Formulatype "
+                + mgr.getFormulaType(ret)
+                + " do not match in visit(CUnaryExpression) for "
+                + exp;
+        return ret;
+      }
+      case AMPER -> {
         return visitDefault(exp);
-
-      case SIZEOF:
+      }
+      case SIZEOF -> {
         CType lCType = exp.getOperand().getExpressionType();
         return getSizeExpression(lCType);
-
-      case ALIGNOF:
+      }
+      case ALIGNOF -> {
         return handleAlignOf(exp, exp.getOperand().getExpressionType());
-
-      default:
-        throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
+      }
+      default -> throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
     }
   }
 

@@ -230,18 +230,20 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   private boolean shouldPerformAbstraction(CFANode node, AbstractState totalState) {
 
     switch (abstractionLocations) {
-      case ALL:
+      case ALL -> {
         return true;
-      case LOOPHEAD:
+      }
+      case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
         return (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
-      case MERGE:
+      }
+      case MERGE -> {
         return node.getNumEnteringEdges() > 1;
-      default:
-        throw new UnsupportedOperationException("Unexpected state");
+      }
+      default -> throw new UnsupportedOperationException("Unexpected state");
     }
   }
 

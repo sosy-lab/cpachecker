@@ -479,14 +479,16 @@ public class AppliedCustomInstructionParser {
 
   private boolean containsGlobalVars(final CFAEdge pLeave) {
     switch (pLeave.getEdgeType()) {
-      case BlankEdge:
+      case BlankEdge -> {
         // no additional check needed.
-        break;
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         return ((CAssumeEdge) pLeave).getExpression().accept(visitor);
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         return globalVarInStatement(((CStatementEdge) pLeave).getStatement());
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         if (((CDeclarationEdge) pLeave).getDeclaration() instanceof CVariableDeclaration) {
           CInitializer init =
               ((CVariableDeclaration) ((CDeclarationEdge) pLeave).getDeclaration())
@@ -495,26 +497,27 @@ public class AppliedCustomInstructionParser {
             return init.accept(visitor);
           }
         }
-        break;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
           return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
         }
-        break;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
           if (exp.accept(visitor)) {
             return true;
           }
         }
-        break;
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // no additional check needed.
-        break;
-      case CallToReturnEdge:
+      }
+      case CallToReturnEdge -> {
         return globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
-      default:
-        throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
+      }
+      default ->
+          throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
     }
     return false;
   }

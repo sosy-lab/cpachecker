@@ -310,7 +310,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // Apply abstraction to postCondition and eliminate quantifiers if possible
         switch (edge.getEdgeType()) {
-          case AssumeEdge:
+          case AssumeEdge -> {
             if (!requiredPart.isEmpty()) {
               postCondition =
                   eliminateIntermediateVariables(
@@ -319,16 +319,15 @@ public class NewtonRefinementManager implements StatisticsProvider {
               // Else no additional assertions
               postCondition = preCondition;
             }
-            break;
-          case StatementEdge:
-          case DeclarationEdge:
-          case FunctionCallEdge:
-          case ReturnStatementEdge:
-          case FunctionReturnEdge:
-            postCondition =
-                calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
-            break;
-          default:
+          }
+          case StatementEdge,
+              DeclarationEdge,
+              FunctionCallEdge,
+              ReturnStatementEdge,
+              FunctionReturnEdge ->
+              postCondition =
+                  calculatePostconditionForAssignment(preCondition, pathFormula, requiredPart);
+          default -> {
             if (bfmgr.isTrue(pathFormula.getFormula())) {
               logger.log(
                   Level.FINE,
@@ -345,6 +344,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
                     + edge.getDescription()
                     + " of Type :"
                     + edge.getEdgeType());
+          }
         }
 
         // Add to predicates iff location has an abstraction state

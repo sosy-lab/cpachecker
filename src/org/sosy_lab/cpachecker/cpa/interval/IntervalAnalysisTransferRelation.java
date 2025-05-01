@@ -225,71 +225,56 @@ public class IntervalAnalysisTransferRelation
     assert !interval2.isEmpty() : operand2;
 
     switch (operator) {
-      // a < b, a < 1
-      case LESS_THAN:
-        {
-          newState =
-              addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
+      case LESS_THAN -> {
+        // a < b, a < 1
+        newState =
+            addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
+        newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
+        return soleSuccessor(newState);
+        // a <= b, a <= 1
+      }
+      case LESS_EQUAL -> {
+        newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
+        newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
+        return soleSuccessor(newState);
+        // a > b, a > 1
+      }
+      case GREATER_THAN -> {
+        newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
+        newState =
+            addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
+        return soleSuccessor(newState);
+        // a >= b, a >= 1
+      }
+      case GREATER_EQUAL -> {
+        newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
+        newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
+        return soleSuccessor(newState);
+        // a == b, a == 1
+      }
+      case EQUALS -> {
+        newState = addInterval(newState, operand1, interval1.intersect(interval2));
+        newState = addInterval(newState, operand2, interval2.intersect(interval1));
+        return soleSuccessor(newState);
+        // a != b, a != 1
+      }
+      case NOT_EQUALS -> {
+        // Splitting depends on the fact that one operand is a literal.
+        // Then we try to split into two intervals.
+        if (interval2.getLow().equals(interval2.getHigh())) {
+          return splitInterval(newState, operand1, interval1, interval2);
+
+        } else if (interval1.getLow().equals(interval1.getHigh())) {
+          return splitInterval(newState, operand2, interval2, interval1);
+
+        } else {
+          // we know nothing more than before
           return soleSuccessor(newState);
         }
-
-      // a <= b, a <= 1
-      case LESS_EQUAL:
-        {
-          newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a > b, a > 1
-      case GREATER_THAN:
-        {
-          newState =
-              addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
-          return soleSuccessor(newState);
-        }
-
-      // a >= b, a >= 1
-      case GREATER_EQUAL:
-        {
-          newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a == b, a == 1
-      case EQUALS:
-        {
-          newState = addInterval(newState, operand1, interval1.intersect(interval2));
-          newState = addInterval(newState, operand2, interval2.intersect(interval1));
-          return soleSuccessor(newState);
-        }
-
-      // a != b, a != 1
-      case NOT_EQUALS:
-        {
-
-          // Splitting depends on the fact that one operand is a literal.
-          // Then we try to split into two intervals.
-          if (interval2.getLow().equals(interval2.getHigh())) {
-            return splitInterval(newState, operand1, interval1, interval2);
-
-          } else if (interval1.getLow().equals(interval1.getHigh())) {
-            return splitInterval(newState, operand2, interval2, interval1);
-
-          } else {
-            // we know nothing more than before
-            return soleSuccessor(newState);
-          }
-        }
-
-      default:
-        throw new UnrecognizedCodeException(
-            "unexpected operator in assumption", cfaEdge, expression);
+      }
+      default ->
+          throw new UnrecognizedCodeException(
+              "unexpected operator in assumption", cfaEdge, expression);
     }
   }
 

@@ -1284,6 +1284,7 @@ public class InvariantsState
                 && (!isExportable(((Variable<?>) pFormula).getMemoryLocation(), pFunctionScope)
                     || !pAstCfaRelation
                         .getVariablesAndParametersInScope(pLocation)
+                        .orElseThrow()
                         .anyMatch(
                             variableDeclaration ->
                                 variableDeclaration

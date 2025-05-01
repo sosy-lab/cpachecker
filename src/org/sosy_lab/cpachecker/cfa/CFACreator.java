@@ -8,8 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.FileNotFoundException;
@@ -19,6 +24,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -43,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclarationExchange;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
@@ -78,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -219,6 +228,16 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.pathForExportingVariablesInScopeWithTheirType",
+      description =
+          "the path to export a json mapping which for each"
+              + " location contains the variables"
+              + " in scope and their type")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path pathForExportingVariablesInScopeWithTheirType = null;
+
+  @Option(
+      secure = true,
       name = "cfa.pixelGraphicFile",
       description =
           "Export CFA as pixel graphic to the given file name. The suffix is added"
@@ -276,6 +295,14 @@ public class CFACreator {
           "clone functions of the CFA, such that there are several "
               + "identical CFAs for each function, only with different names.")
   private boolean useCFACloningForMultiThreadedPrograms = false;
+
+  @Option(
+      secure = true,
+      name = "cfa.exportCfaAsync",
+      description =
+          "export the information of the CFA asyncronously or synchronously."
+              + "A new thread will be created to export the CFA if `true` is given.")
+  private boolean exportCfaAsyncOption = true;
 
   @Option(
       secure = true,
@@ -380,15 +407,15 @@ public class CFACreator {
     String regExPattern;
     inputLanguage = language;
     switch (language) {
-      case JAVA:
+      case JAVA -> {
         regExPattern = "^" + VALID_JAVA_FUNCTION_NAME_PATTERN + "$";
         if (!mainFunctionName.matches(regExPattern)) {
           throw new InvalidConfigurationException(
               "Entry function for java programs must match pattern " + regExPattern);
         }
         parser = Parsers.getJavaParser(logger, config, mainFunctionName);
-        break;
-      case C:
+      }
+      case C -> {
         regExPattern = "^" + VALID_C_FUNCTION_NAME_PATTERN + "$";
         if (!mainFunctionName.matches(regExPattern)) {
           throw new InvalidConfigurationException(
@@ -417,15 +444,13 @@ public class CFACreator {
         } else {
           parser = outerParser;
         }
-
-        break;
-      case LLVM:
+      }
+      case LLVM -> {
         parser = Parsers.getLlvmParser(logger, machineModel);
-        language = Language.C; // After parsing we will have a CFA representing C code
-        break;
-
-      default:
-        throw new AssertionError();
+        language = Language.C;
+        // After parsing we will have a CFA representing C code
+      }
+      default -> throw new AssertionError();
     }
 
     stats.parsingTime = parser.getParseTime();
@@ -488,15 +513,12 @@ public class CFACreator {
       FunctionEntryNode mainFunction;
 
       switch (language) {
-        case JAVA:
+        case JAVA -> {
           mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.functions());
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.functions());
-          break;
-        case C:
-          mainFunction = getCMainFunction(sourceFiles, c.functions());
-          break;
-        default:
-          throw new AssertionError();
+        }
+        case C -> mainFunction = getCMainFunction(sourceFiles, c.functions());
+        default -> throw new AssertionError();
       }
 
       CFA cfa = createCFA(c, mainFunction);
@@ -667,8 +689,13 @@ public class CFACreator {
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
         || (exportCfaPixelFile != null)
-        || (exportCfaToCFile != null && exportCfaToC)) {
-      exportCFAAsync(immutableCFA);
+        || (exportCfaToCFile != null && exportCfaToC)
+        || (pathForExportingVariablesInScopeWithTheirType != null)) {
+      if (exportCfaAsyncOption) {
+        exportCFAAsync(immutableCFA);
+      } else {
+        exportCFA(immutableCFA);
+      }
     }
 
     logger.log(
@@ -686,12 +713,9 @@ public class CFACreator {
     final ParseResult parseResult = parser.parseString(Path.of("test"), program);
     if (parseResult.isEmpty()) {
       switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        default:
-          throw new AssertionError();
+        case JAVA -> throw new JParserException("No methods found in program");
+        case C -> throw new CParserException("No functions found in program");
+        default -> throw new AssertionError();
       }
     }
 
@@ -717,12 +741,9 @@ public class CFACreator {
 
     if (parseResult.isEmpty()) {
       switch (language) {
-        case JAVA:
-          throw new JParserException("No methods found in program");
-        case C:
-          throw new CParserException("No functions found in program");
-        default:
-          throw new AssertionError();
+        case JAVA -> throw new JParserException("No methods found in program");
+        case C -> throw new CParserException("No functions found in program");
+        default -> throw new AssertionError();
       }
     }
 
@@ -1193,6 +1214,76 @@ public class CFACreator {
         }
       } catch (CPAException | IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
+      }
+    }
+
+    if (pathForExportingVariablesInScopeWithTheirType != null) {
+      // This is a map from a filename
+      Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
+          locationToVariablesInScope = new HashMap<>();
+
+      for (CFANode node : cfa.nodes()) {
+        Optional<FileLocation> statementContainingNode =
+            cfa.getAstCfaRelation().getStatementFileLocationForNode(node);
+        if (statementContainingNode.isEmpty()) {
+          continue;
+        }
+
+        Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
+            cfa.getAstCfaRelation().getVariablesAndParametersInScope(node);
+
+        if (declarationAtNode.isEmpty()) {
+          continue;
+        }
+
+        Set<AVariableDeclarationExchange> variables =
+            declarationAtNode
+                .orElseThrow()
+                .transform(
+                    declaration ->
+                        new AVariableDeclarationExchange(
+                            declaration.getOrigName(),
+                            declaration.getType() instanceof CSimpleType
+                                ? ((CSimpleType) declaration.getType()).getType()
+                                : null))
+                .toSet();
+
+        // create a new map if it does not exist
+        FileLocation statementFileLocation = statementContainingNode.orElseThrow();
+        String filename = statementFileLocation.getFileName().toString();
+        Integer lineNumber = statementFileLocation.getStartingLineNumber();
+        Integer columnNumber = statementFileLocation.getStartColumnInLine();
+        locationToVariablesInScope.putIfAbsent(filename, new HashMap<>());
+        locationToVariablesInScope.get(filename).putIfAbsent(lineNumber, new HashMap<>());
+        locationToVariablesInScope
+            .get(filename)
+            .get(lineNumber)
+            .putIfAbsent(columnNumber, new HashSet<>());
+        locationToVariablesInScope
+            .get(filename)
+            .get(lineNumber)
+            .get(columnNumber)
+            .addAll(variables);
+      }
+
+      ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
+      mapper.setSerializationInclusion(Include.NON_NULL);
+
+      try (Writer writer =
+          IO.openOutputFile(
+              pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
+        String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
+        writer.write(entryJson);
+      } catch (JsonProcessingException e) {
+        throw new AssertionError(e);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.INFO,
+            e,
+            "exporting information about what variables are in scope at each statement in the CFA"
+                + " to "
+                + pathForExportingVariablesInScopeWithTheirType
+                + " failed due to not being able to write to the output file.");
       }
     }
 
