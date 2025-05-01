@@ -261,13 +261,13 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# Convert CEX to C program.
+analysis.algorithm.detailedCounterexamples = false
+
 # Use distributed summary synthesis. This decomposes the input program into
 # smaller units that are analyzed concurrently. See
 # https://doi.org/10.1145/3660766 for details.
 analysis.algorithm.distributedSummarySynthesis = false
-
-# Convert CEX to C program.
-analysis.algorithm.counterexampleToC = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
@@ -359,9 +359,6 @@ analysis.disable = false
 
 # entry function
 analysis.entryFunction = "main"
-
-# export the assumes edges before running the original algorithm
-analysis.exportAssumeEdges = false
 
 # do analysis and then extract pre- and post conditions for custom
 # instruction from analysis result
@@ -4135,6 +4132,18 @@ dependencegraph.pointerAnalysisTime = 0s
 # PointerStateComputationMethod.FLOW_INSENSITIVE
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
+# File name for analysis report in case a counterexample was found.
+detailed_cex.detailedCounterexample = "Counterexample.variable.%d.txt"
+
+# export counterexample to file, if one is found
+detailed_cex.errorInputs = "nondets.txt"
+
+# Export all assignments, not just nondet ones
+detailed_cex.exportAllAssignments = false
+
+# How many satisfying assignments to find per CEX; -1 for all
+detailed_cex.maxAssignments = 10
+
 # comma-separated list of files with property specifications that should be
 # considered when determining the nodes that are in the reachability
 # property.
@@ -4241,32 +4250,6 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
-
-# Actions to perform
-error_condition.actions = [Action.EXPORT_CEX_TO_C]
-
-# where to write assume edges
-error_condition.assumes.declarationPath = "declarations.json"
-error_condition.assumes.outputPath = "assumes.txt"
-
-# whether to perform the algorithm
-error_condition.assumes.performAlgorithm = true
-
-# File name for analysis report in case a counterexample was found.
-error_condition.counterExampleToCFiles = "Counterexample.inline.%d.c"
-error_condition.detailedCounterexample = "Counterexample.variable.%d.txt"
-
-# export counterexample to file, if one is found
-error_condition.errorInputs = "nondets.txt"
-
-# Export all assignments, not just nondet ones
-error_condition.exportAllAssignments = false
-
-# How many satisfying assignments to find per CEX; -1 for all
-error_condition.maxAssignments = 10
-
-# export counterexample as QE form
-error_condition.quantifierEliminationResult = "quantifier.json"
 
 # Ranking algorithm to use for fault localization
 faultLocalization.by_coverage.type = TARANTULA
