@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -59,6 +60,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CStatementEdge statementEdge, CStatement stat) throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
 
+    logger.log(Level.INFO, String.format("[HandleStatement] Processing: %s", stat.toASTString()));
+
     if (stat
         instanceof
         CExpressionAssignmentStatement
@@ -78,6 +81,8 @@ public class UnseqBehaviorAnalysisTransferRelation
           detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
         }
 
+        // to detect unseq behavior like *f() = g() + g(); and return *f() = g() + g();
+        detectAssignmentStatementConflicts(lhsExpr,rhsExpr,statementEdge,newState);
       }
 
       // check if there exists unsequenced behavior and cause conflict
@@ -94,10 +99,7 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       if (expr instanceof CBinaryExpression binaryExpr) {
         detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState);
-        newState.clearTmpMappings();
       }
-
-      // TODO: *f() = g()
     }
 
     return newState;
@@ -106,6 +108,7 @@ public class UnseqBehaviorAnalysisTransferRelation
   @Override
   protected UnseqBehaviorAnalysisState handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
+    logger.log(Level.INFO, String.format("[HandleDeclaration] Processing: %s", declaration.toASTString()));
     UnseqBehaviorAnalysisState newState = state;
 
     if (declaration instanceof CVariableDeclaration varDecl) {
@@ -119,7 +122,6 @@ public class UnseqBehaviorAnalysisTransferRelation
             CBinaryExpression
                 binaryExpr) { // to detect unseq behavior like int y = (f() + g()) + x;
           detectConflictsInUnsequencedBinaryExprs(binaryExpr, declarationEdge, newState);
-          newState.clearTmpMappings();
         }
       }
     }
@@ -153,6 +155,7 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleFunctionReturnEdge(
       CFunctionReturnEdge funReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
+    logger.log(Level.INFO, String.format("[HandleSFunctionReturn] Processing: %s", funReturnEdge.getSummaryEdge().getExpression()));
     UnseqBehaviorAnalysisState newState = state;
     newState.setFunctionCalled(false);
     newState.setCalledFunctionName(null);
@@ -164,12 +167,11 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression lhs = assignStmt.getLeftHandSide();
       CFunctionCallExpression rhs = assignStmt.getRightHandSide();
 
-      // to detect unseq behavior between arguments,like int c = foo(f1(), f2());
+      // to detect unseq behavior between arguments,like int c = foo(f1(), f2()); and return foo(f1(), f2());
       ExpressionAnalysisSummary summary = rhs.accept(visitor);
       detectCrossArgumentConflicts(summary.getSideEffectsPerSubExpr(), funReturnEdge, newState);
 
-      // map tmp name and function name
-      if (lhs instanceof CIdExpression tmpVar) {
+      if (lhs instanceof CIdExpression tmpVar) { // map tmp name and function name
         String tmpName = tmpVar.getDeclaration().getQualifiedName();
         newState.mapTmpToFunction(tmpName, rhs);
 
@@ -178,6 +180,8 @@ public class UnseqBehaviorAnalysisTransferRelation
             String.format(
                 "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')",
                 tmpName, rhs.toQualifiedASTString(), callerFunctionName));
+      }else if(lhs instanceof CPointerExpression pointerExpr){ // to detect unseq behavior *f()=g(); and return *f()=g();
+        detectAssignmentStatementConflicts(pointerExpr, summaryExpr.getFunctionCallExpression(),funReturnEdge,newState);
       }
     }
     return newState;
@@ -194,16 +198,12 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression returnExpr = expressionOptional.orElseThrow();
       recordSideEffectsIfInFunctionCall(returnExpr, returnEdge, AccessType.READ, newState);
 
-      if (returnExpr
-          instanceof
-          CBinaryExpression
-              returnBinExpr) { // to detect unseq behavior like return (f() + g()) + x;
+      if (returnExpr instanceof CBinaryExpression returnBinExpr) { // to detect unseq behavior like return (f() + g()) + x;
         detectConflictsInUnsequencedBinaryExprs(returnBinExpr, returnEdge, newState);
-        newState.clearTmpMappings();
       }
+
     }
 
-    // TODO: detect unseq behavior like return *f() = g();
 
     return newState;
   }
@@ -228,7 +228,7 @@ public class UnseqBehaviorAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     String funName = pState.getCalledFunctionName();
-    if (funName != null) {
+    if (pState.hasFunctionCallOccurred()) {
       ExpressionBehaviorGatherVisitor visitor =
           new ExpressionBehaviorGatherVisitor(pState, edge, accessType, logger);
       ExpressionAnalysisSummary summary = expr.accept(visitor);
@@ -266,6 +266,12 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       String leftExprStr = leftSummary.getOriginalExpressionStr();
       String rightExprStr = rightSummary.getOriginalExpressionStr();
+
+      logger.log(
+          Level.INFO,
+          String.format(
+              "[UnseqExpr] Detected: (%s) ⊕ (%s)\n  → Left Side Effects: %s\n  → Right Side Effects: %s",
+              leftExprStr, rightExprStr, leftEffects, rightEffects));
 
       Set<ConflictPair> conflicts =
           getUnsequencedConflicts(leftEffects, rightEffects, edge, leftExprStr, rightExprStr);
@@ -337,4 +343,30 @@ public class UnseqBehaviorAnalysisTransferRelation
       }
     }
   }
+
+  private void detectAssignmentStatementConflicts(
+      CExpression lhsExpr,
+      CRightHandSide rhsExpr,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState
+  ) throws UnrecognizedCodeException {
+
+    ExpressionBehaviorGatherVisitor visitor =
+        new ExpressionBehaviorGatherVisitor(pState, edge, AccessType.READ, logger);
+    ExpressionAnalysisSummary lhsSummary = lhsExpr.accept(visitor);
+    ExpressionAnalysisSummary rhsSummary = rhsExpr.accept(visitor);
+
+    Set<ConflictPair> conflicts =
+        getUnsequencedConflicts(
+            lhsSummary.getSideEffects(),
+            rhsSummary.getSideEffects(),
+            edge,
+            lhsSummary.getOriginalExpressionStr(),
+            rhsSummary.getOriginalExpressionStr());
+
+    if (!conflicts.isEmpty()) {
+      pState.addConflicts(conflicts);
+    }
+  }
+
 }

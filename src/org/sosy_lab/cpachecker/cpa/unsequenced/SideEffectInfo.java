@@ -72,12 +72,13 @@ public class SideEffectInfo {
   @Override
   public String toString() {
     return String.format(
-        "%s@%s at %s (line %d, col %d)",
+        "%s@%s at %s (line %d, col %d) %s ",
         memoryLocation.getExtendedQualifiedName(),
         accessType,
         cfaEdge.getFileLocation().getNiceFileName(),
         cfaEdge.getFileLocation().getStartingLineInOrigin(),
-        cfaEdge.getFileLocation().getStartColumnInLine());
+        cfaEdge.getFileLocation().getStartColumnInLine(),
+        cfaEdge.toString());
   }
 
   public String toStringSimple() {

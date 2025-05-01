@@ -107,7 +107,6 @@ public class ExpressionBehaviorGatherVisitor
     for (CExpression param : funCallExpr.getParameterExpressions()) {
       ExpressionAnalysisSummary paramSummary = param.accept(this);
       Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
-      sideEffects.addAll(paramEffects);
 
       String exprStr = getExpressionStrOrFallback(paramSummary, param);
       sideEffectsPerSubExpr.put(exprStr, paramEffects);
@@ -125,6 +124,8 @@ public class ExpressionBehaviorGatherVisitor
       reconstructedCall.append(String.join(", ", reconstructedArguments));
       reconstructedCall.append(")");
     }
+
+
 
     result.addSideEffects(sideEffects);
     result.setOriginalExpressionStr(reconstructedCall.toString());
@@ -208,9 +209,17 @@ public class ExpressionBehaviorGatherVisitor
   }
 
   @Override
-  public ExpressionAnalysisSummary visit(CPointerExpression pointExpr)
+  public ExpressionAnalysisSummary visit(CPointerExpression pointerExpr)
       throws UnrecognizedCodeException {
-    return pointExpr.getOperand().accept(this);
+    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
+
+    CExpression operand = pointerExpr.getOperand();
+    ExpressionAnalysisSummary operandSummary = operand.accept(this);
+
+    result.addSideEffects(operandSummary.getSideEffects());
+    result.setOriginalExpressionStr("*" + getExpressionStrOrFallback(operandSummary, operand));
+
+    return result;
   }
 
   private boolean isUnsequencedBinaryOperator(CBinaryExpression.BinaryOperator op) {
