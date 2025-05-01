@@ -135,37 +135,22 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
 
     for (String typePart : Splitter.on(' ').split(typeString)) {
       switch (typePart) {
-        case "const":
-          isConst = true;
-          break;
-        case "volatile":
-          isVolatile = true;
-          break;
-        case "long":
+        case "const" -> isConst = true;
+        case "volatile" -> isVolatile = true;
+        case "long" -> {
           if (isLong) {
             isLongLong = true;
             isLong = false;
           } else {
             isLong = true;
           }
-          break;
-        case "short":
-          isShort = true;
-          break;
-        case "signed":
-          isSigned = true;
-          break;
-        case "unsigned":
-          isUnsigned = true;
-          break;
-        case "_Complex":
-          isComplex = true;
-          break;
-        case "_Imaginary":
-          isImaginary = true;
-          break;
-        default:
-          basicType = getTypeFromString(typePart);
+        }
+        case "short" -> isShort = true;
+        case "signed" -> isSigned = true;
+        case "unsigned" -> isUnsigned = true;
+        case "_Complex" -> isComplex = true;
+        case "_Imaginary" -> isImaginary = true;
+        default -> basicType = getTypeFromString(typePart);
       }
     }
 
