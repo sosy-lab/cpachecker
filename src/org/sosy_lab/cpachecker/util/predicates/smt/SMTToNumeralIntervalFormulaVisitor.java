@@ -37,7 +37,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
@@ -107,60 +106,48 @@ public class SMTToNumeralIntervalFormulaVisitor
   @Override
   public NumeralFormula<CompoundInterval> visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
-    switch (kind) {
-      case BV_ADD:
-      case FP_ADD:
-      case ADD:
-        return Add.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_SUB:
-      case BV_NEG:
-      case FP_SUB:
-      case FP_NEG:
-      case UMINUS:
-      case SUB:
-        return Add.of(
+    return switch (pFunctionDeclaration.getKind()) {
+      case BV_ADD, FP_ADD, ADD ->
+          Add.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_SUB, BV_NEG, FP_SUB, FP_NEG, UMINUS, SUB -> {
+        yield Add.of(
             fmgr.visit(pArgs.get(0), this),
             Multiply.of(fmgr.visit(pArgs.get(1), this), this.visitConstant(pF, -1)));
-      case BV_AND:
-        return BinaryAnd.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_NOT:
-      case NOT:
-        return BinaryNot.of(fmgr.visit(pArgs.get(0), this));
-      case BV_OR:
-      case OR:
-        return BinaryOr.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case XOR:
-      case BV_XOR:
-        return BinaryXor.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_UDIV:
-      case BV_SDIV:
-      case FP_DIV:
-      case DIV:
-        return Divide.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_MUL:
-      case FP_MUL:
-      case MUL:
-        return Multiply.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_LSHR:
-      case BV_ASHR:
-        return ShiftRight.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_SHL:
-        return ShiftLeft.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case BV_SREM:
-      case BV_UREM:
-      case MODULO:
-        return Modulo.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case ITE:
-        return IfThenElse.of(
-            fmgr.visit(pArgs.get(0), new SMTToBooleanIntervalFormulaVisitor(fmgr, this)),
-            fmgr.visit(pArgs.get(1), this),
-            fmgr.visit(pArgs.get(2), this));
-      default:
-        break;
-    }
-    return null;
+      }
+
+      case BV_AND -> BinaryAnd.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_NOT, NOT -> BinaryNot.of(fmgr.visit(pArgs.get(0), this));
+
+      case BV_OR, OR -> BinaryOr.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case XOR, BV_XOR ->
+          BinaryXor.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_UDIV, BV_SDIV, FP_DIV, DIV ->
+          Divide.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_MUL, FP_MUL, MUL ->
+          Multiply.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_LSHR, BV_ASHR ->
+          ShiftRight.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_SHL -> ShiftLeft.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case BV_SREM, BV_UREM, MODULO ->
+          Modulo.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case ITE ->
+          IfThenElse.of(
+              fmgr.visit(pArgs.get(0), new SMTToBooleanIntervalFormulaVisitor(fmgr, this)),
+              fmgr.visit(pArgs.get(1), this),
+              fmgr.visit(pArgs.get(2), this));
+
+      default -> null;
+    };
   }
 
   @Override
