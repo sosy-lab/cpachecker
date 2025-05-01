@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
@@ -61,7 +61,7 @@ class BitVectorReadWriteReducer {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       Optional<BitVectorEvaluationExpression> bitVectorEvaluation =
-          SeqExpressionBuilder.buildBitVectorReadWriteEvaluationByEncoding(
+          BitVectorEvaluationBuilder.buildBitVectorReadWriteEvaluationByEncoding(
               pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
       SeqThreadLoopLabelStatement switchLabel =
           new SeqThreadLoopLabelStatement(
@@ -164,7 +164,7 @@ class BitVectorReadWriteReducer {
             buildBitVectorReadWriteEvaluationStatements(
                 pCurrentStatement,
                 bitVectorAssignments,
-                SeqExpressionBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
+                BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
                     pOptions,
                     pThread,
                     bitVectorAssignments,
