@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DistributedPredicateCPA implements ForwardingDistributedConfigurableProgramAnalysis {
@@ -47,6 +48,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   private final ProceedPredicateStateOperator proceedOperator;
   private final PredicateViolationConditionOperator verificationConditionOperator;
   private final Map<MemoryLocation, CType> variableTypes;
+  private final Solver solver;
 
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
@@ -61,20 +63,23 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
       throws InvalidConfigurationException {
     predicateCPA = pPredicateCPA;
     variableTypes = pVariableTypes;
+    solver = predicateCPA.getSolver();
     final boolean writeReadableFormulas = pOptions.isDebugModeEnabled();
-    serialize = new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas);
-    deserialize = new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, variableTypes);
+    serialize =
+        new SerializePredicateStateOperator(predicateCPA, pCFA, writeReadableFormulas, solver);
+    deserialize =
+        new DeserializePredicateStateOperator(predicateCPA, pCFA, pNode, variableTypes, solver);
     serializePrecisionOperator =
-        new SerializePredicatePrecisionOperator(pPredicateCPA.getSolver().getFormulaManager());
+        new SerializePredicatePrecisionOperator(solver.getFormulaManager());
     ImmutableMap<Integer, CFANode> threadSafeCopy = ImmutableMap.copyOf(pIdToNodeMap);
     deserializePrecisionOperator =
         new DeserializePredicatePrecisionOperator(
-            predicateCPA.getAbstractionManager(), predicateCPA.getSolver(), threadSafeCopy::get);
-    proceedOperator = new ProceedPredicateStateOperator(predicateCPA.getSolver());
+            predicateCPA.getAbstractionManager(), solver, threadSafeCopy::get);
+    proceedOperator = new ProceedPredicateStateOperator(solver);
     verificationConditionOperator =
         new PredicateViolationConditionOperator(
             new PathFormulaManagerImpl(
-                pPredicateCPA.getSolver().getFormulaManager(),
+                solver.getFormulaManager(),
                 pConfiguration,
                 pLogManager,
                 pShutdownNotifier,
@@ -125,8 +130,7 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
     if (predicateAbstractState.isAbstractionState()) {
       return predicateAbstractState.getAbstractionFormula().isTrue();
     }
-    return predicateCPA
-        .getSolver()
+    return solver
         .getFormulaManager()
         .getBooleanFormulaManager()
         .isTrue(predicateAbstractState.getPathFormula().getFormula());

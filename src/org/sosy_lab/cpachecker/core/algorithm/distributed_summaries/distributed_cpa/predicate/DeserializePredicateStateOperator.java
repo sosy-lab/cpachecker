@@ -30,16 +30,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class DeserializePredicateStateOperator implements DeserializeOperator {
 
   private final PredicateCPA predicateCPA;
+  private final Solver solver;
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
   private final CFA cfa;
-
   private final PredicateAbstractState previousState;
   private final Map<MemoryLocation, CType> variableTypes;
 
@@ -47,10 +49,12 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       PredicateCPA pPredicateCPA,
       CFA pCFA,
       BlockNode pBlockNode,
-      Map<MemoryLocation, CType> pVariableTypes) {
+      Map<MemoryLocation, CType> pVariableTypes,
+      Solver pSolver) {
     predicateCPA = pPredicateCPA;
     variableTypes = pVariableTypes;
-    formulaManagerView = predicateCPA.getSolver().getFormulaManager();
+    solver = pSolver;
+    formulaManagerView = solver.getFormulaManager();
     pathFormulaManager = pPredicateCPA.getPathFormulaManager();
     previousState =
         (PredicateAbstractState)
@@ -89,34 +93,30 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public PredicateAbstractState deserializeFromFormula(
-      org.sosy_lab.java_smt.api.BooleanFormula pFormula) {
+  public PredicateAbstractState deserializeFromFormula(BooleanFormula pFormula) {
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
-    for (Entry<String, Formula> entry : formulaManagerView.extractVariables(pFormula).entrySet()) {
-      String qualifiedVariableName =
-          formulaManagerView.dumpArbitraryFormula(
-              formulaManagerView.uninstantiate(entry.getValue()));
-      // String qualifiedVariableName =
-      // formulaManagerView.uninstantiate(entry.getValue()).toString();
-      String instantiatedVariable = entry.getValue().toString();
 
-      CType variableType =
-          variableTypes.get(MemoryLocation.fromQualifiedName(qualifiedVariableName));
+    for (Entry<String, Formula> entry : formulaManagerView.extractVariables(pFormula).entrySet()) {
+      String instantiatedName = entry.getKey();
+      List<String> parts = Splitter.on("@").splitToList(instantiatedName);
+      String qualifiedName = parts.get(0);
+
+      MemoryLocation memoryLocation = MemoryLocation.fromQualifiedName(qualifiedName);
+      CType variableType = variableTypes.get(memoryLocation);
       if (variableType == null) {
-        throw new IllegalArgumentException(
-            "Variable " + qualifiedVariableName + " not found in variable types map.");
+        continue;
       }
+
       int ssaIndex = 0;
-      if (!qualifiedVariableName.equals(instantiatedVariable)) {
-        List<String> parts = Splitter.on("@").splitToList(instantiatedVariable);
+      if (parts.size() > 1) {
         ssaIndex = Integer.parseInt(parts.get(1));
       }
-      if (ssaMapBuilder.build().containsVariable(qualifiedVariableName)) {
-        int currentIndex = ssaMapBuilder.getIndex(qualifiedVariableName);
-        ssaMapBuilder.setIndex(
-            qualifiedVariableName, variableType, Integer.max(currentIndex, ssaIndex));
+
+      if (ssaMapBuilder.build().containsVariable(qualifiedName)) {
+        int currentIndex = ssaMapBuilder.getIndex(qualifiedName);
+        ssaMapBuilder.setIndex(qualifiedName, variableType, Math.max(currentIndex, ssaIndex));
       } else {
-        ssaMapBuilder.setIndex(qualifiedVariableName, variableType, ssaIndex);
+        ssaMapBuilder.setIndex(qualifiedName, variableType, ssaIndex);
       }
     }
 

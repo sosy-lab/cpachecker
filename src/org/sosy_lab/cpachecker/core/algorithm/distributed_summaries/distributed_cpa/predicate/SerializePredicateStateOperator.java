@@ -20,24 +20,27 @@ import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class SerializePredicateStateOperator implements SerializeOperator {
   private final CFA cfa;
   private final PredicateCPA predicateCPA;
   private final boolean writeReadableFormulas;
+  private final Solver solver;
 
   public SerializePredicateStateOperator(
-      PredicateCPA pPredicateCPA, CFA pCFA, boolean pWriteReadableFormulas) {
+      PredicateCPA pPredicateCPA, CFA pCFA, boolean pWriteReadableFormulas, Solver pSolver) {
     cfa = pCFA;
     predicateCPA = pPredicateCPA;
     writeReadableFormulas = pWriteReadableFormulas;
+    solver = pSolver;
   }
 
   @Override
   public DssMessagePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
-    FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
+    FormulaManagerView formulaManagerView = solver.getFormulaManager();
     BooleanFormula booleanFormula;
     SSAMap ssaMap = state.getPathFormula().getSsa();
     if (state.isAbstractionState()) {
@@ -47,8 +50,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
         reset.setIndex(variable, ssaMap.getType(variable), 1);
       }
       ssaMap = reset.build();
-      booleanFormula =
-          predicateCPA.getSolver().getFormulaManager().instantiate(booleanFormula, ssaMap);
+      booleanFormula = solver.getFormulaManager().instantiate(booleanFormula, ssaMap);
     } else {
       booleanFormula = state.getPathFormula().getFormula();
     }

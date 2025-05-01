@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.DeserializationTestUtils;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class DeserializeDataflowAnalysisStateOperatorTest {
@@ -104,11 +105,9 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
     SerializeDataflowAnalysisStateOperator serializeOperator =
         new SerializeDataflowAnalysisStateOperator(solver);
 
-    org.sosy_lab.java_smt.api.BooleanFormula originalFormula =
-        serializeOperator.serializeToFormula(originalState);
+    BooleanFormula originalFormula = serializeOperator.serializeToFormula(originalState);
     InvariantsState deserializedState = deserializeOperator.deserializeFromFormula(originalFormula);
-    org.sosy_lab.java_smt.api.BooleanFormula deserializedFormula =
-        serializeOperator.serializeToFormula(deserializedState);
+    BooleanFormula deserializedFormula = serializeOperator.serializeToFormula(deserializedState);
 
     boolean implication = solver.implies(deserializedFormula, originalFormula);
 
