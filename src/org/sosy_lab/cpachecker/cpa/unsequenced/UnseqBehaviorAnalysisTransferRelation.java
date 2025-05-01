@@ -220,10 +220,12 @@ public class UnseqBehaviorAnalysisTransferRelation
 
   @Override
   protected UnseqBehaviorAnalysisState handleAssumption(
-      CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
+      CAssumeEdge assumeEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
+    logger.log(Level.INFO, String.format("[HandleAssumption] Processing: %s", expression));
     UnseqBehaviorAnalysisState newState = state;
     // TODO: detect unseq behavior in condition
+
     return newState;
   }
 
@@ -279,15 +281,9 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       logger.log(
           Level.INFO,
-          """
-          [UnseqExpr] Detected: (%s) ⊕ (%s)
-            → Left Side Effects: %s
-            → Right Side Effects: %s
-          """,
-          leftExprStr,
-          rightExprStr,
-          leftEffects,
-          rightEffects);
+          String.format(
+              "[UnseqExpr] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
+              leftExprStr, rightExprStr, leftEffects, rightEffects));
 
       Set<ConflictPair> conflicts =
           getUnsequencedConflicts(leftEffects, rightEffects, edge, leftExprStr, rightExprStr);
@@ -353,15 +349,10 @@ public class UnseqBehaviorAnalysisTransferRelation
 
         logger.log(
             Level.INFO,
-            """
-            [CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s)
-              → Argument 1 Side Effects: %s
-              → Argument 2 Side Effects: %s
-            """,
-            expr1,
-            expr2,
-            effects1,
-            effects2);
+            String.format(
+                "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s) → Argument"
+                    + " 1 Side Effects: %s → Argument 2 Side Effects: %s",
+                expr1, expr2, effects1, effects2));
 
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);
@@ -383,15 +374,13 @@ public class UnseqBehaviorAnalysisTransferRelation
 
     logger.log(
         Level.INFO,
-        """
-        [AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s)
-          → LHS Side Effects: %s
-          → RHS Side Effects: %s
-        """,
-        lhsSummary.getOriginalExpressionStr(),
-        rhsSummary.getOriginalExpressionStr(),
-        lhsSummary.getSideEffects(),
-        rhsSummary.getSideEffects());
+        String.format(
+            "[AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s) → LHS Side Effects: %s → RHS Side"
+                + " Effects: %s",
+            lhsSummary.getOriginalExpressionStr(),
+            rhsSummary.getOriginalExpressionStr(),
+            lhsSummary.getSideEffects(),
+            rhsSummary.getSideEffects()));
 
     Set<ConflictPair> conflicts =
         getUnsequencedConflicts(
