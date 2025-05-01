@@ -4067,7 +4067,8 @@ dar.replaceGlobalPhaseWithBMC = false
 
 # When checking for the data race property, use this configuration file
 # instead of the current one, i.e. all previously set config options are
-# void.
+# void, except for command-line options, which are applied on top of the
+# final config.
 datarace.config = no default value
 
 # Whether to consider pointees. Only if this option is set to true, a pointer
@@ -4491,12 +4492,14 @@ log.usedOptions.export = false
 
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one, i.e. all previously set config options are
-# void.
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorycleanup.config = no default value
 
 # When checking for memory safety properties, use this configuration file
 # instead of the current one, i.e. all previously set config options are
-# void.
+# void, except for command-line options, which are applied on top of the
+# final config.
 memorysafety.config = no default value
 
 # which merge operator to use for LiveVariablesCPA
@@ -4575,7 +4578,8 @@ overflow.checkUnsigned = false
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one, i.e. all previously set config options are
-# void.
+# void, except for command-line options, which are applied on top of the
+# final config.
 overflow.config = no default value
 
 # Simplify overflow assumptions.
@@ -5134,7 +5138,8 @@ termination.compressWitness = true
 
 # When checking for the termination property, use this configuration file
 # instead of the current one, i.e. all previously set config options are
-# void.
+# void, except for command-line options, which are applied on top of the
+# final config.
 termination.config = no default value
 
 # enable to also analyze whether recursive calls terminate
