@@ -19,7 +19,8 @@ public class ExpressionAnalysisSummary {
   private final Set<SideEffectInfo> sideEffects = new HashSet<>();
   private final Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
   private String originalExpressionStr = null;
-  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr = new HashMap<>(); // tracking side effects per argument
+  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr =
+      new HashMap<>(); // tracking side effects per argument
 
   public static ExpressionAnalysisSummary empty() {
     return new ExpressionAnalysisSummary();

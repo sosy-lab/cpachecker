@@ -125,8 +125,6 @@ public class ExpressionBehaviorGatherVisitor
       reconstructedCall.append(")");
     }
 
-
-
     result.addSideEffects(sideEffects);
     result.setOriginalExpressionStr(reconstructedCall.toString());
     result.addSideEffectsForSubExprs(sideEffectsPerSubExpr);

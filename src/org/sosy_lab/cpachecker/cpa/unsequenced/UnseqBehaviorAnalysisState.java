@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class UnseqBehaviorAnalysisState
     implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable {
 
-  private final Map<String, Set<SideEffectInfo>> sideEffectsInFun; //total side effects
+  private final Map<String, Set<SideEffectInfo>> sideEffectsInFun; // total side effects
   private boolean isFunctionCalled;
   private String calledFunctionName;
   private final Set<ConflictPair> detectedConflicts;
