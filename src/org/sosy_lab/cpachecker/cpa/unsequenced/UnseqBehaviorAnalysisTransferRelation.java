@@ -224,6 +224,12 @@ public class UnseqBehaviorAnalysisTransferRelation
       throws UnrecognizedCodeException {
     logger.log(Level.INFO, String.format("[HandleAssumption] Processing: %s", expression));
     UnseqBehaviorAnalysisState newState = state;
+
+    recordSideEffectsIfInFunctionCall(expression,assumeEdge,AccessType.READ,newState);
+
+    if(expression instanceof CBinaryExpression binExpr){ //to detect unsequenced behavior like if (f()+g() != 0){}
+      detectConflictsInUnsequencedBinaryExprs(binExpr, assumeEdge, newState);
+    }
     // TODO: detect unseq behavior in condition
 
     return newState;
