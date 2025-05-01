@@ -22,7 +22,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
@@ -95,7 +94,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
   public Boolean visitFreeVariable(Formula pF, String pName) {
     throw new UnsupportedOperationException("Unimplemented method 'visitFreeVariable'");
   }
-  
+
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
@@ -114,8 +113,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
           fmgr.visit(arg, this);
           for (Map.Entry<MemoryLocation, ValueAndType> entry : tempConstantsMap.entrySet()) {
             MemoryLocation var = entry.getKey();
-            if (!constantsMap.containsKey(var)
-                || !constantsMap.get(var).equals(entry.getValue())) {
+            if (!constantsMap.containsKey(var) || !constantsMap.get(var).equals(entry.getValue())) {
               constantsMap = constantsMap.removeAndCopy(var);
             }
           }
@@ -131,7 +129,7 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
       default -> true;
     };
   }
-  
+
   @Override
   public Boolean visitQuantifier(
       BooleanFormula pArg0, Quantifier pArg1, List<Formula> pArg2, BooleanFormula pArg3) {

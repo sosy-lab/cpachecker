@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalAnd;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.LogicalNot;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 
@@ -58,81 +57,80 @@ public class SMTToBooleanIntervalFormulaVisitor
   @Override
   public BooleanFormula<CompoundInterval> visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
-    switch (kind) {
-      case NOT:
-        return LogicalNot.of(fmgr.visit(pArgs.get(0), this));
-      case EQ:
+    return switch (pFunctionDeclaration.getKind()) {
+      case NOT -> LogicalNot.of(fmgr.visit(pArgs.get(0), this));
+
+      case EQ -> {
         Formula leftRaw = pArgs.get(0);
         Formula rightRaw = pArgs.get(1);
 
         if (leftRaw.toString().startsWith("(`bvextract_31_31_32`")) {
           if (rightRaw.toString().equals("1_1")) {
-            return fmgr.visit(leftRaw, this);
+            yield fmgr.visit(leftRaw, this);
           } else if (rightRaw.toString().equals("0_1")) {
-            return LogicalNot.of(fmgr.visit(leftRaw, this));
+            yield LogicalNot.of(fmgr.visit(leftRaw, this));
           }
         }
 
-        return Equal.of(
+        yield Equal.of(
             fmgr.visit(leftRaw, smtToNumeralFormulaVisitor),
             fmgr.visit(rightRaw, smtToNumeralFormulaVisitor));
-      case OR:
-        return LogicalNot.of(
-            LogicalAnd.of(
-                LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
-                LogicalNot.of(fmgr.visit(pArgs.get(1), this))));
-      case BV_SGT:
-      case BV_UGT:
-      case FP_GT:
-      case GT:
-        return LogicalNot.of(
-            LessThan.of(
-                fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
-                fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
-      case BV_SGE:
-      case BV_UGE:
-      case FP_GE:
-      case GTE:
-        return LogicalNot.of(
-            LessThan.of(
-                fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
-                fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor)));
-      case BV_SLT:
-      case BV_ULT:
-      case FP_LT:
-      case LT:
-        return LessThan.of(
-            fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
-            fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor));
-      case BV_SLE:
-      case BV_ULE:
-      case FP_LE:
-      case LTE:
-        return LogicalNot.of(
-            LessThan.of(
-                fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
-                fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
-      case AND:
-        return LogicalAnd.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
-      case GTE_ZERO:
-        return LogicalNot.of(
-            LessThan.of(
-                fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
-                smtToNumeralFormulaVisitor.visitConstant(pF, 0)));
-      case EQ_ZERO:
-        return Equal.of(
-            fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
-            smtToNumeralFormulaVisitor.visitConstant(pF, 0));
-      case BV_EXTRACT:
+      }
+
+      case OR ->
+          LogicalNot.of(
+              LogicalAnd.of(
+                  LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
+                  LogicalNot.of(fmgr.visit(pArgs.get(1), this))));
+
+      case BV_SGT, BV_UGT, FP_GT, GT ->
+          LogicalNot.of(
+              LessThan.of(
+                  fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
+                  fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
+
+      case BV_SGE, BV_UGE, FP_GE, GTE ->
+          LogicalNot.of(
+              LessThan.of(
+                  fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
+                  fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor)));
+
+      case BV_SLT, BV_ULT, FP_LT, LT ->
+          LessThan.of(
+              fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
+              fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor));
+
+      case BV_SLE, BV_ULE, FP_LE, LTE ->
+          LogicalNot.of(
+              LessThan.of(
+                  fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
+                  fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
+
+      case AND -> LogicalAnd.of(fmgr.visit(pArgs.get(0), this), fmgr.visit(pArgs.get(1), this));
+
+      case GTE_ZERO ->
+          LogicalNot.of(
+              LessThan.of(
+                  fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
+                  smtToNumeralFormulaVisitor.visitConstant(pF, 0)));
+
+      case EQ_ZERO ->
+          Equal.of(
+              fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
+              smtToNumeralFormulaVisitor.visitConstant(pF, 0));
+
+      case BV_EXTRACT -> {
         Formula variable = pArgs.get(0);
-        return LessThan.of(
+        yield LessThan.of(
             fmgr.visit(variable, smtToNumeralFormulaVisitor),
             smtToNumeralFormulaVisitor.visitConstant(variable, BigInteger.ZERO));
-      default:
-        throw new UnsupportedOperationException("Unsupported function: " + kind);
-    }
+      }
+
+      default ->
+          throw new UnsupportedOperationException(
+              "Unsupported function: " + pFunctionDeclaration.getKind());
+    };
   }
 
   @Override
