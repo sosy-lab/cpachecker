@@ -95,48 +95,43 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
   public Boolean visitFreeVariable(Formula pF, String pName) {
     throw new UnsupportedOperationException("Unimplemented method 'visitFreeVariable'");
   }
-
+  
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
-    switch (kind) {
-      case AND:
-        {
-          for (Formula arg : pArgs) {
-            fmgr.visit(arg, this);
-          }
-          return true;
+    return switch (pFunctionDeclaration.getKind()) {
+      case AND -> {
+        for (Formula arg : pArgs) {
+          fmgr.visit(arg, this);
         }
-      case OR:
-        {
-          PersistentMap<MemoryLocation, ValueAndType> previousConstantsMap = constantsMap;
-          for (Formula arg : pArgs) {
-            PersistentMap<MemoryLocation, ValueAndType> tempConstantsMap = constantsMap;
-            constantsMap = previousConstantsMap;
-            fmgr.visit(arg, this);
-            for (Map.Entry<MemoryLocation, ValueAndType> entry : tempConstantsMap.entrySet()) {
-              MemoryLocation var = entry.getKey();
-              if (!constantsMap.containsKey(var)
-                  || !constantsMap.get(var).equals(entry.getValue())) {
-                constantsMap = constantsMap.removeAndCopy(var);
-              }
+        yield true;
+      }
+      case OR -> {
+        PersistentMap<MemoryLocation, ValueAndType> previousConstantsMap = constantsMap;
+        for (Formula arg : pArgs) {
+          PersistentMap<MemoryLocation, ValueAndType> tempConstantsMap = constantsMap;
+          constantsMap = previousConstantsMap;
+          fmgr.visit(arg, this);
+          for (Map.Entry<MemoryLocation, ValueAndType> entry : tempConstantsMap.entrySet()) {
+            MemoryLocation var = entry.getKey();
+            if (!constantsMap.containsKey(var)
+                || !constantsMap.get(var).equals(entry.getValue())) {
+              constantsMap = constantsMap.removeAndCopy(var);
             }
           }
-          return true;
         }
-      case EQ:
-        {
-          String varName = pArgs.get(0).toString();
-          currentMemoryLocation = MemoryLocation.fromQualifiedName(varName);
-          fmgr.visit(pArgs.get(1), this);
-          return true;
-        }
-      default:
-        return true;
-    }
+        yield true;
+      }
+      case EQ -> {
+        String varName = pArgs.get(0).toString();
+        currentMemoryLocation = MemoryLocation.fromQualifiedName(varName);
+        fmgr.visit(pArgs.get(1), this);
+        yield true;
+      }
+      default -> true;
+    };
   }
-
+  
   @Override
   public Boolean visitQuantifier(
       BooleanFormula pArg0, Quantifier pArg1, List<Formula> pArg2, BooleanFormula pArg3) {
