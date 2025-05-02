@@ -6,11 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector_evaluation;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqGotoStatement;
@@ -18,17 +18,17 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvaluationStatement {
+public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
-  private final Optional<SeqLogicalNotExpression> threadBitVectors;
+  private final Optional<BitVectorEvaluationExpression> evaluationExpression;
 
-  public final SeqSwitchCaseGotoLabelStatement gotoLabel;
+  private final SeqSwitchCaseGotoLabelStatement gotoLabel;
 
-  public SeqBitVectorAccessEvaluationStatement(
-      Optional<SeqLogicalNotExpression> pThreadBitVectors,
+  public SeqBitVectorReadWriteEvaluationStatement(
+      Optional<BitVectorEvaluationExpression> pEvaluationExpression,
       SeqSwitchCaseGotoLabelStatement pGotoLabel) {
 
-    threadBitVectors = pThreadBitVectors;
+    evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
   }
 
@@ -46,10 +46,10 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   public String toASTString() {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     // if bit vectors present: evaluate in if statement
-    if (threadBitVectors.isPresent()) {
+    if (evaluationExpression.isPresent()) {
       SeqControlFlowStatement ifStatement =
           new SeqControlFlowStatement(
-              threadBitVectors.orElseThrow(), SeqControlFlowStatementType.IF);
+              evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE
           + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
@@ -60,8 +60,8 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   }
 
   @Override
-  public SeqBitVectorAccessEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
-    return new SeqBitVectorAccessEvaluationStatement(
-        threadBitVectors, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+  public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+    return new SeqBitVectorReadWriteEvaluationStatement(
+        evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
   }
 }

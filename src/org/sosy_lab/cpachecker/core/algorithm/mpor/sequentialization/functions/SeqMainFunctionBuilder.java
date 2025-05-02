@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqFunctionBuilder {
+public class SeqMainFunctionBuilder {
 
   public static SeqMainFunction buildMainFunction(
       MPOROptions pOptions,

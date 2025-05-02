@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 
 public class SeqStatementBuilder {
 
@@ -29,6 +30,19 @@ public class SeqStatementBuilder {
 
     return new CFunctionCallAssignmentStatement(
         FileLocation.DUMMY, pLeftHandSide, pFunctionCallExpression);
+  }
+
+  /**
+   * Returns {@code next_thread = __VERIFIER_nondet_{u}int} with {@code uint} for unsigned, {@code
+   * int} for signed.
+   */
+  public static CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
+    return new CFunctionCallAssignmentStatement(
+        FileLocation.DUMMY,
+        SeqIdExpression.NEXT_THREAD,
+        pIsSigned
+            ? SeqExpressionBuilder.buildVerifierNondetInt()
+            : SeqExpressionBuilder.buildVerifierNondetUint());
   }
 
   /**
