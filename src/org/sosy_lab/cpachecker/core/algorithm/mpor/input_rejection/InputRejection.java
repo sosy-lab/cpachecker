@@ -112,6 +112,14 @@ public class InputRejection {
               + " porBitVector or specify porBitVectorEncoding.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }
+    if (pOptions.pruneBitVectorEvaluation
+        && !pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
+      pLogger.log(
+          Level.SEVERE,
+          "pruneBitVectorEvaluation is enabled, but porBitVectorEncoding is not SCALAR. Either"
+              + " disable pruneBitVectorEvaluation or set porBitVectorEncoding=SCALAR.");
+      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
+    }
   }
 
   private static void checkLanguageC(LogManager pLogger, CFA pInputCfa) {

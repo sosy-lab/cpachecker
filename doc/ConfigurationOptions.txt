@@ -300,8 +300,9 @@ analysis.algorithm.MPOR.porBitVectorReduction = NONE
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.porConcat = true
 
-# prune and simplify bit vector evaluation expressions based on the previous 
-# bit vector assignments? true -> (should) improve verification performance
+# enable this option only with porBitVectorEncoding=SCALAR. prune and
+# simplify bit vector evaluation expressions based on the previous bit vector
+# assignments?  true -> (should) improve verification performance
 analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
 
 # prune empty statements (with only pc writes) from the sequentialization?

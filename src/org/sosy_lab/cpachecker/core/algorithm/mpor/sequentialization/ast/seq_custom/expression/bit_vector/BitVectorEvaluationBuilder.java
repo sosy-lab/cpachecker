@@ -290,14 +290,9 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty();
     } else {
       // otherwise the LHS is 1, and we only need the right side of the && expression
-      ImmutableList<SeqExpression> otherReadAndWriteVariables =
-          ImmutableList.<SeqExpression>builder()
-              .addAll(pOtherReadVariables)
-              .addAll(pOtherWriteVariables)
-              .build();
       return Optional.of(
-          buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-              otherReadAndWriteVariables));
+          buildPrunedSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
+              pOtherReadVariables, pOtherWriteVariables));
     }
   }
 
@@ -458,10 +453,16 @@ public class BitVectorEvaluationBuilder {
 
   private static SeqLogicalNotExpression
       buildPrunedSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-          ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
+          ImmutableList<SeqExpression> pOtherReadVariables,
+          ImmutableList<SeqExpression> pOtherWriteVariables) {
 
+    ImmutableList<SeqExpression> otherReadAndWriteVariables =
+        ImmutableList.<SeqExpression>builder()
+            .addAll(pOtherReadVariables)
+            .addAll(pOtherWriteVariables)
+            .build();
     return new SeqLogicalNotExpression(
-        nestLogicalExpressions(pOtherReadAndWriteVariables, SeqLogicalOperator.OR));
+        nestLogicalExpressions(otherReadAndWriteVariables, SeqLogicalOperator.OR));
   }
 
   private static SeqLogicalAndExpression buildSingleVariableScalarReadWriteBitVectorEvaluation(
