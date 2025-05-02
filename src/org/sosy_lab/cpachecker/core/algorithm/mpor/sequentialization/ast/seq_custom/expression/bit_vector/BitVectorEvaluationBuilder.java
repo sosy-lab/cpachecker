@@ -51,12 +51,12 @@ public class BitVectorEvaluationBuilder {
       MPORThread pActiveThread,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorVariables pBitVectorVariables,
-      Optional<BitVectorEvaluationExpression> pFullEvaluation) {
+      Optional<BitVectorEvaluationExpression> pDefaultEvaluation) {
 
-    if (pFullEvaluation.isPresent()) {
+    if (pDefaultEvaluation.isPresent()) {
       assert !pOptions.pruneBitVectorEvaluation
           : "full evaluation is present, but pruneBitVectorEvaluation is enabled";
-      return pFullEvaluation.orElseThrow();
+      return pDefaultEvaluation.orElseThrow();
     }
     return switch (pOptions.porBitVectorEncoding) {
       // we only prune for scalar bit vectors

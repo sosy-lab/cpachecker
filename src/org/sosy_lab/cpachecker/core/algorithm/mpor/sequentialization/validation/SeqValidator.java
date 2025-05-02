@@ -133,7 +133,7 @@ public class SeqValidator {
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         targetPcs.addAll(SeqCaseClauseUtil.collectAllIntegerTargetPc(statement));
       }
-      rPcMap.put(caseClause.label.value, targetPcs.build());
+      rPcMap.put(caseClause.caseLabel.value, targetPcs.build());
     }
     return rPcMap.buildOrThrow();
   }

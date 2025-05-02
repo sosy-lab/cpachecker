@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -128,7 +129,6 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
 
   @Override
   public SeqLocalVariableDeclarationWithInitializerStatement cloneWithTargetPc(int pTargetPc) {
-
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         loopHeadLabel,
         variableDeclaration,
@@ -136,7 +136,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqC
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        injectedStatements,
+        SeqCaseClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
         concatenatedStatements);
   }
 

@@ -143,7 +143,7 @@ class StatementConcatenator {
 
     return pStatement.isConcatenable()
         // label injected before -> return to loop head, no concat to prevent infinite loop
-        && !pLoopHeads.containsKey(pTarget.label.value)
+        && !pLoopHeads.containsKey(pTarget.caseLabel.value)
         // only consider global if not ignored
         && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
             || !pTarget.isCriticalSectionStart()
@@ -181,7 +181,8 @@ class StatementConcatenator {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         newStatements.add(
-            SeqCaseClauseUtil.replaceTargetPcWithGotoLoopHead(statement, pLoopHeadLabels));
+            SeqCaseClauseUtil.recursivelyReplaceTargetPcWithGotoLoopHead(
+                statement, pLoopHeadLabels));
       }
       SeqCaseBlock newBlock = new SeqCaseBlock(newStatements.build());
       rWithGoto.add(caseClause.cloneWithBlock(newBlock));
@@ -223,7 +224,7 @@ class StatementConcatenator {
     SeqCaseBlockStatement firstStatement = pCaseClause.block.getFirstStatement();
     String labelName = SeqNameUtil.buildLoopHeadLabelName(pOptions, pThread.id);
     SeqLoopHeadLabelStatement loopHeadLabel = new SeqLoopHeadLabelStatement(labelName);
-    pLoopHeads.put(pCaseClause.label.value, loopHeadLabel);
+    pLoopHeads.put(pCaseClause.caseLabel.value, loopHeadLabel);
     SeqCaseBlockStatement cloneWithLabel = firstStatement.cloneWithLoopHeadLabel(loopHeadLabel);
 
     // inject cloned statement with loop head label

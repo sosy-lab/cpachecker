@@ -60,10 +60,10 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean comments = false;
 
   @Option(
-      secure = true,
       description =
           "make labels for thread statements consecutive? i.e. 0 to n - 1 where n is the"
-              + " number of statements")
+              + " number of statements. disabling may result in first statements being "
+              + " unreachable.")
   private boolean consecutiveLabels = true;
 
   @Option(

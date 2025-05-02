@@ -259,7 +259,8 @@ analysis.algorithm.MPOR = false
 analysis.algorithm.MPOR.comments = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
-# the number of statements
+# the number of statements. disabling may result in first statements being 
+# unreachable.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
 # include original function declarations from input file? true -> bigger file

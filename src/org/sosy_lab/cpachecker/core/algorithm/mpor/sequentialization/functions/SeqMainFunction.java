@@ -717,7 +717,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         SeqCaseBlockStatement newStatement =
-            SeqCaseClauseUtil.injectGotoThreadLoop(
+            SeqCaseClauseUtil.recursivelyInjectGotoThreadLoopLabels(
                 iterationSmallerMax, pAssumeLabel, pSwitchLabel, statement);
         newStatements.add(newStatement);
       }
@@ -771,8 +771,10 @@ public class SeqMainFunction extends SeqFunction {
                                 BinaryOperator.NOT_EQUALS)))));
         assumeCaseClauses.add(
             new SeqCaseClause(
+                options,
                 false,
                 false,
+                Optional.empty(),
                 i,
                 new SeqCaseBlock(
                     ImmutableList.of(

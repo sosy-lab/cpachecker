@@ -62,7 +62,8 @@ public class SeqCaseClauseBuilder {
 
     // initialize case clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initialCaseClauses =
-        initCaseClauses(pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
+        initCaseClauses(
+            pOptions, pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
     // if enabled, prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> prunedCases =
         pOptions.pruneEmptyStatements
@@ -90,6 +91,7 @@ public class SeqCaseClauseBuilder {
 
   /** Maps threads to the case clauses they potentially execute. */
   private static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> initCaseClauses(
+      MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
@@ -109,6 +111,7 @@ public class SeqCaseClauseBuilder {
 
       caseClauses.addAll(
           initCaseClauses(
+              pOptions,
               thread,
               SubstituteUtil.extractThreads(pSubstitutions),
               coveredNodes,
@@ -153,6 +156,7 @@ public class SeqCaseClauseBuilder {
 
   /** Builds the case clauses for the single thread {@code pThread}. */
   private static ImmutableList<SeqCaseClause> initCaseClauses(
+      MPOROptions pOptions,
       MPORThread pThread,
       ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -165,7 +169,13 @@ public class SeqCaseClauseBuilder {
       if (pCoveredNodes.add(threadNode)) {
         Optional<SeqCaseClause> caseClause =
             buildCaseClauseFromThreadNode(
-                pThread, pAllThreads, pCoveredNodes, threadNode, pSubstituteEdges, pGhostVariables);
+                pOptions,
+                pThread,
+                pAllThreads,
+                pCoveredNodes,
+                threadNode,
+                pSubstituteEdges,
+                pGhostVariables);
         if (caseClause.isPresent()) {
           rCaseClauses.add(caseClause.orElseThrow());
         }
@@ -180,6 +190,7 @@ public class SeqCaseClauseBuilder {
    * -1.
    */
   private static Optional<SeqCaseClause> buildCaseClauseFromThreadNode(
+      MPOROptions pOptions,
       final MPORThread pThread,
       final ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
@@ -221,8 +232,10 @@ public class SeqCaseClauseBuilder {
     }
     return Optional.of(
         new SeqCaseClause(
+            pOptions,
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
+            Optional.of(pThread.id),
             labelPc,
             new SeqCaseBlock(statements.build())));
   }

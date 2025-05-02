@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorReadWriteEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector_evaluation.SeqBitVectorReadWriteEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
@@ -170,7 +170,7 @@ class BitVectorReadWriteReducer {
                     bitVectorAssignments,
                     pBitVectorVariables,
                     pFullBitVectorEvaluation),
-                pSwitchLabel);
+                newTarget);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());
         }
@@ -230,7 +230,7 @@ class BitVectorReadWriteReducer {
           SeqCaseBlockStatement pCurrentStatement,
           ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
           BitVectorEvaluationExpression pBitVectorEvaluation,
-          SeqThreadLoopLabelStatement pSwitchLabel) {
+          SeqCaseClause pTarget) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
     if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
@@ -239,7 +239,7 @@ class BitVectorReadWriteReducer {
       Optional<BitVectorEvaluationExpression> expression =
           allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
       SeqBitVectorReadWriteEvaluationStatement rEvaluation =
-          new SeqBitVectorReadWriteEvaluationStatement(expression, pSwitchLabel);
+          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.gotoLabel.orElseThrow());
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

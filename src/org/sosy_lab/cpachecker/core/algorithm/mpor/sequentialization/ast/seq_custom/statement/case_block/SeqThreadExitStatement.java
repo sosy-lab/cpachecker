@@ -127,6 +127,7 @@ public class SeqThreadExitStatement implements SeqCaseBlockStatement {
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
+        // no need to update injected labels, no goto at end of thread
         injectedStatements);
   }
 

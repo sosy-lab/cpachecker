@@ -48,6 +48,11 @@ public class SeqNameUtil {
     return buildThreadPrefix(pOptions, pThreadId) + SeqToken.SWITCH;
   }
 
+  public static String buildSwitchCaseGotoLabelPrefix(MPOROptions pOptions, int pThreadId) {
+
+    return buildThreadPrefix(pOptions, pThreadId);
+  }
+
   public static String buildLoopHeadLabelName(MPOROptions pOptions, int pThreadId) {
     return buildThreadPrefix(pOptions, pThreadId)
         + SeqToken.LOOP_HEAD

@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseLabel;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchCaseLabel;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -51,9 +51,10 @@ public class SeqPruner {
           rPruned.put(
               thread,
               ImmutableList.of(
-                  threadExit.label.value == Sequentialization.INIT_PC
+                  threadExit.caseLabel.value == Sequentialization.INIT_PC
                       ? threadExit
-                      : threadExit.cloneWithLabel(new SeqCaseLabel(Sequentialization.INIT_PC))));
+                      : threadExit.cloneWithSwitchLabel(
+                          new SeqSwitchCaseLabel(Sequentialization.INIT_PC))));
         } else {
           rPruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
@@ -162,9 +163,8 @@ public class SeqPruner {
         return nonBlankTargetPc;
       }
     }
-
     // otherwise return label pc of the found non-blank
-    return pNonBlank.label.value;
+    return pNonBlank.caseLabel.value;
   }
 
   private static SeqCaseClause getThreadExitCaseClause(ImmutableList<SeqCaseClause> pCaseClauses) {

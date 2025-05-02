@@ -13,15 +13,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 /** Of the form {@code case n:} where {@code n} is an integer. */
-public class SeqCaseLabel implements SeqStatement {
+public class SeqSwitchCaseLabel implements SeqStatement {
 
   public final int value;
 
-  public SeqCaseLabel(int pValue) {
+  public SeqSwitchCaseLabel(int pValue) {
     value = pValue;
   }
 
-  public SeqCaseLabel(CIntegerLiteralExpression pValueExpression) {
+  public SeqSwitchCaseLabel(CIntegerLiteralExpression pValueExpression) {
     value = pValueExpression.getValue().intValue();
   }
 

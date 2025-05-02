@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector_evaluation.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
@@ -87,7 +87,7 @@ class BitVectorAccessReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqCaseClause> pCaseClauses,
-      Optional<BitVectorEvaluationExpression> pBitVectorEvaluation,
+      Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
     ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
@@ -100,7 +100,7 @@ class BitVectorAccessReducer {
             recursivelyInjectBitVectors(
                 pOptions,
                 pThread,
-                pBitVectorEvaluation,
+                pDefaultEvaluation,
                 pSwitchLabel,
                 statement,
                 pBitVectorVariables,
@@ -114,7 +114,7 @@ class BitVectorAccessReducer {
   private static SeqCaseBlockStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
-      final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
+      final Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
       SeqCaseBlockStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
@@ -130,7 +130,7 @@ class BitVectorAccessReducer {
               recursivelyInjectBitVectors(
                   pOptions,
                   pThread,
-                  pFullBitVectorEvaluation,
+                  pDefaultEvaluation,
                   pSwitchLabel,
                   concatStatement,
                   pBitVectorVariables,
@@ -167,8 +167,8 @@ class BitVectorAccessReducer {
                     pThread,
                     bitVectorAssignments,
                     pBitVectorVariables,
-                    pFullBitVectorEvaluation),
-                pSwitchLabel);
+                    pDefaultEvaluation),
+                newTarget);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());
         }
@@ -210,7 +210,7 @@ class BitVectorAccessReducer {
       SeqCaseBlockStatement pCurrentStatement,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorEvaluationExpression pBitVectorEvaluation,
-      SeqThreadLoopLabelStatement pSwitchLabel) {
+      SeqCaseClause pTarget) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
     if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
@@ -221,7 +221,7 @@ class BitVectorAccessReducer {
               ? Optional.empty()
               : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
       SeqBitVectorAccessEvaluationStatement rEvaluation =
-          new SeqBitVectorAccessEvaluationStatement(expression, pSwitchLabel);
+          new SeqBitVectorAccessEvaluationStatement(expression, pTarget.gotoLabel.orElseThrow());
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

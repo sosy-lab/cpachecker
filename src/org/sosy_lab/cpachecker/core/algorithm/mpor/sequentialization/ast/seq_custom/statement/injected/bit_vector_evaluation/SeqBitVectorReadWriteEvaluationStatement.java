@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector_evaluation;
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -14,19 +14,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStatement {
+public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
   private final Optional<BitVectorEvaluationExpression> evaluationExpression;
 
-  private final SeqThreadLoopLabelStatement gotoLabel;
+  private final SeqSwitchCaseGotoLabelStatement gotoLabel;
 
   public SeqBitVectorReadWriteEvaluationStatement(
       Optional<BitVectorEvaluationExpression> pEvaluationExpression,
-      SeqThreadLoopLabelStatement pGotoLabel) {
+      SeqSwitchCaseGotoLabelStatement pGotoLabel) {
 
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
@@ -44,7 +44,7 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStat
 
   @Override
   public String toASTString() {
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.labelName);
+    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     // if bit vectors present: evaluate in if statement
     if (evaluationExpression.isPresent()) {
       SeqControlFlowStatement ifStatement =
@@ -57,5 +57,11 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqInjectedStat
       // otherwise add only goto
       return gotoStatement.toASTString();
     }
+  }
+
+  @Override
+  public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
+    return new SeqBitVectorReadWriteEvaluationStatement(
+        evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
   }
 }

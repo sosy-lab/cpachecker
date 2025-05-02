@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -117,7 +118,6 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
 
   @Override
   public SeqCaseBlockStatement cloneWithTargetPc(int pTargetPc) {
-
     return new SeqReturnValueAssignmentStatement(
         loopHeadLabel,
         assignment,
@@ -125,7 +125,7 @@ public class SeqReturnValueAssignmentStatement implements SeqCaseBlockStatement 
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        injectedStatements,
+        SeqCaseClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
         concatenatedStatements);
   }
 

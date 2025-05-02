@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -90,7 +91,10 @@ public class SeqBlankStatement implements SeqCaseBlockStatement {
   @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqBlankStatement(
-        loopHeadLabel, pcLeftHandSide, Optional.of(pTargetPc), injectedStatements);
+        loopHeadLabel,
+        pcLeftHandSide,
+        Optional.of(pTargetPc),
+        SeqCaseClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
