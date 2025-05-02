@@ -112,17 +112,37 @@ def html_for_message(message, block_log: Dict[str, str]):
                 else:
                     sender = "Self"
                 div(
-                    f"React to message from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):"
+                    f"React to {direction} from <strong>{sender}</strong> (ID: {msg_id[1:-5]}):"
                 )
         with div.p():
             if receivers:
                 receiver = ", ".join(receivers)
             else:
                 receiver = "None"
-            div(f"Calculated new {direction} message for <strong>{receiver}</strong>")
-        div.textarea(_t=result)
+            div(f"Calculated new {direction} for <strong>{receiver}</strong>")
+        with div.details(style="max-width: 800px; overflow: auto;"):
+                div.summary(_t="Message content")
+                div.div(_t=format_message(result), style="padding: 10px;")
 
     return str(div)
+
+
+def format_message(message_json):
+    message = json.loads(message_json)
+    html = Airium()
+    with html.div():
+        for key, value in message.items():
+            if value is None or len(value) < 50:
+                html.span(_t=f"<b>{key}</b>:&nbsp;{value or '-'}")
+            else:
+                with html.details():
+                    html.summary(_t=key, style="font-weight: bold;")
+                    if isinstance(value, dict) or isinstance(value, list):
+                        html.pre(_t=json.dumps(value, indent=2))
+                    else:
+                        html.div(_t=str(value))
+
+    return html
 
 
 def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
