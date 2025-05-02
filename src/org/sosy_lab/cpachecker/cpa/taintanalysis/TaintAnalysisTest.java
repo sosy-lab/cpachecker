@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class TaintAnalysisTest {
 
   private TestResults runCPAchecker(String pProgramName) throws Exception {
-    String fileName = "config/predicateAnalysis--taintAnalysis.properties";
+    String fileName = "config/predicateAnalysis--informationFlow.properties";
     Configuration config = TestDataTools.configurationForTest().loadFromFile(fileName).build();
 
     String testDir = "test/programs/taint_analysis/";
