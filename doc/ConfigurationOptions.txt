@@ -4223,10 +4223,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
-distributedSummaries.worker.logDirectory = "block_summary/logfiles"
+distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
 # output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/block_analysis"
+dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
