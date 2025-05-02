@@ -55,6 +55,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     PredicateAbstractState predicateAbstractState = getPredicateState(pState);
     BooleanFormula condition = getFormulaRepresentation(predicateAbstractState);
     if (solver.isUnsat(condition)) {
+      // FIXME: Add statistic whether this actually happens EVER.
       return DssMessageProcessing.stop();
     }
     if (checkImplicationsOfKnownStates) {
@@ -62,6 +63,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
           getFormulaRepresentations(getPredicateStates(pKnownStates));
       for (BooleanFormula knownCondition : knownConditions) {
         if (solver.implies(condition, knownCondition)) {
+
           return DssMessageProcessing.stop();
         }
       }

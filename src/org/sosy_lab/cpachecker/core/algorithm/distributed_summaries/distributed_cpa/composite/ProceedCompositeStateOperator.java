@@ -51,6 +51,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
       throws InterruptedException, SolverException {
     stats.getProceedTime().start();
     DssMessageProcessing processing = DssMessageProcessing.proceed();
+    // FIXME: Add explanation why we can not stop on a first received STOP
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing =
           processing.merge(value.getProceedOperator().processBackward(pState, pKnownStates), true);
