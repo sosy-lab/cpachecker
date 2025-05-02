@@ -674,12 +674,6 @@ public class SeqMainFunction extends SeqFunction {
       } catch (UnrecognizedCodeException e) {
         throw new RuntimeException(e);
       }
-      if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE) && pOptions.porConcat) {
-        SeqThreadLoopLabelStatement switchLabel =
-            new SeqThreadLoopLabelStatement(
-                SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
-        rSwitches.add(LineOfCode.of(3, switchLabel.toASTString()));
-      }
       rSwitches.addAll(buildSingleLoopSwitchStatement(pOptions, thread, entry.getValue(), 3));
       i++;
     }
