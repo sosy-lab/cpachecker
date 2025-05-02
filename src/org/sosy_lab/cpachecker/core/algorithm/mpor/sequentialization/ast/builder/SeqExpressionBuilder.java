@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -49,7 +48,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
-    Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
+    ImmutableList.Builder<CArraySubscriptExpression> rArrayPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       rArrayPc.add(buildPcSubscriptExpression(buildIntegerLiteralExpression(i)));
     }
@@ -158,7 +157,7 @@ public class SeqExpressionBuilder {
   }
 
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
-    Builder<CIdExpression> rScalarPc = ImmutableList.builder();
+    ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
       CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
       rScalarPc.add(

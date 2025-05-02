@@ -152,7 +152,6 @@ class BitVectorAccessReducer {
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
-        // TODO read-write
         ImmutableList<CVariableDeclaration> accessedVariables =
             SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
                 newTarget, BitVectorReduction.ACCESS_ONLY);

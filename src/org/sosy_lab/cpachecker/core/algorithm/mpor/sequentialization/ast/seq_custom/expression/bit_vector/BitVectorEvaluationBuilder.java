@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -82,10 +83,9 @@ public class BitVectorEvaluationBuilder {
     ImmutableSet<CExpression> zeroes =
         BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry :
-        pBitVectorVariables
-            .getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS)
-            .entrySet()) {
+    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
+        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : scalarBitVectors.entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       CIdExpression activeVariable = extractActiveVariable(pActiveThread, accessVariables);
       // if the LHS (activeVariable) is 0, then the entire && expression is 0 -> prune
@@ -164,10 +164,9 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    for (var entry :
-        pBitVectorVariables
-            .getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS)
-            .entrySet()) {
+    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
+        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : scalarBitVectors.entrySet()) {
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       CIdExpression activeVariable = extractActiveVariable(pActiveThread, accessVariables);
       // convert from CExpression to SeqExpression
@@ -220,7 +219,7 @@ public class BitVectorEvaluationBuilder {
         && pBitVectorVariables.scalarWriteBitVectors.isEmpty()) {
       return Optional.empty();
     }
-    ImmutableSet<CExpression> zeroes =
+    ImmutableSet<CExpression> zeroAssignments =
         BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
 
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
@@ -242,30 +241,14 @@ public class BitVectorEvaluationBuilder {
       ImmutableList<SeqExpression> otherWriteVariables =
           convertOtherVariablesToSeqExpression(activeWriteVariable, writeVariables);
 
-      Optional<SeqLogicalExpression> rightHandSide = Optional.empty();
-      Optional<SeqLogicalExpression> leftHandSide = Optional.empty();
+      Optional<SeqLogicalExpression> leftHandSide =
+          getPrunedScalarReadWriteBitVectorAccessLeftHandSideEvaluation(
+              zeroAssignments, activeReadVariable, otherWriteVariables);
+      Optional<SeqLogicalExpression> rightHandSide =
+          getPrunedScalarReadWriteBitVectorAccessRightHandSideEvaluation(
+              zeroAssignments, activeWriteVariable, otherReadVariables, otherWriteVariables);
 
-      // if the LHS (activeReadVariable) is 0, then the entire && expression is 0 -> prune
-      if (!zeroes.contains(activeReadVariable)) {
-        // convert from CExpression to SeqExpression
-        leftHandSide =
-            Optional.of(
-                buildSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-                    activeReadVariable, otherWriteVariables));
-      }
-      // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
-      if (!zeroes.contains(activeWriteVariable)) {
-        // convert from CExpression to SeqExpression
-        ImmutableList<SeqExpression> otherReadAndWriteVariables =
-            ImmutableList.<SeqExpression>builder()
-                .addAll(otherReadVariables)
-                .addAll(otherWriteVariables)
-                .build();
-        rightHandSide =
-            Optional.of(
-                buildSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-                    activeWriteVariable, otherReadAndWriteVariables));
-      }
+      // only add expression if it was not pruned entirely (LHS or RHS present)
       if (leftHandSide.isPresent() || rightHandSide.isPresent()) {
         variableExpressions.add(
             buildPrunedSingleVariableScalarReadWriteBitVectorEvaluation(
@@ -276,6 +259,46 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty();
     }
     return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND));
+  }
+
+  private static Optional<SeqLogicalExpression>
+      getPrunedScalarReadWriteBitVectorAccessLeftHandSideEvaluation(
+          ImmutableSet<CExpression> pZeroAssignments,
+          CIdExpression pActiveReadVariable,
+          ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    if (pZeroAssignments.contains(pActiveReadVariable)) {
+      // if the LHS (activeReadVariable) is 0, then the entire && expression is 0 -> prune
+      return Optional.empty();
+    } else {
+      // otherwise the LHS is 1, and we only need the right side of the && expression
+      return Optional.of(
+          buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
+              pOtherWriteVariables));
+    }
+  }
+
+  private static Optional<SeqLogicalExpression>
+      getPrunedScalarReadWriteBitVectorAccessRightHandSideEvaluation(
+          ImmutableSet<CExpression> pZeroAssignments,
+          CIdExpression pActiveWriteVariable,
+          ImmutableList<SeqExpression> pOtherReadVariables,
+          ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    if (pZeroAssignments.contains(pActiveWriteVariable)) {
+      // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
+      return Optional.empty();
+    } else {
+      // otherwise the LHS is 1, and we only need the right side of the && expression
+      ImmutableList<SeqExpression> otherReadAndWriteVariables =
+          ImmutableList.<SeqExpression>builder()
+              .addAll(pOtherReadVariables)
+              .addAll(pOtherWriteVariables)
+              .build();
+      return Optional.of(
+          buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
+              otherReadAndWriteVariables));
+    }
   }
 
   /**
@@ -413,6 +436,14 @@ public class BitVectorEvaluationBuilder {
   }
 
   private static SeqLogicalNotExpression
+      buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
+          ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    return new SeqLogicalNotExpression(
+        nestLogicalExpressions(pOtherWriteVariables, SeqLogicalOperator.OR));
+  }
+
+  private static SeqLogicalNotExpression
       buildSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
           CIdExpression pActiveWriteVariable,
           ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
@@ -423,6 +454,14 @@ public class BitVectorEvaluationBuilder {
             activeWriteVariable,
             nestLogicalExpressions(pOtherReadAndWriteVariables, SeqLogicalOperator.OR));
     return new SeqLogicalNotExpression(andExpression);
+  }
+
+  private static SeqLogicalNotExpression
+      buildPrunedSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
+          ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
+
+    return new SeqLogicalNotExpression(
+        nestLogicalExpressions(pOtherReadAndWriteVariables, SeqLogicalOperator.OR));
   }
 
   private static SeqLogicalAndExpression buildSingleVariableScalarReadWriteBitVectorEvaluation(
