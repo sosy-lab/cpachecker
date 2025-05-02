@@ -450,7 +450,7 @@ public class ConfigurationFileChecks {
         }
       }
     } else if (cpas.contains("cpa.taintanalysis.TaintAnalysisCPA")) {
-      assertThat(spec).endsWith("specification/taintAnalysis.spc");
+      assertThat(spec).endsWith("specification/information-flow.spc");
     } else if (basePath.toString().startsWith("ldv")) {
       assertThat(spec).endsWith("specification/sv-comp-errorlabel.spc");
     } else if (isSvcompConfig) {
