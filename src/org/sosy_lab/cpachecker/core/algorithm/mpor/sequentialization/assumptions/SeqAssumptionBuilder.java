@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -26,11 +25,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcAssumeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadBeginsAtomic;
@@ -221,7 +218,7 @@ public class SeqAssumptionBuilder {
 
     if (pScalarPc) {
       // scalar pc int: switch statement with individual case i: assume(pci != -1);
-      ImmutableList.Builder<SeqThreadStatementClause> assumeCaseClauses = ImmutableList.builder();
+      ImmutableList.Builder<SeqScalarPcAssumeStatement> assumeCaseClauses = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
         // ensure pc
         Verify.verify(pPcVariables.get(i) instanceof CIdExpression);
@@ -235,19 +232,9 @@ public class SeqAssumptionBuilder {
                                 pPcVariables.get(i),
                                 SeqIntegerLiteralExpression.INT_EXIT_PC,
                                 BinaryOperator.NOT_EQUALS)))));
-        assumeCaseClauses.add(
-            new SeqThreadStatementClause(
-                pOptions,
-                false,
-                false,
-                Optional.empty(),
-                i,
-                new SeqThreadStatementBlock(
-                    pOptions,
-                    ImmutableList.of(
-                        SeqThreadStatementBuilder.buildScalarPcAssumeStatement(assumeCall)))));
+        assumeCaseClauses.add(buildScalarPcAssumeStatement(assumeCall));
       }
-      return new SeqSwitchStatement(
+      return new SeqScalarPcSwitchStatement(
           pOptions, SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);
     } else {
       // pc array: single assume(pc[next_thread] != -1);
@@ -262,5 +249,9 @@ public class SeqAssumptionBuilder {
                           SeqIntegerLiteralExpression.INT_EXIT_PC,
                           BinaryOperator.NOT_EQUALS)))));
     }
+  }
+
+  private static SeqScalarPcAssumeStatement buildScalarPcAssumeStatement(SeqStatement pStatement) {
+    return new SeqScalarPcAssumeStatement(pStatement);
   }
 }

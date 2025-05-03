@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -508,10 +507,6 @@ public class SeqThreadStatementBuilder {
             SeqIntegerLiteralExpression.INT_0);
     return new SeqAtomicEndStatement(
         atomicLockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
-  }
-
-  public static SeqScalarPcAssumeStatement buildScalarPcAssumeStatement(SeqStatement pStatement) {
-    return new SeqScalarPcAssumeStatement(pStatement);
   }
 
   /**

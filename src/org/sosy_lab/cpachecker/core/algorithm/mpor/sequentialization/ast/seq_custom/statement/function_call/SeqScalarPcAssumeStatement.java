@@ -1,0 +1,33 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call;
+
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+/**
+ * Only used with {@code scalarPc} when assuming that the next thread is still active, e.g.
+ *
+ * <p>{@code switch(next_thread) { case 0: assume(pc0 != -1); break; ... }}
+ */
+public class SeqScalarPcAssumeStatement implements SeqStatement {
+
+  private final SeqStatement statement;
+
+  public SeqScalarPcAssumeStatement(SeqStatement pStatement) {
+    statement = pStatement;
+  }
+
+  @Override
+  public String toASTString() throws UnrecognizedCodeException {
+    return statement.toASTString() + SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
+  }
+}

@@ -6,41 +6,34 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Represents the entirety of a switch statement.
- *
- * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
- *
- * <p>with the default sequentialization error {@code default: reach_error(...); }
- */
-public class SeqSwitchStatement implements SeqStatement {
+public class SeqScalarPcSwitchStatement implements SeqStatement {
 
   private final MPOROptions options;
 
   private final SeqControlFlowStatement switchExpression;
 
-  private final ImmutableList<SeqThreadStatementClause> clauses;
+  private final ImmutableList<SeqScalarPcAssumeStatement> clauses;
 
   private final int tabs;
 
-  public SeqSwitchStatement(
+  public SeqScalarPcSwitchStatement(
       MPOROptions pOptions,
       CExpression pExpression,
-      ImmutableList<SeqThreadStatementClause> pClauses,
+      ImmutableList<SeqScalarPcAssumeStatement> pClauses,
       int pTabs) {
 
     options = pOptions;
@@ -52,12 +45,12 @@ public class SeqSwitchStatement implements SeqStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
-    for (SeqThreadStatementClause caseClause : clauses) {
-      String prefix =
-          SeqToken._case + SeqSyntax.SPACE + caseClause.label + SeqSyntax.COLON + SeqSyntax.SPACE;
+    for (int i = 0; i < clauses.size(); i++) {
+      String prefix = SeqToken._case + SeqSyntax.SPACE + i + SeqSyntax.COLON + SeqSyntax.SPACE;
       casesString
           .append(
-              SeqStringUtil.prependTabsWithoutNewline(tabs + 1, prefix + caseClause.toASTString()))
+              SeqStringUtil.prependTabsWithoutNewline(
+                  tabs + 1, prefix + clauses.get(i).toASTString()))
           .append(SeqSyntax.NEWLINE);
     }
     String defaultCaseClause =
