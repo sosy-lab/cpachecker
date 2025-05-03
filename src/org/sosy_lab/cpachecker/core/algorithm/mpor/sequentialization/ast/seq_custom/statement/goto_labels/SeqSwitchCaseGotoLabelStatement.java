@@ -27,6 +27,7 @@ public class SeqSwitchCaseGotoLabelStatement implements SeqLabelStatement {
     return getLabelName() + SeqSyntax.COLON;
   }
 
+  @Override
   public String getLabelName() {
     return threadPrefix + labelNumber;
   }

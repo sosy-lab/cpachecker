@@ -58,7 +58,7 @@ public class SeqCaseClause implements SeqStatement {
     isLoopStart = pIsLoopStart;
     caseLabel = new SeqSwitchCaseLabel(pLabelValue);
     gotoLabel =
-        pThreadId.isPresent() && !pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)
+        gotoLabelNecessary(pOptions, pThreadId)
             ? Optional.of(
                 new SeqSwitchCaseGotoLabelStatement(
                     SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId.orElseThrow()),
@@ -82,6 +82,12 @@ public class SeqCaseClause implements SeqStatement {
     caseLabel = pCaseLabel;
     gotoLabel = pGotoLabel;
     block = pBlock;
+  }
+
+  private boolean gotoLabelNecessary(MPOROptions pOptions, Optional<Integer> pThreadId) {
+    return pThreadId.isPresent()
+        && (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)
+            || pOptions.threadLoops);
   }
 
   public SeqCaseClause cloneWithCaseLabelAndBlock(

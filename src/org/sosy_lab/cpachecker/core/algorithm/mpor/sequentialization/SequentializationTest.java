@@ -115,6 +115,8 @@ public class SequentializationTest {
     testCompile(path, options);
   }
 
+  // TODO there is a jump to the loop head label directly here instead of doing a context switch
+  //  even though the loop head accesses a global variable
   @Test
   public void testCompileSeq_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.

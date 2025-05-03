@@ -252,9 +252,6 @@ public class SeqThreadLoopBuilder {
     SeqThreadLoopLabelStatement assumeLabel =
         new SeqThreadLoopLabelStatement(
             SeqNameUtil.buildThreadAssumeLabelName(pOptions, pThread.id));
-    SeqThreadLoopLabelStatement switchLabel =
-        new SeqThreadLoopLabelStatement(
-            SeqNameUtil.buildThreadSwitchLabelName(pOptions, pThread.id));
 
     ImmutableList<LineOfCode> switchStatement =
         buildThreadLoopSwitchStatement(
@@ -262,7 +259,6 @@ public class SeqThreadLoopBuilder {
             pPcVariables,
             pThread,
             assumeLabel,
-            switchLabel,
             pCaseClauses,
             3,
             pBinaryExpressionBuilder);
@@ -270,7 +266,6 @@ public class SeqThreadLoopBuilder {
     // add all lines of code: loop head, assumptions, iteration increment, switch statement
     rThreadLoop.add(LineOfCode.of(3, assumeLabel.toASTString()));
     rThreadLoop.addAll(buildThreadLoopAssumptions(pThreadAssumptions));
-    rThreadLoop.add(LineOfCode.of(3, switchLabel.toASTString()));
     rThreadLoop.add(LineOfCode.of(3, pRIncrement.toASTString()));
     rThreadLoop.addAll(switchStatement);
 
@@ -282,23 +277,25 @@ public class SeqThreadLoopBuilder {
       PcVariables pPcVariables,
       MPORThread pThread,
       SeqThreadLoopLabelStatement pAssumeLabel,
-      SeqThreadLoopLabelStatement pSwitchLabel,
       ImmutableList<SeqCaseClause> pCaseClauses,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    ImmutableMap<Integer, SeqCaseClause> labelValueMap =
+        SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
     CExpression pcExpression = pPcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
+
     ImmutableList.Builder<SeqCaseClause> pUpdatedCases = ImmutableList.builder();
     for (SeqCaseClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
       for (SeqCaseBlockStatement statement : caseClause.block.statements) {
         SeqCaseBlockStatement newStatement =
             SeqCaseClauseUtil.recursivelyInjectGotoThreadLoopLabels(
-                iterationSmallerMax, pAssumeLabel, pSwitchLabel, statement);
+                iterationSmallerMax, pAssumeLabel, statement, labelValueMap);
         newStatements.add(newStatement);
       }
       pUpdatedCases.add(caseClause.cloneWithBlock(new SeqCaseBlock(newStatements.build())));

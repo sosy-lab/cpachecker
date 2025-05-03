@@ -22,4 +22,9 @@ public class SeqLoopHeadLabelStatement implements SeqLabelStatement {
   public String toASTString() {
     return labelName + SeqSyntax.COLON;
   }
+
+  @Override
+  public String getLabelName() {
+    return labelName;
+  }
 }

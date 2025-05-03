@@ -291,8 +291,8 @@ public class SeqCaseClauseUtil {
   public static SeqCaseBlockStatement recursivelyInjectGotoThreadLoopLabels(
       CBinaryExpression pIterationSmallerMax,
       SeqThreadLoopLabelStatement pAssumeLabel,
-      SeqThreadLoopLabelStatement pSwitchLabel,
-      SeqCaseBlockStatement pCurrentStatement) {
+      SeqCaseBlockStatement pCurrentStatement,
+      final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
 
     // if there are concatenated statements, replace target pc there too
     if (pCurrentStatement.isConcatenable()) {
@@ -303,7 +303,7 @@ public class SeqCaseClauseUtil {
         for (SeqCaseBlockStatement concatenatedStatement : concatenatedStatements) {
           newStatements.add(
               recursivelyInjectGotoThreadLoopLabels(
-                  pIterationSmallerMax, pAssumeLabel, pSwitchLabel, concatenatedStatement));
+                  pIterationSmallerMax, pAssumeLabel, concatenatedStatement, pLabelValueMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
@@ -316,11 +316,14 @@ public class SeqCaseClauseUtil {
         ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
         // add previous injections BEFORE (otherwise undefined behavior in seq!)
         newInjections.addAll(pCurrentStatement.getInjectedStatements());
+        SeqCaseClause target = pLabelValueMap.get(targetPc);
         newInjections.add(
             new SeqThreadLoopGotoStatement(
                 pIterationSmallerMax,
                 // for statements targeting starts of critical sections, assumes are reevaluated
-                priorCriticalSection(pCurrentStatement) ? pAssumeLabel : pSwitchLabel));
+                priorCriticalSection(pCurrentStatement)
+                    ? pAssumeLabel
+                    : Objects.requireNonNull(target).gotoLabel.orElseThrow()));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }
     }
