@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class SeqStringUtil {
@@ -123,7 +124,7 @@ public class SeqStringUtil {
       statements.append(pcWrite.toASTString());
 
       // we inject after the pc write, in case the injections are goto that require updated pc
-      for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pInjectedStatements)) {
         statements.append(SeqSyntax.SPACE).append(injectedStatement.toASTString());
       }
 
@@ -145,6 +146,23 @@ public class SeqStringUtil {
       }
     }
     return statements.toString();
+  }
+
+  private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
+    ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      // bit vector assignments / evaluations are placed last
+      if (injectedStatement instanceof SeqInjectedBitVectorStatement) {
+        leftOver.add(injectedStatement);
+      } else {
+        rOrdered.add(injectedStatement);
+      }
+    }
+    rOrdered.addAll(leftOver.build());
+    return rOrdered.build();
   }
 
   public static String buildLoopHeadLabel(Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel) {
