@@ -28,15 +28,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqFunctionCallStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -52,7 +52,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -95,7 +95,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -132,7 +132,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -171,7 +171,7 @@ public class SeqThreadLoopBuilder {
                   ? SeqStringUtil.appendOpeningCurly(statement.toASTString())
                   : SeqStringUtil.wrapInCurlyOutwards(statement.toASTString())));
 
-      ImmutableList<SeqCaseClause> cases = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
       rThreadLoops.addAll(
           buildThreadLoop(
               pOptions,
@@ -192,7 +192,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -203,7 +203,7 @@ public class SeqThreadLoopBuilder {
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      ImmutableList<SeqCaseClause> cases = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
 
       // choose nondet iterations and reset current iteration before each loop
       rThreadLoops.add(LineOfCode.of(2, pKNondet.toASTString()));
@@ -241,7 +241,7 @@ public class SeqThreadLoopBuilder {
       MPORThread pThread,
       ImmutableList<SeqAssumption> pThreadAssumptions,
       CExpressionAssignmentStatement pRIncrement,
-      ImmutableList<SeqCaseClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -277,28 +277,29 @@ public class SeqThreadLoopBuilder {
       PcVariables pPcVariables,
       MPORThread pThread,
       SeqThreadLoopLabelStatement pAssumeLabel,
-      ImmutableList<SeqCaseClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pCaseClauses,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableMap<Integer, SeqCaseClause> labelValueMap =
-        SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
+        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
     CExpression pcExpression = pPcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
 
-    ImmutableList.Builder<SeqCaseClause> pUpdatedCases = ImmutableList.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        SeqCaseBlockStatement newStatement =
-            SeqCaseClauseUtil.recursivelyInjectGotoThreadLoopLabels(
+    ImmutableList.Builder<SeqThreadStatementClause> pUpdatedCases = ImmutableList.builder();
+    for (SeqThreadStatementClause caseClause : pCaseClauses) {
+      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+      for (SeqThreadStatement statement : caseClause.block.statements) {
+        SeqThreadStatement newStatement =
+            SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
                 iterationSmallerMax, pAssumeLabel, statement, labelValueMap);
         newStatements.add(newStatement);
       }
-      pUpdatedCases.add(caseClause.cloneWithBlock(new SeqCaseBlock(newStatements.build())));
+      pUpdatedCases.add(
+          caseClause.cloneWithBlock(new SeqThreadStatementBlock(pOptions, newStatements.build())));
     }
     SeqSwitchStatement switchStatement =
         new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);
@@ -306,7 +307,7 @@ public class SeqThreadLoopBuilder {
   }
 
   private static ImmutableList<LineOfCode> buildThreadLoopAssumptions(
-      ImmutableList<SeqAssumption> pAssumptions) {
+      ImmutableList<SeqAssumption> pAssumptions) throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rAssumptions = ImmutableList.builder();
     for (SeqAssumption assumption : pAssumptions) {

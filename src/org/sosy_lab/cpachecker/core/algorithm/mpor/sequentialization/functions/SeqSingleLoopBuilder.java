@@ -9,19 +9,21 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -35,10 +37,11 @@ public class SeqSingleLoopBuilder {
   protected static ImmutableList<LineOfCode> buildSingleLoopSwitchStatements(
       MPOROptions pOptions,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rSwitches = ImmutableList.builder();
+    Builder<LineOfCode> rSwitches = ImmutableList.builder();
     int i = 0;
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -63,23 +66,36 @@ public class SeqSingleLoopBuilder {
         throw new RuntimeException(e);
       }
       rSwitches.addAll(
-          buildSingleLoopSwitchStatement(pOptions, pPcVariables, thread, entry.getValue(), 3));
+          buildSingleLoopControlFlowStatement(
+              pOptions, pPcVariables, thread, entry.getValue(), 3, pBinaryExpressionBuilder));
       i++;
     }
     rSwitches.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     return rSwitches.build();
   }
 
-  private static ImmutableList<LineOfCode> buildSingleLoopSwitchStatement(
+  private static ImmutableList<LineOfCode> buildSingleLoopControlFlowStatement(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
-      ImmutableList<SeqCaseClause> pCaseClauses,
-      int pTabs) {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      int pTabs,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
-    CExpression pcExpression = pPcVariables.get(pThread.id);
-    SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(pOptions, pcExpression, pCaseClauses, pTabs);
-    return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
+    CLeftHandSide pcExpression = pPcVariables.get(pThread.id);
+    return switch (pOptions.controlFlowEncoding) {
+      case SWITCH_CASE -> {
+        SeqSwitchStatement switchStatement =
+            new SeqSwitchStatement(pOptions, pcExpression, pCaseClauses, pTabs);
+        yield LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
+      }
+      case BINARY_IF_TREE -> {
+        SeqBinaryIfTreeStatement binaryIfTree =
+            new SeqBinaryIfTreeStatement(
+                pcExpression, pCaseClauses, pTabs, pBinaryExpressionBuilder);
+        yield LineOfCodeUtil.buildLinesOfCode(binaryIfTree.toASTString());
+      }
+    };
   }
 }

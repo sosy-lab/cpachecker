@@ -25,12 +25,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqSwitchStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadBeginsAtomic;
@@ -174,7 +174,8 @@ public class SeqAssumptionBuilder {
   }
 
   public static ImmutableList<LineOfCode> buildSingleLoopAssumptions(
-      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions) {
+      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rAssumptions = ImmutableList.builder();
     for (SeqAssumption assumption : pThreadAssumptions.values()) {
@@ -220,7 +221,7 @@ public class SeqAssumptionBuilder {
 
     if (pScalarPc) {
       // scalar pc int: switch statement with individual case i: assume(pci != -1);
-      ImmutableList.Builder<SeqCaseClause> assumeCaseClauses = ImmutableList.builder();
+      ImmutableList.Builder<SeqThreadStatementClause> assumeCaseClauses = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
         // ensure pc
         Verify.verify(pPcVariables.get(i) instanceof CIdExpression);
@@ -235,15 +236,16 @@ public class SeqAssumptionBuilder {
                                 SeqIntegerLiteralExpression.INT_EXIT_PC,
                                 BinaryOperator.NOT_EQUALS)))));
         assumeCaseClauses.add(
-            new SeqCaseClause(
+            new SeqThreadStatementClause(
                 pOptions,
                 false,
                 false,
                 Optional.empty(),
                 i,
-                new SeqCaseBlock(
+                new SeqThreadStatementBlock(
+                    pOptions,
                     ImmutableList.of(
-                        SeqCaseBlockStatementBuilder.buildScalarPcAssumeStatement(assumeCall)))));
+                        SeqThreadStatementBuilder.buildScalarPcAssumeStatement(assumeCall)))));
       }
       return new SeqSwitchStatement(
           pOptions, SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);

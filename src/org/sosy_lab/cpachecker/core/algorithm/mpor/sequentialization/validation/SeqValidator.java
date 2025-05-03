@@ -26,9 +26,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -100,19 +100,21 @@ public class SeqValidator {
    *
    * Every sequentialization needs to fulfill this property, otherwise it is faulty.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> validateCaseClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses, LogManager pLogger) {
+  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
+      validateCaseClauses(
+          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+          LogManager pLogger) {
 
     // TODO validate that if there is a ThreadJoin, AtomicBegin, MutexLock etc. that it MUST be the
     //  first statement in the clause so that total strict orders can be enforced
 
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      ImmutableList<SeqCaseClause> caseClauses = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> caseClauses = entry.getValue();
       // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(caseClauses);
-      ImmutableMap<Integer, SeqCaseClause> labelCaseMap =
-          SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
+      ImmutableMap<Integer, SeqThreadStatementClause> labelCaseMap =
+          SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
       ImmutableSet<Integer> allTargetPcs =
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
@@ -125,15 +127,15 @@ public class SeqValidator {
 
   /** Maps origin pcs n in {@code case n} to the set of target pcs m {@code pc[t_id] = m}. */
   private static ImmutableMap<Integer, ImmutableSet<Integer>> getPcMap(
-      ImmutableList<SeqCaseClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
-    for (SeqCaseClause caseClause : pCaseClauses) {
+    for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
-        targetPcs.addAll(SeqCaseClauseUtil.collectAllIntegerTargetPc(statement));
+      for (SeqThreadStatement statement : caseClause.block.statements) {
+        targetPcs.addAll(SeqThreadStatementClauseUtil.collectAllIntegerTargetPc(statement));
       }
-      rPcMap.put(caseClause.caseLabel.value, targetPcs.build());
+      rPcMap.put(caseClause.label, targetPcs.build());
     }
     return rPcMap.buildOrThrow();
   }
@@ -141,7 +143,7 @@ public class SeqValidator {
   private static void checkLabelPcAsTargetPc(
       int pLabelPc,
       ImmutableSet<Integer> pAllTargetPc,
-      ImmutableMap<Integer, SeqCaseClause> pLabelCaseMap,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelCaseMap,
       int pThreadId,
       LogManager pLogger)
       throws IllegalArgumentException {
@@ -151,7 +153,7 @@ public class SeqValidator {
       // check if label is a target pc anywhere in this threads switch statement
       if (!pAllTargetPc.contains(pLabelPc)) {
         // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
-        SeqCaseClause caseClause = pLabelCaseMap.get(pLabelPc);
+        SeqThreadStatementClause caseClause = pLabelCaseMap.get(pLabelPc);
         assert caseClause != null;
         if (caseClause.block.getFirstStatement().getLoopHeadLabel().isEmpty()) {
           handleValidationException(

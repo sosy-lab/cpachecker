@@ -1,0 +1,76 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
+
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
+/**
+ * Represents the entirety of a switch statement.
+ *
+ * <p>Example: {@code switch(a) { case b: ...; break; case c: ...; break; } }
+ *
+ * <p>with the default sequentialization error {@code default: reach_error(...); }
+ */
+public class SeqSwitchStatement implements SeqStatement {
+
+  private final MPOROptions options;
+
+  private final SeqControlFlowStatement switchExpression;
+
+  private final ImmutableList<SeqThreadStatementClause> clauses;
+
+  private final int tabs;
+
+  public SeqSwitchStatement(
+      MPOROptions pOptions,
+      CExpression pExpression,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      int pTabs) {
+
+    options = pOptions;
+    switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
+    clauses = pClauses;
+    tabs = pTabs;
+  }
+
+  @Override
+  public String toASTString() throws UnrecognizedCodeException {
+    StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
+    for (SeqThreadStatementClause caseClause : clauses) {
+      String prefix =
+          SeqToken._case + SeqSyntax.SPACE + caseClause.label + SeqSyntax.COLON + SeqSyntax.SPACE;
+      casesString.append(
+          SeqStringUtil.prependTabsWithoutNewline(tabs + 1, prefix + caseClause.toASTString()));
+    }
+    String defaultCaseClause =
+        SeqToken._default
+            + SeqSyntax.COLON
+            + SeqSyntax.SPACE
+            + Sequentialization.outputReachErrorDummy;
+    return SeqStringUtil.buildTab(tabs)
+        + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
+        + SeqSyntax.NEWLINE
+        + casesString
+        + (options.sequentializationErrors
+            ? SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+            : SeqSyntax.EMPTY_STRING)
+        + SeqStringUtil.buildTab(tabs)
+        + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+}

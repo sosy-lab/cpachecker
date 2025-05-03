@@ -25,14 +25,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.case_block.SeqCaseBlockStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
@@ -44,10 +44,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 class BitVectorAccessReducer {
 
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduce(
+  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -59,7 +59,7 @@ class BitVectorAccessReducer {
               + " any global variables.");
       return pCaseClauses; // no global variables -> no bit vectors
     }
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqCaseClause>> rInjected =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -82,20 +82,20 @@ class BitVectorAccessReducer {
     return rInjected.buildOrThrow();
   }
 
-  private static ImmutableList<SeqCaseClause> injectBitVectors(
+  private static ImmutableList<SeqThreadStatementClause> injectBitVectors(
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableList<SeqCaseClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pCaseClauses,
       Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel) {
 
-    ImmutableList.Builder<SeqCaseClause> rInjected = ImmutableList.builder();
-    ImmutableMap<Integer, SeqCaseClause> labelValueMap =
-        SeqCaseClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
-    for (SeqCaseClause caseClause : pCaseClauses) {
-      ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-      for (SeqCaseBlockStatement statement : caseClause.block.statements) {
+    ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
+    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
+        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+    for (SeqThreadStatementClause caseClause : pCaseClauses) {
+      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+      for (SeqThreadStatement statement : caseClause.block.statements) {
         newStatements.add(
             recursivelyInjectBitVectors(
                 pOptions,
@@ -106,26 +106,26 @@ class BitVectorAccessReducer {
                 pBitVectorVariables,
                 labelValueMap));
       }
-      rInjected.add(caseClause.cloneWithBlock(new SeqCaseBlock(newStatements.build())));
+      rInjected.add(
+          caseClause.cloneWithBlock(new SeqThreadStatementBlock(pOptions, newStatements.build())));
     }
     return rInjected.build();
   }
 
-  private static SeqCaseBlockStatement recursivelyInjectBitVectors(
+  private static SeqThreadStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
       final Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
       SeqThreadLoopLabelStatement pSwitchLabel,
-      SeqCaseBlockStatement pCurrentStatement,
+      SeqThreadStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
-      final ImmutableMap<Integer, SeqCaseClause> pLabelValueMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
 
     // step 1: recursively inject bit vector into concatenated statements
     if (pCurrentStatement.isConcatenable()) {
       if (!pCurrentStatement.getConcatenatedStatements().isEmpty()) {
-        ImmutableList.Builder<SeqCaseBlockStatement> newStatements = ImmutableList.builder();
-        for (SeqCaseBlockStatement concatStatement :
-            pCurrentStatement.getConcatenatedStatements()) {
+        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+        for (SeqThreadStatement concatStatement : pCurrentStatement.getConcatenatedStatements()) {
           newStatements.add(
               recursivelyInjectBitVectors(
                   pOptions,
@@ -151,9 +151,10 @@ class BitVectorAccessReducer {
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, ImmutableList.of()));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
-        SeqCaseClause newTarget = Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
+        SeqThreadStatementClause newTarget =
+            Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
         ImmutableList<CVariableDeclaration> accessedVariables =
-            SeqCaseClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
+            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
                 newTarget, BitVectorReduction.ACCESS_ONLY);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
@@ -207,13 +208,13 @@ class BitVectorAccessReducer {
   }
 
   private static Optional<SeqBitVectorAccessEvaluationStatement> buildBitVectorEvaluationStatements(
-      SeqCaseBlockStatement pCurrentStatement,
+      SeqThreadStatement pCurrentStatement,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorEvaluationExpression pBitVectorEvaluation,
-      SeqCaseClause pTarget) {
+      SeqThreadStatementClause pTarget) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
-    if (!SeqCaseClauseUtil.priorCriticalSection(pCurrentStatement)) {
+    if (!SeqThreadStatementClauseUtil.priorCriticalSection(pCurrentStatement)) {
       boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
       // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
       Optional<SeqLogicalNotExpression> expression =

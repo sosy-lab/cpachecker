@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqLogicalNotExpression implements SeqLogicalExpression {
 
@@ -31,7 +32,7 @@ public class SeqLogicalNotExpression implements SeqLogicalExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString() throws UnrecognizedCodeException {
     String expression;
     if (operand.isPresent()) {
       expression = operand.orElseThrow().toASTString();

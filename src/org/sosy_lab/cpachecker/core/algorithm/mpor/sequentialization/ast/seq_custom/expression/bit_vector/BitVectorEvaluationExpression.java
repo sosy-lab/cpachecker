@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorEvaluationExpression implements SeqExpression {
 
@@ -28,7 +29,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString() throws UnrecognizedCodeException {
     if (binaryExpression.isPresent()) {
       return binaryExpression.orElseThrow().toASTString();
     } else if (logicalExpression.isPresent()) {

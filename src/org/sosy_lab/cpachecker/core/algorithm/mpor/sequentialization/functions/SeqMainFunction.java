@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -66,7 +66,7 @@ public class SeqMainFunction extends SeqFunction {
   private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
 
   /** The thread-specific case clauses in the while loop. */
-  private final ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses;
+  private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> caseClauses;
 
   private final ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations;
 
@@ -87,7 +87,7 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<CIdExpression> pUpdatedVariables,
       int pNumThreads,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -220,7 +220,8 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       CSimpleDeclaration pNumThreads,
       ImmutableList<SeqBitVectorDeclaration> pBitVectorDeclarations,
-      ImmutableList<CVariableDeclaration> pPcDeclarations) {
+      ImmutableList<CVariableDeclaration> pPcDeclarations)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rVariableDeclarations = ImmutableList.builder();
 

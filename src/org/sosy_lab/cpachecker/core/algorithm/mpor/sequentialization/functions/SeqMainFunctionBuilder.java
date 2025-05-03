@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumption;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -45,8 +45,8 @@ public class SeqMainFunctionBuilder {
     // used to store which injected variables are initialized with 1
     ImmutableList.Builder<CIdExpression> updatedVariables = ImmutableList.builder();
     // create case clauses in main method
-    ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> caseClauses =
-        SeqCaseClauseBuilder.buildCaseClauses(
+    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> caseClauses =
+        SeqThreadStatementClauseBuilder.buildCaseClauses(
             pOptions,
             updatedVariables,
             pSubstitutions,

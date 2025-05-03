@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqFunctionCallExpression implements SeqExpression {
 
@@ -29,7 +30,7 @@ public class SeqFunctionCallExpression implements SeqExpression {
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString() throws UnrecognizedCodeException {
     StringBuilder parametersString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     if (!parameters.isEmpty()) {
       String separator = SeqSyntax.COMMA + SeqSyntax.SPACE;

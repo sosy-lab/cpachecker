@@ -15,7 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqCaseClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -27,25 +27,25 @@ public class PartialOrderReducer {
    * Applies a Partial Order Reduction based on the settings in {@code pOptions}, or returns {@code
    * pCaseClauses} as is if disabled.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> reduce(
+  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       Optional<BitVectorVariables> pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
     if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat =
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
       return BitVectorAccessReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
-      ImmutableMap<MPORThread, ImmutableList<SeqCaseClause>> concat =
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
           StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
       return BitVectorReadWriteReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);

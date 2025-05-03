@@ -13,6 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAssignmentStatement implements SeqInjectedBitVectorStatement {
 
@@ -38,7 +39,7 @@ public class SeqBitVectorAssignmentStatement implements SeqInjectedBitVectorStat
   }
 
   @Override
-  public String toASTString() {
+  public String toASTString() throws UnrecognizedCodeException {
     return variable.toASTString()
         + SeqSyntax.SPACE
         + SeqSyntax.EQUALS
