@@ -151,8 +151,8 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * A helper mapping {@link SeqThreadStatementClause}s to their {@link SeqSwitchCaseLabel} values,
-   * which are always {@code int} values in the sequentialization.
+   * A helper mapping {@link SeqThreadStatementClause}s to their label values which are always
+   * {@code int} values in the sequentialization.
    */
   public static ImmutableMap<Integer, SeqThreadStatementClause> mapCaseLabelValueToCaseClause(
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
