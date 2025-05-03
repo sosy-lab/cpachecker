@@ -263,6 +263,12 @@ analysis.algorithm.MPOR.comments = false
 # unreachable.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
+# defines the syntax in which decisions, e.g. choosing the next thread or
+# statement of a thread simulation is, are chosen. may slow down or improve
+# performance, depending on the verifier.
+analysis.algorithm.MPOR.controlFlowEncoding = BINARY_IF_TREE
+  enum:     [SWITCH_CASE, BINARY_IF_TREE]
+
 # include original function declarations from input file? true -> bigger file
 # size
 analysis.algorithm.MPOR.inputFunctionDeclarations = false
