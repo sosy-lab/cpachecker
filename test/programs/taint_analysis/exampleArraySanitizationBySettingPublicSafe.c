@@ -10,7 +10,7 @@
 int main() {
     int a = __VERIFIER_nondet_int();
 
-    int d[2];
+    int d[1];
     d[0] = a; // d is now tainted
 
     // Sanitize the array by making it public
