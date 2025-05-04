@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadBeginsAtomicStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadJoinsThreadStatement;
@@ -207,13 +207,13 @@ public class SeqThreadStatementBuilder {
     // the CFA converts the assumptions into 2 assume edges, even with if ... else if ... else
     checkArgument(pFirstEdge || pLastEdge, "either pFirstEdge and pLastEdge must be true");
 
-    SeqControlFlowStatement statement;
+    SeqSingleControlFlowStatement statement;
     if (pFirstEdge) {
       // if (condition) for first assume edge
-      statement = new SeqControlFlowStatement(pAssumeEdge, SeqControlFlowStatementType.IF);
+      statement = new SeqSingleControlFlowStatement(pAssumeEdge, SeqControlFlowStatementType.IF);
     } else {
       // use else ... for last (= second) assume edge
-      statement = new SeqControlFlowStatement();
+      statement = new SeqSingleControlFlowStatement();
     }
     return new SeqAssumeStatement(
         statement, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);

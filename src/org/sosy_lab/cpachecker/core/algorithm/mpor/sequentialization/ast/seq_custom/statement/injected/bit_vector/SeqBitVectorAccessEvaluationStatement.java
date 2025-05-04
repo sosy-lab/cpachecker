@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -48,8 +48,8 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     // if bit vectors present: evaluate in if statement
     if (threadBitVectors.isPresent()) {
-      SeqControlFlowStatement ifStatement =
-          new SeqControlFlowStatement(
+      SeqSingleControlFlowStatement ifStatement =
+          new SeqSingleControlFlowStatement(
               threadBitVectors.orElseThrow(), SeqControlFlowStatementType.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE

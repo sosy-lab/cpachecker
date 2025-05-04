@@ -12,10 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.ControlFlowEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementBlock implements SeqStatement {
@@ -48,9 +46,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
       }
     }
     // tests showed that using break is more efficient than continue, despite the loop
-    return statementsString
-        + (options.controlFlowEncoding.equals(ControlFlowEncoding.SWITCH_CASE)
-            ? SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON
-            : SeqSyntax.EMPTY_STRING);
+    return statementsString.toString();
   }
 }

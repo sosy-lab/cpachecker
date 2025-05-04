@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -24,7 +24,7 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
 
   private final MPOROptions options;
 
-  private final SeqControlFlowStatement switchExpression;
+  private final SeqSingleControlFlowStatement switchExpression;
 
   private final ImmutableList<SeqScalarPcAssumeStatement> clauses;
 
@@ -37,7 +37,8 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
       int pTabs) {
 
     options = pOptions;
-    switchExpression = new SeqControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
+    switchExpression =
+        new SeqSingleControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
     clauses = pClauses;
     tabs = pTabs;
   }

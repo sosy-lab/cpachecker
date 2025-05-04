@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -48,6 +48,13 @@ public class SeqStringUtil {
         + pString
         + SeqSyntax.SPACE
         + SeqSyntax.CURLY_BRACKET_RIGHT;
+  }
+
+  public static String wrapInCurlyInwardsWithNewlines(String pString, int pTabs) {
+    return SeqSyntax.CURLY_BRACKET_LEFT
+        + SeqSyntax.NEWLINE
+        + prependTabsWithNewline(pTabs + 1, pString)
+        + prependTabsWithoutNewline(pTabs, SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   /** Returns "} pString {" */

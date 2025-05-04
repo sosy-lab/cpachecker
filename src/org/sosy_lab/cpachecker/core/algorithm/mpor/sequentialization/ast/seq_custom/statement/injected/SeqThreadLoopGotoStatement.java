@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -42,8 +42,8 @@ public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqControlFlowStatement ifStatement =
-        new SeqControlFlowStatement(rSmallerK, SeqControlFlowStatementType.IF);
+    SeqSingleControlFlowStatement ifStatement =
+        new SeqSingleControlFlowStatement(rSmallerK, SeqControlFlowStatementType.IF);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     return ifStatement.toASTString()
         + SeqSyntax.SPACE

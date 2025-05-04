@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqControlFlowStatement implements SeqStatement {
+public class SeqSingleControlFlowStatement implements SeqStatement {
 
   public enum SeqControlFlowStatementType {
     ELSE("else"),
@@ -40,7 +40,8 @@ public class SeqControlFlowStatement implements SeqStatement {
 
   private final Optional<CAssumeEdge> assumeEdge;
 
-  public SeqControlFlowStatement(CExpression pCExpression, SeqControlFlowStatementType pType) {
+  public SeqSingleControlFlowStatement(
+      CExpression pCExpression, SeqControlFlowStatementType pType) {
     type = pType;
     cExpression = Optional.of(pCExpression);
     seqExpression = Optional.empty();
@@ -48,7 +49,8 @@ public class SeqControlFlowStatement implements SeqStatement {
   }
 
   /** Use this constructor if the expression is a logical AND, OR, NOT. */
-  public SeqControlFlowStatement(SeqExpression pSeqExpression, SeqControlFlowStatementType pType) {
+  public SeqSingleControlFlowStatement(
+      SeqExpression pSeqExpression, SeqControlFlowStatementType pType) {
     type = pType;
     cExpression = Optional.empty();
     seqExpression = Optional.of(pSeqExpression);
@@ -59,7 +61,7 @@ public class SeqControlFlowStatement implements SeqStatement {
    * {@link CAssumeEdge#getExpression()} does not negate the returned {@link CExpression}, forcing
    * us to use {@link CAssumeEdge#getCode()} instead.
    */
-  public SeqControlFlowStatement(CAssumeEdge pAssumeEdge, SeqControlFlowStatementType pType) {
+  public SeqSingleControlFlowStatement(CAssumeEdge pAssumeEdge, SeqControlFlowStatementType pType) {
     type = pType;
     cExpression = Optional.empty();
     seqExpression = Optional.empty();
@@ -67,7 +69,7 @@ public class SeqControlFlowStatement implements SeqStatement {
   }
 
   /** Use this constructor when there is no expression, i.e. {@code else { ... }} */
-  public SeqControlFlowStatement() {
+  public SeqSingleControlFlowStatement() {
     type = SeqControlFlowStatementType.ELSE;
     cExpression = Optional.empty();
     seqExpression = Optional.empty();

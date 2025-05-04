@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -53,8 +53,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
 
-  private static final SeqControlFlowStatement whileTrue =
-      new SeqControlFlowStatement(
+  private static final SeqSingleControlFlowStatement whileTrue =
+      new SeqSingleControlFlowStatement(
           SeqIntegerLiteralExpression.INT_1, SeqControlFlowStatementType.WHILE);
 
   private final MPOROptions options;
@@ -170,7 +170,7 @@ public class SeqMainFunction extends SeqFunction {
               options, pcVariables, threadAssumptions, caseClauses, binaryExpressionBuilder));
     } else {
       rBody.addAll(
-          SeqSingleLoopBuilder.buildSingleLoopSwitchStatements(
+          SeqSingleLoopBuilder.buildSingleLoopThreadSimulationStatements(
               options, pcVariables, caseClauses, binaryExpressionBuilder));
     }
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));

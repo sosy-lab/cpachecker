@@ -31,8 +31,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
@@ -162,8 +162,8 @@ public class SeqThreadLoopBuilder {
       // first switch case: use "if", otherwise "else if"
       SeqControlFlowStatementType statementType =
           i == 0 ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
-      SeqControlFlowStatement statement =
-          new SeqControlFlowStatement(nextThreadEqualsThreadId, statementType);
+      SeqSingleControlFlowStatement statement =
+          new SeqSingleControlFlowStatement(nextThreadEqualsThreadId, statementType);
       rThreadLoops.add(
           LineOfCode.of(
               2,
@@ -215,8 +215,8 @@ public class SeqThreadLoopBuilder {
               pPcVariables, thread.id, pBinaryExpressionBuilder);
       SeqLogicalAndExpression loopCondition =
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
-      SeqControlFlowStatement ifStatement =
-          new SeqControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
+      SeqSingleControlFlowStatement ifStatement =
+          new SeqSingleControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
       rThreadLoops.add(
           LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
 

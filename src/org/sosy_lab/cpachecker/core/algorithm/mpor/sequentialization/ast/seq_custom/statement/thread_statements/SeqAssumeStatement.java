@@ -15,8 +15,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -29,7 +29,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
-  public final SeqControlFlowStatement controlFlowStatement;
+  public final SeqSingleControlFlowStatement controlFlowStatement;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -44,7 +44,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqAssumeStatement(
-      SeqControlFlowStatement pControlFlowStatement,
+      SeqSingleControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
@@ -62,7 +62,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private SeqAssumeStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
-      SeqControlFlowStatement pControlFlowStatement,
+      SeqSingleControlFlowStatement pControlFlowStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,

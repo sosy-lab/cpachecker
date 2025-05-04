@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -38,12 +38,12 @@ public class SeqAssumeFunction extends SeqFunction {
           ImmutableList.of(),
           SeqFunctionDeclaration.ABORT);
 
-  private final SeqControlFlowStatement ifCond;
+  private final SeqSingleControlFlowStatement ifCond;
 
   public SeqAssumeFunction(CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
     ifCond =
-        new SeqControlFlowStatement(
+        new SeqSingleControlFlowStatement(
             pBinaryExpressionBuilder.buildBinaryExpression(
                 SeqIdExpression.COND, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS),
             SeqControlFlowStatementType.IF);
