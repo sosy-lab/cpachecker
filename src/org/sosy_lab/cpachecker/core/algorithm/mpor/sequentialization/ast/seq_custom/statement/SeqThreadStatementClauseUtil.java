@@ -15,7 +15,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
@@ -173,20 +172,18 @@ public class SeqThreadStatementClauseUtil {
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
       cloneWithConsecutiveLabels(
-          MPOROptions pOptions,
           ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rConsecutiveLabels =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
-      rConsecutiveLabels.put(
-          entry.getKey(), cloneWithConsecutiveLabels(pOptions, entry.getValue()));
+      rConsecutiveLabels.put(entry.getKey(), cloneWithConsecutiveLabels(entry.getValue()));
     }
     return rConsecutiveLabels.buildOrThrow();
   }
 
   private static ImmutableList<SeqThreadStatementClause> cloneWithConsecutiveLabels(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rConsecutiveLabels = ImmutableList.builder();
     ImmutableMap<Integer, Integer> labelToIndexMap = mapLabelToIndex(pCaseClauses);
@@ -196,8 +193,7 @@ public class SeqThreadStatementClauseUtil {
         newStatements.add(recursivelyReplaceTargetPc(statement, labelToIndexMap));
       }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.label));
-      SeqThreadStatementBlock newBlock =
-          new SeqThreadStatementBlock(pOptions, newStatements.build());
+      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
       rConsecutiveLabels.add(caseClause.cloneWithLabelAndBlock(index, newBlock));
     }
     return rConsecutiveLabels.build();

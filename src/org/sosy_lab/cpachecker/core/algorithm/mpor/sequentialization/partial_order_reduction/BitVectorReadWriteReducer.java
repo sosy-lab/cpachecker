@@ -103,8 +103,7 @@ class BitVectorReadWriteReducer {
                 pBitVectorVariables,
                 labelValueMap));
       }
-      rInjected.add(
-          caseClause.cloneWithBlock(new SeqThreadStatementBlock(pOptions, newStatements.build())));
+      rInjected.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
     }
     return rInjected.build();
   }

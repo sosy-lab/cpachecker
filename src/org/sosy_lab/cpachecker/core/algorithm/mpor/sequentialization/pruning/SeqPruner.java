@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
@@ -36,7 +35,6 @@ public class SeqPruner {
   //  -> identify assume edges that map to the same input expression and merge into single case
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pruneCaseClauses(
-      MPOROptions pOptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses)
       throws UnrecognizedCodeException {
 
@@ -59,7 +57,7 @@ public class SeqPruner {
                       ? threadExit
                       : threadExit.cloneWithLabel(Sequentialization.INIT_PC)));
         } else {
-          rPruned.put(thread, pruneSingleThreadCaseClauses(pOptions, caseClauses));
+          rPruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
       }
     }
@@ -69,14 +67,13 @@ public class SeqPruner {
   }
 
   private static ImmutableList<SeqThreadStatementClause> pruneSingleThreadCaseClauses(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatementClause> pCaseClauses)
-      throws UnrecognizedCodeException {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses) throws UnrecognizedCodeException {
 
     // map the original pc to pc that are found after pruning
     ImmutableMap<Integer, Integer> pcUpdates = createPrunedPcUpdates(pCaseClauses);
     // update each target pc so that it targets a non-blank case
     ImmutableList<SeqThreadStatementClause> rUpdatedTargetPc =
-        updateTargetPcToNonPruned(pOptions, pCaseClauses, pcUpdates);
+        updateTargetPcToNonPruned(pCaseClauses, pcUpdates);
     Verify.verify(!isPrunable(rUpdatedTargetPc), "pruned case clauses are still prunable");
     return rUpdatedTargetPc;
   }
@@ -109,7 +106,6 @@ public class SeqPruner {
   }
 
   private static ImmutableList<SeqThreadStatementClause> updateTargetPcToNonPruned(
-      MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
       ImmutableMap<Integer, Integer> pPcUpdates) {
 
@@ -130,8 +126,7 @@ public class SeqPruner {
           // otherwise add unchanged statement
           newStatements.add(statement);
         }
-        SeqThreadStatementBlock newBlock =
-            new SeqThreadStatementBlock(pOptions, newStatements.build());
+        SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
         rUpdatedTargetPc.add(caseClause.cloneWithBlock(newBlock));
       }
     }

@@ -67,7 +67,7 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, prune case clauses so that no case clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> prunedCases =
         pOptions.pruneEmptyStatements
-            ? SeqPruner.pruneCaseClauses(pOptions, initialCaseClauses)
+            ? SeqPruner.pruneCaseClauses(initialCaseClauses)
             : initialCaseClauses;
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedCases =
@@ -81,7 +81,7 @@ public class SeqThreadStatementClauseBuilder {
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabelCases =
         pOptions.consecutiveLabels
-            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabels(pOptions, reducedCases)
+            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabels(reducedCases)
             : reducedCases;
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
@@ -183,7 +183,7 @@ public class SeqThreadStatementClauseBuilder {
         }
       }
     }
-    return injectThreadSimulationGhosts(pOptions, rCaseClauses.build());
+    return injectThreadSimulationGhosts(rCaseClauses.build());
   }
 
   /**
@@ -239,11 +239,11 @@ public class SeqThreadStatementClauseBuilder {
             pThreadNode.cfaNode.isLoopStart(),
             Optional.of(pThread.id),
             labelPc,
-            new SeqThreadStatementBlock(pOptions, statements.build())));
+            new SeqThreadStatementBlock(statements.build())));
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectThreadSimulationGhosts(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
@@ -277,8 +277,7 @@ public class SeqThreadStatementClauseBuilder {
           newStatements.add(statement.cloneWithInjectedStatements(injected));
         }
       }
-      SeqThreadStatementBlock newBlock =
-          new SeqThreadStatementBlock(pOptions, newStatements.build());
+      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
       rCaseClauses.add(caseClause.cloneWithBlock(newBlock));
     }
     return rCaseClauses.build();

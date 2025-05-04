@@ -144,7 +144,9 @@ public class SeqThreadStatementClause implements SeqStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String blockString = block.toASTString();
     String gotoLabelString =
-        gotoLabel.isPresent() ? gotoLabel.orElseThrow().toASTString() : SeqSyntax.EMPTY_STRING;
-    return gotoLabelString + SeqSyntax.SPACE + blockString;
+        gotoLabel.isPresent()
+            ? gotoLabel.orElseThrow().toASTString() + SeqSyntax.SPACE
+            : SeqSyntax.EMPTY_STRING;
+    return gotoLabelString + blockString;
   }
 }

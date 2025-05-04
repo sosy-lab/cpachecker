@@ -46,10 +46,9 @@ class StatementConcatenator {
       ImmutableList<SeqThreadStatementClause> removedInjections =
           removeUnnecessaryInjections(pUpdatedVariables, withLoopHeadLabels);
       ImmutableList<SeqThreadStatementClause> concatenatedCases =
-          concatenateCommutingCases(pOptions, removedInjections, ImmutableMap.copyOf(loopHeads));
+          concatenateCommutingCases(removedInjections, ImmutableMap.copyOf(loopHeads));
       ImmutableList<SeqThreadStatementClause> withGoto =
-          replaceLoopHeadTargetPcWithGoto(
-              pOptions, ImmutableMap.copyOf(loopHeads), concatenatedCases);
+          replaceLoopHeadTargetPcWithGoto(ImmutableMap.copyOf(loopHeads), concatenatedCases);
       rConcatenated.put(thread, withGoto);
     }
     return rConcatenated.buildOrThrow();
@@ -58,7 +57,6 @@ class StatementConcatenator {
   // Concatenation =================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> concatenateCommutingCases(
-      MPOROptions pOptions,
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
       ImmutableMap<Integer, SeqLoopHeadLabelStatement> pLoopHeadLabels) {
 
@@ -85,8 +83,7 @@ class StatementConcatenator {
                   labelValueMap));
           firstConcat = false;
         }
-        SeqThreadStatementBlock newBlock =
-            new SeqThreadStatementBlock(pOptions, newStatements.build());
+        SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
         SeqThreadStatementClause clone = caseClause.cloneWithBlock(newBlock);
         newCaseClauses.add(clone);
       }
@@ -176,7 +173,6 @@ class StatementConcatenator {
   // Loop Heads ====================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> replaceLoopHeadTargetPcWithGoto(
-      MPOROptions pOptions,
       ImmutableMap<Integer, SeqLoopHeadLabelStatement> pLoopHeadLabels,
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
@@ -188,8 +184,7 @@ class StatementConcatenator {
             SeqThreadStatementClauseUtil.recursivelyReplaceTargetPcWithGotoLoopHead(
                 statement, pLoopHeadLabels));
       }
-      SeqThreadStatementBlock newBlock =
-          new SeqThreadStatementBlock(pOptions, newStatements.build());
+      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
       rWithGoto.add(caseClause.cloneWithBlock(newBlock));
     }
     return rWithGoto.build();
@@ -205,8 +200,7 @@ class StatementConcatenator {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList<SeqThreadStatement> newStatements =
           tryInjectLoopHeadLabel(pOptions, pThread, caseClause, pLoopHeads);
-      rWithLabels.add(
-          caseClause.cloneWithBlock(new SeqThreadStatementBlock(pOptions, newStatements)));
+      rWithLabels.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements)));
     }
     return rWithLabels.build();
   }

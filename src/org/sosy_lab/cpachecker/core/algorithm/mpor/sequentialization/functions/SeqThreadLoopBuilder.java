@@ -299,7 +299,7 @@ public class SeqThreadLoopBuilder {
         newStatements.add(newStatement);
       }
       pUpdatedCases.add(
-          caseClause.cloneWithBlock(new SeqThreadStatementBlock(pOptions, newStatements.build())));
+          caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
     }
     SeqSwitchStatement switchStatement =
         new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);

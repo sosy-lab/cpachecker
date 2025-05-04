@@ -11,21 +11,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementBlock implements SeqStatement {
 
-  private final MPOROptions options;
-
   public final ImmutableList<SeqThreadStatement> statements;
 
-  public SeqThreadStatementBlock(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
-
-    options = pOptions;
+  public SeqThreadStatementBlock(ImmutableList<SeqThreadStatement> pStatements) {
     statements = pStatements;
   }
 

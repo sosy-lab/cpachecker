@@ -66,48 +66,71 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       return;
     }
 
-    SeqSingleControlFlowStatement elseStatement = new SeqSingleControlFlowStatement();
     if (pHigh - pLow == 1) {
-      // only two elements -> compa re directly with ==
-      SeqSingleControlFlowStatement ifStatement =
-          new SeqSingleControlFlowStatement(
-              binaryExpressionBuilder.buildBinaryExpression(
-                  pPc,
-                  SeqExpressionBuilder.buildIntegerLiteralExpression(pLow),
-                  BinaryOperator.EQUALS),
-              SeqControlFlowStatementType.IF);
-      pTree.add(
-          LineOfCode.of(
-              pDepth,
-              ifStatement.toASTString()
-                  + SeqSyntax.SPACE
-                  + SeqStringUtil.wrapInCurlyInwardsWithNewlines(
-                      pStatements.get(pLow).toASTString(), pDepth)));
-      pTree.add(
-          LineOfCode.of(
-              pDepth,
-              elseStatement.toASTString()
-                  + SeqSyntax.SPACE
-                  + SeqStringUtil.wrapInCurlyInwards(pStatements.get(pHigh).toASTString())));
+      // only two elements -> create if and else leafs with ==
+      pTree.add(buildIfEqualsLeaf(pStatements, pDepth, pLow, pPc));
+      pTree.add(buildElseLeaf(pStatements.get(pHigh), pDepth));
 
     } else {
-      // more than two elements -> create new subtree with <
+      // more than two elements -> create if and else subtrees with <
       int mid = (pLow + pHigh) / 2;
-      SeqSingleControlFlowStatement ifStatement =
-          new SeqSingleControlFlowStatement(
-              binaryExpressionBuilder.buildBinaryExpression(
-                  pPc,
-                  SeqExpressionBuilder.buildIntegerLiteralExpression(mid + 1),
-                  BinaryOperator.LESS_THAN),
-              SeqControlFlowStatementType.IF);
-      pTree.add(
-          LineOfCode.of(
-              pDepth, ifStatement.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT));
+      pTree.add(buildIfSmallerSubtree(pDepth, mid, pPc));
       recursivelyBuildTree(pStatements, pDepth + 1, pLow, mid, pPc, pTree);
-      pTree.add(
-          LineOfCode.of(pDepth, SeqStringUtil.wrapInCurlyOutwards(elseStatement.toASTString())));
+      pTree.add(buildElseSubtree(pDepth));
       recursivelyBuildTree(pStatements, pDepth + 1, mid + 1, pHigh, pPc, pTree);
       pTree.add(LineOfCode.of(pDepth, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
+  }
+
+  private LineOfCode buildIfSmallerSubtree(int pDepth, int pMid, CLeftHandSide pPc)
+      throws UnrecognizedCodeException {
+
+    SeqSingleControlFlowStatement ifSubtree =
+        new SeqSingleControlFlowStatement(
+            binaryExpressionBuilder.buildBinaryExpression(
+                pPc,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
+                BinaryOperator.LESS_THAN),
+            SeqControlFlowStatementType.IF);
+    return LineOfCode.of(
+        pDepth, ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
+  }
+
+  private LineOfCode buildElseSubtree(int pDepth) throws UnrecognizedCodeException {
+    SeqSingleControlFlowStatement elseSubtree = new SeqSingleControlFlowStatement();
+    return LineOfCode.of(pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+  }
+
+  private LineOfCode buildIfEqualsLeaf(
+      ImmutableList<? extends SeqStatement> pStatements, int pDepth, int pLow, CLeftHandSide pPc)
+      throws UnrecognizedCodeException {
+
+    SeqSingleControlFlowStatement ifLeaf =
+        new SeqSingleControlFlowStatement(
+            binaryExpressionBuilder.buildBinaryExpression(
+                pPc,
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pLow),
+                BinaryOperator.EQUALS),
+            SeqControlFlowStatementType.IF);
+    SeqStatement lowStatement = pStatements.get(pLow);
+    String lowCode;
+    if (lowStatement instanceof SeqBinaryIfTreeStatement) {
+      // add newline if the statement itself is a binary tree for formatting
+      lowCode = SeqStringUtil.wrapInCurlyInwardsWithNewlines(lowStatement.toASTString(), pDepth);
+    } else {
+      lowCode = SeqStringUtil.wrapInCurlyInwards(lowStatement.toASTString());
+    }
+    return LineOfCode.of(pDepth, ifLeaf.toASTString() + SeqSyntax.SPACE + lowCode);
+  }
+
+  private LineOfCode buildElseLeaf(SeqStatement pHighStatement, int pDepth)
+      throws UnrecognizedCodeException {
+
+    SeqSingleControlFlowStatement elseLeaf = new SeqSingleControlFlowStatement();
+    return LineOfCode.of(
+        pDepth,
+        elseLeaf.toASTString()
+            + SeqSyntax.SPACE
+            + SeqStringUtil.wrapInCurlyInwards(pHighStatement.toASTString()));
   }
 }
