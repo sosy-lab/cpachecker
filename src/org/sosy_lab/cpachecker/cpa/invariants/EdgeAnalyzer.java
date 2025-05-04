@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-class EdgeAnalyzer {
+public class EdgeAnalyzer {
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR =
       new CollectVarsVisitor<>();
@@ -84,7 +84,7 @@ class EdgeAnalyzer {
    */
   @SuppressWarnings(
       "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
-  Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
+  public Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
       case AssumeEdge:
         {

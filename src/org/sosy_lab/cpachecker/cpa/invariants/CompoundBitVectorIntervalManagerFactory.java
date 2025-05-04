@@ -28,7 +28,7 @@ public final class CompoundBitVectorIntervalManagerFactory
     return new CompoundBitVectorIntervalManagerFactory(true);
   }
 
-  static CompoundBitVectorIntervalManagerFactory forbidSignedWrapAround() {
+  public static CompoundBitVectorIntervalManagerFactory forbidSignedWrapAround() {
     return new CompoundBitVectorIntervalManagerFactory(false);
   }
 
