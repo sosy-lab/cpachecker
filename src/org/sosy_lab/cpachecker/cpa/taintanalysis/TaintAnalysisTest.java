@@ -123,4 +123,16 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("exampleSecretArrayUnsafe.c");
     results.assertIsUnsafe();
   }
+
+  @Test
+  public void testExampleArraySanitizationBySettingPublicSafe() throws Exception {
+    TestResults results = runCPAchecker("exampleArraySanitizationBySettingPublicSafe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testExampleArraySanitizationBySettingPublicUnsafe() throws Exception {
+    TestResults results = runCPAchecker("exampleArraySanitizationBySettingPublicUnsafe.c");
+    results.assertIsUnsafe();
+  }
 }
