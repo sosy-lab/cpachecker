@@ -53,7 +53,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
-  private static final List<String> SOURCES = Lists.newArrayList("__VERIFIER_nondet_int", "__VERIFIER_nondet_char");
+  private static final List<String> SOURCES =
+      Lists.newArrayList("__VERIFIER_nondet_int", "__VERIFIER_nondet_char");
   private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
