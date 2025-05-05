@@ -246,12 +246,11 @@ public class UnseqBehaviorAnalysisState
     return true;
   }
 
-
   // TODO: implement me or change me in checkProperty()
   private boolean isUnsequenced() {
-    if(!this.getDetectedConflicts().isEmpty()){
+    if (!this.getDetectedConflicts().isEmpty()) {
       return true;
-    }else{
+    } else {
       return false;
     }
   }
@@ -268,7 +267,7 @@ public class UnseqBehaviorAnalysisState
     if (pProperty.equals(UNSEQUENCED) && isUnsequenced()) {
       // Unsequenced/Unspecified behavior found according to C11 standard annex J.
       // TODO: give more information
-      //logger.log(Level.FINE, "Found possible unsequenced execution order ...");
+      // logger.log(Level.FINE, "Found possible unsequenced execution order ...");
       return true;
     }
     return false;
