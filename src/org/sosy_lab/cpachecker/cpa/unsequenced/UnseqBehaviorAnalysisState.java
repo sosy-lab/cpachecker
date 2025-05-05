@@ -162,6 +162,9 @@ public class UnseqBehaviorAnalysisState
   @Override
   public UnseqBehaviorAnalysisState join(UnseqBehaviorAnalysisState other)
       throws CPAException, InterruptedException {
+    if (this.equals(other)) {
+      return this;
+    }
     if (!Objects.equals(this.calledFunctionStack, other.calledFunctionStack)) {
       throw new CPAException("Cannot join states with different function call stacks.");
     }
