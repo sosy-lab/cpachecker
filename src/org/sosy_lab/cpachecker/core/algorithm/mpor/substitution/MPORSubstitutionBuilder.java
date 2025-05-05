@@ -198,7 +198,6 @@ public class MPORSubstitutionBuilder {
 
     ImmutableMap.Builder<CParameterDeclaration, CIdExpression> substitutes = ImmutableMap.builder();
     for (CParameterDeclaration parameterDeclaration : pFunctionDeclaration.getParameters()) {
-      // TODO parameters in function declarations with parameter names result in errors
       String varName =
           SeqNameUtil.buildParameterName(
               pOptions,

@@ -172,6 +172,10 @@ class StatementConcatenator {
 
   // Loop Heads ====================================================================================
 
+  /**
+   * Adds {@code goto}s when the target statement is a loop head which is not directly reachable
+   * after concatenation.
+   */
   private static ImmutableList<SeqThreadStatementClause> replaceLoopHeadTargetPcWithGoto(
       ImmutableMap<Integer, SeqLoopHeadLabelStatement> pLoopHeadLabels,
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
@@ -215,8 +219,8 @@ class StatementConcatenator {
       SeqThreadStatementClause pCaseClause,
       Map<Integer, SeqLoopHeadLabelStatement> pLoopHeads) {
 
-    // for non-loop head, return statements as they are.
-    if (!pCaseClause.isLoopStart) {
+    // for non-loop head and global statements, return statements as they are.
+    if (!pCaseClause.isLoopStart || pCaseClause.isGlobal) {
       return pCaseClause.block.statements;
     }
 
