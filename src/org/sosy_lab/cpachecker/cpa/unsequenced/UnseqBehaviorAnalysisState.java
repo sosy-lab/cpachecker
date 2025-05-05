@@ -89,6 +89,11 @@ public class UnseqBehaviorAnalysisState
     return calledFunctionStack;
   }
 
+  public void setCalledFunctionStack(Deque<String> newStack) {
+    calledFunctionStack.clear();
+    calledFunctionStack.addAll(newStack);
+  }
+
   // === TMP to expression mapping ===
   public Map<String, CRightHandSide> getTmpToOriginalExprMap() {
     return tmpToOriginalExprMap;
@@ -198,7 +203,7 @@ public class UnseqBehaviorAnalysisState
 
     newState.getDetectedConflicts().addAll(this.getDetectedConflicts());
     newState.getDetectedConflicts().addAll(other.getDetectedConflicts());
-    newState.calledFunctionStack.addAll(this.calledFunctionStack);
+    newState.setCalledFunctionStack(new ArrayDeque<>(this.calledFunctionStack));
 
     return newState;
   }
