@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -34,7 +33,7 @@ public class SeqSingleLoopBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    Builder<SeqMultiControlFlowStatement> controlFlow = ImmutableList.builder();
+    ImmutableList.Builder<SeqMultiControlFlowStatement> controlFlow = ImmutableList.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       controlFlow.add(

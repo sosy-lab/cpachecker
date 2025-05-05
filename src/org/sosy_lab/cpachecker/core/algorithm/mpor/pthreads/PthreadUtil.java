@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -59,8 +60,15 @@ public class PthreadUtil {
     CExpression expression = CFAUtils.getValueFromAddress(pthreadMutexT);
     if (expression instanceof CIdExpression idExpression) {
       return idExpression;
+    } else if (expression instanceof CFieldReference fieldReference) {
+      // TODO this may have to be adjusted, if the struct itself contains arrays of pthread_mutex_t
+      if (fieldReference.getFieldOwner() instanceof CIdExpression idExpression) {
+        return idExpression;
+      }
     }
-    throw new IllegalArgumentException("pthread_mutex_t must be a CIdExpression");
+    throw new IllegalArgumentException(
+        "pthread_mutex_t must be a CIdExpression, or inside a CFieldReference that is a"
+            + " CIdExpression");
   }
 
   public static CFunctionType extractStartRoutine(CFAEdge pEdge) {
