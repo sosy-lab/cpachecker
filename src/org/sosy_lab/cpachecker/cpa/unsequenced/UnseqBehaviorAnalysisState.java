@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -28,28 +30,24 @@ public class UnseqBehaviorAnalysisState
   private static final String UNSEQUENCED = "has-unsequenced-execution";
 
   private final Map<String, Set<SideEffectInfo>> sideEffectsInFun; // total side effects
-  private boolean isFunctionCalled;
-  private String calledFunctionName;
+  private final Deque<String> calledFunctionStack;
   private final Set<ConflictPair> detectedConflicts;
   private final Map<String, CRightHandSide> tmpToOriginalExprMap;
 
   public UnseqBehaviorAnalysisState(
       Map<String, Set<SideEffectInfo>> pSideEffectsInFun,
-      boolean pIsFunctionCalled,
-      String pCalledFunctionName,
+      Deque<String> pCalledFunctionStack,
       Set<ConflictPair> pDetectedConflicts,
       Map<String, CRightHandSide> pTmpToOriginalExprMap) {
     sideEffectsInFun = pSideEffectsInFun;
-    isFunctionCalled = pIsFunctionCalled;
-    calledFunctionName = pCalledFunctionName;
+    calledFunctionStack = pCalledFunctionStack;
     detectedConflicts = pDetectedConflicts;
     tmpToOriginalExprMap = pTmpToOriginalExprMap;
   }
 
   public UnseqBehaviorAnalysisState() {
     sideEffectsInFun = new HashMap<>();
-    isFunctionCalled = false;
-    calledFunctionName = null;
+    calledFunctionStack = new ArrayDeque<>();
     detectedConflicts = new HashSet<>();
     tmpToOriginalExprMap = new HashMap<>();
   }
@@ -73,20 +71,27 @@ public class UnseqBehaviorAnalysisState
   }
 
   // === Function call tracking ===
-  public boolean hasFunctionCallOccurred() {
-    return isFunctionCalled;
+  public void pushCalledFunction(String functionName) {
+    calledFunctionStack.push(functionName);
   }
 
-  public String getCalledFunctionName() {
-    return calledFunctionName;
+  public void popCalledFunction() {
+    if (!calledFunctionStack.isEmpty()) {
+      calledFunctionStack.pop();
+    }
   }
 
-  public void setCalledFunctionName(String pCalledFunctionName) {
-    calledFunctionName = pCalledFunctionName;
+  public boolean isInsideFunctionCall() {
+    return !calledFunctionStack.isEmpty();
   }
 
-  public void setFunctionCalled(boolean pFunctionCalled) {
-    isFunctionCalled = pFunctionCalled;
+  @Nullable
+  public String getCurrentCalledFunction() {
+    return calledFunctionStack.peek();
+  }
+
+  public Deque<String> getCalledFunctionStack() {
+    return calledFunctionStack;
   }
 
   // === TMP to expression mapping ===
@@ -102,10 +107,6 @@ public class UnseqBehaviorAnalysisState
     return tmpToOriginalExprMap.get(tmpVar);
   }
 
-  public void clearTmpMappings() {
-    tmpToOriginalExprMap.clear();
-  }
-
   @Override
   public boolean equals(@Nullable Object pOther) {
     if (this == pOther) {
@@ -115,8 +116,7 @@ public class UnseqBehaviorAnalysisState
     if (!(pOther instanceof UnseqBehaviorAnalysisState other)) {
       return false;
     }
-    return isFunctionCalled == other.isFunctionCalled
-        && Objects.equals(calledFunctionName, other.calledFunctionName)
+    return Objects.equals(calledFunctionStack, other.calledFunctionStack)
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
         && Objects.equals(detectedConflicts, other.detectedConflicts)
         && Objects.equals(tmpToOriginalExprMap, other.tmpToOriginalExprMap);
@@ -125,11 +125,7 @@ public class UnseqBehaviorAnalysisState
   @Override
   public int hashCode() {
     return Objects.hash(
-        sideEffectsInFun,
-        isFunctionCalled,
-        calledFunctionName,
-        detectedConflicts,
-        tmpToOriginalExprMap);
+        sideEffectsInFun, calledFunctionStack, detectedConflicts, tmpToOriginalExprMap);
   }
 
   public String printConflict() {
@@ -166,11 +162,8 @@ public class UnseqBehaviorAnalysisState
   @Override
   public UnseqBehaviorAnalysisState join(UnseqBehaviorAnalysisState other)
       throws CPAException, InterruptedException {
-    if (this.isFunctionCalled != other.isFunctionCalled) {
-      throw new CPAException("Cannot join states with different function call status.");
-    }
-    if (!Objects.equals(this.calledFunctionName, other.calledFunctionName)) {
-      throw new CPAException("Cannot join states with different called function names.");
+    if (!Objects.equals(this.calledFunctionStack, other.calledFunctionStack)) {
+      throw new CPAException("Cannot join states with different function call stacks.");
     }
 
     UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState();
@@ -210,9 +203,7 @@ public class UnseqBehaviorAnalysisState
 
     newState.getDetectedConflicts().addAll(this.getDetectedConflicts());
     newState.getDetectedConflicts().addAll(other.getDetectedConflicts());
-
-    newState.setFunctionCalled(this.isFunctionCalled);
-    newState.setCalledFunctionName(this.calledFunctionName);
+    newState.calledFunctionStack.addAll(this.calledFunctionStack);
 
     return newState;
   }
@@ -220,13 +211,7 @@ public class UnseqBehaviorAnalysisState
   @Override
   public boolean isLessOrEqual(UnseqBehaviorAnalysisState reachedState)
       throws CPAException, InterruptedException {
-    // Compare function call status
-    if (this.isFunctionCalled != reachedState.isFunctionCalled) {
-      return false;
-    }
-
-    // Compare called function name
-    if (!Objects.equals(this.calledFunctionName, reachedState.calledFunctionName)) {
+    if (!Objects.equals(this.calledFunctionStack, reachedState.calledFunctionStack)) {
       return false;
     }
 

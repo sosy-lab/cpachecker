@@ -115,6 +115,8 @@ public class ExpressionBehaviorGatherVisitor
 
     if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
       String functionName = idExpr.getName();
+
+      // Add callee's side effects
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
       }
