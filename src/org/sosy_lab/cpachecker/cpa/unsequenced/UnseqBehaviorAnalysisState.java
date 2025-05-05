@@ -85,11 +85,6 @@ public class UnseqBehaviorAnalysisState
     return !calledFunctionStack.isEmpty();
   }
 
-  @Nullable
-  public String getCurrentCalledFunction() {
-    return calledFunctionStack.peek();
-  }
-
   public Deque<String> getCalledFunctionStack() {
     return calledFunctionStack;
   }
