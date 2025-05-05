@@ -1065,10 +1065,13 @@ counterexample.checker = CBMC
 counterexample.checker.changeCEXInfo = false
 
 # counterexample check checks MemSafety sub-properties (valid-deref,
-# valid-free, valid-memtrack) additionally to the path.
+# valid-free, valid-memtrack) additionally to the path. This is generally
+# only needed if there are multiple sub-properties.
 counterexample.checker.checkMemorySafetySubproperty = false
 
-# configuration file for counterexample checks with CPAchecker
+# configuration file for counterexample checks with CPAchecker. The config is
+# only loaded once a CEX-check is performed and is not influenced by settings
+# of other configs besides the loaded config and command-line settings.
 counterexample.checker.config = no default value
 
 # counterexample check should fully replace existing counterexamples with own
