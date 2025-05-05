@@ -246,7 +246,7 @@ public class SeqThreadStatementBuilder {
 
     CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
     // function calls -> store parameters in ghost variables
-    if (MPORUtil.isReachErrorCall(pThreadEdge)) {
+    if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
       // inject non-inlined reach_error
       return new SeqReachErrorStatement(
           pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);

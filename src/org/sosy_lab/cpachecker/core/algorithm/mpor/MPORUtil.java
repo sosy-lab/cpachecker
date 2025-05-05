@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -19,12 +18,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
@@ -32,30 +30,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** Contains static methods that can perfectly be reused outside the MPOR context. */
+/** Contains static methods that can be reused outside the MPOR context. */
 public final class MPORUtil {
-
-  /**
-   * Searches pFunctionCallMap for pCurrentNode. If the key is present, the FunctionReturnNode is
-   * returned. If not, we take the previous pPrevFuncReturnNode or reset it to {@link
-   * Optional#empty()} if pCurrentNode is a FunctionExitNode, i.e. the previous pPrevFuncReturnNode
-   * is not relevant anymore in the next iteration.
-   */
-  public static Optional<CFANode> updateFunctionReturnNode(
-      ImmutableMap<CFANode, CFANode> pFunctionCallMap,
-      CFANode pCurrentNode,
-      Optional<CFANode> pPrevFuncReturnNode) {
-
-    if (pFunctionCallMap.containsKey(pCurrentNode)) {
-      return Optional.ofNullable(pFunctionCallMap.get(pCurrentNode));
-    } else {
-      if (pCurrentNode instanceof FunctionExitNode) {
-        return Optional.empty();
-      } else {
-        return pPrevFuncReturnNode;
-      }
-    }
-  }
 
   /**
    * Returns the successor PredicateAbstractState when executing pCfaEdge.
@@ -141,16 +117,19 @@ public final class MPORUtil {
     pVisited.add(pCurrent);
     boolean foundPath = false;
     for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent.getSuccessor())) {
-      // ignore edges that lead to pStop
-      if (!(pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow()))) {
-        if (cfaEdge.equals(pOrigin)) {
-          // self reach found
-          return true;
-        } else if (!pVisited.contains(cfaEdge)) {
-          // visit edges only once, otherwise we trigger a stack overflow
-          foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
-          if (foundPath) {
-            break;
+      // only search original call context via summary edge, exclude return edges
+      if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+        // ignore edges that lead to pStop
+        if (!(pStop.isPresent() && cfaEdge.equals(pStop.orElseThrow()))) {
+          if (cfaEdge.equals(pOrigin)) {
+            // self reach found
+            return true;
+          } else if (!pVisited.contains(cfaEdge)) {
+            // visit edges only once, otherwise we trigger a stack overflow
+            foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge);
+            if (foundPath) {
+              break;
+            }
           }
         }
       }
@@ -172,17 +151,20 @@ public final class MPORUtil {
     pVisited.add(pCurrent);
     boolean foundPath = false;
     for (CFAEdge cfaEdge : CFAUtils.leavingEdges(pCurrent)) {
-      CFANode successor = cfaEdge.getSuccessor();
-      // ignore edges that lead to pStop
-      if (!(pStop.isPresent() && successor.equals(pStop.orElseThrow()))) {
-        if (successor.equals(pOrigin)) {
-          // self reach found
-          return true;
-        } else if (!pVisited.contains(successor)) {
-          // visit edges only once, otherwise we trigger a stack overflow
-          foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
-          if (foundPath) {
-            break;
+      // only search original call context via summary edge, exclude return edges
+      if (!(cfaEdge instanceof CFunctionReturnEdge)) {
+        CFANode successor = cfaEdge.getSuccessor();
+        // ignore edges that lead to pStop
+        if (!(pStop.isPresent() && successor.equals(pStop.orElseThrow()))) {
+          if (successor.equals(pOrigin)) {
+            // self reach found
+            return true;
+          } else if (!pVisited.contains(successor)) {
+            // visit edges only once, otherwise we trigger a stack overflow
+            foundPath = isSelfReachable(pOrigin, pStop, pVisited, cfaEdge.getSuccessor());
+            if (foundPath) {
+              break;
+            }
           }
         }
       }
@@ -190,10 +172,10 @@ public final class MPORUtil {
     return foundPath;
   }
 
-  public static boolean isReachErrorCall(ThreadEdge pThreadEdge) {
-    if (pThreadEdge.cfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
+  public static boolean isReachErrorCall(CFAEdge pCfaEdge) {
+    if (pCfaEdge instanceof CFunctionSummaryEdge functionSummaryEdge) {
       return isReachErrorCall(functionSummaryEdge);
-    } else if (pThreadEdge.cfaEdge instanceof CFunctionCallEdge functionCallEdge) {
+    } else if (pCfaEdge instanceof CFunctionCallEdge functionCallEdge) {
       return isReachErrorCall(functionCallEdge);
     }
     return false;
