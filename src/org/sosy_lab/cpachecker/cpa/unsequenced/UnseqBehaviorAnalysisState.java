@@ -248,11 +248,7 @@ public class UnseqBehaviorAnalysisState
 
   // TODO: implement me or change me in checkProperty()
   private boolean isUnsequenced() {
-    if (!this.getDetectedConflicts().isEmpty()) {
-      return true;
-    } else {
-      return false;
-    }
+    return !this.getDetectedConflicts().isEmpty();
   }
 
   @Override
