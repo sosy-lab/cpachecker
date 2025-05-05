@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -66,9 +64,6 @@ class BitVectorAccessReducer {
       Optional<BitVectorEvaluationExpression> fullBitVectorEvaluation =
           BitVectorEvaluationBuilder.buildBitVectorAccessEvaluationByEncoding(
               pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
-      SeqThreadLoopLabelStatement switchLabel =
-          new SeqThreadLoopLabelStatement(
-              SeqNameUtil.buildThreadSwitchLabelName(pOptions, thread.id));
       rInjected.put(
           entry.getKey(),
           injectBitVectors(
@@ -76,8 +71,7 @@ class BitVectorAccessReducer {
               entry.getKey(),
               pBitVectorVariables,
               entry.getValue(),
-              fullBitVectorEvaluation,
-              switchLabel));
+              fullBitVectorEvaluation));
     }
     return rInjected.buildOrThrow();
   }
@@ -87,8 +81,7 @@ class BitVectorAccessReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
-      Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
-      SeqThreadLoopLabelStatement pSwitchLabel) {
+      Optional<BitVectorEvaluationExpression> pDefaultEvaluation) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
@@ -101,7 +94,6 @@ class BitVectorAccessReducer {
                 pOptions,
                 pThread,
                 pDefaultEvaluation,
-                pSwitchLabel,
                 statement,
                 pBitVectorVariables,
                 labelValueMap));
@@ -115,7 +107,6 @@ class BitVectorAccessReducer {
       MPOROptions pOptions,
       final MPORThread pThread,
       final Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
-      SeqThreadLoopLabelStatement pSwitchLabel,
       SeqThreadStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
@@ -130,7 +121,6 @@ class BitVectorAccessReducer {
                   pOptions,
                   pThread,
                   pDefaultEvaluation,
-                  pSwitchLabel,
                   concatStatement,
                   pBitVectorVariables,
                   pLabelValueMap));

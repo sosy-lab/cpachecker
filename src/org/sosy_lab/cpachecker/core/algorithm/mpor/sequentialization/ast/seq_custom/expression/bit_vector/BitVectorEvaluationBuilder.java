@@ -197,7 +197,7 @@ public class BitVectorEvaluationBuilder {
       return pFullEvaluation.orElseThrow();
     }
     return switch (pOptions.porBitVectorEncoding) {
-      // we only prune for scalar bit vectors
+      // TODO with read write bit vectors, we can prune if LHS (with br 0) or RHS (with bw 0)
       case NONE, BINARY, HEXADECIMAL ->
           throw new IllegalArgumentException(
               "cannot prune for encoding " + pOptions.porBitVectorEncoding);
