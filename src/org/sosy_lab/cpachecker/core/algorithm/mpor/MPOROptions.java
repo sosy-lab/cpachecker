@@ -220,6 +220,18 @@ public class MPOROptions {
           "WARNING: porBitVectorEncoding is only considered when porBitVectorReduction is not NONE."
               + " Either set porBitVectorEncoding to NONE or set porBitVectorReduction.");
     }
+    if (pruneBitVectorEvaluation && porBitVectorReduction.equals(BitVectorReduction.NONE)) {
+      pLogger.log(
+          Level.WARNING,
+          "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorReduction is not"
+              + " NONE. Either disable pruneBitVectorEvaluation or set porBitVectorReduction.");
+    }
+    if (pruneBitVectorEvaluation && porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+      pLogger.log(
+          Level.WARNING,
+          "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorEncoding is not"
+              + " NONE. Either disable pruneBitVectorEvaluation or set porBitVectorEncoding.");
+    }
     if (!threadLoops && threadLoopsNext) {
       pLogger.log(
           Level.WARNING,

@@ -81,7 +81,7 @@ class BitVectorAccessReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
-      Optional<BitVectorEvaluationExpression> pDefaultEvaluation) {
+      Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
@@ -93,7 +93,7 @@ class BitVectorAccessReducer {
             recursivelyInjectBitVectors(
                 pOptions,
                 pThread,
-                pDefaultEvaluation,
+                pFullBitVectorEvaluation,
                 statement,
                 pBitVectorVariables,
                 labelValueMap));
@@ -106,7 +106,7 @@ class BitVectorAccessReducer {
   private static SeqThreadStatement recursivelyInjectBitVectors(
       MPOROptions pOptions,
       final MPORThread pThread,
-      final Optional<BitVectorEvaluationExpression> pDefaultEvaluation,
+      final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
       SeqThreadStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
@@ -120,7 +120,7 @@ class BitVectorAccessReducer {
               recursivelyInjectBitVectors(
                   pOptions,
                   pThread,
-                  pDefaultEvaluation,
+                  pFullBitVectorEvaluation,
                   concatStatement,
                   pBitVectorVariables,
                   pLabelValueMap));
@@ -157,7 +157,7 @@ class BitVectorAccessReducer {
                     pThread,
                     bitVectorAssignments,
                     pBitVectorVariables,
-                    pDefaultEvaluation),
+                    pFullBitVectorEvaluation),
                 newTarget);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());

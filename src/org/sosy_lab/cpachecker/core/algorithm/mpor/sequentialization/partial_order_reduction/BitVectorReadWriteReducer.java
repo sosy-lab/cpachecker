@@ -59,7 +59,7 @@ class BitVectorReadWriteReducer {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       Optional<BitVectorEvaluationExpression> bitVectorEvaluation =
-          BitVectorEvaluationBuilder.buildBitVectorReadWriteEvaluationByEncoding(
+          BitVectorEvaluationBuilder.buildReadWriteBitVectorEvaluationByEncoding(
               pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
       rInjected.put(
           entry.getKey(),
@@ -68,7 +68,8 @@ class BitVectorReadWriteReducer {
               entry.getKey(),
               pBitVectorVariables,
               entry.getValue(),
-              bitVectorEvaluation));
+              bitVectorEvaluation,
+              pBinaryExpressionBuilder));
     }
     return rInjected.buildOrThrow();
   }
@@ -78,7 +79,9 @@ class BitVectorReadWriteReducer {
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
-      Optional<BitVectorEvaluationExpression> pBitVectorEvaluation) {
+      Optional<BitVectorEvaluationExpression> pBitVectorEvaluation,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
@@ -93,7 +96,8 @@ class BitVectorReadWriteReducer {
                 pBitVectorEvaluation,
                 statement,
                 pBitVectorVariables,
-                labelValueMap));
+                labelValueMap,
+                pBinaryExpressionBuilder));
       }
       rInjected.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
     }
@@ -106,7 +110,9 @@ class BitVectorReadWriteReducer {
       final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
       SeqThreadStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     // step 1: recursively inject bit vector into concatenated statements
     if (pCurrentStatement.isConcatenable()) {
@@ -120,7 +126,8 @@ class BitVectorReadWriteReducer {
                   pFullBitVectorEvaluation,
                   concatStatement,
                   pBitVectorVariables,
-                  pLabelValueMap));
+                  pLabelValueMap,
+                  pBinaryExpressionBuilder));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
@@ -159,7 +166,8 @@ class BitVectorReadWriteReducer {
                     pThread,
                     bitVectorAssignments,
                     pBitVectorVariables,
-                    pFullBitVectorEvaluation),
+                    pFullBitVectorEvaluation,
+                    pBinaryExpressionBuilder),
                 newTarget);
         if (evaluation.isPresent()) {
           newInjected.add(evaluation.orElseThrow());

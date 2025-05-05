@@ -97,4 +97,13 @@ public class BitVectorVariables {
       case WRITE -> scalarWriteBitVectors.orElseThrow();
     };
   }
+
+  public boolean areDenseBitVectorsEmpty() {
+    return getDenseBitVectorsByAccessType(BitVectorAccessType.READ).isEmpty()
+        && getDenseBitVectorsByAccessType(BitVectorAccessType.WRITE).isEmpty();
+  }
+
+  public boolean areScalarBitVectorsEmpty() {
+    return scalarReadBitVectors.isEmpty() && scalarWriteBitVectors.isEmpty();
+  }
 }
