@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
@@ -104,12 +102,18 @@ public class InputRejection {
 
   /** Checks if the options specified by the user are valid i.e. non-conflicting. */
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)
-        && pOptions.porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+    if (pOptions.porBitVectorReduction.isEnabled() && !pOptions.porBitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.SEVERE,
-          "porBitVectorReductionType is set, but porBitVectorEncoding is not set. Either disable"
-              + " porBitVector or specify porBitVectorEncoding.");
+          "porBitVectorReduction is set, but porBitVectorEncoding is not set. Either remove"
+              + " porBitVectorReduction or specify porBitVectorEncoding.");
+      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
+    }
+    if (pOptions.porBitVectorEncoding.isEnabled() && !pOptions.porBitVectorReduction.isEnabled()) {
+      pLogger.log(
+          Level.SEVERE,
+          "porBitVectorEncoding is set, but porBitVectorReduction is not set. Either remove"
+              + " porBitVectorEncoding or specify porBitVectorReduction.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }
   }

@@ -207,26 +207,25 @@ public class MPOROptions {
 
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   protected void handleOptionWarnings(LogManager pLogger) {
-    if (!porConcat && !porBitVectorReduction.equals(BitVectorReduction.NONE)) {
+    if (!porConcat && !porBitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "WARNING: porBitVectorReduction is only considered with porConcat"
               + " enabled. Either enable porConcat or set porBitVectorReduction to NONE.");
     }
-    if (porBitVectorReduction.equals(BitVectorReduction.NONE)
-        && !porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+    if (porBitVectorReduction.isEnabled() && !porBitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "WARNING: porBitVectorEncoding is only considered when porBitVectorReduction is not NONE."
               + " Either set porBitVectorEncoding to NONE or set porBitVectorReduction.");
     }
-    if (pruneBitVectorEvaluation && porBitVectorReduction.equals(BitVectorReduction.NONE)) {
+    if (pruneBitVectorEvaluation && porBitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorReduction is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set porBitVectorReduction.");
     }
-    if (pruneBitVectorEvaluation && porBitVectorEncoding.equals(BitVectorEncoding.NONE)) {
+    if (pruneBitVectorEvaluation && porBitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
           "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorEncoding is not"

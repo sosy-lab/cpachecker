@@ -19,4 +19,8 @@ public enum BitVectorEncoding {
   BitVectorEncoding(boolean pIsDense) {
     isDense = pIsDense;
   }
+
+  public boolean isEnabled() {
+    return !this.equals(NONE);
+  }
 }

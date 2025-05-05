@@ -11,5 +11,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 public enum BitVectorReduction {
   NONE,
   ACCESS_ONLY,
-  READ_AND_WRITE
+  READ_AND_WRITE;
+
+  public boolean isEnabled() {
+    return !this.equals(NONE);
+  }
 }
