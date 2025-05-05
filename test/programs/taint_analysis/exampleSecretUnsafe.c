@@ -6,9 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// The variable x is not public, but the assertion says otherwise
+extern int __VERIFIER_nondet_int();
+
 int main() {
     int x = __VERIFIER_nondet_int();
-    // assertion violation/failure expected
+
+    // Property violation expected
     __VERIFIER_is_public(x,1);
 }

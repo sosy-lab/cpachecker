@@ -6,8 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Variable x is public, and the assertion agrees
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
+
 int main() {
+    // Variable x is public
     int x = 5;
+
+    // No property violation expected
     __VERIFIER_is_public(x,1);
 }

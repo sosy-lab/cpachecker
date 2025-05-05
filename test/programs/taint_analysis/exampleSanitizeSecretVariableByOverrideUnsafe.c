@@ -6,10 +6,17 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
+
 int main() {
     int x = __VERIFIER_nondet_int();
-    // fully override x
+
+    __VERIFIER_is_public(x, 0);
+
+    // Override x should sanitize it
     x = 1;
-    // assertion violation/failure expected
+
+    // Property violation expected
     __VERIFIER_is_public(x,0);
 }

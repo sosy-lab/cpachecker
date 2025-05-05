@@ -6,24 +6,27 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Benchmark idea taken from the paper
+// Benchmark program from paper
 // `TaintBench: Automatic real-world malware benchmarking of android taint analysis`
 
-int main() {
+extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
-    int a = __VERIFIER_nondet_int();
-    int b = 0;
-    int c = 0;
+int main() {
+    int x = __VERIFIER_nondet_int();
+    int y = 0;
+    int z = 0;
 
     // conditional data-flow paths
-    if (a > 0) {
-        b = a; // Tainted data flows into b
+    if (x > 0) {
+        y = x; // Tainted data flows into y
     } else {
-        c = a; // Tainted data flows into c
+        z = x; // Tainted data flows into z
     }
 
-    // at this point either b or c is tainted
-    int d = b + c;
+    // At this point either y or z is tainted
+    int w = y + z;
 
+    // No property violation expected
     __VERIFIER_is_public(d, 0);
 }

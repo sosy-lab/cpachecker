@@ -6,15 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
+
 int main() {
-    int a = 1;
+    int x = 1;
 
     int d[1];
-    d[0] = a; // d is public
+    d[0] = x; // d is public
 
     // Make the array not public
     __VERIFIER_set_public(d, 0);
 
-    // must produce a property violation
+    // Property violation expected
     __VERIFIER_is_public(d, 1);
 }

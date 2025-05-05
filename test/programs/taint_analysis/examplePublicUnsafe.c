@@ -6,9 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Variable is tainted, but the assertion says otherwise
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
+
 int main() {
+    // Variable is tainted
     int x = 5;
-    // assertion violation/failure expected
+
+    // Property violation expected
     __VERIFIER_is_public(x,0);
 }

@@ -6,9 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
+
 int main() {
     int x = 1;
-    // assume that some operation made x to be secret/tainted
+
+    // Assume that some operation made x to be secret/tainted
     __VERIFIER_set_public(x,0);
+
+    // No property violation expected
     __VERIFIER_is_public(x,0);
 }

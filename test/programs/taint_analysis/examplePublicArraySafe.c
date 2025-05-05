@@ -6,12 +6,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-int main() {
+extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
+int main() {
     int x = 5;
 
     int d[1];
+
+    // Taint flows into array `d`
     d[0] = x;
 
+    // No property violation expected
     __VERIFIER_is_public(d, 1);
 }
