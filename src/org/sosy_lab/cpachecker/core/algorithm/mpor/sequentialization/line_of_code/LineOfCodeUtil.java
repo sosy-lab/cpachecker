@@ -111,11 +111,8 @@ public class LineOfCodeUtil {
           if (localDeclaration.getInitializer() == null) {
             // no initializer -> add declaration as is
             rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
-          } else if (MPORUtil.isConstCpaCheckerTmp(localDeclaration)) {
-            // for const CPAchecker_TMP variables, we exclude the const and the initializer
-            rLocalDeclarations.add(
-                LineOfCode.of(0, localDeclaration.toASTStringWithoutConstAndInitializer()));
-          } else {
+            // const CPAchecker_TMP variables are declared and initialized directly in the case
+          } else if (!MPORUtil.isConstCpaCheckerTmp(localDeclaration)) {
             // everything else: add declaration without initializer (and assign later in cases)
             rLocalDeclarations.add(
                 LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));

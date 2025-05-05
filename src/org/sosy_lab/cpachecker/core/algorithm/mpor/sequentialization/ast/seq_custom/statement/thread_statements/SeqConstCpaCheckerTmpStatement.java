@@ -13,10 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -81,14 +83,30 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
         pStatementB.cfaEdge instanceof CStatementEdge,
         "pStatementB.cfaEdge must be CStatementEdge");
 
-    CExpressionStatement statement =
-        (CExpressionStatement) ((CStatementEdge) pStatementB.cfaEdge).getStatement();
-    CIdExpression idExpressionB = (CIdExpression) statement.getExpression();
-    CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
+    CStatement bStatement = ((CStatementEdge) pStatementB.cfaEdge).getStatement();
+    if (bStatement instanceof CExpressionStatement expressionStatement) {
+      CIdExpression idExpressionB = (CIdExpression) expressionStatement.getExpression();
+      CSimpleDeclaration declarationB = idExpressionB.getDeclaration();
+      checkArgument(
+          pVariableDeclaration.equals(declarationB),
+          "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable when"
+              + " pStatementB is a CExpressionStatement");
 
-    checkArgument(
-        pVariableDeclaration.equals(declarationB),
-        "pDeclaration and pStatementB must use the same __CPAchecker_TMP variable");
+    } else if (bStatement instanceof CExpressionAssignmentStatement bAssignment) {
+      // this happens e.g. in ldv-races/race-2_2-container_of:
+      // CPA_TMP_0 = {  }; CPA_TMP_1 = (struct my_data *)(((char *)mptr) - 40); data = CPA_TMP_1;
+      // check if the middle statement LHS matches the last statements RHS (CPA_TMP_1)
+      CStatement aStatement = ((CStatementEdge) pStatementA.cfaEdge).getStatement();
+      checkArgument(
+          aStatement instanceof CExpressionAssignmentStatement,
+          "pStatementA must be CExpressionAssignmentStatement when pStatementB is a"
+              + " CExpressionAssignmentStatement");
+      CExpressionAssignmentStatement aAssignment = (CExpressionAssignmentStatement) aStatement;
+      checkArgument(
+          aAssignment.getLeftHandSide().equals(bAssignment.getRightHandSide()),
+          "pStatementA LHS must equal pStatementB RHS when pStatementB is a"
+              + " CExpressionAssignmentStatement");
+    }
   }
 
   SeqConstCpaCheckerTmpStatement(
@@ -144,7 +162,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     // we only want name and initializer here, the declaration is done beforehand
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + constCpaCheckerTmpDeclaration.toASTStringWithOnlyNameAndInitializer()
+        + constCpaCheckerTmpDeclaration.toASTString()
         + SeqSyntax.SPACE
         + statementA.cfaEdge.getCode()
         + SeqSyntax.SPACE
