@@ -375,7 +375,6 @@ public class GhostVariableUtil {
       ThreadEdge threadEdge = entryA.getKey();
       assert threadEdge.cfaEdge instanceof CFunctionCallEdge;
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) entryA.getKey().cfaEdge;
-      ImmutableMap<CParameterDeclaration, CIdExpression> parameterSubstitutes = entryA.getValue();
 
       ImmutableList.Builder<FunctionParameterAssignment> assignments = ImmutableList.builder();
       List<CParameterDeclaration> parameterDeclarations =
@@ -387,7 +386,7 @@ public class GhostVariableUtil {
         CExpression rightHandSide =
             functionCallEdge.getFunctionCallExpression().getParameterExpressions().get(i);
         CIdExpression parameterSubstitute =
-            Objects.requireNonNull(parameterSubstitutes.get(parameterDeclaration));
+            pSubstitution.getParameterSubstituteByCallContext(threadEdge, parameterDeclaration);
         FunctionParameterAssignment parameterAssignment =
             new FunctionParameterAssignment(
                 SeqStatementBuilder.buildExpressionAssignmentStatement(

@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -53,14 +54,15 @@ public class MPORSubstitution {
    * The map of global variable declarations to their substitutes. {@link Optional#empty()} if this
    * instance serves as a dummy.
    */
-  public final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
+  private final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
 
   // TODO what if multiple declarations have no call context - duplicate key in map?
   /**
    * The map of thread local variable declarations to their substitutes. Not every local variable
    * declaration has a calling context, hence {@link Optional}s.
    */
-  public final ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
+  private final ImmutableMap<
+          CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
       localSubstitutes;
 
   /**
@@ -376,10 +378,10 @@ public class MPORSubstitution {
       assert pCallContext.isPresent() : "must have call context to substitute parameter";
       // normal function called within thread always has call context
       ThreadEdge callContext = pCallContext.orElseThrow();
+
       if (parameterSubstitutes.containsKey(callContext)) {
-        ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
-            Objects.requireNonNull(parameterSubstitutes.get(callContext));
-        return Objects.requireNonNull(substitutes.get(parameterDeclaration));
+        return getParameterSubstituteByCallContext(callContext, parameterDeclaration);
+
       } else if (startRoutineArgSubstitutes.containsKey(callContext)) {
         ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
             Objects.requireNonNull(startRoutineArgSubstitutes.get(callContext));
@@ -390,6 +392,33 @@ public class MPORSubstitution {
     }
     throw new IllegalArgumentException(
         "pSimpleDeclaration must be CVariable- or CParameterDeclaration");
+  }
+
+  public CIdExpression getParameterSubstituteByCallContext(
+      ThreadEdge pCallContext, CParameterDeclaration pParameterDeclaration) {
+
+    ImmutableMap<CParameterDeclaration, CIdExpression> substitutes =
+        Objects.requireNonNull(parameterSubstitutes.get(pCallContext));
+    if (substitutes.containsKey(pParameterDeclaration)) {
+      return Objects.requireNonNull(substitutes.get(pParameterDeclaration));
+    } else {
+      // no substitute found -> function declaration contains only parameter types, not names
+      // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
+      // -> void assume_abort_if_not(int);
+      assert pCallContext.cfaEdge instanceof CFunctionCallEdge
+          : "call context of parameter declaration must be CFunctionCallEdge";
+      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCallContext.cfaEdge;
+      List<CParameterDeclaration> parameterDeclarations =
+          functionCallEdge.getFunctionCallExpression().getDeclaration().getParameters();
+      // search for the corresponding parameter, throw if not found
+      for (CParameterDeclaration parameterDeclarationWithoutName : parameterDeclarations) {
+        if (substitutes.containsKey(parameterDeclarationWithoutName)) {
+          return Objects.requireNonNull(substitutes.get(parameterDeclarationWithoutName));
+        }
+      }
+    }
+    throw new IllegalArgumentException(
+        "parameter declaration could not be found for given call context");
   }
 
   public CVariableDeclaration getVariableDeclarationSubstitute(
