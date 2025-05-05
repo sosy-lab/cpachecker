@@ -177,13 +177,16 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       if (lhs instanceof CIdExpression tmpVar) { // map tmp name and function name
         String tmpName = tmpVar.getDeclaration().getQualifiedName();
-        newState.mapTmpToFunction(tmpName, rhs);
+        String simpleName = tmpVar.getName();
+        if (simpleName.startsWith("__CPAchecker_TMP_")) {
+          newState.mapTmpToFunction(tmpName, rhs);
 
-        logger.log(
-            Level.INFO,
-            String.format(
-                "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')",
-                tmpName, rhs.toQualifiedASTString(), callerFunctionName));
+          logger.log(
+              Level.INFO,
+              String.format(
+                  "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')",
+                  tmpName, rhs.toQualifiedASTString(), callerFunctionName));
+        }
       } else if (lhs
           instanceof
           CPointerExpression
