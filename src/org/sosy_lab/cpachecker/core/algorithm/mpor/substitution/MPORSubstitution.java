@@ -30,12 +30,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -110,6 +112,13 @@ public class MPORSubstitution {
     checkArgument(
         !pIsAssignmentLeftHandSide || pWrittenGlobalVariables.isPresent(),
         "if pIsAssignmentLeftHandSide is true, pWrittenGlobalVariables must be present");
+
+    // never substitute pure int or strings
+    if (pExpression instanceof CIntegerLiteralExpression) {
+      return pExpression;
+    } else if (pExpression instanceof CStringLiteralExpression) {
+      return pExpression;
+    }
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();
@@ -328,10 +337,20 @@ public class MPORSubstitution {
       parameters.add(
           substitute(expression, pCallContext, false, pWrittenGlobalVariables, pGlobalVariables));
     }
+    // substitute the function name in case it is a variable storing a function pointer
+    // e.g. pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_configure_pc8736x_gpio_get
+    // -> int _whoop_init_result = _whoop_init(); (transformed to (*_whoop_init)())
+    CExpression functionSubstitute =
+        substitute(
+            pFunctionCallExpression.getFunctionNameExpression(),
+            pCallContext,
+            false,
+            Optional.empty(),
+            Optional.empty());
     return new CFunctionCallExpression(
         pFunctionCallExpression.getFileLocation(),
         pFunctionCallExpression.getExpressionType(),
-        pFunctionCallExpression.getFunctionNameExpression(),
+        functionSubstitute,
         parameters,
         pFunctionCallExpression.getDeclaration());
   }
