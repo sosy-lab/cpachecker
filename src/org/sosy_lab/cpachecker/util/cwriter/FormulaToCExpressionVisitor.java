@@ -237,9 +237,11 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
           case "_%_":
             return " % ";
           default:
-            // $FALL-THROUGH$
+            throw new UnsupportedOperationException(
+                String.format(
+                    "Unexpected operand %s (%s) in formula '%s'",
+                    pDeclaration.getKind(), pDeclaration.getName(), f));
         }
-      // $FALL-THROUGH$
       default:
         throw new UnsupportedOperationException(
             String.format(

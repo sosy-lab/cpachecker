@@ -101,12 +101,14 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
-        // $FALL-THROUGH$
+          builder.append(value);
+          break;
         case 64:
           if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
-        // $FALL-THROUGH$
+          builder.append(value);
+          break;
         default:
           builder.append(value);
       }

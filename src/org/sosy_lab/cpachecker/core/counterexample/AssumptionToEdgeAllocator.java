@@ -1102,7 +1102,7 @@ public class AssumptionToEdgeAllocator {
                     && rVarInBinaryExp instanceof ALiteralExpression) {
                   return super.visit(binaryExp);
                 }
-              // $FALL-THROUGH$
+                return Value.UnknownValue.getInstance();
               case BINARY_AND:
               case BINARY_OR:
               case BINARY_XOR:
