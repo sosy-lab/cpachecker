@@ -1580,24 +1580,22 @@ public class AssumptionToEdgeAllocator {
             pType.hasImaginarySpecifier(),
             pType.hasLongLongSpecifier());
       } else {
-        switch (pType.getType()) {
-          case INT:
-            if (pType.hasShortSpecifier()) {
-              return CNumericTypes.SIGNED_INT;
-            } else if (pType.hasLongSpecifier()) {
-              return CNumericTypes.SIGNED_LONG_LONG_INT;
-            } else if (pType.hasLongLongSpecifier()) {
-              // fall through, this is already the largest type
-            } else {
-              // if it had neither specifier it is a plain (unsigned) int
-              return CNumericTypes.SIGNED_LONG_INT;
-            }
-          // $FALL-THROUGH$
-          default:
-            // just log and do not throw an exception in order to not break things
-            logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
-            return pType;
+        if (pType.getType() == CBasicType.INT) {
+          if (pType.hasShortSpecifier()) {
+            return CNumericTypes.SIGNED_INT;
+          } else if (pType.hasLongSpecifier()) {
+            return CNumericTypes.SIGNED_LONG_LONG_INT;
+          } else if (pType.hasLongLongSpecifier()) {
+            // fall through, this is already the largest type
+          } else {
+            // if it had neither specifier it is a plain (unsigned) int
+            return CNumericTypes.SIGNED_LONG_INT;
+          }
         }
+
+        // just log and do not throw an exception in order to not break things
+        logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
+        return pType;
       }
     }
 
