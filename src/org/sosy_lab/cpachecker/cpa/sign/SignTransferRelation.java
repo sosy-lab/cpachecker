@@ -191,12 +191,9 @@ public class SignTransferRelation
 
   private Optional<IdentifierValuePair> evaluateAssumption(
       CExpression pIdExp, BinaryOperator pOp, Sign pResultSign, boolean pIdentIsLeft) {
-    boolean equalZero = false;
     switch (pOp) {
-      case GREATER_EQUAL:
-        equalZero = pResultSign.covers(Sign.ZERO);
-      // $FALL-THROUGH$
-      case GREATER_THAN:
+      case GREATER_EQUAL, GREATER_THAN -> {
+        boolean equalZero = (pOp == BinaryOperator.GREATER_EQUAL) && pResultSign.covers(Sign.ZERO);
         if (pIdentIsLeft) {
           if (Sign.PLUS0.covers(pResultSign)) { // x > (0)+
             return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? Sign.PLUS0 : Sign.PLUS));
@@ -207,11 +204,10 @@ public class SignTransferRelation
                 new IdentifierValuePair(pIdExp, equalZero ? Sign.MINUS0 : Sign.MINUS));
           }
         }
-        break;
-      case LESS_EQUAL:
-        equalZero = pResultSign.covers(Sign.ZERO);
-      // $FALL-THROUGH$
-      case LESS_THAN:
+      }
+      case LESS_EQUAL, LESS_THAN -> {
+        boolean equalZero = (pOp == BinaryOperator.LESS_EQUAL) && pResultSign.covers(Sign.ZERO);
+
         if (pIdentIsLeft) { // x < (0)-
           if (Sign.MINUS0.covers(pResultSign)) {
             return Optional.of(
@@ -222,16 +218,18 @@ public class SignTransferRelation
             return Optional.of(new IdentifierValuePair(pIdExp, equalZero ? Sign.PLUS0 : Sign.PLUS));
           }
         }
-        break;
-      case EQUALS:
+      }
+      case EQUALS -> {
         return Optional.of(new IdentifierValuePair(pIdExp, pResultSign));
-      case NOT_EQUALS:
+      }
+      case NOT_EQUALS -> {
         if (pResultSign == Sign.ZERO) {
           return Optional.of(new IdentifierValuePair(pIdExp, Sign.PLUSMINUS));
         }
-        break;
-      default:
+      }
+      default -> {
         // nothing to do here
+      }
     }
     return Optional.empty();
   }
