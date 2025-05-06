@@ -272,6 +272,10 @@ public final class Solver implements AutoCloseable {
     return solvingFmgr;
   }
 
+  public FormulaManager getRealFormulaManager() {
+    return solvingContext.getFormulaManager();
+  }
+
   /**
    * Return the underlying {@link FormulaManagerView} that can be used for creating and manipulating
    * formulas.

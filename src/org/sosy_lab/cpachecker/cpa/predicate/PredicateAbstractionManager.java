@@ -292,7 +292,8 @@ public final class PredicateAbstractionManager {
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final BooleanFormula f,
       final PathFormula blockFormula,
-      final Collection<AbstractionPredicate> predicates)
+      final Collection<AbstractionPredicate> predicates,
+      final LemmaPrecision pLemmaPrecision)
       throws SolverException, InterruptedException {
 
     @SuppressWarnings("deprecation") // just faking a PF to be able to reuse one of our methods
@@ -306,7 +307,8 @@ public final class PredicateAbstractionManager {
             callstackInformation,
             emptyAbstraction,
             pf,
-            predicates);
+            predicates,
+            pLemmaPrecision);
 
     // fix block formula in result
     return new AbstractionFormula(
@@ -341,7 +343,8 @@ public final class PredicateAbstractionManager {
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
-      final Collection<AbstractionPredicate> pPredicates)
+      final Collection<AbstractionPredicate> pPredicates,
+      final LemmaPrecision pLemmaPrecision)
       throws SolverException, InterruptedException {
 
     int currentAbstractionId = stats.numCallsAbstraction.getAndIncrement();
@@ -489,7 +492,9 @@ public final class PredicateAbstractionManager {
       abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
     } else {
-      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
+      abs =
+          rmgr.makeAnd(
+              abs, computeAbstraction(f, remainingPredicates, instantiator, pLemmaPrecision));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -550,7 +555,7 @@ public final class PredicateAbstractionManager {
     final Collection<AbstractionPredicate> predicates =
         getRelevantPredicates(pPredicates, pF, dummyInstantiator);
 
-    Region abs = computeAbstraction(pF, predicates, dummyInstantiator);
+    Region abs = computeAbstraction(pF, predicates, dummyInstantiator, LemmaPrecision.EMPTY);
 
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
 
@@ -708,6 +713,9 @@ public final class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = instantiator.apply(predicateTerm);
+
+      // TODO apply lemmas here already?
+
       Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty() || !Sets.intersection(predVariables, variables).isEmpty()) {
@@ -821,7 +829,8 @@ public final class PredicateAbstractionManager {
   private Region computeAbstraction(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> remainingPredicates,
-      final Function<BooleanFormula, BooleanFormula> instantiator)
+      final Function<BooleanFormula, BooleanFormula> instantiator,
+      final LemmaPrecision pLemmaPrecision)
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
 
@@ -865,7 +874,9 @@ public final class PredicateAbstractionManager {
           try {
             abs =
                 rmgr.makeAnd(
-                    abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
+                    abs,
+                    computeBooleanAbstraction(
+                        thmProver, remainingPredicates, instantiator, pLemmaPrecision, f));
           } finally {
             stats.booleanAbstractionTime.stop();
           }
@@ -1064,7 +1075,9 @@ public final class PredicateAbstractionManager {
   private Region computeBooleanAbstraction(
       final ProverEnvironment thmProver,
       final Collection<AbstractionPredicate> predicates,
-      final Function<BooleanFormula, BooleanFormula> instantiator)
+      final Function<BooleanFormula, BooleanFormula> instantiator,
+      final LemmaPrecision pLemmaPrecision,
+      final BooleanFormula pFormula)
       throws InterruptedException, SolverException {
 
     // build the definition of the predicates, and instantiate them
@@ -1073,10 +1086,16 @@ public final class PredicateAbstractionManager {
     BooleanFormula predDef = bfmgr.makeTrue();
     List<BooleanFormula> predVars = new ArrayList<>(predicates.size());
 
+    RecursiveLemmaApplicationVisitor lemmaVisitor =
+        new RecursiveLemmaApplicationVisitor(pLemmaPrecision, fmgr, solver.getRealFormulaManager());
+
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
       BooleanFormula var = p.getSymbolicVariable();
-      final BooleanFormula def = instantiator.apply(p.getSymbolicAtom());
+
+      BooleanFormula atom = (BooleanFormula) fmgr.visit(p.getSymbolicAtom(), lemmaVisitor);
+      final BooleanFormula def = instantiator.apply(atom);
+
       assert !bfmgr.isFalse(def);
 
       // build the formula (var <-> def) and add it to the list of definitions
