@@ -11,4 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 public interface SeqBitVectorEvaluationStatement extends SeqInjectedBitVectorStatement {
 
   SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber);
+
+  boolean isOnlyGoto();
 }

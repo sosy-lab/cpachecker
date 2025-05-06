@@ -13,7 +13,10 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -22,6 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -133,7 +138,8 @@ public class SeqStringUtil {
       statements.append(pcWrite.toASTString());
 
       // we inject after the pc write, in case the injections are goto that require updated pc
-      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pInjectedStatements)) {
+      ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
+      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pruned)) {
         statements.append(SeqSyntax.SPACE).append(injectedStatement.toASTString());
       }
 
@@ -157,13 +163,38 @@ public class SeqStringUtil {
     return statements.toString();
   }
 
+  /**
+   * Prunes unnecessary injected statements, e.g. when bit vectors are updated but never evaluated
+   * due to the direct {@code goto}. Only the last bit vector update, before an actal evaluation, is
+   * necessary.
+   */
+  private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    Set<SeqInjectedStatement> pruned = new HashSet<>();
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluation) {
+        if (evaluation.isOnlyGoto()) {
+          // if the evaluation is only goto, prune all unnecessary bit vector assignments
+          pruned.addAll(
+              pInjectedStatements.stream()
+                  .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
+                  .collect(Collectors.toSet()));
+        }
+      }
+    }
+    return pInjectedStatements.stream()
+        .filter(s -> !pruned.contains(s))
+        .collect(ImmutableList.toImmutableList());
+  }
+
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      // bit vector assignments / evaluations are placed last
+      // bit vector assignments / evaluations are placed last (cf. threadLoops)
       if (injectedStatement instanceof SeqInjectedBitVectorStatement) {
         leftOver.add(injectedStatement);
       } else {

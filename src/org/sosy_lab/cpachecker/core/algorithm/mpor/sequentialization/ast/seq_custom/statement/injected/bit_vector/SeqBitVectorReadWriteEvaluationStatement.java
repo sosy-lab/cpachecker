@@ -47,7 +47,7 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEva
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     // if bit vectors present: evaluate in if statement
-    if (evaluationExpression.isPresent()) {
+    if (!isOnlyGoto()) {
       SeqSingleControlFlowStatement ifStatement =
           new SeqSingleControlFlowStatement(
               evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
@@ -64,5 +64,10 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEva
   public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorReadWriteEvaluationStatement(
         evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+  }
+
+  @Override
+  public boolean isOnlyGoto() {
+    return evaluationExpression.isEmpty();
   }
 }

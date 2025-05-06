@@ -21,15 +21,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
-  private final Optional<SeqLogicalNotExpression> threadBitVectors;
+  private final Optional<SeqLogicalNotExpression> evaluationExpression;
 
   public final SeqSwitchCaseGotoLabelStatement gotoLabel;
 
   public SeqBitVectorAccessEvaluationStatement(
-      Optional<SeqLogicalNotExpression> pThreadBitVectors,
+      Optional<SeqLogicalNotExpression> pEvaluationExpression,
       SeqSwitchCaseGotoLabelStatement pGotoLabel) {
 
-    threadBitVectors = pThreadBitVectors;
+    evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
   }
 
@@ -47,10 +47,10 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
     // if bit vectors present: evaluate in if statement
-    if (threadBitVectors.isPresent()) {
+    if (!isOnlyGoto()) {
       SeqSingleControlFlowStatement ifStatement =
           new SeqSingleControlFlowStatement(
-              threadBitVectors.orElseThrow(), SeqControlFlowStatementType.IF);
+              evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE
           + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
@@ -63,6 +63,11 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   @Override
   public SeqBitVectorAccessEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorAccessEvaluationStatement(
-        threadBitVectors, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+        evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+  }
+
+  @Override
+  public boolean isOnlyGoto() {
+    return evaluationExpression.isEmpty();
   }
 }
