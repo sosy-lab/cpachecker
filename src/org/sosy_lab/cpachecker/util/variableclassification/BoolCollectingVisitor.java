@@ -70,17 +70,16 @@ class BoolCollectingVisitor extends VariablesCollectingVisitor {
           operand1.addAll(operand2);
           return operand1;
         }
-      // We compare 2 variables. There is no guarantee, that they are boolean!
-      // Example: (a!=b) && (b!=c) && (c!=a)
-      // -> FALSE for boolean, but TRUE for {1,2,3}
-
-      // $FALL-THROUGH$
-
+        break;
       default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
-        nonIntBoolVars.addAll(operand1);
-        nonIntBoolVars.addAll(operand2);
-        return null;
     }
+    // We compare 2 variables. There is no guarantee, that they are boolean!
+    // Example: (a!=b) && (b!=c) && (c!=a)
+    // -> FALSE for boolean, but TRUE for {1,2,3}
+
+    nonIntBoolVars.addAll(operand1);
+    nonIntBoolVars.addAll(operand2);
+    return null;
   }
 
   @Override
