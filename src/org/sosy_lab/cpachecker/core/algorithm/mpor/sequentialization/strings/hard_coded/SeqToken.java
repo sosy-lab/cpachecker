@@ -107,7 +107,11 @@ public class SeqToken {
 
   public static final String LOOP_HEAD = "LOOP_HEAD";
 
+  public static final String M = "M";
+
   public static final String main = "main";
+
+  public static final String MAIN_FUNCTION_ARG = "MAIN_FUNCTION_ARG";
 
   public static final String __MPOR_SEQ__ = "__MPOR_SEQ__";
 

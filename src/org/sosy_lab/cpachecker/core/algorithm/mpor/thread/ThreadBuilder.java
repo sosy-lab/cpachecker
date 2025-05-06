@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -122,7 +123,7 @@ public class ThreadBuilder {
     return new MPORThread(
         newThreadId,
         pThreadObject,
-        (CFunctionType) pEntryNode.getFunction().getType(),
+        (CFunctionDeclaration) pEntryNode.getFunction(),
         pStartRoutineCall,
         startRoutineExitVariable,
         localVariables,

@@ -51,10 +51,12 @@ public class MPORSubstitutionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     // step 1: create global variable substitutes, their initializer cannot be local/param variables
-    MPORThread mainThread = pThreads.stream().filter(t -> t.isMain()).findAny().orElseThrow();
+    MPORThread mainThread = ThreadUtil.extractMainThread(pThreads);
     ImmutableMap<CVariableDeclaration, CIdExpression> globalVarSubstitutes =
         getGlobalVariableSubstitutes(
             pOptions, mainThread, pGlobalVariableDeclarations, pBinaryExpressionBuilder);
+    ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes =
+        getMainFunctionArgSubstitutes(pOptions, mainThread);
     // use same start_routine arg substitutes across threads, so that all threads can access them
     ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
         startRoutineArgSubstitutes = getStartRoutineArgSubstitutes(pOptions, pThreads);
@@ -72,6 +74,7 @@ public class MPORSubstitutionBuilder {
                   thread,
                   globalVarSubstitutes,
                   parameterSubstitutes,
+                  mainFunctionArgSubstitutes,
                   startRoutineArgSubstitutes,
                   thread.id,
                   thread.localVariables,
@@ -82,6 +85,7 @@ public class MPORSubstitutionBuilder {
               globalVarSubstitutes,
               localVarSubstitutes,
               parameterSubstitutes,
+              mainFunctionArgSubstitutes,
               startRoutineArgSubstitutes,
               pBinaryExpressionBuilder));
     }
@@ -106,6 +110,7 @@ public class MPORSubstitutionBuilder {
         new MPORSubstitution(
             pThread,
             dummyGlobalSubstitutes,
+            ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
@@ -214,6 +219,23 @@ public class MPORSubstitutionBuilder {
     return substitutes.buildOrThrow();
   }
 
+  // Main Function Args ============================================================================
+
+  private static ImmutableMap<CParameterDeclaration, CIdExpression> getMainFunctionArgSubstitutes(
+      MPOROptions pOptions, MPORThread pMainThread) {
+
+    ImmutableMap.Builder<CParameterDeclaration, CIdExpression> rArgs = ImmutableMap.builder();
+    for (CParameterDeclaration parameterDeclaration : pMainThread.startRoutine.getParameters()) {
+      String varName = SeqNameUtil.buildMainFunctionArgName(pOptions, parameterDeclaration);
+      // we use variable declarations for main function args in the sequentialization
+      CVariableDeclaration variableDeclaration =
+          substituteVariableDeclaration(parameterDeclaration.asVariableDeclaration(), varName);
+      CIdExpression substitute = SeqExpressionBuilder.buildIdExpression(variableDeclaration);
+      rArgs.put(parameterDeclaration, substitute);
+    }
+    return rArgs.buildOrThrow();
+  }
+
   // Start Routine Args ============================================================================
 
   private static ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
@@ -277,6 +299,7 @@ public class MPORSubstitutionBuilder {
           ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
           ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
               pParameterSubstitutes,
+          ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
           ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
               pStartRoutineArgSubstitutes,
           int pThreadId,
@@ -294,6 +317,7 @@ public class MPORSubstitutionBuilder {
             pGlobalSubstitutes,
             dummySubstitutes,
             pParameterSubstitutes,
+            pMainFunctionArgSubstitutes,
             pStartRoutineArgSubstitutes,
             pBinaryExpressionBuilder);
 

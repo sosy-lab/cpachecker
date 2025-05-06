@@ -63,11 +63,12 @@ public class SeqMainFunctionBuilder {
     return new SeqMainFunction(
         pOptions,
         updatedVariables.build(),
-        pSubstitutions.size(),
+        pSubstitutions,
         threadSimulationAssumptions,
         caseClauses,
         pBitVectorVariables,
         pPcVariables,
-        pBinaryExpressionBuilder);
+        pBinaryExpressionBuilder,
+        pLogger);
   }
 }

@@ -122,6 +122,14 @@ public class SeqNameUtil {
         + pParameterDeclaration.getName();
   }
 
+  public static String buildMainFunctionArgName(
+      MPOROptions pOptions, CParameterDeclaration pMainFunctionArgDeclaration) {
+
+    return (pOptions.shortVariables ? SeqToken.M : SeqToken.MAIN_FUNCTION_ARG)
+        + createVariableId()
+        + pMainFunctionArgDeclaration.getName();
+  }
+
   public static String buildStartRoutineArgName(
       MPOROptions pOptions,
       // TODO make name (String) parameter directly

@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -165,8 +164,8 @@ public class SeqStringUtil {
 
   /**
    * Prunes unnecessary injected statements, e.g. when bit vectors are updated but never evaluated
-   * due to the direct {@code goto}. Only the last bit vector update, before an actal evaluation, is
-   * necessary.
+   * due to the direct {@code goto}. Only the last bit vector update, before an actual evaluation,
+   * is necessary.
    */
   private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
@@ -179,7 +178,7 @@ public class SeqStringUtil {
           pruned.addAll(
               pInjectedStatements.stream()
                   .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
-                  .collect(Collectors.toSet()));
+                  .collect(ImmutableList.toImmutableList()));
         }
       }
     }

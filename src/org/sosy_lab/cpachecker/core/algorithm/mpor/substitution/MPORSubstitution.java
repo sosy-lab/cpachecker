@@ -74,6 +74,8 @@ public class MPORSubstitution {
   public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       parameterSubstitutes;
 
+  public final ImmutableMap<CParameterDeclaration, CIdExpression> mainFunctionArgSubstitutes;
+
   public final ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
       startRoutineArgSubstitutes;
 
@@ -86,6 +88,7 @@ public class MPORSubstitution {
           pLocalSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
+      ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pStartRoutineArgSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -94,6 +97,7 @@ public class MPORSubstitution {
     globalSubstitutes = pGlobalSubstitutes;
     localSubstitutes = pLocalSubstitutes;
     parameterSubstitutes = pParameterSubstitutes;
+    mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
@@ -394,8 +398,11 @@ public class MPORSubstitution {
       }
 
     } else if (pSimpleDeclaration instanceof CParameterDeclaration parameterDeclaration) {
-      assert pCallContext.isPresent() : "must have call context to substitute parameter";
-      // normal function called within thread always has call context
+      if (pCallContext.isEmpty()) {
+        // no call context -> main function argument
+        return mainFunctionArgSubstitutes.get(parameterDeclaration);
+      }
+      // normal function called within thread, including start_routines, always have call context
       ThreadEdge callContext = pCallContext.orElseThrow();
 
       if (parameterSubstitutes.containsKey(callContext)) {

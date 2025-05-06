@@ -42,6 +42,10 @@ public class SeqTypes {
         new CSimpleType(
             false, false, CBasicType.INT, true, false, false, true, false, false, false);
 
+    public static final CSimpleType CHAR =
+        new CSimpleType(
+            false, false, CBasicType.CHAR, false, false, false, false, false, false, false);
+
     public static final CSimpleType CONST_CHAR =
         new CSimpleType(
             true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
@@ -57,6 +61,12 @@ public class SeqTypes {
   }
 
   public static class SeqPointerType {
+
+    public static final CPointerType CHAR_POINTER =
+        new CPointerType(false, false, SeqSimpleType.CHAR);
+
+    public static final CPointerType CHAR_POINTER_POINTER =
+        new CPointerType(false, false, SeqPointerType.CHAR_POINTER);
 
     public static final CPointerType CONST_CHAR_POINTER =
         new CPointerType(false, false, SeqSimpleType.CONST_CHAR);

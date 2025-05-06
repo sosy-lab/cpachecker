@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builde
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -118,6 +119,17 @@ public class SeqExpressionBuilder {
         SeqIdExpression.VERIFIER_NONDET_UINT,
         ImmutableList.of(),
         SeqFunctionDeclaration.VERIFIER_NONDET_UINT);
+  }
+
+  public static Optional<CFunctionCallExpression> buildVerifierNondetByType(CType pType) {
+    // TODO add more functions here
+    if (pType.equals(SeqSimpleType.INT)) {
+      return Optional.of(buildVerifierNondetInt());
+
+    } else if (pType.equals(SeqSimpleType.UNSIGNED_INT)) {
+      return Optional.of(buildVerifierNondetUint());
+    }
+    return Optional.empty();
   }
 
   private static CFunctionCallExpression buildFunctionCallExpression(

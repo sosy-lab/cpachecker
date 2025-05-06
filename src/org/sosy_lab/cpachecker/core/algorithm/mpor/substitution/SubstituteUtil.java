@@ -29,6 +29,12 @@ public class SubstituteUtil {
         .collect(ImmutableList.toImmutableList());
   }
 
+  public static MPORSubstitution extractMainThreadSubstitution(
+      ImmutableList<MPORSubstitution> pSubstitutions) {
+
+    return pSubstitutions.stream().filter(s -> s.thread.isMain()).findAny().orElseThrow();
+  }
+
   public static boolean isExcludedDeclarationEdge(
       MPOROptions pOptions, CDeclarationEdge pDeclarationEdge) {
 

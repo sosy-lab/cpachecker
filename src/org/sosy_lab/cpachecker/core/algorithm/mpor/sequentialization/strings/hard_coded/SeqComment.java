@@ -25,6 +25,9 @@ public class SeqComment {
   public static final String PARAMETER_VAR_SUBSTITUTES =
       COMMENT_SINGLE + " thread local parameter variables storing function arguments";
 
+  public static final String MAIN_FUNCTION_ARG_SUBSTITUTES =
+      COMMENT_SINGLE + " non-deterministic main function argument substitutes";
+
   public static final String START_ROUTINE_ARG_SUBSTITUTES =
       COMMENT_SINGLE + " start_routine argument substitutes passed via pthread_create";
 
@@ -52,7 +55,8 @@ public class SeqComment {
   public static final String THREAD_SIMULATION_ASSUMPTIONS =
       COMMENT_SINGLE + " enforce strict orders over execution of program statements such as locks";
 
-  public static final String THREAD_SIMULATION_SWITCHES =
+  public static final String THREAD_SIMULATION_CONTROL_FLOW =
       COMMENT_SINGLE
-          + " represent reachable statements of thread simulations in separate switch cases";
+          + " represent reachable statements of thread simulations in separate control flow"
+          + " statements";
 }

@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdgeBu
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -161,9 +160,7 @@ public class Sequentialization {
 
     // first initialize some variables needed for the declarations and definitions
     ImmutableList<MPORThread> threads = SubstituteUtil.extractThreads(substitutions);
-    MPORThread mainThread = ThreadUtil.extractMainThread(threads);
-    MPORSubstitution mainSubstitution =
-        substitutions.stream().filter(s -> s.thread.equals(mainThread)).findAny().orElseThrow();
+    MPORSubstitution mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(substitutions);
     ImmutableMap<ThreadEdge, SubstituteEdge> substituteEdges =
         SubstituteEdgeBuilder.substituteEdges(options, substitutions);
     Optional<BitVectorVariables> bitVectorVariables =
@@ -178,6 +175,8 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
+    rProgram.addAll(
+        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution, logger));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
 

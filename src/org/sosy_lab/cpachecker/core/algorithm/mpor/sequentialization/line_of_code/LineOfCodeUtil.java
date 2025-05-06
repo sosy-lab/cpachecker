@@ -148,6 +148,26 @@ public class LineOfCodeUtil {
     return rParameterDeclarations.build();
   }
 
+  /**
+   * Adds the declarations of main function arguments, e.g. {@code int arg;} that are
+   * non-deterministically initialized in {@code main()} later in the sequentialization.
+   */
+  public static ImmutableList<LineOfCode> buildMainFunctionArgDeclarations(
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution, LogManager pLogger) {
+
+    ImmutableList.Builder<LineOfCode> rArgDeclarations = ImmutableList.builder();
+    if (pOptions.comments) {
+      rArgDeclarations.add(LineOfCode.of(0, SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES));
+    }
+    for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
+      rArgDeclarations.add(LineOfCodeUtil.buildLineOfCode(mainArg.getDeclaration()));
+    }
+    if (pOptions.comments) {
+      rArgDeclarations.add(LineOfCode.empty());
+    }
+    return rArgDeclarations.build();
+  }
+
   public static ImmutableList<LineOfCode> buildStartRoutineArgDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
@@ -158,6 +178,7 @@ public class LineOfCodeUtil {
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarations();
     for (CVariableDeclaration startRoutineArgDeclaration : startRoutineArgDeclarations) {
+      // TODO why exclude pthread objects here? add explaining comment
       if (!PthreadUtil.isPthreadObjectType(startRoutineArgDeclaration.getType())) {
         rStartRoutineArgDeclarations.add(
             LineOfCodeUtil.buildLineOfCode(startRoutineArgDeclaration));

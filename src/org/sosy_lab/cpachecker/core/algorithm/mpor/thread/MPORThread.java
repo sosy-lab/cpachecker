@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.thread;
 
 import com.google.common.collect.ImmutableMultimap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -25,8 +25,10 @@ public class MPORThread {
   /** The pthread_t object. Set to empty for the main thread. */
   public final Optional<CIdExpression> threadObject;
 
-  /** The {@link CFunctionType} of the startRoutine (pthreads) or main function (main thread). */
-  public final CFunctionType startRoutine;
+  /**
+   * The {@link CFunctionDeclaration} of the startRoutine (pthreads) or main function (main thread).
+   */
+  public final CFunctionDeclaration startRoutine;
 
   public final Optional<ThreadEdge> startRoutineCall;
 
@@ -47,7 +49,7 @@ public class MPORThread {
   protected MPORThread(
       int pId,
       Optional<CIdExpression> pThreadObject,
-      CFunctionType pStartRoutine,
+      CFunctionDeclaration pStartRoutine,
       Optional<ThreadEdge> pStartRoutineCall,
       Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,

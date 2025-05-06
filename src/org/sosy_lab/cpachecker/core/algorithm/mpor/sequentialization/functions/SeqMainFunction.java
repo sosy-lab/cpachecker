@@ -12,9 +12,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -47,6 +50,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -58,9 +63,11 @@ public class SeqMainFunction extends SeqFunction {
 
   private final MPOROptions options;
 
+  private final MPORSubstitution mainSubstitution;
+
   private final ImmutableList<CIdExpression> updatedVariables;
 
-  private final CIdExpression numThreads;
+  private final CIdExpression numThreadsVariable;
 
   private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
 
@@ -81,45 +88,52 @@ public class SeqMainFunction extends SeqFunction {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
+  private final LogManager logger;
+
   public SeqMainFunction(
       MPOROptions pOptions,
       ImmutableList<CIdExpression> pUpdatedVariables,
-      int pNumThreads,
+      ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    int numThreads = pSubstitutions.size();
+
     options = pOptions;
+    mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
     updatedVariables = pUpdatedVariables;
-    numThreads =
+    numThreadsVariable =
         SeqExpressionBuilder.buildIdExpression(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 false,
                 SeqSimpleType.CONST_INT,
                 SeqToken.NUM_THREADS,
                 SeqInitializerBuilder.buildInitializerExpression(
-                    SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));
+                    SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads))));
     threadAssumptions = pThreadAssumptions;
     caseClauses = pCaseClauses;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
+    logger = pLogger;
 
     bitVectorDeclarations =
         SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
             options, pBitVectorVariables, pCaseClauses);
     pcDeclarations =
-        SeqDeclarationBuilder.buildPcDeclarations(pcVariables, pNumThreads, pOptions.scalarPc);
+        SeqDeclarationBuilder.buildPcDeclarations(pcVariables, numThreads, pOptions.scalarPc);
 
     nextThreadAssignment = SeqStatementBuilder.buildNextThreadAssignment(pOptions.signedNondet);
     nextThreadAssumption =
         SeqAssumptionBuilder.buildNextThreadAssumption(
-            pOptions.signedNondet, numThreads, binaryExpressionBuilder);
+            pOptions.signedNondet, numThreadsVariable, binaryExpressionBuilder);
     pcNextThreadAssumption =
         SeqAssumptionBuilder.buildPcNextThreadAssumption(
-            options, pNumThreads, pOptions.scalarPc, pcVariables, binaryExpressionBuilder);
+            options, numThreads, pOptions.scalarPc, pcVariables, binaryExpressionBuilder);
   }
 
   @Override
@@ -129,7 +143,9 @@ public class SeqMainFunction extends SeqFunction {
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
         buildThreadSimulationVariableDeclarations(
-            options, numThreads.getDeclaration(), bitVectorDeclarations, pcDeclarations));
+            options, numThreadsVariable.getDeclaration(), bitVectorDeclarations, pcDeclarations));
+    // add main function argument non-deterministic assignments
+    rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
     // add updated injected variables that were pruned in partial order reduction
     rBody.addAll(buildVariableUpdates(updatedVariables));
     // --- loop starts here ---
@@ -158,10 +174,10 @@ public class SeqMainFunction extends SeqFunction {
     if (!options.threadLoops) {
       rBody.addAll(SeqAssumptionBuilder.buildSingleLoopAssumptions(threadAssumptions));
     }
-    // add all switch statements
+    // add all thread simulation control flow statements
     if (options.comments) {
       rBody.add(LineOfCode.empty());
-      rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_SWITCHES));
+      rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_CONTROL_FLOW));
     }
     if (options.threadLoops) {
       rBody.addAll(
@@ -194,6 +210,34 @@ public class SeqMainFunction extends SeqFunction {
   @Override
   public ImmutableList<CParameterDeclaration> getParameters() {
     return ImmutableList.of();
+  }
+
+  /**
+   * Adds the non-deterministic initializations of {@code main} function arguments, e.g. {@code arg
+   * = __VERIFIER_nondet_int;}
+   */
+  private ImmutableList<LineOfCode> buildMainFunctionArgNondetAssignments(
+      MPORSubstitution pMainSubstitution, LogManager pLogger) {
+
+    ImmutableList.Builder<LineOfCode> rMainArgAssignments = ImmutableList.builder();
+    for (CIdExpression mainArg : pMainSubstitution.mainFunctionArgSubstitutes.values()) {
+      CType mainArgType = mainArg.getExpressionType();
+      Optional<CFunctionCallExpression> verifierNondet =
+          SeqExpressionBuilder.buildVerifierNondetByType(mainArgType);
+      if (verifierNondet.isPresent()) {
+        CFunctionCallAssignmentStatement assignment =
+            SeqStatementBuilder.buildFunctionCallAssignmentStatement(
+                mainArg, verifierNondet.orElseThrow());
+        rMainArgAssignments.add(LineOfCode.of(1, assignment.toASTString()));
+      } else {
+        pLogger.log(
+            Level.WARNING,
+            "WARNING - could not find __VERIFIER_nondet function "
+                + "for the following main function argument type: "
+                + mainArgType.toASTString(""));
+      }
+    }
+    return rMainArgAssignments.build();
   }
 
   /**
