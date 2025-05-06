@@ -146,14 +146,20 @@ final class ImpactUtility {
       // Compute an abstraction of "itp" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
       newAbstraction =
-          predAbsMgr.buildAbstraction(location, callstackInfo, itp, blockFormula, preds);
+          predAbsMgr.buildAbstraction(
+              location, callstackInfo, itp, blockFormula, preds, LemmaPrecision.EMPTY);
 
     } else {
       // Compute an abstraction of "lastAbstraction & blockFormula" using the predicates from "itp".
       Collection<AbstractionPredicate> preds = predAbsMgr.getPredicatesForAtomsOf(itp);
       newAbstraction =
           predAbsMgr.buildAbstraction(
-              ImmutableSet.of(location), callstackInfo, lastAbstraction, blockFormula, preds);
+              ImmutableSet.of(location),
+              callstackInfo,
+              lastAbstraction,
+              blockFormula,
+              preds,
+              LemmaPrecision.EMPTY);
     }
     abstractionTime.stop();
 
