@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,8 +103,8 @@ public class SMGCPABuiltins {
 
   // TODO: Properly model printf (dereferences and stuff)
   // TODO: General modelling system for functions which do not modify state?
-  private final Set<String> BUILTINS =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> BUILTINS =
+      ImmutableSet.of(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
           "memcmp",
