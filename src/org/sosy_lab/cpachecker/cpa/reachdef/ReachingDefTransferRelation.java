@@ -178,35 +178,20 @@ public class ReachingDefTransferRelation implements TransferRelation {
     ReachingDefState result;
 
     switch (pCfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
+      case StatementEdge ->
           result = handleStatementEdge((ReachingDefState) pState, (CStatementEdge) pCfaEdge);
-          break;
-        }
-      case DeclarationEdge:
-        {
+      case DeclarationEdge ->
           result = handleDeclarationEdge((ReachingDefState) pState, (CDeclarationEdge) pCfaEdge);
-          break;
-        }
-      case FunctionCallEdge:
-        {
+      case FunctionCallEdge ->
           result = handleCallEdge((ReachingDefState) pState, (CFunctionCallEdge) pCfaEdge);
-          break;
-        }
-      case FunctionReturnEdge:
-        {
+      case FunctionReturnEdge ->
           result = handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
-          break;
-        }
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
-        break;
-
-      case AssumeEdge:
-        result = handleAssumption((ReachingDefState) pState, (CAssumeEdge) pCfaEdge);
-        break;
-
-      case BlankEdge:
+      case ReturnStatementEdge ->
+          result =
+              handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
+      case AssumeEdge ->
+          result = handleAssumption((ReachingDefState) pState, (CAssumeEdge) pCfaEdge);
+      case BlankEdge -> {
         // TODO still correct?
         // special case entering the main method for the first time (no local variables known)
         logger.log(
@@ -226,16 +211,15 @@ public class ReachingDefTransferRelation implements TransferRelation {
           break;
         }
         result = (ReachingDefState) pState;
-        break;
-      case CallToReturnEdge:
+      }
+      case CallToReturnEdge -> {
         logger.log(
             Level.FINE,
             "Reaching definition not affected by edge. ",
             "Keep reaching definition unchanged.");
         result = (ReachingDefState) pState;
-        break;
-      default:
-        throw new CPATransferException("Unknown CFA edge type.");
+      }
+      default -> throw new CPATransferException("Unknown CFA edge type.");
     }
 
     return Collections.singleton(result);

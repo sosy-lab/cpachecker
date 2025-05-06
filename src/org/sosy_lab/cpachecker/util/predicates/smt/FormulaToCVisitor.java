@@ -97,20 +97,19 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     if (type.isBitvectorType()) {
       final int size = ((FormulaType.BitvectorType) type).getSize();
       switch (size) {
-        case 32:
+        case 32 -> {
           if (appendOverflowGuardForNegativeIntegralLiterals(INT_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
           builder.append(value);
-          break;
-        case 64:
+        }
+        case 64 -> {
           if (appendOverflowGuardForNegativeIntegralLiterals(LLONG_MIN_LITERAL, pValue)) {
             return Boolean.TRUE;
           }
           builder.append(value);
-          break;
-        default:
-          builder.append(value);
+        }
+        default -> builder.append(value);
       }
     } else if (pValue instanceof Boolean) {
       builder.append(((boolean) pValue) ? "1" : "0");
@@ -168,106 +167,33 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
     }
 
     switch (kind) {
-      case BV_ADD:
-      case FP_ADD:
-      case ADD:
-        op = "+";
-        break;
-      case BV_SUB:
-      case BV_NEG:
-      case FP_SUB:
-      case FP_NEG:
-      case UMINUS:
-      case SUB:
-        op = "-";
-        break;
-      case BV_SDIV:
-      case BV_UDIV:
-      case FP_DIV:
-      case DIV:
-        op = "/";
-        break;
-      case BV_SREM:
-      case BV_UREM:
-      case MODULO:
-        op = "%";
-        break;
-      case BV_MUL:
-      case FP_MUL:
-      case MUL:
-        op = "*";
-        break;
-      case BV_EQ:
-      case FP_EQ:
-      case IFF:
-      case EQ:
-        op = "==";
-        break;
-      case BV_SGT:
-      case BV_UGT:
-      case FP_GT:
-      case GT:
-        op = ">";
-        break;
-      case BV_SGE:
-      case BV_UGE:
-      case FP_GE:
-      case GTE:
-        op = ">=";
-        break;
-      case BV_SLT:
-      case BV_ULT:
-      case FP_LT:
-      case LT:
-        op = "<";
-        break;
-      case BV_SLE:
-      case BV_ULE:
-      case FP_LE:
-      case LTE:
-        op = "<=";
-        break;
-      case BV_NOT:
-        op = "~";
-        break;
-      case NOT:
-        op = "!";
-        break;
-      case BV_XOR:
-      case XOR:
-        op = "^";
-        break;
-      case BV_AND:
-        op = "&";
-        break;
-      case AND:
-        op = "&&";
-        break;
-      case BV_OR:
-        op = "|";
-        break;
-      case OR:
-        op = "||";
-        break;
-      case GTE_ZERO:
-        op = "0 <=";
-        break;
-      case EQ_ZERO:
-        op = "0 ==";
-        break;
-      case ITE:
-        // Special-case that is to be handled separately below
-        op = null;
-        break;
-      case BV_SHL:
-        op = "<<";
-        break;
-      case BV_LSHR:
-      case BV_ASHR:
-        op = ">>";
-        break;
-      default:
+      case BV_ADD, FP_ADD, ADD -> op = "+";
+      case BV_SUB, BV_NEG, FP_SUB, FP_NEG, UMINUS, SUB -> op = "-";
+      case BV_SDIV, BV_UDIV, FP_DIV, DIV -> op = "/";
+      case BV_SREM, BV_UREM, MODULO -> op = "%";
+      case BV_MUL, FP_MUL, MUL -> op = "*";
+      case BV_EQ, FP_EQ, IFF, EQ -> op = "==";
+      case BV_SGT, BV_UGT, FP_GT, GT -> op = ">";
+      case BV_SGE, BV_UGE, FP_GE, GTE -> op = ">=";
+      case BV_SLT, BV_ULT, FP_LT, LT -> op = "<";
+      case BV_SLE, BV_ULE, FP_LE, LTE -> op = "<=";
+      case BV_NOT -> op = "~";
+      case NOT -> op = "!";
+      case BV_XOR, XOR -> op = "^";
+      case BV_AND -> op = "&";
+      case AND -> op = "&&";
+      case BV_OR -> op = "|";
+      case OR -> op = "||";
+      case GTE_ZERO -> op = "0 <=";
+      case EQ_ZERO -> op = "0 ==";
+      case ITE ->
+          // Special-case that is to be handled separately below
+          op = null;
+      case BV_SHL -> op = "<<";
+      case BV_LSHR, BV_ASHR -> op = ">>";
+      default -> {
         return Boolean.FALSE;
+      }
     }
     bvSigned =
         switch (kind) {

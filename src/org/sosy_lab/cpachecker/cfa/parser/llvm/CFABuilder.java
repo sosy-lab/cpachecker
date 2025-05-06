@@ -1020,35 +1020,21 @@ public class CFABuilder {
 
     CBinaryExpression.BinaryOperator operation;
     switch (pOpCode) {
-      case Add:
-      case FAdd:
-        operation = BinaryOperator.PLUS;
-        break;
-      case Sub:
-      case FSub:
-        operation = BinaryOperator.MINUS;
-        break;
-      case Mul:
-      case FMul:
-        operation = BinaryOperator.MULTIPLY;
-        break;
-      case UDiv:
-      case SDiv:
-      case FDiv:
-        // TODO: Respect unsigned and signed divide
-        operation = BinaryOperator.DIVIDE;
-        break;
-      case URem:
-      case SRem:
-      case FRem:
-        // TODO: Respect unsigned and signed modulo
-        operation = BinaryOperator.MODULO;
-        break;
-      case Shl: // Shift left
-        operation = BinaryOperator.SHIFT_LEFT;
-        break;
-      case LShr: // Logical shift right
-      case AShr: // Arithmetic shift right
+      case Add, FAdd -> operation = BinaryOperator.PLUS;
+      case Sub, FSub -> operation = BinaryOperator.MINUS;
+      case Mul, FMul -> operation = BinaryOperator.MULTIPLY;
+      case UDiv, SDiv, FDiv ->
+          // TODO: Respect unsigned and signed divide
+          operation = BinaryOperator.DIVIDE;
+      case URem, SRem, FRem ->
+          // TODO: Respect unsigned and signed modulo
+          operation = BinaryOperator.MODULO;
+      case Shl ->
+          // Shift left
+          operation = BinaryOperator.SHIFT_LEFT;
+      case LShr, AShr -> {
+        // Logical shift right
+        // Arithmetic shift right
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
           throw new UnsupportedOperationException(
               "Right shifts are only supported for integer types, but operands were "
@@ -1081,18 +1067,11 @@ public class CFABuilder {
         // calculate the shift with the signedness of op1type
         internalExpressionType = machineModel.applyIntegerPromotion(op1type);
         operation = BinaryOperator.SHIFT_RIGHT;
-        break;
-      case And:
-        operation = BinaryOperator.BINARY_AND;
-        break;
-      case Or:
-        operation = BinaryOperator.BINARY_OR;
-        break;
-      case Xor:
-        operation = BinaryOperator.BINARY_XOR;
-        break;
-      default:
-        throw new AssertionError("Unhandled operation " + pOpCode);
+      }
+      case And -> operation = BinaryOperator.BINARY_AND;
+      case Or -> operation = BinaryOperator.BINARY_OR;
+      case Xor -> operation = BinaryOperator.BINARY_XOR;
+      default -> throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
     CBinaryExpression expression =
@@ -1760,33 +1739,17 @@ public class CFABuilder {
     // the only one supported now
     assert pItem.isICmpInst() : "Unsupported cmp instruction: " + pItem;
     IntPredicate cmpPredicate = pItem.getICmpPredicate();
-    BinaryOperator operator;
-    switch (cmpPredicate) {
-      case IntEQ:
-        operator = BinaryOperator.EQUALS;
-        break;
-      case IntNE:
-        operator = BinaryOperator.NOT_EQUALS;
-        break;
-      case IntUGT:
-      case IntSGT:
-        operator = BinaryOperator.GREATER_THAN;
-        break;
-      case IntULT:
-      case IntSLT:
-        operator = BinaryOperator.LESS_THAN;
-        break;
-      case IntULE:
-      case IntSLE:
-        operator = BinaryOperator.LESS_EQUAL;
-        break;
-      case IntUGE:
-      case IntSGE:
-        operator = BinaryOperator.GREATER_EQUAL;
-        break;
-      default:
-        throw new UnsupportedOperationException("Unsupported predicate");
-    }
+
+    BinaryOperator operator =
+        switch (cmpPredicate) {
+          case IntEQ -> BinaryOperator.EQUALS;
+          case IntNE -> BinaryOperator.NOT_EQUALS;
+          case IntUGT, IntSGT -> BinaryOperator.GREATER_THAN;
+          case IntULT, IntSLT -> BinaryOperator.LESS_THAN;
+          case IntULE, IntSLE -> BinaryOperator.LESS_EQUAL;
+          case IntUGE, IntSGE -> BinaryOperator.GREATER_EQUAL;
+          default -> throw new UnsupportedOperationException("Unsupported predicate");
+        };
     final boolean isUnsignedCmp =
         switch (cmpPredicate) {
           case IntUGT, IntULT, IntULE, IntSGE -> true;

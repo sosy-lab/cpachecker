@@ -786,32 +786,33 @@ public class SMGBuiltins {
     }
 
     switch (calledFunctionName) {
-      case "__builtin_alloca":
+      case "__builtin_alloca" -> {
         return evaluateAlloca(cFCExpression, newState, pCfaEdge, kind);
-
-      case "memset":
+      }
+      case "memset" -> {
         return evaluateMemset(cFCExpression, newState, pCfaEdge);
-
-      case "memcpy":
+      }
+      case "memcpy" -> {
         return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
-
-      case "strcmp":
+      }
+      case "strcmp" -> {
         return evaluateStrcmp(cFCExpression, newState, pCfaEdge);
-
-      case "__VERIFIER_BUILTIN_PLOT":
+      }
+      case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, newState);
         return ImmutableList.of(SMGAddressValueAndState.of(newState));
-
-      case "printf":
+      }
+      case "printf" -> {
         return ImmutableList.of(SMGAddressValueAndState.of(newState));
-
-      default:
+      }
+      default -> {
         if (isNondetBuiltin(calledFunctionName)) {
           return Collections.singletonList(SMGAddressValueAndState.of(newState));
         } else {
           throw new AssertionError(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
+      }
     }
   }
 
@@ -959,7 +960,7 @@ public class SMGBuiltins {
       SMGState pState)
       throws CPATransferException, AssertionError {
     switch (options.getHandleUnknownFunctions()) {
-      case STRICT:
+      case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
@@ -969,13 +970,16 @@ public class SMGBuiltins {
         }
         // for safe functions
         return ImmutableList.of(SMGAddressValueAndState.of(pState));
-      case ASSUME_SAFE:
+      }
+      case ASSUME_SAFE -> {
         return ImmutableList.of(SMGAddressValueAndState.of(pState));
-      case ASSUME_EXTERNAL_ALLOCATED:
+      }
+      case ASSUME_EXTERNAL_ALLOCATED -> {
         return expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
-      default:
-        throw new AssertionError(
-            "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
+      }
+      default ->
+          throw new AssertionError(
+              "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
     }
   }
 

@@ -74,72 +74,59 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
     // - every argument already has all necessary brackets, except variables (-> plain string).
     // - the result has surrounding brackets.
     switch (functionDeclaration.getKind()) {
-      case NOT:
-      case UMINUS:
-      case BV_NEG:
-      case FP_NEG:
-      case BV_NOT:
-        result =
-            operatorFromFunctionDeclaration(functionDeclaration, f) + cache.get(newArgs.get(0));
-        break;
-      case EQ_ZERO:
-      case GTE_ZERO:
-        result =
-            cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
-        break;
-      case FP_ROUND_EVEN:
-      case FP_ROUND_AWAY:
-      case FP_ROUND_POSITIVE:
-      case FP_ROUND_NEGATIVE:
-      case FP_ROUND_ZERO:
-      case FP_ROUND_TO_INTEGRAL:
-        // Ignore because otherwise rounding mode is treated like an additional operand
-        // TODO These cases do not insert anything into the cache and might result in an invalid or
-        //      incomplete result. We should better abort here than continue with an invalid result.
-        result = null;
-        break;
-      case FP_ADD:
-      case FP_SUB:
-      case FP_DIV:
-      case FP_MUL:
-        result =
-            from(newArgs)
-                .skip(1) // skip first argument, it represents the rounding-mode.
-                .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
-                .join(Joiner.on(operatorFromFunctionDeclaration(functionDeclaration, f)));
-        break;
-      case ITE:
-        result =
-            String.format(
-                "%s ? %s : %s",
-                cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
-        break;
-      default:
-        {
-          if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
-            // TODO The naming of this SMT function is specific to one solver
-            // and the handling in this manner is likely not correct in all cases (unsigned vars)
-            // and it is specific to one particular bitwidth, all of which it should not be.
-            result = cache.get(newArgs.get(0)) + " < 0";
-            break;
-          }
-
-          List<String> expressions = new ArrayList<>(newArgs.size());
-          for (Formula arg : newArgs) {
-            // TODO If the arg is not in the cache, we will get an invalid or incomplete result.
-            //      We should better abort here than continue with an invalid result.
-            if (cache.containsKey(arg)) {
-              expressions.add(Preconditions.checkNotNull(cache.get(arg)));
-            }
-          }
-          if (COMMUTATIVE_OPERATIONS.contains(functionDeclaration.getKind())) {
-            // Some solvers (e.g., MathSAT) switch commutative arguments for operations like EQ
-            // randomly. Let's force some determinism over distinct solvers, by alphabetical order.
-            Collections.sort(expressions);
-          }
+      case NOT, UMINUS, BV_NEG, FP_NEG, BV_NOT ->
           result =
-              String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
+              operatorFromFunctionDeclaration(functionDeclaration, f) + cache.get(newArgs.get(0));
+      case EQ_ZERO, GTE_ZERO ->
+          result =
+              cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
+      case FP_ROUND_EVEN,
+          FP_ROUND_AWAY,
+          FP_ROUND_POSITIVE,
+          FP_ROUND_NEGATIVE,
+          FP_ROUND_ZERO,
+          FP_ROUND_TO_INTEGRAL ->
+          // Ignore because otherwise rounding mode is treated like an additional operand
+          // TODO These cases do not insert anything into the cache and might result in an invalid
+          // or
+          //      incomplete result. We should better abort here than continue with an invalid
+          // result.
+          result = null;
+      case FP_ADD, FP_SUB, FP_DIV, FP_MUL ->
+          result =
+              from(newArgs)
+                  .skip(1) // skip first argument, it represents the rounding-mode.
+                  .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
+                  .join(Joiner.on(operatorFromFunctionDeclaration(functionDeclaration, f)));
+      case ITE ->
+          result =
+              String.format(
+                  "%s ? %s : %s",
+                  cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
+      default -> {
+        if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
+          // TODO The naming of this SMT function is specific to one solver
+          // and the handling in this manner is likely not correct in all cases (unsigned vars)
+          // and it is specific to one particular bitwidth, all of which it should not be.
+          result = cache.get(newArgs.get(0)) + " < 0";
+          break;
         }
+
+        List<String> expressions = new ArrayList<>(newArgs.size());
+        for (Formula arg : newArgs) {
+          // TODO If the arg is not in the cache, we will get an invalid or incomplete result.
+          //      We should better abort here than continue with an invalid result.
+          if (cache.containsKey(arg)) {
+            expressions.add(Preconditions.checkNotNull(cache.get(arg)));
+          }
+        }
+        if (COMMUTATIVE_OPERATIONS.contains(functionDeclaration.getKind())) {
+          // Some solvers (e.g., MathSAT) switch commutative arguments for operations like EQ
+          // randomly. Let's force some determinism over distinct solvers, by alphabetical order.
+          Collections.sort(expressions);
+        }
+        result = String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
+      }
     }
     if (result != null) {
       cache.put(f, "(" + result + ")");
@@ -149,76 +136,70 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
 
   private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration, Formula f) {
     switch (pDeclaration.getKind()) {
-      case NOT:
+      case NOT -> {
         return "!";
-      case UMINUS:
-      case BV_NEG:
-      case FP_NEG:
+      }
+      case UMINUS, BV_NEG, FP_NEG -> {
         return "-";
-      case AND:
+      }
+      case AND -> {
         return " && ";
-      case BV_AND:
+      }
+      case BV_AND -> {
         return " & ";
-      case OR:
+      }
+      case OR -> {
         return "\n|| ";
-      case BV_OR:
+      }
+      case BV_OR -> {
         return " | ";
-      case BV_XOR:
+      }
+      case BV_XOR -> {
         return " ^ ";
-      case SUB:
-      case BV_SUB:
-      case FP_SUB:
+      }
+      case SUB, BV_SUB, FP_SUB -> {
         return " - ";
-      case ADD:
-      case BV_ADD:
-      case FP_ADD:
+      }
+      case ADD, BV_ADD, FP_ADD -> {
         return " + ";
-      case DIV:
-      case BV_SDIV:
-      case BV_UDIV:
-      case FP_DIV:
+      }
+      case DIV, BV_SDIV, BV_UDIV, FP_DIV -> {
         return " / ";
-      case MUL:
-      case BV_MUL:
-      case FP_MUL:
+      }
+      case MUL, BV_MUL, FP_MUL -> {
         return " * ";
-      case MODULO:
-      case BV_SREM:
-      case BV_UREM:
+      }
+      case MODULO, BV_SREM, BV_UREM -> {
         return " % ";
-      case LT:
-      case BV_SLT:
-      case BV_ULT:
-      case FP_LT:
+      }
+      case LT, BV_SLT, BV_ULT, FP_LT -> {
         return " < ";
-      case LTE:
-      case BV_SLE:
-      case BV_ULE:
-      case FP_LE:
+      }
+      case LTE, BV_SLE, BV_ULE, FP_LE -> {
         return " <= ";
-      case GT:
-      case BV_SGT:
-      case BV_UGT:
-      case FP_GT:
+      }
+      case GT, BV_SGT, BV_UGT, FP_GT -> {
         return " > ";
-      case GTE:
-      case BV_SGE:
-      case BV_UGE:
-      case FP_GE:
+      }
+      case GTE, BV_SGE, BV_UGE, FP_GE -> {
         return " >= ";
-      case EQ:
-      case BV_EQ:
-      case FP_EQ:
+      }
+      case EQ, BV_EQ, FP_EQ -> {
         return " == ";
-      case EQ_ZERO:
+      }
+      case EQ_ZERO -> {
         return " == 0";
-      case GTE_ZERO:
+      }
+      case GTE_ZERO -> {
         return " >= 0";
-      case BV_NOT:
+      }
+      case BV_NOT -> {
         return "~";
-      case BV_SHL:
+      }
+      case BV_SHL -> {
         return " << ";
-      case UF:
+      }
+      case UF -> {
         // There are several CPAchecker-internal UFs that replace unsupported function in solvers.
         // See FormulaManagerView and ReplaceBitvectorWithNumeralAndFunctionTheory for details.
         switch (pDeclaration.getName()) {
@@ -242,11 +223,12 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                     "Unexpected operand %s (%s) in formula '%s'",
                     pDeclaration.getKind(), pDeclaration.getName(), f));
         }
-      default:
-        throw new UnsupportedOperationException(
-            String.format(
-                "Unexpected operand %s (%s) in formula '%s'",
-                pDeclaration.getKind(), pDeclaration.getName(), f));
+      }
+      default ->
+          throw new UnsupportedOperationException(
+              String.format(
+                  "Unexpected operand %s (%s) in formula '%s'",
+                  pDeclaration.getKind(), pDeclaration.getName(), f));
     }
   }
 

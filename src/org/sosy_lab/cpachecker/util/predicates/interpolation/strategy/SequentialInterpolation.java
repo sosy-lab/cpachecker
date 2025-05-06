@@ -85,7 +85,7 @@ public class SequentialInterpolation extends ITPStrategy {
         Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
 
     switch (sequentialStrategy) {
-      case FWD_FALLBACK:
+      case FWD_FALLBACK -> {
         try {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
@@ -94,11 +94,11 @@ public class SequentialInterpolation extends ITPStrategy {
           interpolator.destroyAndRebuildSolverEnvironment();
         }
         return getBwdInterpolants(interpolator, formulas);
-
-      case BWD:
+      }
+      case BWD -> {
         return getBwdInterpolants(interpolator, formulas);
-
-      case BWD_FALLBACK:
+      }
+      case BWD_FALLBACK -> {
         try {
           return getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
@@ -107,14 +107,11 @@ public class SequentialInterpolation extends ITPStrategy {
           interpolator.destroyAndRebuildSolverEnvironment();
         }
         return getFwdInterpolants(interpolator, formulas);
-
-      case FWD:
+      }
+      case FWD -> {
         return getFwdInterpolants(interpolator, formulas);
-
-      case CONJUNCTION:
-      case DISJUNCTION:
-      case WEIGHTED:
-      case RANDOM:
+      }
+      case CONJUNCTION, DISJUNCTION, WEIGHTED, RANDOM -> {
         List<BooleanFormula> forward = null;
         try {
           forward = getFwdInterpolants(interpolator, formulas);
@@ -138,9 +135,8 @@ public class SequentialInterpolation extends ITPStrategy {
             return forward;
           }
         }
-
-      default:
-        throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
+      }
+      default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
     }
   }
 

@@ -200,7 +200,7 @@ public class ProofSlicer {
   private void addTransferSet(
       final CFAEdge edge, Set<String> succVars, final Set<String> updatedVars) {
     switch (edge.getEdgeType()) {
-      case StatementEdge:
+      case StatementEdge -> {
         CStatement stm = ((CStatementEdge) edge).getStatement();
         if (stm instanceof CExpressionStatement || stm instanceof CFunctionCallStatement) {
           updatedVars.addAll(succVars);
@@ -235,7 +235,8 @@ public class ProofSlicer {
           }
         }
         return;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         if (((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration) {
           CVariableDeclaration varDec =
               (CVariableDeclaration) ((CDeclarationEdge) edge).getDeclaration();
@@ -255,7 +256,8 @@ public class ProofSlicer {
           updatedVars.addAll(succVars);
         }
         return;
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         CReturnStatementEdge retStm = ((CReturnStatementEdge) edge);
         if (retStm.getExpression().isPresent()
             && !retStm.getSuccessor().getEntryNode().getReturnVariable().isPresent()) {
@@ -275,7 +277,8 @@ public class ProofSlicer {
           updatedVars.addAll(succVars);
         }
         return;
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         CFunctionCallEdge funCall = ((CFunctionCallEdge) edge);
         Collection<String> paramNames = new HashSet<>();
 
@@ -297,7 +300,8 @@ public class ProofSlicer {
           }
         }
         return;
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         CFunctionReturnEdge funRet = ((CFunctionReturnEdge) edge);
         String varName;
         if (funRet.getFunctionCall() instanceof CFunctionCallAssignmentStatement) {
@@ -314,9 +318,9 @@ public class ProofSlicer {
           updatedVars.addAll(succVars);
         }
         return;
-      case CallToReturnEdge:
-        throw new AssertionError();
-      case AssumeEdge:
+      }
+      case CallToReturnEdge -> throw new AssertionError();
+      case AssumeEdge -> {
         Set<String> assumeVars =
             CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) edge).getExpression()).toSet();
         for (String var : assumeVars) {
@@ -327,11 +331,12 @@ public class ProofSlicer {
         }
         updatedVars.addAll(succVars);
         return;
-      case BlankEdge:
+      }
+      case BlankEdge -> {
         updatedVars.addAll(succVars);
         return;
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 
