@@ -15,6 +15,10 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
+/**
+ * A visitor that transforms a {@link Formula} defining a lemma into a {@link Pair} of {@link
+ * BitvectorFormula}.
+ */
 public class LemmaExtractorVisitor
     extends DefaultFormulaVisitor<Pair<BitvectorFormula, BitvectorFormula>> {
 

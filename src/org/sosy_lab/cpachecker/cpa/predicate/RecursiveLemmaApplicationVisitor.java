@@ -16,7 +16,10 @@ import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
-/** This class provides */
+/**
+ * A visitor that replaces calls for a lemma function in {@link Formula} with definition of the
+ * Lemma.
+ */
 public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<BooleanFormula> {
   private final LemmaPrecision lemmaMap;
   private final FormulaManager fmgr;

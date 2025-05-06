@@ -210,13 +210,6 @@ public class ACSLParserUtils {
     // Lemmas have the form <Function> == <Replacement>
     assert statement.getExpression() instanceof CBinaryExpression;
     CBinaryExpression expression = (CBinaryExpression) statement.getExpression();
-    /*
-    CExpression function = expression.getOperand1();
-    assert function instanceof ACSLFunctionCall;
-    String funcName = ((ACSLFunctionCall) function).getDeclaration().getName();
-    CExpression replacement = expression.getOperand2();
-
-     */
 
     ExpressionTree<AExpression> expressionTree = LeafExpression.of(expression);
     return expressionTree;

@@ -142,6 +142,12 @@ public class InvariantExchangeFormatTransformer {
     return createACSLExpressionTreeFromString(invariantString, scope);
   }
 
+  /**
+   * Parse the string given in an {@link LemmaEntry} into an {@link ExpressionTree}.
+   *
+   * @param pLemmaEntry The entry whose invariant should be parsed
+   * @return The parsed invariant as a {@link ExpressionTree}
+   */
   public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry, CProgramScope pScope)
       throws Exception {
     return ACSLParserUtils.extractLemmaAsExpressionTree(pLemmaEntry.value(), cparser, pScope);
