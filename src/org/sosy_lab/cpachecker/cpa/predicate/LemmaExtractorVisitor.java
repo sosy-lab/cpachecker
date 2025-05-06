@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.List;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -18,11 +17,8 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 public class LemmaExtractorVisitor
     extends DefaultFormulaVisitor<Pair<BitvectorFormula, BitvectorFormula>> {
-  private final FormulaManagerView fmgr;
 
-  protected LemmaExtractorVisitor(FormulaManagerView pFmgr) {
-    fmgr = pFmgr;
-  }
+  protected LemmaExtractorVisitor() {}
 
   @Override
   protected Pair<BitvectorFormula, BitvectorFormula> visitDefault(Formula pFormula) {

@@ -199,8 +199,7 @@ public class ACSLParserUtils {
    * for predicate abstraction.
    */
   public static ExpressionTree<AExpression> extractLemmaAsExpressionTree(
-      String pStatement, CParser pCParser, CProgramScope pScope, ParserTools pParserTools)
-      throws Exception {
+      String pStatement, CParser pCParser, CProgramScope pScope) throws Exception {
     CExpressionStatement statement;
     try {
       statement = parseACSLStatement(pStatement, pCParser, pScope);

@@ -244,7 +244,7 @@ public final class PredicatePrecisionBootstrapper {
   }
 
   public LemmaPrecision prepareInitialLemmas()
-      throws InterruptedException, InvalidConfigurationException, CPATransferException {
+      throws InterruptedException, InvalidConfigurationException {
     ImmutableList.Builder<LemmaSetEntry> lemmaSetEntriesBuilder = ImmutableList.builder();
     ImmutableList.Builder<LemmaEntry> lemmaSetBuilder = ImmutableList.builder();
     ImmutableList.Builder<String> declarationEntriesBuilder = ImmutableList.builder();
@@ -286,7 +286,7 @@ public final class PredicatePrecisionBootstrapper {
       scope.addDeclarationToScope(declaration);
     }
     ImmutableMap.Builder<BitvectorFormula, AbstractionLemma> lemmas = new ImmutableMap.Builder<>();
-    LemmaExtractorVisitor extractor = new LemmaExtractorVisitor(formulaManagerView);
+    LemmaExtractorVisitor extractor = new LemmaExtractorVisitor();
     for (LemmaEntry lemma : lemmaSet) {
       try {
         Pair<BitvectorFormula, BitvectorFormula> lemmaPair =

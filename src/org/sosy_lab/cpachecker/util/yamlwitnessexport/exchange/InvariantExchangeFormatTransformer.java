@@ -144,8 +144,7 @@ public class InvariantExchangeFormatTransformer {
 
   public ExpressionTree<AExpression> parseLemmaEntry(LemmaEntry pLemmaEntry, CProgramScope pScope)
       throws Exception {
-    return ACSLParserUtils.extractLemmaAsExpressionTree(
-        pLemmaEntry.value(), cparser, pScope, parserTools);
+    return ACSLParserUtils.extractLemmaAsExpressionTree(pLemmaEntry.value(), cparser, pScope);
   }
 
   /**

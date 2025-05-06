@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.Lists;
 import java.util.List;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -20,8 +19,7 @@ public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<Form
   private final LemmaPrecision lemmaMap;
   private final FormulaManager fmgr;
 
-  public RecursiveLemmaApplicationVisitor(
-      LemmaPrecision pLemmaMap, FormulaManagerView pFmgrView, FormulaManager pFmgr) {
+  public RecursiveLemmaApplicationVisitor(LemmaPrecision pLemmaMap, FormulaManager pFmgr) {
     lemmaMap = pLemmaMap;
     fmgr = pFmgr;
   }
