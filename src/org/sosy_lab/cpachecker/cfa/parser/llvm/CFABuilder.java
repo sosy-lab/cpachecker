@@ -1047,12 +1047,6 @@ public class CFABuilder {
         operation = BinaryOperator.SHIFT_LEFT;
         break;
       case LShr: // Logical shift right
-        // GNU C performs a logical shift for unsigned types
-        op1type =
-            typeConverter.getCType(
-                operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
-        operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
-      // $FALL-THROUGH$
       case AShr: // Arithmetic shift right
         if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
           throw new UnsupportedOperationException(
@@ -1067,6 +1061,14 @@ public class CFABuilder {
           if (op2value < 0 || op2value >= bitwidthOp1) {
             throw new LLVMException("Shift count is negative or >= width of type");
           }
+        }
+
+        if (pOpCode == OpCode.LShr) {
+          // GNU C performs a logical shift for unsigned types
+          op1type =
+              typeConverter.getCType(
+                  operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
+          operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
         }
 
         // operand2 should always be treated as an unsigned value
