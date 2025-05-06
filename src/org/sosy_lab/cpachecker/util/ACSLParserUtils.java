@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.ACSLVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -187,6 +188,39 @@ public class ACSLParserUtils {
       throw new RuntimeException("Parsing ACSL statement failed.");
     }
     return result;
+  }
+
+  /**
+   * This method takes a C statement string that might contain a function call and parses it into an
+   * ExpressionTree.
+   *
+   * <p>This method is only intended as a temporary workaround until a proper ACSL-parser has been
+   * implemented. It should not be used anywhere outside the parsing of lemmas from a YAML * witness
+   * for predicate abstraction.
+   */
+  public static ExpressionTree<AExpression> extractLemmaAsExpressionTree(
+      String pStatement, CParser pCParser, CProgramScope pScope, ParserTools pParserTools)
+      throws Exception {
+    CExpressionStatement statement;
+    try {
+      statement = parseACSLStatement(pStatement, pCParser, pScope);
+    } catch (InvalidAutomatonException e) {
+      throw new RuntimeException("Parsing ACSL statement failed.");
+    }
+
+    // Lemmas have the form <Function> == <Replacement>
+    assert statement.getExpression() instanceof CBinaryExpression;
+    CBinaryExpression expression = (CBinaryExpression) statement.getExpression();
+    /*
+    CExpression function = expression.getOperand1();
+    assert function instanceof ACSLFunctionCall;
+    String funcName = ((ACSLFunctionCall) function).getDeclaration().getName();
+    CExpression replacement = expression.getOperand2();
+
+     */
+
+    ExpressionTree<AExpression> expressionTree = LeafExpression.of(expression);
+    return expressionTree;
   }
 
   /**

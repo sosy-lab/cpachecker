@@ -8,16 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public class AbstractionLemma {
-  final BooleanFormula formula;
+  final Formula formula;
 
-  public AbstractionLemma(BooleanFormula pFormula) {
+  public AbstractionLemma(Formula pFormula) {
     formula = pFormula;
   }
 
-  public BooleanFormula getFormula() {
+  public Formula getFormula() {
     return formula;
   }
 }

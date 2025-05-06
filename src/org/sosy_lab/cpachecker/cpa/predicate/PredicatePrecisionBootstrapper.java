@@ -12,6 +12,7 @@ import static org.sosy_lab.cpachecker.cfa.Language.C;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ACSLParserUtils;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -71,6 +73,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchange
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -282,10 +285,14 @@ public final class PredicatePrecisionBootstrapper {
     for (CDeclaration declaration : declarations) {
       scope.addDeclarationToScope(declaration);
     }
-    ImmutableSet.Builder<AbstractionLemma> lemmas = new ImmutableSet.Builder<>();
+    ImmutableMap.Builder<BitvectorFormula, AbstractionLemma> lemmas = new ImmutableMap.Builder<>();
+    LemmaExtractorVisitor extractor = new LemmaExtractorVisitor(formulaManagerView);
     for (LemmaEntry lemma : lemmaSet) {
       try {
-        lemmas.add(new AbstractionLemma(toFormula(transformer.parseLemmaEntry(lemma, scope))));
+        Pair<BitvectorFormula, BitvectorFormula> lemmaPair =
+            formulaManagerView.visit(
+                toFormula(transformer.parseLemmaEntry(lemma, scope)), extractor);
+        lemmas.put(lemmaPair.getFirst(), new AbstractionLemma(lemmaPair.getSecond()));
       } catch (Exception e) {
         logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
       }
