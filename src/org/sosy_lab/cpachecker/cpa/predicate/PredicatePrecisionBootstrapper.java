@@ -297,7 +297,7 @@ public final class PredicatePrecisionBootstrapper {
         logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
       }
     }
-    return new LemmaPrecision(lemmas.build());
+    return new LemmaPrecision(lemmas.buildOrThrow());
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

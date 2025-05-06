@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.Lists;
 import java.util.List;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -20,7 +19,7 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
  * A visitor that replaces calls for a lemma function in {@link Formula} with definition of the
  * Lemma.
  */
-public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<BooleanFormula> {
+public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<Formula> {
   private final LemmaPrecision lemmaMap;
   private final FormulaManager fmgr;
 
@@ -30,22 +29,22 @@ public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<Bool
   }
 
   @Override
-  public BooleanFormula visitFunction(
+  public Formula visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
     if (lemmaMap.getLemmas().containsKey(f)) {
-      return (BooleanFormula) lemmaMap.getLemmas().get(f).getFormula();
+      return lemmaMap.getLemmas().get(f).getFormula();
     }
     List<Formula> newArgs = Lists.transform(args, arg -> fmgr.visit(arg, this));
-    return (BooleanFormula) fmgr.makeApplication(functionDeclaration, newArgs);
+    return fmgr.makeApplication(functionDeclaration, newArgs);
   }
 
   @Override
-  public BooleanFormula visitFreeVariable(Formula f, String name) {
-    return (BooleanFormula) f;
+  public Formula visitFreeVariable(Formula f, String name) {
+    return f;
   }
 
   @Override
-  protected BooleanFormula visitDefault(Formula pFormula) {
-    return (BooleanFormula) pFormula;
+  protected Formula visitDefault(Formula pFormula) {
+    return pFormula;
   }
 }
