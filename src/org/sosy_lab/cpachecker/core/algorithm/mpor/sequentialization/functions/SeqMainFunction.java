@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -247,7 +246,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // if enabled: bit vectors (for partial order reductions)
-    if (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)) {
+    if (pOptions.porBitVectorReduction.isEnabled() && pOptions.porBitVectorEncoding.isEnabled()) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
         rVariableDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
       }

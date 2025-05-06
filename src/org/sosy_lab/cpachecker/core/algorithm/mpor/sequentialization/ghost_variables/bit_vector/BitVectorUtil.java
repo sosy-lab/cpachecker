@@ -46,7 +46,7 @@ public class BitVectorUtil {
       @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
       @NonNull ImmutableList<CVariableDeclaration> pVariables) {
 
-    checkArgument(!pOptions.porBitVectorEncoding.isEnabled(), "no bit vector encoding specified");
+    checkArgument(pOptions.porBitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
         pAllVariables.keySet().containsAll(pVariables),
         "pAllVariables must contain all pVariables as keys.");
