@@ -234,7 +234,6 @@ public class ProofSlicer {
             updatedVars.addAll(succVars);
           }
         }
-        return;
       }
       case DeclarationEdge -> {
         if (((CDeclarationEdge) edge).getDeclaration() instanceof CVariableDeclaration) {
@@ -255,7 +254,6 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
       }
       case ReturnStatementEdge -> {
         CReturnStatementEdge retStm = ((CReturnStatementEdge) edge);
@@ -276,7 +274,6 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
       }
       case FunctionCallEdge -> {
         CFunctionCallEdge funCall = ((CFunctionCallEdge) edge);
@@ -299,7 +296,6 @@ public class ProofSlicer {
             updatedVars.add(var);
           }
         }
-        return;
       }
       case FunctionReturnEdge -> {
         CFunctionReturnEdge funRet = ((CFunctionReturnEdge) edge);
@@ -317,7 +313,6 @@ public class ProofSlicer {
         } else {
           updatedVars.addAll(succVars);
         }
-        return;
       }
       case CallToReturnEdge -> throw new AssertionError();
       case AssumeEdge -> {
@@ -330,11 +325,9 @@ public class ProofSlicer {
           }
         }
         updatedVars.addAll(succVars);
-        return;
       }
       case BlankEdge -> {
         updatedVars.addAll(succVars);
-        return;
       }
       default -> throw new AssertionError();
     }
