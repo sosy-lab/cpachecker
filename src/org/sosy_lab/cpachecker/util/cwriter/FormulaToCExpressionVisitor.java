@@ -69,7 +69,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
-    String result = null;
+    String result;
     // rule for visitation:
     // - every argument already has all necessary brackets, except variables (-> plain string).
     // - the result has surrounding brackets.
@@ -96,6 +96,7 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
         // Ignore because otherwise rounding mode is treated like an additional operand
         // TODO These cases do not insert anything into the cache and might result in an invalid or
         //      incomplete result. We should better abort here than continue with an invalid result.
+        result = null;
         break;
       case FP_ADD:
       case FP_SUB:

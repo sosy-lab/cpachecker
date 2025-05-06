@@ -150,7 +150,7 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
   @Override
   public Boolean visitFunction(
       Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-    String op = null;
+    String op;
     FunctionDeclarationKind kind = pFunctionDeclaration.getKind();
 
     // despite being ugly, this way I can
@@ -266,8 +266,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "0 ==";
         break;
       case ITE:
-        // Special-case that is to be handled separately
-        // below
+        // Special-case that is to be handled separately below
+        op = null;
         break;
       case BV_SHL:
         op = "<<";
