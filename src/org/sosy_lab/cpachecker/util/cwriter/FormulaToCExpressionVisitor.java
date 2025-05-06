@@ -114,14 +114,16 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                 "%s ? %s : %s",
                 cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
         break;
-      case BV_EXTRACT:
-        if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
-          result = cache.get(newArgs.get(0)) + " < 0";
-          break;
-        }
-      // $FALL-THROUGH$
       default:
         {
+          if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
+            // TODO The naming of this SMT function is specific to one solver
+            // and the handling in this manner is likely not correct in all cases (unsigned vars)
+            // and it is specific to one particular bitwidth, all of which it should not be.
+            result = cache.get(newArgs.get(0)) + " < 0";
+            break;
+          }
+
           List<String> expressions = new ArrayList<>(newArgs.size());
           for (Formula arg : newArgs) {
             // TODO If the arg is not in the cache, we will get an invalid or incomplete result.
