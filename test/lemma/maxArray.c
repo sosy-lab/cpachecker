@@ -12,9 +12,9 @@ void reach_error() { __assert_fail("0", "linear-inequality-inv-a.c", 2, "reach_e
 extern unsigned __VERIFIER_nondet_uint();
 extern unsigned __VERIFIER_nondet_uchar();
 
-int maxArray(int* a, int l, int n) {
+int maxArray(int* a, unsigned int l, unsigned int n) {
   int m = a[0];
-  int j = 1;
+  int j = 0;
   while(j < l) {
     if(a[j] > m) {
       m = a[j];
@@ -31,18 +31,18 @@ int maxArray(int* a, int l, int n) {
 int main() {
   int arr[50];
   int i = 0;
-  int l = 50;
-  while(i < l){
+  unsigned int length = 50;
+  while(i < length){
     arr[i] = __VERIFIER_nondet_uint();
     i++;
   }
-  char k = 0;
+  unsigned char k = 0;
   while(1) {
-    char k = __VERIFIER_nondet_uchar();
-    if(k < l) {
+    k = __VERIFIER_nondet_uchar();
+    if(k < length) {
       break;
     }
   }
 
-  return maxArray(arr,l,k);
+  return maxArray(arr,length,k);
 }
