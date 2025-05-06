@@ -180,16 +180,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "-";
         break;
       case BV_SDIV:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_UDIV:
       case FP_DIV:
       case DIV:
         op = "/";
         break;
       case BV_SREM:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_UREM:
       case MODULO:
         op = "%";
@@ -206,32 +202,24 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
         op = "==";
         break;
       case BV_SGT:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_UGT:
       case FP_GT:
       case GT:
         op = ">";
         break;
       case BV_SGE:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_UGE:
       case FP_GE:
       case GTE:
         op = ">=";
         break;
       case BV_SLT:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_ULT:
       case FP_LT:
       case LT:
         op = "<";
         break;
       case BV_SLE:
-        bvSigned = true;
-      // $FALL-THROUGH$
       case BV_ULE:
       case FP_LE:
       case LTE:
@@ -279,6 +267,12 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       default:
         return Boolean.FALSE;
     }
+    bvSigned =
+        switch (kind) {
+          case BV_SDIV, BV_SREM, BV_SGT, BV_SGE, BV_SLT, BV_SLE -> true;
+          default -> false;
+        };
+
     builder.append("( ");
     if (pArgs.size() == 3 && pFunctionDeclaration.getKind() == FunctionDeclarationKind.ITE) {
       if (!fmgr.visit(pArgs.get(0), this)) {

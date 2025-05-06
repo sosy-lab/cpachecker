@@ -100,6 +100,7 @@ import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.Value;
+import org.sosy_lab.llvm_j.Value.IntPredicate;
 import org.sosy_lab.llvm_j.Value.OpCode;
 
 /** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
@@ -1758,10 +1759,9 @@ public class CFABuilder {
       throws LLVMException {
     // the only one supported now
     assert pItem.isICmpInst() : "Unsupported cmp instruction: " + pItem;
-    boolean isUnsignedCmp = false;
-
+    IntPredicate cmpPredicate = pItem.getICmpPredicate();
     BinaryOperator operator;
-    switch (pItem.getICmpPredicate()) {
+    switch (cmpPredicate) {
       case IntEQ:
         operator = BinaryOperator.EQUALS;
         break;
@@ -1769,32 +1769,29 @@ public class CFABuilder {
         operator = BinaryOperator.NOT_EQUALS;
         break;
       case IntUGT:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
       case IntSGT:
         operator = BinaryOperator.GREATER_THAN;
         break;
       case IntULT:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
       case IntSLT:
         operator = BinaryOperator.LESS_THAN;
         break;
       case IntULE:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
       case IntSLE:
         operator = BinaryOperator.LESS_EQUAL;
         break;
       case IntUGE:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
       case IntSGE:
         operator = BinaryOperator.GREATER_EQUAL;
         break;
       default:
         throw new UnsupportedOperationException("Unsupported predicate");
     }
+    final boolean isUnsignedCmp =
+        switch (cmpPredicate) {
+          case IntUGT, IntULT, IntULE, IntSGE -> true;
+          default -> false;
+        };
 
     assert operator != null;
     Value operand1 = pItem.getOperand(0);
