@@ -47,8 +47,8 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class SymbolEncoding {
 
-  private Set<CSimpleDeclaration> decls = new HashSet<>();
-  private MachineModel machineModel = null;
+  private final Set<CSimpleDeclaration> decls;
+  private final MachineModel machineModel;
 
   /**
    * This set contains function symbols that have a (maybe) unknown, but valid type. We do not care
@@ -107,9 +107,6 @@ public class SymbolEncoding {
           "to_int",
           "_",
           "divisible");
-
-  /** create an empty symbol encoding */
-  public SymbolEncoding() {}
 
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
