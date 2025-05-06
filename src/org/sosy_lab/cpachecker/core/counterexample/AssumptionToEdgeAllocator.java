@@ -1100,7 +1100,7 @@ public class AssumptionToEdgeAllocator {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
-                  break;
+                  return super.visit(binaryExp);
                 }
               // $FALL-THROUGH$
               case BINARY_AND:
@@ -1110,10 +1110,11 @@ public class AssumptionToEdgeAllocator {
               case SHIFT_RIGHT:
                 return Value.UnknownValue.getInstance();
               default:
-                break;
+                return super.visit(binaryExp);
             }
+          } else {
+            return super.visit(binaryExp);
           }
-          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
