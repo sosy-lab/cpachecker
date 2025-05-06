@@ -4135,12 +4135,6 @@ dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.
 # File name for analysis report in case a counterexample was found.
 detailed_cex.detailedCounterexample = "Counterexample.variable.%d.txt"
 
-# export counterexample to file, if one is found
-detailed_cex.errorInputs = "nondets.txt"
-
-# Export all assignments, not just nondet ones
-detailed_cex.exportAllAssignments = false
-
 # How many satisfying assignments to find per CEX; -1 for all
 detailed_cex.maxAssignments = 10
 
