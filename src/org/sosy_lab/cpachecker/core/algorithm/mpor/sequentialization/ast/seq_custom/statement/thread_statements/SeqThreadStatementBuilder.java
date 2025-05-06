@@ -518,7 +518,7 @@ public class SeqThreadStatementBuilder {
 
     // exiting start_routine of thread -> blank, just set pc[i] = -1;
     if (pSuccessor instanceof FunctionExitNode
-        && pSuccessor.getFunction().getType().equals(pThread.startRoutine)) {
+        && pSuccessor.getFunction().equals(pThread.startRoutine)) {
       // TODO this needs to be refactored once we support start routine return values
       //  that can be used with pthread_join -> block may not be blank but sets the return value
       return true;
