@@ -267,8 +267,9 @@ class ExpressionValueVisitor
                 unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-      case TILDE:
 
+      case ALIGNOF:
+      case TILDE:
       default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     }

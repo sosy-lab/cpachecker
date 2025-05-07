@@ -102,6 +102,7 @@ class PointerVisitor extends ExpressionValueVisitor {
       case AMPER:
         return handleAmper(unaryOperand);
 
+      case ALIGNOF:
       case SIZEOF:
         throw new UnrecognizedCodeException(
             "Misinterpreted the expression type of "
@@ -112,9 +113,10 @@ class PointerVisitor extends ExpressionValueVisitor {
 
       case MINUS:
       case TILDE:
-      default:
         // Can't evaluate these Addresses
         return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+      default:
+        throw new AssertionError();
     }
   }
 
