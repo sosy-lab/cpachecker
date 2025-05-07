@@ -47,12 +47,13 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
-    recursivelyBuildTree(statements, tabs, 0, statements.size() - 1, expression, tree);
+    recursivelyBuildTree(statements, tabs, tabs, 0, statements.size() - 1, expression, tree);
     return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
   private void recursivelyBuildTree(
       final ImmutableList<? extends SeqStatement> pStatements,
+      final int pInitialDepth,
       int pDepth,
       int pLow,
       int pHigh,
@@ -68,16 +69,16 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
 
     if (pHigh - pLow == 1) {
       // only two elements -> create if and else leafs with ==
-      pTree.add(buildIfEqualsLeaf(pStatements, pDepth, pLow, pPc));
-      pTree.add(buildElseLeaf(pStatements.get(pHigh), pDepth));
+      pTree.add(buildIfEqualsLeaf(pStatements, pInitialDepth, pDepth, pLow, pPc));
+      pTree.add(buildElseLeaf(pStatements.get(pHigh), pInitialDepth, pDepth));
 
     } else {
       // more than two elements -> create if and else subtrees with <
       int mid = (pLow + pHigh) / 2;
       pTree.add(buildIfSmallerSubtree(pDepth, mid, pPc));
-      recursivelyBuildTree(pStatements, pDepth + 1, pLow, mid, pPc, pTree);
-      pTree.add(buildElseSubtree(pDepth));
-      recursivelyBuildTree(pStatements, pDepth + 1, mid + 1, pHigh, pPc, pTree);
+      recursivelyBuildTree(pStatements, pInitialDepth, pDepth + 1, pLow, mid, pPc, pTree);
+      pTree.add(buildElseSubtree(pDepth, pStatements.get(pLow)));
+      recursivelyBuildTree(pStatements, pInitialDepth, pDepth + 1, mid + 1, pHigh, pPc, pTree);
       pTree.add(LineOfCode.of(pDepth, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
   }
@@ -96,13 +97,25 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
         pDepth, ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
   }
 
-  private LineOfCode buildElseSubtree(int pDepth) throws UnrecognizedCodeException {
+  private LineOfCode buildElseSubtree(int pDepth, SeqStatement pLowStatement)
+      throws UnrecognizedCodeException {
+
     SeqSingleControlFlowStatement elseSubtree = new SeqSingleControlFlowStatement();
-    return LineOfCode.of(pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+    if (pLowStatement instanceof SeqBinaryIfTreeStatement) {
+      // add additional newline prefix, if else subtree is binary tree itself
+      return LineOfCode.withNewlinePrefix(
+          pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+    } else {
+      return LineOfCode.of(pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+    }
   }
 
   private LineOfCode buildIfEqualsLeaf(
-      ImmutableList<? extends SeqStatement> pStatements, int pDepth, int pLow, CLeftHandSide pPc)
+      ImmutableList<? extends SeqStatement> pStatements,
+      int pInitialDepth,
+      int pDepth,
+      int pLow,
+      CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
     SeqSingleControlFlowStatement ifLeaf =
@@ -113,24 +126,42 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
                 BinaryOperator.EQUALS),
             SeqControlFlowStatementType.IF);
     SeqStatement lowStatement = pStatements.get(pLow);
-    String lowCode;
-    if (lowStatement instanceof SeqBinaryIfTreeStatement) {
-      // add newline if the statement itself is a binary tree for formatting
-      lowCode = SeqStringUtil.wrapInCurlyInwardsWithNewlines(lowStatement.toASTString(), pDepth);
-    } else {
-      lowCode = SeqStringUtil.wrapInCurlyInwards(lowStatement.toASTString());
-    }
-    return LineOfCode.of(pDepth, ifLeaf.toASTString() + SeqSyntax.SPACE + lowCode);
+    return buildLeaf(ifLeaf, lowStatement, pInitialDepth, pDepth);
   }
 
-  private LineOfCode buildElseLeaf(SeqStatement pHighStatement, int pDepth)
+  private LineOfCode buildElseLeaf(SeqStatement pHighStatement, int pInitialDepth, int pDepth)
       throws UnrecognizedCodeException {
 
     SeqSingleControlFlowStatement elseLeaf = new SeqSingleControlFlowStatement();
-    return LineOfCode.of(
-        pDepth,
-        elseLeaf.toASTString()
-            + SeqSyntax.SPACE
-            + SeqStringUtil.wrapInCurlyInwards(pHighStatement.toASTString()));
+    return buildLeaf(elseLeaf, pHighStatement, pInitialDepth, pDepth);
+  }
+
+  private LineOfCode buildLeaf(
+      SeqSingleControlFlowStatement pControlFlowStatement,
+      SeqStatement pStatement,
+      int pInitialDepth,
+      int pDepth)
+      throws UnrecognizedCodeException {
+
+    String prefix = pControlFlowStatement.toASTString() + SeqSyntax.SPACE;
+    if (pStatement instanceof SeqBinaryIfTreeStatement) {
+      // no newline if the statement itself is a binary tree for formatting
+      String code =
+          SeqStringUtil.wrapInCurlyInwardsWithNewlines(pStatement.toASTString(), 0, pDepth);
+      if (pControlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
+        // no additional tabs, when else leaf is binary tree so that "} else {" is compact
+        return LineOfCode.withoutNewlineSuffix(0, SeqSyntax.SPACE + prefix + code);
+      }
+      return LineOfCode.withoutNewlineSuffix(pDepth, prefix + code);
+    } else {
+      String code = SeqStringUtil.wrapInCurlyInwards(pStatement.toASTString());
+      if (pControlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
+        if (pInitialDepth == pDepth) {
+          // align if-else leafs
+          return LineOfCode.of(pDepth - 1, prefix + code);
+        }
+      }
+      return LineOfCode.of(pDepth, prefix + code);
+    }
   }
 }

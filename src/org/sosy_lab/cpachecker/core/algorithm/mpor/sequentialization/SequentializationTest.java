@@ -50,7 +50,7 @@ public class SequentializationTest {
   // weaver/popl20-send-receive-alt.wvr
 
   @Test
-  public void testCompileSeq_13_privatized_04_priv_multi_true() throws Exception {
+  public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/13-privatized_04-priv_multi_true.c");
@@ -71,11 +71,11 @@ public class SequentializationTest {
             true,
             true,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_28_race_reach_45_escape_racing() throws Exception {
+  public void test_28_race_reach_45_escape_racing() throws Exception {
     // this program contains a start_routine argument passed via pthread_create
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/28-race_reach_45-escape_racing.c");
     assertThat(Files.exists(path)).isTrue();
@@ -95,11 +95,11 @@ public class SequentializationTest {
             true,
             true,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
+  public void test_36_apron_41_threadenter_no_locals_unknown_1_pos() throws Exception {
     // this program contains only local variables, no global variables
     Path path =
         Path.of(
@@ -121,13 +121,13 @@ public class SequentializationTest {
             true,
             false,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   // TODO there is a jump to the loop head label directly here instead of doing a context switch
   //  even though the loop head accesses a global variable
   @Test
-  public void testCompileSeq_fib_safe7() throws Exception {
+  public void test_fib_safe7() throws Exception {
     // this example demonstrates the need to handle local variables with initializers explicitly.
     // otherwise the local variables are declared (and initialized) and then never updated in cases.
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/fib_safe-7.c");
@@ -148,11 +148,11 @@ public class SequentializationTest {
             true,
             true,
             true);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_lazy01() throws Exception {
+  public void test_lazy01() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/lazy01.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
@@ -171,11 +171,11 @@ public class SequentializationTest {
             true,
             false,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
+  public void test_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
     // this program is ... very large
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");
@@ -196,11 +196,11 @@ public class SequentializationTest {
             true,
             false,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_queue_longest() throws Exception {
+  public void test_queue_longest() throws Exception {
     // this program has a start_routine return via pthread_exit, and pthread_join stores the retval
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/queue_longest.c");
     assertThat(Files.exists(path)).isTrue();
@@ -220,11 +220,11 @@ public class SequentializationTest {
             true,
             false,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_read_write_lock_2() throws Exception {
+  public void test_read_write_lock_2() throws Exception {
     // this program contains start_routines that start directly with a function call.
     // this forces us to reorder the thread statements, because function statements are usually
     // at the bottom of a thread simulation.
@@ -246,11 +246,11 @@ public class SequentializationTest {
             true,
             false,
             false);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_simple_two() throws Exception {
+  public void test_simple_two() throws Exception {
     // this program contains no return statements for the created threads
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/simple_two.c");
     assertThat(Files.exists(path)).isTrue();
@@ -270,11 +270,11 @@ public class SequentializationTest {
             false,
             true,
             true);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_singleton_with_uninit_problems_b() throws Exception {
+  public void test_singleton_with_uninit_problems_b() throws Exception {
     // this program has thread creations inside a non-main thread
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/singleton_with-uninit-problems-b.c");
@@ -295,11 +295,11 @@ public class SequentializationTest {
             false,
             true,
             true);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
   @Test
-  public void testCompileSeq_stack1() throws Exception {
+  public void test_stack1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
@@ -318,10 +318,10 @@ public class SequentializationTest {
             true,
             false,
             true);
-    testCompile(path, options);
+    testProgram(path, options);
   }
 
-  private void testCompile(Path pInputFilePath, MPOROptions pOptions) throws Exception {
+  private void testProgram(Path pInputFilePath, MPOROptions pOptions) throws Exception {
     // create cfa for test program pFileName
     LogManager logger = LogManager.createTestLogManager();
     ShutdownNotifier shutdownNotifier = ShutdownNotifier.createDummy();

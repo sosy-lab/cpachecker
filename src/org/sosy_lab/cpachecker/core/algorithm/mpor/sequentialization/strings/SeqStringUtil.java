@@ -69,11 +69,13 @@ public class SeqStringUtil {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  public static String wrapInCurlyInwardsWithNewlines(String pString, int pTabs) {
+  public static String wrapInCurlyInwardsWithNewlines(
+      String pString, int pBeginTabs, int pEndTabs) {
+
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.NEWLINE
-        + prependTabsWithNewline(pTabs + 1, pString)
-        + prependTabsWithoutNewline(pTabs, SeqSyntax.CURLY_BRACKET_RIGHT);
+        + prependTabsWithNewline(pBeginTabs, pString)
+        + prependTabsWithoutNewline(pEndTabs, SeqSyntax.CURLY_BRACKET_RIGHT);
   }
 
   /** Returns "} pString {" */

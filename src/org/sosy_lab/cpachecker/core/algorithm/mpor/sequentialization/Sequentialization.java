@@ -238,7 +238,7 @@ public class Sequentialization {
               inputFileName, pLineNumber, SeqToken.__PRETTY_FUNCTION__);
       String replacement =
           code.replace(inputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-      return pLineOfCode.copyWithCode(replacement);
+      return pLineOfCode.cloneWithCode(replacement);
 
     } else if (code.contains(outputReachErrorDummy)) {
       // reach_error calls injected by the sequentialization
@@ -249,7 +249,7 @@ public class Sequentialization {
               SeqToken.__SEQUENTIALIZATION_ERROR__);
       String replacement =
           code.replace(outputReachErrorDummy, reachErrorCall.toASTString() + SeqSyntax.SEMICOLON);
-      return pLineOfCode.copyWithCode(replacement);
+      return pLineOfCode.cloneWithCode(replacement);
     }
     return pLineOfCode;
   }

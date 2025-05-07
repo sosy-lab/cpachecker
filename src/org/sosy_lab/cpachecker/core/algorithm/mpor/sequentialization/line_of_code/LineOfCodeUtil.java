@@ -305,7 +305,7 @@ public class LineOfCodeUtil {
     for (int i = 0; i < pLineOfCodes.size(); i++) {
       if (i == pLineOfCodes.size() - 1) {
         // last line: no newline
-        rString.append(pLineOfCodes.get(i).toStringWithoutNewline());
+        rString.append(pLineOfCodes.get(i).cloneWithoutNewline().toString());
       } else {
         rString.append(pLineOfCodes.get(i).toString());
       }
