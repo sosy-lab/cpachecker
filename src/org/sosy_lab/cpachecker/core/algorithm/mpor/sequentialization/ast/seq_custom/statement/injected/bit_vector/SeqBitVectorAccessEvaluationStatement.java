@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -23,11 +23,11 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
 
   private final Optional<SeqLogicalNotExpression> evaluationExpression;
 
-  public final SeqSwitchCaseGotoLabelStatement gotoLabel;
+  public final SeqBlockGotoLabelStatement gotoLabel;
 
   public SeqBitVectorAccessEvaluationStatement(
       Optional<SeqLogicalNotExpression> pEvaluationExpression,
-      SeqSwitchCaseGotoLabelStatement pGotoLabel) {
+      SeqBlockGotoLabelStatement pGotoLabel) {
 
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;

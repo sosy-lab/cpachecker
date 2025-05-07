@@ -17,7 +17,6 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
@@ -75,7 +74,7 @@ class StatementConcatenator {
       // prevent start in already concatenated clauses, otherwise they are duplicated
       if (concatenated.add(caseClause.id)) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement statement : caseClause.block.statements) {
+        for (SeqThreadStatement statement : caseClause.block.getStatements()) {
           newStatements.add(
               recursivelyConcatenateStatements(
                   firstConcat,
@@ -87,8 +86,7 @@ class StatementConcatenator {
                   labelValueMap));
           firstConcat = false;
         }
-        SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
-        SeqThreadStatementClause clone = caseClause.cloneWithBlock(newBlock);
+        SeqThreadStatementClause clone = caseClause.cloneWithBlockStatements(newStatements.build());
         newCaseClauses.add(clone);
       }
     }
@@ -124,7 +122,7 @@ class StatementConcatenator {
           pDuplicated.add(newTarget.id);
         }
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement statement : newTarget.block.statements) {
+        for (SeqThreadStatement statement : newTarget.block.getStatements()) {
           newStatements.add(
               recursivelyConcatenateStatements(
                   // encounter global in first concat -> set first concat to false
@@ -156,7 +154,7 @@ class StatementConcatenator {
         && !pTarget.isCriticalSectionStart()
         // only consider global if not ignored
         && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
-            || pTarget.block.statements.contains(pStatement));
+            || pTarget.block.getStatements().contains(pStatement));
   }
 
   /**
@@ -192,13 +190,12 @@ class StatementConcatenator {
     ImmutableList.Builder<SeqThreadStatementClause> rWithGoto = ImmutableList.builder();
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(
             SeqThreadStatementClauseUtil.recursivelyReplaceTargetPcWithTargetGoto(
                 statement, pLoopHeadLabels));
       }
-      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
-      rWithGoto.add(caseClause.cloneWithBlock(newBlock));
+      rWithGoto.add(caseClause.cloneWithBlockStatements(newStatements.build()));
     }
     return rWithGoto.build();
   }
@@ -213,7 +210,7 @@ class StatementConcatenator {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList<SeqThreadStatement> newStatements =
           tryInjectLoopHeadLabel(pOptions, pThread, caseClause, pLoopHeads);
-      rWithLabels.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements)));
+      rWithLabels.add(caseClause.cloneWithBlockStatements(newStatements));
     }
     return rWithLabels.build();
   }
@@ -230,7 +227,7 @@ class StatementConcatenator {
 
     // for non-loop head and global statements, return statements as they are.
     if (!pCaseClause.isLoopStart || pCaseClause.isGlobal) {
-      return pCaseClause.block.statements;
+      return pCaseClause.block.getStatements();
     }
 
     // create loop head label for the first statement
@@ -243,7 +240,7 @@ class StatementConcatenator {
     // inject cloned statement with loop head label
     ImmutableList.Builder<SeqThreadStatement> rWithLabel = ImmutableList.builder();
     rWithLabel.add(cloneWithLabel);
-    for (SeqThreadStatement statement : pCaseClause.block.statements) {
+    for (SeqThreadStatement statement : pCaseClause.block.getStatements()) {
       // add other statements as they were
       if (!statement.equals(firstStatement)) {
         rWithLabel.add(statement);
@@ -266,7 +263,7 @@ class StatementConcatenator {
 
     ImmutableList.Builder<SeqThreadStatementClause> rPrunedInjections = ImmutableList.builder();
     SeqThreadStatementClause firstCase = pCaseClauses.get(0);
-    if (firstCase.block.statements.size() == 1) {
+    if (firstCase.block.getStatements().size() == 1) {
       SeqThreadStatement firstStatement = firstCase.block.getFirstStatement();
       if (isUnnecessaryInjection(firstCase, firstStatement)) {
         SeqInjectedStatement injected = firstStatement.getInjectedStatements().get(0);

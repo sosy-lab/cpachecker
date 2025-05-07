@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
@@ -292,14 +291,13 @@ public class SeqThreadLoopBuilder {
     ImmutableList.Builder<SeqThreadStatementClause> pUpdatedCases = ImmutableList.builder();
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         SeqThreadStatement newStatement =
             SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
                 iterationSmallerMax, pAssumeLabel, statement, labelValueMap);
         newStatements.add(newStatement);
       }
-      pUpdatedCases.add(
-          caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
+      pUpdatedCases.add(caseClause.cloneWithBlockStatements(newStatements.build()));
     }
     SeqSwitchStatement switchStatement =
         new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);

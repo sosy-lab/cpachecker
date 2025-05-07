@@ -16,8 +16,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
@@ -45,7 +45,7 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatementClause pCaseClause, Class<T> pStatementClass) {
 
     ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
-    for (SeqThreadStatement statement : pCaseClause.block.statements) {
+    for (SeqThreadStatement statement : pCaseClause.block.getStatements()) {
       if (pStatementClass.isInstance(statement)) {
         rAllStatements.addAll(getAllStatementsByClass(statement, pStatementClass));
       }
@@ -99,7 +99,7 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatementClause pCaseClause, BitVectorAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    for (SeqThreadStatement statement : pCaseClause.block.statements) {
+    for (SeqThreadStatement statement : pCaseClause.block.getStatements()) {
       rGlobalVariables.addAll(
           recursivelyFindGlobalVariablesByAccessType(
               ImmutableList.builder(), statement, pAccessType));
@@ -190,12 +190,12 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap<Integer, Integer> labelToIndexMap = mapLabelNumberToIndex(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(recursivelyReplaceTargetPc(statement, labelToIndexMap));
       }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.labelNumber));
-      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
-      rConsecutiveLabels.add(caseClause.cloneWithLabelAndBlock(index, newBlock));
+      rConsecutiveLabels.add(
+          caseClause.cloneWithLabelAndBlockStatements(index, newStatements.build()));
     }
     return rConsecutiveLabels.build();
   }
@@ -256,12 +256,12 @@ public class SeqThreadStatementClauseUtil {
     return rNewInjected.build();
   }
 
-  public static ImmutableMap<Integer, SeqSwitchCaseGotoLabelStatement> mapLabelNumbersToLabels(
+  public static ImmutableMap<Integer, SeqBlockGotoLabelStatement> mapLabelNumbersToLabels(
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
-    ImmutableMap.Builder<Integer, SeqSwitchCaseGotoLabelStatement> rMap = ImmutableMap.builder();
+    ImmutableMap.Builder<Integer, SeqBlockGotoLabelStatement> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      rMap.put(clause.labelNumber, clause.gotoLabel);
+      rMap.put(clause.labelNumber, clause.block.getGotoLabel());
     }
     return rMap.buildOrThrow();
   }
@@ -332,7 +332,7 @@ public class SeqThreadStatementClauseUtil {
                 // for statements targeting starts of critical sections, assumes are reevaluated
                 priorCriticalSection(pCurrentStatement)
                     ? pAssumeLabel
-                    : Objects.requireNonNull(target).gotoLabel));
+                    : Objects.requireNonNull(target).block.getGotoLabel()));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }
     }

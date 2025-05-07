@@ -10,14 +10,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
-// TODO rename, this is not necessarily linked to switch (bintree if-else)
-public class SeqSwitchCaseGotoLabelStatement implements SeqLabelStatement {
+public class SeqBlockGotoLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;
 
   public final int labelNumber;
 
-  public SeqSwitchCaseGotoLabelStatement(String pThreadPrefix, int pLabelNumber) {
+  public SeqBlockGotoLabelStatement(String pThreadPrefix, int pLabelNumber) {
     // we store the thread prefix so that cloning does not require the options (shortVariables)
     threadPrefix = pThreadPrefix;
     labelNumber = pLabelNumber;
@@ -33,7 +32,7 @@ public class SeqSwitchCaseGotoLabelStatement implements SeqLabelStatement {
     return threadPrefix + labelNumber;
   }
 
-  public SeqSwitchCaseGotoLabelStatement cloneWithLabelNumber(int pLabelNumber) {
-    return new SeqSwitchCaseGotoLabelStatement(threadPrefix, pLabelNumber);
+  public SeqBlockGotoLabelStatement cloneWithLabelNumber(int pLabelNumber) {
+    return new SeqBlockGotoLabelStatement(threadPrefix, pLabelNumber);
   }
 }

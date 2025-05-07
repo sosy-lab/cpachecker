@@ -20,9 +20,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -91,7 +91,7 @@ public class SeqPruner {
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       if (!caseClause.onlyWritesPc()) {
-        for (SeqThreadStatement statement : caseClause.block.statements) {
+        for (SeqThreadStatement statement : caseClause.block.getStatements()) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
             Optional<Integer> postPrunePc = findTargetPc(caseClause, statement, labelValueMap);
@@ -113,7 +113,7 @@ public class SeqPruner {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       if (!caseClause.onlyWritesPc()) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement statement : caseClause.block.statements) {
+        for (SeqThreadStatement statement : caseClause.block.getStatements()) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
             if (pPcUpdates.containsKey(targetPc)) {
@@ -126,8 +126,7 @@ public class SeqPruner {
           // otherwise add unchanged statement
           newStatements.add(statement);
         }
-        SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
-        rUpdatedTargetPc.add(caseClause.cloneWithBlock(newBlock));
+        rUpdatedTargetPc.add(caseClause.cloneWithBlockStatements(newStatements.build()));
       }
     }
     return rUpdatedTargetPc.build();
@@ -155,7 +154,7 @@ public class SeqPruner {
 
   private static int extractTargetPc(SeqThreadStatementClause pNonBlank)
       throws UnrecognizedCodeException {
-    SeqThreadStatement nonBlankSingleStatement = pNonBlank.block.statements.get(0);
+    SeqThreadStatement nonBlankSingleStatement = pNonBlank.block.getFirstStatement();
 
     if (nonBlankSingleStatement instanceof SeqBlankStatement blankStatement) {
       // the blank could have injected statements -> treat it as non-blank
@@ -174,7 +173,7 @@ public class SeqPruner {
   private static SeqThreadStatementClause getThreadExitCaseClause(
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         if (statement.getTargetPc().orElseThrow() == Sequentialization.EXIT_PC) {
           return caseClause;
         }
@@ -195,7 +194,7 @@ public class SeqPruner {
 
     checkArgument(!pInitial.onlyWritesPc(), "pInitial must not be prunable");
     if (pCurrent.onlyWritesPc()) {
-      SeqThreadStatement singleStatement = pCurrent.block.statements.get(0);
+      SeqThreadStatement singleStatement = pCurrent.block.getFirstStatement();
       Verify.verify(validPrunableCaseClause(pCurrent));
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
@@ -215,7 +214,7 @@ public class SeqPruner {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
 
     if (pCurrent.onlyWritesPc()) {
-      SeqThreadStatement singleStatement = pCurrent.block.statements.get(0);
+      SeqThreadStatement singleStatement = pCurrent.block.getFirstStatement();
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause nextCaseClause = requireNonNull(pLabelValueMap.get(targetPc));
@@ -233,10 +232,10 @@ public class SeqPruner {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pCaseClause.block.statements.size() == 1,
+        pCaseClause.block.getStatements().size() == 1,
         "prunable case clauses must contain exactly 1 statement: %s",
         pCaseClause.toASTString());
-    SeqThreadStatement statement = pCaseClause.block.statements.get(0);
+    SeqThreadStatement statement = pCaseClause.block.getFirstStatement();
     checkArgument(
         statement.onlyWritesPc(),
         "prunable statement must only write pc: %s",

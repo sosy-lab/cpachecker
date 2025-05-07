@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -36,7 +39,8 @@ public class AtomicBlockBuilder {
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
       ImmutableMap<Integer, SeqThreadStatementClause> labelMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      rWithBlocks.put(thread, injectAtomicGotos(clauses, labelMap));
+      ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelMap);
+      rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
     }
     return rWithBlocks.buildOrThrow();
   }
@@ -48,15 +52,15 @@ public class AtomicBlockBuilder {
     ImmutableList.Builder<SeqThreadStatementClause> rWithGotos = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : clause.block.statements) {
-        newStatements.add(recursivelyReplaceTargetPcWithTargetGoto(statement, pLabelMap));
+      for (SeqThreadStatement statement : clause.block.getStatements()) {
+        newStatements.add(recursivelyInjectAtomicGotos(statement, pLabelMap));
       }
-      rWithGotos.add(clause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
+      rWithGotos.add(clause.cloneWithBlockStatements(newStatements.build()));
     }
     return rWithGotos.build();
   }
 
-  private static SeqThreadStatement recursivelyReplaceTargetPcWithTargetGoto(
+  private static SeqThreadStatement recursivelyInjectAtomicGotos(
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelMap) {
 
@@ -71,8 +75,7 @@ public class AtomicBlockBuilder {
             // atomic_end -> stop replacing, need pc update and context switch
             newStatements.add(concatenatedStatement);
           } else {
-            newStatements.add(
-                recursivelyReplaceTargetPcWithTargetGoto(concatenatedStatement, pLabelMap));
+            newStatements.add(recursivelyInjectAtomicGotos(concatenatedStatement, pLabelMap));
           }
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
@@ -87,11 +90,63 @@ public class AtomicBlockBuilder {
         SeqThreadStatement firstStatement = targetClause.block.getFirstStatement();
         // only add goto when the target starts in an atomic block
         if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-          return pCurrentStatement.cloneWithTargetGoto(targetClause.gotoLabel.getLabelName());
+          return pCurrentStatement.cloneWithTargetGoto(
+              targetClause.block.getGotoLabel().getLabelName());
         }
       }
     }
     // no int target pc -> no replacement
     return pCurrentStatement;
+  }
+
+  private static ImmutableList<SeqThreadStatementClause> mergeAtomicBlocks(
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    ImmutableList.Builder<SeqThreadStatementClause> rMerged = ImmutableList.builder();
+    Set<SeqThreadStatementClause> visited = new HashSet<>();
+    for (int i = 0; i < pClauses.size(); i++) {
+      SeqThreadStatementClause clause = pClauses.get(i);
+      if (visited.add(clause)) {
+        if (clause.block.startsInAtomicBlock()) {
+          int toIndex = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
+          SeqAtomicStatementBlock newBlock =
+              new SeqAtomicStatementBlock(collectStatementBlocks(i - 1, toIndex, pClauses));
+          rMerged.add(clause.cloneWithAtomicBlock(newBlock));
+        } else {
+          if (!clause.block.startsAtomicBlock()) { // prevent duplicate atomic_begin
+            rMerged.add(clause);
+          }
+        }
+      }
+    }
+    return rMerged.build();
+  }
+
+  private static int findFirstExclusiveIndexNotInAtomicBlock(
+      int pFrom,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      Set<SeqThreadStatementClause> pVisited) {
+
+    for (int i = pFrom; i < pClauses.size(); i++) {
+      SeqThreadStatementClause clause = pClauses.get(i);
+      if (!clause.block.startsInAtomicBlock()) {
+        return i;
+      }
+      pVisited.add(clause);
+    }
+    return pClauses.size(); // if the rest is atomic block, return last index (exclusive)
+  }
+
+  private static ImmutableList<SeqThreadStatementBlock> collectStatementBlocks(
+      int pFrom, // inclusive
+      int pTo, // exclusive
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    ImmutableList.Builder<SeqThreadStatementBlock> rCollected = ImmutableList.builder();
+    for (SeqThreadStatementClause clause : pClauses.subList(pFrom, pTo)) {
+      assert clause.block instanceof SeqThreadStatementBlock;
+      rCollected.add((SeqThreadStatementBlock) clause.block);
+    }
+    return rCollected.build();
   }
 }

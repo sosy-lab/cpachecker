@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -88,7 +87,7 @@ class BitVectorAccessReducer {
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(
             recursivelyInjectBitVectors(
                 pOptions,
@@ -98,7 +97,7 @@ class BitVectorAccessReducer {
                 pBitVectorVariables,
                 labelValueMap));
       }
-      rInjected.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
+      rInjected.add(caseClause.cloneWithBlockStatements(newStatements.build()));
     }
     return rInjected.build();
   }
@@ -214,7 +213,7 @@ class BitVectorAccessReducer {
               ? Optional.empty()
               : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
       SeqBitVectorAccessEvaluationStatement rEvaluation =
-          new SeqBitVectorAccessEvaluationStatement(expression, pTarget.gotoLabel);
+          new SeqBitVectorAccessEvaluationStatement(expression, pTarget.block.getGotoLabel());
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

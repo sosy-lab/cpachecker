@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
@@ -37,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -235,14 +238,13 @@ public class SeqThreadStatementClauseBuilder {
               pSubstituteEdges,
               pGhostVariables));
     }
+    SeqBlockGotoLabelStatement gotoLabel = buildBlockLabel(pOptions, pThread.id, labelPc);
     return Optional.of(
         new SeqThreadStatementClause(
-            pOptions,
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
-            pThread.id,
             labelPc,
-            new SeqThreadStatementBlock(statements.build())));
+            new SeqThreadStatementBlock(gotoLabel, statements.build())));
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectThreadSimulationGhosts(
@@ -255,7 +257,7 @@ public class SeqThreadStatementClauseBuilder {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
 
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         ImmutableList.Builder<SeqInjectedStatement> injectedStatements = ImmutableList.builder();
 
         if (statement.getTargetPc().isPresent()) {
@@ -263,7 +265,7 @@ public class SeqThreadStatementClauseBuilder {
           if (targetPc != Sequentialization.EXIT_PC) {
             SeqThreadStatementClause target = Objects.requireNonNull(labelValueMap.get(targetPc));
             // validation enforces that total strict order entries are direct targets (= first stmt)
-            SeqThreadStatement firstStatement = target.block.statements.get(0);
+            SeqThreadStatement firstStatement = target.block.getFirstStatement();
             Optional<SeqInjectedStatement> injectedStatement =
                 SeqThreadStatementBuilder.tryBuildInjectedStatement(firstStatement);
             if (injectedStatement.isPresent()) {
@@ -280,8 +282,7 @@ public class SeqThreadStatementClauseBuilder {
           newStatements.add(statement.cloneWithInjectedStatements(injected));
         }
       }
-      SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
-      rCaseClauses.add(caseClause.cloneWithBlock(newBlock));
+      rCaseClauses.add(caseClause.cloneWithBlockStatements(newStatements.build()));
     }
     return rCaseClauses.build();
   }
@@ -304,5 +305,11 @@ public class SeqThreadStatementClauseBuilder {
       }
     }
     return false;
+  }
+
+  public static SeqBlockGotoLabelStatement buildBlockLabel(
+      MPOROptions pOptions, int pThreadId, int pLabelNumber) {
+    return new SeqBlockGotoLabelStatement(
+        SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId), pLabelNumber);
   }
 }

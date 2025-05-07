@@ -133,7 +133,7 @@ public class SeqValidator {
     ImmutableMap.Builder<Integer, ImmutableSet<Integer>> rPcMap = ImmutableMap.builder();
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableSet.Builder<Integer> targetPcs = ImmutableSet.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         targetPcs.addAll(SeqThreadStatementClauseUtil.collectAllIntegerTargetPc(statement));
       }
       rPcMap.put(caseClause.labelNumber, targetPcs.build());

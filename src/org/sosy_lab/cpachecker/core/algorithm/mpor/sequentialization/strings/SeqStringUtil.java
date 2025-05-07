@@ -36,8 +36,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqStringUtil {
 
   /** The amount of spaces in a tab, adjust as desired. */
-  public static final int TAB_SIZE = 2;
+  public static final int TAB_SIZE = 3;
 
+  /** This value - 1 is the max expected label number used for whitespace padding alignment. */
   public static final int MAX_ALIGN = 4;
 
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */

@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -88,7 +87,7 @@ class BitVectorReadWriteReducer {
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.statements) {
+      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(
             recursivelyInjectBitVectors(
                 pOptions,
@@ -99,7 +98,7 @@ class BitVectorReadWriteReducer {
                 labelValueMap,
                 pBinaryExpressionBuilder));
       }
-      rInjected.add(caseClause.cloneWithBlock(new SeqThreadStatementBlock(newStatements.build())));
+      rInjected.add(caseClause.cloneWithBlockStatements(newStatements.build()));
     }
     return rInjected.build();
   }
@@ -240,7 +239,7 @@ class BitVectorReadWriteReducer {
       Optional<BitVectorEvaluationExpression> expression =
           allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
       SeqBitVectorReadWriteEvaluationStatement rEvaluation =
-          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.gotoLabel);
+          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.block.getGotoLabel());
       return Optional.of(rEvaluation);
     }
     return Optional.empty();
