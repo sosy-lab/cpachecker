@@ -18,23 +18,14 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 public class EdgeTypeScoring implements FaultScoring {
 
   private double getScore(CFAEdge edge) {
-    switch (edge.getEdgeType()) {
-      case AssumeEdge:
-        return 100d;
-      case StatementEdge:
-        return 50d;
-      case ReturnStatementEdge:
-        return 25d;
-      case FunctionReturnEdge:
-      case CallToReturnEdge:
-      case FunctionCallEdge:
-        return 12.5;
-      case DeclarationEdge:
-      case BlankEdge:
-        return 0;
-      default:
-        throw new AssertionError();
-    }
+    return switch (edge.getEdgeType()) {
+      case AssumeEdge -> 100d;
+      case StatementEdge -> 50d;
+      case ReturnStatementEdge -> 25d;
+      case FunctionReturnEdge, CallToReturnEdge, FunctionCallEdge -> 12.5;
+      case DeclarationEdge, BlankEdge -> 0;
+      default -> throw new AssertionError();
+    };
   }
 
   @Override

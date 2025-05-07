@@ -272,16 +272,14 @@ public class SMGUseDefBasedInterpolator {
     public ImmutableList<MemoryLocation> visit(final CCompositeType pCompositeType) {
       withinComplexType = true;
 
-      switch (pCompositeType.getKind()) {
-        case STRUCT:
-          return createMemoryLocationsForStructure(pCompositeType);
-        case UNION:
-          return createMemoryLocationsForUnion(pCompositeType);
-        case ENUM: // there is no such kind of CompositeType
-          throw new AssertionError();
-        default:
-          throw new AssertionError();
-      }
+      return switch (pCompositeType.getKind()) {
+        case STRUCT -> createMemoryLocationsForStructure(pCompositeType);
+        case UNION -> createMemoryLocationsForUnion(pCompositeType);
+        case ENUM ->
+            // there is no such kind of CompositeType
+            throw new AssertionError();
+        default -> throw new AssertionError();
+      };
     }
 
     @Override

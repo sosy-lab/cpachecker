@@ -57,36 +57,22 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
     // check the type of the edge
     switch (pCfaEdge.getEdgeType()) {
-
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge:
+      case StatementEdge -> {
+        // if edge is a statement edge, e.g. a = b + c
         CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
         successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
-        break;
-
-      // edge is a declaration edge, e.g. int a;
-      case DeclarationEdge:
+        // edge is a declaration edge, e.g. int a;
+      }
+      case DeclarationEdge -> {
         CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
         successor = handleDeclaration(andersenState, declarationEdge);
-        break;
-
-      // this is an assumption, e.g. if (a == b)
-      case AssumeEdge:
-        successor = andersenState;
-        break;
-
-      case BlankEdge:
-        successor = andersenState;
-        break;
-
-      case CallToReturnEdge:
-      case FunctionCallEdge:
-      case ReturnStatementEdge:
-      case FunctionReturnEdge:
-        printWarning(pCfaEdge);
-        break;
-      default:
-        throw new AssertionError();
+        // this is an assumption, e.g. if (a == b)
+      }
+      case AssumeEdge -> successor = andersenState;
+      case BlankEdge -> successor = andersenState;
+      case CallToReturnEdge, FunctionCallEdge, ReturnStatementEdge, FunctionReturnEdge ->
+          printWarning(pCfaEdge);
+      default -> throw new AssertionError();
     }
 
     if (successor == null) {

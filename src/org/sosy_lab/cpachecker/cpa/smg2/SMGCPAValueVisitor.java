@@ -1071,23 +1071,23 @@ public class SMGCPAValueVisitor
     final CType innerType = e.getType();
 
     switch (idOperator) {
-      case SIZEOF:
+      case SIZEOF -> {
         BigInteger size = evaluator.getBitSizeof(state, innerType);
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
-
-      case ALIGNOF:
+      }
+      case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
-
-      case TYPEOF: // This can't really be solved here as we can only return Values
+      }
+      case TYPEOF -> {
+        // This can't really be solved here as we can only return Values
         logger.log(
             Level.WARNING,
             "Approximated unknown value due to missing handling of type id expression in "
                 + cfaEdge);
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 

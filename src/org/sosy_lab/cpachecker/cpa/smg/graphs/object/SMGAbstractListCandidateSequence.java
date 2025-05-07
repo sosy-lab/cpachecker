@@ -59,18 +59,13 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
   }
 
   private int getStatusScore() {
-    switch (seqStatus) {
-      case EQUAL:
-        return 50;
-      case LEFT_ENTAIL:
-        return 31;
-      case RIGHT_ENTAIL:
-        return 30;
-      case INCOMPARABLE:
-        return 0;
-      default:
-        throw new AssertionError();
-    }
+    return switch (seqStatus) {
+      case EQUAL -> 50;
+      case LEFT_ENTAIL -> 31;
+      case RIGHT_ENTAIL -> 30;
+      case INCOMPARABLE -> 0;
+      default -> throw new AssertionError();
+    };
   }
 
   @Override

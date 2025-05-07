@@ -45,46 +45,47 @@ public class NoContextExplanation implements FaultExplanation {
     CFAEdge pEdge = faultContribution.correspondingEdge();
     String description = pEdge.getDescription();
     switch (pEdge.getEdgeType()) {
-      case AssumeEdge:
-        {
-          String[] ops = {"<=", "!=", "==", ">=", "<", ">"};
-          String op = "";
-          for (String o : ops) {
-            if (description.contains(o)) {
-              op = o;
-              break;
-            }
+      case AssumeEdge -> {
+        String[] ops = {"<=", "!=", "==", ">=", "<", ">"};
+        String op = "";
+        for (String o : ops) {
+          if (description.contains(o)) {
+            op = o;
+            break;
           }
-          return "Try to replace \""
-              + op
-              + "\" in \""
-              + description
-              + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
         }
-      case StatementEdge:
+        return "Try to replace \""
+            + op
+            + "\" in \""
+            + description
+            + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
+      }
+      case StatementEdge -> {
         return "Try to change the assigned value of \""
             + Iterables.get(Splitter.on(" ").split(description), 0)
             + "\" in \""
             + description
             + "\" to another value.";
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         return "Try to declare the variable in \"" + description + "\" differently.";
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         return "Try to change the return-value of \"" + description + "\" to another value.";
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         return "The function call \""
             + description
             + "\" may have unwanted side effects or a wrong return value.";
-      case FunctionReturnEdge:
-        {
-          String functionName = ((CFunctionReturnEdge) pEdge).getFunctionEntry().getFunctionName();
-          return "The function " + functionName + "(...) may have an unwanted return value.";
-        }
-      case CallToReturnEdge:
-      case BlankEdge:
+      }
+      case FunctionReturnEdge -> {
+        String functionName = ((CFunctionReturnEdge) pEdge).getFunctionEntry().getFunctionName();
+        return "The function " + functionName + "(...) may have an unwanted return value.";
+      }
+      case CallToReturnEdge, BlankEdge -> {
         return "No proposal found for the statement: \"" + description + "\".";
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 }

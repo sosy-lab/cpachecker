@@ -239,11 +239,10 @@ class ExpressionValueVisitor
     CExpression unaryOperand = unaryExpression.getOperand();
 
     switch (unaryOperator) {
-      case AMPER:
-        throw new UnrecognizedCodeException(
-            "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
-
-      case MINUS:
+      case AMPER ->
+          throw new UnrecognizedCodeException(
+              "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
+      case MINUS -> {
         ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
         List<? extends SMGValueAndState> valueAndStates = unaryOperand.accept(this);
@@ -257,8 +256,8 @@ class ExpressionValueVisitor
         }
 
         return result.build();
-
-      case SIZEOF:
+      }
+      case SIZEOF -> {
         long size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
@@ -267,13 +266,11 @@ class ExpressionValueVisitor
                 unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-
-      case ALIGNOF:
-      case TILDE:
+      }
+      case ALIGNOF, TILDE -> {
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 
