@@ -216,7 +216,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public boolean isCriticalSectionStart() {
-    return false;
+    return true;
   }
 
   @Override

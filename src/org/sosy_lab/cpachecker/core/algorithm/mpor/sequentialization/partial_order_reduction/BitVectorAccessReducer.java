@@ -142,25 +142,28 @@ class BitVectorAccessReducer {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
-        ImmutableList<CVariableDeclaration> accessedVariables =
-            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
-                newTarget, BitVectorReduction.ACCESS_ONLY);
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
-        newInjected.addAll(bitVectorAssignments);
-        Optional<SeqBitVectorAccessEvaluationStatement> evaluation =
-            buildBitVectorEvaluationStatements(
-                pCurrentStatement,
-                bitVectorAssignments,
-                BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
-                    pOptions,
-                    pThread,
-                    bitVectorAssignments,
-                    pBitVectorVariables,
-                    pFullBitVectorEvaluation),
-                newTarget);
-        if (evaluation.isPresent()) {
-          newInjected.add(evaluation.orElseThrow());
+        // always need context switch when targeting critical section start -> no bit vectors
+        if (!newTarget.isCriticalSectionStart()) {
+          ImmutableList<CVariableDeclaration> accessedVariables =
+              SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByReductionType(
+                  newTarget, BitVectorReduction.ACCESS_ONLY);
+          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+              buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
+          newInjected.addAll(bitVectorAssignments);
+          Optional<SeqBitVectorAccessEvaluationStatement> evaluation =
+              buildBitVectorEvaluationStatements(
+                  pCurrentStatement,
+                  bitVectorAssignments,
+                  BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
+                      pOptions,
+                      pThread,
+                      bitVectorAssignments,
+                      pBitVectorVariables,
+                      pFullBitVectorEvaluation),
+                  newTarget);
+          if (evaluation.isPresent()) {
+            newInjected.add(evaluation.orElseThrow());
+          }
         }
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());

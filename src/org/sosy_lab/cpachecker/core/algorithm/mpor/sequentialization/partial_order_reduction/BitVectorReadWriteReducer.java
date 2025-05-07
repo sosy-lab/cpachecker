@@ -147,30 +147,33 @@ class BitVectorReadWriteReducer {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
-        ImmutableList<CVariableDeclaration> readVariables =
-            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                newTarget, BitVectorAccessType.READ);
-        ImmutableList<CVariableDeclaration> writeVariables =
-            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                newTarget, BitVectorAccessType.WRITE);
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorReadWriteAssignments(
-                pOptions, pThread, pBitVectorVariables, readVariables, writeVariables);
-        newInjected.addAll(bitVectorAssignments);
-        Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
-            buildBitVectorReadWriteEvaluationStatements(
-                pCurrentStatement,
-                bitVectorAssignments,
-                BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
-                    pOptions,
-                    pThread,
-                    bitVectorAssignments,
-                    pBitVectorVariables,
-                    pFullBitVectorEvaluation,
-                    pBinaryExpressionBuilder),
-                newTarget);
-        if (evaluation.isPresent()) {
-          newInjected.add(evaluation.orElseThrow());
+        // always need context switch when targeting critical section start -> no bit vectors
+        if (!newTarget.isCriticalSectionStart()) {
+          ImmutableList<CVariableDeclaration> readVariables =
+              SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
+                  newTarget, BitVectorAccessType.READ);
+          ImmutableList<CVariableDeclaration> writeVariables =
+              SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
+                  newTarget, BitVectorAccessType.WRITE);
+          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+              buildBitVectorReadWriteAssignments(
+                  pOptions, pThread, pBitVectorVariables, readVariables, writeVariables);
+          newInjected.addAll(bitVectorAssignments);
+          Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
+              buildBitVectorReadWriteEvaluationStatements(
+                  pCurrentStatement,
+                  bitVectorAssignments,
+                  BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
+                      pOptions,
+                      pThread,
+                      bitVectorAssignments,
+                      pBitVectorVariables,
+                      pFullBitVectorEvaluation,
+                      pBinaryExpressionBuilder),
+                  newTarget);
+          if (evaluation.isPresent()) {
+            newInjected.add(evaluation.orElseThrow());
+          }
         }
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());

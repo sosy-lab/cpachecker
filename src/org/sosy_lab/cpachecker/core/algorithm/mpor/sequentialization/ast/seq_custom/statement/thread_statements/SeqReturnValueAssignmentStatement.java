@@ -193,7 +193,7 @@ public class SeqReturnValueAssignmentStatement implements SeqThreadStatement {
 
   @Override
   public boolean isCriticalSectionStart() {
-    return true;
+    return false;
   }
 
   @Override

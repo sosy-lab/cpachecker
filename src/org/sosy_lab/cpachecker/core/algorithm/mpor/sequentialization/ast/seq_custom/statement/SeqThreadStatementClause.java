@@ -119,11 +119,11 @@ public class SeqThreadStatementClause implements SeqStatement {
   /** Returns {@code true} if any statement in this case clause is a start to a critical section. */
   public boolean isCriticalSectionStart() {
     for (SeqThreadStatement statement : block.statements) {
-      if (!statement.isCriticalSectionStart()) {
-        return false;
+      if (statement.isCriticalSectionStart()) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   @Override

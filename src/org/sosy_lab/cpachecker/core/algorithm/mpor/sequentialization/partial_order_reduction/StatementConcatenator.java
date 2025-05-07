@@ -153,9 +153,9 @@ class StatementConcatenator {
     return pStatement.isConcatenable()
         // label injected before -> return to loop head, no concat to prevent infinite loop
         && !pLoopHeads.containsKey(pTarget.labelNumber)
+        && !pTarget.isCriticalSectionStart()
         // only consider global if not ignored
         && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
-            || !pTarget.isCriticalSectionStart()
             || pTarget.block.statements.contains(pStatement));
   }
 

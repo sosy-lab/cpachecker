@@ -204,7 +204,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
 
   @Override
   public boolean isCriticalSectionStart() {
-    return true;
+    return false;
   }
 
   @Override

@@ -176,7 +176,7 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
   @Override
   public boolean isCriticalSectionStart() {
-    return false;
+    return true;
   }
 
   @Override

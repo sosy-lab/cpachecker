@@ -238,7 +238,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
   @Override
   public boolean isCriticalSectionStart() {
-    return false;
+    return true;
   }
 
   @Override
