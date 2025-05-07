@@ -292,13 +292,8 @@ public class SMGUseDefBasedInterpolator {
         return definition.accept(this);
       }
 
-      switch (pElaboratedType.getKind()) {
-        case ENUM:
-        case STRUCT: // TODO: UNDEFINED
-        case UNION: // TODO: UNDEFINED
-        default:
-          return createSingleMemoryLocation(model.getSizeofInt());
-      }
+      // TODO handle ENUM/STRUCT/UNION specifically
+      return createSingleMemoryLocation(model.getSizeofInt());
     }
 
     @Override
