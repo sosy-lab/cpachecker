@@ -10,7 +10,8 @@
 
 set -euo pipefail
 IFS=$'\n\t'
-shopt -s globstar
+shopt -s globstar extglob
+GENERATED_FILES="ACSLParser|ACSLScanner|AutomatonParser|AutomatonScanner|FormulaParser|FormulaScanner|LtlGrammarParser"
 
 DIR="$(dirname "$0")/.."
 SRC_DIR="$(realpath --relative-to=. "$DIR/src")"
@@ -112,5 +113,29 @@ EOF
   echo
   ERROR=1
 fi
+
+
+# This checks for one of the following:
+# - a case keyword with a colon at the end of the line if there is no comment start between them
+# - a default keyword followed by a colon
+# - anything of the above with a line-end comment
+FORBIDDEN_SWITCH_CASE='^ *(case ((?!// ).)*|default):( //.*)?$'
+
+if grep -q -P "$FORBIDDEN_SWITCH_CASE" "$SRC_DIR"/**/!($GENERATED_FILES).java; then
+  cat >&2 <<'EOF'
+Switch found with classic case labels (ending in a colon)
+instead of arrow labels (ending in "->").
+These have unexpected scoping rules and the danger of unwanted fall through.
+Please use only arrow labels.
+More information is in doc/StyleGuide.md
+(https://gitlab.com/sosy-lab/software/cpachecker/-/blob/trunk/doc/StyleGuide.md#switch).
+These switch cases should be treated in this way:
+
+EOF
+  grep --line-number --color=always -P "$FORBIDDEN_SWITCH_CASE" "$SRC_DIR"/**/!($GENERATED_FILES).java
+  echo
+  ERROR=1
+fi
+
 
 [ "$ERROR" -eq 0 ] || exit 1
