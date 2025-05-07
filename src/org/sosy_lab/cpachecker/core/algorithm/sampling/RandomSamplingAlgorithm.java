@@ -124,9 +124,10 @@ public class RandomSamplingAlgorithm implements Algorithm {
     // Copy the current reached set
 
     checkArgument(
-        (reachedSet.getFirstState() instanceof ARGState argState),
+        (reachedSet.getFirstState() instanceof ARGState),
         "The reached set must contain an ARGState as the first state.");
 
+    ARGState argState = (ARGState) reachedSet.getFirstState();
     ARGState clonedArgState =
         new ARGState(argState.getWrappedState(), null /* The first state has no parent */);
     // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
