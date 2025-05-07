@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +37,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -51,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclarationExchange;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
@@ -85,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -1154,6 +1158,20 @@ public class CFACreator {
     stats.exportThread.start();
   }
 
+  /*
+     A helper class to have some information about the
+     type of a variable at a certain point in the scope
+  */
+  record AVariableDeclarationExchange(
+      @JsonProperty("name") @NonNull String name,
+      @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
+
+    public AVariableDeclarationExchange {
+      checkNotNull(name);
+      checkNotNull(simpleType);
+    }
+  }
+
   private void exportCFA(final CFA cfa) {
     stats.exportTime.start();
 
@@ -1216,6 +1234,7 @@ public class CFACreator {
     }
 
     if (pathForExportingVariablesInScopeWithTheirType != null) {
+
       // This is a map from a filename
       Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
           locationToVariablesInScope = new HashMap<>();
