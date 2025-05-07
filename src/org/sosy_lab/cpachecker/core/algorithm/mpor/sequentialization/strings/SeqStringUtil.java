@@ -38,8 +38,17 @@ public class SeqStringUtil {
   /** The amount of spaces in a tab, adjust as desired. */
   public static final int TAB_SIZE = 2;
 
+  public static final int MAX_ALIGN = 4;
+
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
+
+  /** Builds a whitespace aligner based on the number of digits in {@code pNumber}. */
+  public static String buildSpaceAlign(int pNumber) {
+    int numberLength = String.valueOf(pNumber).length();
+    int padding = numberLength % MAX_ALIGN;
+    return SeqSyntax.SPACE.repeat(MAX_ALIGN - padding);
+  }
 
   /** Returns {@code /* pString * /} without the last whitespace (Javadoc doesn't allow it ...) */
   public static String wrapInBlockComment(String pString) {

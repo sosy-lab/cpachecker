@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -26,6 +27,10 @@ public class SeqThreadStatementBlock implements SeqStatement {
   public SeqThreadStatement getFirstStatement() {
     checkArgument(!statements.isEmpty(), "there are no statements, cannot get first");
     return statements.get(0);
+  }
+
+  public boolean startsInAtomicBlock() {
+    return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
   }
 
   @Override
