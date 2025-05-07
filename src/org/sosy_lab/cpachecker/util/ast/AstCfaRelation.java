@@ -312,6 +312,22 @@ public final class AstCfaRelation {
         .getValue();
   }
 
+  /**
+   * This method returns all variables and parameters in scope at the given node. It includes global
+   * variables, local variables and parameters.
+   *
+   * <p>Whenever this is not possible, it returns an empty Optional instead. This usually happens
+   * when some information was not passed/tracked correctly from the frontend and is likely a bug in
+   * CPAchecker, so in case you encounter such a case please report it.
+   *
+   * <p>We return an empty Optional to avoid throwing an exception in case the information is not
+   * available, since currently this information is only required when generating some output of
+   * CPAchecker, in which case we can simply remove the information if it is not available.
+   *
+   * @param pNode The node for which we want to get the variables and parameters in scope
+   * @return An Optional containing all variables and parameters in scope at the given node, or an
+   *     empty Optional if the information is not available
+   */
   public Optional<FluentIterable<AbstractSimpleDeclaration>> getVariablesAndParametersInScope(
       CFANode pNode) {
     if (!cfaNodeToAstParametersInScope.containsKey(pNode)
@@ -326,6 +342,18 @@ public final class AstCfaRelation {
             globalVariables));
   }
 
+  /**
+   * This method returns all the best approximation we have for the file location of the node in the
+   * original program.
+   *
+   * <p>Whenever doing a matching is not possible, it returns an empty Optional instead. This can
+   * happen with difficult control structures which may make it difficult to determine a single
+   * location.
+   *
+   * @param pNode The node for which we want to get the file location
+   * @return An Optional containing the best approximation we have for the position of a CFANode in
+   *     the input program, or an empty Optional if we cannot generate such a matching
+   */
   public Optional<FileLocation> getStatementFileLocationForNode(CFANode pNode) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
