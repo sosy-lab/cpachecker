@@ -13,6 +13,10 @@ public class SeqComment {
 
   private static final String COMMENT_SINGLE = "//";
 
+  public static final String COMMENT_BLOCK_BEGIN = "/*";
+
+  public static final String COMMENT_BLOCK_END = "*/";
+
   public static final String UNCHANGED_DECLARATIONS =
       COMMENT_SINGLE + " input program declarations, optionally with function declarations";
 

@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -24,8 +24,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqAtomicEndStatement implements SeqThreadStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
-  private final CExpressionAssignmentStatement atomicLockedFalse;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -40,13 +38,9 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqAtomicEndStatement(
-      CExpressionAssignmentStatement pAtomicLockedFalse,
-      CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc) {
+      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
-    atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -57,7 +51,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
 
   private SeqAtomicEndStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
-      CExpressionAssignmentStatement pAtomicLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -66,7 +59,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
       ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
-    atomicLockedFalse = pAtomicLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -81,7 +73,8 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + atomicLockedFalse.toASTString()
+        + SeqStringUtil.wrapInBlockComment(
+            PthreadFunctionType.__VERIFIER_ATOMIC_END.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -115,7 +108,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicEndStatement(
         loopHeadLabel,
-        atomicLockedFalse,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -128,7 +120,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
     return new SeqAtomicEndStatement(
         loopHeadLabel,
-        atomicLockedFalse,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -143,7 +134,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
 
     return new SeqAtomicEndStatement(
         loopHeadLabel,
-        atomicLockedFalse,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -156,7 +146,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqAtomicEndStatement(
         Optional.of(pLoopHeadLabel),
-        atomicLockedFalse,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -171,7 +160,6 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
 
     return new SeqAtomicEndStatement(
         loopHeadLabel,
-        atomicLockedFalse,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),

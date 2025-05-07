@@ -106,7 +106,7 @@ public class SeqValidator {
           ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
           LogManager pLogger) {
 
-    // TODO validate that if there is a ThreadJoin, AtomicBegin, MutexLock etc. that it MUST be the
+    // TODO validate that if there is a ThreadJoin, MutexLock etc. that it MUST be the
     //  first statement in the clause so that total strict orders can be enforced
 
     for (var entry : pCaseClauses.entrySet()) {

@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -63,8 +62,6 @@ public class SeqAssumptionBuilder {
         buildMutexAssumptions(pThreadSimulationVariables, pBinaryExpressionBuilder));
     rAssumptions.putAll(
         buildJoinAssumptions(pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder));
-    rAssumptions.putAll(
-        buildAtomicAssumptions(pThreadSimulationVariables, pBinaryExpressionBuilder));
 
     return rAssumptions.build();
   }
@@ -129,34 +126,6 @@ public class SeqAssumptionBuilder {
       }
     }
     return rJoinAssumptions.build();
-  }
-
-  /**
-   * Atomic assumptions: {@code assume(!(atomic_locked && ti_begins_atomic) || next_thread != i)}
-   */
-  private static ImmutableListMultimap<MPORThread, SeqAssumption> buildAtomicAssumptions(
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableListMultimap.Builder<MPORThread, SeqAssumption> rAtomicAssumptions =
-        ImmutableListMultimap.builder();
-
-    for (var entry : pThreadSimulationVariables.begins.entrySet()) {
-      assert pThreadSimulationVariables.atomicLocked.isPresent();
-      MPORThread thread = entry.getKey();
-      ThreadBeginsAtomic begins = entry.getValue();
-      SeqLogicalNotExpression antecedent =
-          new SeqLogicalNotExpression(
-              new SeqLogicalAndExpression(
-                  pThreadSimulationVariables.atomicLocked.orElseThrow().idExpression,
-                  begins.idExpression));
-      CBinaryExpression consequent =
-          SeqExpressionBuilder.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder);
-      SeqAssumption assumption = new SeqAssumption(antecedent, consequent);
-      rAtomicAssumptions.put(thread, assumption);
-    }
-    return rAtomicAssumptions.build();
   }
 
   public static SeqFunctionCallExpression buildNextThreadAssumption(

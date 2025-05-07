@@ -135,7 +135,7 @@ class BitVectorReadWriteReducer {
     // step 2: if valid target pc found, inject bit vector write and evaluation statements
     if (pCurrentStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      // inject previous injected statements, e.g. entering atomic section
+      // inject previous injected statements, e.g. mutex lock
       newInjected.addAll(pCurrentStatement.getInjectedStatements());
       int intTargetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (intTargetPc == Sequentialization.EXIT_PC) {

@@ -118,7 +118,6 @@ class StatementConcatenator {
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-      // TODO prevent concatenation of statements that are in atomic blocks
       if (validConcatenation(pIsFirstConcat, pIsGlobal, pCurrentStatement, newTarget, pLoopHeads)) {
         // if the target id was seen before, add it to duplicate, except loop heads
         if (!pConcatenated.add(newTarget.id) && !newTarget.isLoopStart) {

@@ -11,11 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -27,10 +24,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
   private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
-  private final CIdExpression atomicLocked;
-
-  public final CIdExpression threadBeginsAtomic;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -45,15 +38,9 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqAtomicBeginStatement(
-      CIdExpression pAtomicLocked,
-      CIdExpression pThreadBeginsAtomic,
-      CLeftHandSide pPcLeftHandSide,
-      ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc) {
+      CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
 
     loopHeadLabel = Optional.empty();
-    atomicLocked = pAtomicLocked;
-    threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -64,8 +51,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
   private SeqAtomicBeginStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
-      CIdExpression pAtomicLocked,
-      CIdExpression pThreadBeginsAtomic,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -74,8 +59,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
       ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
-    atomicLocked = pAtomicLocked;
-    threadBeginsAtomic = pThreadBeginsAtomic;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -86,21 +69,13 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    CExpressionAssignmentStatement setAtomicLockedTrue =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, atomicLocked, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement setBeginsFalse =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadBeginsAtomic, SeqIntegerLiteralExpression.INT_0);
-
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
 
     return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + setAtomicLockedTrue.toASTString()
-        + SeqSyntax.SPACE
-        + setBeginsFalse.toASTString()
+        + SeqStringUtil.wrapInBlockComment(
+            PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
         + targetStatements;
   }
@@ -134,8 +109,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   public SeqAtomicBeginStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicBeginStatement(
         loopHeadLabel,
-        atomicLocked,
-        threadBeginsAtomic,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -148,8 +121,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
     return new SeqAtomicBeginStatement(
         loopHeadLabel,
-        atomicLocked,
-        threadBeginsAtomic,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -164,8 +135,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
     return new SeqAtomicBeginStatement(
         loopHeadLabel,
-        atomicLocked,
-        threadBeginsAtomic,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -178,8 +147,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqAtomicBeginStatement(
         Optional.of(pLoopHeadLabel),
-        atomicLocked,
-        threadBeginsAtomic,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
@@ -194,8 +161,6 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
     return new SeqAtomicBeginStatement(
         loopHeadLabel,
-        atomicLocked,
-        threadBeginsAtomic,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),

@@ -40,7 +40,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadBeginsAtomicStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadJoinsThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLocksMutexStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
@@ -322,11 +321,9 @@ public class SeqThreadStatementBuilder {
           buildMutexUnlockStatement(
               pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case __VERIFIER_ATOMIC_BEGIN ->
-          buildAtomicBeginStatement(
-              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
+          buildAtomicBeginStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide);
       case __VERIFIER_ATOMIC_END ->
-          buildAtomicEndStatement(
-              pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
+          buildAtomicEndStatement(pSubstituteEdge, pTargetPc, pcLeftHandSide);
       default ->
           throw new AssertionError(
               "unhandled relevant pthread method: " + pthreadFunctionType.name);
@@ -363,10 +360,7 @@ public class SeqThreadStatementBuilder {
   public static Optional<SeqInjectedStatement> tryBuildInjectedStatement(
       SeqThreadStatement pStatement) {
 
-    if (pStatement instanceof SeqAtomicBeginStatement atomicBeginStatement) {
-      return Optional.of(buildThreadBeginsAtomicStatement(atomicBeginStatement.threadBeginsAtomic));
-
-    } else if (pStatement instanceof SeqMutexLockStatement mutexLockStatement) {
+    if (pStatement instanceof SeqMutexLockStatement mutexLockStatement) {
       return Optional.of(buildThreadLocksMutexStatement(mutexLockStatement.threadLocksMutex));
 
     } else if (pStatement instanceof SeqThreadJoinStatement threadJoinStatement) {
@@ -374,12 +368,6 @@ public class SeqThreadStatementBuilder {
           buildThreadJoinsThreadStatement(threadJoinStatement.threadJoinsThreadVariable));
     }
     return Optional.empty();
-  }
-
-  private static SeqThreadBeginsAtomicStatement buildThreadBeginsAtomicStatement(
-      CIdExpression pThreadBeginsAtomic) {
-
-    return new SeqThreadBeginsAtomicStatement(pThreadBeginsAtomic);
   }
 
   private static SeqThreadLocksMutexStatement buildThreadLocksMutexStatement(
@@ -477,36 +465,16 @@ public class SeqThreadStatementBuilder {
   }
 
   private static SeqAtomicBeginStatement buildAtomicBeginStatement(
-      MPORThread pThread,
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
+      SubstituteEdge pSubstituteEdge, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
 
-    assert pThreadVariables.atomicLocked.isPresent();
-    CIdExpression atomicLocked =
-        Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression);
-    assert pThreadVariables.begins.containsKey(pThread);
-    CIdExpression beginsVar =
-        Objects.requireNonNull(pThreadVariables.begins.get(pThread)).idExpression;
     return new SeqAtomicBeginStatement(
-        atomicLocked, beginsVar, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqAtomicEndStatement buildAtomicEndStatement(
-      SubstituteEdge pSubstituteEdge,
-      int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
+      SubstituteEdge pSubstituteEdge, int pTargetPc, CLeftHandSide pPcLeftHandSide) {
 
-    assert pThreadVariables.atomicLocked.isPresent();
-    // assign 0 to ATOMIC_LOCKED variable
-    CExpressionAssignmentStatement atomicLockedFalse =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            Objects.requireNonNull(pThreadVariables.atomicLocked.orElseThrow().idExpression),
-            SeqIntegerLiteralExpression.INT_0);
-    return new SeqAtomicEndStatement(
-        atomicLockedFalse, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+    return new SeqAtomicEndStatement(pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   /**

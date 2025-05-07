@@ -257,22 +257,6 @@ public class SeqNameUtil {
         + pTargetId;
   }
 
-  public static String buildAtomicLockedName(MPOROptions pOptions) {
-    return (pOptions.shortVariables
-            ? SeqToken.__MPOR_SEQ__ + SeqToken.ATOMIC
-            : SeqToken.__MPOR_SEQ__)
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.LOCKED;
-  }
-
-  /** Returns a var name of the form {@code __MPOR_SEQ__THREAD{pThreadId}_BEGINS_ATOMIC} */
-  public static String buildThreadBeginsAtomicName(MPOROptions pOptions, int pThreadId) {
-    return buildThreadPrefix(pOptions, pThreadId)
-        + SeqToken.BEGINS
-        + SeqSyntax.UNDERSCORE
-        + SeqToken.ATOMIC;
-  }
-
   public static String buildQualifiedName(String pVarName) {
     // TODO the qualified names are not relevant in the seq, so we just use dummy::
     return SeqToken.dummy + SeqSyntax.COLON + SeqSyntax.COLON + pVarName;

@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadBeginsAtomic;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -237,11 +236,9 @@ public class GhostVariableUtil {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     return new ThreadSimulationVariables(
-        pOptions,
         buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges),
         buildThreadAwaitsMutexVariables(pOptions, pThreads, pSubstituteEdges),
-        buildThreadJoinsThreadVariables(pOptions, pThreads),
-        buildThreadBeginsAtomicVariables(pOptions, pThreads));
+        buildThreadJoinsThreadVariables(pOptions, pThreads));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
@@ -274,6 +271,7 @@ public class GhostVariableUtil {
     return rVars.buildOrThrow();
   }
 
+  // TODO rename ThreadRequestsMutex
   private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
       buildThreadAwaitsMutexVariables(
           MPOROptions pOptions,
@@ -331,27 +329,6 @@ public class GhostVariableUtil {
         }
       }
       rVars.put(thread, ImmutableMap.copyOf(targetThreads));
-    }
-    return rVars.buildOrThrow();
-  }
-
-  private static ImmutableMap<MPORThread, ThreadBeginsAtomic> buildThreadBeginsAtomicVariables(
-      MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
-
-    ImmutableMap.Builder<MPORThread, ThreadBeginsAtomic> rVars = ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.callsPthreadFunction(
-            cfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
-          String varName = SeqNameUtil.buildThreadBeginsAtomicName(pOptions, thread.id);
-          CIdExpression begin =
-              SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-                  varName, SeqInitializer.INT_0);
-          rVars.put(thread, new ThreadBeginsAtomic(begin));
-          break; // only need one call to atomic_begin -> break inner loop
-        }
-      }
     }
     return rVars.buildOrThrow();
   }

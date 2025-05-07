@@ -40,8 +40,6 @@ public class SeqToken {
 
   public static final String ASSUME = "ASSUME";
 
-  public static final String ATOMIC = "ATOMIC";
-
   /** "bit vector access" */
   public static final String ba = "ba";
 
@@ -50,8 +48,6 @@ public class SeqToken {
 
   /** "bit vector write" */
   public static final String bw = "bw";
-
-  public static final String BEGINS = "BEGINS";
 
   public static final String BIT_VECTOR_ACCESS = "BIT_VECTOR_ACCESS";
 

@@ -10,12 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class ThreadSimulationVariables {
@@ -23,6 +18,7 @@ public class ThreadSimulationVariables {
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
+  // TODO rename to requests, otherwise the naming scheme is confusing
   /**
    * Each thread and {@code pthread_mutex_t} object are mapped to their {@code
    * {thread}_LOCKS_{mutex}} variable.
@@ -32,32 +28,14 @@ public class ThreadSimulationVariables {
   /** Each thread joining a thread is mapped to a {@code {thread}_JOINS_{threads}} variable. */
   public final ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> joins;
 
-  public final Optional<AtomicLocked> atomicLocked;
-
-  /**
-   * Each thread beginning an atomic section is mapped to a {@code {thread}_BEGINS_ATOMIC} variable.
-   */
-  public final ImmutableMap<MPORThread, ThreadBeginsAtomic> begins;
-
   public ThreadSimulationVariables(
-      MPOROptions pOptions,
       ImmutableMap<CIdExpression, MutexLocked> pLocked,
       ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> pLocks,
-      ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins,
-      ImmutableMap<MPORThread, ThreadBeginsAtomic> pBegins) {
+      ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> pJoins) {
 
     locked = pLocked;
     locks = pLocks;
     joins = pJoins;
-    begins = pBegins;
-    if (begins.isEmpty()) {
-      atomicLocked = Optional.empty();
-    } else {
-      CIdExpression var =
-          SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-              SeqNameUtil.buildAtomicLockedName(pOptions), SeqInitializer.INT_0);
-      atomicLocked = Optional.of(new AtomicLocked(var));
-    }
   }
 
   /** Returns all CIdExpressions of the vars in the order locked - locks - joins. */
@@ -75,14 +53,6 @@ public class ThreadSimulationVariables {
       for (ThreadJoinsThread var : map.values()) {
         rIdExpressions.add(var.idExpression);
       }
-    }
-    if (atomicLocked.isPresent()) {
-      assert !begins.isEmpty();
-      rIdExpressions.add(atomicLocked.orElseThrow().idExpression);
-    }
-    for (ThreadBeginsAtomic var : begins.values()) {
-      assert atomicLocked.isPresent();
-      rIdExpressions.add(var.idExpression);
     }
     return rIdExpressions.build();
   }
