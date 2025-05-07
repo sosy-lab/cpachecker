@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -1176,7 +1177,7 @@ public class CFACreator {
    * Export a json file containing information about what the types of variables are at a certain
    * location in the program.
    *
-   * @param pCFA
+   * @param pCFA the CFA to export the information from
    */
   private void exportTypeInformationForEachVariable(CFA pCFA) {
     // This is a map from a filename, line and column to a set of variable names with their types
@@ -1203,13 +1204,13 @@ public class CFACreator {
       Set<AVariableDeclarationExchange> variables =
           declarationAtNode
               .orElseThrow()
+              .filter(Predicates.notNull())
               .transform(
                   declaration ->
-                      new AVariableDeclarationExchange(
-                          declaration.getOrigName(),
-                          declaration.getType() instanceof CSimpleType pCSimpleType
-                              ? pCSimpleType.getType()
-                              : null))
+                      declaration.getType() instanceof CSimpleType pCSimpleType
+                          ? new AVariableDeclarationExchange(
+                              declaration.getOrigName(), pCSimpleType.getType())
+                          : null)
               .toSet();
 
       // create a new map if it does not exist
@@ -1235,7 +1236,11 @@ public class CFACreator {
       String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
       writer.write(entryJson);
     } catch (JsonProcessingException e) {
-      throw new AssertionError(e);
+      logger.logfException(
+          Level.WARNING,
+          e,
+          "Could not write a mapping from program locations "
+              + "to variable names and types into a  json file");
     } catch (IOException e) {
       logger.logUserException(
           Level.INFO,
