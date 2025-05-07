@@ -122,9 +122,6 @@ public class SelectionAlgorithm extends NestingAlgorithm {
             }
             break;
           }
-        case FunctionCallEdge:
-        case FunctionReturnEdge:
-        case CallToReturnEdge:
         default:
       }
       return TraversalProcess.CONTINUE;
