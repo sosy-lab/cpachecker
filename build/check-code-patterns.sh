@@ -13,6 +13,7 @@ IFS=$'\n\t'
 shopt -s globstar
 
 DIR="$(dirname "$0")/.."
+SRC_DIR="$(realpath --relative-to=. "$DIR/src")"
 ERROR=0
 
 if ( command -v git && git rev-parse --is-inside-work-tree ) > /dev/null 2>&1; then
@@ -36,7 +37,7 @@ fi
 
 FORBIDDEN_OUTPUT='System\.(out|err)\.print'
 
-if grep -q -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java; then
+if grep -q -P "$FORBIDDEN_OUTPUT" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Use of System.out or System.err found. We do not want raw output,
 please use proper logging as described in doc/Logging.md
@@ -44,7 +45,7 @@ please use proper logging as described in doc/Logging.md
 Please fix the following cases:
 
 EOF
-  grep --color=always -P "$FORBIDDEN_OUTPUT" "$DIR/src"/**/*.java
+  grep --color=always -P "$FORBIDDEN_OUTPUT" "$SRC_DIR"/**/*.java
   echo
   ERROR=1
 fi
@@ -67,7 +68,7 @@ FORBIDDEN_EQUALS_METHOD='\n( *)public (?:final )?boolean equals\((?:final )?(?:@
 # because it changes the line separator of grep to \0.
 # We require -P because the regexp uses negative look-ahead assertions.
 
-if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java; then
+if grep -q -z -P "$FORBIDDEN_EQUALS_METHOD" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Implementation of equals() found that does not conform to one of our standard patterns.
 Please either use a record, or use our standard pattern for equals(),
@@ -77,7 +78,7 @@ More information is in doc/StyleGuide.md
 These equals() implementations should be treated in this way:
 
 EOF
-  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
+  grep -o -z --color=always -P "$FORBIDDEN_EQUALS_METHOD" "$SRC_DIR"/**/*.java | tr '\0' '\n'
   echo
   ERROR=1
 fi
@@ -96,7 +97,7 @@ fi
 #
 FORBIDDEN_COMPARETO_METHOD='\n( *)public (?:final )?int compareTo\((?:final )?([^();]*) ([^() ;]*)\) {\n(?!(?: *if \((?:this == \3|[^{};]*\.equals\([^{};]*\))\) {\n *return 0;\n *}| *(?:Preconditions\.)?checkArgument\([^{};]*\);| *(?:Verify\.)?verify\([^{};]*\);| *([^(){} ;]*) [^(){} ;]* = \(\4\) \3;|\n)*( *return ComparisonChain\.start\(\)| *return (?:Arrays|Double|Integer|Long|Comparator\.[^{};]*)\.compare\(| *return [^{};]*\.compareTo\()| *// )(?:.|\n)*?\n\1}'
 
-if grep -q -z -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java; then
+if grep -q -z -P "$FORBIDDEN_COMPARETO_METHOD" "$SRC_DIR"/**/*.java; then
   cat >&2 <<'EOF'
 Implementation of compareTo() found that does not conform to one of our standard patterns.
 Please use one of our standard patterns for compareTo(),
@@ -107,7 +108,7 @@ More information is in doc/StyleGuide.md
 These compareTo() implementations should be treated in this way:
 
 EOF
-  grep -o -z --color=always -P "$FORBIDDEN_COMPARETO_METHOD" "$DIR/src"/**/*.java | tr '\0' '\n'
+  grep -o -z --color=always -P "$FORBIDDEN_COMPARETO_METHOD" "$SRC_DIR"/**/*.java | tr '\0' '\n'
   echo
   ERROR=1
 fi
