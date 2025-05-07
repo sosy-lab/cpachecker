@@ -48,10 +48,11 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (int i = 0; i < clauses.size(); i++) {
       String prefix = SeqToken._case + SeqSyntax.SPACE + i + SeqSyntax.COLON + SeqSyntax.SPACE;
+      String breakSuffix = SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
       casesString
           .append(
               SeqStringUtil.prependTabsWithoutNewline(
-                  tabs + 1, prefix + clauses.get(i).toASTString()))
+                  tabs + 1, prefix + clauses.get(i).toASTString() + breakSuffix))
           .append(SeqSyntax.NEWLINE);
     }
     String defaultCaseClause =

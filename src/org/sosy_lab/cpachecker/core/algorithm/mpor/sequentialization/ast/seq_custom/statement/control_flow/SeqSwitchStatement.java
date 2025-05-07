@@ -71,8 +71,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
             + Sequentialization.outputReachErrorDummy;
-    return SeqSyntax.NEWLINE
-        + SeqStringUtil.buildTab(tabs)
+    return SeqStringUtil.buildTab(tabs)
         + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
@@ -90,10 +89,11 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
         return SeqSyntax.SPACE.repeat(MAX_LABEL_LENGTH);
       }
     }
+    String spaceAlign = SeqStringUtil.buildSpaceAlign(pCaseNum);
     return SeqToken._case
         + SeqSyntax.SPACE
         + pCaseNum
         + SeqSyntax.COLON
-        + SeqStringUtil.buildSpaceAlign(pCaseNum);
+        + (pClause instanceof SeqSwitchStatement ? SeqSyntax.NEWLINE : spaceAlign);
   }
 }

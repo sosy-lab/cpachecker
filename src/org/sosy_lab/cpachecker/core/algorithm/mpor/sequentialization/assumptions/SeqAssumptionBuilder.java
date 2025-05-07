@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
@@ -186,25 +187,15 @@ public class SeqAssumptionBuilder {
       throws UnrecognizedCodeException {
 
     if (pScalarPc) {
-      // scalar pc int: switch statement with individual case i: assume(pci != -1);
-      ImmutableList.Builder<SeqScalarPcAssumeStatement> assumeCaseClauses = ImmutableList.builder();
-      for (int i = 0; i < pNumThreads; i++) {
-        // ensure pc
-        Verify.verify(pPcVariables.get(i) instanceof CIdExpression);
-        SeqFunctionCallStatement assumeCall =
-            new SeqFunctionCallStatement(
-                new SeqFunctionCallExpression(
-                    SeqIdExpression.ASSUME,
-                    ImmutableList.of(
-                        new CToSeqExpression(
-                            pBinaryExpressionBuilder.buildBinaryExpression(
-                                pPcVariables.get(i),
-                                SeqIntegerLiteralExpression.INT_EXIT_PC,
-                                BinaryOperator.NOT_EQUALS)))));
-        assumeCaseClauses.add(buildScalarPcAssumeStatement(assumeCall));
-      }
-      return new SeqScalarPcSwitchStatement(
-          pOptions, SeqIdExpression.NEXT_THREAD, assumeCaseClauses.build(), 0);
+      ImmutableList<SeqScalarPcAssumeStatement> assumeClauses =
+          buildScalarPcAssumeClauses(pNumThreads, pPcVariables, pBinaryExpressionBuilder);
+      return switch (pOptions.controlFlowEncoding) {
+        case SWITCH_CASE ->
+            new SeqScalarPcSwitchStatement(pOptions, SeqIdExpression.NEXT_THREAD, assumeClauses, 0);
+        case BINARY_IF_TREE ->
+            new SeqBinaryIfTreeStatement(
+                SeqIdExpression.NEXT_THREAD, assumeClauses, 0, pBinaryExpressionBuilder);
+      };
     } else {
       // pc array: single assume(pc[next_thread] != -1);
       return new SeqFunctionCallStatement(
@@ -220,7 +211,26 @@ public class SeqAssumptionBuilder {
     }
   }
 
-  private static SeqScalarPcAssumeStatement buildScalarPcAssumeStatement(SeqStatement pStatement) {
-    return new SeqScalarPcAssumeStatement(pStatement);
+  private static ImmutableList<SeqScalarPcAssumeStatement> buildScalarPcAssumeClauses(
+      int pNumThreads, PcVariables pPcVariables, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    // scalar pc int: switch statement with individual case i: assume(pci != -1);
+    ImmutableList.Builder<SeqScalarPcAssumeStatement> rAssumeClauses = ImmutableList.builder();
+    for (int i = 0; i < pNumThreads; i++) {
+      Verify.verify(pPcVariables.get(i) instanceof CIdExpression);
+      SeqFunctionCallStatement assumeCall =
+          new SeqFunctionCallStatement(
+              new SeqFunctionCallExpression(
+                  SeqIdExpression.ASSUME,
+                  ImmutableList.of(
+                      new CToSeqExpression(
+                          pBinaryExpressionBuilder.buildBinaryExpression(
+                              pPcVariables.get(i),
+                              SeqIntegerLiteralExpression.INT_EXIT_PC,
+                              BinaryOperator.NOT_EQUALS)))));
+      rAssumeClauses.add(new SeqScalarPcAssumeStatement(assumeCall));
+    }
+    return rAssumeClauses.build();
   }
 }

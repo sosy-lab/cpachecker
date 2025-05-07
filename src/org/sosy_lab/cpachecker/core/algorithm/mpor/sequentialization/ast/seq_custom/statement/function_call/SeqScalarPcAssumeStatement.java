@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -28,6 +26,6 @@ public class SeqScalarPcAssumeStatement implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return statement.toASTString() + SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
+    return statement.toASTString();
   }
 }

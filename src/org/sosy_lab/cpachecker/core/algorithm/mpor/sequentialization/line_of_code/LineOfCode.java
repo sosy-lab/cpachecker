@@ -44,6 +44,10 @@ public class LineOfCode {
 
   @Override
   public String toString() {
-    return SeqStringUtil.buildTab(tabs) + code + SeqSyntax.NEWLINE;
+    return toStringWithoutNewline() + SeqSyntax.NEWLINE;
+  }
+
+  public String toStringWithoutNewline() {
+    return SeqStringUtil.buildTab(tabs) + code;
   }
 }

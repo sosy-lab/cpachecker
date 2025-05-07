@@ -48,7 +48,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
     recursivelyBuildTree(statements, tabs, 0, statements.size() - 1, expression, tree);
-    return LineOfCodeUtil.buildString(tree.build());
+    return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
   private void recursivelyBuildTree(
