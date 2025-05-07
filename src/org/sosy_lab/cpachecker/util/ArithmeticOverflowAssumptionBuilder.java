@@ -540,8 +540,10 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
         case BINARY_OR:
         case EQUALS:
         case NOT_EQUALS:
-        default:
+        case MODULO:
           return false;
+        default:
+          throw new AssertionError();
       }
     } else if (expr instanceof CUnaryExpression) {
       return switch (((CUnaryExpression) expr).getOperator()) {
