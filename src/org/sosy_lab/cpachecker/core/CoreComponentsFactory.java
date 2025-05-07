@@ -749,7 +749,8 @@ public class CoreComponentsFactory {
       }
 
       if (useSamplingAlgorithm) {
-        algorithm = new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
+        algorithm =
+            new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
       }
     }
 
