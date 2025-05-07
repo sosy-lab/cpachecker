@@ -86,9 +86,7 @@ SPDX-License-Identifier: Apache-2.0
     <module name="DefaultComesLast"/>
     <module name="EmptyStatement"/>
     <module name="EqualsHashCode"/>
-    <module name="FallThrough">
-      <property name="reliefPattern" value="\$FALL-THROUGH\$"/>
-    </module>
+    <module name="FallThrough"/>
     <module name="IllegalInstantiation">
       <property name="classes" value="Boolean, Character, Integer, Long, Double, Float, String, java.io.PrintStream, java.io.PrintWriter, java.util.Date, java.text.SimpleDateFormat"/>
     </module>
