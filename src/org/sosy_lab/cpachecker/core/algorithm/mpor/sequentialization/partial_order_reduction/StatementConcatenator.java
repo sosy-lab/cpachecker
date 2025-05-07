@@ -97,6 +97,11 @@ class StatementConcatenator {
         .collect(ImmutableList.toImmutableList());
   }
 
+  /**
+   * Recursively concatenates the target statements of {@code pCurrentStatement}, if applicable.
+   *
+   * @param pIsFirstConcat for the very first concat, we can concat global statements
+   */
   private static SeqThreadStatement recursivelyConcatenateStatements(
       final boolean pIsFirstConcat,
       final boolean pIsGlobal,
@@ -109,6 +114,7 @@ class StatementConcatenator {
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
+      // TODO prevent concatenation of statements that are in atomic blocks
       if (validConcatenation(pIsFirstConcat, pIsGlobal, pCurrentStatement, newTarget, pLoopHeads)) {
         // if the target id was seen before, add it to duplicate, except loop heads
         if (!pConcatenated.add(newTarget.id) && !newTarget.isLoopStart) {
@@ -143,7 +149,7 @@ class StatementConcatenator {
 
     return pStatement.isConcatenable()
         // label injected before -> return to loop head, no concat to prevent infinite loop
-        && !pLoopHeads.containsKey(pTarget.label)
+        && !pLoopHeads.containsKey(pTarget.labelNumber)
         // only consider global if not ignored
         && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
             || !pTarget.isCriticalSectionStart()
@@ -228,7 +234,7 @@ class StatementConcatenator {
     SeqThreadStatement firstStatement = pCaseClause.block.getFirstStatement();
     String labelName = SeqNameUtil.buildLoopHeadLabelName(pOptions, pThread.id);
     SeqLoopHeadLabelStatement loopHeadLabel = new SeqLoopHeadLabelStatement(labelName);
-    pLoopHeads.put(pCaseClause.label, loopHeadLabel);
+    pLoopHeads.put(pCaseClause.labelNumber, loopHeadLabel);
     SeqThreadStatement cloneWithLabel = firstStatement.cloneWithLoopHeadLabel(loopHeadLabel);
 
     // inject cloned statement with loop head label

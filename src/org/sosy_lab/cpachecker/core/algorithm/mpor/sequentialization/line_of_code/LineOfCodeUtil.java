@@ -153,7 +153,7 @@ public class LineOfCodeUtil {
    * non-deterministically initialized in {@code main()} later in the sequentialization.
    */
   public static ImmutableList<LineOfCode> buildMainFunctionArgDeclarations(
-      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution, LogManager pLogger) {
+      MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {

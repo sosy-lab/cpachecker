@@ -34,24 +34,29 @@ public class SeqBlankStatement implements SeqThreadStatement {
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
+  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
+
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
     loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     injectedStatements = ImmutableList.of();
+    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqBlankStatement(
       Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements,
+      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
 
     loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
     injectedStatements = pInjectedStatements;
+    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
@@ -84,9 +89,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
 
   @Override
   public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    // this should never be called because we concatenate after pruning (no blanks left)
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have concatenated statements");
+    return concatenatedStatements;
   }
 
   @Override
@@ -95,7 +98,8 @@ public class SeqBlankStatement implements SeqThreadStatement {
         loopHeadLabel,
         pcLeftHandSide,
         Optional.of(pTargetPc),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
+        concatenatedStatements);
   }
 
   @Override
@@ -107,21 +111,26 @@ public class SeqBlankStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    return new SeqBlankStatement(loopHeadLabel, pcLeftHandSide, targetPc, pInjectedStatements);
+    return new SeqBlankStatement(
+        loopHeadLabel, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
   }
 
   @Override
   public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
     return new SeqBlankStatement(
-        Optional.of(pLoopHeadLabel), pcLeftHandSide, targetPc, injectedStatements);
+        Optional.of(pLoopHeadLabel),
+        pcLeftHandSide,
+        targetPc,
+        injectedStatements,
+        concatenatedStatements);
   }
 
   @Override
   public SeqThreadStatement cloneWithConcatenatedStatements(
       ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-    // this should never be called because we concatenate after pruning (no blanks left)
-    throw new UnsupportedOperationException(
-        this.getClass().getName() + " do not have concatenated statements");
+
+    return new SeqBlankStatement(
+        loopHeadLabel, pcLeftHandSide, targetPc, injectedStatements, pConcatenatedStatements);
   }
 
   @Override

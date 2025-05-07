@@ -158,7 +158,7 @@ public class SeqThreadStatementClauseUtil {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      rOriginPcs.put(caseClause.label, caseClause);
+      rOriginPcs.put(caseClause.labelNumber, caseClause);
     }
     return rOriginPcs.buildOrThrow();
   }
@@ -192,7 +192,7 @@ public class SeqThreadStatementClauseUtil {
       for (SeqThreadStatement statement : caseClause.block.statements) {
         newStatements.add(recursivelyReplaceTargetPc(statement, labelToIndexMap));
       }
-      int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.label));
+      int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.labelNumber));
       SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());
       rConsecutiveLabels.add(caseClause.cloneWithLabelAndBlock(index, newBlock));
     }
@@ -204,7 +204,7 @@ public class SeqThreadStatementClauseUtil {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     for (int i = 0; i < pCaseClauses.size(); i++) {
-      rLabelToIndex.put(pCaseClauses.get(i).label, i);
+      rLabelToIndex.put(pCaseClauses.get(i).labelNumber, i);
     }
     return rLabelToIndex.buildOrThrow();
   }
@@ -320,7 +320,7 @@ public class SeqThreadStatementClauseUtil {
                 // for statements targeting starts of critical sections, assumes are reevaluated
                 priorCriticalSection(pCurrentStatement)
                     ? pAssumeLabel
-                    : Objects.requireNonNull(target).gotoLabel.orElseThrow()));
+                    : Objects.requireNonNull(target).gotoLabel));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }
     }
@@ -356,7 +356,7 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatement firstStatement = pCurrent.block.getFirstStatement();
       SeqThreadStatementClause next = pLabelCaseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";
-      if (pCurrent.label + 1 == next.label) {
+      if (pCurrent.labelNumber + 1 == next.labelNumber) {
         return isConsecutiveLabelPath(next, pTarget, pLabelCaseMap);
       } else {
         return false;

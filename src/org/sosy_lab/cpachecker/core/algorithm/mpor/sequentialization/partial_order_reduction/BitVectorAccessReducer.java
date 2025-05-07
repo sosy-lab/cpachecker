@@ -211,7 +211,7 @@ class BitVectorAccessReducer {
               ? Optional.empty()
               : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
       SeqBitVectorAccessEvaluationStatement rEvaluation =
-          new SeqBitVectorAccessEvaluationStatement(expression, pTarget.gotoLabel.orElseThrow());
+          new SeqBitVectorAccessEvaluationStatement(expression, pTarget.gotoLabel);
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

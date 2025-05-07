@@ -175,8 +175,7 @@ public class Sequentialization {
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
-    rProgram.addAll(
-        LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution, logger));
+    rProgram.addAll(LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
 

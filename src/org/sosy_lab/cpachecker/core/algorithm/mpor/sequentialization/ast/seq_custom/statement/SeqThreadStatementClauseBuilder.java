@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.validation.SeqValidator;
@@ -69,13 +70,16 @@ public class SeqThreadStatementClauseBuilder {
         pOptions.pruneEmptyStatements
             ? SeqPruner.pruneCaseClauses(initialCaseClauses)
             : initialCaseClauses;
+    // ensure that atomic blocks are not interleaved by adding direct gotos
+    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
+        AtomicBlockBuilder.build(prunedCases);
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedCases =
         PartialOrderReducer.reduce(
             pOptions,
             pUpdatedVariables,
             pBitVectorVariables,
-            prunedCases,
+            atomicBlocks,
             pBinaryExpressionBuilder,
             pLogger);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
@@ -101,7 +105,7 @@ public class SeqThreadStatementClauseBuilder {
         ImmutableMap.builder();
     for (MPORSubstitution substitution : pSubstitutions) {
       MPORThread thread = substitution.thread;
-      ImmutableList.Builder<SeqThreadStatementClause> caseClauses = ImmutableList.builder();
+      ImmutableList.Builder<SeqThreadStatementClause> clauses = ImmutableList.builder();
       Set<ThreadNode> coveredNodes = new HashSet<>();
 
       FunctionStatements functionVariables =
@@ -109,7 +113,7 @@ public class SeqThreadStatementClauseBuilder {
       GhostVariables ghostVariables =
           new GhostVariables(functionVariables, pPcVariables, pThreadSimulationVariables);
 
-      caseClauses.addAll(
+      clauses.addAll(
           initCaseClauses(
               pOptions,
               thread,
@@ -117,10 +121,10 @@ public class SeqThreadStatementClauseBuilder {
               coveredNodes,
               pSubstituteEdges,
               ghostVariables));
-      rCaseClauses.put(thread, caseClauses.build());
+      rCaseClauses.put(thread, clauses.build());
     }
     // TODO add optional pc validation here
-    return reorderCaseClauses(rCaseClauses.buildOrThrow());
+    return reorderClauses(rCaseClauses.buildOrThrow());
   }
 
   /**
@@ -128,9 +132,8 @@ public class SeqThreadStatementClauseBuilder {
    * start at label {@code 0}. This may not be given by default if a start_routine starts with a
    * function call.
    */
-  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
-      reorderCaseClauses(
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
+  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reorderClauses(
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rReordered =
         ImmutableMap.builder();
@@ -237,7 +240,7 @@ public class SeqThreadStatementClauseBuilder {
             pOptions,
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
-            Optional.of(pThread.id),
+            pThread.id,
             labelPc,
             new SeqThreadStatementBlock(statements.build())));
   }

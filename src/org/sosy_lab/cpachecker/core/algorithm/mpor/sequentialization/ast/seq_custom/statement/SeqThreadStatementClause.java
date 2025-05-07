@@ -37,10 +37,13 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public final boolean isLoopStart;
 
-  public final int label;
+  public final int labelNumber;
 
-  /** The goto label for the case, e.g. {@code case_t0_42;} */
-  public final Optional<SeqSwitchCaseGotoLabelStatement> gotoLabel;
+  /**
+   * The goto label for the case, e.g. {@code T0_42;}. It is mandatory for all statements, but may
+   * not actually be targeted with a {@code goto}.
+   */
+  public final SeqSwitchCaseGotoLabelStatement gotoLabel;
 
   /** The case block e.g. {@code fib(42); break;} */
   public final SeqThreadStatementBlock block;
@@ -49,21 +52,17 @@ public class SeqThreadStatementClause implements SeqStatement {
       MPOROptions pOptions,
       boolean pIsGlobal,
       boolean pIsLoopStart,
-      Optional<Integer> pThreadId,
-      int pLabel,
+      int pThreadId,
+      int pLabelNumber,
       SeqThreadStatementBlock pBlock) {
 
     id = getNewId();
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
-    label = pLabel;
+    labelNumber = pLabelNumber;
     gotoLabel =
-        gotoLabelNecessary(pOptions, pThreadId)
-            ? Optional.of(
-                new SeqSwitchCaseGotoLabelStatement(
-                    SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId.orElseThrow()),
-                    pLabel))
-            : Optional.empty();
+        new SeqSwitchCaseGotoLabelStatement(
+            SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId), pLabelNumber);
     block = pBlock;
   }
 
@@ -72,14 +71,14 @@ public class SeqThreadStatementClause implements SeqStatement {
       int pId,
       boolean pIsGlobal,
       boolean pIsLoopStart,
-      int pLabel,
-      Optional<SeqSwitchCaseGotoLabelStatement> pGotoLabel,
+      int pLabelNumber,
+      SeqSwitchCaseGotoLabelStatement pGotoLabel,
       SeqThreadStatementBlock pBlock) {
 
     id = pId;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
-    label = pLabel;
+    labelNumber = pLabelNumber;
     gotoLabel = pGotoLabel;
     block = pBlock;
   }
@@ -93,7 +92,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   public SeqThreadStatementClause cloneWithLabelAndBlock(
       int pLabel, SeqThreadStatementBlock pBlock) {
 
-    Optional<SeqSwitchCaseGotoLabelStatement> newGotoLabel = updateGotoLabel(pLabel);
+    SeqSwitchCaseGotoLabelStatement newGotoLabel = updateGotoLabel(pLabel);
     return new SeqThreadStatementClause(id, isGlobal, isLoopStart, pLabel, newGotoLabel, pBlock);
   }
 
@@ -102,19 +101,14 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public SeqThreadStatementClause cloneWithBlock(SeqThreadStatementBlock pBlock) {
-    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, label, gotoLabel, pBlock);
+    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, labelNumber, gotoLabel, pBlock);
   }
 
   /**
    * Returns an updated {@link SeqSwitchCaseGotoLabelStatement} based on the new {@code pCaseLabel}.
    */
-  private Optional<SeqSwitchCaseGotoLabelStatement> updateGotoLabel(int pNewLabel) {
-
-    if (gotoLabel.isEmpty()) {
-      return Optional.empty();
-    } else {
-      return Optional.of(gotoLabel.orElseThrow().cloneWithLabelNumber(pNewLabel));
-    }
+  private SeqSwitchCaseGotoLabelStatement updateGotoLabel(int pNewLabel) {
+    return gotoLabel.cloneWithLabelNumber(pNewLabel);
   }
 
   /**
@@ -142,11 +136,6 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String blockString = block.toASTString();
-    String gotoLabelString =
-        gotoLabel.isPresent()
-            ? gotoLabel.orElseThrow().toASTString() + SeqSyntax.SPACE
-            : SeqSyntax.EMPTY_STRING;
-    return gotoLabelString + blockString;
+    return gotoLabel.toASTString() + SeqSyntax.SPACE + block.toASTString();
   }
 }

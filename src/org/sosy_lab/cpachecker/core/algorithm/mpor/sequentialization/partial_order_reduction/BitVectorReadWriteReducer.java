@@ -237,7 +237,7 @@ class BitVectorReadWriteReducer {
       Optional<BitVectorEvaluationExpression> expression =
           allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
       SeqBitVectorReadWriteEvaluationStatement rEvaluation =
-          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.gotoLabel.orElseThrow());
+          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.gotoLabel);
       return Optional.of(rEvaluation);
     }
     return Optional.empty();

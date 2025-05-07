@@ -53,7 +53,7 @@ public class SeqPruner {
           rPruned.put(
               thread,
               ImmutableList.of(
-                  threadExit.label == Sequentialization.INIT_PC
+                  threadExit.labelNumber == Sequentialization.INIT_PC
                       ? threadExit
                       : threadExit.cloneWithLabel(Sequentialization.INIT_PC)));
         } else {
@@ -168,7 +168,7 @@ public class SeqPruner {
       }
     }
     // otherwise return label pc of the found non-blank
-    return pNonBlank.label;
+    return pNonBlank.labelNumber;
   }
 
   private static SeqThreadStatementClause getThreadExitCaseClause(
