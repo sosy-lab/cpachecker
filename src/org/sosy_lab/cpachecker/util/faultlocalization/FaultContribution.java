@@ -71,12 +71,13 @@ public class FaultContribution {
                 + ".\n");
 
     for (FaultInfo faultInfo : copy) {
-      switch (faultInfo.getType()) {
-        case RANK_INFO -> out.append(" ".repeat(2));
-        case REASON -> out.append(" ".repeat(5));
-        case FIX -> out.append(" ".repeat(8));
-      }
-      out.append(faultInfo).append("\n");
+      int indent =
+          switch (faultInfo.getType()) {
+            case RANK_INFO -> 2;
+            case REASON -> 5;
+            case FIX -> 8;
+          };
+      out.append(" ".repeat(indent)).append(faultInfo).append("\n");
     }
 
     return out.toString();
