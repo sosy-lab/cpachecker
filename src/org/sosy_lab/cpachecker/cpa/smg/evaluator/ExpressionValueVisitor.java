@@ -374,19 +374,14 @@ class ExpressionValueVisitor
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR -> {
-        boolean isZero;
-
         switch (binaryOperator) {
-          case PLUS:
-          case SHIFT_LEFT:
-          case BINARY_OR:
-          case BINARY_XOR:
-          case SHIFT_RIGHT:
-            isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
+          case PLUS, SHIFT_LEFT, BINARY_OR, BINARY_XOR, SHIFT_RIGHT -> {
+            boolean isZero =
+                lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
             SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
             return singletonList(SMGValueAndState.of(newState, val));
-
-          case MINUS:
+          }
+          case MINUS -> {
             if (lVal instanceof SMGKnownAddressValue lValAddress
                 && rVal instanceof SMGKnownAddressValue rValAddress) {
               if (lValAddress.getObject().equals(rValAddress.getObject())) {
@@ -412,33 +407,32 @@ class ExpressionValueVisitor
               }
             }
             // else
-            isZero = lVal.equals(rVal);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            boolean isZero = lVal.equals(rVal);
+            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
             return singletonList(SMGValueAndState.of(newState, val));
-
-          case MODULO:
-            isZero = lVal.equals(rVal);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+          }
+          case MODULO -> {
+            boolean isZero = lVal.equals(rVal);
+            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
             return singletonList(SMGValueAndState.of(newState, val));
-
-          case DIVIDE:
+          }
+          case DIVIDE -> {
             // TODO maybe we should signal a division by zero error?
             if (rVal.equals(SMGZeroValue.INSTANCE)) {
               return singletonList(SMGValueAndState.withUnknownValue(newState));
             }
 
-            isZero = lVal.equals(SMGZeroValue.INSTANCE);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+            boolean isZero = lVal.equals(SMGZeroValue.INSTANCE);
+            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
             return singletonList(SMGValueAndState.of(newState, val));
-
-          case MULTIPLY:
-          case BINARY_AND:
-            isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+          }
+          case MULTIPLY, BINARY_AND -> {
+            boolean isZero =
+                lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
+            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
             return singletonList(SMGValueAndState.of(newState, val));
-
-          default:
-            throw new AssertionError();
+          }
+          default -> throw new AssertionError();
         }
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
