@@ -159,4 +159,16 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("sanitizeContainedVariableButNotArrayUnsafe.c");
     results.assertIsUnsafe();
   }
+
+  @Test
+  public void testMultipleSanitizeMethodsSafe() throws Exception {
+    TestResults results = runCPAchecker("exampleMultipleSanitizeMethodsSafe.c");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testMultipleSanitizeMethodsUnsafe() throws Exception {
+    TestResults results = runCPAchecker("exampleMultipleSanitizeMethodsUnsafe.c");
+    results.assertIsUnsafe();
+  }
 }
