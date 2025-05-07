@@ -1243,7 +1243,7 @@ public class CFACreator {
               + "to variable names and types into a  json file");
     } catch (IOException e) {
       logger.logUserException(
-          Level.INFO,
+          Level.WARNING,
           e,
           "exporting information about what variables are in scope at each statement in the CFA"
               + " to "
