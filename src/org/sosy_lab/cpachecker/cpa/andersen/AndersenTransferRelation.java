@@ -83,8 +83,10 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
       case FunctionCallEdge:
       case ReturnStatementEdge:
       case FunctionReturnEdge:
-      default:
         printWarning(pCfaEdge);
+        break;
+      default:
+        throw new AssertionError();
     }
 
     if (successor == null) {

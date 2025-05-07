@@ -67,8 +67,9 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
       case RIGHT_ENTAIL:
         return 30;
       case INCOMPARABLE:
-      default:
         return 0;
+      default:
+        throw new AssertionError();
     }
   }
 

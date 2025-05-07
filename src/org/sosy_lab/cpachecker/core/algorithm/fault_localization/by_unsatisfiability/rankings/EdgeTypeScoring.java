@@ -31,8 +31,9 @@ public class EdgeTypeScoring implements FaultScoring {
         return 12.5;
       case DeclarationEdge:
       case BlankEdge:
-      default:
         return 0;
+      default:
+        throw new AssertionError();
     }
   }
 

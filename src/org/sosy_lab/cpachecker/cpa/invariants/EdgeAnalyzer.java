@@ -231,8 +231,9 @@ class EdgeAnalyzer {
         return ImmutableMap.of();
       case BlankEdge:
       case CallToReturnEdge:
-      default:
         return ImmutableMap.of();
+      default:
+        throw new AssertionError();
     }
   }
 

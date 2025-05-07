@@ -270,8 +270,10 @@ class ExpressionValueVisitor
 
       case ALIGNOF:
       case TILDE:
-      default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+
+      default:
+        throw new AssertionError();
     }
   }
 

@@ -1080,13 +1080,14 @@ public class SMGCPAValueVisitor
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
 
       case TYPEOF: // This can't really be solved here as we can only return Values
-
-      default:
         logger.log(
             Level.WARNING,
             "Approximated unknown value due to missing handling of type id expression in "
                 + cfaEdge);
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+
+      default:
+        throw new AssertionError();
     }
   }
 
