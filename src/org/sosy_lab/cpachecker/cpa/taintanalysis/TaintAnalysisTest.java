@@ -30,121 +30,121 @@ public class TaintAnalysisTest {
 
   @Test
   public void testExamplePublicSafe() throws Exception {
-    TestResults results = runCPAchecker("examplePublicSafe.c");
+    TestResults results = runCPAchecker("publicVariableSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExamplePublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("examplePublicUnsafe.c");
+    TestResults results = runCPAchecker("publicVariableUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleSecretSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSecretSafe.c");
+    TestResults results = runCPAchecker("secretVariableSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleSecretUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSecretUnsafe.c");
+    TestResults results = runCPAchecker("secretVariableUnsafe.c");
     results.assertIsUnsafe();
   }
-
+  
   @Test
   public void testExampleSetPublicVariableSecretSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSetPublicVariableSecretSafe.c");
+    TestResults results = runCPAchecker("setPublicVariableSecretSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleSetPublicVariableSecretUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSetPublicVariableSecretUnsafe.c");
+    TestResults results = runCPAchecker("setPublicVariableSecretUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleSanitizeSecretVariableByOverrideSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSanitizeSecretVariableByOverrideSafe.c");
+    TestResults results = runCPAchecker("sanitizeSecretVariableByOverrideSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleSanitizeSecretVariableByOverrideUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSanitizeSecretVariableByOverrideUnsafe.c");
+    TestResults results = runCPAchecker("sanitizeSecretVariableByOverrideUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleSetSecretVariablePublicSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSetSecretVariablePublicSafe.c");
+    TestResults results = runCPAchecker("setSecretVariablePublicSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleSetSecretVariablePublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSetSecretVariablePublicUnsafe.c");
+    TestResults results = runCPAchecker("setSecretVariablePublicUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleTaintPublicVariableSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleTaintPublicVariableSafe.c");
+    TestResults results = runCPAchecker("taintPublicVariableSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleTaintPublicVariableUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleTaintPublicVariableUnsafe.c");
+    TestResults results = runCPAchecker("taintPublicVariableUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExamplePublicArraySafe() throws Exception {
-    TestResults results = runCPAchecker("examplePublicArraySafe.c");
+    TestResults results = runCPAchecker("publicArraySafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExamplePublicArrayUnsafe() throws Exception {
-    TestResults results = runCPAchecker("examplePublicArrayUnsafe.c");
+    TestResults results = runCPAchecker("publicArrayUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleSecretArraySafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSecretArraySafe.c");
+    TestResults results = runCPAchecker("secretArraySafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleSecretArrayUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleSecretArrayUnsafe.c");
+    TestResults results = runCPAchecker("secretArrayUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleArraySanitizationBySettingPublicSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleArraySanitizationBySettingPublicSafe.c");
+    TestResults results = runCPAchecker("arraySanitizationBySettingPublicSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleArraySanitizationBySettingPublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleArraySanitizationBySettingPublicUnsafe.c");
+    TestResults results = runCPAchecker("arraySanitizationBySettingPublicUnsafe.c");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testExampleArrayTaintedBySetNotPublicSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleArrayTaintedBySetNotPublicSafe.c");
+    TestResults results = runCPAchecker("arrayTaintedBySetNotPublicSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testExampleArrayTaintedBySetNotPublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleArrayTaintedBySetNotPublicUnsafe.c");
+    TestResults results = runCPAchecker("arrayTaintedBySetNotPublicUnsafe.c");
     results.assertIsUnsafe();
   }
 
@@ -162,13 +162,13 @@ public class TaintAnalysisTest {
 
   @Test
   public void testMultipleSanitizeMethodsSafe() throws Exception {
-    TestResults results = runCPAchecker("exampleMultipleSanitizeMethodsSafe.c");
+    TestResults results = runCPAchecker("multipleSanitizeMethodsSafe.c");
     results.assertIsSafe();
   }
 
   @Test
   public void testMultipleSanitizeMethodsUnsafe() throws Exception {
-    TestResults results = runCPAchecker("exampleMultipleSanitizeMethodsUnsafe.c");
+    TestResults results = runCPAchecker("multipleSanitizeMethodsUnsafe.c");
     results.assertIsUnsafe();
   }
 }
