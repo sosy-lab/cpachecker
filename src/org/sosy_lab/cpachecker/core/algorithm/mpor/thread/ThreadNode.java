@@ -32,18 +32,22 @@ public class ThreadNode {
   /** The list of context-sensitive return leaving edges of this ThreadNode. */
   private final List<ThreadEdge> leavingEdges;
 
+  public final boolean isInAtomicBlock;
+
   protected ThreadNode(
       int pThreadId,
       CFANode pCfaNode,
       int pPc,
       Optional<ThreadEdge> pCallContext,
-      List<ThreadEdge> pLeavingEdges) {
+      List<ThreadEdge> pLeavingEdges,
+      boolean pIsInAtomicBlock) {
 
     threadId = pThreadId;
     cfaNode = pCfaNode;
     pc = pPc;
     callContext = pCallContext;
     leavingEdges = pLeavingEdges;
+    isInAtomicBlock = pIsInAtomicBlock;
   }
 
   public ThreadEdge firstLeavingEdge() {

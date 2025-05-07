@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -81,12 +79,6 @@ public class SeqThreadStatementClause implements SeqStatement {
     labelNumber = pLabelNumber;
     gotoLabel = pGotoLabel;
     block = pBlock;
-  }
-
-  private boolean gotoLabelNecessary(MPOROptions pOptions, Optional<Integer> pThreadId) {
-    return pThreadId.isPresent()
-        && (!pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)
-            || pOptions.threadLoops);
   }
 
   public SeqThreadStatementClause cloneWithLabelAndBlock(

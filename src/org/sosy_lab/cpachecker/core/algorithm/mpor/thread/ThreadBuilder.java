@@ -145,6 +145,7 @@ public class ThreadBuilder {
         threadNodes,
         threadEdges,
         pEntryNode,
+        false, // at start, no atomic block
         Optional.empty(),
         pStartRoutineCall);
     return new ThreadCFA(
@@ -164,6 +165,7 @@ public class ThreadBuilder {
       ImmutableSet.Builder<ThreadNode> pThreadNodes,
       ImmutableMap.Builder<ThreadEdge, CFAEdge> pThreadEdges,
       final CFANode pCurrentNode,
+      boolean pIsInAtomicBlock,
       Optional<ThreadEdge> pCallContext,
       final Optional<ThreadEdge> pStartRoutineCall) {
 
@@ -178,6 +180,7 @@ public class ThreadBuilder {
     pVisitedCfaNodes.put(pCurrentNode, callContext);
 
     FluentIterable<CFAEdge> leavingCfaEdges = CFAUtils.allLeavingEdges(pCurrentNode);
+    // all leaving edges of a node are in the atomic block
     BiMap<ThreadEdge, CFAEdge> threadEdges =
         createThreadEdgesFromCfaEdges(pThreadId, leavingCfaEdges, callContext);
     pThreadEdges.putAll(threadEdges);
@@ -187,9 +190,12 @@ public class ThreadBuilder {
     if (leavingCfaEdges.isEmpty()) {
       pThreadNodes.add(
           new ThreadNode(
-              pThreadId, pCurrentNode, Sequentialization.EXIT_PC, callContext, edgeList));
+              // thread exits are never in atomic blocks
+              pThreadId, pCurrentNode, Sequentialization.EXIT_PC, callContext, edgeList, false));
     } else {
-      pThreadNodes.add(new ThreadNode(pThreadId, pCurrentNode, currentPc++, callContext, edgeList));
+      pThreadNodes.add(
+          new ThreadNode(
+              pThreadId, pCurrentNode, currentPc++, callContext, edgeList, pIsInAtomicBlock));
       for (CFAEdge cfaEdge : leavingCfaEdges) {
         // exclude function returns, their successors may be in other threads.
         // the original, same-thread successor is included due to the function summary edge.
@@ -204,11 +210,23 @@ public class ThreadBuilder {
               pThreadNodes,
               pThreadEdges,
               cfaEdge.getSuccessor(),
+              updateIsInAtomicBlock(cfaEdge, pIsInAtomicBlock),
               callContext,
               pStartRoutineCall);
         }
       }
     }
+  }
+
+  /** Checks if, after calling {@code pCfaEdge}, the thread is still/yet in an atomic block. */
+  private static boolean updateIsInAtomicBlock(CFAEdge pCfaEdge, boolean pPreviousIsInAtomicBlock) {
+    if (PthreadUtil.callsPthreadFunction(pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_BEGIN)) {
+      return true;
+    } else if (PthreadUtil.callsPthreadFunction(
+        pCfaEdge, PthreadFunctionType.__VERIFIER_ATOMIC_END)) {
+      return false;
+    }
+    return pPreviousIsInAtomicBlock;
   }
 
   /**
