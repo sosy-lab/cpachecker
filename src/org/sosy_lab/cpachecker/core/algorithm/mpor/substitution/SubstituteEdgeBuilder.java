@@ -54,7 +54,7 @@ public class SubstituteEdgeBuilder {
               threadEdge,
               substitute.isPresent()
                   ? substitute.orElseThrow()
-                  : new SubstituteEdge(cfaEdge, ImmutableSet.of(), ImmutableSet.of()));
+                  : new SubstituteEdge(cfaEdge, threadEdge, ImmutableSet.of(), ImmutableSet.of()));
         }
       }
     }
@@ -87,6 +87,7 @@ public class SubstituteEdgeBuilder {
           return Optional.of(
               new SubstituteEdge(
                   substituteDeclarationEdge(declarationEdge, variableDeclaration),
+                  pThreadEdge,
                   ImmutableSet.of(),
                   ImmutableSet.of()));
         }
@@ -105,6 +106,7 @@ public class SubstituteEdgeBuilder {
       return Optional.of(
           new SubstituteEdge(
               substituteAssumeEdge(assume, substituteAssumption),
+              pThreadEdge,
               writtenGlobalVariables.build(),
               globalVariables.build()));
 
@@ -120,6 +122,7 @@ public class SubstituteEdgeBuilder {
       return Optional.of(
           new SubstituteEdge(
               substituteStatementEdge(statement, substituteStatement),
+              pThreadEdge,
               writtenGlobalVariables.build(),
               globalVariables.build()));
 
@@ -137,6 +140,7 @@ public class SubstituteEdgeBuilder {
         return Optional.of(
             new SubstituteEdge(
                 substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
+                pThreadEdge,
                 writtenGlobalVariables.build(),
                 globalVariables.build()));
       }
@@ -154,6 +158,7 @@ public class SubstituteEdgeBuilder {
       return Optional.of(
           new SubstituteEdge(
               substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
+              pThreadEdge,
               writtenGlobalVariables.build(),
               globalVariables.build()));
 
@@ -169,6 +174,7 @@ public class SubstituteEdgeBuilder {
       return Optional.of(
           new SubstituteEdge(
               substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
+              pThreadEdge,
               writtenGlobalVariables.build(),
               globalVariables.build()));
     }

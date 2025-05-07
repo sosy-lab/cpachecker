@@ -8,18 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.substitution;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
 /** A simple wrapper for substitutes to {@link CFAEdge}s. */
 public class SubstituteEdge {
 
   public final CFAEdge cfaEdge;
 
-  /** The list of global variable declarations that this edge accesses. */
+  public final ThreadEdge threadEdge;
+
+  /** The set of global variable declarations that this edge accesses. */
   public final ImmutableSet<CVariableDeclaration> accessedGlobalVariables;
 
   public final ImmutableSet<CVariableDeclaration> readGlobalVariables;
@@ -32,10 +37,15 @@ public class SubstituteEdge {
 
   public SubstituteEdge(
       CFAEdge pCfaEdge,
+      ThreadEdge pThreadEdge,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
       ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
 
+    checkArgument(
+        pCfaEdge.equals(pThreadEdge.cfaEdge), "pCfaEdge and pThreadEdge cfaEdge must match");
+
     cfaEdge = pCfaEdge;
+    threadEdge = pThreadEdge;
     writtenGlobalVariables = pWrittenGlobalVariables;
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
