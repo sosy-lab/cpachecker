@@ -361,6 +361,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
       WaypointRecord follow = entry.follow();
+      WaypointRecord cycle = entry.cycle();
       List<WaypointRecord> avoids = entry.avoids();
       if (!avoids.isEmpty()) {
         logger.log(

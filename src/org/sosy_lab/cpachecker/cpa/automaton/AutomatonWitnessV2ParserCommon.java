@@ -96,7 +96,8 @@ class AutomatonWitnessV2ParserCommon {
     return invariantsSpecAutomaton;
   }
 
-  record PartitionedWaypoints(WaypointRecord follow, ImmutableList<WaypointRecord> avoids) {}
+  record PartitionedWaypoints(
+      WaypointRecord follow, WaypointRecord cycle, ImmutableList<WaypointRecord> avoids) {}
 
   /**
    * Separate the entries into segments whose waypoints should be passed one after the other
@@ -110,6 +111,7 @@ class AutomatonWitnessV2ParserCommon {
     ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
+    int numCycleWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
 
@@ -121,7 +123,14 @@ class AutomatonWitnessV2ParserCommon {
             if (waypoint.getAction().equals(WaypointAction.AVOID)) {
               avoids.add(waypoint);
             } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-              segments.add(new PartitionedWaypoints(waypoint, avoids.build()));
+              if (numCycleWaypoints > 0) {
+                numCycleWaypoints = -1;
+              }
+              segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
+              break;
+            } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+              numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
+              segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
               break;
             }
           }
@@ -129,6 +138,7 @@ class AutomatonWitnessV2ParserCommon {
         break; // for now just take the first ViolationSequenceEntry in the witness V2
       }
     }
+    checkCycleIsUninterruptedAtEnd(numCycleWaypoints, numTargetWaypoints);
     checkTargetIsAtEnd(latest, numTargetWaypoints);
     return segments.build();
   }
@@ -155,6 +165,19 @@ class AutomatonWitnessV2ParserCommon {
       builder.withAssumptions(ImmutableList.of(exp));
     } catch (UnrecognizedCodeException e) {
       throw new WitnessParseException("Could not parse string into valid expression", e);
+    }
+  }
+
+  private void checkCycleIsUninterruptedAtEnd(int numCycleWaypoints, int numTargetWaypoints)
+      throws InvalidYAMLWitnessException {
+    if (numTargetWaypoints > 0 && numCycleWaypoints > 0) {
+      throw new InvalidYAMLWitnessException(
+          "Target and cycle waypoints are combined in witness V2!");
+    } else if (numCycleWaypoints == -1) {
+      throw new InvalidYAMLWitnessException(
+          "Cycle waypoints are interrupted with follow waypoints in witness V2!");
+    } else if (numCycleWaypoints == 0) {
+      throw new InvalidYAMLWitnessException("No target or cycle waypoint in witness V2!");
     }
   }
 
