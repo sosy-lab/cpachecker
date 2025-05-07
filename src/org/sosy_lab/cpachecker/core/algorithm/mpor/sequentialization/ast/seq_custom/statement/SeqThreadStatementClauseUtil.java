@@ -290,11 +290,7 @@ public class SeqThreadStatementClauseUtil {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC && pLabelNumberToLabelMap.containsKey(targetPc)) {
         SeqLabelStatement label = Objects.requireNonNull(pLabelNumberToLabelMap.get(targetPc));
-        try {
-          return pCurrentStatement.cloneWithTargetGoto(label.getLabelName());
-        } catch (Exception pE) {
-          return pCurrentStatement;
-        }
+        return pCurrentStatement.cloneWithTargetGoto(label.getLabelName());
       }
     }
     // no int target pc -> no replacement

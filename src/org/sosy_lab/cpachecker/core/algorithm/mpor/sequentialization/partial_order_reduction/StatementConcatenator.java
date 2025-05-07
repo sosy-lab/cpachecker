@@ -30,6 +30,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 class StatementConcatenator {
 
+  // TODO the concatenation is not very efficient and also error prone, it may be best to replace
+  //  it with a goto based approach (cf. atomic blocks) and then prune unnecessary switch case
+  //  labels
+
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat(
       MPOROptions pOptions,
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,

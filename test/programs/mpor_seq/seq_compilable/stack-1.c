@@ -131,6 +131,16 @@ int main(void)
   pthread_join(id1, NULL);
   pthread_join(id2, NULL);
 
+  __VERIFIER_atomic_begin();
+  if (top == 0) {
+    __VERIFIER_atomic_end();
+  } else {
+    top = 1;
+    __VERIFIER_atomic_end();
+  }
+
+  top = 42;
+
   return 0;
 }
 
