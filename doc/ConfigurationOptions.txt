@@ -913,7 +913,9 @@ cfa.moveDeclarationsToFunctionStart = false
 cfa.nonReturningFunctions = {"abort", "exit"}
 
 # the path to export a json mapping which for each location contains the
-# variables in scope and their type
+# variables in scope and their type. Please be aware that this is **not** a
+# stable interface and the output format of the file may change in future
+# versions.
 cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 
 # Export CFA as pixel graphic to the given file name. The suffix is added
