@@ -1191,7 +1191,7 @@ public class CFACreator {
       }
 
       Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
-          cfa.getAstCfaRelation().getVariablesAndParametersInScope(node);
+          pCFA.getAstCfaRelation().getVariablesAndParametersInScope(node);
 
       if (declarationAtNode.isEmpty()) {
         continue;
@@ -1204,8 +1204,8 @@ public class CFACreator {
                   declaration ->
                       new AVariableDeclarationExchange(
                           declaration.getOrigName(),
-                          declaration.getType() instanceof CSimpleType
-                              ? ((CSimpleType) declaration.getType()).getType()
+                          declaration.getType() instanceof CSimpleType pCSimpleType
+                              ? pCSimpleType.getType()
                               : null))
               .toSet();
 
