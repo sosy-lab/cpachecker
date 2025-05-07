@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.sampling;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import java.io.ByteArrayInputStream;
@@ -121,10 +123,9 @@ public class RandomSamplingAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     // Copy the current reached set
 
-    if (!(reachedSet.getFirstState() instanceof ARGState argState)) {
-      throw new IllegalArgumentException(
-          "The reached set must contain an ARGState as the first state.");
-    }
+    checkArgument(
+        (reachedSet.getFirstState() instanceof ARGState argState),
+        "The reached set must contain an ARGState as the first state.");
 
     ARGState clonedArgState =
         new ARGState(argState.getWrappedState(), null /* The first state has no parent */);
