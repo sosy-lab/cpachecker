@@ -1179,7 +1179,10 @@ public class CFACreator {
    * @param pCFA
    */
   private void exportTypeInformationForEachVariable(CFA pCFA) {
-    // This is a map from a filename
+    // This is a map from a filename, line and column to a set of variable names with their types
+    // at that location.
+    // To be able to export this to json we need to separate this mapping from a triple to a set
+    // into multiple maps each one with a single key.
     Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
         locationToVariablesInScope = new HashMap<>();
 
