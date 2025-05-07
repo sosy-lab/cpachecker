@@ -1164,30 +1164,19 @@ public class OctagonTransferRelation
               if (leftCoeffs
                   .expandToSize(rightVisitorState.sizeOfVariables(), rightVisitorState)
                   .equals(rightCoeffs)) {
-                switch (binOp) {
-                  case EQUALS:
-                  case GREATER_EQUAL:
-                  case LESS_EQUAL:
-                    returnCoefficients.add(
-                        Pair.of(
-                            OctagonSimpleCoefficients.getBoolTRUECoeffs(
-                                rightVisitorState.sizeOfVariables(), rightVisitorState),
-                            rightVisitorState));
-                    break;
-                  case NOT_EQUALS:
-                  case LESS_THAN:
-                  case GREATER_THAN:
-                    returnCoefficients.add(
-                        Pair.of(
-                            OctagonSimpleCoefficients.getBoolFALSECoeffs(
-                                rightVisitorState.sizeOfVariables(), rightVisitorState),
-                            rightVisitorState));
-                    break;
-                  // unused default statements, all possible values for this switch
-                  // statement are handled above
-                  default:
-                    throw new AssertionError("Unhandled case in switch clause.");
-                }
+                OctagonSimpleCoefficients coefficients =
+                    switch (binOp) {
+                      case EQUALS, GREATER_EQUAL, LESS_EQUAL ->
+                          OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                              rightVisitorState.sizeOfVariables(), rightVisitorState);
+                      case NOT_EQUALS, LESS_THAN, GREATER_THAN ->
+                          OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                              rightVisitorState.sizeOfVariables(), rightVisitorState);
+                      // unused default statements, all possible values for this switch
+                      // statement are handled above
+                      default -> throw new AssertionError("Unhandled case in switch clause.");
+                    };
+                returnCoefficients.add(Pair.of(coefficients, rightVisitorState));
                 continue;
               }
 
@@ -1201,24 +1190,15 @@ public class OctagonTransferRelation
                 rightCoeffs =
                     leftCoeffs.expandToSize(rightVisitorState.sizeOfVariables(), rightVisitorState);
 
-                // because we change the sides of the operands, we have to change the
-                // operator, too
-                switch (binOp) {
-                  case GREATER_EQUAL:
-                    binOp = BinaryOperator.LESS_EQUAL;
-                    break;
-                  case GREATER_THAN:
-                    binOp = BinaryOperator.LESS_THAN;
-                    break;
-                  case LESS_EQUAL:
-                    binOp = BinaryOperator.GREATER_EQUAL;
-                    break;
-                  case LESS_THAN:
-                    binOp = BinaryOperator.GREATER_THAN;
-                    break;
-                  default:
-                    break;
-                }
+                // because we change the sides of the operands, we have to change the operator, too
+                binOp =
+                    switch (binOp) {
+                      case GREATER_EQUAL -> BinaryOperator.LESS_EQUAL;
+                      case GREATER_THAN -> BinaryOperator.LESS_THAN;
+                      case LESS_EQUAL -> BinaryOperator.GREATER_EQUAL;
+                      case LESS_THAN -> BinaryOperator.GREATER_THAN;
+                      default -> binOp;
+                    };
 
               } else {
                 rightVisitorState =

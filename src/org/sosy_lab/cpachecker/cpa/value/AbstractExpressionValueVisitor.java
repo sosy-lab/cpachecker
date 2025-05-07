@@ -1829,7 +1829,6 @@ public abstract class AbstractExpressionValueVisitor
 
     final long lVal = pLeftValue.longValue();
     final long rVal = pRightValue.longValue();
-    long numResult;
 
     switch (pBinaryOperator) {
       case PLUS,
@@ -1843,76 +1842,57 @@ public abstract class AbstractExpressionValueVisitor
           MODULO,
           SHIFT_RIGHT_SIGNED,
           SHIFT_RIGHT_UNSIGNED -> {
-        switch (pBinaryOperator) {
-          case PLUS:
-            numResult = lVal + rVal;
-            break;
+        long numResult =
+            switch (pBinaryOperator) {
+              case PLUS -> lVal + rVal;
 
-          case MINUS:
-            numResult = lVal - rVal;
-            break;
+              case MINUS -> lVal - rVal;
 
-          case DIVIDE:
-            if (rVal == 0) {
-              throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
-            }
+              case DIVIDE -> {
+                if (rVal == 0) {
+                  throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
+                }
 
-            numResult = lVal / rVal;
-            break;
+                yield lVal / rVal;
+              }
+              case MULTIPLY -> lVal * rVal;
 
-          case MULTIPLY:
-            numResult = lVal * rVal;
-            break;
+              case BINARY_AND -> lVal & rVal;
 
-          case BINARY_AND:
-            numResult = lVal & rVal;
-            break;
+              case BINARY_OR -> lVal | rVal;
 
-          case BINARY_OR:
-            numResult = lVal | rVal;
-            break;
+              case BINARY_XOR -> lVal ^ rVal;
 
-          case BINARY_XOR:
-            numResult = lVal ^ rVal;
-            break;
+              case MODULO -> lVal % rVal;
 
-          case MODULO:
-            numResult = lVal % rVal;
-            break;
-
-          // shift operations' behaviour is determined by whether the left hand side value is of
-          // type
-          // int or long, so we have to cast if the actual type is int.
-          case SHIFT_LEFT:
-            if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
-              final int intResult = ((int) lVal) << rVal;
-              numResult = intResult;
-            } else {
-              numResult = lVal << rVal;
-            }
-            break;
-
-          case SHIFT_RIGHT_SIGNED:
-            if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
-              final int intResult = ((int) lVal) >> rVal;
-              numResult = intResult;
-            } else {
-              numResult = lVal >> rVal;
-            }
-            break;
-
-          case SHIFT_RIGHT_UNSIGNED:
-            if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
-              final int intResult = ((int) lVal) >>> rVal;
-              numResult = intResult;
-            } else {
-              numResult = lVal >>> rVal;
-            }
-            break;
-
-          default:
-            throw new AssertionError("Unhandled operator " + pBinaryOperator);
-        }
+              // shift operations' behaviour is determined by whether the left hand side value is of
+              // type int or long, so we have to cast if the actual type is int.
+              case SHIFT_LEFT -> {
+                if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
+                  final int intResult = ((int) lVal) << rVal;
+                  yield intResult;
+                } else {
+                  yield lVal << rVal;
+                }
+              }
+              case SHIFT_RIGHT_SIGNED -> {
+                if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
+                  final int intResult = ((int) lVal) >> rVal;
+                  yield intResult;
+                } else {
+                  yield lVal >> rVal;
+                }
+              }
+              case SHIFT_RIGHT_UNSIGNED -> {
+                if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
+                  final int intResult = ((int) lVal) >>> rVal;
+                  yield intResult;
+                } else {
+                  yield lVal >>> rVal;
+                }
+              }
+              default -> throw new AssertionError("Unhandled operator " + pBinaryOperator);
+            };
 
         if (pLeftType != JSimpleType.LONG && pRightType != JSimpleType.LONG) {
           int intNumResult = (int) numResult;
@@ -1966,29 +1946,26 @@ public abstract class AbstractExpressionValueVisitor
 
     switch (pBinaryOperator) {
       case PLUS, MINUS, DIVIDE, MULTIPLY, MODULO -> {
-        switch (pBinaryOperator) {
-          case PLUS:
-            return new NumericValue(lVal + rVal);
+        return switch (pBinaryOperator) {
+          case PLUS -> new NumericValue(lVal + rVal);
 
-          case MINUS:
-            return new NumericValue(lVal - rVal);
+          case MINUS -> new NumericValue(lVal - rVal);
 
-          case DIVIDE:
+          case DIVIDE -> {
             if (rVal == 0) {
               throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
             }
-            return new NumericValue(lVal / rVal);
+            yield new NumericValue(lVal / rVal);
+          }
 
-          case MULTIPLY:
-            return new NumericValue(lVal * rVal);
+          case MULTIPLY -> new NumericValue(lVal * rVal);
 
-          case MODULO:
-            return new NumericValue(lVal % rVal);
+          case MODULO -> new NumericValue(lVal % rVal);
 
-          default:
-            throw new AssertionError(
-                "Unsupported binary operation " + pBinaryOperator + " on double values");
-        }
+          default ->
+              throw new AssertionError(
+                  "Unsupported binary operation " + pBinaryOperator + " on double values");
+        };
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final boolean result =

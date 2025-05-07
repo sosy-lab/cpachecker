@@ -1123,7 +1123,7 @@ public class AssumptionToEdgeAllocator {
                 ? ((CPointerType) addressType).getType().getCanonicalType()
                 : ((CArrayType) addressType).getType().getCanonicalType();
 
-        switch (binaryOperator) {
+        return switch (binaryOperator) {
           case PLUS, MINUS -> {
             Value addressValueV = address.accept(this);
 
@@ -1133,7 +1133,7 @@ public class AssumptionToEdgeAllocator {
                 || offsetValueV.isUnknown()
                 || !addressValueV.isNumericValue()
                 || !offsetValueV.isNumericValue()) {
-              return Value.UnknownValue.getInstance();
+              yield Value.UnknownValue.getInstance();
             }
 
             Number addressValueNumber = addressValueV.asNumericValue().getNumber();
@@ -1144,12 +1144,11 @@ public class AssumptionToEdgeAllocator {
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
-            switch (binaryOperator) {
-              case PLUS:
-                return new NumericValue(addressValue.add(pointerOffsetValue));
-              case MINUS:
+            yield switch (binaryOperator) {
+              case PLUS -> new NumericValue(addressValue.add(pointerOffsetValue));
+              case MINUS -> {
                 if (lVarIsAddress) {
-                  return new NumericValue(addressValue.subtract(pointerOffsetValue));
+                  yield new NumericValue(addressValue.subtract(pointerOffsetValue));
                 } else {
                   throw new UnrecognizedCodeException(
                       "Expected pointer arithmetic "
@@ -1157,14 +1156,12 @@ public class AssumptionToEdgeAllocator {
                           + binaryExp.toASTString(),
                       binaryExp);
                 }
-              default:
-                throw new AssertionError();
-            }
+              }
+              default -> throw new AssertionError();
+            };
           }
-          default -> {
-            return Value.UnknownValue.getInstance();
-          }
-        }
+          default -> Value.UnknownValue.getInstance();
+        };
       }
 
       @Override
