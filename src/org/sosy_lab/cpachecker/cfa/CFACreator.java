@@ -1158,10 +1158,10 @@ public class CFACreator {
     stats.exportThread.start();
   }
 
-  /*
-     A helper class to have some information about the
-     type of a variable at a certain point in the scope
-  */
+  /**
+   * A helper class to have some information about the type of a variable at a certain point in the
+   * scope
+   */
   record AVariableDeclarationExchange(
       @JsonProperty("name") @NonNull String name,
       @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
@@ -1169,6 +1169,78 @@ public class CFACreator {
     public AVariableDeclarationExchange {
       checkNotNull(name);
       checkNotNull(simpleType);
+    }
+  }
+
+  /**
+   * Export a json file containing information about what the types of variables are at a certain
+   * location in the program.
+   *
+   * @param pCFA
+   */
+  private void exportTypeInformationForEachVariable(CFA pCFA) {
+    // This is a map from a filename
+    Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
+        locationToVariablesInScope = new HashMap<>();
+
+    for (CFANode node : pCFA.nodes()) {
+      Optional<FileLocation> statementContainingNode =
+          pCFA.getAstCfaRelation().getStatementFileLocationForNode(node);
+      if (statementContainingNode.isEmpty()) {
+        continue;
+      }
+
+      Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
+          cfa.getAstCfaRelation().getVariablesAndParametersInScope(node);
+
+      if (declarationAtNode.isEmpty()) {
+        continue;
+      }
+
+      Set<AVariableDeclarationExchange> variables =
+          declarationAtNode
+              .orElseThrow()
+              .transform(
+                  declaration ->
+                      new AVariableDeclarationExchange(
+                          declaration.getOrigName(),
+                          declaration.getType() instanceof CSimpleType
+                              ? ((CSimpleType) declaration.getType()).getType()
+                              : null))
+              .toSet();
+
+      // create a new map if it does not exist
+      FileLocation statementFileLocation = statementContainingNode.orElseThrow();
+      String filename = statementFileLocation.getFileName().toString();
+      Integer lineNumber = statementFileLocation.getStartingLineNumber();
+      Integer columnNumber = statementFileLocation.getStartColumnInLine();
+      locationToVariablesInScope.putIfAbsent(filename, new HashMap<>());
+      locationToVariablesInScope.get(filename).putIfAbsent(lineNumber, new HashMap<>());
+      locationToVariablesInScope
+          .get(filename)
+          .get(lineNumber)
+          .putIfAbsent(columnNumber, new HashSet<>());
+      locationToVariablesInScope.get(filename).get(lineNumber).get(columnNumber).addAll(variables);
+    }
+
+    ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
+    mapper.setSerializationInclusion(Include.NON_NULL);
+
+    try (Writer writer =
+        IO.openOutputFile(
+            pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
+      String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
+      writer.write(entryJson);
+    } catch (JsonProcessingException e) {
+      throw new AssertionError(e);
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.INFO,
+          e,
+          "exporting information about what variables are in scope at each statement in the CFA"
+              + " to "
+              + pathForExportingVariablesInScopeWithTheirType
+              + " failed due to not being able to write to the output file.");
     }
   }
 
@@ -1234,74 +1306,7 @@ public class CFACreator {
     }
 
     if (pathForExportingVariablesInScopeWithTheirType != null) {
-
-      // This is a map from a filename
-      Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
-          locationToVariablesInScope = new HashMap<>();
-
-      for (CFANode node : cfa.nodes()) {
-        Optional<FileLocation> statementContainingNode =
-            cfa.getAstCfaRelation().getStatementFileLocationForNode(node);
-        if (statementContainingNode.isEmpty()) {
-          continue;
-        }
-
-        Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
-            cfa.getAstCfaRelation().getVariablesAndParametersInScope(node);
-
-        if (declarationAtNode.isEmpty()) {
-          continue;
-        }
-
-        Set<AVariableDeclarationExchange> variables =
-            declarationAtNode
-                .orElseThrow()
-                .transform(
-                    declaration ->
-                        new AVariableDeclarationExchange(
-                            declaration.getOrigName(),
-                            declaration.getType() instanceof CSimpleType
-                                ? ((CSimpleType) declaration.getType()).getType()
-                                : null))
-                .toSet();
-
-        // create a new map if it does not exist
-        FileLocation statementFileLocation = statementContainingNode.orElseThrow();
-        String filename = statementFileLocation.getFileName().toString();
-        Integer lineNumber = statementFileLocation.getStartingLineNumber();
-        Integer columnNumber = statementFileLocation.getStartColumnInLine();
-        locationToVariablesInScope.putIfAbsent(filename, new HashMap<>());
-        locationToVariablesInScope.get(filename).putIfAbsent(lineNumber, new HashMap<>());
-        locationToVariablesInScope
-            .get(filename)
-            .get(lineNumber)
-            .putIfAbsent(columnNumber, new HashSet<>());
-        locationToVariablesInScope
-            .get(filename)
-            .get(lineNumber)
-            .get(columnNumber)
-            .addAll(variables);
-      }
-
-      ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
-      mapper.setSerializationInclusion(Include.NON_NULL);
-
-      try (Writer writer =
-          IO.openOutputFile(
-              pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
-        String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
-        writer.write(entryJson);
-      } catch (JsonProcessingException e) {
-        throw new AssertionError(e);
-      } catch (IOException e) {
-        logger.logUserException(
-            Level.INFO,
-            e,
-            "exporting information about what variables are in scope at each statement in the CFA"
-                + " to "
-                + pathForExportingVariablesInScopeWithTheirType
-                + " failed due to not being able to write to the output file.");
-      }
+      exportTypeInformationForEachVariable(cfa);
     }
 
     stats.exportTime.stop();
