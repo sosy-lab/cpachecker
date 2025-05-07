@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -99,16 +101,12 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
       case FP_SUB:
       case FP_DIV:
       case FP_MUL:
-        { // skip first argument, it represents the rounding-mode.
-          List<String> expressions =
-              FluentIterable.from(newArgs)
-                  .skip(1)
-                  .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
-                  .toList();
-          result =
-              String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
-          break;
-        }
+        result =
+            from(newArgs)
+                .skip(1) // skip first argument, it represents the rounding-mode.
+                .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
+                .join(Joiner.on(operatorFromFunctionDeclaration(functionDeclaration, f)));
+        break;
       case ITE:
         result =
             String.format(
