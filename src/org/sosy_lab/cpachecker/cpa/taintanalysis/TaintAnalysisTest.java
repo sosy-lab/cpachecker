@@ -51,7 +51,7 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("secretVariableUnsafe.c");
     results.assertIsUnsafe();
   }
-  
+
   @Test
   public void testExampleSetPublicVariableSecretSafe() throws Exception {
     TestResults results = runCPAchecker("setPublicVariableSecretSafe.c");
