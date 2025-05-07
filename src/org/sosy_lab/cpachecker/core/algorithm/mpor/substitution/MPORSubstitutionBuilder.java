@@ -81,6 +81,7 @@ public class MPORSubstitutionBuilder {
                   pBinaryExpressionBuilder);
       rSubstitutions.add(
           new MPORSubstitution(
+              false,
               thread,
               globalVarSubstitutes,
               localVarSubstitutes,
@@ -108,6 +109,7 @@ public class MPORSubstitutionBuilder {
     // because initializers of global variables are always global variables, if present
     MPORSubstitution dummySubstitution =
         new MPORSubstitution(
+            true,
             pThread,
             dummyGlobalSubstitutes,
             ImmutableMap.of(),
@@ -313,6 +315,7 @@ public class MPORSubstitutionBuilder {
     // create dummy substitution
     MPORSubstitution dummySubstitution =
         new MPORSubstitution(
+            true,
             pThread,
             pGlobalSubstitutes,
             dummySubstitutes,

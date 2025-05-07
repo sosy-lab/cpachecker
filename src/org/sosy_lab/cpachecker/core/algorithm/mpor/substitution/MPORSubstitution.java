@@ -48,7 +48,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class MPORSubstitution {
 
-  // TODO public final boolean isDummy (for debugging)
+  @SuppressWarnings("unused")
+  private final boolean isDummy;
 
   public final MPORThread thread;
 
@@ -82,6 +83,7 @@ public class MPORSubstitution {
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public MPORSubstitution(
+      boolean pIsDummy,
       MPORThread pThread,
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
       ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
@@ -93,6 +95,7 @@ public class MPORSubstitution {
           pStartRoutineArgSubstitutes,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
+    isDummy = pIsDummy;
     thread = pThread;
     globalSubstitutes = pGlobalSubstitutes;
     localSubstitutes = pLocalSubstitutes;
