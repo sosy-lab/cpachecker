@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditionConverterAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.sampling.RandomSamplingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -391,6 +392,17 @@ public class CoreComponentsFactory {
       name = "algorithm.detailedCounterexamples",
       description = "Convert CEX to C program.")
   private boolean exportDetailedCounterexamples = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.useSamplingAlgorithm",
+      description =
+          "Generate samples using the provided algorithm. Currently this "
+              + "only works using the configuration "
+              + "'config/valueAnalysis-NoCegar.properties' as an algorithm."
+              + "Ideally never use this option directly, but only through "
+              + "a configuration")
+  private boolean useSamplingAlgorithm = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -734,6 +746,10 @@ public class CoreComponentsFactory {
       if (exportDetailedCounterexamples) {
         algorithm =
             new DetailedCounterexampleExport(algorithm, config, logger, shutdownNotifier, cfa);
+      }
+
+      if (useSamplingAlgorithm) {
+        algorithm = new RandomSamplingAlgorithm(algorithm, config, logger, shutdownNotifier, cfa, cpa);
       }
     }
 

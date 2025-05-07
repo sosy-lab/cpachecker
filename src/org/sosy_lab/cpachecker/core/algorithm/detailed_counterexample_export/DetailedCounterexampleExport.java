@@ -22,6 +22,7 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -41,12 +42,15 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -197,8 +201,17 @@ public class DetailedCounterexampleExport implements Algorithm {
     PathFormula cexPath = pmgr.makeEmptyPathFormula();
     Set<FormulaAndName> before = ImmutableSet.of();
     ImmutableMap.Builder<FormulaAndName, CFAEdge> variableToLineNumber = ImmutableMap.builder();
-    for (CFAEdge cfaEdge : counterExample.getTargetPath().getFullPath()) {
+    for (CFAEdgeWithAssumptions cfaEdgeWithAssumptions :
+        counterExample.getCFAPathWithAssignments()) {
+      CFAEdge cfaEdge = cfaEdgeWithAssumptions.getCFAEdge();
       cexPath = pmgr.makeAnd(cexPath, cfaEdge);
+
+      for (AExpressionStatement aExpressionStatement : cfaEdgeWithAssumptions.getExpStmts()) {
+        if (aExpressionStatement instanceof CExpressionStatement pCExpressionStatement) {
+          cexPath = pmgr.makeAnd(cexPath, pCExpressionStatement.getExpression());
+        }
+      }
+
       Set<FormulaAndName> after =
           transformedImmutableSetCopy(
               solver.getFormulaManager().extractVariables(cexPath.getFormula()).entrySet(),
@@ -211,67 +224,77 @@ public class DetailedCounterexampleExport implements Algorithm {
     return new PathAndVariables(cexPath, variableToLineNumber.buildOrThrow());
   }
 
+  public void exportErrorInducingInputs(CounterexampleInfo counterExample, Path pCounterexamplePath)
+      throws InvalidConfigurationException,
+          SolverException,
+          InterruptedException,
+          CPATransferException,
+          IOException {
+    Solver solver = Solver.create(config, logger, notifier);
+    PathFormulaManager pmgr =
+        new PathFormulaManagerImpl(
+            solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
+    PathAndVariables cexPathAndVariables = computeVariablesToEdgeMap(solver, pmgr, counterExample);
+    List<Map<String, Object>> assignments = assignments(solver, cexPathAndVariables.path());
+    Multimap<String, String> variableToValues = ArrayListMultimap.create();
+    for (Map<String, Object> assignment : assignments) {
+      assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
+    }
+    ImmutableMap.Builder<String, CFAEdge> linesBuilder = ImmutableMap.builder();
+    for (Entry<FormulaAndName, CFAEdge> formulaAndNameCFAEdgeEntry :
+        cexPathAndVariables.variables().entrySet()) {
+      linesBuilder.put(
+          formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
+    }
+    ImmutableMap<String, CFAEdge> lines = linesBuilder.buildOrThrow();
+    for (Map<String, Object> assignment : assignments) {
+      StringBuilder preciseCexExport = new StringBuilder();
+      for (Entry<String, Object> variableValue : assignment.entrySet()) {
+        String variable = variableValue.getKey();
+        String value = variableValue.getValue().toString();
+        if (lines.get(variable) == null) {
+          logger.logf(
+              Level.WARNING,
+              "Variable %s does not appear in 'lines', skipping assignment %s",
+              variable,
+              value);
+          continue;
+        }
+        CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
+        if (variable.contains("::")) {
+          variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
+        }
+        if (variable.contains("@")) {
+          variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
+        }
+        preciseCexExport.append(cfaEdge).append('\n');
+        preciseCexExport.append("  ").append(variable).append(" == ").append(value).append(";\n");
+      }
+      IO.writeFile(pCounterexamplePath, StandardCharsets.UTF_8, preciseCexExport.toString());
+    }
+  }
+
   /**
    * Exports a detailed counterexample to a file. The counterexample is exported in a format that
    * includes the variable assignments at each location in the counterexample path. The
    * counterexample is exported to a file specified by the detailedCounterexample option.
    *
    * @param counterExamples The collection of counterexamples to export.
+   * @param pCounterexamplePath The path template for the counterexample file. Will be instantiated
+   *     with the number of the CEX being exported.
    */
-  private void exportErrorInducingInputs(Collection<CounterexampleInfo> counterExamples)
+  public void exportManyErrorInducingInputs(
+      Collection<CounterexampleInfo> counterExamples, PathTemplate pCounterexamplePath)
       throws CPAException,
           InterruptedException,
           InvalidConfigurationException,
           SolverException,
           IOException {
     int cexCount = 0;
-    Solver solver = Solver.create(config, logger, notifier);
-    PathFormulaManager pmgr =
-        new PathFormulaManagerImpl(
-            solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
+
     for (CounterexampleInfo counterExample : counterExamples) {
-      PathAndVariables cexPathAndVariables =
-          computeVariablesToEdgeMap(solver, pmgr, counterExample);
-      List<Map<String, Object>> assignments = assignments(solver, cexPathAndVariables.path());
-      Multimap<String, String> variableToValues = ArrayListMultimap.create();
-      for (Map<String, Object> assignment : assignments) {
-        assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
-      }
-      ImmutableMap.Builder<String, CFAEdge> linesBuilder = ImmutableMap.builder();
-      for (Entry<FormulaAndName, CFAEdge> formulaAndNameCFAEdgeEntry :
-          cexPathAndVariables.variables().entrySet()) {
-        linesBuilder.put(
-            formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
-      }
-      ImmutableMap<String, CFAEdge> lines = linesBuilder.buildOrThrow();
-      for (Map<String, Object> assignment : assignments) {
-        StringBuilder preciseCexExport = new StringBuilder();
-        for (Entry<String, Object> variableValue : assignment.entrySet()) {
-          String variable = variableValue.getKey();
-          String value = variableValue.getValue().toString();
-          if (lines.get(variable) == null) {
-            logger.logf(
-                Level.WARNING,
-                "Variable %s does not appear in 'lines', skipping assignment %s",
-                variable,
-                value);
-            continue;
-          }
-          CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
-          if (variable.contains("::")) {
-            variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
-          }
-          if (variable.contains("@")) {
-            variable = Splitter.on("@").limit(2).splitToList(variable).get(0);
-          }
-          preciseCexExport.append(cfaEdge).append('\n');
-          preciseCexExport.append("  ").append(variable).append(" == ").append(value).append(";\n");
-        }
-        IO.writeFile(
-            detailedCounterexample.getPath(cexCount++),
-            StandardCharsets.UTF_8,
-            preciseCexExport.toString());
-      }
+      Path counterexamplePath = pCounterexamplePath.getPath(cexCount++);
+      exportErrorInducingInputs(counterExample, counterexamplePath);
     }
   }
 
@@ -285,7 +308,7 @@ public class DetailedCounterexampleExport implements Algorithm {
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
     try {
-      exportErrorInducingInputs(counterExamples.toList());
+      exportManyErrorInducingInputs(counterExamples.toList(), detailedCounterexample);
     } catch (IOException | InvalidConfigurationException | SolverException e) {
       logger.logUserException(Level.WARNING, e, "Could not export counterexample inputs.");
     }
