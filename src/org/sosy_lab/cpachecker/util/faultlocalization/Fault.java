@@ -135,7 +135,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
       result = String.join(" and ", lines);
     } else {
       int lastIndex = lines.size() - 1;
-      result = String.join(", ", lines.subList(0, lastIndex) + " and " + lines.get(lastIndex));
+      result = String.join(", ", lines.subList(0, lastIndex)) + " and " + lines.get(lastIndex);
     }
     return result + " (Score: " + (int) (score * 100) + ")";
   }
