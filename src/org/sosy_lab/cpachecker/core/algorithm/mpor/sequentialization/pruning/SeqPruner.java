@@ -88,7 +88,7 @@ public class SeqPruner {
     Set<Integer> visitedPrePrunePc = new HashSet<>();
     ImmutableMap.Builder<Integer, Integer> rMap = ImmutableMap.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       if (!caseClause.onlyWritesPc()) {
         for (SeqThreadStatement statement : caseClause.block.statements) {

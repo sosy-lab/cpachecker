@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
+// TODO rename, this is not necessarily linked to switch (bintree if-else)
 public class SeqSwitchCaseGotoLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;

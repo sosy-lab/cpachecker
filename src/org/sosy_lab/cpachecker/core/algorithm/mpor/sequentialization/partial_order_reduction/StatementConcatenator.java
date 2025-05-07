@@ -62,7 +62,7 @@ class StatementConcatenator {
 
     ImmutableList.Builder<SeqThreadStatementClause> newCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     Set<Integer> concatenated = new HashSet<>();
     Set<Integer> duplicated = new HashSet<>();
 
@@ -191,7 +191,7 @@ class StatementConcatenator {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : caseClause.block.statements) {
         newStatements.add(
-            SeqThreadStatementClauseUtil.recursivelyReplaceTargetPcWithGotoLoopHead(
+            SeqThreadStatementClauseUtil.recursivelyReplaceTargetPcWithTargetGoto(
                 statement, pLoopHeadLabels));
       }
       SeqThreadStatementBlock newBlock = new SeqThreadStatementBlock(newStatements.build());

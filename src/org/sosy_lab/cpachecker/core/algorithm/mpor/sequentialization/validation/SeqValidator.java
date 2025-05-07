@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -114,7 +115,7 @@ public class SeqValidator {
       // create the map of originPc to target pc (e.g. case n, pc[i] = m -> {n : m})
       ImmutableMap<Integer, ImmutableSet<Integer>> pcMap = getPcMap(caseClauses);
       ImmutableMap<Integer, SeqThreadStatementClause> labelCaseMap =
-          SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(caseClauses);
       ImmutableSet<Integer> allTargetPcs =
           pcMap.values().stream().flatMap(Set::stream).collect(ImmutableSet.toImmutableSet());
       for (var pcEntry : pcMap.entrySet()) {
@@ -155,7 +156,11 @@ public class SeqValidator {
         // check if the labels case clause is a loop head -> it is targeted with goto, not target pc
         SeqThreadStatementClause caseClause = pLabelCaseMap.get(pLabelPc);
         assert caseClause != null;
-        if (caseClause.block.getFirstStatement().getLoopHeadLabel().isEmpty()) {
+        SeqThreadStatement firstStatement = caseClause.block.getFirstStatement();
+        if (SeqThreadStatementUtil.isInAtomicBlock(firstStatement)) {
+          return; // for statements in atomic blocks, the label pcs may not be targets due to gotos
+        }
+        if (firstStatement.getLoopHeadLabel().isEmpty()) {
           handleValidationException(
               String.format(
                   "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),

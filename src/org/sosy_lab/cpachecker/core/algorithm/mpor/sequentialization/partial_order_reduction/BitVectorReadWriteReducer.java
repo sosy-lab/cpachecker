@@ -85,7 +85,7 @@ class BitVectorReadWriteReducer {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : caseClause.block.statements) {

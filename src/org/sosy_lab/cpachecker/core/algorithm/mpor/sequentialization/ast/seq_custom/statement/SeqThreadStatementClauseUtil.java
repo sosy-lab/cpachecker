@@ -16,7 +16,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqSwitchCaseGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
@@ -153,7 +154,7 @@ public class SeqThreadStatementClauseUtil {
    * A helper mapping {@link SeqThreadStatementClause}s to their label values which are always
    * {@code int} values in the sequentialization.
    */
-  public static ImmutableMap<Integer, SeqThreadStatementClause> mapCaseLabelValueToCaseClause(
+  public static ImmutableMap<Integer, SeqThreadStatementClause> mapLabelNumberToClause(
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
@@ -186,7 +187,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rConsecutiveLabels = ImmutableList.builder();
-    ImmutableMap<Integer, Integer> labelToIndexMap = mapLabelToIndex(pCaseClauses);
+    ImmutableMap<Integer, Integer> labelToIndexMap = mapLabelNumberToIndex(pCaseClauses);
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : caseClause.block.statements) {
@@ -199,7 +200,7 @@ public class SeqThreadStatementClauseUtil {
     return rConsecutiveLabels.build();
   }
 
-  private static ImmutableMap<Integer, Integer> mapLabelToIndex(
+  private static ImmutableMap<Integer, Integer> mapLabelNumberToIndex(
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
@@ -233,7 +234,7 @@ public class SeqThreadStatementClauseUtil {
         return pCurrentStatement.cloneWithTargetPc(index);
       }
     }
-    // no int target pc -> no replacement
+    // no target pc or target goto -> no replacement
     return pCurrentStatement;
   }
 
@@ -255,9 +256,19 @@ public class SeqThreadStatementClauseUtil {
     return rNewInjected.build();
   }
 
-  public static SeqThreadStatement recursivelyReplaceTargetPcWithGotoLoopHead(
+  public static ImmutableMap<Integer, SeqSwitchCaseGotoLabelStatement> mapLabelNumbersToLabels(
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    ImmutableMap.Builder<Integer, SeqSwitchCaseGotoLabelStatement> rMap = ImmutableMap.builder();
+    for (SeqThreadStatementClause clause : pClauses) {
+      rMap.put(clause.labelNumber, clause.gotoLabel);
+    }
+    return rMap.buildOrThrow();
+  }
+
+  public static SeqThreadStatement recursivelyReplaceTargetPcWithTargetGoto(
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqLoopHeadLabelStatement> pLabelToLabelMap) {
+      final ImmutableMap<Integer, ? extends SeqLabelStatement> pLabelNumberToLabelMap) {
 
     // if there are concatenated statements, replace target pc there too
     if (pCurrentStatement.isConcatenable()) {
@@ -267,7 +278,8 @@ public class SeqThreadStatementClauseUtil {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
         for (SeqThreadStatement concatenatedStatement : concatenatedStatements) {
           newStatements.add(
-              recursivelyReplaceTargetPcWithGotoLoopHead(concatenatedStatement, pLabelToLabelMap));
+              recursivelyReplaceTargetPcWithTargetGoto(
+                  concatenatedStatement, pLabelNumberToLabelMap));
         }
         return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
       }
@@ -276,9 +288,13 @@ public class SeqThreadStatementClauseUtil {
     if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present and there are no concatenated statements -> clone with targetIndex
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC && pLabelToLabelMap.containsKey(targetPc)) {
-        SeqLoopHeadLabelStatement label = Objects.requireNonNull(pLabelToLabelMap.get(targetPc));
-        return pCurrentStatement.cloneWithTargetGoto(label.labelName);
+      if (targetPc != Sequentialization.EXIT_PC && pLabelNumberToLabelMap.containsKey(targetPc)) {
+        SeqLabelStatement label = Objects.requireNonNull(pLabelNumberToLabelMap.get(targetPc));
+        try {
+          return pCurrentStatement.cloneWithTargetGoto(label.getLabelName());
+        } catch (Exception pE) {
+          return pCurrentStatement;
+        }
       }
     }
     // no int target pc -> no replacement

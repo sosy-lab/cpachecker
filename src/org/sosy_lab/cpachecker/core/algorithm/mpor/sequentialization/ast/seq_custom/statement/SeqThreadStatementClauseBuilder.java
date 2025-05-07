@@ -70,16 +70,13 @@ public class SeqThreadStatementClauseBuilder {
         pOptions.pruneEmptyStatements
             ? SeqPruner.pruneCaseClauses(initialCaseClauses)
             : initialCaseClauses;
-    // ensure that atomic blocks are not interleaved by adding direct gotos
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
-        AtomicBlockBuilder.build(prunedCases);
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedCases =
         PartialOrderReducer.reduce(
             pOptions,
             pUpdatedVariables,
             pBitVectorVariables,
-            atomicBlocks,
+            prunedCases,
             pBinaryExpressionBuilder,
             pLogger);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
@@ -87,10 +84,13 @@ public class SeqThreadStatementClauseBuilder {
         pOptions.consecutiveLabels
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabels(reducedCases)
             : reducedCases;
+    // ensure that atomic blocks are not interleaved by adding direct gotos
+    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
+        AtomicBlockBuilder.build(consecutiveLabelCases);
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
-        ? SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger)
-        : consecutiveLabelCases;
+        ? SeqValidator.validateCaseClauses(atomicBlocks, pLogger)
+        : atomicBlocks;
   }
 
   /** Maps threads to the case clauses they potentially execute. */
@@ -140,7 +140,7 @@ public class SeqThreadStatementClauseBuilder {
     for (var entry : pCaseClauses.entrySet()) {
       ImmutableList<SeqThreadStatementClause> caseClauses = entry.getValue();
       ImmutableMap<Integer, SeqThreadStatementClause> labelCaseMap =
-          SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(caseClauses);
+          SeqThreadStatementClauseUtil.mapLabelNumberToClause(caseClauses);
       SeqThreadStatementClause first = caseClauses.get(0);
       SeqThreadStatementClause nonBlank = SeqPruner.findNonBlankCaseClause(first, labelCaseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelCaseMap)) {
@@ -250,7 +250,7 @@ public class SeqThreadStatementClauseBuilder {
 
     ImmutableList.Builder<SeqThreadStatementClause> rCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
 
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();

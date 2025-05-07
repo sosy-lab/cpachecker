@@ -283,7 +283,7 @@ public class SeqThreadLoopBuilder {
       throws UnrecognizedCodeException {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapCaseLabelValueToCaseClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
     CExpression pcExpression = pPcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
