@@ -239,7 +239,9 @@ public class CFACreator {
       description =
           "the path to export a json mapping which for each"
               + " location contains the variables"
-              + " in scope and their type")
+              + " in scope and their type. Please be aware that this "
+              + "is **not** a stable interface and the output format of "
+              + "the file may change in future versions.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path pathForExportingVariablesInScopeWithTheirType = null;
 
