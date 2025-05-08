@@ -72,6 +72,15 @@ public class SeqThreadStatementClause implements SeqStatement {
     mergedBlocks = pMergedBlocks;
   }
 
+  public ImmutableList<SeqThreadStatement> getAllStatements() {
+    ImmutableList.Builder<SeqThreadStatement> rAll = ImmutableList.builder();
+    rAll.addAll(block.getStatements());
+    for (SeqStatementBlock mergedBlock : mergedBlocks) {
+      rAll.addAll(mergedBlock.getStatements());
+    }
+    return rAll.build();
+  }
+
   public SeqThreadStatementClause cloneWithLabel(int pLabelNumber) {
     return new SeqThreadStatementClause(
         id, isGlobal, isLoopStart, pLabelNumber, block, mergedBlocks);
