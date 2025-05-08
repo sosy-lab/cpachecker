@@ -143,107 +143,61 @@ public class ExpressionTransformer
         final Type expressionType = pIastBinaryExpression.getExpressionType();
         final Type calculationType = pIastBinaryExpression.getCalculationType();
 
-        switch (pIastBinaryExpression.getOperator()) {
-          case PLUS ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.add(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case MINUS ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.minus(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case MULTIPLY ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.multiply(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case DIVIDE ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.divide(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case MODULO ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.modulo(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case SHIFT_LEFT ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.shiftLeft(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case SHIFT_RIGHT ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.shiftRightSigned(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case BINARY_AND ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.binaryAnd(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case BINARY_OR ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.binaryOr(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case BINARY_XOR ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.binaryXor(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case EQUALS ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.equal(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case NOT_EQUALS ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.notEqual(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case LESS_THAN ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.lessThan(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case LESS_EQUAL ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.lessThanOrEqual(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case GREATER_THAN ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.greaterThan(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          case GREATER_EQUAL ->
-              builder.add(
-                  SymbolicExpressionAndSMGState.of(
-                      factory.greaterThanOrEqual(
-                          operand1Expression, operand2Expression, expressionType, calculationType),
-                      currentState));
-          default ->
-              throw new AssertionError(
-                  "Unhandled binary operation " + pIastBinaryExpression.getOperator());
-        }
+        final SymbolicExpression resultExpression =
+            switch (pIastBinaryExpression.getOperator()) {
+              case PLUS ->
+                  factory.add(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case MINUS ->
+                  factory.minus(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case MULTIPLY ->
+                  factory.multiply(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case DIVIDE ->
+                  factory.divide(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case MODULO ->
+                  factory.modulo(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case SHIFT_LEFT ->
+                  factory.shiftLeft(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case SHIFT_RIGHT ->
+                  factory.shiftRightSigned(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case BINARY_AND ->
+                  factory.binaryAnd(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case BINARY_OR ->
+                  factory.binaryOr(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case BINARY_XOR ->
+                  factory.binaryXor(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case EQUALS ->
+                  factory.equal(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case NOT_EQUALS ->
+                  factory.notEqual(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case LESS_THAN ->
+                  factory.lessThan(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case LESS_EQUAL ->
+                  factory.lessThanOrEqual(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case GREATER_THAN ->
+                  factory.greaterThan(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              case GREATER_EQUAL ->
+                  factory.greaterThanOrEqual(
+                      operand1Expression, operand2Expression, expressionType, calculationType);
+              default ->
+                  throw new AssertionError(
+                      "Unhandled binary operation " + pIastBinaryExpression.getOperator());
+            };
+        builder.add(SymbolicExpressionAndSMGState.of(resultExpression, currentState));
       }
     }
     return builder.build();
