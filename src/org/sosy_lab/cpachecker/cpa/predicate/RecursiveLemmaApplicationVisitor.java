@@ -36,20 +36,12 @@ public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<Form
     if (lemmaPrecision.getLemmas().containsKey(functionDeclaration.getName())) {
       AbstractionLemma lemma = lemmaPrecision.getLemmas().get(functionDeclaration.getName());
       BitvectorFormula signature = lemma.getSignature();
-      BitvectorFormula body = lemma.getBody();
       LemmaVariableReplacementVisitor variableReplacer =
           new LemmaVariableReplacementVisitor(lemmaPrecision, functionDeclaration, args, fmgr);
-      // TODO Replace the variables in the lemma with the ones from the predicate before returning
-      // the body
       return fmgr.visit(signature, variableReplacer);
     }
     List<Formula> newArgs = Lists.transform(args, arg -> fmgr.visit(arg, this));
     return fmgr.makeApplication(functionDeclaration, newArgs);
-  }
-
-  @Override
-  public Formula visitFreeVariable(Formula f, String name) {
-    return f;
   }
 
   @Override

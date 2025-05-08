@@ -1092,6 +1092,7 @@ public final class PredicateAbstractionManager {
       // get propositional variable and definition of predicate
       BooleanFormula var = p.getSymbolicVariable();
 
+      // Replace the calls for a lemma in the predicate with the definition of the lemma
       BooleanFormula atom = (BooleanFormula) fmgr.visit(p.getSymbolicAtom(), lemmaVisitor);
       final BooleanFormula def = instantiator.apply(atom);
 

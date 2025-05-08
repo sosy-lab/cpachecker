@@ -39,7 +39,6 @@ public class LemmaVariableReplacementVisitor extends DefaultFormulaVisitor<Formu
   public Formula visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
     if (declaration.equals(functionDeclaration)) {
-      // Just create a map of both lists??
       AbstractionLemma lemma = lemmaPrecision.getLemmas().get(functionDeclaration.getName());
       assert args.size() == arguments.size();
       Map<Formula, Formula> variableMap =
@@ -50,17 +49,8 @@ public class LemmaVariableReplacementVisitor extends DefaultFormulaVisitor<Formu
       LemmaInitializationVisitor initializationVisitor =
           new LemmaInitializationVisitor(variableMap, fmgr);
       return fmgr.visit(lemma.getBody(), initializationVisitor);
-      /*
-      List<Formula> newArgs = Lists.transform(args, arg -> fmgr.visit(arg, this));
-      return fmgr.makeApplication(functionDeclaration, newArgs);
-      */
     }
     return f;
-  }
-
-  @Override
-  public Formula visitFreeVariable(Formula f, String name) {
-    return this.visitDefault(f);
   }
 
   @Override

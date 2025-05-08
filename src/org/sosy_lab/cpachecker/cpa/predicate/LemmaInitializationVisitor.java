@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.java_smt.api.Formula;
@@ -28,10 +28,7 @@ public class LemmaInitializationVisitor extends DefaultFormulaVisitor<Formula> {
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
-    List<Formula> newArgs = new ArrayList<>();
-    for (Formula arg : args) {
-      newArgs.add(fmgr.visit(arg, this));
-    }
+    List<Formula> newArgs = Lists.transform(args, arg -> fmgr.visit(arg, this));
     return fmgr.makeApplication(functionDeclaration, newArgs);
   }
 
