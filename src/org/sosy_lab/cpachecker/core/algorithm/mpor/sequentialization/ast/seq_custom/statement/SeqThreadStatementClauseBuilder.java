@@ -89,7 +89,7 @@ public class SeqThreadStatementClauseBuilder {
             : reducedCases;
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
-        AtomicBlockBuilder.build(consecutiveLabelCases);
+        AtomicBlockBuilder.build(pOptions, consecutiveLabelCases);
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
         ? SeqValidator.validateCaseClauses(atomicBlocks, pLogger)

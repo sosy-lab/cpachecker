@@ -51,6 +51,11 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
     return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
+  /**
+   * Recursively builds a binary if-else search tree for {@code pStatements} and stores it in {@code
+   * pTree}. Note that the labeling must be consecutive from {@code 0}, e.g. {@code 0, 1, 2} instead
+   * of {@code 1, 2, 3} or {@code 0, 2, 3}.
+   */
   private void recursivelyBuildTree(
       final ImmutableList<? extends SeqStatement> pStatements,
       final int pInitialDepth,

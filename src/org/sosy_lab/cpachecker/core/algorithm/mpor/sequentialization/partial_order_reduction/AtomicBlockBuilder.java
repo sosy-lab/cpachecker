@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
@@ -30,6 +31,7 @@ public class AtomicBlockBuilder {
    * encountering an atomic_begin, until an atomic_end is encountered.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> build(
+      MPOROptions pOptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rWithBlocks =
@@ -40,7 +42,7 @@ public class AtomicBlockBuilder {
       ImmutableMap<Integer, SeqThreadStatementClause> labelMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelMap);
-      rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
+      rWithBlocks.put(thread, mergeAtomicBlocks(pOptions, withGotos));
     }
     return rWithBlocks.buildOrThrow();
   }
@@ -100,7 +102,7 @@ public class AtomicBlockBuilder {
   }
 
   private static ImmutableList<SeqThreadStatementClause> mergeAtomicBlocks(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
+      MPOROptions pOptions, ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rMerged = ImmutableList.builder();
     Set<SeqThreadStatementClause> visited = new HashSet<>();
@@ -115,7 +117,9 @@ public class AtomicBlockBuilder {
               new SeqAtomicStatementBlock(collectStatementBlocks(fromIndex, toIndex, pClauses));
           rMerged.add(clause.cloneWithAtomicBlock(newBlock));
         } else {
-          if (!clause.block.startsAtomicBlock()) { // prevent duplicate atomic_begin
+          // prevent duplicate atomic_begin
+          // or add if the very first statement starts atomic, but only when concatenating
+          if ((i == 0 && pOptions.porConcat) || !clause.block.startsAtomicBlock()) {
             rMerged.add(clause);
           }
         }

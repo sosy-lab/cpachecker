@@ -12,7 +12,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
@@ -219,8 +218,8 @@ public class SeqStringUtil {
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
-    Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
+    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
+    ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       // bit vector assignments / evaluations are placed last (cf. threadLoops)
       if (injectedStatement instanceof SeqInjectedBitVectorStatement) {
