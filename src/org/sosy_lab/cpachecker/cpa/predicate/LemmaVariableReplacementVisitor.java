@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
@@ -21,7 +19,7 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 public class LemmaVariableReplacementVisitor extends DefaultFormulaVisitor<Formula> {
   private final LemmaPrecision lemmaPrecision;
   private final FunctionDeclaration<?> declaration;
-  private final List<Formula> arguments;
+  private final List<Formula> programVariabls;
   private final FormulaManager fmgr;
 
   public LemmaVariableReplacementVisitor(
@@ -31,23 +29,25 @@ public class LemmaVariableReplacementVisitor extends DefaultFormulaVisitor<Formu
       FormulaManager pFmgr) {
     lemmaPrecision = pPrecision;
     declaration = pDeclaration;
-    arguments = pArgs;
+    programVariabls = pArgs;
     fmgr = pFmgr;
   }
 
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+
     if (declaration.equals(functionDeclaration)) {
       AbstractionLemma lemma = lemmaPrecision.getLemmas().get(functionDeclaration.getName());
-      assert args.size() == arguments.size();
-      Map<Formula, Formula> variableMap =
-          IntStream.range(0, arguments.size())
-              .boxed()
-              .collect(Collectors.toMap(args::get, arguments::get));
+
+      assert args.size() == programVariabls.size();
+      ImmutableMap.Builder<Formula, Formula> variableMap = ImmutableMap.builder();
+      for (int i = 0; i < args.size(); i++) {
+        variableMap.put(args.get(i), programVariabls.get(i));
+      }
 
       LemmaInitializationVisitor initializationVisitor =
-          new LemmaInitializationVisitor(variableMap, fmgr);
+          new LemmaInitializationVisitor(variableMap.buildOrThrow(), fmgr);
       return fmgr.visit(lemma.getBody(), initializationVisitor);
     }
     return f;

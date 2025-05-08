@@ -285,7 +285,7 @@ public final class PredicatePrecisionBootstrapper {
     for (CDeclaration declaration : declarations) {
       scope.addDeclarationToScope(declaration);
     }
-    ImmutableMap.Builder<String, AbstractionLemma> lemmas = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<String, AbstractionLemma> lemmas = ImmutableMap.builder();
     LemmaExtractorVisitor extractor = new LemmaExtractorVisitor();
     for (LemmaEntry lemma : lemmaSet) {
       try {

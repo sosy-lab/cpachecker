@@ -16,7 +16,8 @@ public class AbstractionLemma {
   private final BitvectorFormula signature;
   private final BitvectorFormula body;
 
-  public AbstractionLemma(BooleanFormula pFormula, BitvectorFormula pSignature, BitvectorFormula pBody) {
+  public AbstractionLemma(
+      BooleanFormula pFormula, BitvectorFormula pSignature, BitvectorFormula pBody) {
     formula = pFormula;
     signature = pSignature;
     body = pBody;
@@ -25,10 +26,12 @@ public class AbstractionLemma {
   public BooleanFormula getFormula() {
     return formula;
   }
-  public BitvectorFormula getSignature(){
+
+  public BitvectorFormula getSignature() {
     return signature;
   }
-  public BitvectorFormula getBody(){
+
+  public BitvectorFormula getBody() {
     return body;
   }
 }

@@ -8,19 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.util.List;
-import java.util.Map;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
 public class LemmaInitializationVisitor extends DefaultFormulaVisitor<Formula> {
-  private final Map<Formula, Formula> variableMap;
+  private final ImmutableMap<Formula, Formula> variableMap;
   private final FormulaManager fmgr;
 
-  public LemmaInitializationVisitor(Map<Formula, Formula> pMap, FormulaManager pFmgr) {
+  public LemmaInitializationVisitor(ImmutableMap<Formula, Formula> pMap, FormulaManager pFmgr) {
     variableMap = pMap;
     fmgr = pFmgr;
   }
