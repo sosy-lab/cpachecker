@@ -639,6 +639,7 @@ public class SMGCPABuiltins {
       // fallthrough for safe functions
       // $FALL-THROUGH$
       case ASSUME_SAFE:
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
       case ASSUME_EXTERNAL_ALLOCATED:
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
