@@ -46,11 +46,4 @@ int main() {
     // z is expected to be tainted by x and the % (modulo) operation
     z = y % x;
     __VERIFIER_is_public(z,0);
-
-    // TODO: make the taint analysis recognize:
-    // __VERIFIER_is_public(x + y,0);
-    // as tainted. Meaning, not only when one variable is contained in the first argument,
-    // but when the first argument is an expression, the taint analysis should be able to
-    // recognize that expression as tainted, by identifying whether the expression contains
-    // tainted variables.
 }
