@@ -79,36 +79,31 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByBitwiseOperationSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByBitwiseOperationSafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByBitwiseOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintByCommaOperatorSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByCommaOperatorSafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByCommaOperatorSafe.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintByCommaOperatorUnsafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByComparisonOperationSafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByComparisonOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByComparisonOperationUnsafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -129,15 +124,13 @@ public class TaintAnalysisTest {
   @Ignore
   @Test
   public void testTaintByLogicalOperationSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByLogicalOperationSafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByLogicalOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintByLogicalOperationUnsafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
