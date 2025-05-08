@@ -10,21 +10,13 @@ extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
-// TODO: separate this cases in two benchmarks for individual unsafety
-
 int main() {
     int x = __VERIFIER_nondet_int();
     int y = 1;
-    int z;
 
     // z is expected to be tainted by x and the && operation
-    z = (y && x);
-    __VERIFIER_is_public(z, 0);
+    int z = (y && x);
 
-    // Sanitize z
-    __VERIFIER_set_public(z, 1);
-
-    // z is expected to be tainted by x and the || operation
-    z = (y || x);
-    __VERIFIER_is_public(z, 0);
+    // taint violation expected
+    __VERIFIER_is_public(z, 1);
 }
