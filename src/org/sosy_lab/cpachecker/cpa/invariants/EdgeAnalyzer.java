@@ -85,11 +85,11 @@ class EdgeAnalyzer {
   @SuppressWarnings(
       "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
   Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
-    switch (pCfaEdge.getEdgeType()) {
+    return switch (pCfaEdge.getEdgeType()) {
       case AssumeEdge -> {
         AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
         AExpression expression = assumeEdge.getExpression();
-        return getInvolvedVariableTypes(expression, pCfaEdge);
+        yield getInvolvedVariableTypes(expression, pCfaEdge);
       }
       case DeclarationEdge -> {
         ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
@@ -99,7 +99,7 @@ class EdgeAnalyzer {
           CType type = variableDeclaration.getType();
           CInitializer initializer = variableDeclaration.getInitializer();
           if (initializer == null) {
-            return ImmutableMap.of(declaredVariable, type);
+            yield ImmutableMap.of(declaredVariable, type);
           }
 
           final Map<MemoryLocation, CType> initializerVariableTypes =
@@ -107,9 +107,9 @@ class EdgeAnalyzer {
           if (initializerVariableTypes.containsKey(declaredVariable)) {
             // happens with "int x = x;"
             assert initializerVariableTypes.get(declaredVariable).equals(type);
-            return initializerVariableTypes;
+            yield initializerVariableTypes;
           }
-          return ImmutableMap.<MemoryLocation, CType>builderWithExpectedSize(
+          yield ImmutableMap.<MemoryLocation, CType>builderWithExpectedSize(
                   initializerVariableTypes.size() + 1)
               .put(declaredVariable, type)
               .putAll(initializerVariableTypes)
@@ -118,7 +118,7 @@ class EdgeAnalyzer {
         } else if (declaration instanceof AVariableDeclaration) {
           throw new UnsupportedOperationException("Only C expressions are supported");
         } else {
-          return ImmutableMap.of();
+          yield ImmutableMap.of();
         }
       }
       case FunctionCallEdge -> {
@@ -144,7 +144,7 @@ class EdgeAnalyzer {
           result.putAll(getInvolvedVariableTypes(parameter));
         }
 
-        return result;
+        yield result;
       }
       case ReturnStatementEdge -> {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
@@ -165,29 +165,29 @@ class EdgeAnalyzer {
             }
           }
           result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
-          return result;
+          yield result;
         }
-        return ImmutableMap.of();
+        yield ImmutableMap.of();
       }
       case StatementEdge -> {
         AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
         AStatement statement = statementEdge.getStatement();
         if (statement instanceof AExpressionAssignmentStatement) {
-          return getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
+          yield getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
         } else if (statement instanceof AExpressionStatement) {
-          return getInvolvedVariableTypes(
+          yield getInvolvedVariableTypes(
               ((AExpressionStatement) statement).getExpression(), pCfaEdge);
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
-          return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
+          yield getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
         } else if (statement instanceof AFunctionCallStatement functionCallStatement) {
           Map<MemoryLocation, CType> result = new HashMap<>();
           for (AExpression expression :
               functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
             result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
           }
-          return result;
+          yield result;
         } else {
-          return ImmutableMap.of();
+          yield ImmutableMap.of();
         }
       }
       case FunctionReturnEdge -> {
@@ -220,16 +220,14 @@ class EdgeAnalyzer {
             result.putAll(
                 getInvolvedVariableTypes(
                     functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-            return result;
+            yield result;
           }
         }
-        return ImmutableMap.of();
+        yield ImmutableMap.of();
       }
-      case BlankEdge, CallToReturnEdge -> {
-        return ImmutableMap.of();
-      }
+      case BlankEdge, CallToReturnEdge -> ImmutableMap.of();
       default -> throw new AssertionError();
-    }
+    };
   }
 
   @SuppressWarnings(

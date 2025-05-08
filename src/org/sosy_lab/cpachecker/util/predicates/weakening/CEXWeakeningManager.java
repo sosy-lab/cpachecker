@@ -202,29 +202,28 @@ public class CEXWeakeningManager {
           }
 
           private TraversalProcess selectChildren(List<BooleanFormula> operands) {
-            switch (removalSelectionStrategy) {
-              case ALL -> {
-                return TraversalProcess.CONTINUE;
-              }
+            return switch (removalSelectionStrategy) {
+              case ALL -> TraversalProcess.CONTINUE;
+
               case FIRST -> {
                 BooleanFormula selected = operands.iterator().next();
-                return TraversalProcess.custom(selected);
+                yield TraversalProcess.custom(selected);
               }
               case RANDOM -> {
                 int rand = r.nextInt(operands.size());
-                return TraversalProcess.custom(operands.get(rand));
+                yield TraversalProcess.custom(operands.get(rand));
               }
               case LEAST_REMOVALS -> {
                 if (depth >= leastRemovalsDepthLimit) {
-                  return TraversalProcess.custom(operands.iterator().next());
+                  yield TraversalProcess.custom(operands.iterator().next());
                 }
                 BooleanFormula out =
                     Collections.min(
                         operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
-                return TraversalProcess.custom(out);
+                yield TraversalProcess.custom(out);
               }
               default -> throw new UnsupportedOperationException("Unexpected strategy");
-            }
+            };
           }
 
           private List<BooleanFormula> recursivelyCallSelf(BooleanFormula f) {

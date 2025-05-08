@@ -267,14 +267,14 @@ public class OctagonTransferRelation
 
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
     // condition, (this simplification is added in the cfa creation phase)
-    switch (binExp.getOperator()) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO -> {
-        // TODO check which cases can be handled
-        return Collections.singleton(pState);
-        // for the following cases we first create a temporary variable where
-        // the result of the operation is saved, afterwards, the equality with == 0
-        // is checked
-      }
+    return switch (binExp.getOperator()) {
+      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
+          // TODO check which cases can be handled
+          Collections.singleton(pState);
+
+      // for the following cases we first create a temporary variable where
+      // the result of the operation is saved, afterwards, the equality with == 0
+      // is checked
       case MINUS, PLUS, MULTIPLY, DIVIDE -> {
         MemoryLocation tempVarName =
             MemoryLocation.forLocalVariable(
@@ -289,7 +289,7 @@ public class OctagonTransferRelation
 
           // we have an undefined value, so there is no need to make any assumptions about it
           if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-            return Collections.singleton(pState);
+            yield Collections.singleton(pState);
           }
 
           OctagonState tmp =
@@ -300,29 +300,30 @@ public class OctagonTransferRelation
           tmp = tmp.makeAssignment(tempVarName, coeffs.expandToSize(tmp.sizeOfVariables(), tmp));
           possibleStates.addAll(handleSingleBooleanExpression(tempVarName, truthAssumption, tmp));
         }
-        return possibleStates;
-        // in the following cases we have to check left and right part of the binary
-        // expression, when they are not single variables but contain for example
-        // another binary expression we have to create some temporary variables again
-        // which will be compared afterwards
+        yield possibleStates;
       }
+
+      // in the following cases we have to check left and right part of the binary
+      // expression, when they are not single variables but contain for example
+      // another binary expression we have to create some temporary variables again
+      // which will be compared afterwards
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> {
         CExpression left = binExp.getOperand1();
         CExpression right = binExp.getOperand2();
         BinaryOperator op = binExp.getOperator();
 
         if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
-          return Collections.singleton(pState);
+          yield Collections.singleton(pState);
         }
 
         if (left instanceof CLiteralExpression || right instanceof CLiteralExpression) {
-          return handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, pState);
+          yield handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, pState);
         } else {
-          return handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
+          yield handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
         }
       }
       default -> throw new CPATransferException("Unhandled case: " + binExp.getOperator());
-    }
+    };
   }
 
   /**

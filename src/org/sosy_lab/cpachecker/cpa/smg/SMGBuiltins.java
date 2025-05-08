@@ -785,35 +785,31 @@ public class SMGBuiltins {
       return evaluateExternalAllocation(cFCExpression, newState);
     }
 
-    switch (calledFunctionName) {
-      case "__builtin_alloca" -> {
-        return evaluateAlloca(cFCExpression, newState, pCfaEdge, kind);
-      }
-      case "memset" -> {
-        return evaluateMemset(cFCExpression, newState, pCfaEdge);
-      }
-      case "memcpy" -> {
-        return evaluateMemcpy(cFCExpression, newState, pCfaEdge);
-      }
-      case "strcmp" -> {
-        return evaluateStrcmp(cFCExpression, newState, pCfaEdge);
-      }
+    return switch (calledFunctionName) {
+      case "__builtin_alloca" -> evaluateAlloca(cFCExpression, newState, pCfaEdge, kind);
+
+      case "memset" -> evaluateMemset(cFCExpression, newState, pCfaEdge);
+
+      case "memcpy" -> evaluateMemcpy(cFCExpression, newState, pCfaEdge);
+
+      case "strcmp" -> evaluateStrcmp(cFCExpression, newState, pCfaEdge);
+
       case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, newState);
-        return ImmutableList.of(SMGAddressValueAndState.of(newState));
+        yield ImmutableList.of(SMGAddressValueAndState.of(newState));
       }
-      case "printf" -> {
-        return ImmutableList.of(SMGAddressValueAndState.of(newState));
-      }
+
+      case "printf" -> ImmutableList.of(SMGAddressValueAndState.of(newState));
+
       default -> {
         if (isNondetBuiltin(calledFunctionName)) {
-          return Collections.singletonList(SMGAddressValueAndState.of(newState));
+          yield Collections.singletonList(SMGAddressValueAndState.of(newState));
         } else {
           throw new AssertionError(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
       }
-    }
+    };
   }
 
   /**
@@ -959,7 +955,7 @@ public class SMGBuiltins {
       String calledFunctionName,
       SMGState pState)
       throws CPATransferException, AssertionError {
-    switch (options.getHandleUnknownFunctions()) {
+    return switch (options.getHandleUnknownFunctions()) {
       case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
@@ -969,18 +965,14 @@ public class SMGBuiltins {
                   calledFunctionName));
         }
         // for safe functions
-        return ImmutableList.of(SMGAddressValueAndState.of(pState));
+        yield ImmutableList.of(SMGAddressValueAndState.of(pState));
       }
-      case ASSUME_SAFE -> {
-        return ImmutableList.of(SMGAddressValueAndState.of(pState));
-      }
-      case ASSUME_EXTERNAL_ALLOCATED -> {
-        return expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
-      }
-      default ->
-          throw new AssertionError(
-              "Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
-    }
+
+      case ASSUME_SAFE -> ImmutableList.of(SMGAddressValueAndState.of(pState));
+
+      case ASSUME_EXTERNAL_ALLOCATED ->
+          expressionEvaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
+    };
   }
 
   private boolean isSafeFunction(String calledFunctionName) {

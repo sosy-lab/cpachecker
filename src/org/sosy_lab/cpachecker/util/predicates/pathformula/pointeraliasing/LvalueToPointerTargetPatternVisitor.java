@@ -60,7 +60,7 @@ class LvalueToPointerTargetPatternVisitor
       final CExpression operand1 = e.getOperand1();
       final CExpression operand2 = e.getOperand2();
 
-      switch (e.getOperator()) {
+      return switch (e.getOperator()) {
         case BINARY_AND,
             BINARY_OR,
             BINARY_XOR,
@@ -74,9 +74,9 @@ class LvalueToPointerTargetPatternVisitor
             MULTIPLY,
             NOT_EQUALS,
             SHIFT_LEFT,
-            SHIFT_RIGHT -> {
-          return null;
-        }
+            SHIFT_RIGHT ->
+            null;
+
         case MINUS -> {
           final PointerTargetPatternBuilder result = operand1.accept(this);
           if (result != null) {
@@ -87,9 +87,9 @@ class LvalueToPointerTargetPatternVisitor
             } else {
               result.retainBase();
             }
-            return result;
+            yield result;
           } else {
-            return null;
+            yield null;
           }
         }
         case PLUS -> {
@@ -109,13 +109,13 @@ class LvalueToPointerTargetPatternVisitor
             } else {
               result.retainBase();
             }
-            return result;
+            yield result;
           } else {
-            return null;
+            yield null;
           }
         }
         default -> throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
-      }
+      };
     }
 
     @Override

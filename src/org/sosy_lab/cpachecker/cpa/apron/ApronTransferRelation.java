@@ -1104,44 +1104,21 @@ public class ApronTransferRelation
       if (left == null || right == null) {
         return null;
       }
-      switch (e.getOperator()) {
-        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
-          return null;
-        }
-        case DIVIDE -> {
-          return left / right;
-        }
-        case EQUALS -> {
-          return left.equals(right) ? 1.0 : 0;
-        }
-        case GREATER_EQUAL -> {
-          return left >= right ? 1.0 : 0;
-        }
-        case GREATER_THAN -> {
-          return left > right ? 1.0 : 0;
-        }
-        case LESS_EQUAL -> {
-          return left <= right ? 1.0 : 0;
-        }
-        case LESS_THAN -> {
-          return left < right ? 1.0 : 0;
-        }
-        case NOT_EQUALS -> {}
-        case MINUS -> {
-          return left - right;
-        }
-        case MODULO -> {
-          return left % right;
-        }
-        case MULTIPLY -> {
-          return left * right;
-        }
-        case PLUS -> {
-          return left + right;
-        }
-        default -> {}
-      }
-      return null;
+      return switch (e.getOperator()) {
+        case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> null;
+        case DIVIDE -> left / right;
+        case EQUALS -> left.equals(right) ? 1.0 : 0;
+        case GREATER_EQUAL -> left >= right ? 1.0 : 0;
+        case GREATER_THAN -> left > right ? 1.0 : 0;
+        case LESS_EQUAL -> left <= right ? 1.0 : 0;
+        case LESS_THAN -> left < right ? 1.0 : 0;
+        case NOT_EQUALS -> null;
+        case MINUS -> left - right;
+        case MODULO -> left % right;
+        case MULTIPLY -> left * right;
+        case PLUS -> left + right;
+        default -> null;
+      };
     }
 
     @Override
@@ -1151,16 +1128,11 @@ public class ApronTransferRelation
         return null;
       }
 
-      switch (e.getOperator()) {
-        case ALIGNOF, AMPER, TILDE, SIZEOF -> {
-          return null;
-        }
-        case MINUS -> {
-          return -op;
-        }
-        default -> {}
-      }
-      return null;
+      return switch (e.getOperator()) {
+        case ALIGNOF, AMPER, TILDE, SIZEOF -> null;
+        case MINUS -> -op;
+        default -> null;
+      };
     }
 
     @Override

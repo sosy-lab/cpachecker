@@ -238,7 +238,7 @@ class ExpressionValueVisitor
     UnaryOperator unaryOperator = unaryExpression.getOperator();
     CExpression unaryOperand = unaryExpression.getOperand();
 
-    switch (unaryOperator) {
+    return switch (unaryOperator) {
       case AMPER ->
           throw new UnrecognizedCodeException(
               "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
@@ -255,7 +255,7 @@ class ExpressionValueVisitor
           result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
         }
 
-        return result.build();
+        yield result.build();
       }
       case SIZEOF -> {
         long size =
@@ -265,13 +265,12 @@ class ExpressionValueVisitor
                 getInitialSmgState(),
                 unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+        yield singletonList(SMGValueAndState.of(getInitialSmgState(), val));
       }
-      case ALIGNOF, TILDE -> {
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-      }
+      case ALIGNOF, TILDE -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+
       default -> throw new AssertionError();
-    }
+    };
   }
 
   @Override
@@ -363,11 +362,11 @@ class ExpressionValueVisitor
       return singletonList(SMGValueAndState.withUnknownValue(newState));
     }
 
-    switch (binaryOperator) {
+    return switch (binaryOperator) {
       case PLUS, SHIFT_LEFT, BINARY_OR, BINARY_XOR, SHIFT_RIGHT -> {
         boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(newState, val));
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case MINUS -> {
         if (lVal instanceof SMGKnownAddressValue lValAddress
@@ -391,33 +390,33 @@ class ExpressionValueVisitor
             BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
             SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
             diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
-            return singletonList(SMGValueAndState.of(newState, diff));
+            yield singletonList(SMGValueAndState.of(newState, diff));
           }
         }
         // else
         boolean isZero = lVal.equals(rVal);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(newState, val));
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case MODULO -> {
         boolean isZero = lVal.equals(rVal);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(newState, val));
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case DIVIDE -> {
         // TODO maybe we should signal a division by zero error?
         if (rVal.equals(SMGZeroValue.INSTANCE)) {
-          return singletonList(SMGValueAndState.withUnknownValue(newState));
+          yield singletonList(SMGValueAndState.withUnknownValue(newState));
         }
 
         boolean isZero = lVal.equals(SMGZeroValue.INSTANCE);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(newState, val));
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case MULTIPLY, BINARY_AND -> {
         boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
         SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(newState, val));
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
@@ -440,12 +439,10 @@ class ExpressionValueVisitor
           }
         }
 
-        return result.build();
+        yield result.build();
       }
-      default -> {
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-      }
-    }
+      default -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+    };
   }
 
   @Override

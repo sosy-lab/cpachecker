@@ -1171,22 +1171,20 @@ public class PolicyIterationManager {
       return true;
     }
 
-    switch (abstractionLocations) {
-      case ALL -> {
-        return true;
-      }
+    return switch (abstractionLocations) {
+      case ALL -> true;
+
       case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
+        yield (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       }
-      case MERGE -> {
-        return node.getNumEnteringEdges() > 1;
-      }
+      case MERGE -> node.getNumEnteringEdges() > 1;
+
       default -> throw new UnsupportedOperationException("Unexpected state");
-    }
+    };
   }
 
   /**

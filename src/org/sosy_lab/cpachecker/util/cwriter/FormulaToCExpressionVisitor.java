@@ -135,74 +135,33 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
   }
 
   private String operatorFromFunctionDeclaration(FunctionDeclaration<?> pDeclaration, Formula f) {
-    switch (pDeclaration.getKind()) {
-      case NOT -> {
-        return "!";
-      }
-      case UMINUS, BV_NEG, FP_NEG -> {
-        return "-";
-      }
-      case AND -> {
-        return " && ";
-      }
-      case BV_AND -> {
-        return " & ";
-      }
-      case OR -> {
-        return "\n|| ";
-      }
-      case BV_OR -> {
-        return " | ";
-      }
-      case BV_XOR -> {
-        return " ^ ";
-      }
-      case SUB, BV_SUB, FP_SUB -> {
-        return " - ";
-      }
-      case ADD, BV_ADD, FP_ADD -> {
-        return " + ";
-      }
-      case DIV, BV_SDIV, BV_UDIV, FP_DIV -> {
-        return " / ";
-      }
-      case MUL, BV_MUL, FP_MUL -> {
-        return " * ";
-      }
-      case MODULO, BV_SREM, BV_UREM -> {
-        return " % ";
-      }
-      case LT, BV_SLT, BV_ULT, FP_LT -> {
-        return " < ";
-      }
-      case LTE, BV_SLE, BV_ULE, FP_LE -> {
-        return " <= ";
-      }
-      case GT, BV_SGT, BV_UGT, FP_GT -> {
-        return " > ";
-      }
-      case GTE, BV_SGE, BV_UGE, FP_GE -> {
-        return " >= ";
-      }
-      case EQ, BV_EQ, FP_EQ -> {
-        return " == ";
-      }
-      case EQ_ZERO -> {
-        return " == 0";
-      }
-      case GTE_ZERO -> {
-        return " >= 0";
-      }
-      case BV_NOT -> {
-        return "~";
-      }
-      case BV_SHL -> {
-        return " << ";
-      }
+    return switch (pDeclaration.getKind()) {
+      case NOT -> "!";
+      case UMINUS, BV_NEG, FP_NEG -> "-";
+      case AND -> " && ";
+      case BV_AND -> " & ";
+      case OR -> "\n|| ";
+      case BV_OR -> " | ";
+      case BV_XOR -> " ^ ";
+      case SUB, BV_SUB, FP_SUB -> " - ";
+      case ADD, BV_ADD, FP_ADD -> " + ";
+      case DIV, BV_SDIV, BV_UDIV, FP_DIV -> " / ";
+      case MUL, BV_MUL, FP_MUL -> " * ";
+      case MODULO, BV_SREM, BV_UREM -> " % ";
+      case LT, BV_SLT, BV_ULT, FP_LT -> " < ";
+      case LTE, BV_SLE, BV_ULE, FP_LE -> " <= ";
+      case GT, BV_SGT, BV_UGT, FP_GT -> " > ";
+      case GTE, BV_SGE, BV_UGE, FP_GE -> " >= ";
+      case EQ, BV_EQ, FP_EQ -> " == ";
+      case EQ_ZERO -> " == 0";
+      case GTE_ZERO -> " >= 0";
+      case BV_NOT -> "~";
+      case BV_SHL -> " << ";
+
       case UF -> {
         // There are several CPAchecker-internal UFs that replace unsupported function in solvers.
         // See FormulaManagerView and ReplaceBitvectorWithNumeralAndFunctionTheory for details.
-        return switch (pDeclaration.getName()) {
+        yield switch (pDeclaration.getName()) {
           case "_&_" -> " & ";
           case "_!!_" -> " | ";
           case "_^_" -> " ^ ";
@@ -217,12 +176,13 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
                       pDeclaration.getKind(), pDeclaration.getName(), f));
         };
       }
+
       default ->
           throw new UnsupportedOperationException(
               String.format(
                   "Unexpected operand %s (%s) in formula '%s'",
                   pDeclaration.getKind(), pDeclaration.getName(), f));
-    }
+    };
   }
 
   /**

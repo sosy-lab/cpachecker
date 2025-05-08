@@ -426,7 +426,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       final AbstractState pFakeEnablerState, final CAssumeEdge pAssumeEdge, final boolean pLastEdge)
       throws CPATransferException, InterruptedException {
 
-    switch (enablerCPA) {
+    return switch (enablerCPA) {
       case PREDICATE -> {
         PathFormulaManager pfm = predCPA.getPathFormulaManager();
         PredicateAbstractionManager pam = predCPA.getPredicateManager();
@@ -457,7 +457,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
           predFakeState =
               PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
         }
-        return predFakeState;
+        yield predFakeState;
       }
       case APRON, INTERVAL, OCTAGON, VALUE -> {
         Collection<? extends AbstractState> nextFakeStateResult =
@@ -468,13 +468,13 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
               Level.INFO,
               "Adding error explaining condition makes path infeasible, enabler knows of"
                   + " infeasibility of error, but still try to exclude path");
-          return pFakeEnablerState;
+          yield pFakeEnablerState;
         }
         // use first element as one possible reason for failure path
-        return nextFakeStateResult.iterator().next();
+        yield nextFakeStateResult.iterator().next();
       }
       default -> throw new AssertionError("case should never happen");
-    }
+    };
   }
 
   private CFANode createFakeEdge(final CExpression pAssumeExpr, final CFANode pPredecessor) {

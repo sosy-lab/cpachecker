@@ -148,13 +148,11 @@ public class FaultLocalizationByImport implements Algorithm {
   }
 
   private FaultScoring instantiateScoring(Scoring pScoring, CFAEdge pErrorLocation) {
-    switch (pScoring) {
-      case VARIABLE_COUNT -> {
-        return new VariableCountScoring();
-      }
-      case EDGE_TYPE -> {
-        return new EdgeTypeScoring();
-      }
+    return switch (pScoring) {
+      case VARIABLE_COUNT -> new VariableCountScoring();
+
+      case EDGE_TYPE -> new EdgeTypeScoring();
+
       case MINIMAL_LINE_DISTANCE -> {
         if (pErrorLocation == null) {
           throw new IllegalArgumentException(
@@ -163,7 +161,7 @@ public class FaultLocalizationByImport implements Algorithm {
                   + " while not providing an error location in "
                   + importFile);
         }
-        return new MinimalLineDistanceScoring(pErrorLocation);
+        yield new MinimalLineDistanceScoring(pErrorLocation);
       }
       case MAXIMAL_LINE_DISTANCE -> {
         if (pErrorLocation == null) {
@@ -173,16 +171,14 @@ public class FaultLocalizationByImport implements Algorithm {
                   + " while not providing an error location in "
                   + importFile);
         }
-        return new MaximalLineDistanceScoring(pErrorLocation);
+        yield new MaximalLineDistanceScoring(pErrorLocation);
       }
-      case OVERALL_OCCURRENCE -> {
-        return new OverallOccurrenceScoring();
-      }
-      case SET_SIZE -> {
-        return new SetSizeScoring();
-      }
+      case OVERALL_OCCURRENCE -> new OverallOccurrenceScoring();
+
+      case SET_SIZE -> new SetSizeScoring();
+
       default -> throw new IllegalStateException("Unexpected value: " + pScoring);
-    }
+    };
   }
 
   @Override
