@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.util.Comparator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -68,18 +67,18 @@ public final class AstCfaRelation {
 
   // Static variables are currently not being considered, since it is somewhat unclear how to handle
   // them.
-  private final Map<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
-  private final Map<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
-  private final Set<AVariableDeclaration> globalVariables;
+  private final ImmutableMap<CFANode, Set<AVariableDeclaration>> cfaNodeToAstLocalVariablesInScope;
+  private final ImmutableMap<CFANode, Set<AParameterDeclaration>> cfaNodeToAstParametersInScope;
+  private final ImmutableSet<AVariableDeclaration> globalVariables;
 
   public AstCfaRelation(
       ImmutableSet<IfElement> pIfElements,
       ImmutableSet<IterationElement> pIterationStructures,
       ImmutableSortedMap<Integer, FileLocation> pStatementOffsetsToLocations,
       ImmutableSet<StatementElement> pStatementElements,
-      Map<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
-      Map<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
-      Set<AVariableDeclaration> pGlobalVariables,
+      ImmutableMap<CFANode, Set<AVariableDeclaration>> pCfaNodeToAstLocalVariablesInScope,
+      ImmutableMap<CFANode, Set<AParameterDeclaration>> pCfaNodeToAstParametersVariablesInScope,
+      ImmutableSet<AVariableDeclaration> pGlobalVariables,
       ImmutableSortedSet<FileLocation> pExpressionLocations) {
     ifElements = pIfElements;
     iterationStructures = pIterationStructures;

@@ -1243,10 +1243,10 @@ public class CFACreator {
       logger.logUserException(
           Level.WARNING,
           e,
-          "exporting information about what variables are in scope at each statement in the CFA"
-              + " to "
-              + pathForExportingVariablesInScopeWithTheirType
-              + " failed due to not being able to write to the output file.");
+          String.format(
+              "exporting information about what variables are in scope at each statement in the CFA"
+                  + " to %s  failed due to not being able to write to the output file.",
+              pathForExportingVariablesInScopeWithTheirType));
     }
   }
 
