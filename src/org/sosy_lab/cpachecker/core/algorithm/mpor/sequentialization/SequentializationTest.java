@@ -173,7 +173,7 @@ public class SequentializationTest {
   }
 
   @Test
-  public void test_mix013_power_oepc_pso_oepc_rmo_oepc() throws Exception {
+  public void test_mix014_power_oepc_pso_oepc_rmo_oepc() throws Exception {
     // this program is ... very large
     Path path =
         Path.of("./test/programs/mpor_seq/seq_compilable/mix014_power.oepc_pso.oepc_rmo.oepc.c");

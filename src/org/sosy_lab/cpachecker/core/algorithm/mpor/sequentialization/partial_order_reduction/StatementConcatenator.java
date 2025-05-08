@@ -14,7 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqMutexUnlockStatement;
@@ -136,7 +136,7 @@ public class StatementConcatenator {
 
     // use lists to add at list start
     List<SeqThreadStatementClause> rMerged = new ArrayList<>();
-    List<SeqStatementBlock> collected = new ArrayList<>();
+    List<SeqThreadStatementBlock> collected = new ArrayList<>();
     // in reverse, merge not directly reachable blocks to first directly reachable
     for (int i = pClauses.size() - 1; i >= 0; i--) {
       SeqThreadStatementClause clause = pClauses.get(i);

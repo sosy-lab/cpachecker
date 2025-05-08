@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -18,7 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.Seq
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqThreadStatementBlock implements SeqStatementBlock {
+public class SeqThreadStatementBlock implements SeqStatement {
 
   private static final int GOTO_LABEL_TABS = 6;
 
@@ -61,42 +62,35 @@ public class SeqThreadStatementBlock implements SeqStatementBlock {
         + suffix;
   }
 
-  @Override
   public SeqBlockGotoLabelStatement getGotoLabel() {
     return gotoLabel;
   }
 
-  @Override
   public SeqThreadStatement getFirstStatement() {
     return statements.get(0);
   }
 
-  @Override
   public ImmutableList<SeqThreadStatement> getStatements() {
     return statements;
   }
 
-  @Override
   public SeqThreadStatementBlock cloneWithStatements(
       ImmutableList<SeqThreadStatement> pStatements) {
 
     return new SeqThreadStatementBlock(options, gotoLabel, pStatements);
   }
 
-  @Override
-  public SeqStatementBlock cloneWithLabelAndStatements(
+  public SeqThreadStatementBlock cloneWithLabelAndStatements(
       int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements) {
 
     return new SeqThreadStatementBlock(
         options, gotoLabel.cloneWithLabelNumber(pLabelNumber), pStatements);
   }
 
-  @Override
   public boolean startsAtomicBlock() {
     return getFirstStatement() instanceof SeqAtomicBeginStatement;
   }
 
-  @Override
   public boolean startsInAtomicBlock() {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
   }

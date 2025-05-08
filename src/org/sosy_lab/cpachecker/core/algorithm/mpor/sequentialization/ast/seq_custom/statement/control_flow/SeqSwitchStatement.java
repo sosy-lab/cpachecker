@@ -29,9 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
-  /** A label with {@code case 123:} has length 10. */
-  private static final int MAX_LABEL_LENGTH = 6 + SeqStringUtil.MAX_ALIGN;
-
   private final MPOROptions options;
 
   private final SeqSingleControlFlowStatement switchExpression;
@@ -89,17 +86,12 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   }
 
   private String buildCasePrefix(SeqStatement pClause, int pCaseNum) {
-    if (pClause instanceof SeqThreadStatementClause threadClause) {
-      if (threadClause.block.startsInAtomicBlock()) {
-        // when in an atomic block, it does not have to be directly reachable, no case needed
-        return SeqSyntax.SPACE.repeat(MAX_LABEL_LENGTH);
-      }
-    }
-    String spaceAlign = SeqStringUtil.buildSpaceAlign(pCaseNum);
     return SeqToken._case
         + SeqSyntax.SPACE
         + pCaseNum
         + SeqSyntax.COLON
-        + (pClause instanceof SeqSwitchStatement ? SeqSyntax.NEWLINE : spaceAlign);
+        + (pClause instanceof SeqSwitchStatement
+            ? SeqSyntax.NEWLINE
+            : SeqStringUtil.buildSpaceAlign(pCaseNum));
   }
 }

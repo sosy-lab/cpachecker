@@ -12,10 +12,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -41,7 +40,6 @@ public class AtomicBlockBuilder {
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelMap);
       rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
-      // rWithBlocks.put(thread, withGotos);
     }
     return rWithBlocks.buildOrThrow();
   }
@@ -89,22 +87,36 @@ public class AtomicBlockBuilder {
     for (int i = 0; i < pClauses.size(); i++) {
       SeqThreadStatementClause clause = pClauses.get(i);
       if (visited.add(clause)) {
-        if (clause.block.startsInAtomicBlock()) {
-          // if the predecessor starts an atomic block, include it, otherwise it was added already
-          int fromIndex = pClauses.get(i - 1).block.startsAtomicBlock() ? i - 1 : i;
+        if (isAtomicMergeAllowed(clause, pClauses, i)) {
+          // when beginning atomic, merge all blocks until encountering atomic end
           int toIndex = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
-          SeqAtomicStatementBlock newBlock =
-              new SeqAtomicStatementBlock(collectStatementBlocks(fromIndex, toIndex, pClauses));
-          rMerged.add(clause.cloneWithAtomicBlock(newBlock));
+          // start at following index, since we clone with adding, not replacing
+          ImmutableList<SeqThreadStatementBlock> newMergedBlocks =
+              collectAllBlocks(i + 1, toIndex, pClauses);
+          rMerged.add(clause.cloneWithAddedMergedBlocks(newMergedBlocks));
         } else {
-          // prevent duplicate atomic_begin
-          if (!clause.block.startsAtomicBlock()) {
-            rMerged.add(clause);
-          }
+          rMerged.add(clause);
         }
       }
     }
     return rMerged.build();
+  }
+
+  private static boolean isAtomicMergeAllowed(
+      SeqThreadStatementClause pClause,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      int pCurrentIndex) {
+
+    int nextIndex = pCurrentIndex + 1;
+    Optional<SeqThreadStatementClause> next =
+        nextIndex < pClauses.size() ? Optional.of(pClauses.get(nextIndex)) : Optional.empty();
+    // always allowed when starting atomic block or starting in atomic block
+    return pClause.block.startsAtomicBlock()
+        || pClause.block.startsInAtomicBlock()
+        // allowed if the next statement starts in an atomic block, regardless of previous statement
+        // this can happen e.g. with atomic_ends that are reached conditionally
+        // -> multiple paths that may not be consecutive in pClauses
+        || (next.isPresent() && next.orElseThrow().block.startsInAtomicBlock());
   }
 
   private static int findFirstExclusiveIndexNotInAtomicBlock(
@@ -114,7 +126,8 @@ public class AtomicBlockBuilder {
 
     for (int i = pFrom; i < pClauses.size(); i++) {
       SeqThreadStatementClause clause = pClauses.get(i);
-      if (!clause.block.startsInAtomicBlock()) {
+      // if not in first, consider whether clause starts in atomic block
+      if (i != pFrom && !clause.block.startsInAtomicBlock()) {
         return i;
       }
       pVisited.add(clause);
@@ -122,18 +135,16 @@ public class AtomicBlockBuilder {
     return pClauses.size(); // if the rest is atomic block, return last index (exclusive)
   }
 
-  private static ImmutableList<SeqThreadStatementBlock> collectStatementBlocks(
+  private static ImmutableList<SeqThreadStatementBlock> collectAllBlocks(
       int pFrom, // inclusive
       int pTo, // exclusive
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableList.Builder<SeqThreadStatementBlock> rCollected = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses.subList(pFrom, pTo)) {
-      assert clause.block instanceof SeqThreadStatementBlock;
-      rCollected.add((SeqThreadStatementBlock) clause.block);
-      for (SeqStatementBlock mergedBlock : clause.mergedBlocks) {
-        assert mergedBlock instanceof SeqThreadStatementBlock;
-        rCollected.add((SeqThreadStatementBlock) mergedBlock);
+      rCollected.add(clause.block);
+      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+        rCollected.add(mergedBlock);
       }
     }
     return rCollected.build();

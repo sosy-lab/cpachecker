@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -39,13 +37,13 @@ public class SeqThreadStatementClause implements SeqStatement {
   public final int labelNumber;
 
   /** The case block e.g. {@code fib(42); break;} */
-  public final SeqStatementBlock block;
+  public final SeqThreadStatementBlock block;
 
   /** The list of merged blocks, that are not directly reachable due to concatenation. */
-  public final ImmutableList<SeqStatementBlock> mergedBlocks;
+  public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
 
   public SeqThreadStatementClause(
-      boolean pIsGlobal, boolean pIsLoopStart, int pLabelNumber, SeqStatementBlock pBlock) {
+      boolean pIsGlobal, boolean pIsLoopStart, int pLabelNumber, SeqThreadStatementBlock pBlock) {
 
     id = getNewId();
     isGlobal = pIsGlobal;
@@ -61,8 +59,8 @@ public class SeqThreadStatementClause implements SeqStatement {
       boolean pIsGlobal,
       boolean pIsLoopStart,
       int pLabelNumber,
-      SeqStatementBlock pBlock,
-      ImmutableList<SeqStatementBlock> pMergedBlocks) {
+      SeqThreadStatementBlock pBlock,
+      ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     id = pId;
     isGlobal = pIsGlobal;
@@ -75,7 +73,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   public ImmutableList<SeqThreadStatement> getAllStatements() {
     ImmutableList.Builder<SeqThreadStatement> rAll = ImmutableList.builder();
     rAll.addAll(block.getStatements());
-    for (SeqStatementBlock mergedBlock : mergedBlocks) {
+    for (SeqThreadStatementBlock mergedBlock : mergedBlocks) {
       rAll.addAll(mergedBlock.getStatements());
     }
     return rAll.build();
@@ -84,11 +82,6 @@ public class SeqThreadStatementClause implements SeqStatement {
   public SeqThreadStatementClause cloneWithLabel(int pLabelNumber) {
     return new SeqThreadStatementClause(
         id, isGlobal, isLoopStart, pLabelNumber, block, mergedBlocks);
-  }
-
-  public SeqThreadStatementClause cloneWithAtomicBlock(SeqAtomicStatementBlock pAtomicBlock) {
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, pAtomicBlock.labelNumber, pAtomicBlock, mergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithBlockStatements(
@@ -104,16 +97,25 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public SeqThreadStatementClause cloneWithMergedBlocks(
-      ImmutableList<SeqStatementBlock> pMergedBlocks) {
+      ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     return new SeqThreadStatementClause(
         id, isGlobal, isLoopStart, labelNumber, block, pMergedBlocks);
   }
 
+  public SeqThreadStatementClause cloneWithAddedMergedBlocks(
+      ImmutableList<SeqThreadStatementBlock> pAddedMergedBlocks) {
+
+    ImmutableList.Builder<SeqThreadStatementBlock> allMergedBlocks = ImmutableList.builder();
+    allMergedBlocks.addAll(mergedBlocks);
+    allMergedBlocks.addAll(pAddedMergedBlocks);
+    return cloneWithMergedBlocks(allMergedBlocks.build());
+  }
+
   public SeqThreadStatementClause cloneWithLabelAndBlockStatementsAndMergedBlocks(
       int pLabelNumber,
       ImmutableList<SeqThreadStatement> pStatements,
-      ImmutableList<SeqStatementBlock> pMergedBlocks) {
+      ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     return new SeqThreadStatementClause(
         id,
@@ -151,7 +153,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();
     rString.append(block.toASTString());
-    for (SeqStatementBlock mergedBlock : mergedBlocks) {
+    for (SeqThreadStatementBlock mergedBlock : mergedBlocks) {
       rString.append(mergedBlock.toASTString());
     }
     return rString.toString();
