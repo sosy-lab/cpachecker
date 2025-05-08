@@ -305,38 +305,30 @@ public final class BuechiConverterUtils {
 
     private List<AExpression> getExpressions(BooleanExpression<AtomLabel> pLabelExpr)
         throws LtlParseException, UnrecognizedCodeException, InterruptedException {
-      ImmutableList.Builder<AExpression> expBuilder = ImmutableList.builder();
-
       Type type = pLabelExpr.getType();
-      switch (type) {
-        case EXP_TRUE -> {
-          return ImmutableList.of(assume(TRUE));
-        }
-        case EXP_FALSE -> {
-          return ImmutableList.of(assume(FALSE));
-        }
+      return switch (type) {
+        case EXP_TRUE -> ImmutableList.of(assume(TRUE));
+
+        case EXP_FALSE -> ImmutableList.of(assume(FALSE));
+
         case EXP_ATOM -> {
           int apIndex = pLabelExpr.getAtom().getAPIndex();
-          return ImmutableList.of(assume(storedAutomaton.getStoredHeader().getAPs().get(apIndex)));
+          yield ImmutableList.of(assume(storedAutomaton.getStoredHeader().getAPs().get(apIndex)));
         }
-        case EXP_OR -> {
-          expBuilder.addAll(getExpressions(pLabelExpr.getLeft()));
-          expBuilder.addAll(getExpressions(pLabelExpr.getRight()));
-        }
-        case EXP_AND -> {
-          expBuilder.addAll(getExpressions(pLabelExpr.getLeft()));
-          expBuilder.addAll(getExpressions(pLabelExpr.getRight()));
-        }
+        case EXP_OR, EXP_AND ->
+            ImmutableList.<AExpression>builder()
+                .addAll(getExpressions(pLabelExpr.getLeft()))
+                .addAll(getExpressions(pLabelExpr.getRight()))
+                .build();
+
         case EXP_NOT -> {
           CBinaryExpressionBuilder b = new CBinaryExpressionBuilder(machineModel, logger);
           CExpression exp =
               (CExpression) Iterables.getOnlyElement(getExpressions(pLabelExpr.getLeft()));
-          expBuilder.add(b.negateExpressionAndSimplify(exp));
+          yield ImmutableList.of(b.negateExpressionAndSimplify(exp));
         }
         default -> throw new RuntimeException("Unhandled expression type: " + type);
-      }
-
-      return expBuilder.build();
+      };
     }
 
     private CExpression assume(String pExpression) throws LtlParseException, InterruptedException {
