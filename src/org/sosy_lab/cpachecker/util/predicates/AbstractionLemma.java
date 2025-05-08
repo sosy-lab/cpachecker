@@ -8,16 +8,27 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AbstractionLemma {
-  final Formula formula;
+  private final BooleanFormula formula;
+  private final BitvectorFormula signature;
+  private final BitvectorFormula body;
 
-  public AbstractionLemma(Formula pFormula) {
+  public AbstractionLemma(BooleanFormula pFormula, BitvectorFormula pSignature, BitvectorFormula pBody) {
     formula = pFormula;
+    signature = pSignature;
+    body = pBody;
   }
 
-  public Formula getFormula() {
+  public BooleanFormula getFormula() {
     return formula;
+  }
+  public BitvectorFormula getSignature(){
+    return signature;
+  }
+  public BitvectorFormula getBody(){
+    return body;
   }
 }

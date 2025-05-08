@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.collect.Lists;
 import java.util.List;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -20,19 +22,26 @@ import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
  * Lemma.
  */
 public class RecursiveLemmaApplicationVisitor extends DefaultFormulaVisitor<Formula> {
-  private final LemmaPrecision lemmaMap;
+  private final LemmaPrecision lemmaPrecision;
   private final FormulaManager fmgr;
 
   public RecursiveLemmaApplicationVisitor(LemmaPrecision pLemmaMap, FormulaManager pFmgr) {
-    lemmaMap = pLemmaMap;
+    lemmaPrecision = pLemmaMap;
     fmgr = pFmgr;
   }
 
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
-    if (lemmaMap.getLemmas().containsKey(f)) {
-      return lemmaMap.getLemmas().get(f).getFormula();
+    if (lemmaPrecision.getLemmas().containsKey(functionDeclaration.getName())) {
+      AbstractionLemma lemma = lemmaPrecision.getLemmas().get(functionDeclaration.getName());
+      BitvectorFormula signature = lemma.getSignature();
+      BitvectorFormula body = lemma.getBody();
+      LemmaVariableReplacementVisitor variableReplacer =
+          new LemmaVariableReplacementVisitor(lemmaPrecision, functionDeclaration, args, fmgr);
+      // TODO Replace the variables in the lemma with the ones from the predicate before returning
+      // the body
+      return fmgr.visit(signature, variableReplacer);
     }
     List<Formula> newArgs = Lists.transform(args, arg -> fmgr.visit(arg, this));
     return fmgr.makeApplication(functionDeclaration, newArgs);

@@ -285,14 +285,16 @@ public final class PredicatePrecisionBootstrapper {
     for (CDeclaration declaration : declarations) {
       scope.addDeclarationToScope(declaration);
     }
-    ImmutableMap.Builder<BitvectorFormula, AbstractionLemma> lemmas = new ImmutableMap.Builder<>();
+    ImmutableMap.Builder<String, AbstractionLemma> lemmas = new ImmutableMap.Builder<>();
     LemmaExtractorVisitor extractor = new LemmaExtractorVisitor();
     for (LemmaEntry lemma : lemmaSet) {
       try {
+        BooleanFormula lemmaFormula = toFormula(transformer.parseLemmaEntry(lemma, scope));
         Pair<BitvectorFormula, BitvectorFormula> lemmaPair =
-            formulaManagerView.visit(
-                toFormula(transformer.parseLemmaEntry(lemma, scope)), extractor);
-        lemmas.put(lemmaPair.getFirst(), new AbstractionLemma(lemmaPair.getSecond()));
+            formulaManagerView.visit(lemmaFormula, extractor);
+        lemmas.put(
+            "MaxArray",
+            new AbstractionLemma(lemmaFormula, lemmaPair.getFirst(), lemmaPair.getSecond()));
       } catch (Exception e) {
         logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
       }

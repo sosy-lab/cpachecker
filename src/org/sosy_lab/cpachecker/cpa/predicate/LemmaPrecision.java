@@ -11,19 +11,18 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 
 public class LemmaPrecision implements Precision {
-  private final ImmutableMap<BitvectorFormula, AbstractionLemma> lemmaSet;
+  private final ImmutableMap<String, AbstractionLemma> lemmaSet;
 
   /* Initialize empty LemmaPrecision */
   public static final LemmaPrecision EMPTY = new LemmaPrecision(ImmutableMap.of());
 
-  public LemmaPrecision(ImmutableMap<BitvectorFormula, AbstractionLemma> pLemmas) {
+  public LemmaPrecision(ImmutableMap<String, AbstractionLemma> pLemmas) {
     lemmaSet = pLemmas;
   }
 
-  public ImmutableMap<BitvectorFormula, AbstractionLemma> getLemmas() {
+  public ImmutableMap<String, AbstractionLemma> getLemmas() {
     return lemmaSet;
   }
 }
