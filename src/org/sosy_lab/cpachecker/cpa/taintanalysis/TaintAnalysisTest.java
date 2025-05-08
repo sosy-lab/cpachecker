@@ -65,31 +65,36 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByAssignmentOperationUnsafe_Addition() throws Exception {
-    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Addition.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByAssignmentOperationUnsafe_Addition.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByAssignmentOperationUnsafe_Division() throws Exception {
-    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Division.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByAssignmentOperationUnsafe_Division.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByAssignmentOperationUnsafe_Modulo() throws Exception {
-    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Modulo.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByAssignmentOperationUnsafe_Modulo.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByAssignmentOperationUnsafe_Multiplication() throws Exception {
-    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Multiplication.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByAssignmentOperationUnsafe_Multiplication.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByAssignmentOperationUnsafe_Substraction() throws Exception {
-    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Substraction.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByAssignmentOperationUnsafe_Substraction.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -133,37 +138,43 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByComparisonOperationUnsafe_Equal() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_Equal.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_Equal.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe_GreaterThan() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_GreaterThan.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_GreaterThan.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe_GreaterThanOrEqual() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_GreaterThanOrEqual.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_GreaterThanOrEqual.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe_LessThan() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_LessThan.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_LessThan.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe_LessThanOrEqual() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_LessThanOrEqual.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_LessThanOrEqual.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintByComparisonOperationUnsafe_NotEqual() throws Exception {
-    TestResults results = runCPAchecker("taintByComparisonOperationUnsafe_NotEqual.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByComparisonOperationUnsafe_NotEqual.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -227,7 +238,8 @@ public class TaintAnalysisTest {
   @Test
   public void testTaintByPostfixOperationUnsafe_Substraction() throws Exception {
     TestResults results =
-        runCPAchecker("taintByPostfixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
+        runCPAchecker(
+            "taintByPostfixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
     results.assertIsUnsafe();
   }
 
