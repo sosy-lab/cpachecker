@@ -253,7 +253,8 @@ public class SMGCPABuiltins {
 
       case "__VERIFIER_BUILTIN_PLOT":
         evaluateVBPlot(cFCExpression, pState);
-      // $FALL-THROUGH$
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+
       case "printf":
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
