@@ -15,9 +15,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAtomicStatementBlock implements SeqStatementBlock {
 
+  public final int labelNumber;
+
   public final ImmutableList<SeqThreadStatementBlock> blocks;
 
   public SeqAtomicStatementBlock(ImmutableList<SeqThreadStatementBlock> pBlocks) {
+    labelNumber = pBlocks.get(0).gotoLabel.labelNumber;
     blocks = pBlocks;
   }
 
@@ -53,12 +56,20 @@ public class SeqAtomicStatementBlock implements SeqStatementBlock {
   }
 
   @Override
+  public SeqStatementBlock cloneWithLabelAndStatements(
+      int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements) {
+
+    throw new UnsupportedOperationException(this.getClass().getName() + " cannot be cloned");
+  }
+
+  @Override
   public boolean startsAtomicBlock() {
     return blocks.get(0).startsAtomicBlock();
   }
 
   @Override
   public boolean startsInAtomicBlock() {
+    // atomic blocks themselves never start in atomic blocks, because they themselves start them
     return false;
   }
 }

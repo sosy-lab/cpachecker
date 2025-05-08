@@ -23,6 +23,9 @@ public interface SeqStatementBlock extends SeqStatement {
 
   SeqStatementBlock cloneWithStatements(ImmutableList<SeqThreadStatement> pStatements);
 
+  SeqStatementBlock cloneWithLabelAndStatements(
+      int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements);
+
   boolean startsAtomicBlock();
 
   boolean startsInAtomicBlock();

@@ -108,9 +108,11 @@ public class AtomicBlockBuilder {
       SeqThreadStatementClause clause = pClauses.get(i);
       if (visited.add(clause)) {
         if (clause.block.startsInAtomicBlock()) {
+          // if the predecessor starts an atomic block, include it, otherwise it was added already
+          int fromIndex = pClauses.get(i - 1).block.startsAtomicBlock() ? i - 1 : i;
           int toIndex = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
           SeqAtomicStatementBlock newBlock =
-              new SeqAtomicStatementBlock(collectStatementBlocks(i - 1, toIndex, pClauses));
+              new SeqAtomicStatementBlock(collectStatementBlocks(fromIndex, toIndex, pClauses));
           rMerged.add(clause.cloneWithAtomicBlock(newBlock));
         } else {
           if (!clause.block.startsAtomicBlock()) { // prevent duplicate atomic_begin

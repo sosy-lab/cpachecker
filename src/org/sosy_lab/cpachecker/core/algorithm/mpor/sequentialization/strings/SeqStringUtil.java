@@ -12,6 +12,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
@@ -19,6 +20,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
@@ -31,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -43,6 +46,14 @@ public class SeqStringUtil {
 
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
+
+  public static String buildControlFlowSuffixByEncoding(MPOROptions pOptions) {
+    return switch (pOptions.controlFlowEncoding) {
+      // tests showed that using break in switch is more efficient than continue, despite the loop
+      case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
+      case BINARY_IF_TREE -> SeqToken._continue + SeqSyntax.SEMICOLON;
+    };
+  }
 
   /** Builds a whitespace aligner based on the number of digits in {@code pNumber}. */
   public static String buildSpaceAlign(int pNumber) {
@@ -208,8 +219,8 @@ public class SeqStringUtil {
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
-    ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
+    Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
+    Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       // bit vector assignments / evaluations are placed last (cf. threadLoops)
       if (injectedStatement instanceof SeqInjectedBitVectorStatement) {

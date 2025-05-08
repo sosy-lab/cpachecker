@@ -36,34 +36,40 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   private final SeqSingleControlFlowStatement switchExpression;
 
-  private final ImmutableList<? extends SeqStatement> clauses;
+  private final ImmutableList<? extends SeqStatement> statements;
 
   private final int tabs;
 
   public SeqSwitchStatement(
       MPOROptions pOptions,
       CExpression pExpression,
-      ImmutableList<? extends SeqStatement> pClauses,
+      ImmutableList<? extends SeqStatement> pStatements,
       int pTabs) {
 
     options = pOptions;
     switchExpression =
         new SeqSingleControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
-    clauses = pClauses;
+    statements = pStatements;
     tabs = pTabs;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder casesString = new StringBuilder();
-    for (int i = 0; i < clauses.size(); i++) {
-      String casePrefix = buildCasePrefix(clauses.get(i), i);
-      String breakSuffix = SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
+    for (int i = 0; i < statements.size(); i++) {
+      SeqStatement statement = statements.get(i);
+      String casePrefix;
+      if (statement instanceof SeqThreadStatementClause clause) {
+        // if case statement is clause, use label number
+        casePrefix = buildCasePrefix(clause, clause.labelNumber);
+      } else {
+        // otherwise enumerate from 0 to caseNum - 1
+        casePrefix = buildCasePrefix(statement, i);
+      }
       casesString
           .append(
               SeqStringUtil.prependTabsWithoutNewline(
-                  tabs + 1, casePrefix + clauses.get(i).toASTString()))
-          .append(breakSuffix)
+                  tabs + 1, casePrefix + statements.get(i).toASTString()))
           .append(SeqSyntax.NEWLINE);
     }
     String defaultCaseClause =

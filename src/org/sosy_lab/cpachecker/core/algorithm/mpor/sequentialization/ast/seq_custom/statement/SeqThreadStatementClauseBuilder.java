@@ -244,7 +244,7 @@ public class SeqThreadStatementClauseBuilder {
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
             labelPc,
-            new SeqThreadStatementBlock(gotoLabel, statements.build())));
+            new SeqThreadStatementBlock(pOptions, gotoLabel, statements.build())));
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectThreadSimulationGhosts(

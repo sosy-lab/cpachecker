@@ -70,7 +70,8 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public SeqThreadStatementClause cloneWithAtomicBlock(SeqAtomicStatementBlock pAtomicBlock) {
-    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, labelNumber, pAtomicBlock);
+    return new SeqThreadStatementClause(
+        id, isGlobal, isLoopStart, pAtomicBlock.labelNumber, pAtomicBlock);
   }
 
   public SeqThreadStatementClause cloneWithBlockStatements(
@@ -82,7 +83,11 @@ public class SeqThreadStatementClause implements SeqStatement {
   public SeqThreadStatementClause cloneWithLabelAndBlockStatements(
       int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements) {
     return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, pLabelNumber, block.cloneWithStatements(pStatements));
+        id,
+        isGlobal,
+        isLoopStart,
+        pLabelNumber,
+        block.cloneWithLabelAndStatements(pLabelNumber, pStatements));
   }
 
   /**

@@ -48,6 +48,7 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
     StringBuilder casesString = new StringBuilder(SeqSyntax.EMPTY_STRING);
     for (int i = 0; i < clauses.size(); i++) {
       String prefix = SeqToken._case + SeqSyntax.SPACE + i + SeqSyntax.COLON + SeqSyntax.SPACE;
+      // tests showed that using break is more efficient than continue, despite the loop
       String breakSuffix = SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
       casesString
           .append(
