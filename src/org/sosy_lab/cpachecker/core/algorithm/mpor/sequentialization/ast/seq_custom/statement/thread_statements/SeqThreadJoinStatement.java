@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -22,6 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -36,6 +39,8 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   private final Optional<CIdExpression> joinedThreadExitVariable;
 
   public final CIdExpression threadJoinsThreadVariable;
+
+  private final CBinaryExpression joinedThreadActive;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -52,10 +57,12 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       CIdExpression pThreadJoinsThreadVariable,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
+      CBinaryExpression pJoinedThreadActive,
       CLeftHandSide pPcLeftHandSide) {
 
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     threadJoinsThreadVariable = pThreadJoinsThreadVariable;
+    joinedThreadActive = pJoinedThreadActive;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -66,6 +73,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   private SeqThreadJoinStatement(
       Optional<CIdExpression> pJoinedThreadExitVariable,
       CIdExpression pThreadJoinsThreadVariable,
+      CBinaryExpression pJoinedThreadActive,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -77,16 +85,23 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
+    joinedThreadActive = pJoinedThreadActive;
     pcLeftHandSide = pPcLeftHandSide;
     injectedStatements = pInjectedStatements;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    SeqSingleControlFlowStatement ifStatement =
+        new SeqSingleControlFlowStatement(joinedThreadActive, SeqControlFlowStatementType.IF);
+    CExpressionAssignmentStatement setJoinsTrue =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, threadJoinsThreadVariable, SeqIntegerLiteralExpression.INT_1);
+
+    SeqSingleControlFlowStatement elseStatement = new SeqSingleControlFlowStatement();
     CExpressionAssignmentStatement setJoinsFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadJoinsThreadVariable, SeqIntegerLiteralExpression.INT_0);
-
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
@@ -113,12 +128,21 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       }
     }
 
-    return setJoinsFalse.toASTString()
-        + (returnValueRead.isPresent()
-            ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
-            : SeqSyntax.EMPTY_STRING)
+    String elseString =
+        setJoinsFalse.toASTString()
+            + (returnValueRead.isPresent()
+                ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
+                : SeqSyntax.EMPTY_STRING)
+            + SeqSyntax.SPACE
+            + targetStatements;
+
+    return ifStatement.toASTString()
         + SeqSyntax.SPACE
-        + targetStatements;
+        + SeqStringUtil.wrapInCurlyInwards(setJoinsTrue.toASTString())
+        + SeqSyntax.SPACE
+        + elseStatement.toASTString()
+        + SeqSyntax.SPACE
+        + SeqStringUtil.wrapInCurlyInwards(elseString);
   }
 
   @Override
@@ -146,6 +170,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     return new SeqThreadJoinStatement(
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
+        joinedThreadActive,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -158,6 +183,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     return new SeqThreadJoinStatement(
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
+        joinedThreadActive,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -172,6 +198,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     return new SeqThreadJoinStatement(
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
+        joinedThreadActive,
         pcLeftHandSide,
         substituteEdges,
         targetPc,

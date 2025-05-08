@@ -118,7 +118,7 @@ public class SeqAssumptionBuilder {
             new SeqLogicalNotExpression(
                 new SeqLogicalAndExpression(
                     SeqExpressionBuilder.buildPcUnequalExitPc(
-                        pPcVariables, iThread.id, pBinaryExpressionBuilder),
+                        pPcVariables.get(iThread.id), pBinaryExpressionBuilder),
                     joinVar.idExpression));
         CBinaryExpression consequent =
             SeqExpressionBuilder.buildNextThreadUnequal(jThread.id, pBinaryExpressionBuilder);

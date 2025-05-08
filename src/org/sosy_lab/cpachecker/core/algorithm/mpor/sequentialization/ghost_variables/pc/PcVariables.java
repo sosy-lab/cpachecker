@@ -9,17 +9,27 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 
 public class PcVariables {
 
   private final ImmutableList<CLeftHandSide> pc;
 
-  public PcVariables(ImmutableList<CLeftHandSide> pPc) {
+  private final ImmutableList<CBinaryExpression> threadActiveExpressions;
+
+  public PcVariables(
+      ImmutableList<CLeftHandSide> pPc, ImmutableList<CBinaryExpression> pThreadActiveExpressions) {
+
     pc = pPc;
+    threadActiveExpressions = pThreadActiveExpressions;
   }
 
   public CLeftHandSide get(int pThreadId) {
     return pc.get(pThreadId);
+  }
+
+  public CBinaryExpression getThreadActiveExpression(int pThreadId) {
+    return threadActiveExpressions.get(pThreadId);
   }
 }

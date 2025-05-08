@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadBuilder;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
@@ -211,7 +212,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   /** Creates a {@link Sequentialization} based on this instance, necessary for test purposes. */
-  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName) {
+  public Sequentialization buildSequentialization(String pInputFileName, String pOutputFileName)
+      throws UnrecognizedCodeException {
+
     return new Sequentialization(
         substitutions,
         options,

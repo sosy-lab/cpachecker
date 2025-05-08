@@ -17,8 +17,10 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -120,7 +122,8 @@ public class Sequentialization {
       String pOutputFileName,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) {
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
 
     substitutions = pSubstitutions;
     inputFileName = pInputFileName;
@@ -129,9 +132,11 @@ public class Sequentialization {
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    pcVariables =
-        new PcVariables(
-            SeqLeftHandSideBuilder.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc));
+    ImmutableList<CLeftHandSide> pcLeftHandSides =
+        SeqLeftHandSideBuilder.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc);
+    ImmutableList<CBinaryExpression> threadActiveExpressions =
+        SeqExpressionBuilder.buildThreadActiveExpressions(pcLeftHandSides, binaryExpressionBuilder);
+    pcVariables = new PcVariables(pcLeftHandSides, threadActiveExpressions);
   }
 
   @Override

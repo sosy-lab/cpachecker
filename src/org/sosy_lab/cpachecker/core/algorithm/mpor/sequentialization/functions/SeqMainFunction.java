@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -65,8 +64,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final MPORSubstitution mainSubstitution;
 
-  private final ImmutableList<CIdExpression> updatedVariables;
-
   private final CIdExpression numThreadsVariable;
 
   private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
@@ -92,7 +89,6 @@ public class SeqMainFunction extends SeqFunction {
 
   public SeqMainFunction(
       MPOROptions pOptions,
-      ImmutableList<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
@@ -106,7 +102,6 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
-    updatedVariables = pUpdatedVariables;
     numThreadsVariable =
         SeqExpressionBuilder.buildIdExpression(
             SeqDeclarationBuilder.buildVariableDeclaration(
@@ -146,8 +141,6 @@ public class SeqMainFunction extends SeqFunction {
             options, numThreadsVariable.getDeclaration(), bitVectorDeclarations, pcDeclarations));
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
-    // add updated injected variables that were pruned in partial order reduction
-    rBody.addAll(buildVariableUpdates(updatedVariables));
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
     if (options.comments) {
@@ -238,24 +231,6 @@ public class SeqMainFunction extends SeqFunction {
       }
     }
     return rMainArgAssignments.build();
-  }
-
-  /**
-   * Ensures that the collected variables in {@code pUpdatedVariables} are set to {@code 1}. This is
-   * done so that if the first statement in a thread simulation starts a critical sections, we can
-   * prune that statement.
-   */
-  private ImmutableList<LineOfCode> buildVariableUpdates(
-      ImmutableList<CIdExpression> pUpdatedVariables) {
-
-    ImmutableList.Builder<LineOfCode> rVariableUpdates = ImmutableList.builder();
-    for (CIdExpression variable : pUpdatedVariables) {
-      CExpressionAssignmentStatement assignment =
-          SeqStatementBuilder.buildExpressionAssignmentStatement(
-              variable, SeqIntegerLiteralExpression.INT_1);
-      rVariableUpdates.add(LineOfCode.of(1, assignment.toASTString()));
-    }
-    return rVariableUpdates.build();
   }
 
   /** Returns {@link LineOfCode} for thread simulation declarations. */

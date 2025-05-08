@@ -39,9 +39,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadJoinsThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLocksMutexStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
@@ -307,8 +304,7 @@ public class SeqThreadStatementBuilder {
           buildThreadExitStatement(
               pThreadEdge, pSubstituteEdge, pTargetPc, pGhostVariables.function, pcLeftHandSide);
       case PTHREAD_JOIN ->
-          buildThreadJoinStatement(
-              pThread, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
+          buildThreadJoinStatement(pThread, pSubstituteEdge, pTargetPc, pGhostVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
               pThread,
@@ -357,31 +353,6 @@ public class SeqThreadStatementBuilder {
         pTargetPc);
   }
 
-  public static Optional<SeqInjectedStatement> tryBuildInjectedStatement(
-      SeqThreadStatement pStatement) {
-
-    if (pStatement instanceof SeqMutexLockStatement mutexLockStatement) {
-      return Optional.of(buildThreadLocksMutexStatement(mutexLockStatement.threadLocksMutex));
-
-    } else if (pStatement instanceof SeqThreadJoinStatement threadJoinStatement) {
-      return Optional.of(
-          buildThreadJoinsThreadStatement(threadJoinStatement.threadJoinsThreadVariable));
-    }
-    return Optional.empty();
-  }
-
-  private static SeqThreadLocksMutexStatement buildThreadLocksMutexStatement(
-      CIdExpression pThreadLocksMutex) {
-
-    return new SeqThreadLocksMutexStatement(pThreadLocksMutex);
-  }
-
-  private static SeqThreadJoinsThreadStatement buildThreadJoinsThreadStatement(
-      CIdExpression pThreadJoinsThread) {
-
-    return new SeqThreadJoinsThreadStatement(pThreadJoinsThread);
-  }
-
   private static SeqThreadExitStatement buildThreadExitStatement(
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
@@ -404,21 +375,21 @@ public class SeqThreadStatementBuilder {
       MPORThread pThread,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
+      GhostVariables pGhostVariables) {
 
     MPORThread targetThread =
-        ThreadUtil.extractThread(pThreadVariables.joins.keySet(), pSubstituteEdge.cfaEdge);
+        ThreadUtil.extractThread(pGhostVariables.thread.joins.keySet(), pSubstituteEdge.cfaEdge);
     CIdExpression threadJoins =
         Objects.requireNonNull(
-                Objects.requireNonNull(pThreadVariables.joins.get(pThread)).get(targetThread))
+                Objects.requireNonNull(pGhostVariables.thread.joins.get(pThread)).get(targetThread))
             .idExpression;
     return new SeqThreadJoinStatement(
         targetThread.startRoutineExitVariable,
         threadJoins,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pPcLeftHandSide);
+        pGhostVariables.pc.getThreadActiveExpression(targetThread.id),
+        pGhostVariables.pc.get(pThread.id));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(

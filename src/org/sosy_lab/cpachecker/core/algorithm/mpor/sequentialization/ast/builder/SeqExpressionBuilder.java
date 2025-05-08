@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -34,7 +35,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqArrayType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -58,18 +58,28 @@ public class SeqExpressionBuilder {
 
   // CBinaryExpression =============================================================================
 
+  public static ImmutableList<CBinaryExpression> buildThreadActiveExpressions(
+      ImmutableList<CLeftHandSide> pPcLeftHandSides,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<CBinaryExpression> rExpressions = ImmutableList.builder();
+    for (CLeftHandSide pcLeftHandSide : pPcLeftHandSides) {
+      rExpressions.add(buildPcUnequalExitPc(pcLeftHandSide, pBinaryExpressionBuilder));
+    }
+    return rExpressions.build();
+  }
+
   /**
    * Returns {@code pc[pThreadId] != -1} for array and {@code pc{pThreadId} != -1} for scalar {@code
    * pc}.
    */
   public static CBinaryExpression buildPcUnequalExitPc(
-      PcVariables pPcVariables, int pThreadId, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      CLeftHandSide pPcLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pPcVariables.get(pThreadId),
-        SeqIntegerLiteralExpression.INT_EXIT_PC,
-        BinaryOperator.NOT_EQUALS);
+        pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.NOT_EQUALS);
   }
 
   /** Returns {@code next_thread != pThreadId}. */

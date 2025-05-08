@@ -12,12 +12,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -27,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
@@ -54,7 +51,6 @@ public class SeqThreadStatementClauseBuilder {
 
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> buildCaseClauses(
       MPOROptions pOptions,
-      ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       Optional<BitVectorVariables> pBitVectorVariables,
@@ -76,12 +72,7 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, apply partial order reduction and reduce number of cases
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedCases =
         PartialOrderReducer.reduce(
-            pOptions,
-            pUpdatedVariables,
-            pBitVectorVariables,
-            prunedCases,
-            pBinaryExpressionBuilder,
-            pLogger);
+            pOptions, pBitVectorVariables, prunedCases, pBinaryExpressionBuilder, pLogger);
     // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabelCases =
         pOptions.consecutiveLabels
@@ -189,7 +180,7 @@ public class SeqThreadStatementClauseBuilder {
         }
       }
     }
-    return injectThreadSimulationGhosts(rCaseClauses.build());
+    return rCaseClauses.build();
   }
 
   /**
@@ -245,46 +236,6 @@ public class SeqThreadStatementClauseBuilder {
             pThreadNode.cfaNode.isLoopStart(),
             labelPc,
             new SeqThreadStatementBlock(pOptions, gotoLabel, statements.build())));
-  }
-
-  private static ImmutableList<SeqThreadStatementClause> injectThreadSimulationGhosts(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
-
-    ImmutableList.Builder<SeqThreadStatementClause> rCaseClauses = ImmutableList.builder();
-    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
-
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-
-      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
-        ImmutableList.Builder<SeqInjectedStatement> injectedStatements = ImmutableList.builder();
-
-        if (statement.getTargetPc().isPresent()) {
-          int targetPc = statement.getTargetPc().orElseThrow();
-          if (targetPc != Sequentialization.EXIT_PC) {
-            SeqThreadStatementClause target = Objects.requireNonNull(labelValueMap.get(targetPc));
-            // validation enforces that total strict order entries are direct targets (= first stmt)
-            SeqThreadStatement firstStatement = target.block.getFirstStatement();
-            Optional<SeqInjectedStatement> injectedStatement =
-                SeqThreadStatementBuilder.tryBuildInjectedStatement(firstStatement);
-            if (injectedStatement.isPresent()) {
-              injectedStatements.add(injectedStatement.orElseThrow());
-            }
-          }
-        }
-        ImmutableList<SeqInjectedStatement> injected = injectedStatements.build();
-        if (injected.isEmpty()) {
-          // no injections -> add all previous statements (we only inject, no replacing)
-          newStatements.add(statement);
-        } else {
-          // injections -> add cloned statement with injections
-          newStatements.add(statement.cloneWithInjectedStatements(injected));
-        }
-      }
-      rCaseClauses.add(caseClause.cloneWithBlockStatements(newStatements.build()));
-    }
-    return rCaseClauses.build();
   }
 
   // Helpers =====================================================================================

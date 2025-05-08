@@ -68,6 +68,7 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
     assumeEdge = Optional.of(pAssumeEdge);
   }
 
+  // TODO refactor this, empty constructor is not so nice and unclear
   /** Use this constructor when there is no expression, i.e. {@code else { ... }} */
   public SeqSingleControlFlowStatement() {
     type = SeqControlFlowStatementType.ELSE;

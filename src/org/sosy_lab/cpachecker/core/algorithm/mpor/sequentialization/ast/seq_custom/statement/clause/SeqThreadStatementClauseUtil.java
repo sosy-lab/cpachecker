@@ -181,6 +181,10 @@ public class SeqThreadStatementClauseUtil {
       }
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockGotoLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
+      if (!pLabelToIndexMap.containsKey(label.labelNumber)) {
+        System.out.println(pLabelToIndexMap);
+        System.out.println("trying to find " + label.labelNumber);
+      }
       int index = Objects.requireNonNull(pLabelToIndexMap.get(label.labelNumber));
       return pCurrentStatement.cloneWithTargetGoto(label.cloneWithLabelNumber(index));
     }

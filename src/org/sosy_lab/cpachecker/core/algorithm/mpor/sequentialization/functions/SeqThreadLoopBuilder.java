@@ -211,7 +211,7 @@ public class SeqThreadLoopBuilder {
       // add condition if loop still active and K > 0
       CBinaryExpression pcUnequalExitPc =
           SeqExpressionBuilder.buildPcUnequalExitPc(
-              pPcVariables, thread.id, pBinaryExpressionBuilder);
+              pPcVariables.get(thread.id), pBinaryExpressionBuilder);
       SeqLogicalAndExpression loopCondition =
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
       SeqSingleControlFlowStatement ifStatement =

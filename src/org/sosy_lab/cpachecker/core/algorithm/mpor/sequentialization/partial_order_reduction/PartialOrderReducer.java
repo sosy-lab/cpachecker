@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
@@ -29,7 +28,6 @@ public class PartialOrderReducer {
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
       MPOROptions pOptions,
-      ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -39,19 +37,19 @@ public class PartialOrderReducer {
     if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
+          StatementConcatenator.concat(pCaseClauses);
       return BitVectorAccessReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
+          StatementConcatenator.concat(pCaseClauses);
       return BitVectorReadWriteReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat) {
-      return StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
+      return StatementConcatenator.concat(pCaseClauses);
     }
     return pCaseClauses;
   }

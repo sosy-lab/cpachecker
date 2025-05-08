@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -81,22 +83,37 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
+    SeqSingleControlFlowStatement ifLocked =
+        new SeqSingleControlFlowStatement(mutexLocked, SeqControlFlowStatementType.IF);
+    CExpressionAssignmentStatement setLocksTrue =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_1);
+
+    SeqSingleControlFlowStatement elseNotLocked = new SeqSingleControlFlowStatement();
     CExpressionAssignmentStatement setLockedTrue =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, mutexLocked, SeqIntegerLiteralExpression.INT_1);
     CExpressionAssignmentStatement setLocksFalse =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
-
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return setLockedTrue.toASTString()
+    String elseString =
+        setLockedTrue.toASTString()
+            + SeqSyntax.SPACE
+            + setLocksFalse
+            + SeqSyntax.SPACE
+            + targetStatements;
+
+    return ifLocked.toASTString()
         + SeqSyntax.SPACE
-        + setLocksFalse.toASTString()
+        + SeqStringUtil.wrapInCurlyInwards(setLocksTrue.toASTString())
         + SeqSyntax.SPACE
-        + targetStatements;
+        + elseNotLocked.toASTString()
+        + SeqSyntax.SPACE
+        + SeqStringUtil.wrapInCurlyInwards(elseString);
   }
 
   @Override
