@@ -249,14 +249,26 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testConditionalDataflowSafe() throws Exception {
-    TestResults results = runCPAchecker("conditionalDataflowSafe.c", "");
+  public void testConditionalDataflowSafe_1() throws Exception {
+    TestResults results = runCPAchecker("conditionalDataflowSafe_1.c", "");
     results.assertIsSafe();
   }
 
   @Test
-  public void testConditionalDataflowUnsafe() throws Exception {
-    TestResults results = runCPAchecker("conditionalDataflowUnsafe.c", "");
+  public void testConditionalDataflowSafe_2() throws Exception {
+    TestResults results = runCPAchecker("conditionalDataflowSafe_2.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testConditionalDataflowUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("conditionalDataflowUnsafe_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testConditionalDataflowUnsafe_2() throws Exception {
+    TestResults results = runCPAchecker("conditionalDataflowUnsafe_2.c", "");
     results.assertIsUnsafe();
   }
 

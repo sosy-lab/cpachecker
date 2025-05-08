@@ -13,21 +13,21 @@ extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
+    int x = __VERIFIER_nondet_int(); // Tainted
+    int y = 1;
+    int z;
 
-    int x = __VERIFIER_nondet_int();
-    int y = 0;
-    int z = 0;
+    int condition = (x > 0);
 
-    // conditional data-flow paths
-    if (x > 0) {
-        y = x; // Tainted data flows into y
+    if (condition) {
+      z = x; // tainted
     } else {
-        z = x; // Tainted data flows into z
+      z = y; // not tainted
     }
 
-    // At this point either y or z is tainted
-    int w = y + z;
+    // equivalent to
+    // z = condition ? z = x : z = y;
 
     // Property violation expected
-    __VERIFIER_is_public(w, 1);
+    __VERIFIER_is_public(z, 1);
 }

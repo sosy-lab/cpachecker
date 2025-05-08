@@ -12,13 +12,13 @@ extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int(); // Tainted
-    int y = 10;
-    int z;
+    int y = 1;
 
     int condition = x < 0;
 
     // z is expected to be tainted by x and the conditional operator
-    z = condition ? x : y;
+    int z = condition ? x : y;
 
+    // Taint violation expected
     __VERIFIER_is_public(z, 1);
 }

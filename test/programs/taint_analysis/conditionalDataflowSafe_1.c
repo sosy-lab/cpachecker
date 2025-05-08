@@ -17,8 +17,10 @@ int main() {
     int y = 0;
     int z = 0;
 
+    int condition = (x > 0);
+
     // conditional data-flow paths
-    if (x > 0) {
+    if (condition) {
         y = x; // Tainted data flows into y
     } else {
         z = x; // Tainted data flows into z
