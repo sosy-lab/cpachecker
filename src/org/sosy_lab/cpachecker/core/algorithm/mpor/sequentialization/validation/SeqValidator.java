@@ -157,15 +157,14 @@ public class SeqValidator {
         SeqThreadStatementClause caseClause = pLabelCaseMap.get(pLabelPc);
         assert caseClause != null;
         SeqThreadStatement firstStatement = caseClause.block.getFirstStatement();
+        // TODO test if this can be removed now?
         if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
           return; // for statements in atomic blocks, the label pcs may not be targets due to gotos
         }
-        if (firstStatement.getLoopHeadLabel().isEmpty()) {
-          handleValidationException(
-              String.format(
-                  "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
-              pLogger);
-        }
+        handleValidationException(
+            String.format(
+                "label pc %s does not exist as target pc in thread %s", pLabelPc, pThreadId),
+            pLogger);
       }
     }
   }

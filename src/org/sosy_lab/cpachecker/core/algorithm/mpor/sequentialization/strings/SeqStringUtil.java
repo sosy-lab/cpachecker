@@ -21,15 +21,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAssumeStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -149,9 +146,8 @@ public class SeqStringUtil {
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      Optional<String> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements)
+      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements)
       throws UnrecognizedCodeException {
 
     // TODO add some restrictions here
@@ -173,19 +169,6 @@ public class SeqStringUtil {
     } else if (pTargetGoto.isPresent()) {
       SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.orElseThrow());
       statements.append(gotoStatement.toASTString());
-
-    } else {
-      // this includes statements that were concatenated before
-      for (SeqThreadStatement statement : pConcatenatedStatements) {
-        if (statement instanceof SeqAssumeStatement assumeStatement) {
-          if (assumeStatement.controlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
-            // append additional space before 'else { ... }'
-            statements.append(SeqSyntax.SPACE).append(statement.toASTString());
-            continue; // other control flow statements are appended as is (see below)
-          }
-        }
-        statements.append(statement.toASTString());
-      }
     }
     return statements.toString();
   }
@@ -230,11 +213,5 @@ public class SeqStringUtil {
     }
     rOrdered.addAll(leftOver.build());
     return rOrdered.build();
-  }
-
-  public static String buildLoopHeadLabel(Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel) {
-    return pLoopHeadLabel.isPresent()
-        ? pLoopHeadLabel.orElseThrow().toASTString() + SeqSyntax.SPACE
-        : SeqSyntax.EMPTY_STRING;
   }
 }

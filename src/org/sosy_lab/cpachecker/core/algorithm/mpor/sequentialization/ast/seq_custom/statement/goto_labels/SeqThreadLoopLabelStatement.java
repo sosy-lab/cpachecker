@@ -20,11 +20,16 @@ public class SeqThreadLoopLabelStatement implements SeqLabelStatement {
 
   @Override
   public String toASTString() {
-    return labelName + SeqSyntax.COLON;
+    return toASTStringWithoutColon() + SeqSyntax.COLON;
   }
 
   @Override
   public String getLabelName() {
     return labelName;
+  }
+
+  @Override
+  public String toASTStringWithoutColon() {
+    return getLabelName();
   }
 }

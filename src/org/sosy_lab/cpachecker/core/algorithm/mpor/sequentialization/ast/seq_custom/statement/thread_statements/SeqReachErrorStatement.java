@@ -15,7 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqReachErrorStatement implements SeqThreadStatement {
 
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
   private final CLeftHandSide pcLeftHandSide;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
@@ -42,7 +40,6 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   SeqReachErrorStatement(
       CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
 
-    loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -50,13 +47,11 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   private SeqReachErrorStatement(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -67,15 +62,8 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide,
-            Optional.of(targetPc),
-            Optional.empty(),
-            injectedStatements,
-            ImmutableList.of());
-    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + Sequentialization.inputReachErrorDummy
-        + SeqSyntax.SPACE
-        + targetStatements;
+            pcLeftHandSide, Optional.of(targetPc), Optional.empty(), injectedStatements);
+    return Sequentialization.inputReachErrorDummy + SeqSyntax.SPACE + targetStatements;
   }
 
   @Override
@@ -89,19 +77,13 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return Optional.empty();
   }
 
   @Override
   public ImmutableList<SeqInjectedStatement> getInjectedStatements() {
     return injectedStatements;
-  }
-
-  @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have concatenated statements");
   }
 
   @Override
@@ -114,7 +96,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     throw new UnsupportedOperationException(
         this.getClass().getSimpleName() + " do not have target goto");
   }
@@ -124,21 +106,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        loopHeadLabel, pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqReachErrorStatement(
-        Optional.of(pLoopHeadLabel), pcLeftHandSide, substituteEdges, targetPc, injectedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    throw new UnsupportedOperationException(
-        this.getClass().getSimpleName() + " do not have concatenated statements");
+        pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
   }
 
   @Override

@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -32,8 +32,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Represents a statement that simulates calls to {@code pthread_join}. */
 public class SeqThreadJoinStatement implements SeqThreadStatement {
-
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
 
   private final Optional<CIdExpression> joinedThreadExitVariable;
 
@@ -45,11 +43,9 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<String> targetGoto;
+  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
-
-  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqThreadJoinStatement(
       Optional<CIdExpression> pJoinedThreadExitVariable,
@@ -58,7 +54,6 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide) {
 
-    loopHeadLabel = Optional.empty();
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     threadJoinsThreadVariable = pThreadJoinsThreadVariable;
     pcLeftHandSide = pPcLeftHandSide;
@@ -66,21 +61,17 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
-    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqThreadJoinStatement(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       Optional<CIdExpression> pJoinedThreadExitVariable,
       CIdExpression pThreadJoinsThreadVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<String> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
+      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     joinedThreadExitVariable = pJoinedThreadExitVariable;
     threadJoinsThreadVariable = pThreadJoinsThreadVariable;
     substituteEdges = pSubstituteEdges;
@@ -88,7 +79,6 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
     targetGoto = pTargetGoto;
     pcLeftHandSide = pPcLeftHandSide;
     injectedStatements = pInjectedStatements;
-    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
@@ -99,7 +89,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     Optional<String> returnValueRead = Optional.empty();
     if (joinedThreadExitVariable.isPresent()) {
@@ -123,8 +113,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       }
     }
 
-    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + setJoinsFalse.toASTString()
+    return setJoinsFalse.toASTString()
         + (returnValueRead.isPresent()
             ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
             : SeqSyntax.EMPTY_STRING)
@@ -143,8 +132,8 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return targetGoto;
   }
 
   @Override
@@ -153,36 +142,27 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    return concatenatedStatements;
-  }
-
-  @Override
   public SeqThreadJoinStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadJoinStatement(
-        loopHeadLabel,
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
-        concatenatedStatements);
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqThreadJoinStatement(
-        loopHeadLabel,
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
-        injectedStatements,
-        concatenatedStatements);
+        injectedStatements);
   }
 
   @Override
@@ -190,45 +170,13 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqThreadJoinStatement(
-        loopHeadLabel,
         joinedThreadExitVariable,
         threadJoinsThreadVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqThreadJoinStatement(
-        Optional.of(pLoopHeadLabel),
-        joinedThreadExitVariable,
-        threadJoinsThreadVariable,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    return new SeqThreadJoinStatement(
-        loopHeadLabel,
-        joinedThreadExitVariable,
-        threadJoinsThreadVariable,
-        pcLeftHandSide,
-        substituteEdges,
-        Optional.empty(),
-        Optional.empty(),
-        injectedStatements,
-        pConcatenatedStatements);
+        pInjectedStatements);
   }
 
   @Override

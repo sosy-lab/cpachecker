@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -66,24 +65,6 @@ public class AtomicBlockBuilder {
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelMap) {
 
-    // if there are concatenated statements, replace target pc there too
-    if (pCurrentStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatenatedStatements =
-          pCurrentStatement.getConcatenatedStatements();
-      if (!concatenatedStatements.isEmpty()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement concatenatedStatement : concatenatedStatements) {
-          if (concatenatedStatement instanceof SeqAtomicEndStatement) {
-            // atomic_end -> stop replacing, need pc update and context switch
-            newStatements.add(concatenatedStatement);
-          } else {
-            newStatements.add(recursivelyInjectAtomicGotos(concatenatedStatement, pLabelMap));
-          }
-        }
-        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
-      }
-    }
-
     if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present and there are no concatenated statements -> clone with targetIndex
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
@@ -92,8 +73,7 @@ public class AtomicBlockBuilder {
         SeqThreadStatement firstStatement = targetClause.block.getFirstStatement();
         // only add goto when the target starts in an atomic block
         if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-          return pCurrentStatement.cloneWithTargetGoto(
-              targetClause.block.getGotoLabel().getLabelName());
+          return pCurrentStatement.cloneWithTargetGoto(targetClause.block.getGotoLabel());
         }
       }
     }
@@ -118,8 +98,7 @@ public class AtomicBlockBuilder {
           rMerged.add(clause.cloneWithAtomicBlock(newBlock));
         } else {
           // prevent duplicate atomic_begin
-          // or add if the very first statement starts atomic, but only when concatenating
-          if ((i == 0 && pOptions.porConcat) || !clause.block.startsAtomicBlock()) {
+          if (!clause.block.startsAtomicBlock()) {
             rMerged.add(clause);
           }
         }

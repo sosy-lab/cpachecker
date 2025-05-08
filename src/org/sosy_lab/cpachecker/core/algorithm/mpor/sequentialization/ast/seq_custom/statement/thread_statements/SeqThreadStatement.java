@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -33,12 +33,10 @@ public interface SeqThreadStatement extends SeqStatement {
   /** After concatenation, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();
 
-  Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel();
+  Optional<SeqBlockGotoLabelStatement> getTargetGoto();
 
   /** The list of statements injected to the {@code pc} write. */
   ImmutableList<SeqInjectedStatement> getInjectedStatements();
-
-  ImmutableList<SeqThreadStatement> getConcatenatedStatements();
 
   /**
    * This function should only be called when finalizing (i.e. pruning) {@link
@@ -46,20 +44,11 @@ public interface SeqThreadStatement extends SeqStatement {
    */
   SeqThreadStatement cloneWithTargetPc(int pTargetPc);
 
-  SeqThreadStatement cloneWithTargetGoto(String pLabel);
+  SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel);
 
   // TODO replace with "addInjectedStatement" (to already existing statements) and then clone
   SeqThreadStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements);
-
-  SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel);
-
-  /**
-   * This function should be called when applying Partial Order Reduction to {@link
-   * SeqThreadStatementClause}s, i.e. when concatenating statements and replacing {@code pc} writes.
-   */
-  SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements);
 
   // TODO this is equivalent to whether cloneWithConcatenatedStatements throws an Exception
   boolean isConcatenable();

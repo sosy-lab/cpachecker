@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -29,8 +29,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqParameterAssignmentStatements implements SeqThreadStatement {
 
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
   private final ImmutableList<FunctionParameterAssignment> assignments;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -39,11 +37,9 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<String> targetGoto;
+  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
-
-  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqParameterAssignmentStatements(
       ImmutableList<FunctionParameterAssignment> pAssignments,
@@ -51,46 +47,39 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    loopHeadLabel = Optional.empty();
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
-    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqParameterAssignmentStatements(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       ImmutableList<FunctionParameterAssignment> pAssignments,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<String> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
+      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     assignments = pAssignments;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
-    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();
-    rString.append(SeqStringUtil.buildLoopHeadLabel(loopHeadLabel));
     for (FunctionParameterAssignment assignment : assignments) {
       rString.append(assignment.statement.toASTString()).append(SeqSyntax.SPACE);
     }
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     rString.append(targetStatements);
     return rString.toString();
   }
@@ -106,8 +95,8 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return targetGoto;
   }
 
   @Override
@@ -116,76 +105,32 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    return concatenatedStatements;
-  }
-
-  @Override
   public SeqParameterAssignmentStatements cloneWithTargetPc(int pTargetPc) {
     return new SeqParameterAssignmentStatements(
-        loopHeadLabel,
         assignments,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
-        concatenatedStatements);
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqParameterAssignmentStatements(
-        loopHeadLabel,
         assignments,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
-        injectedStatements,
-        concatenatedStatements);
+        injectedStatements);
   }
 
   @Override
   public SeqThreadStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
     return new SeqParameterAssignmentStatements(
-        loopHeadLabel,
-        assignments,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pInjectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqParameterAssignmentStatements(
-        Optional.of(pLoopHeadLabel),
-        assignments,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    return new SeqParameterAssignmentStatements(
-        loopHeadLabel,
-        assignments,
-        pcLeftHandSide,
-        substituteEdges,
-        Optional.empty(),
-        Optional.empty(),
-        injectedStatements,
-        pConcatenatedStatements);
+        assignments, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

@@ -39,19 +39,19 @@ public class PartialOrderReducer {
     if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
+          StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
       return BitVectorAccessReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat
         && pOptions.porBitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
+          StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
       return BitVectorReadWriteReducer.reduce(
           pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.porConcat) {
-      return StatementConcatenator.concat(pOptions, pUpdatedVariables, pCaseClauses);
+      return StatementConcatenator.concat(pUpdatedVariables, pCaseClauses);
     }
     return pCaseClauses;
   }

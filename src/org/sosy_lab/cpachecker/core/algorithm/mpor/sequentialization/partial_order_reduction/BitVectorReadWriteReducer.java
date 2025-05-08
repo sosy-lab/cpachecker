@@ -113,25 +113,7 @@ class BitVectorReadWriteReducer {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    // step 1: recursively inject bit vector into concatenated statements
-    if (pCurrentStatement.isConcatenable()) {
-      if (!pCurrentStatement.getConcatenatedStatements().isEmpty()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement concatStatement : pCurrentStatement.getConcatenatedStatements()) {
-          newStatements.add(
-              recursivelyInjectBitVectors(
-                  pOptions,
-                  pThread,
-                  pFullBitVectorEvaluation,
-                  concatStatement,
-                  pBitVectorVariables,
-                  pLabelValueMap,
-                  pBinaryExpressionBuilder));
-        }
-        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
-      }
-    }
-    // step 2: if valid target pc found, inject bit vector write and evaluation statements
+    // if valid target pc found, inject bit vector write and evaluation statements
     if (pCurrentStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
       // inject previous injected statements, e.g. mutex lock

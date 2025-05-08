@@ -24,6 +24,10 @@ public class SeqAtomicStatementBlock implements SeqStatementBlock {
     blocks = pBlocks;
   }
 
+  private SeqThreadStatementBlock getFirstBlock() {
+    return blocks.get(0);
+  }
+
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rBlock = new StringBuilder();
@@ -35,12 +39,12 @@ public class SeqAtomicStatementBlock implements SeqStatementBlock {
 
   @Override
   public SeqBlockGotoLabelStatement getGotoLabel() {
-    return blocks.get(0).getGotoLabel();
+    return getFirstBlock().getGotoLabel();
   }
 
   @Override
   public SeqThreadStatement getFirstStatement() {
-    return blocks.get(0).getFirstStatement();
+    return getFirstBlock().getFirstStatement();
   }
 
   @Override
@@ -64,7 +68,7 @@ public class SeqAtomicStatementBlock implements SeqStatementBlock {
 
   @Override
   public boolean startsAtomicBlock() {
-    return blocks.get(0).startsAtomicBlock();
+    return getFirstBlock().startsAtomicBlock();
   }
 
   @Override

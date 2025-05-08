@@ -14,7 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -23,57 +23,46 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAtomicEndStatement implements SeqThreadStatement {
 
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
   private final CLeftHandSide pcLeftHandSide;
 
   private final ImmutableSet<SubstituteEdge> substituteEdges;
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<String> targetGoto;
+  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
-
-  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqAtomicEndStatement(
       CLeftHandSide pPcLeftHandSide, ImmutableSet<SubstituteEdge> pSubstituteEdges, int pTargetPc) {
 
-    loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
-    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqAtomicEndStatement(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<String> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
+      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
-    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + SeqStringUtil.wrapInBlockComment(
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+    return SeqStringUtil.wrapInBlockComment(
             PthreadFunctionType.__VERIFIER_ATOMIC_END.name + SeqSyntax.SEMICOLON)
         + SeqSyntax.SPACE
         + targetStatements;
@@ -90,8 +79,8 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return targetGoto;
   }
 
   @Override
@@ -100,32 +89,19 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    return concatenatedStatements;
-  }
-
-  @Override
   public SeqThreadStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAtomicEndStatement(
-        loopHeadLabel,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
-        concatenatedStatements);
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqAtomicEndStatement(
-        loopHeadLabel,
-        pcLeftHandSide,
-        substituteEdges,
-        Optional.empty(),
-        Optional.of(pLabel),
-        injectedStatements,
-        concatenatedStatements);
+        pcLeftHandSide, substituteEdges, Optional.empty(), Optional.of(pLabel), injectedStatements);
   }
 
   @Override
@@ -133,39 +109,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAtomicEndStatement(
-        loopHeadLabel,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pInjectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqAtomicEndStatement(
-        Optional.of(pLoopHeadLabel),
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    return new SeqAtomicEndStatement(
-        loopHeadLabel,
-        pcLeftHandSide,
-        substituteEdges,
-        Optional.empty(),
-        Optional.empty(),
-        injectedStatements,
-        pConcatenatedStatements);
+        pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

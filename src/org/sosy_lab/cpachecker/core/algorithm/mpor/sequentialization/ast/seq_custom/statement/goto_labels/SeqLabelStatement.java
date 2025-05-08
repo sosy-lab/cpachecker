@@ -12,4 +12,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 
 public interface SeqLabelStatement extends SeqStatement {
   String getLabelName();
+
+  String toASTStringWithoutColon();
 }

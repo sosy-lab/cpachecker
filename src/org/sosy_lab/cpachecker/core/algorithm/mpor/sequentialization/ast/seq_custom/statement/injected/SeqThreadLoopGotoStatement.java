@@ -44,7 +44,7 @@ public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
   public String toASTString() throws UnrecognizedCodeException {
     SeqSingleControlFlowStatement ifStatement =
         new SeqSingleControlFlowStatement(rSmallerK, SeqControlFlowStatementType.IF);
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
+    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     return ifStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());

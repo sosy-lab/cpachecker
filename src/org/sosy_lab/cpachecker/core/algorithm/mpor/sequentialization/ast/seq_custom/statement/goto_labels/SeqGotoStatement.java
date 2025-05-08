@@ -11,18 +11,18 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqGotoStatement implements SeqStatement {
 
-  private final String labelName;
+  private final SeqLabelStatement label;
 
-  // TODO use the SeqLabelStatement here instead of String
-  public SeqGotoStatement(String pLabelName) {
-    labelName = pLabelName;
+  public SeqGotoStatement(SeqLabelStatement pLabel) {
+    label = pLabel;
   }
 
   @Override
-  public String toASTString() {
-    return SeqToken._goto + SeqSyntax.SPACE + labelName + SeqSyntax.SEMICOLON;
+  public String toASTString() throws UnrecognizedCodeException {
+    return SeqToken._goto + SeqSyntax.SPACE + label.toASTStringWithoutColon() + SeqSyntax.SEMICOLON;
   }
 }

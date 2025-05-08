@@ -14,7 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
   private final CExpressionAssignmentStatement lockedFalse;
 
   private final CLeftHandSide pcLeftHandSide;
@@ -38,11 +36,9 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<String> targetGoto;
+  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
-
-  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
 
   SeqMutexUnlockStatement(
       CExpressionAssignmentStatement pLockedFalse,
@@ -50,45 +46,36 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    loopHeadLabel = Optional.empty();
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
     targetGoto = Optional.empty();
     injectedStatements = ImmutableList.of();
-    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqMutexUnlockStatement(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CExpressionAssignmentStatement pLockedFalse,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<String> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
+      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     lockedFalse = pLockedFalse;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
     targetGoto = pTargetGoto;
     injectedStatements = pInjectedStatements;
-    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, targetGoto, injectedStatements, concatenatedStatements);
-    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel)
-        + lockedFalse.toASTString()
-        + SeqSyntax.SPACE
-        + targetStatements;
+            pcLeftHandSide, targetPc, targetGoto, injectedStatements);
+    return lockedFalse.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
   @Override
@@ -102,8 +89,8 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return targetGoto;
   }
 
   @Override
@@ -112,34 +99,25 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    return concatenatedStatements;
-  }
-
-  @Override
   public SeqMutexUnlockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexUnlockStatement(
-        loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
-        concatenatedStatements);
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqMutexUnlockStatement(
-        loopHeadLabel,
         lockedFalse,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
-        injectedStatements,
-        concatenatedStatements);
+        injectedStatements);
   }
 
   @Override
@@ -147,42 +125,7 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexUnlockStatement(
-        loopHeadLabel,
-        lockedFalse,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pInjectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqMutexUnlockStatement(
-        Optional.of(pLoopHeadLabel),
-        lockedFalse,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    return new SeqMutexUnlockStatement(
-        loopHeadLabel,
-        lockedFalse,
-        pcLeftHandSide,
-        substituteEdges,
-        Optional.empty(),
-        Optional.empty(),
-        injectedStatements,
-        pConcatenatedStatements);
+        lockedFalse, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

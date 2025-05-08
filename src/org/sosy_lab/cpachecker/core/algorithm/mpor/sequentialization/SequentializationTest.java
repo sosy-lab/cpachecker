@@ -184,7 +184,7 @@ public class SequentializationTest {
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             false,
-            false,
+            true,
             BitVectorReduction.NONE,
             BitVectorEncoding.NONE,
             false,

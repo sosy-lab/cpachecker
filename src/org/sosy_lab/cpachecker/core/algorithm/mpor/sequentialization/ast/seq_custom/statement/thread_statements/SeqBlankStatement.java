@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLoopHeadLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -26,45 +26,33 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqBlankStatement implements SeqThreadStatement {
 
-  private final Optional<SeqLoopHeadLabelStatement> loopHeadLabel;
-
   private final CLeftHandSide pcLeftHandSide;
 
   private final Optional<Integer> targetPc;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
-  private final ImmutableList<SeqThreadStatement> concatenatedStatements;
-
   /** Use this if the target pc is an {@code int}. */
   SeqBlankStatement(CLeftHandSide pPcLeftHandSide, int pTargetPc) {
-    loopHeadLabel = Optional.empty();
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = Optional.of(pTargetPc);
     injectedStatements = ImmutableList.of();
-    concatenatedStatements = ImmutableList.of();
   }
 
   private SeqBlankStatement(
-      Optional<SeqLoopHeadLabelStatement> pLoopHeadLabel,
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    loopHeadLabel = pLoopHeadLabel;
     pcLeftHandSide = pPcLeftHandSide;
     targetPc = pTargetPc;
     injectedStatements = pInjectedStatements;
-    concatenatedStatements = pConcatenatedStatements;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String targetStatements =
-        SeqStringUtil.buildTargetStatements(
-            pcLeftHandSide, targetPc, Optional.empty(), injectedStatements, ImmutableList.of());
-    return SeqStringUtil.buildLoopHeadLabel(loopHeadLabel) + targetStatements;
+    return SeqStringUtil.buildTargetStatements(
+        pcLeftHandSide, targetPc, Optional.empty(), injectedStatements);
   }
 
   @Override
@@ -78,8 +66,8 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqLoopHeadLabelStatement> getLoopHeadLabel() {
-    return loopHeadLabel;
+  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+    return Optional.empty();
   }
 
   @Override
@@ -88,22 +76,15 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
-  public ImmutableList<SeqThreadStatement> getConcatenatedStatements() {
-    return concatenatedStatements;
-  }
-
-  @Override
   public SeqBlankStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqBlankStatement(
-        loopHeadLabel,
         pcLeftHandSide,
         Optional.of(pTargetPc),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc),
-        concatenatedStatements);
+        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(String pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
@@ -111,26 +92,7 @@ public class SeqBlankStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    return new SeqBlankStatement(
-        loopHeadLabel, pcLeftHandSide, targetPc, pInjectedStatements, concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithLoopHeadLabel(SeqLoopHeadLabelStatement pLoopHeadLabel) {
-    return new SeqBlankStatement(
-        Optional.of(pLoopHeadLabel),
-        pcLeftHandSide,
-        targetPc,
-        injectedStatements,
-        concatenatedStatements);
-  }
-
-  @Override
-  public SeqThreadStatement cloneWithConcatenatedStatements(
-      ImmutableList<SeqThreadStatement> pConcatenatedStatements) {
-
-    return new SeqBlankStatement(
-        loopHeadLabel, pcLeftHandSide, targetPc, injectedStatements, pConcatenatedStatements);
+    return new SeqBlankStatement(pcLeftHandSide, targetPc, pInjectedStatements);
   }
 
   @Override

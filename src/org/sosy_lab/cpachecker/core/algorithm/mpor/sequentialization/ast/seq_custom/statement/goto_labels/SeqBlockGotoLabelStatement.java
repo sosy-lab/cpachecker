@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
+/** The label of a block of {@link SeqThreadStatement}s. */
 public class SeqBlockGotoLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;
@@ -24,12 +26,17 @@ public class SeqBlockGotoLabelStatement implements SeqLabelStatement {
 
   @Override
   public String toASTString() {
-    return getLabelName() + SeqSyntax.COLON;
+    return toASTStringWithoutColon() + SeqSyntax.COLON;
   }
 
   @Override
   public String getLabelName() {
     return threadPrefix + labelNumber;
+  }
+
+  @Override
+  public String toASTStringWithoutColon() {
+    return getLabelName();
   }
 
   public SeqBlockGotoLabelStatement cloneWithLabelNumber(int pLabelNumber) {

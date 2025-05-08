@@ -45,7 +45,7 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel.getLabelName());
+    SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
     // if bit vectors present: evaluate in if statement
     if (!isOnlyGoto()) {
       SeqSingleControlFlowStatement ifStatement =

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
@@ -30,51 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqThreadStatementClauseUtil {
-
-  public static <T extends SeqThreadStatement> ImmutableSet<T> getAllStatementsByClass(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses, Class<T> pStatementClass) {
-
-    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      rAllStatements.addAll(getAllStatementsByClass(caseClause, pStatementClass));
-    }
-    return rAllStatements.build();
-  }
-
-  public static <T extends SeqThreadStatement> ImmutableSet<T> getAllStatementsByClass(
-      SeqThreadStatementClause pCaseClause, Class<T> pStatementClass) {
-
-    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
-    for (SeqThreadStatement statement : pCaseClause.block.getStatements()) {
-      if (pStatementClass.isInstance(statement)) {
-        rAllStatements.addAll(getAllStatementsByClass(statement, pStatementClass));
-      }
-    }
-    return rAllStatements.build();
-  }
-
-  /**
-   * Searches all concatenated statements in {@code pStatement} for instances of {@code
-   * pStatementClass}, including {@code pStatement} itself.
-   */
-  private static <T extends SeqThreadStatement> ImmutableSet<T> getAllStatementsByClass(
-      SeqThreadStatement pStatement, final Class<T> pStatementClass) {
-
-    ImmutableSet.Builder<T> rAllStatements = ImmutableSet.builder();
-    if (pStatementClass.isInstance(pStatement)) {
-      rAllStatements.add(pStatementClass.cast(pStatement));
-    }
-    if (pStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatStatements = pStatement.getConcatenatedStatements();
-      for (SeqThreadStatement concatStatement : concatStatements) {
-        if (pStatementClass.isInstance(concatStatement)) {
-          // recursively search for target pc in concatenated statements
-          rAllStatements.addAll(getAllStatementsByClass(concatStatement, pStatementClass));
-        }
-      }
-    }
-    return rAllStatements.build();
-  }
 
   public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByReductionType(
       SeqThreadStatementClause pCaseClause, BitVectorReduction pReductionType) {
@@ -123,11 +77,6 @@ public class SeqThreadStatementClauseUtil {
         pFound.add(variable);
       }
     }
-    if (pStatement.isConcatenable()) {
-      for (SeqThreadStatement concatStatement : pStatement.getConcatenatedStatements()) {
-        return recursivelyFindGlobalVariablesByAccessType(pFound, concatStatement, pAccessType);
-      }
-    }
     return pFound.build();
   }
 
@@ -139,13 +88,6 @@ public class SeqThreadStatementClauseUtil {
     if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
       rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());
-    }
-    if (pStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatStatements = pStatement.getConcatenatedStatements();
-      for (SeqThreadStatement concatStatement : concatStatements) {
-        // recursively search for target pc in concatenated statements
-        rAllTargetPc.addAll(collectAllIntegerTargetPc(concatStatement));
-      }
     }
     return rAllTargetPc.build();
   }
@@ -191,7 +133,7 @@ public class SeqThreadStatementClauseUtil {
     for (SeqThreadStatementClause caseClause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : caseClause.block.getStatements()) {
-        newStatements.add(recursivelyReplaceTargetPc(statement, labelToIndexMap));
+        newStatements.add(replaceTargetPc(statement, labelToIndexMap));
       }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.labelNumber));
       rConsecutiveLabels.add(
@@ -210,29 +152,20 @@ public class SeqThreadStatementClauseUtil {
     return rLabelToIndex.buildOrThrow();
   }
 
-  private static SeqThreadStatement recursivelyReplaceTargetPc(
+  private static SeqThreadStatement replaceTargetPc(
       SeqThreadStatement pCurrentStatement, final ImmutableMap<Integer, Integer> pLabelToIndexMap) {
 
-    // if there are concatenated statements, replace target pc there too
-    if (pCurrentStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatenatedStatements =
-          pCurrentStatement.getConcatenatedStatements();
-      if (!concatenatedStatements.isEmpty()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement concatenatedStatement : concatenatedStatements) {
-          newStatements.add(recursivelyReplaceTargetPc(concatenatedStatement, pLabelToIndexMap));
-        }
-        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
-      }
-    }
-
     if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present and there are no concatenated statements -> clone with targetIndex
+      // int target is present -> clone with targetIndex
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         int index = Objects.requireNonNull(pLabelToIndexMap.get(targetPc));
         return pCurrentStatement.cloneWithTargetPc(index);
       }
+    } else if (pCurrentStatement.getTargetGoto().isPresent()) {
+      SeqBlockGotoLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
+      int index = Objects.requireNonNull(pLabelToIndexMap.get(label.labelNumber));
+      return pCurrentStatement.cloneWithTargetGoto(label.cloneWithLabelNumber(index));
     }
     // no target pc or target goto -> no replacement
     return pCurrentStatement;
@@ -256,67 +189,11 @@ public class SeqThreadStatementClauseUtil {
     return rNewInjected.build();
   }
 
-  public static ImmutableMap<Integer, SeqBlockGotoLabelStatement> mapLabelNumbersToLabels(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
-
-    ImmutableMap.Builder<Integer, SeqBlockGotoLabelStatement> rMap = ImmutableMap.builder();
-    for (SeqThreadStatementClause clause : pClauses) {
-      rMap.put(clause.labelNumber, clause.block.getGotoLabel());
-    }
-    return rMap.buildOrThrow();
-  }
-
-  public static SeqThreadStatement recursivelyReplaceTargetPcWithTargetGoto(
-      SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, ? extends SeqLabelStatement> pLabelNumberToLabelMap) {
-
-    // if there are concatenated statements, replace target pc there too
-    if (pCurrentStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatenatedStatements =
-          pCurrentStatement.getConcatenatedStatements();
-      if (!concatenatedStatements.isEmpty()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement concatenatedStatement : concatenatedStatements) {
-          newStatements.add(
-              recursivelyReplaceTargetPcWithTargetGoto(
-                  concatenatedStatement, pLabelNumberToLabelMap));
-        }
-        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
-      }
-    }
-
-    if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present and there are no concatenated statements -> clone with targetIndex
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC && pLabelNumberToLabelMap.containsKey(targetPc)) {
-        SeqLabelStatement label = Objects.requireNonNull(pLabelNumberToLabelMap.get(targetPc));
-        return pCurrentStatement.cloneWithTargetGoto(label.getLabelName());
-      }
-    }
-    // no int target pc -> no replacement
-    return pCurrentStatement;
-  }
-
   public static SeqThreadStatement recursivelyInjectGotoThreadLoopLabels(
       CBinaryExpression pIterationSmallerMax,
       SeqThreadLoopLabelStatement pAssumeLabel,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
-
-    // if there are concatenated statements, replace target pc there too
-    if (pCurrentStatement.isConcatenable()) {
-      ImmutableList<SeqThreadStatement> concatenatedStatements =
-          pCurrentStatement.getConcatenatedStatements();
-      if (!concatenatedStatements.isEmpty()) {
-        ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement concatenatedStatement : concatenatedStatements) {
-          newStatements.add(
-              recursivelyInjectGotoThreadLoopLabels(
-                  pIterationSmallerMax, pAssumeLabel, concatenatedStatement, pLabelValueMap));
-        }
-        return pCurrentStatement.cloneWithConcatenatedStatements(newStatements.build());
-      }
-    }
 
     if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present and there are no concatenated statements -> clone with targetIndex
