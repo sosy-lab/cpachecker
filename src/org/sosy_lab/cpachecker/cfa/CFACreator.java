@@ -1165,7 +1165,7 @@ public class CFACreator {
    * A helper class to have some information about the type of a variable at a certain point in the
    * scope
    */
-  record AVariableDeclarationExchange(
+  private record AVariableDeclarationExchange(
       @JsonProperty("name") @NonNull String name,
       @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
 
