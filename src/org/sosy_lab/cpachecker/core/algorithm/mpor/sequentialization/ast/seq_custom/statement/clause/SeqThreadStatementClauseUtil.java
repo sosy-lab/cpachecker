@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -16,6 +16,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
@@ -135,9 +136,21 @@ public class SeqThreadStatementClauseUtil {
       for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(replaceTargetPc(statement, labelToIndexMap));
       }
+      ImmutableList.Builder<SeqStatementBlock> newMergedBlocks = ImmutableList.builder();
+      for (SeqStatementBlock mergedBlock : caseClause.mergedBlocks) {
+        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
+        for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
+          newMergedStatements.add(replaceTargetPc(mergedStatement, labelToIndexMap));
+        }
+        int mergeBlockIndex =
+            Objects.requireNonNull(labelToIndexMap.get(mergedBlock.getGotoLabel().labelNumber));
+        newMergedBlocks.add(
+            mergedBlock.cloneWithLabelAndStatements(mergeBlockIndex, newMergedStatements.build()));
+      }
       int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.labelNumber));
       rConsecutiveLabels.add(
-          caseClause.cloneWithLabelAndBlockStatements(index, newStatements.build()));
+          caseClause.cloneWithLabelAndBlockStatementsAndMergedBlocks(
+              index, newStatements.build(), newMergedBlocks.build()));
     }
     return rConsecutiveLabels.build();
   }
@@ -146,8 +159,12 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pCaseClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    for (int i = 0; i < pCaseClauses.size(); i++) {
-      rLabelToIndex.put(pCaseClauses.get(i).labelNumber, i);
+    int index = 0;
+    for (SeqThreadStatementClause clause : pCaseClauses) {
+      rLabelToIndex.put(clause.labelNumber, index++);
+      for (SeqStatementBlock mergedBlock : clause.mergedBlocks) {
+        rLabelToIndex.put(mergedBlock.getGotoLabel().labelNumber, index++);
+      }
     }
     return rLabelToIndex.buildOrThrow();
   }

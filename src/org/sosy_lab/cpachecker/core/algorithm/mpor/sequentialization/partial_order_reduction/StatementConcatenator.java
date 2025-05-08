@@ -8,12 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqBlankStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqMutexUnlockStatement;
@@ -22,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class StatementConcatenator {
 
+  /** Concatenates commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat(
       ImmutableList.Builder<CIdExpression> pUpdatedVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
@@ -29,11 +36,16 @@ public class StatementConcatenator {
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rConcatenated =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
+      // collect IDs of targets that result in valid concatenations.
+      // these clauses must not be directly reachable, and their labels are pruned later
+      ImmutableSet.Builder<Integer> clauseTargets = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> removedInjections =
           removeUnnecessaryInjections(pUpdatedVariables, entry.getValue());
       ImmutableList<SeqThreadStatementClause> concatenatedCases =
-          concatenateCommutingClausesWithGotos(removedInjections);
-      rConcatenated.put(entry.getKey(), concatenatedCases);
+          concatenateCommutingClausesWithGotos(removedInjections, clauseTargets);
+      ImmutableList<SeqThreadStatementClause> merged =
+          mergeNotDirectlyReachableStatements(clauseTargets.build(), concatenatedCases);
+      rConcatenated.put(entry.getKey(), merged);
     }
     return rConcatenated.buildOrThrow();
   }
@@ -79,43 +91,44 @@ public class StatementConcatenator {
   // Inject Gotos ==================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> concatenateCommutingClausesWithGotos(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableSet.Builder<Integer> pClauseTargets) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewCaseClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
 
-    boolean firstConcat = true;
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      // prevent start in already concatenated clauses, otherwise they are duplicated
+    for (int i = 0; i < pCaseClauses.size(); i++) {
+      SeqThreadStatementClause clause = pCaseClauses.get(i);
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
+      for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
-            recursivelyConcatenateStatements(
-                firstConcat, caseClause.isGlobal, statement, labelValueMap));
-        firstConcat = false;
+            concatenateStatements(
+                i == 0, clause.isGlobal, statement, labelValueMap, pClauseTargets));
       }
-      SeqThreadStatementClause clone = caseClause.cloneWithBlockStatements(newStatements.build());
-      rNewCaseClauses.add(clone);
+      rNewCaseClauses.add(clause.cloneWithBlockStatements(newStatements.build()));
     }
     return rNewCaseClauses.build();
   }
 
   /**
-   * Recursively concatenates the target statements of {@code pCurrentStatement}, if applicable.
+   * Concatenates the target statements of {@code pCurrentStatement}, if applicable i.e. if the
+   * target statement is guaranteed to commute.
    *
    * @param pIsFirstConcat for the very first concat, we can concat global statements
    */
-  private static SeqThreadStatement recursivelyConcatenateStatements(
+  private static SeqThreadStatement concatenateStatements(
       final boolean pIsFirstConcat,
       final boolean pIsGlobal,
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap,
+      ImmutableSet.Builder<Integer> pClauseTargets) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
       if (validConcatenation(pIsFirstConcat, pIsGlobal, pCurrentStatement, newTarget)) {
+        pClauseTargets.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getGotoLabel());
       }
     }
@@ -131,11 +144,16 @@ public class StatementConcatenator {
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget) {
 
-    return pStatement.isConcatenable()
-        && !pTarget.isCriticalSectionStart()
+    // enforce that the concatenation depends only on the target, not the statement
+    checkArgument(
+        pStatement.isConcatenable(),
+        "pStatement of class %s is not concatenable",
+        pStatement.getClass());
+    return !pTarget.isCriticalSectionStart()
+        // do not concatenate atomic blocks, this is handled by AtomicBlockBuilder
+        && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // only consider global if not ignored
-        && !((!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal)
-            || pTarget.block.getStatements().contains(pStatement));
+        && !(!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal);
   }
 
   /**
@@ -156,5 +174,26 @@ public class StatementConcatenator {
     }
     // the first concatenation in the thread can also concatenate global, if it is not global itself
     return pIsFirstConcat && !pIsGlobal;
+  }
+
+  private static ImmutableList<SeqThreadStatementClause> mergeNotDirectlyReachableStatements(
+      ImmutableSet<Integer> pCollectedTargetIds, ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    // use lists to add at list start
+    List<SeqThreadStatementClause> rMerged = new ArrayList<>();
+    List<SeqStatementBlock> collected = new ArrayList<>();
+    // in reverse, merge not directly reachable blocks to first directly reachable
+    for (int i = pClauses.size() - 1; i >= 0; i--) {
+      SeqThreadStatementClause clause = pClauses.get(i);
+      if (pCollectedTargetIds.contains(clause.id)) {
+        collected.add(0, clause.block);
+      } else {
+        SeqThreadStatementClause mergedClause =
+            clause.cloneWithMergedBlocks(ImmutableList.copyOf(collected));
+        rMerged.add(0, mergedClause);
+        collected = new ArrayList<>();
+      }
+    }
+    return ImmutableList.copyOf(rMerged);
   }
 }

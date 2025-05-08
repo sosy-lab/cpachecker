@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -89,7 +89,7 @@ public class SeqThreadStatementClauseBuilder {
             : reducedCases;
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
-        AtomicBlockBuilder.build(pOptions, consecutiveLabelCases);
+        AtomicBlockBuilder.build(consecutiveLabelCases);
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
         ? SeqValidator.validateCaseClauses(atomicBlocks, pLogger)

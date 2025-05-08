@@ -13,12 +13,12 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -30,7 +30,6 @@ public class AtomicBlockBuilder {
    * encountering an atomic_begin, until an atomic_end is encountered.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> build(
-      MPOROptions pOptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rWithBlocks =
@@ -41,7 +40,8 @@ public class AtomicBlockBuilder {
       ImmutableMap<Integer, SeqThreadStatementClause> labelMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelMap);
-      rWithBlocks.put(thread, mergeAtomicBlocks(pOptions, withGotos));
+      rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
+      // rWithBlocks.put(thread, withGotos);
     }
     return rWithBlocks.buildOrThrow();
   }
@@ -82,7 +82,7 @@ public class AtomicBlockBuilder {
   }
 
   private static ImmutableList<SeqThreadStatementClause> mergeAtomicBlocks(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatementClause> pClauses) {
+      ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rMerged = ImmutableList.builder();
     Set<SeqThreadStatementClause> visited = new HashSet<>();
@@ -131,6 +131,10 @@ public class AtomicBlockBuilder {
     for (SeqThreadStatementClause clause : pClauses.subList(pFrom, pTo)) {
       assert clause.block instanceof SeqThreadStatementBlock;
       rCollected.add((SeqThreadStatementBlock) clause.block);
+      for (SeqStatementBlock mergedBlock : clause.mergedBlocks) {
+        assert mergedBlock instanceof SeqThreadStatementBlock;
+        rCollected.add((SeqThreadStatementBlock) mergedBlock);
+      }
     }
     return rCollected.build();
   }

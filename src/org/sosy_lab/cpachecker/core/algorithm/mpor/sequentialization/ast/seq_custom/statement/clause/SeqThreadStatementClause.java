@@ -6,9 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqAtomicStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -40,6 +41,9 @@ public class SeqThreadStatementClause implements SeqStatement {
   /** The case block e.g. {@code fib(42); break;} */
   public final SeqStatementBlock block;
 
+  /** The list of merged blocks, that are not directly reachable due to concatenation. */
+  public final ImmutableList<SeqStatementBlock> mergedBlocks;
+
   public SeqThreadStatementClause(
       boolean pIsGlobal, boolean pIsLoopStart, int pLabelNumber, SeqStatementBlock pBlock) {
 
@@ -48,6 +52,7 @@ public class SeqThreadStatementClause implements SeqStatement {
     isLoopStart = pIsLoopStart;
     labelNumber = pLabelNumber;
     block = pBlock;
+    mergedBlocks = ImmutableList.of();
   }
 
   /** Private constructor, only used during cloning process to keep the same id. */
@@ -56,38 +61,58 @@ public class SeqThreadStatementClause implements SeqStatement {
       boolean pIsGlobal,
       boolean pIsLoopStart,
       int pLabelNumber,
-      SeqStatementBlock pBlock) {
+      SeqStatementBlock pBlock,
+      ImmutableList<SeqStatementBlock> pMergedBlocks) {
 
     id = pId;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     labelNumber = pLabelNumber;
     block = pBlock;
+    mergedBlocks = pMergedBlocks;
   }
 
   public SeqThreadStatementClause cloneWithLabel(int pLabelNumber) {
-    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, pLabelNumber, block);
+    return new SeqThreadStatementClause(
+        id, isGlobal, isLoopStart, pLabelNumber, block, mergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithAtomicBlock(SeqAtomicStatementBlock pAtomicBlock) {
     return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, pAtomicBlock.labelNumber, pAtomicBlock);
+        id, isGlobal, isLoopStart, pAtomicBlock.labelNumber, pAtomicBlock, mergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithBlockStatements(
       ImmutableList<SeqThreadStatement> pStatements) {
+
     return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, labelNumber, block.cloneWithStatements(pStatements));
+        id,
+        isGlobal,
+        isLoopStart,
+        labelNumber,
+        block.cloneWithStatements(pStatements),
+        mergedBlocks);
   }
 
-  public SeqThreadStatementClause cloneWithLabelAndBlockStatements(
-      int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements) {
+  public SeqThreadStatementClause cloneWithMergedBlocks(
+      ImmutableList<SeqStatementBlock> pMergedBlocks) {
+
+    return new SeqThreadStatementClause(
+        id, isGlobal, isLoopStart, labelNumber, block, pMergedBlocks);
+  }
+
+  public SeqThreadStatementClause cloneWithLabelAndBlockStatementsAndMergedBlocks(
+      int pLabelNumber,
+      ImmutableList<SeqThreadStatement> pStatements,
+      ImmutableList<SeqStatementBlock> pMergedBlocks) {
+
     return new SeqThreadStatementClause(
         id,
         isGlobal,
         isLoopStart,
         pLabelNumber,
-        block.cloneWithLabelAndStatements(pLabelNumber, pStatements));
+        block.cloneWithLabelAndStatements(pLabelNumber, pStatements),
+        pMergedBlocks);
   }
 
   /**
@@ -115,6 +140,11 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    return block.toASTString();
+    StringBuilder rString = new StringBuilder();
+    rString.append(block.toASTString());
+    for (SeqStatementBlock mergedBlock : mergedBlocks) {
+      rString.append(mergedBlock.toASTString());
+    }
+    return rString.toString();
   }
 }

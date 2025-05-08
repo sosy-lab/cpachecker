@@ -30,7 +30,7 @@ public class SeqThreadStatementBlock implements SeqStatementBlock {
    * The goto label for the block, e.g. {@code T0_42;}. It is mandatory for all blocks, but may not
    * actually be targeted with a {@code goto}.
    */
-  public final SeqBlockGotoLabelStatement gotoLabel;
+  private final SeqBlockGotoLabelStatement gotoLabel;
 
   public final ImmutableList<SeqThreadStatement> statements;
 

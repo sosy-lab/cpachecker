@@ -20,7 +20,7 @@ public class SeqAtomicStatementBlock implements SeqStatementBlock {
   public final ImmutableList<SeqThreadStatementBlock> blocks;
 
   public SeqAtomicStatementBlock(ImmutableList<SeqThreadStatementBlock> pBlocks) {
-    labelNumber = pBlocks.get(0).gotoLabel.labelNumber;
+    labelNumber = pBlocks.get(0).getGotoLabel().labelNumber;
     blocks = pBlocks;
   }
 

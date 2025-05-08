@@ -13,7 +13,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -91,7 +91,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   private String buildCasePrefix(SeqStatement pClause, int pCaseNum) {
     if (pClause instanceof SeqThreadStatementClause threadClause) {
       if (threadClause.block.startsInAtomicBlock()) {
-        // the start of an atomic block does not have to be directly reachable, no case needed
+        // when in an atomic block, it does not have to be directly reachable, no case needed
         return SeqSyntax.SPACE.repeat(MAX_LABEL_LENGTH);
       }
     }
