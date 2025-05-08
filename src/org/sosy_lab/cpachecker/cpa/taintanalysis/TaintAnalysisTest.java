@@ -64,6 +64,36 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testTaintByAssignmentOperationUnsafe_Addition() throws Exception {
+    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Addition.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByAssignmentOperationUnsafe_Division() throws Exception {
+    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Division.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByAssignmentOperationUnsafe_Modulo() throws Exception {
+    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Modulo.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByAssignmentOperationUnsafe_Multiplication() throws Exception {
+    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Multiplication.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByAssignmentOperationUnsafe_Substraction() throws Exception {
+    TestResults results = runCPAchecker("taintByAssignmentOperationUnsafe_Substraction.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testTaintByBasicArithmeticOperationSafe() throws Exception {
     TestResults results =
         runCPAchecker("taintByBasicArithmeticOperationSafe.c", "c_infix_operators");

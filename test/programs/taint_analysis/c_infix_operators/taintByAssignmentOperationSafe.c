@@ -6,15 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: create individual unsafe cases
-
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
-    int y = 5;
+    int y = 1;
 
     // y is expected to be tainted after += operation
     y += x;
