@@ -242,9 +242,7 @@ public abstract class AbstractExpressionValueVisitor
       return Value.UnknownValue.getInstance();
     }
 
-    Value result;
-
-    switch (binaryOperator) {
+    return switch (binaryOperator) {
       case PLUS,
           MINUS,
           DIVIDE,
@@ -255,7 +253,7 @@ public abstract class AbstractExpressionValueVisitor
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR -> {
-        result =
+        Value result =
             arithmeticOperation(
                 (NumericValue) lVal,
                 (NumericValue) rVal,
@@ -263,28 +261,24 @@ public abstract class AbstractExpressionValueVisitor
                 calculationType,
                 machineModel,
                 logger);
-        result =
-            castCValue(
-                result,
-                binaryExpr.getExpressionType(),
-                machineModel,
-                logger,
-                binaryExpr.getFileLocation());
+        yield castCValue(
+            result,
+            binaryExpr.getExpressionType(),
+            machineModel,
+            logger,
+            binaryExpr.getFileLocation());
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
-          result =
-              booleanOperation(
-                  (NumericValue) lVal,
-                  (NumericValue) rVal,
-                  binaryOperator,
-                  calculationType,
-                  machineModel,
-                  logger);
+          booleanOperation(
+              (NumericValue) lVal,
+              (NumericValue) rVal,
+              binaryOperator,
+              calculationType,
+              machineModel,
+              logger);
       // we do not cast here, because 0 and 1 should be small enough for every type.
       default -> throw new AssertionError("unhandled binary operator");
-    }
-
-    return result;
+    };
   }
 
   /**
