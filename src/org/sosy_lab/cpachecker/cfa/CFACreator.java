@@ -1235,8 +1235,7 @@ public class CFACreator {
     try (Writer writer =
         IO.openOutputFile(
             pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
-      String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
-      writer.write(entryJson);
+      mapper.writeValue(writer, locationToVariablesInScope);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Could not serialize the variables in scope to json.", e);
     } catch (IOException e) {
