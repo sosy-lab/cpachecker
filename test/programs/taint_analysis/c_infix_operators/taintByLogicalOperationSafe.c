@@ -10,8 +10,6 @@ extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
-// TODO: logical operations && and || are not tainting the LHS
-
 int main() {
     int x = __VERIFIER_nondet_int();
     int y = 1;
