@@ -234,54 +234,48 @@ public class SMGCPABuiltins {
       return evaluateExternalAllocation(cFCExpression, pState);
     }
 
-    switch (calledFunctionName) {
-      case "alloca":
-      case "__builtin_alloca":
-        return evaluateAlloca(cFCExpression, pState, pCfaEdge);
+    return switch (calledFunctionName) {
+      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
-      case "memset":
-        return evaluateMemset(cFCExpression, pState, pCfaEdge);
+      case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
 
-      case "memcpy":
-        return evaluateMemcpy(cFCExpression, pState, pCfaEdge);
+      case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
 
-      case "memcmp":
-        return evaluateMemcmp(cFCExpression, pState, pCfaEdge);
+      case "memcmp" -> evaluateMemcmp(cFCExpression, pState, pCfaEdge);
 
-      case "strcmp":
-        return evaluateStrcmp(cFCExpression, pState, pCfaEdge);
+      case "strcmp" -> evaluateStrcmp(cFCExpression, pState, pCfaEdge);
 
-      case "__VERIFIER_BUILTIN_PLOT":
+      case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, pState);
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
 
-      case "printf":
+      case "printf" -> {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
+        yield Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
+      }
 
-      case "realloc":
-        return evaluateRealloc(cFCExpression, pState, pCfaEdge);
+      case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
 
-      case "__builtin_va_start":
-        return evaluateVaStart(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_arg":
-        return evaluateVaArg(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_copy":
-        return evaluateVaCopy(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_end":
-        return evaluateVaEnd(cFCExpression, pCfaEdge, pState);
-      case "atexit":
-        return evaluateAtExit(cFCExpression, pCfaEdge, pState);
-      case "__CPACHECKER_atexit_next":
-        return evaluateAtExitNext(pState);
+      case "__builtin_va_start" -> evaluateVaStart(cFCExpression, pCfaEdge, pState);
 
-      default:
+      case "__builtin_va_arg" -> evaluateVaArg(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_copy" -> evaluateVaCopy(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_end" -> evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+
+      case "atexit" -> evaluateAtExit(cFCExpression, pCfaEdge, pState);
+
+      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
+
+      default -> {
         if (isNondetBuiltin(calledFunctionName)) {
-          return Collections.singletonList(
+          yield Collections.singletonList(
               ValueAndSMGState.ofUnknownValue(
                   pState,
                   "Returned unknown value due to call to nondeterministic havoc function as defined"
@@ -291,7 +285,8 @@ public class SMGCPABuiltins {
           throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
-    }
+      }
+    };
   }
 
   /*
