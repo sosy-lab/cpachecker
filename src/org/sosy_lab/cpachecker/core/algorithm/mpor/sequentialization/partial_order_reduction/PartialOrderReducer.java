@@ -34,22 +34,22 @@ public class PartialOrderReducer {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pOptions.porConcat
-        && pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pCaseClauses);
-      return BitVectorAccessReducer.reduce(
-          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
+    if (pOptions.linkReduction
+        && pOptions.bitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
+          StatementLinker.link(pCaseClauses);
+      return BitVectorAccessInjector.inject(
+          pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
-    } else if (pOptions.porConcat
-        && pOptions.porBitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat =
-          StatementConcatenator.concat(pCaseClauses);
-      return BitVectorReadWriteReducer.reduce(
-          pOptions, pBitVectorVariables.orElseThrow(), concat, pBinaryExpressionBuilder, pLogger);
+    } else if (pOptions.linkReduction
+        && pOptions.bitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
+          StatementLinker.link(pCaseClauses);
+      return BitVectorReadWriteInjector.inject(
+          pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
-    } else if (pOptions.porConcat) {
-      return StatementConcatenator.concat(pCaseClauses);
+    } else if (pOptions.linkReduction) {
+      return StatementLinker.link(pCaseClauses);
     }
     return pCaseClauses;
   }

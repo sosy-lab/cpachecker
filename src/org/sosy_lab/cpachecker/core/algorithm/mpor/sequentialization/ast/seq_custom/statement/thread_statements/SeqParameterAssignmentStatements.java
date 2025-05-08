@@ -134,7 +134,7 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isConcatenable() {
+  public boolean isLinkable() {
     return true;
   }
 

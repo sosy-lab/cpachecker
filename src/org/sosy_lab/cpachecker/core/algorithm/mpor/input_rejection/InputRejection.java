@@ -102,14 +102,14 @@ public class InputRejection {
 
   /** Checks if the options specified by the user are valid i.e. non-conflicting. */
   private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (pOptions.porBitVectorReduction.isEnabled() && !pOptions.porBitVectorEncoding.isEnabled()) {
+    if (pOptions.bitVectorReduction.isEnabled() && !pOptions.bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.SEVERE,
           "porBitVectorReduction is set, but porBitVectorEncoding is not set. Either remove"
               + " porBitVectorReduction or specify porBitVectorEncoding.");
       handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
     }
-    if (pOptions.porBitVectorEncoding.isEnabled() && !pOptions.porBitVectorReduction.isEnabled()) {
+    if (pOptions.bitVectorEncoding.isEnabled() && !pOptions.bitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.SEVERE,
           "porBitVectorEncoding is set, but porBitVectorReduction is not set. Either remove"

@@ -70,7 +70,7 @@ public class GhostVariableUtil {
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    if (pOptions.porBitVectorReduction.equals(BitVectorReduction.NONE)) {
+    if (pOptions.bitVectorReduction.equals(BitVectorReduction.NONE)) {
       return Optional.empty();
     }
     // collect all global variables accessed in substitute edges, and assign unique ids
@@ -78,7 +78,7 @@ public class GhostVariableUtil {
         SubstituteUtil.getAllGlobalVariables(pSubstituteEdges.values());
     ImmutableMap<CVariableDeclaration, Integer> globalVariableIds =
         assignGlobalVariableIds(allGlobalVariables);
-    if (pOptions.porBitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
+    if (pOptions.bitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
       return buildAccessOnlyBitVectorVariables(
           pOptions, pThreads, allGlobalVariables, globalVariableIds);
     } else {
@@ -157,7 +157,7 @@ public class GhostVariableUtil {
   private static Optional<ImmutableSet<DenseBitVector>> buildDenseBitVectorsByAccessType(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads, BitVectorAccessType pAccessType) {
 
-    if (!pOptions.porBitVectorEncoding.isDense) {
+    if (!pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
     ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
@@ -173,7 +173,7 @@ public class GhostVariableUtil {
               thread,
               SeqExpressionBuilder.buildIdExpression(readDeclaration),
               pAccessType,
-              pOptions.porBitVectorEncoding));
+              pOptions.bitVectorEncoding));
     }
     return Optional.of(rBitVectors.build());
   }
@@ -185,7 +185,7 @@ public class GhostVariableUtil {
           ImmutableList<CVariableDeclaration> pAllGlobalVariables,
           BitVectorAccessType pAccessType) {
 
-    if (pOptions.porBitVectorEncoding.isDense) {
+    if (pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
     ImmutableMap.Builder<CVariableDeclaration, ScalarBitVector> rAccessVariables =

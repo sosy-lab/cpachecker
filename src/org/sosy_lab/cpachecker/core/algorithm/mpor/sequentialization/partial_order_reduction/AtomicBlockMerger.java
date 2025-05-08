@@ -22,13 +22,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class AtomicBlockBuilder {
+public class AtomicBlockMerger {
 
   /**
    * Builds atomic blocks for {@code pCaseClauses} by adding {@code goto} statements when
    * encountering an atomic_begin, until an atomic_end is encountered.
    */
-  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> build(
+  public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> merge(
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rWithBlocks =
@@ -52,19 +52,19 @@ public class AtomicBlockBuilder {
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
-        newStatements.add(recursivelyInjectAtomicGotos(statement, pLabelMap));
+        newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelMap));
       }
       rWithGotos.add(clause.cloneWithBlockStatements(newStatements.build()));
     }
     return rWithGotos.build();
   }
 
-  private static SeqThreadStatement recursivelyInjectAtomicGotos(
+  private static SeqThreadStatement injectAtomicGotosIntoStatement(
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelMap) {
 
     if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present and there are no concatenated statements -> clone with targetIndex
+      // int target is present -> clone with targetIndex
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC && pLabelMap.containsKey(targetPc)) {
         SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelMap.get(targetPc));
@@ -92,7 +92,7 @@ public class AtomicBlockBuilder {
           int toIndex = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
           // start at following index, since we clone with adding, not replacing
           ImmutableList<SeqThreadStatementBlock> newMergedBlocks =
-              collectAllBlocks(i + 1, toIndex, pClauses);
+              collectAllBlocksAndMergedBlocks(i + 1, toIndex, pClauses);
           rMerged.add(clause.cloneWithAddedMergedBlocks(newMergedBlocks));
         } else {
           rMerged.add(clause);
@@ -135,7 +135,7 @@ public class AtomicBlockBuilder {
     return pClauses.size(); // if the rest is atomic block, return last index (exclusive)
   }
 
-  private static ImmutableList<SeqThreadStatementBlock> collectAllBlocks(
+  private static ImmutableList<SeqThreadStatementBlock> collectAllBlocksAndMergedBlocks(
       int pFrom, // inclusive
       int pTo, // exclusive
       ImmutableList<SeqThreadStatementClause> pClauses) {

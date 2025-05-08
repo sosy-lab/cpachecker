@@ -39,9 +39,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-class BitVectorAccessReducer {
+class BitVectorAccessInjector {
 
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
+  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
@@ -89,7 +89,7 @@ class BitVectorAccessReducer {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : caseClause.block.getStatements()) {
         newStatements.add(
-            recursivelyInjectBitVectors(
+            injectBitVectorsIntoSingleStatement(
                 pOptions,
                 pThread,
                 pFullBitVectorEvaluation,
@@ -102,7 +102,7 @@ class BitVectorAccessReducer {
     return rInjected.build();
   }
 
-  private static SeqThreadStatement recursivelyInjectBitVectors(
+  private static SeqThreadStatement injectBitVectorsIntoSingleStatement(
       MPOROptions pOptions,
       final MPORThread pThread,
       final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
@@ -150,7 +150,7 @@ class BitVectorAccessReducer {
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
-    // no concat statements and no valid target pc (e.g. exit pc) -> return statement as is
+    // no valid target pc (e.g. exit pc) -> return statement as is
     return pCurrentStatement;
   }
 
@@ -161,7 +161,7 @@ class BitVectorAccessReducer {
       ImmutableList<CVariableDeclaration> pAccessedVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
-    if (pOptions.porBitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
+    if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pAccessedVariables.contains(entry.getKey());

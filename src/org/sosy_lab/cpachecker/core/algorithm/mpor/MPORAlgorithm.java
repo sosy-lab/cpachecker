@@ -55,6 +55,26 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   // TODO add shortFunctions Option (e.g. assume instead of __MPOR_SEQ__assume)
 
   @Option(
+      description =
+          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
+  // using optional for @Options is not allowed, unfortunately...
+  private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
+
+  @Option(
+      secure = true,
+      description =
+          "prune and simplify bit vector evaluation expressions based on the previous bit vector "
+              + " assignments? true -> (should) improve verification performance")
+  private boolean bitVectorEvaluationPrune = false;
+
+  @Option(
+      description =
+          "add partial order reduction (bit vectors storing global variable) in the"
+              + " sequentialization to reduce the state space? distinguishing between global"
+              + " variable reads and writes, not just accesses, reduces the state space more.")
+  private BitVectorReduction bitVectorReduction = BitVectorReduction.NONE;
+
+  @Option(
       secure = true,
       description =
           "include comments with explaining trivia in the sequentialization? true ->"
@@ -93,6 +113,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "include CPAchecker license header in the sequentialization? true -> bigger file size")
   private boolean license = false;
 
+  // TODO POR is currently not secure because we assume pointer parameters that are assigned global
+  //  variable addresses to commute
+  @Option(
+      description =
+          "add partial order reduction (linking commuting statements via goto) in the "
+              + "sequentialization to reduce the state space?")
+  private boolean linkReduction = true;
+
   @Option(
       secure = true,
       description =
@@ -109,35 +137,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description = "overwrite files in the ./output directory when creating sequentializations?")
   private boolean overwriteFiles = true;
-
-  // TODO POR is currently not secure because we assume pointer parameters that are assigned global
-  //  variable addresses to commute
-  @Option(
-      description =
-          "add partial order reduction (grouping commuting statements) in the sequentialization"
-              + " to reduce the state space?")
-  private boolean porConcat = true;
-
-  @Option(
-      description =
-          "add partial order reduction (bit vectors storing global variable) in the"
-              + " sequentialization to reduce the state space? distinguishing between global"
-              + " variable reads and writes, not just accesses, reduces the state space more.")
-  private BitVectorReduction porBitVectorReduction = BitVectorReduction.NONE;
-
-  @Option(
-      description =
-          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
-  // using optional for @Options is not allowed, unfortunately...
-  private BitVectorEncoding porBitVectorEncoding = BitVectorEncoding.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "enable this option only with porBitVectorEncoding=SCALAR. prune and simplify bit vector"
-              + " evaluation expressions based on the previous bit vector assignments?  true ->"
-              + " (should) improve verification performance")
-  private boolean pruneBitVectorEvaluation = false;
 
   @Option(
       secure = true,
@@ -267,19 +266,19 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     options =
         new MPOROptions(
+            bitVectorEncoding,
+            bitVectorEvaluationPrune,
+            bitVectorReduction,
             comments,
             consecutiveLabels,
             controlFlowEncoding,
             inputFunctionDeclarations,
             inputTypeDeclarations,
             license,
+            linkReduction,
             outputMetadata,
             outputPath,
             overwriteFiles,
-            porConcat,
-            porBitVectorReduction,
-            porBitVectorEncoding,
-            pruneBitVectorEvaluation,
             pruneEmptyStatements,
             scalarPc,
             sequentializationErrors,

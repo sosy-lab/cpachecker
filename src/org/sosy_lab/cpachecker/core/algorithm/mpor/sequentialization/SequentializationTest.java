@@ -41,10 +41,10 @@ public class SequentializationTest {
   // pthread-divine/tls_basic
 
   // TODO this program is analyzed as false by multiple tools (Bubaak, CBMC, CPAchecker, ESBMC,
-  //  Symbiotic) even though its true, but only when porConcat is enabled
+  //  Symbiotic) even though its true, but only when linkReduction is enabled
   // weaver/chl-match-symm.wvr.c
 
-  // TODO porConcat infinite recursion errors for:
+  // TODO linkReduction infinite recursion errors for:
   // pthread-complex/elimination_backoff_stack
   // ldv-races/race-4_1-thread_local_vars
   // weaver/popl20-send-receive-alt.wvr
@@ -57,13 +57,13 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.SCALAR,
+            true,
+            BitVectorReduction.READ_AND_WRITE,
             true,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             true,
-            true,
-            BitVectorReduction.READ_AND_WRITE,
-            BitVectorEncoding.SCALAR,
             true,
             true,
             true,
@@ -81,14 +81,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.HEXADECIMAL,
+            false,
+            BitVectorReduction.ACCESS_ONLY,
             false,
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             true,
             true,
-            BitVectorReduction.ACCESS_ONLY,
-            BitVectorEncoding.HEXADECIMAL,
-            false,
             true,
             false,
             false,
@@ -107,13 +107,13 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.BINARY,
+            true,
+            BitVectorReduction.READ_AND_WRITE,
             false,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             true,
-            true,
-            BitVectorReduction.READ_AND_WRITE,
-            BitVectorEncoding.BINARY,
             true,
             false,
             false,
@@ -132,14 +132,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.NONE,
+            false,
+            BitVectorReduction.NONE,
             true,
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             true,
             true,
-            BitVectorReduction.NONE,
-            BitVectorEncoding.NONE,
-            false,
             true,
             true,
             true,
@@ -155,14 +155,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.BINARY,
+            false,
+            BitVectorReduction.ACCESS_ONLY,
             false,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             true,
             true,
-            BitVectorReduction.ACCESS_ONLY,
-            BitVectorEncoding.BINARY,
-            false,
             false,
             true,
             true,
@@ -180,14 +180,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.NONE,
+            false,
+            BitVectorReduction.NONE,
             false,
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             false,
             true,
-            BitVectorReduction.NONE,
-            BitVectorEncoding.NONE,
-            false,
             false,
             true,
             false,
@@ -204,13 +204,13 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.NONE,
+            false,
+            BitVectorReduction.NONE,
             false,
             ControlFlowEncoding.SWITCH_CASE,
             true,
             true,
-            false,
-            BitVectorReduction.NONE,
-            BitVectorEncoding.NONE,
             false,
             true,
             true,
@@ -230,14 +230,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.BINARY,
+            false,
+            BitVectorReduction.ACCESS_ONLY,
             true,
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             true,
             true,
-            BitVectorReduction.ACCESS_ONLY,
-            BitVectorEncoding.BINARY,
-            false,
             true,
             false,
             false,
@@ -254,13 +254,13 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.HEXADECIMAL,
+            true,
+            BitVectorReduction.READ_AND_WRITE,
             false,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             false,
-            true,
-            BitVectorReduction.READ_AND_WRITE,
-            BitVectorEncoding.HEXADECIMAL,
             true,
             false,
             true,
@@ -279,14 +279,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.NONE,
+            false,
+            BitVectorReduction.NONE,
             true,
             ControlFlowEncoding.BINARY_IF_TREE,
             true,
             false,
             true,
-            BitVectorReduction.NONE,
-            BitVectorEncoding.NONE,
-            false,
             true,
             false,
             true,
@@ -302,14 +302,14 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.SCALAR,
+            false,
+            BitVectorReduction.ACCESS_ONLY,
             true,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             false,
             true,
-            BitVectorReduction.ACCESS_ONLY,
-            BitVectorEncoding.SCALAR,
-            false,
             false,
             true,
             true,

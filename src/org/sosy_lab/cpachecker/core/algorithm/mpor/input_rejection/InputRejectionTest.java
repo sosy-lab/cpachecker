@@ -52,13 +52,13 @@ public class InputRejectionTest {
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     MPOROptions options =
         MPOROptions.testInstance(
+            BitVectorEncoding.NONE,
+            false,
+            BitVectorReduction.NONE,
             false,
             ControlFlowEncoding.SWITCH_CASE,
             false,
             false,
-            false,
-            BitVectorReduction.NONE,
-            BitVectorEncoding.NONE,
             false,
             false,
             false,

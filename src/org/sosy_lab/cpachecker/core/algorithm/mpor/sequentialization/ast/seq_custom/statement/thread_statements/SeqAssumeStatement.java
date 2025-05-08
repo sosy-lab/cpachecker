@@ -58,10 +58,6 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       Optional<SeqBlockGotoLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    // TODO add a checkArguments that checks (for all statements): (= equivalence)
-    //  if there are concatenated statements, pTargetPc must be empty
-    //  if pTargetPc is present, pConcatenatedStatements must be empty
-
     controlFlowStatement = pControlFlowStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
@@ -136,7 +132,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isConcatenable() {
+  public boolean isLinkable() {
     return true;
   }
 

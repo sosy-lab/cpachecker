@@ -54,15 +54,15 @@ public class BitVectorEvaluationBuilder {
       Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation) {
 
     if (pFullBitVectorEvaluation.isPresent()) {
-      assert !pOptions.pruneBitVectorEvaluation
+      assert !pOptions.bitVectorEvaluationPrune
           : "full evaluation is present, but pruneBitVectorEvaluation is enabled";
       return pFullBitVectorEvaluation.orElseThrow();
     }
-    return switch (pOptions.porBitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding) {
       // for access bin/hex, the bit vector evaluation is either full or pruned entirely
       case NONE, BINARY, HEXADECIMAL ->
           throw new IllegalArgumentException(
-              "cannot prune for encoding " + pOptions.porBitVectorEncoding);
+              "cannot prune for encoding " + pOptions.bitVectorEncoding);
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
             buildPrunedScalarAccessBitVectorEvaluation(
@@ -116,10 +116,10 @@ public class BitVectorEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.pruneBitVectorEvaluation) {
+    if (pOptions.bitVectorEvaluationPrune) {
       return Optional.empty(); // if we prune, we later build evaluations dynamically
     }
-    return switch (pOptions.porBitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression bitVector =
@@ -194,14 +194,14 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     if (pFullBitVectorEvaluation.isPresent()) {
-      assert !pOptions.pruneBitVectorEvaluation
+      assert !pOptions.bitVectorEvaluationPrune
           : "full evaluation is present, but pruneBitVectorEvaluation is enabled";
       return pFullBitVectorEvaluation.orElseThrow();
     }
-    return switch (pOptions.porBitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot prune for encoding " + pOptions.porBitVectorEncoding);
+              "cannot prune for encoding " + pOptions.bitVectorEncoding);
       case BINARY, HEXADECIMAL -> {
         Optional<SeqExpression> seqExpression =
             buildPrunedDenseReadWriteBitVectorEvaluation(
@@ -399,10 +399,10 @@ public class BitVectorEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.pruneBitVectorEvaluation) {
+    if (pOptions.bitVectorEvaluationPrune) {
       return Optional.empty();
     }
-    return switch (pOptions.porBitVectorEncoding) {
+    return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression readBitVector =

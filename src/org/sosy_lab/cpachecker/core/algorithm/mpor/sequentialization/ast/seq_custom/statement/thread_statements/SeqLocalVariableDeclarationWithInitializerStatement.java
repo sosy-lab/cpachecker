@@ -148,7 +148,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public boolean isConcatenable() {
+  public boolean isLinkable() {
     return true;
   }
 

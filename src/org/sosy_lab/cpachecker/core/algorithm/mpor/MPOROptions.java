@@ -28,6 +28,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
  */
 public class MPOROptions {
 
+  public final BitVectorEncoding bitVectorEncoding;
+
+  public final boolean bitVectorEvaluationPrune;
+
+  public final BitVectorReduction bitVectorReduction;
+
   public final boolean comments;
 
   public final boolean consecutiveLabels;
@@ -40,19 +46,13 @@ public class MPOROptions {
 
   public final boolean license;
 
+  public final boolean linkReduction;
+
   public final boolean outputMetadata;
 
   public final String outputPath;
 
   public final boolean overwriteFiles;
-
-  public final boolean porConcat;
-
-  public final BitVectorReduction porBitVectorReduction;
-
-  public final BitVectorEncoding porBitVectorEncoding;
-
-  public final boolean pruneBitVectorEvaluation;
 
   public final boolean pruneEmptyStatements;
 
@@ -73,19 +73,19 @@ public class MPOROptions {
   public final boolean validatePc;
 
   public MPOROptions(
+      BitVectorEncoding pBitVectorEncoding,
+      boolean pBitVectorEvaluationPrune,
+      BitVectorReduction pBitVectorReduction,
       boolean pComments,
       boolean pConsecutiveLabels,
       ControlFlowEncoding pControlFlowEncoding,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
+      boolean pLinkReduction,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
-      boolean pPorConcat,
-      BitVectorReduction pPorBitVectorReduction,
-      BitVectorEncoding pPorBitVectorEncoding,
-      boolean pPruneBitVectorEvaluation,
       boolean pPruneEmptyStatements,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -104,19 +104,19 @@ public class MPOROptions {
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
 
+    bitVectorEncoding = pBitVectorEncoding;
+    bitVectorEvaluationPrune = pBitVectorEvaluationPrune;
+    bitVectorReduction = pBitVectorReduction;
     comments = pComments;
     consecutiveLabels = pConsecutiveLabels;
     controlFlowEncoding = pControlFlowEncoding;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
+    linkReduction = pLinkReduction;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
-    porConcat = pPorConcat;
-    porBitVectorReduction = pPorBitVectorReduction;
-    porBitVectorEncoding = pPorBitVectorEncoding;
-    pruneBitVectorEvaluation = pPruneBitVectorEvaluation;
     pruneEmptyStatements = pPruneEmptyStatements;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
@@ -130,14 +130,14 @@ public class MPOROptions {
 
   /** Returns a test instance where only the program customization, not output, can be specified. */
   public static MPOROptions testInstance(
+      BitVectorEncoding pBitVectorEncoding,
+      boolean pPruneBitVectorEvaluation,
+      BitVectorReduction pBitVectorReduction,
       boolean pComments,
       ControlFlowEncoding pControlFlowEncoding,
       boolean pInputFunctionDeclarations,
       boolean pLicense,
-      boolean pPorConcat,
-      BitVectorReduction pPorBitVectorReduction,
-      BitVectorEncoding pPorBitVectorEncoding,
-      boolean pPruneBitVectorEvaluation,
+      boolean pLinkReduction,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
@@ -146,6 +146,9 @@ public class MPOROptions {
       boolean pThreadLoopsNext) {
 
     return new MPOROptions(
+        pBitVectorEncoding,
+        pPruneBitVectorEvaluation,
+        pBitVectorReduction,
         pComments,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
@@ -154,13 +157,10 @@ public class MPOROptions {
         // always include type declarations at the moment, excluding them is unsafe
         true,
         pLicense,
+        pLinkReduction,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
-        pPorConcat,
-        pPorBitVectorReduction,
-        pPorBitVectorEncoding,
-        pPruneBitVectorEvaluation,
         // always prune empty, disabling is only for debugging, not for release
         true,
         pScalarPc,
@@ -207,29 +207,29 @@ public class MPOROptions {
 
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
   protected void handleOptionWarnings(LogManager pLogger) {
-    if (!porConcat && porBitVectorReduction.isEnabled()) {
+    if (!linkReduction && bitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorReduction is only considered with porConcat"
-              + " enabled. Either enable porConcat or set porBitVectorReduction to NONE.");
+          "WARNING: bitVectorReduction is only considered with linkReduction"
+              + " enabled. Either enable linkReduction or set bitVectorReduction to NONE.");
     }
-    if (!porConcat && porBitVectorEncoding.isEnabled()) {
+    if (!linkReduction && bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: porBitVectorEncoding is only considered with porConcat"
-              + " enabled. Either enable porConcat or set porBitVectorEncoding to NONE.");
+          "WARNING: bitVectorEncoding is only considered with linkReduction"
+              + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
     }
-    if (pruneBitVectorEvaluation && !porBitVectorReduction.isEnabled()) {
+    if (bitVectorEvaluationPrune && !bitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorReduction is not"
-              + " NONE. Either disable pruneBitVectorEvaluation or set porBitVectorReduction.");
+          "WARNING: pruneBitVectorEvaluation is only considered when bitVectorReduction is not"
+              + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorReduction.");
     }
-    if (pruneBitVectorEvaluation && !porBitVectorEncoding.isEnabled()) {
+    if (bitVectorEvaluationPrune && !bitVectorEncoding.isEnabled()) {
       pLogger.log(
           Level.WARNING,
-          "WARNING: pruneBitVectorEvaluation is only considered when porBitVectorEncoding is not"
-              + " NONE. Either disable pruneBitVectorEvaluation or set porBitVectorEncoding.");
+          "WARNING: pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
+              + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
     }
     if (!threadLoops && threadLoopsNext) {
       pLogger.log(

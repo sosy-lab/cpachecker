@@ -137,7 +137,7 @@ public class SeqThreadExitStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isConcatenable() {
+  public boolean isLinkable() {
     return false;
   }
 

@@ -46,7 +46,7 @@ public class BitVectorUtil {
       @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
       @NonNull ImmutableList<CVariableDeclaration> pVariables) {
 
-    checkArgument(pOptions.porBitVectorEncoding.isEnabled(), "no bit vector encoding specified");
+    checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
         pAllVariables.keySet().containsAll(pVariables),
         "pAllVariables must contain all pVariables as keys.");
@@ -58,7 +58,7 @@ public class BitVectorUtil {
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(
-        pOptions.porBitVectorEncoding, pAllVariables.size(), setBits);
+        pOptions.bitVectorEncoding, pAllVariables.size(), setBits);
   }
 
   private static BitVectorExpression buildBitVectorExpressionByEncoding(

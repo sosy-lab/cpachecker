@@ -21,30 +21,30 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class StatementConcatenator {
+public class StatementLinker {
 
-  /** Concatenates commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> concat(
+  /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
+  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> link(
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
 
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rConcatenated =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rLinked =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
-      // collect IDs of targets that result in valid concatenations.
+      // collect IDs of targets that result in valid links.
       // these clauses must not be directly reachable, and their labels are pruned later
       ImmutableSet.Builder<Integer> clauseTargets = ImmutableSet.builder();
-      ImmutableList<SeqThreadStatementClause> concatenatedCases =
-          concatenateCommutingClausesWithGotos(entry.getValue(), clauseTargets);
+      ImmutableList<SeqThreadStatementClause> linkedClauses =
+          linkCommutingClausesWithGotos(entry.getValue(), clauseTargets);
       ImmutableList<SeqThreadStatementClause> merged =
-          mergeNotDirectlyReachableStatements(clauseTargets.build(), concatenatedCases);
-      rConcatenated.put(entry.getKey(), merged);
+          mergeNotDirectlyReachableStatements(clauseTargets.build(), linkedClauses);
+      rLinked.put(entry.getKey(), merged);
     }
-    return rConcatenated.buildOrThrow();
+    return rLinked.buildOrThrow();
   }
 
   // Inject Gotos ==================================================================================
 
-  private static ImmutableList<SeqThreadStatementClause> concatenateCommutingClausesWithGotos(
+  private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
       ImmutableSet.Builder<Integer> pClauseTargets) {
 
@@ -57,8 +57,7 @@ public class StatementConcatenator {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
-            concatenateStatements(
-                i == 0, clause.isGlobal, statement, labelValueMap, pClauseTargets));
+            linkStatements(i == 0, clause.isGlobal, statement, labelValueMap, pClauseTargets));
       }
       rNewCaseClauses.add(clause.cloneWithBlockStatements(newStatements.build()));
     }
@@ -66,13 +65,13 @@ public class StatementConcatenator {
   }
 
   /**
-   * Concatenates the target statements of {@code pCurrentStatement}, if applicable i.e. if the
-   * target statement is guaranteed to commute.
+   * Links the target statements of {@code pCurrentStatement}, if applicable i.e. if the target
+   * statement is guaranteed to commute.
    *
-   * @param pIsFirstConcat for the very first concat, we can concat global statements
+   * @param pIsFirstLink for the very first link, we can link global statements
    */
-  private static SeqThreadStatement concatenateStatements(
-      final boolean pIsFirstConcat,
+  private static SeqThreadStatement linkStatements(
+      final boolean pIsFirstLink,
       final boolean pIsGlobal,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap,
@@ -81,7 +80,7 @@ public class StatementConcatenator {
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
-      if (validConcatenation(pIsFirstConcat, pIsGlobal, pCurrentStatement, newTarget)) {
+      if (validLink(pIsFirstLink, pIsGlobal, pCurrentStatement, newTarget)) {
         pClauseTargets.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getGotoLabel());
       }
@@ -91,24 +90,19 @@ public class StatementConcatenator {
 
   // Helpers =======================================================================================
 
-  /** Checks if {@code pStatement} and {@code pTarget} can be concatenated via {@code goto}. */
-  private static boolean validConcatenation(
-      final boolean pIsFirstConcat,
+  /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
+  private static boolean validLink(
+      final boolean pIsFirstLinker,
       final boolean pIsGlobal,
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget) {
 
-    // enforce that the concatenation depends only on the target, not the statement
-    /*checkArgument(
-    pStatement.isConcatenable(),
-    "pStatement of class %s is not concatenable",
-    pStatement.getClass());*/
-    return pStatement.isConcatenable()
+    return pStatement.isLinkable()
         && !pTarget.isCriticalSectionStart()
-        // do not concatenate atomic blocks, this is handled by AtomicBlockBuilder
+        // do not link atomic blocks, this is handled by AtomicBlockBuilder
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // only consider global if not ignored
-        && !(!canIgnoreGlobal(pTarget, pIsFirstConcat, pIsGlobal) && pTarget.isGlobal);
+        && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal);
   }
 
   /**
@@ -116,9 +110,9 @@ public class StatementConcatenator {
    * mutexes.
    */
   private static boolean canIgnoreGlobal(
-      SeqThreadStatementClause pCaseClause, boolean pIsFirstConcat, boolean pIsGlobal) {
+      SeqThreadStatementClause pCaseClause, boolean pIsFirstLink, boolean pIsGlobal) {
 
-    // global loop heads are not concat but must be directly reachable -> loops can be interleaved
+    // global loop heads are not linked but must be directly reachable -> loops can be interleaved
     if (pCaseClause.isLoopStart) {
       return false;
     }
@@ -127,8 +121,8 @@ public class StatementConcatenator {
     if (pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
       return true;
     }
-    // the first concatenation in the thread can also concatenate global, if it is not global itself
-    return pIsFirstConcat && !pIsGlobal;
+    // the first link in the thread can also link global, if it is not global itself
+    return pIsFirstLink && !pIsGlobal;
   }
 
   private static ImmutableList<SeqThreadStatementClause> mergeNotDirectlyReachableStatements(

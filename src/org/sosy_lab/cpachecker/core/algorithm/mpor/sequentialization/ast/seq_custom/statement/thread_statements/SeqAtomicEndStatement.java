@@ -113,7 +113,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isConcatenable() {
+  public boolean isLinkable() {
     return true;
   }
 

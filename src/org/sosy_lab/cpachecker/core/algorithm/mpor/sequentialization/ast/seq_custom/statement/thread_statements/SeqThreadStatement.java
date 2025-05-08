@@ -30,7 +30,7 @@ public interface SeqThreadStatement extends SeqStatement {
   /** The set of underlying {@link SubstituteEdge}s used to create this statement. */
   ImmutableSet<SubstituteEdge> getSubstituteEdges();
 
-  /** After concatenation, a statement may not have a target {@code pc}, hence optional. */
+  /** After linking, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();
 
   Optional<SeqBlockGotoLabelStatement> getTargetGoto();
@@ -50,8 +50,7 @@ public interface SeqThreadStatement extends SeqStatement {
   SeqThreadStatement cloneWithInjectedStatements(
       ImmutableList<SeqInjectedStatement> pInjectedStatements);
 
-  // TODO this is equivalent to whether cloneWithConcatenatedStatements throws an Exception
-  boolean isConcatenable();
+  boolean isLinkable();
 
   /** Whether this statement enters a critical section (e.g. mutex or atomic locks). */
   boolean isCriticalSectionStart();

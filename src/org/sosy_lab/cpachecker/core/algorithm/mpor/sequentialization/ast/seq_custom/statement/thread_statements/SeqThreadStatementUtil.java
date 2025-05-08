@@ -15,7 +15,7 @@ public class SeqThreadStatementUtil {
 
   /**
    * Returns {@code true} if {@code pCurrentStatement} starts inside an atomic block, but does not
-   * actually start it. Does not search concatenated statements.
+   * actually start it.
    */
   public static boolean startsInAtomicBlock(SeqThreadStatement pStatement) {
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {

@@ -63,7 +63,7 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * Searches {@code pStatement} and all concatenated statements for their global variables based on
+   * Searches {@code pStatement} and all linked statements for their global variables based on
    * {@code pAccessType}.
    */
   private static ImmutableList<CVariableDeclaration> recursivelyFindGlobalVariablesByAccessType(
@@ -81,9 +81,7 @@ public class SeqThreadStatementClauseUtil {
     return pFound.build();
   }
 
-  /**
-   * Searches for all target {@code pc} in {@code pStatement}, including concatenated statements.
-   */
+  /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
     ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
     if (pStatement.getTargetPc().isPresent()) {
@@ -213,7 +211,7 @@ public class SeqThreadStatementClauseUtil {
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
 
     if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present and there are no concatenated statements -> clone with targetIndex
+      // int target is present -> clone with targetIndex
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();

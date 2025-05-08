@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.AtomicBlockMerger;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.PartialOrderReducer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.pruning.SeqPruner;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -80,7 +80,7 @@ public class SeqThreadStatementClauseBuilder {
             : reducedCases;
     // ensure that atomic blocks are not interleaved by adding direct gotos
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
-        AtomicBlockBuilder.build(consecutiveLabelCases);
+        AtomicBlockMerger.merge(consecutiveLabelCases);
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
         ? SeqValidator.validateCaseClauses(atomicBlocks, pLogger)

@@ -141,7 +141,7 @@ public class SeqStringUtil {
 
   /**
    * This returns either a {@code pc} write of the form {@code pc[i] = n;} including injected
-   * statements, if present, or the strings of concatenated statements, if present.
+   * statements, if present.
    */
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,

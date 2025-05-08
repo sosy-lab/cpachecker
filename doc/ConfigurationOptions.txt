@@ -254,6 +254,21 @@ analysis.algorithm.MPI = false
 # use MPOR algorithm for sequentializing a parallel C program
 analysis.algorithm.MPOR = false
 
+# the encoding (binary, hex, scalar) of the partial order reduction bit
+# vectors.
+analysis.algorithm.MPOR.bitVectorEncoding = NONE
+  enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
+
+# prune and simplify bit vector evaluation expressions based on the previous
+# bit vector  assignments? true -> (should) improve verification performance
+analysis.algorithm.MPOR.bitVectorEvaluationPrune = false
+
+# add partial order reduction (bit vectors storing global variable) in the
+# sequentialization to reduce the state space? distinguishing between global
+# variable reads and writes, not just accesses, reduces the state space more.
+analysis.algorithm.MPOR.bitVectorReduction = NONE
+  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
+
 # include comments with explaining trivia in the sequentialization? true ->
 # bigger file size
 analysis.algorithm.MPOR.comments = false
@@ -281,6 +296,10 @@ analysis.algorithm.MPOR.inputTypeDeclarations = true
 # file size
 analysis.algorithm.MPOR.license = false
 
+# add partial order reduction (linking commuting statements via goto) in the
+# sequentialization to reduce the state space?
+analysis.algorithm.MPOR.linkReduction = true
+
 # add an additional .yml file with metadata such as input file(s) and
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
@@ -291,26 +310,6 @@ analysis.algorithm.MPOR.outputPath = SeqWriter.DEFAULT_OUTPUT_PATH
 
 # overwrite files in the ./output directory when creating sequentializations?
 analysis.algorithm.MPOR.overwriteFiles = true
-
-# the encoding (binary, hex, scalar) of the partial order reduction bit
-# vectors.
-analysis.algorithm.MPOR.porBitVectorEncoding = NONE
-  enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
-
-# add partial order reduction (bit vectors storing global variable) in the
-# sequentialization to reduce the state space? distinguishing between global
-# variable reads and writes, not just accesses, reduces the state space more.
-analysis.algorithm.MPOR.porBitVectorReduction = NONE
-  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
-
-# add partial order reduction (grouping commuting statements) in the
-# sequentialization to reduce the state space?
-analysis.algorithm.MPOR.porConcat = true
-
-# enable this option only with porBitVectorEncoding=SCALAR. prune and
-# simplify bit vector evaluation expressions based on the previous bit vector
-# assignments?  true -> (should) improve verification performance
-analysis.algorithm.MPOR.pruneBitVectorEvaluation = false
 
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true

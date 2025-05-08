@@ -39,7 +39,9 @@ public class SeqThreadStatementClause implements SeqStatement {
   /** The case block e.g. {@code fib(42); break;} */
   public final SeqThreadStatementBlock block;
 
-  /** The list of merged blocks, that are not directly reachable due to concatenation. */
+  /**
+   * The list of merged blocks, that are not directly reachable due to linking and atomic merging.
+   */
   public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
 
   public SeqThreadStatementClause(

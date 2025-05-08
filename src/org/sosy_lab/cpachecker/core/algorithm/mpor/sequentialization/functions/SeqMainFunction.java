@@ -265,7 +265,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // if enabled: bit vectors (for partial order reductions)
-    if (pOptions.porBitVectorReduction.isEnabled() && pOptions.porBitVectorEncoding.isEnabled()) {
+    if (pOptions.bitVectorReduction.isEnabled() && pOptions.bitVectorEncoding.isEnabled()) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
         rVariableDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
       }
