@@ -1744,7 +1744,6 @@ public class CFABuilder {
           case IntULT, IntSLT -> BinaryOperator.LESS_THAN;
           case IntULE, IntSLE -> BinaryOperator.LESS_EQUAL;
           case IntUGE, IntSGE -> BinaryOperator.GREATER_EQUAL;
-          default -> throw new UnsupportedOperationException("Unsupported predicate");
         };
     final boolean isUnsignedCmp =
         switch (cmpPredicate) {

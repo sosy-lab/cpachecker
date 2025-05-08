@@ -124,8 +124,6 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
         }
       }
       case FLOAT128 -> model.getAlignofFloat128();
-
-      default -> throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
     };
   }
 

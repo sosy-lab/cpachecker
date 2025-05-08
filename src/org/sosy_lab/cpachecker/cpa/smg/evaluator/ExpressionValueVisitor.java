@@ -268,8 +268,6 @@ class ExpressionValueVisitor
         yield singletonList(SMGValueAndState.of(getInitialSmgState(), val));
       }
       case ALIGNOF, TILDE -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-
-      default -> throw new AssertionError();
     };
   }
 
@@ -441,7 +439,6 @@ class ExpressionValueVisitor
 
         yield result.build();
       }
-      default -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     };
   }
 

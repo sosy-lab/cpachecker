@@ -143,7 +143,6 @@ public class FaultLocalizationByImport implements Algorithm {
       case NO_CONTEXT -> NoContextExplanation.getInstance();
       case SUSPICIOUS_CALCULATION -> new SuspiciousCalculationExplanation();
       case INFORMATION_PROVIDER -> new InformationProvider(pEdgeList);
-      default -> throw new IllegalStateException("Unexpected value: " + pExplanation);
     };
   }
 
@@ -176,8 +175,6 @@ public class FaultLocalizationByImport implements Algorithm {
       case OVERALL_OCCURRENCE -> new OverallOccurrenceScoring();
 
       case SET_SIZE -> new SetSizeScoring();
-
-      default -> throw new IllegalStateException("Unexpected value: " + pScoring);
     };
   }
 
@@ -474,7 +471,6 @@ public class FaultLocalizationByImport implements Algorithm {
         case RANK_INFO ->
             FaultInfo.rankInfo(
                 description, pNode.has("score") ? pNode.get("score").asDouble() : .0);
-        default -> throw new AssertionError("Unknown " + InfoType.class + ": " + type);
       };
     }
   }

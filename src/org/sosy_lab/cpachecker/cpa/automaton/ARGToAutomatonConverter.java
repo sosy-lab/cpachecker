@@ -160,7 +160,6 @@ public class ARGToAutomatonConverter {
       case LOCATION -> getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
       case CALLSTACK ->
           getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
-      default -> throw new AssertionError("unexpected strategy");
     };
   }
 
@@ -173,7 +172,6 @@ public class ARGToAutomatonConverter {
       case GLOBAL_CONDITIONS -> getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES -> getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
       case TARGETS -> getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
-      default -> throw new AssertionError("unexpected strategy");
     };
   }
 
@@ -332,7 +330,6 @@ public class ARGToAutomatonConverter {
       case WEIGHTED -> // export all nodes, where children are heavier than a given limit
           getWeightedAutomata(root, pDependencies);
       case FIRST_BFS -> getFirstBFSAutomata(root, pDependencies);
-      default -> throw new AssertionError("unexpected export strategy");
     };
   }
 
@@ -749,8 +746,6 @@ public class ARGToAutomatonConverter {
         yield getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
       }
       case CALLSTACK -> getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
-
-      default -> throw new AssertionError("unhandled case");
     };
   }
 

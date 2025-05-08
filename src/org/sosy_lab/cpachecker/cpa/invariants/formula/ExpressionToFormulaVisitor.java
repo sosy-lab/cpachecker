@@ -378,7 +378,6 @@ public class ExpressionToFormulaVisitor
           }
           case SHIFT_LEFT -> compoundIntervalFormulaManager.shiftLeft(left, right);
           case SHIFT_RIGHT -> compoundIntervalFormulaManager.shiftRight(left, right);
-          default -> allPossibleValues(pCBinaryExpression);
         };
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
@@ -522,10 +521,6 @@ public class ExpressionToFormulaVisitor
         yield compoundIntervalFormulaManager.union(forPositiveLeft, forNegativeLeft);
       }
       case STRING_CONCATENATION -> allPossibleValues(pBinaryExpression);
-
-      default ->
-          throw new AssertionError(
-              "Unhandled enum value in switch: " + pBinaryExpression.getOperator());
     };
   }
 
@@ -558,7 +553,6 @@ public class ExpressionToFormulaVisitor
                   compoundIntervalFormulaManager.fromNumeral(
                       pUnaryExpression.getOperand().accept(this))));
       case PLUS -> pUnaryExpression.getOperand().accept(this);
-      default -> allPossibleValues(pUnaryExpression);
     };
   }
 

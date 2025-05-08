@@ -494,8 +494,6 @@ public class ExpressionToFormulaVisitor
         yield getSizeExpression(lCType);
       }
       case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
-
-      default -> throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
     };
   }
 

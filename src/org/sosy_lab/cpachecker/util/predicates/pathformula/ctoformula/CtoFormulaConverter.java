@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -1031,7 +1030,7 @@ public class CtoFormulaConverter {
 
   //  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     String function =
         (edge.getPredecessor() != null) ? edge.getPredecessor().getFunctionName() : null;
@@ -1217,7 +1216,7 @@ public class CtoFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     return switch (edge.getEdgeType()) {
       case StatementEdge ->
           makeStatement((CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
@@ -1264,7 +1263,6 @@ public class CtoFormulaConverter {
         CFunctionSummaryEdge ce = (CFunctionSummaryEdge) edge;
         yield makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
       }
-      default -> throw new UnrecognizedCFAEdgeException(edge);
     };
   }
 

@@ -277,7 +277,6 @@ final class HappensBeforeEdgeTools {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
       }
-      default -> throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
     };
   }
 

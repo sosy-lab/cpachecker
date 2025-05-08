@@ -194,24 +194,16 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
-    try {
-      return from(determineOperations(cfaEdge)).filter(LockEffect.class);
-    } catch (UnrecognizedCodeException e) {
-      logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
-      return FluentIterable.of();
-    }
+    return from(determineOperations(cfaEdge)).filter(LockEffect.class);
   }
 
-  public List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge)
-      throws UnrecognizedCodeException {
-
+  public List<AbstractLockEffect> determineOperations(CFAEdge cfaEdge) {
     return switch (cfaEdge.getEdgeType()) {
       case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) cfaEdge);
       case FunctionReturnEdge -> handleFunctionReturnEdge((CFunctionReturnEdge) cfaEdge);
       case StatementEdge -> handleStatement((CStatementEdge) cfaEdge);
       case AssumeEdge -> handleAssumption((CAssumeEdge) cfaEdge);
       case BlankEdge, ReturnStatementEdge, DeclarationEdge, CallToReturnEdge -> ImmutableList.of();
-      default -> throw new UnrecognizedCodeException("Unknown edge type", cfaEdge);
     };
   }
 

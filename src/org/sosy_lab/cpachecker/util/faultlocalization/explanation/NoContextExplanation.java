@@ -80,7 +80,6 @@ public class NoContextExplanation implements FaultExplanation {
       case CallToReturnEdge, BlankEdge -> {
         yield "No proposal found for the statement: \"" + description + "\".";
       }
-      default -> throw new AssertionError();
     };
   }
 }

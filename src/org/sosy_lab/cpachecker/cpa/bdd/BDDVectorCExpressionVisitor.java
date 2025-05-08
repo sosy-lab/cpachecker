@@ -156,7 +156,6 @@ public class BDDVectorCExpressionVisitor
         yield bvmgr.wrapLast(tmp, size);
         // we do not cast here, because 0 and 1 should be small enough for every type.
       }
-      default -> throw new AssertionError("unhandled binary operator");
     };
   }
 

@@ -24,7 +24,6 @@ public class EdgeTypeScoring implements FaultScoring {
       case ReturnStatementEdge -> 25d;
       case FunctionReturnEdge, CallToReturnEdge, FunctionCallEdge -> 12.5;
       case DeclarationEdge, BlankEdge -> 0;
-      default -> throw new AssertionError();
     };
   }
 

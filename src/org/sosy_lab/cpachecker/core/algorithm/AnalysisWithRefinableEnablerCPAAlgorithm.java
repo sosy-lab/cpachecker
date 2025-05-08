@@ -473,7 +473,6 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         // use first element as one possible reason for failure path
         yield nextFakeStateResult.iterator().next();
       }
-      default -> throw new AssertionError("case should never happen");
     };
   }
 

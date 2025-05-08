@@ -135,8 +135,6 @@ public class DssAnalysisWorker extends DssWorker {
         yield ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
       }
       case STATISTICS -> ImmutableSet.of();
-
-      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     };
   }
 

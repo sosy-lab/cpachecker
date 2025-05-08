@@ -1087,7 +1087,6 @@ public class SMGCPAValueVisitor
                 + cfaEdge);
         yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
       }
-      default -> throw new AssertionError();
     };
   }
 
@@ -2628,7 +2627,6 @@ public class SMGCPAValueVisitor
           factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
     };
   }
 

@@ -154,7 +154,6 @@ public class RCNFManager implements StatisticsProvider {
             }
           }
           case DROP -> input;
-          default -> throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
         };
     BooleanFormula noBoundVars = dropBoundVariables(result);
 

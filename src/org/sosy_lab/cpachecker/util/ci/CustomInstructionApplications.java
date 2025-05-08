@@ -198,9 +198,6 @@ public class CustomInstructionApplications {
             new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger, pSdNotifier);
         case OPERATOR ->
             new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
-        default ->
-            throw new IllegalArgumentException(
-                "Unknown type of custom instruction applications identifier");
       };
     }
   }

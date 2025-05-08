@@ -99,7 +99,6 @@ public class ToCodeFormulaVisitor
       return switch (fpTypeInfo) {
         case FLOAT -> CNumericTypes.FLOAT;
         case DOUBLE -> CNumericTypes.DOUBLE;
-        default -> throw new AssertionError();
       };
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);

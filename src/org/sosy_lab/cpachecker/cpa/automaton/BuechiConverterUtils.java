@@ -327,7 +327,6 @@ public final class BuechiConverterUtils {
               (CExpression) Iterables.getOnlyElement(getExpressions(pLabelExpr.getLeft()));
           yield ImmutableList.of(b.negateExpressionAndSimplify(exp));
         }
-        default -> throw new RuntimeException("Unhandled expression type: " + type);
       };
     }
 

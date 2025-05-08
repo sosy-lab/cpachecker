@@ -276,8 +276,7 @@ public abstract class AbstractExpressionValueVisitor
               calculationType,
               machineModel,
               logger);
-      // we do not cast here, because 0 and 1 should be small enough for every type.
-      default -> throw new AssertionError("unhandled binary operator");
+        // we do not cast here, because 0 and 1 should be small enough for every type.
     };
   }
 
@@ -377,7 +376,6 @@ public abstract class AbstractExpressionValueVisitor
           factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
     };
   }
 
@@ -2093,7 +2091,6 @@ public abstract class AbstractExpressionValueVisitor
       case NOT -> factory.logicalNot(operand, pExpressionType);
       case MINUS -> factory.negate(operand, pExpressionType);
       case PLUS -> pValue;
-      default -> throw new AssertionError("Unhandled unary operator " + pUnaryOperator);
     };
   }
 

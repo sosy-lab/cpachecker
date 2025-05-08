@@ -110,7 +110,6 @@ class PointerVisitor extends ExpressionValueVisitor {
       case MINUS, TILDE ->
           // Can't evaluate these Addresses
           Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
-      default -> throw new AssertionError();
     };
   }
 

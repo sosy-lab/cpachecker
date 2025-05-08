@@ -137,8 +137,6 @@ public class SlicerFactory implements StatisticsProvider {
             options.partiallyRelevantEdges);
       }
       case IDENTITY -> new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
-
-      default -> throw new AssertionError("Unhandled slicing type " + slicingType);
     };
   }
 

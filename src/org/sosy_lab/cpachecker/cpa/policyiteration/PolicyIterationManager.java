@@ -1182,8 +1182,6 @@ public class PolicyIterationManager {
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       }
       case MERGE -> node.getNumEnteringEdges() > 1;
-
-      default -> throw new UnsupportedOperationException("Unexpected state");
     };
   }
 

@@ -222,7 +222,6 @@ public class CEXWeakeningManager {
                         operands, Comparator.comparingInt(f -> recursivelyCallSelf(f).size()));
                 yield TraversalProcess.custom(out);
               }
-              default -> throw new UnsupportedOperationException("Unexpected strategy");
             };
           }
 

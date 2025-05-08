@@ -376,7 +376,6 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
               yield rebuildInterpolant(functionSummary, functionExecution);
             }
             case MIDDLE -> iter.next();
-            default -> throw new AssertionError();
           };
       interpolants.add(itp);
     }

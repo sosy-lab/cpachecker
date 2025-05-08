@@ -514,9 +514,6 @@ public class AppliedCustomInstructionParser {
 
       case CallToReturnEdge ->
           globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
-
-      default ->
-          throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
     };
   }
 

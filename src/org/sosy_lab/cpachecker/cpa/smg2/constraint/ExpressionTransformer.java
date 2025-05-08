@@ -193,9 +193,6 @@ public class ExpressionTransformer
               case GREATER_EQUAL ->
                   factory.greaterThanOrEqual(
                       operand1Expression, operand2Expression, expressionType, calculationType);
-              default ->
-                  throw new AssertionError(
-                      "Unhandled binary operation " + pIastBinaryExpression.getOperator());
             };
         builder.add(SymbolicExpressionAndSMGState.of(resultExpression, currentState));
       }

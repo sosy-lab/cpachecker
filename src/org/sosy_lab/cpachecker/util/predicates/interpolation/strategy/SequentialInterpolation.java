@@ -132,7 +132,6 @@ public class SequentialInterpolation extends ITPStrategy {
           }
         }
       }
-      default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
     };
   }
 

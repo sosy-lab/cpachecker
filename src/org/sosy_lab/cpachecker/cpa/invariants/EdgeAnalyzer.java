@@ -226,7 +226,6 @@ class EdgeAnalyzer {
         yield ImmutableMap.of();
       }
       case BlankEdge, CallToReturnEdge -> ImmutableMap.of();
-      default -> throw new AssertionError();
     };
   }
 

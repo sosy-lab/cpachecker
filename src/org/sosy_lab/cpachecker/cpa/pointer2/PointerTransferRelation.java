@@ -124,7 +124,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       case ReturnStatementEdge ->
           handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
       case StatementEdge -> handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
-      default -> throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
     };
   }
 

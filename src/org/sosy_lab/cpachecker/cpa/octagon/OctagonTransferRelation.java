@@ -322,7 +322,6 @@ public class OctagonTransferRelation
           yield handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
         }
       }
-      default -> throw new CPATransferException("Unhandled case: " + binExp.getOperator());
     };
   }
 

@@ -1117,7 +1117,6 @@ public class ApronTransferRelation
         case MODULO -> left % right;
         case MULTIPLY -> left * right;
         case PLUS -> left + right;
-        default -> null;
       };
     }
 
@@ -1131,7 +1130,6 @@ public class ApronTransferRelation
       return switch (e.getOperator()) {
         case ALIGNOF, AMPER, TILDE, SIZEOF -> null;
         case MINUS -> -op;
-        default -> null;
       };
     }
 

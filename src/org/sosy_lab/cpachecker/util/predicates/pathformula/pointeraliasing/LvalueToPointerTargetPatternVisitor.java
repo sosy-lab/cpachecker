@@ -114,7 +114,6 @@ class LvalueToPointerTargetPatternVisitor
             yield null;
           }
         }
-        default -> throw new UnrecognizedCodeException("Unhandled binary operator", cfaEdge, e);
       };
     }
 

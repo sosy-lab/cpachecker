@@ -72,7 +72,6 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
             printWarning(pCfaEdge);
             yield null;
           }
-          default -> throw new AssertionError();
         };
 
     if (successor == null) {

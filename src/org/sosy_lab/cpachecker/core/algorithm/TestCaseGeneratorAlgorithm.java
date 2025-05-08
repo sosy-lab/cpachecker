@@ -312,7 +312,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       case ABSOLUTE -> progress;
       case RELATIVE_TOTAL ->
           progress / Math.max(1, TestTargetProvider.getTotalNumberOfTestTargets());
-      default -> throw new AssertionError("Unhandled progress computation type: " + progressType);
     };
   }
 }

@@ -536,7 +536,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
             NOT_EQUALS,
             MODULO ->
             false;
-        default -> throw new AssertionError();
       };
     } else if (expr instanceof CUnaryExpression) {
       return switch (((CUnaryExpression) expr).getOperator()) {

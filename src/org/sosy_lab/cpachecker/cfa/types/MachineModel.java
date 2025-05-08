@@ -502,8 +502,6 @@ public enum MachineModel {
         }
       }
       case FLOAT128 -> getSizeofFloat128();
-
-      default -> throw new AssertionError("Unrecognized CBasicType " + type.getType());
     };
   }
 

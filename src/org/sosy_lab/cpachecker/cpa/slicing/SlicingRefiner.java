@@ -526,8 +526,6 @@ public class SlicingRefiner implements Refiner {
         throw new AssertionError("Infeasible target path has empty program slice");
       }
       case ROOT -> pPath.asStatesList().get(1); // use first state after ARG root as refinement root
-
-      default -> throw new AssertionError("Unhandled restart strategy: " + restartStrategy);
     };
   }
 

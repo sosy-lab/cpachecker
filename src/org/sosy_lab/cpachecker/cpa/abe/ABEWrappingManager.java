@@ -240,8 +240,6 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       }
       case MERGE -> node.getNumEnteringEdges() > 1;
-
-      default -> throw new UnsupportedOperationException("Unexpected state");
     };
   }
 

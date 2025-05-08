@@ -509,7 +509,6 @@ public class SMGExpressionEvaluator {
                   + " has a non arithmetic type",
               cfaEdge,
               binaryExp);
-      default -> singletonList(SMGAddressValueAndState.of(initialSmgState));
     };
   }
 

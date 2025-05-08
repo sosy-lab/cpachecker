@@ -175,7 +175,6 @@ public class RefinableConstraintsPrecision implements ConstraintsPrecision {
         Increment locInc = Increment.builder().locallyTracked(cfaMultiMap).build();
         yield LocationBasedConstraintsPrecision.getEmptyPrecision().withIncrement(locInc);
       }
-      default -> throw new AssertionError("Unsupported precision type");
     };
   }
 

@@ -119,7 +119,6 @@ public class LlvmTypeConverter {
         logger.log(Level.FINE, "Ignoring type kind", typeKind);
         yield null;
       }
-      default -> throw new AssertionError("Unhandled type kind " + typeKind);
     };
   }
 

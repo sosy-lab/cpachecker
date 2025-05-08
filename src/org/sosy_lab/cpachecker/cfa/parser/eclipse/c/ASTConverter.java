@@ -575,7 +575,6 @@ class ASTConverter {
         sideAssignmentStack.addConditionalExpression(e, tmp);
         yield tmp;
       }
-      default -> throw new AssertionError("Unhandled case statement: " + conditionKind);
     };
   }
 
@@ -600,7 +599,6 @@ class ASTConverter {
                 yield Condition.NORMAL;
               }
             }
-            default -> throw new AssertionError("unhandled case statement");
           };
         }
         case IASTBinaryExpression.op_logicalOr -> {
@@ -616,7 +614,6 @@ class ASTConverter {
                 yield right;
               }
             }
-            default -> throw new AssertionError("unhandled case statement");
           };
         }
         default -> throw new AssertionError("unhandled case statement");
