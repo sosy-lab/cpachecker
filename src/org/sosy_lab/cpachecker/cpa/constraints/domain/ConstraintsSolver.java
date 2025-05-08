@@ -204,10 +204,6 @@ public class ConstraintsSolver {
       ConstraintsState pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    if (freshProverForEachSATCheck) {
-      forceFreshDistinctProver = true;
-    }
-
     if (pConstraintToCheck.isEmpty()) {
       return new SolverResult(
           ImmutableSet.of(),
@@ -240,7 +236,7 @@ public class ConstraintsSolver {
       } else {
         try {
           stats.timeForProverPreparation.start();
-          if (forceFreshDistinctProver) {
+          if (forceFreshDistinctProver || freshProverForEachSATCheck) {
             stats.distinctFreshProversUsed.inc();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             BooleanFormula definitesAndConstraints =
