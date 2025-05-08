@@ -51,29 +51,29 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
-
-    AbstractState successor = null;
     AndersenState andersenState = (AndersenState) pElement;
 
     // check the type of the edge
-    switch (pCfaEdge.getEdgeType()) {
-      case StatementEdge -> {
-        // if edge is a statement edge, e.g. a = b + c
-        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-        successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
-        // edge is a declaration edge, e.g. int a;
-      }
-      case DeclarationEdge -> {
-        CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
-        successor = handleDeclaration(andersenState, declarationEdge);
-        // this is an assumption, e.g. if (a == b)
-      }
-      case AssumeEdge -> successor = andersenState;
-      case BlankEdge -> successor = andersenState;
-      case CallToReturnEdge, FunctionCallEdge, ReturnStatementEdge, FunctionReturnEdge ->
-          printWarning(pCfaEdge);
-      default -> throw new AssertionError();
-    }
+    final AbstractState successor =
+        switch (pCfaEdge.getEdgeType()) {
+          case StatementEdge -> {
+            // if edge is a statement edge, e.g. a = b + c
+            CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+            yield handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
+          }
+          case DeclarationEdge -> {
+            // edge is a declaration edge, e.g. int a;
+            CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
+            yield handleDeclaration(andersenState, declarationEdge);
+          }
+          case AssumeEdge -> andersenState; // this is an assumption, e.g. if (a == b)
+          case BlankEdge -> andersenState;
+          case CallToReturnEdge, FunctionCallEdge, ReturnStatementEdge, FunctionReturnEdge -> {
+            printWarning(pCfaEdge);
+            yield null;
+          }
+          default -> throw new AssertionError();
+        };
 
     if (successor == null) {
       return ImmutableSet.of();

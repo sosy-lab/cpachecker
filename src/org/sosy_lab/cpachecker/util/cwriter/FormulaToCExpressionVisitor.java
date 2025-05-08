@@ -69,65 +69,60 @@ public class FormulaToCExpressionVisitor extends FormulaTransformationVisitor {
   @Override
   public Formula visitFunction(
       Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
-    String result;
     // rule for visitation:
     // - every argument already has all necessary brackets, except variables (-> plain string).
     // - the result has surrounding brackets.
-    switch (functionDeclaration.getKind()) {
-      case NOT, UMINUS, BV_NEG, FP_NEG, BV_NOT ->
-          result =
+    final String result =
+        switch (functionDeclaration.getKind()) {
+          case NOT, UMINUS, BV_NEG, FP_NEG, BV_NOT ->
               operatorFromFunctionDeclaration(functionDeclaration, f) + cache.get(newArgs.get(0));
-      case EQ_ZERO, GTE_ZERO ->
-          result =
+          case EQ_ZERO, GTE_ZERO ->
               cache.get(newArgs.get(0)) + operatorFromFunctionDeclaration(functionDeclaration, f);
-      case FP_ROUND_EVEN,
-          FP_ROUND_AWAY,
-          FP_ROUND_POSITIVE,
-          FP_ROUND_NEGATIVE,
-          FP_ROUND_ZERO,
-          FP_ROUND_TO_INTEGRAL ->
-          // Ignore because otherwise rounding mode is treated like an additional operand
-          // TODO These cases do not insert anything into the cache and might result in an invalid
-          // or
-          //      incomplete result. We should better abort here than continue with an invalid
-          // result.
-          result = null;
-      case FP_ADD, FP_SUB, FP_DIV, FP_MUL ->
-          result =
+          case FP_ROUND_EVEN,
+              FP_ROUND_AWAY,
+              FP_ROUND_POSITIVE,
+              FP_ROUND_NEGATIVE,
+              FP_ROUND_ZERO,
+              FP_ROUND_TO_INTEGRAL ->
+              // Ignore because otherwise rounding mode is treated like an additional operand
+              // TODO These cases do not insert anything into the cache and might result in an
+              // invalid or incomplete result. We should better abort here than continue with an
+              // invalid result.
+              null;
+          case FP_ADD, FP_SUB, FP_DIV, FP_MUL ->
               from(newArgs)
                   .skip(1) // skip first argument, it represents the rounding-mode.
                   .transform(arg -> Preconditions.checkNotNull(cache.get(arg)))
                   .join(Joiner.on(operatorFromFunctionDeclaration(functionDeclaration, f)));
-      case ITE ->
-          result =
+          case ITE ->
               String.format(
                   "%s ? %s : %s",
                   cache.get(newArgs.get(0)), cache.get(newArgs.get(1)), cache.get(newArgs.get(2)));
-      default -> {
-        if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
-          // TODO The naming of this SMT function is specific to one solver
-          // and the handling in this manner is likely not correct in all cases (unsigned vars)
-          // and it is specific to one particular bitwidth, all of which it should not be.
-          result = cache.get(newArgs.get(0)) + " < 0";
-          break;
-        }
+          default -> {
+            if (functionDeclaration.getName().equals("`bvextract_31_31_32`")) {
+              // TODO The naming of this SMT function is specific to one solver
+              // and the handling in this manner is likely not correct in all cases (unsigned vars)
+              // and it is specific to one particular bitwidth, all of which it should not be.
+              yield cache.get(newArgs.get(0)) + " < 0";
+            }
 
-        List<String> expressions = new ArrayList<>(newArgs.size());
-        for (Formula arg : newArgs) {
-          // TODO If the arg is not in the cache, we will get an invalid or incomplete result.
-          //      We should better abort here than continue with an invalid result.
-          if (cache.containsKey(arg)) {
-            expressions.add(Preconditions.checkNotNull(cache.get(arg)));
+            List<String> expressions = new ArrayList<>(newArgs.size());
+            for (Formula arg : newArgs) {
+              // TODO If the arg is not in the cache, we will get an invalid or incomplete result.
+              //      We should better abort here than continue with an invalid result.
+              if (cache.containsKey(arg)) {
+                expressions.add(Preconditions.checkNotNull(cache.get(arg)));
+              }
+            }
+            if (COMMUTATIVE_OPERATIONS.contains(functionDeclaration.getKind())) {
+              // Some solvers (e.g., MathSAT) switch commutative arguments for operations like EQ
+              // randomly. Let's force some determinism over distinct solvers, by alphabetical
+              // order.
+              Collections.sort(expressions);
+            }
+            yield String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
           }
-        }
-        if (COMMUTATIVE_OPERATIONS.contains(functionDeclaration.getKind())) {
-          // Some solvers (e.g., MathSAT) switch commutative arguments for operations like EQ
-          // randomly. Let's force some determinism over distinct solvers, by alphabetical order.
-          Collections.sort(expressions);
-        }
-        result = String.join(operatorFromFunctionDeclaration(functionDeclaration, f), expressions);
-      }
-    }
+        };
     if (result != null) {
       cache.put(f, "(" + result + ")");
     }

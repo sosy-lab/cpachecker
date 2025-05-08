@@ -1018,61 +1018,57 @@ public class CFABuilder {
     logger.log(Level.FINE, "Getting id expression for operand 2");
     CExpression operand2Exp = getExpression(operand2, op2type, pFileName);
 
-    CBinaryExpression.BinaryOperator operation;
-    switch (pOpCode) {
-      case Add, FAdd -> operation = BinaryOperator.PLUS;
-      case Sub, FSub -> operation = BinaryOperator.MINUS;
-      case Mul, FMul -> operation = BinaryOperator.MULTIPLY;
-      case UDiv, SDiv, FDiv ->
-          // TODO: Respect unsigned and signed divide
-          operation = BinaryOperator.DIVIDE;
-      case URem, SRem, FRem ->
-          // TODO: Respect unsigned and signed modulo
-          operation = BinaryOperator.MODULO;
-      case Shl ->
-          // Shift left
-          operation = BinaryOperator.SHIFT_LEFT;
-      case LShr, AShr -> {
-        // Logical shift right
-        // Arithmetic shift right
-        if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
-          throw new UnsupportedOperationException(
-              "Right shifts are only supported for integer types, but operands were "
-                  + op1type
-                  + " and "
-                  + op2type);
-        }
-        if (operand2.isConstantInt()) {
-          long op2value = operand2.constIntGetSExtValue();
-          int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
-          if (op2value < 0 || op2value >= bitwidthOp1) {
-            throw new LLVMException("Shift count is negative or >= width of type");
+    CBinaryExpression.BinaryOperator operation =
+        switch (pOpCode) {
+          case Add, FAdd -> BinaryOperator.PLUS;
+          case Sub, FSub -> BinaryOperator.MINUS;
+          case Mul, FMul -> BinaryOperator.MULTIPLY;
+          case UDiv, SDiv, FDiv ->
+              BinaryOperator.DIVIDE; // TODO: Respect unsigned and signed divide
+          case URem, SRem, FRem ->
+              BinaryOperator.MODULO; // TODO: Respect unsigned and signed modulo
+          case Shl -> BinaryOperator.SHIFT_LEFT;
+          case LShr, AShr -> {
+            // Logical shift right
+            // Arithmetic shift right
+            if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
+              throw new UnsupportedOperationException(
+                  "Right shifts are only supported for integer types, but operands were "
+                      + op1type
+                      + " and "
+                      + op2type);
+            }
+            if (operand2.isConstantInt()) {
+              long op2value = operand2.constIntGetSExtValue();
+              int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
+              if (op2value < 0 || op2value >= bitwidthOp1) {
+                throw new LLVMException("Shift count is negative or >= width of type");
+              }
+            }
+
+            if (pOpCode == OpCode.LShr) {
+              // GNU C performs a logical shift for unsigned types
+              op1type =
+                  typeConverter.getCType(
+                      operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
+              operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
+            }
+
+            // operand2 should always be treated as an unsigned value
+            op2type =
+                typeConverter.getCType(
+                    operand2.typeOf(), /* isUnsigned= */ true, operand2.isConstant());
+            operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
+
+            // calculate the shift with the signedness of op1type
+            internalExpressionType = machineModel.applyIntegerPromotion(op1type);
+            yield BinaryOperator.SHIFT_RIGHT;
           }
-        }
-
-        if (pOpCode == OpCode.LShr) {
-          // GNU C performs a logical shift for unsigned types
-          op1type =
-              typeConverter.getCType(
-                  operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
-          operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
-        }
-
-        // operand2 should always be treated as an unsigned value
-        op2type =
-            typeConverter.getCType(
-                operand2.typeOf(), /* isUnsigned= */ true, operand2.isConstant());
-        operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
-
-        // calculate the shift with the signedness of op1type
-        internalExpressionType = machineModel.applyIntegerPromotion(op1type);
-        operation = BinaryOperator.SHIFT_RIGHT;
-      }
-      case And -> operation = BinaryOperator.BINARY_AND;
-      case Or -> operation = BinaryOperator.BINARY_OR;
-      case Xor -> operation = BinaryOperator.BINARY_XOR;
-      default -> throw new AssertionError("Unhandled operation " + pOpCode);
-    }
+          case And -> BinaryOperator.BINARY_AND;
+          case Or -> BinaryOperator.BINARY_OR;
+          case Xor -> BinaryOperator.BINARY_XOR;
+          default -> throw new AssertionError("Unhandled operation " + pOpCode);
+        };
 
     CBinaryExpression expression =
         new CBinaryExpression(

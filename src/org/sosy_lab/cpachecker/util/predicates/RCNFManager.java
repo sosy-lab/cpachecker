@@ -133,29 +133,29 @@ public class RCNFManager implements StatisticsProvider {
       return out;
     }
 
-    BooleanFormula result;
-    switch (boundVarsHandling) {
-      case QE_LIGHT_THEN_DROP -> {
-        try {
-          statistics.lightQuantifierElimination.start();
-          result = fmgr.applyTactic(input, Tactic.QE_LIGHT);
-        } finally {
-          statistics.lightQuantifierElimination.stop();
-        }
-      }
-      case QE -> {
-        try {
-          statistics.quantifierElimination.start();
-          result = fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
-        } catch (SolverException e) {
-          throw new UnsupportedOperationException("Unexpected solver error", e);
-        } finally {
-          statistics.quantifierElimination.stop();
-        }
-      }
-      case DROP -> result = input;
-      default -> throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
-    }
+    final BooleanFormula result =
+        switch (boundVarsHandling) {
+          case QE_LIGHT_THEN_DROP -> {
+            try {
+              statistics.lightQuantifierElimination.start();
+              yield fmgr.applyTactic(input, Tactic.QE_LIGHT);
+            } finally {
+              statistics.lightQuantifierElimination.stop();
+            }
+          }
+          case QE -> {
+            try {
+              statistics.quantifierElimination.start();
+              yield fmgr.getQuantifiedFormulaManager().eliminateQuantifiers(input);
+            } catch (SolverException e) {
+              throw new UnsupportedOperationException("Unexpected solver error", e);
+            } finally {
+              statistics.quantifierElimination.stop();
+            }
+          }
+          case DROP -> input;
+          default -> throw new AssertionError("Unhandled case statement: " + boundVarsHandling);
+        };
     BooleanFormula noBoundVars = dropBoundVariables(result);
 
     try {

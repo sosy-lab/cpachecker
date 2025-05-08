@@ -299,97 +299,87 @@ public class ExpressionToFormulaVisitor
     left = topIfProblematicType(calculationType, left);
     right = topIfProblematicType(calculationType, right);
 
-    final NumeralFormula<CompoundInterval> result;
-    switch (pCBinaryExpression.getOperator()) {
-      case BINARY_AND -> result = allPossibleValues(pCBinaryExpression);
-      case BINARY_OR -> result = allPossibleValues(pCBinaryExpression);
-      case BINARY_XOR -> result = allPossibleValues(pCBinaryExpression);
-      case DIVIDE -> result = compoundIntervalFormulaManager.divide(left, right);
-      case EQUALS ->
-          result =
+    final NumeralFormula<CompoundInterval> result =
+        switch (pCBinaryExpression.getOperator()) {
+          case BINARY_AND -> allPossibleValues(pCBinaryExpression);
+          case BINARY_OR -> allPossibleValues(pCBinaryExpression);
+          case BINARY_XOR -> allPossibleValues(pCBinaryExpression);
+          case DIVIDE -> compoundIntervalFormulaManager.divide(left, right);
+          case EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo, compoundIntervalFormulaManager.equal(left, right));
-      case GREATER_EQUAL ->
-          result =
+          case GREATER_EQUAL ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo, compoundIntervalFormulaManager.greaterThanOrEqual(left, right));
-      case GREATER_THAN ->
-          result =
+          case GREATER_THAN ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo, compoundIntervalFormulaManager.greaterThan(left, right));
-      case LESS_EQUAL ->
-          result =
+          case LESS_EQUAL ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
-      case LESS_THAN ->
-          result =
+          case LESS_THAN ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
-      case MINUS -> {
-        if (!(promLeft instanceof CPointerType)
-            && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
-          result = compoundIntervalFormulaManager.subtract(left, right);
-        } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer
-          // target
-          result =
-              compoundIntervalFormulaManager.subtract(
+          case MINUS -> {
+            if (!(promLeft instanceof CPointerType)
+                && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
+              yield compoundIntervalFormulaManager.subtract(left, right);
+            } else if (!(promRight instanceof CPointerType)) {
+              // operand1 is a pointer => we should multiply the subtrahend by the size of the
+              // pointer target
+              yield compoundIntervalFormulaManager.subtract(
                   left,
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-        } else if (promLeft instanceof CPointerType) {
-          // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
-          if (promLeft.equals(promRight)) {
-            result =
-                compoundIntervalFormulaManager.divide(
+            } else if (promLeft instanceof CPointerType) {
+              // Pointer subtraction => (operand1 - operand2) / sizeof (*operand1)
+              if (promLeft.equals(promRight)) {
+                yield compoundIntervalFormulaManager.divide(
                     compoundIntervalFormulaManager.subtract(left, right),
                     getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType));
-          } else {
-            throw new UnrecognizedCodeException(
-                "Can't subtract pointers of different types", pCBinaryExpression);
+              } else {
+                throw new UnrecognizedCodeException(
+                    "Can't subtract pointers of different types", pCBinaryExpression);
+              }
+            } else {
+              throw new UnrecognizedCodeException(
+                  "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
+            }
           }
-        } else {
-          throw new UnrecognizedCodeException(
-              "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
-        }
-      }
-      case MODULO -> result = compoundIntervalFormulaManager.modulo(left, right);
-      case MULTIPLY -> result = compoundIntervalFormulaManager.multiply(left, right);
-      case NOT_EQUALS ->
-          result =
+          case MODULO -> compoundIntervalFormulaManager.modulo(left, right);
+          case MULTIPLY -> compoundIntervalFormulaManager.multiply(left, right);
+          case NOT_EQUALS ->
               compoundIntervalFormulaManager.fromBoolean(
                   typeInfo,
                   compoundIntervalFormulaManager.logicalNot(
                       compoundIntervalFormulaManager.equal(left, right)));
-      case PLUS -> {
-        if (!(promLeft instanceof CPointerType)
-            && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
-          result = compoundIntervalFormulaManager.add(left, right);
-        } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the second summand by the size of the
-          // pointer target
-          result =
-              compoundIntervalFormulaManager.add(
+          case PLUS -> {
+            if (!(promLeft instanceof CPointerType)
+                && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
+              yield compoundIntervalFormulaManager.add(left, right);
+            } else if (!(promRight instanceof CPointerType)) {
+              // operand1 is a pointer => we should multiply the second summand by the size of the
+              // pointer target
+              yield compoundIntervalFormulaManager.add(
                   left,
                   compoundIntervalFormulaManager.multiply(
                       right,
                       getPointerTargetSizeLiteral((CPointerType) promLeft, calculationType)));
-        } else if (!(promLeft instanceof CPointerType)) {
-          result =
-              compoundIntervalFormulaManager.add(
+            } else if (!(promLeft instanceof CPointerType)) {
+              yield compoundIntervalFormulaManager.add(
                   right,
                   compoundIntervalFormulaManager.multiply(
                       left,
                       getPointerTargetSizeLiteral((CPointerType) promRight, calculationType)));
-        } else {
-          throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
-        }
-      }
-      case SHIFT_LEFT -> result = compoundIntervalFormulaManager.shiftLeft(left, right);
-      case SHIFT_RIGHT -> result = compoundIntervalFormulaManager.shiftRight(left, right);
-      default -> result = allPossibleValues(pCBinaryExpression);
-    }
+            } else {
+              throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
+            }
+          }
+          case SHIFT_LEFT -> compoundIntervalFormulaManager.shiftLeft(left, right);
+          case SHIFT_RIGHT -> compoundIntervalFormulaManager.shiftRight(left, right);
+          default -> allPossibleValues(pCBinaryExpression);
+        };
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
 
