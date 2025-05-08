@@ -7,14 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x = __VERIFIER_nondet_int();
-    int y = 5;
+    int x = __VERIFIER_nondet_int(); // Tainted
+    int y = 1;
+    int z;
 
-    // RHS taints the LHS
-    y = y + x;
-
-    __VERIFIER_is_public(y,0);
+    // z is expected to be tainted by x in the comma operator expression
+    z = (y, x);
+    __VERIFIER_is_public(z, 0);
 }

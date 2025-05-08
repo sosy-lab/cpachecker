@@ -28,5 +28,5 @@ int main() {
     int w = y + z;
 
     // No property violation expected
-    __VERIFIER_is_public(d, 0);
+    __VERIFIER_is_public(w, 0);
 }
