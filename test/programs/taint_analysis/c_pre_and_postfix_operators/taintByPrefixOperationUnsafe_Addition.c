@@ -14,14 +14,7 @@ int main() {
     int x = __VERIFIER_nondet_int();
     int y = 1;
 
-    // y is expected to be tainted by x and the prefix ++ operator
+    // y is expected to be tainted by the RHS
     y = ++x;
-    __VERIFIER_is_public(y, 0);
-
-    // Sanitize y
-    __VERIFIER_set_public(y, 1);
-
-    // y is expected to be tainted by x and the prefix -- operator
-    y = --x;
-    __VERIFIER_is_public(y, 0);
+    __VERIFIER_is_public(y, 1);
 }

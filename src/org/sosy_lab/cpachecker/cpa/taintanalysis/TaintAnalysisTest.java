@@ -218,10 +218,38 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testTaintByPostfixOperationUnsafe_Addition() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByPostfixOperationUnsafe_Addition.c", "c_pre_and_postfix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPostfixOperationUnsafe_Substraction() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByPostfixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testTaintByPrefixOperationSafe() throws Exception {
     TestResults results =
         runCPAchecker("taintByPrefixOperationSafe.c", "c_pre_and_postfix_operators");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintByPrefixOperationUnsafe_Addition() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByPrefixOperationUnsafe_Addition.c", "c_pre_and_postfix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByPrefixOperationUnsafe_Substraction() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByPrefixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
+    results.assertIsUnsafe();
   }
 
   @Test
