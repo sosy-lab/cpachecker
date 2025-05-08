@@ -1238,11 +1238,7 @@ public class CFACreator {
       String entryJson = mapper.writeValueAsString(locationToVariablesInScope);
       writer.write(entryJson);
     } catch (JsonProcessingException e) {
-      logger.logfException(
-          Level.WARNING,
-          e,
-          "Could not write a mapping from program locations "
-              + "to variable names and types into a  json file");
+      throw new RuntimeException("Could not serialize the variables in scope to json.", e);
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING,
