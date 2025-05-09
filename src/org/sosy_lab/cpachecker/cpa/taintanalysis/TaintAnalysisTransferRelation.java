@@ -388,10 +388,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CLeftHandSide lhs =
           ((CFunctionCallAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
       if (lhs instanceof CIdExpression variableLHS) {
-        // If a LHS is a variable and the RHS is a function call to a source, generate the lhs
-        // variable.
-        // Otherwise, kill the variable
-        if (isSource((CFunctionCallAssignmentStatement) pStatement)) {
+        // If a LHS is a variable and the RHS is a function call to a source or a function that
+        // takes a tainted variable as parameter, mark the variable on the LHS as tainted and
+        // generate the lhs variable. Otherwise, kill the variable.
+        if (isSource((CFunctionCallAssignmentStatement) pStatement)
+            || hasTaintedParameters((CFunctionCallAssignmentStatement) pStatement, pState)) {
           generatedVars.add(variableLHS);
         } else {
           killedVars.add(variableLHS);
@@ -418,6 +419,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return generateNewState(pState, killedVars, generatedVars);
+  }
+
+  private boolean hasTaintedParameters(
+      CFunctionCallAssignmentStatement pStatement, TaintAnalysisState pState) {
+    CFunctionCallExpression call = pStatement.getRightHandSide();
+
+    return call.getParameterExpressions().stream()
+        .filter(e -> e instanceof CIdExpression)
+        .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
   }
 
   private boolean isSink(CFunctionCall pStatement) {
