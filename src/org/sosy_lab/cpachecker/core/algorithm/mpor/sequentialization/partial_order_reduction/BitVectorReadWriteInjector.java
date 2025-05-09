@@ -24,11 +24,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorReadWriteEvaluationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
@@ -53,14 +55,14 @@ class BitVectorReadWriteInjector {
           "bit vectors are enabled, but the program does not contain any global variables.");
       return pCaseClauses; // no global variables -> no bit vectors
     }
-    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> injected =
         ImmutableMap.builder();
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       Optional<BitVectorEvaluationExpression> bitVectorEvaluation =
           BitVectorEvaluationBuilder.buildReadWriteBitVectorEvaluationByEncoding(
               pOptions, thread, pBitVectorVariables, pBinaryExpressionBuilder);
-      rInjected.put(
+      injected.put(
           entry.getKey(),
           injectBitVectors(
               pOptions,
@@ -70,7 +72,7 @@ class BitVectorReadWriteInjector {
               bitVectorEvaluation,
               pBinaryExpressionBuilder));
     }
-    return rInjected.buildOrThrow();
+    return injectBitVectorInitializations(pOptions, pBitVectorVariables, injected.buildOrThrow());
   }
 
   private static ImmutableList<SeqThreadStatementClause> injectBitVectors(
@@ -225,5 +227,71 @@ class BitVectorReadWriteInjector {
       return Optional.of(rEvaluation);
     }
     return Optional.empty();
+  }
+
+  // Bit Vector Initialization =====================================================================
+
+  /**
+   * Injects proper initializations of the threads respective bit vectors based on their first
+   * statement when the respective thread is actually created.
+   */
+  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
+      injectBitVectorInitializations(
+          MPOROptions pOptions,
+          BitVectorVariables pBitVectorVariables,
+          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pWithBitVectors) {
+
+    ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rInjected =
+        ImmutableMap.builder();
+    for (var entry : pWithBitVectors.entrySet()) {
+      ImmutableList.Builder<SeqThreadStatementClause> newClauses = ImmutableList.builder();
+      for (SeqThreadStatementClause clause : entry.getValue()) {
+        SeqThreadStatementBlock newBlock =
+            injectBitVectorInitializationsIntoBlock(
+                pOptions, pBitVectorVariables, clause.block, pWithBitVectors);
+        ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
+        for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+          newMergedBlocks.add(
+              injectBitVectorInitializationsIntoBlock(
+                  pOptions, pBitVectorVariables, mergedBlock, pWithBitVectors));
+        }
+        newClauses.add(clause.cloneWithBlockAndMergedBlock(newBlock, newMergedBlocks.build()));
+      }
+      rInjected.put(entry.getKey(), newClauses.build());
+    }
+    return rInjected.buildOrThrow();
+  }
+
+  private static SeqThreadStatementBlock injectBitVectorInitializationsIntoBlock(
+      MPOROptions pOptions,
+      BitVectorVariables pBitVectorVariables,
+      SeqThreadStatementBlock pBlock,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      if (statement instanceof SeqThreadCreationStatement threadCreation) {
+        MPORThread createdThread = threadCreation.createdThread;
+        SeqThreadStatementClause firstClause =
+            Objects.requireNonNull(pClauses.get(createdThread)).get(0);
+        ImmutableList<CVariableDeclaration> readVariables =
+            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
+                firstClause, BitVectorAccessType.READ);
+        ImmutableList<CVariableDeclaration> writtenVariables =
+            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
+                firstClause, BitVectorAccessType.WRITE);
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+            buildBitVectorReadWriteAssignments(
+                pOptions,
+                threadCreation.createdThread,
+                pBitVectorVariables,
+                readVariables,
+                writtenVariables);
+        newStatements.add(threadCreation.cloneWithBitVectorAssignments(bitVectorAssignments));
+      } else {
+        newStatements.add(statement);
+      }
+    }
+    return pBlock.cloneWithStatements(newStatements.build());
   }
 }
