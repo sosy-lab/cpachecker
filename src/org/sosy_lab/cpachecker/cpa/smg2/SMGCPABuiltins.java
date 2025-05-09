@@ -231,7 +231,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocation(cFCExpression, pState);
+      return evaluateExternalAllocationFunction(cFCExpression, pState);
     }
 
     return switch (calledFunctionName) {
@@ -629,23 +629,27 @@ public class SMGCPABuiltins {
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
-                  calledFunctionName));
+                  cFCExpression));
         }
       // fallthrough for safe functions
       // $FALL-THROUGH$
       case ASSUME_SAFE:
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      case ASSUME_EXTERNAL_ALLOCATED:
-        List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE,
-            "Returned unknown value for unknown function that is "
-                + options.getHandleUnknownFunctions()
-                + " allocated in ",
+            "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
             pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
-            checkedStates, ValueAndSMGState::ofUnknownValue);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      case ASSUME_EXTERNAL_ALLOCATED:
+        ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+        for (SMGState checkedState :
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
+          logger.log(
+              Level.FINE,
+              "Returned unknown value with allocated memory for unknown function " + cFCExpression,
+              pCfaEdge);
+          builder.addAll(evaluateExternalAllocationFunction(cFCExpression, checkedState));
+        }
+        return builder.build();
       default:
         throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
@@ -1241,32 +1245,27 @@ public class SMGCPABuiltins {
     }
   }
 
-  // TODO all functions are external in C, do we even need this?
-  @SuppressWarnings("unused")
-  private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
-    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
-    /*
+  private List<ValueAndSMGState> evaluateExternalAllocationFunction(
+      CFunctionCallExpression pFunctionCall, SMGState pState) {
+
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
+    Value allocationSize =
+        new NumericValue(BigInteger.valueOf(options.getExternalAllocationSize()));
 
-    List<ValueAndSMGState> result = new ArrayList<>();
+    // TODO line numbers are not unique when we have multiple input files!
+    String extAllocationLabel =
+        "_EXTERNAL_ALLOC_"
+            + functionName
+            + "_ID"
+            + U_ID_GENERATOR.getFreshId()
+            + "_Line:"
+            + pFunctionCall.getFileLocation().getStartingLineNumber();
 
-
-    String allocation_label =
-        functionName
-            + "_PARAMETERS_"
-            + pFunctionCall.getParameterExpressions().size()
-            + "_RETURN_"
-            + pFunctionCall.getExpressionType();
-
-
-    result.add(ValueAndSMGState.of(pState, pState.addExternalAllocation(allocation_label)));
-    addExternalAllocation would create a pointer (points to edge) to a memory region created with
-    size: options.getExternalAllocationSize(), offset: options.getExternalAllocationSize() / 2, as external
-    and i don't see why
-
-    return result;
-    */
+    // TODO: allocation is easy, but not all cases of handling external memory are implemented
+    //  currently.
+    // TODO: can this fail?
+    return ImmutableList.of(
+        evaluator.createExternalHeapMemoryAndPointer(pState, allocationSize, extAllocationLabel));
   }
 
   /**
