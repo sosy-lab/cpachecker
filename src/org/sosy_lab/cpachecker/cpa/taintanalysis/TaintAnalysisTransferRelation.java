@@ -355,9 +355,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
       CExpression rhs =
           ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getRightHandSide();
+
+      Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
+
       boolean taintedVarsRHS =
-          TaintAnalysisUtils.getAllVarsAsCExpr(rhs).stream()
-              .anyMatch(var -> pState.getTaintedVariables().contains(var));
+          allVarsAsCExpr.stream().anyMatch(var -> pState.getTaintedVariables().contains(var));
 
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
