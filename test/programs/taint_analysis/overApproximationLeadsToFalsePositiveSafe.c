@@ -15,7 +15,7 @@ extern void __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
     int x, y, z, w;
 
-    // All variables start untainted
+    // All variables start tainted
     x = __VERIFIER_nondet_int();
     y = __VERIFIER_nondet_int();
     z = __VERIFIER_nondet_int();
