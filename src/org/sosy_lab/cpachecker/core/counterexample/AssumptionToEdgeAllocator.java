@@ -1086,31 +1086,28 @@ public class AssumptionToEdgeAllocator {
           addressType = rVarInBinaryExpType;
         } else {
           if (assumeLinearArithmetics) {
-            switch (binaryExp.getOperator()) {
+            return switch (binaryExp.getOperator()) {
               case MULTIPLY -> {
                 // Multiplication with constants is sometimes supported
                 if (allowMultiplicationWithConstants
                     && (lVarInBinaryExp instanceof ALiteralExpression
                         || rVarInBinaryExp instanceof ALiteralExpression)) {
-                  return super.visit(binaryExp);
+                  yield super.visit(binaryExp);
                 }
-                return Value.UnknownValue.getInstance();
+                yield Value.UnknownValue.getInstance();
               }
               case DIVIDE, MODULO -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
-                  return super.visit(binaryExp);
+                  yield super.visit(binaryExp);
                 }
-                return Value.UnknownValue.getInstance();
+                yield Value.UnknownValue.getInstance();
               }
-              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT -> {
-                return Value.UnknownValue.getInstance();
-              }
-              default -> {
-                return super.visit(binaryExp);
-              }
-            }
+              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+                  Value.UnknownValue.getInstance();
+              default -> super.visit(binaryExp);
+            };
           } else {
             return super.visit(binaryExp);
           }
