@@ -52,23 +52,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringBuilder casesString = new StringBuilder();
-    for (int i = 0; i < statements.size(); i++) {
-      SeqStatement statement = statements.get(i);
-      String casePrefix;
-      if (statement instanceof SeqThreadStatementClause clause) {
-        // if case statement is clause, use label number
-        casePrefix = buildCasePrefix(clause, clause.labelNumber);
-      } else {
-        // otherwise enumerate from 0 to caseNum - 1
-        casePrefix = buildCasePrefix(statement, i);
-      }
-      casesString
-          .append(
-              SeqStringUtil.prependTabsWithoutNewline(
-                  tabs + 1, casePrefix + statements.get(i).toASTString()))
-          .append(SeqSyntax.NEWLINE);
-    }
+    String casesString = buildCases(statements, tabs);
     String defaultCaseClause =
         SeqToken._default
             + SeqSyntax.COLON
@@ -85,13 +69,51 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  private String buildCasePrefix(SeqStatement pClause, int pCaseNum) {
+  private static String buildCases(ImmutableList<? extends SeqStatement> pStatements, int pTabs)
+      throws UnrecognizedCodeException {
+
+    StringBuilder casesString = new StringBuilder();
+    for (int i = 0; i < pStatements.size(); i++) {
+      SeqStatement statement = pStatements.get(i);
+      String casePrefix = buildCasePrefix(statement, i);
+      String breakSuffix = buildBreakSuffix(statement);
+      casesString.append(buildSingleCase(pTabs, casePrefix, statement, breakSuffix));
+    }
+    return casesString.toString();
+  }
+
+  private static String buildSingleCase(
+      int pTabs, String pPrefix, SeqStatement pStatement, String pSuffix)
+      throws UnrecognizedCodeException {
+
+    return SeqStringUtil.prependTabsWithoutNewline(
+        pTabs + 1, pPrefix + pStatement.toASTString() + pSuffix + SeqSyntax.NEWLINE);
+  }
+
+  private static String buildCasePrefix(SeqStatement pStatement, int pIndex) {
+    if (pStatement instanceof SeqThreadStatementClause clause) {
+      // if case statement is clause, use label number
+      return buildCaseWithLabelNumber(clause, clause.labelNumber);
+    } else {
+      // otherwise enumerate from 0 to caseNum - 1
+      return buildCaseWithLabelNumber(pStatement, pIndex);
+    }
+  }
+
+  private static String buildCaseWithLabelNumber(SeqStatement pStatement, int pLabelNumber) {
     return SeqToken._case
         + SeqSyntax.SPACE
-        + pCaseNum
+        + pLabelNumber
         + SeqSyntax.COLON
-        + (pClause instanceof SeqSwitchStatement
+        + (pStatement instanceof SeqSwitchStatement
             ? SeqSyntax.NEWLINE
-            : SeqStringUtil.buildSpaceAlign(pCaseNum));
+            : SeqStringUtil.buildSpaceAlign(pLabelNumber));
+  }
+
+  private static String buildBreakSuffix(SeqStatement pStatement) {
+    if (pStatement instanceof SeqSwitchStatement) {
+      return SeqSyntax.SPACE + SeqToken._break + SeqSyntax.SEMICOLON;
+    }
+    return SeqSyntax.EMPTY_STRING;
   }
 }

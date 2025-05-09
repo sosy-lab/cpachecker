@@ -91,7 +91,7 @@ public class SeqMainFunction extends SeqFunction {
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -111,14 +111,14 @@ public class SeqMainFunction extends SeqFunction {
                 SeqInitializerBuilder.buildInitializerExpression(
                     SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads))));
     threadAssumptions = pThreadAssumptions;
-    caseClauses = pCaseClauses;
+    caseClauses = pClauses;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
 
     bitVectorDeclarations =
         SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
-            options, pBitVectorVariables, pCaseClauses);
+            options, pBitVectorVariables, pClauses.keySet());
     pcDeclarations =
         SeqDeclarationBuilder.buildPcDeclarations(pcVariables, numThreads, pOptions.scalarPc);
 
