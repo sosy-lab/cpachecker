@@ -141,7 +141,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (cfaEdge instanceof CStatementEdge statementEdge) {
 
           return Collections.singleton(
-              handleStatementEdge(state, statementEdge, statementEdge.getStatement()));
+              handleStatementEdge(state, statementEdge));
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -261,10 +261,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private TaintAnalysisState handleStatementEdge(
-      TaintAnalysisState pState, CStatementEdge pCfaEdge, CStatement pStatement)
+      TaintAnalysisState pState, CStatementEdge pCfaEdge)
       throws CPATransferException {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
+    CStatement pStatement = pCfaEdge.getStatement();
 
     if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
@@ -349,7 +350,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pCfaEdge.getStatement() instanceof CExpressionAssignmentStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement) {
       CLeftHandSide lhs =
           ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
       CExpression rhs =
