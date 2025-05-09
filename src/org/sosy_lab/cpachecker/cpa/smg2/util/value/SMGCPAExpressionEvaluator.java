@@ -309,6 +309,23 @@ public class SMGCPAExpressionEvaluator {
     return ValueAndSMGState.of(addressValue, finalState);
   }
 
+  public ValueAndSMGState createExternalHeapMemoryAndPointer(
+      SMGState pInitialSmgState, Value sizeInBits, String memoryLabel) {
+    SMGObjectAndSMGState newObjectAndState =
+        pInitialSmgState.copyAndAddNewHeapObject(sizeInBits, memoryLabel);
+    SMGObject newObject = newObjectAndState.getSMGObject();
+    SMGState newState = newObjectAndState.getState();
+    newState =
+        newState.copyAndReplaceMemoryModel(
+            newState.getMemoryModel().copyAndAddExternalObject(newObject));
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    SMGState finalState =
+        newState.createAndAddPointer(addressValue, newObject, new NumericValue(BigInteger.ZERO));
+    return ValueAndSMGState.of(addressValue, finalState);
+  }
+
   /**
    * Creates memory with size sizeInBits. sizeInBits should not be 0! The memory is then invalidated
    * and added to the malloc zero map.

@@ -75,7 +75,16 @@ public class SMGOptions {
       secure = true,
       toUppercase = true,
       name = "handleUnknownFunctions",
-      description = "Sets how unknown functions are handled.")
+      description =
+          "Sets how unknown functions are handled. Strict: Unknown functions cause a stop in the"
+              + " analysis except for known and handled functions or functions defined in option"
+              + " safeUnknownFunctions, which are handled as SAFE. ASSUME_SAFE: unknown functions"
+              + " are assumed to be safe. No input into the function is checked for validity and"
+              + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
+              + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
+              + " may cause memory based errors. Returned values are unknown, but in a valid new"
+              + " memory section that can be freed normally with the size defined by option"
+              + " externalAllocationSize.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
   @Option(

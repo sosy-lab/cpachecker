@@ -3406,7 +3406,16 @@ cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
 # predicate, depends on trackPredicates
 cpa.smg2.handleUnknownDereferenceAsSafe = false
 
-# Sets how unknown functions are handled.
+# Sets how unknown functions are handled. Strict: Unknown functions cause a
+# stop in the analysis except for known and handled functions or functions
+# defined in option safeUnknownFunctions, which are handled as SAFE.
+# ASSUME_SAFE: unknown functions are assumed to be safe. No input into the
+# function is checked for validity and the result is a UNKNOWN value (which
+# may itself violate memorysafety etc.). ASSUME_EXTERNAL_ALLOCATED: Input
+# into the function is checked for validity and may cause memory based
+# errors. Returned values are unknown, but in a valid new memory section that
+# can be freed normally with the size defined by option
+# externalAllocationSize.
 cpa.smg2.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
