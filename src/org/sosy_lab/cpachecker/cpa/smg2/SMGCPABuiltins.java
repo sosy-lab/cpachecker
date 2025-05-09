@@ -631,8 +631,13 @@ public class SMGCPABuiltins {
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
                   cFCExpression));
         }
-      // fallthrough for safe functions
-      // $FALL-THROUGH$
+        logger.log(
+            Level.FINE,
+            "Returned unknown value for strict handling of unknown functions, but flagged as safe"
+                + " unknown function: "
+                + cFCExpression,
+            pCfaEdge);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
       case ASSUME_SAFE:
         logger.log(
             Level.FINE,
