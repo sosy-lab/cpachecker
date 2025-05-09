@@ -622,8 +622,8 @@ public class SMGCPABuiltins {
     if (calledFunctionName.contains("pthread")) {
       throw new SMGException("Concurrency analysis not supported in this configuration.");
     }
-    switch (options.getHandleUnknownFunctions()) {
-      case STRICT:
+    return switch (options.getHandleUnknownFunctions()) {
+      case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
@@ -637,14 +637,16 @@ public class SMGCPABuiltins {
                 + " unknown function: "
                 + cFCExpression,
             pCfaEdge);
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      case ASSUME_SAFE:
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_SAFE -> {
         logger.log(
             Level.FINE,
             "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
             pCfaEdge);
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
-      case ASSUME_EXTERNAL_ALLOCATED:
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_EXTERNAL_ALLOCATED -> {
         ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
         for (SMGState checkedState :
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
@@ -654,12 +656,13 @@ public class SMGCPABuiltins {
               pCfaEdge);
           builder.addAll(evaluateExternalAllocationFunction(cFCExpression, checkedState));
         }
-        return builder.build();
-      default:
-        throw new UnsupportedOperationException(
-            "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
-                + options.getHandleUnknownFunctions());
-    }
+        yield builder.build();
+      }
+      default ->
+          throw new UnsupportedOperationException(
+              "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
+                  + options.getHandleUnknownFunctions());
+    };
   }
 
   /**
