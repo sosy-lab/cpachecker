@@ -17,11 +17,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
@@ -37,9 +39,11 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
    */
   private final FunctionParameterAssignment parameterAssignment;
 
-  private final int createdThreadId;
+  public final MPORThread createdThread;
 
-  private final int creatingThreadId;
+  private final MPORThread creatingThread;
+
+  private final Optional<ImmutableList<SeqBitVectorAssignmentStatement>> bitVectorInitializations;
 
   private final PcVariables pcVariables;
 
@@ -53,15 +57,16 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   SeqThreadCreationStatement(
       FunctionParameterAssignment pParameterAssignment,
-      int pCreatedThreadId,
-      int pCreatingThreadId,
+      MPORThread pCreatedThread,
+      MPORThread pCreatingThread,
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     parameterAssignment = pParameterAssignment;
-    createdThreadId = pCreatedThreadId;
-    creatingThreadId = pCreatingThreadId;
+    createdThread = pCreatedThread;
+    creatingThread = pCreatingThread;
+    bitVectorInitializations = Optional.empty();
     pcVariables = pPcVariables;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -71,8 +76,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private SeqThreadCreationStatement(
       FunctionParameterAssignment pParameterAssignment,
-      int pCreatedThreadId,
-      int pCreatingThreadId,
+      MPORThread pCreatedThread,
+      MPORThread pCreatingThread,
+      Optional<ImmutableList<SeqBitVectorAssignmentStatement>> pBitVectorInitializations,
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -80,8 +86,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     parameterAssignment = pParameterAssignment;
-    createdThreadId = pCreatedThreadId;
-    creatingThreadId = pCreatingThreadId;
+    createdThread = pCreatedThread;
+    creatingThread = pCreatingThread;
+    bitVectorInitializations = pBitVectorInitializations;
     pcVariables = pPcVariables;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -89,16 +96,39 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
     injectedStatements = pInjectedStatements;
   }
 
+  public SeqThreadCreationStatement cloneWithBitVectorAssignments(
+      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
+
+    return new SeqThreadCreationStatement(
+        parameterAssignment,
+        createdThread,
+        creatingThread,
+        Optional.of(pBitVectorAssignments),
+        pcVariables,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        injectedStatements);
+  }
+
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     CExpressionAssignmentStatement createdPcWrite =
         SeqStatementBuilder.buildPcWrite(
-            pcVariables.get(createdThreadId), Sequentialization.INIT_PC);
+            pcVariables.get(createdThread.id), Sequentialization.INIT_PC);
+    StringBuilder bitVectors = new StringBuilder();
+    if (bitVectorInitializations.isPresent()) {
+      for (SeqBitVectorAssignmentStatement initialization :
+          bitVectorInitializations.orElseThrow()) {
+        bitVectors.append(initialization.toASTString()).append(SeqSyntax.SPACE);
+      }
+    }
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
-            pcVariables.get(creatingThreadId), targetPc, targetGoto, injectedStatements);
+            pcVariables.get(creatingThread.id), targetPc, targetGoto, injectedStatements);
     return parameterAssignment.statement.toASTString()
         + SeqSyntax.SPACE
+        + bitVectors
         + createdPcWrite.toASTString()
         + SeqSyntax.SPACE
         + targetStatements;
@@ -128,8 +158,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   public SeqThreadCreationStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqThreadCreationStatement(
         parameterAssignment,
-        createdThreadId,
-        creatingThreadId,
+        createdThread,
+        creatingThread,
+        bitVectorInitializations,
         pcVariables,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -141,8 +172,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
         parameterAssignment,
-        createdThreadId,
-        creatingThreadId,
+        createdThread,
+        creatingThread,
+        bitVectorInitializations,
         pcVariables,
         substituteEdges,
         Optional.empty(),
@@ -156,8 +188,9 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
     return new SeqThreadCreationStatement(
         parameterAssignment,
-        createdThreadId,
-        creatingThreadId,
+        createdThread,
+        creatingThread,
+        bitVectorInitializations,
         pcVariables,
         substituteEdges,
         targetPc,

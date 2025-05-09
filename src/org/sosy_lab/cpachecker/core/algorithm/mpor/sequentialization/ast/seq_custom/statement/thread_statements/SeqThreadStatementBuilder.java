@@ -346,8 +346,8 @@ public class SeqThreadStatementBuilder {
         pFunctionStatements.startRoutineArgumentAssignments.get(pThreadEdge);
     return new SeqThreadCreationStatement(
         argumentAssignment,
-        createdThread.id,
-        pThread.id,
+        createdThread,
+        pThread,
         pPcVariables,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc);

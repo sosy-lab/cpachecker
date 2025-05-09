@@ -54,7 +54,9 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatementClause pCaseClause, BitVectorAccessType pAccessType) {
 
     ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    for (SeqThreadStatement statement : pCaseClause.block.getStatements()) {
+    // TODO the problem here is that all statements may contain more statements than what we
+    //  actually need, but this approach is still safe, but may result in additional interleavings
+    for (SeqThreadStatement statement : pCaseClause.getAllStatements()) {
       rGlobalVariables.addAll(
           recursivelyFindGlobalVariablesByAccessType(
               ImmutableList.builder(), statement, pAccessType));

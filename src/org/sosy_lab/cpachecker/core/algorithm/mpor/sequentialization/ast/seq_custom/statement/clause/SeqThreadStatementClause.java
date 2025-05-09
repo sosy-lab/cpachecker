@@ -36,6 +36,8 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public final int labelNumber;
 
+  // TODO why not merge block and mergedBlocks into just blocks? should make for better architecture
+
   /** The case block e.g. {@code fib(42); break;} */
   public final SeqThreadStatementBlock block;
 
@@ -70,6 +72,10 @@ public class SeqThreadStatementClause implements SeqStatement {
     labelNumber = pLabelNumber;
     block = pBlock;
     mergedBlocks = pMergedBlocks;
+  }
+
+  public ImmutableList<SeqThreadStatementBlock> getAllBlocks() {
+    return ImmutableList.<SeqThreadStatementBlock>builder().add(block).addAll(mergedBlocks).build();
   }
 
   public ImmutableList<SeqThreadStatement> getAllStatements() {
@@ -112,6 +118,13 @@ public class SeqThreadStatementClause implements SeqStatement {
     allMergedBlocks.addAll(mergedBlocks);
     allMergedBlocks.addAll(pAddedMergedBlocks);
     return cloneWithMergedBlocks(allMergedBlocks.build());
+  }
+
+  public SeqThreadStatementClause cloneWithBlockAndMergedBlock(
+      SeqThreadStatementBlock pBlock, ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
+
+    return new SeqThreadStatementClause(
+        id, isGlobal, isLoopStart, labelNumber, pBlock, pMergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithLabelAndBlockStatementsAndMergedBlocks(
