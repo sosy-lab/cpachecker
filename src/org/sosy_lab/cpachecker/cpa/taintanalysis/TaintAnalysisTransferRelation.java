@@ -140,8 +140,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       case StatementEdge -> {
         if (cfaEdge instanceof CStatementEdge statementEdge) {
 
-          return Collections.singleton(
-              handleStatementEdge(state, statementEdge));
+          return Collections.singleton(handleStatementEdge(state, statementEdge));
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -260,8 +259,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return generateNewState(pState, killedVars, generatedVars);
   }
 
-  private TaintAnalysisState handleStatementEdge(
-      TaintAnalysisState pState, CStatementEdge pCfaEdge)
+  private TaintAnalysisState handleStatementEdge(TaintAnalysisState pState, CStatementEdge pCfaEdge)
       throws CPATransferException {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
