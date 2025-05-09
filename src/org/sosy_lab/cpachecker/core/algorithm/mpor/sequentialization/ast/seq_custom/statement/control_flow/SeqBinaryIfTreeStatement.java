@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -47,43 +49,60 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> tree = ImmutableList.builder();
-    recursivelyBuildTree(statements, tabs, tabs, 0, statements.size() - 1, expression, tree);
+    recursivelyBuildTree(statements, statements, tabs, tabs, expression, tree);
     return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
+  // TODO the tree is not balanced atm, see e.g. mix014 unit test. though the impact should be minor
   /**
    * Recursively builds a binary if-else search tree for {@code pStatements} and stores it in {@code
-   * pTree}. Note that the labeling must be consecutive from {@code 0}, e.g. {@code 0, 1, 2} instead
-   * of {@code 1, 2, 3} or {@code 0, 2, 3}.
+   * pTree}. Note that the labeling does not have to be consecutive from {@code 0}, e.g. {@code 0,
+   * 1, 2} or {@code 1, 2, 3} or {@code 0, 2, 3} are all allowed.
    */
   private void recursivelyBuildTree(
-      final ImmutableList<? extends SeqStatement> pStatements,
+      final ImmutableList<? extends SeqStatement> pAllStatements,
+      List<? extends SeqStatement> pCurrentStatements,
       final int pInitialDepth,
       int pDepth,
-      int pLow,
-      int pHigh,
       CLeftHandSide pPc,
       ImmutableList.Builder<LineOfCode> pTree)
       throws UnrecognizedCodeException {
 
-    if (pLow == pHigh) {
-      // single element -> just place statement without any control flow
-      pTree.add(LineOfCode.of(pDepth, pStatements.get(pLow).toASTString().trim()));
-      return;
-    }
+    int size = pCurrentStatements.size();
 
-    if (pHigh - pLow == 1) {
+    if (size == 1) {
+      // single element -> just place statement without any control flow
+      pTree.add(LineOfCode.of(pDepth, pCurrentStatements.get(0).toASTString().trim()));
+
+    } else if (size == 2) {
       // only two elements -> create if and else leafs with ==
-      pTree.add(buildIfEqualsLeaf(pStatements, pInitialDepth, pDepth, pLow, pPc));
-      pTree.add(buildElseLeaf(pStatements.get(pHigh), pInitialDepth, pDepth));
+      int low = pAllStatements.indexOf(pCurrentStatements.get(0));
+      pTree.add(buildIfEqualsLeaf(pAllStatements, pInitialDepth, pDepth, low, pPc));
+      pTree.add(buildElseLeaf(pCurrentStatements.get(1), pInitialDepth, pDepth));
 
     } else {
       // more than two elements -> create if and else subtrees with <
-      int mid = (pLow + pHigh) / 2;
-      pTree.add(buildIfSmallerSubtree(pDepth, mid, pPc));
-      recursivelyBuildTree(pStatements, pInitialDepth, pDepth + 1, pLow, mid, pPc, pTree);
-      pTree.add(buildElseSubtree(pDepth, pStatements.get(pLow)));
-      recursivelyBuildTree(pStatements, pInitialDepth, pDepth + 1, mid + 1, pHigh, pPc, pTree);
+      int mid = size / 2;
+      SeqStatement midStatement = pCurrentStatements.get(mid);
+      // if statement is a clause, use its label number for the < check
+      int midIndex = getLabelNumberOrIndex(midStatement, mid);
+
+      pTree.add(buildIfSmallerSubtree(pDepth, midIndex, pPc));
+      recursivelyBuildTree(
+          pAllStatements,
+          pCurrentStatements.subList(0, mid + 1),
+          pInitialDepth,
+          pDepth + 1,
+          pPc,
+          pTree);
+      pTree.add(buildElseSubtree(pDepth, pCurrentStatements.get(0)));
+      recursivelyBuildTree(
+          pAllStatements,
+          pCurrentStatements.subList(mid + 1, size),
+          pInitialDepth,
+          pDepth + 1,
+          pPc,
+          pTree);
       pTree.add(LineOfCode.of(pDepth, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
   }
@@ -123,14 +142,16 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
+    SeqStatement lowStatement = pStatements.get(pLow);
+    // if statement is a clause, use its label number as the equals check
+    int low = getLabelNumberOrIndex(lowStatement, pLow);
     SeqSingleControlFlowStatement ifLeaf =
         new SeqSingleControlFlowStatement(
             binaryExpressionBuilder.buildBinaryExpression(
                 pPc,
-                SeqExpressionBuilder.buildIntegerLiteralExpression(pLow),
+                SeqExpressionBuilder.buildIntegerLiteralExpression(low),
                 BinaryOperator.EQUALS),
             SeqControlFlowStatementType.IF);
-    SeqStatement lowStatement = pStatements.get(pLow);
     return buildLeaf(ifLeaf, lowStatement, pInitialDepth, pDepth);
   }
 
@@ -168,5 +189,16 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       }
       return LineOfCode.of(pDepth, prefix + code);
     }
+  }
+
+  // Helpers =======================================================================================
+
+  /**
+   * Extracts the label number of {@code pStatement}, or returns {@code pIndex} if not applicable.
+   */
+  private static int getLabelNumberOrIndex(SeqStatement pStatement, int pIndex) {
+    return pStatement instanceof SeqThreadStatementClause
+        ? ((SeqThreadStatementClause) pStatement).labelNumber
+        : pIndex;
   }
 }

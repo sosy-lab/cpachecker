@@ -72,6 +72,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "add partial order reduction (bit vectors storing global variable) in the"
               + " sequentialization to reduce the state space? distinguishing between global"
               + " variable reads and writes, not just accesses, reduces the state space more.")
+  // using optional for @Options is not allowed, unfortunately...
   private BitVectorReduction bitVectorReduction = BitVectorReduction.NONE;
 
   @Option(
