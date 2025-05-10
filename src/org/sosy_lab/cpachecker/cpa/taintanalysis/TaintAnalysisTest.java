@@ -29,28 +29,24 @@ public class TaintAnalysisTest {
     return CPATestRunner.run(config, programPath.toString(), Level.FINEST);
   }
 
-  @Ignore
   @Test
   public void testTaintBySqrtSafe() throws Exception {
     TestResults results = runCPAchecker("taintBySqrtSafe.c", "c_function_notation_calls");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testTaintBySqrtUnsafe() throws Exception {
     TestResults results = runCPAchecker("taintBySqrtUnsafe.c", "c_function_notation_calls");
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTaintByANDLogicalOperationUnsafe() throws Exception {
     TestResults results = runCPAchecker("taintByANDLogicalOperationUnsafe.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTaintByORLogicalOperationUnsafe() throws Exception {
     TestResults results = runCPAchecker("taintByORLogicalOperationUnsafe.c", "c_infix_operators");
@@ -192,17 +188,10 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTaintByLogicalOperationSafe() throws Exception {
     TestResults results = runCPAchecker("taintByLogicalOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
-  }
-
-  @Test
-  public void testTaintByLogicalOperationUnsafe() throws Exception {
-    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
-    results.assertIsUnsafe();
   }
 
   @Ignore
@@ -324,14 +313,12 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testOverApproximationLeadsToFalsePositiveSafe() throws Exception {
     TestResults results = runCPAchecker("overApproximationLeadsToFalsePositiveSafe.c", "");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testOverApproximationLeadsToFalsePositiveUnsafe() throws Exception {
     TestResults results = runCPAchecker("overApproximationLeadsToFalsePositiveUnsafe.c", "");
