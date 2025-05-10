@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -487,7 +489,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       if (openParenIndex < closeParenIndex) {
         String paramsString = rhsString.substring(openParenIndex + 1, closeParenIndex).trim();
 
-        String[] paramsArray = paramsString.split("\\s*,\\s*");
+        Iterable<String> paramsArray =
+            Splitter.on(Pattern.compile("\\s*,\\s*")).split(paramsString);
+
         Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
 
         for (String param : paramsArray) {
@@ -502,9 +506,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     if (rhsString.contains("&&") || rhsString.contains("||")) {
 
-      String[] logicalParams = rhsString.split("\\s*(&&|\\|\\|)\\s*");
+      List<String> logicalParams =
+          Splitter.on(Pattern.compile("\\s*(&&|\\|\\|)\\s*")).splitToList(rhsString);
 
-      if (logicalParams.length == 2) {
+      if (logicalParams.size() == 2) {
         Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
 
         for (String param : logicalParams) {
