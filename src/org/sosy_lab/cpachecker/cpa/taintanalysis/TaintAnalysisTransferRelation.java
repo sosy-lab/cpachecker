@@ -356,8 +356,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
 
+      boolean functionContainsTaintedVar = false;
+
+      if (allVarsAsCExpr.isEmpty()) {
+        functionContainsTaintedVar = rhsOfRawStatementContainsTaintedParameters(pCfaEdge, pState);
+      }
+
       boolean taintedVarsRHS =
-          allVarsAsCExpr.stream().anyMatch(var -> pState.getTaintedVariables().contains(var));
+          allVarsAsCExpr.stream().anyMatch(var -> pState.getTaintedVariables().contains(var))
+              || functionContainsTaintedVar;
 
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
@@ -419,6 +426,98 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return generateNewState(pState, killedVars, generatedVars);
+  }
+
+  /**
+   * Analyzes the right-hand side (RHS) of a raw statement in the form of a {@link CStatementEdge}
+   * for potential tainted parameters. This is necessary for taint analysis in CPAchecker when
+   * dealing with specific cases where the RHS contains function calls or logical operations.
+   *
+   * <p>CPAchecker processes certain code structures (e.g., function calls with parameters or
+   * logical operations like `&&` and `||`) by evaluating the expressions and passing the results
+   * instead of the original raw parameters to the taint analysis. This overrides the needed
+   * variables, making raw statement parsing essential to ensure proper recognition and propagation
+   * of taint.
+   *
+   * <p>Special cases handled:
+   *
+   * <ul>
+   *   <li>Function calls with parameters, in the form:
+   *       <pre><code>functionName(param1, param2, ..., paramN)</code></pre>
+   *   <li>Logical (non-bitwise) operations, in the form:
+   *       <pre><code>lhs && rhs</code></pre>
+   *       or
+   *       <pre><code>lhs || rhs</code></pre>
+   * </ul>
+   *
+   * <p>For these specific cases, the method extracts individual parameters from the RHS, either
+   * from function calls or logical operations, and checks whether any of them are tainted by
+   * comparing them against the list of tainted variables in {@link TaintAnalysisState}.
+   *
+   * @param pCfaEdge the {@link CStatementEdge} representing the statement in the CFA being analyzed
+   * @param pState the current {@link TaintAnalysisState}, which contains the collection of tainted
+   *     variables
+   * @return {@code true} if any variable in the RHS of the raw statement matches a tainted variable
+   *     from the state, indicating potential taint propagation; {@code false} otherwise
+   */
+  private boolean rhsOfRawStatementContainsTaintedParameters(
+      CStatementEdge pCfaEdge, TaintAnalysisState pState) {
+
+    String rawStatement = pCfaEdge.getRawStatement();
+
+    if (rawStatement == null) {
+      return false;
+    }
+
+    String rhsString = "";
+
+    if (rawStatement.contains("=")) {
+      // case: function of the form <functionName><(params)>
+      rhsString = rawStatement.substring(rawStatement.indexOf('=') + 1).trim();
+    } else {
+      // case: logical operations && or ||
+      rhsString = rawStatement.trim();
+    }
+
+    // Check if the RHS contains a function call pattern: functionName(param1, param2, ...)
+    if (rhsString.contains("(") && rhsString.contains(")")) {
+      int openParenIndex = rhsString.indexOf('(');
+      int closeParenIndex = rhsString.lastIndexOf(')');
+
+      if (openParenIndex < closeParenIndex) {
+        String paramsString = rhsString.substring(openParenIndex + 1, closeParenIndex).trim();
+
+        String[] paramsArray = paramsString.split("\\s*,\\s*");
+        Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
+
+        for (String param : paramsArray) {
+          param = param.trim();
+
+          if (taintedVariables.stream().map(CIdExpression::getName).anyMatch(param::equals)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    if (rhsString.contains("&&") || rhsString.contains("||")) {
+
+      String[] logicalParams = rhsString.split("\\s*(&&|\\|\\|)\\s*");
+
+      if (logicalParams.length == 2) {
+        Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
+
+        for (String param : logicalParams) {
+          param = param.trim();
+
+          if (taintedVariables.stream().map(CIdExpression::getName).anyMatch(param::equals)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   private boolean hasTaintedParameters(
