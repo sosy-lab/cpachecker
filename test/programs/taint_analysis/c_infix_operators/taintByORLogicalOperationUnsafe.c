@@ -11,11 +11,12 @@ extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x = __VERIFIER_nondet_int();
-    int y = 1;
+    int x, y, z;
+    x = __VERIFIER_nondet_int();
+    y = 1;
 
     // z is expected to be tainted by x and the && operation
-    int z = (y || x);
+    z = (y || x);
 
     // taint violation expected
     __VERIFIER_is_public(z, 1);
