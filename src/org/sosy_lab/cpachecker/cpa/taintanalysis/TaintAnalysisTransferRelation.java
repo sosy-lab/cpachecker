@@ -469,7 +469,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return false;
     }
 
-    String rhsString = "";
+    String rhsString;
 
     if (rawStatement.contains("=")) {
       // case: function of the form <functionName><(params)>
