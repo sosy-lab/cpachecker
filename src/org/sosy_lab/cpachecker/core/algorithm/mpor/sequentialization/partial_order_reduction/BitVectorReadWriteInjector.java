@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -85,8 +86,10 @@ class BitVectorReadWriteInjector {
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
-    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
+    ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pCaseClauses);
     for (SeqThreadStatementClause clause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
@@ -97,7 +100,8 @@ class BitVectorReadWriteInjector {
                 pBitVectorEvaluation,
                 statement,
                 pBitVectorVariables,
-                labelValueMap,
+                labelClauseMap,
+                labelBlockMap,
                 pBinaryExpressionBuilder));
       }
       rInjected.add(clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
@@ -111,7 +115,8 @@ class BitVectorReadWriteInjector {
       final Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation,
       SeqThreadStatement pCurrentStatement,
       final BitVectorVariables pBitVectorVariables,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap,
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -125,19 +130,19 @@ class BitVectorReadWriteInjector {
         // exit pc -> reset bit vector to 0s so that no interference with still active threads
         newInjected.addAll(
             buildBitVectorReadWriteAssignments(
-                pOptions, pThread, pBitVectorVariables, ImmutableList.of(), ImmutableList.of()));
+                pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of()));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
-            Objects.requireNonNull(pLabelValueMap.get(intTargetPc));
+            Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
         // always need context switch when targeting critical section start -> no bit vectors
-        if (!newTarget.isCriticalSectionStart()) {
-          ImmutableList<CVariableDeclaration> readVariables =
-              SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                  newTarget, BitVectorAccessType.READ);
-          ImmutableList<CVariableDeclaration> writeVariables =
-              SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                  newTarget, BitVectorAccessType.WRITE);
+        if (!newTarget.requiresAssumeEvaluation()) {
+          ImmutableSet<CVariableDeclaration> readVariables =
+              GlobalVariableFinder.findGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.READ);
+          ImmutableSet<CVariableDeclaration> writeVariables =
+              GlobalVariableFinder.findGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.WRITE);
           ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
               buildBitVectorReadWriteAssignments(
                   pOptions, pThread, pBitVectorVariables, readVariables, writeVariables);
@@ -169,8 +174,8 @@ class BitVectorReadWriteInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableList<CVariableDeclaration> pReadVariables,
-      ImmutableList<CVariableDeclaration> pWrittenVariables) {
+      ImmutableSet<CVariableDeclaration> pReadVariables,
+      ImmutableSet<CVariableDeclaration> pWrittenVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
@@ -274,12 +279,15 @@ class BitVectorReadWriteInjector {
         MPORThread createdThread = threadCreation.createdThread;
         SeqThreadStatementClause firstClause =
             Objects.requireNonNull(pClauses.get(createdThread)).get(0);
-        ImmutableList<CVariableDeclaration> readVariables =
-            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                firstClause, BitVectorAccessType.READ);
-        ImmutableList<CVariableDeclaration> writtenVariables =
-            SeqThreadStatementClauseUtil.findGlobalVariablesInCaseClauseByAccessType(
-                firstClause, BitVectorAccessType.WRITE);
+        ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToBlock(
+                Objects.requireNonNull(pClauses.get(createdThread)));
+        ImmutableSet<CVariableDeclaration> readVariables =
+            GlobalVariableFinder.findGlobalVariablesByAccessType(
+                labelBlockMap, firstClause.block, BitVectorAccessType.READ);
+        ImmutableSet<CVariableDeclaration> writtenVariables =
+            GlobalVariableFinder.findGlobalVariablesByAccessType(
+                labelBlockMap, firstClause.block, BitVectorAccessType.WRITE);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorReadWriteAssignments(
                 pOptions,

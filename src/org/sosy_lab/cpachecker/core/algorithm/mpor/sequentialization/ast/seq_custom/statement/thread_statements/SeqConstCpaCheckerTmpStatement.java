@@ -227,7 +227,7 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return false;
   }
 

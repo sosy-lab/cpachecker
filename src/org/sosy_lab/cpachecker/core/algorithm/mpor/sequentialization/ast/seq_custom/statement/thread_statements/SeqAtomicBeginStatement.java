@@ -119,12 +119,8 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
-    // TODO this should also be false, since a thread is never interrupted in an atomic block.
-    //  that way we can also check for access via bit vectors in entire atomic blocks.
-    //  (an atomic begin does not force us to re-evaluate the assumptions, in contrast to
-    //  mutex lock or join)
-    return true;
+  public boolean requiresAssumeEvaluation() {
+    return false;
   }
 
   @Override

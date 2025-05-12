@@ -14,8 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 
 public interface SeqInjectedStatement extends SeqStatement {
 
-  // TODO rename marks? or alwaysPrior... ? other statements can also be prior critical sections.
-  //  or something like requiresAssumeReEvaluation which is exactly why we do it
+  // TODO remove, this always returns false
   boolean priorCriticalSection();
 
   /** The thread simulation variable of this injected statement, used for assumptions. */

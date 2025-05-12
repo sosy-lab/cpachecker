@@ -153,7 +153,7 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return false;
   }
 

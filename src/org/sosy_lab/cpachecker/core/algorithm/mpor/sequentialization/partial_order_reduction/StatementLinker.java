@@ -99,7 +99,7 @@ public class StatementLinker {
       SeqThreadStatementClause pTarget) {
 
     return pStatement.isLinkable()
-        && !pTarget.isCriticalSectionStart()
+        && !pTarget.requiresAssumeEvaluation()
         // do not link atomic blocks, this is handled by AtomicBlockBuilder
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // only consider global if not ignored

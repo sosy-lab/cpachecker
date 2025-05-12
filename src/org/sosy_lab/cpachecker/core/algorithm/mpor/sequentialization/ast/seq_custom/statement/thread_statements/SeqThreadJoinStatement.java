@@ -212,7 +212,7 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return true;
   }
 

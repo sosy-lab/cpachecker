@@ -180,7 +180,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return true;
   }
 

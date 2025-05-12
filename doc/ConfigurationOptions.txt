@@ -281,7 +281,7 @@ analysis.algorithm.MPOR.consecutiveLabels = true
 # defines the syntax in which decisions are made, e.g. choosing the next
 # thread or statement of a thread simulation. may slow down or improve
 # performance, depending on the verifier.
-analysis.algorithm.MPOR.controlFlowEncoding = BINARY_IF_TREE
+analysis.algorithm.MPOR.controlFlowEncoding = SWITCH_CASE
   enum:     [SWITCH_CASE, BINARY_IF_TREE]
 
 # include original function declarations from input file? true -> bigger file

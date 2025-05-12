@@ -95,7 +95,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "defines the syntax in which decisions are made, e.g. choosing the next thread or"
               + " statement of a thread simulation. may slow down or improve performance, depending"
               + " on the verifier.")
-  private ControlFlowEncoding controlFlowEncoding = ControlFlowEncoding.BINARY_IF_TREE;
+  private ControlFlowEncoding controlFlowEncoding = ControlFlowEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,

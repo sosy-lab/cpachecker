@@ -134,7 +134,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return false;
   }
 

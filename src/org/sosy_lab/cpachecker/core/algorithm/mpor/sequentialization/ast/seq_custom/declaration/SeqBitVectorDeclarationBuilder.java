@@ -84,7 +84,7 @@ public class SeqBitVectorDeclarationBuilder {
 
       BitVectorExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.globalVariableIds, ImmutableList.of());
+              pOptions, pBitVectorVariables.globalVariableIds, ImmutableSet.of());
       SeqBitVectorDeclaration declaration =
           new SeqBitVectorDeclaration(type, denseBitVector.idExpression, initializer);
       rDeclarations.add(declaration);

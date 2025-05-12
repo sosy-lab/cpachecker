@@ -52,8 +52,11 @@ public interface SeqThreadStatement extends SeqStatement {
 
   boolean isLinkable();
 
-  /** Whether this statement enters a critical section (e.g. mutex or atomic locks). */
-  boolean isCriticalSectionStart();
+  /**
+   * Whether this statement requires a re-evaluation of the {@code assume} calls at the loop head
+   * (e.g. mutex or pthread_join).
+   */
+  boolean requiresAssumeEvaluation();
 
   /** Whether this statement consists only of a {@code pc} write, e.g. {@code pc[i] = 42;} */
   boolean onlyWritesPc();

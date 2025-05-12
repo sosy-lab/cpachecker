@@ -44,7 +44,7 @@ public class BitVectorUtil {
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
       @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
-      @NonNull ImmutableList<CVariableDeclaration> pVariables) {
+      @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(

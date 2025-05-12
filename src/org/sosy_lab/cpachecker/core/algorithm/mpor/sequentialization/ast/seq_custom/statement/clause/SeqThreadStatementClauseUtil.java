@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
@@ -24,64 +23,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqThreadStatementClauseUtil {
-
-  public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByReductionType(
-      SeqThreadStatementClause pCaseClause, BitVectorReduction pReductionType) {
-
-    return switch (pReductionType) {
-      case NONE -> ImmutableList.of();
-      case ACCESS_ONLY ->
-          findGlobalVariablesInCaseClauseByAccessType(pCaseClause, BitVectorAccessType.ACCESS);
-      case READ_AND_WRITE ->
-          ImmutableList.<CVariableDeclaration>builder()
-              .addAll(
-                  findGlobalVariablesInCaseClauseByAccessType(
-                      pCaseClause, BitVectorAccessType.READ))
-              .addAll(
-                  findGlobalVariablesInCaseClauseByAccessType(
-                      pCaseClause, BitVectorAccessType.WRITE))
-              .build();
-    };
-  }
-
-  public static ImmutableList<CVariableDeclaration> findGlobalVariablesInCaseClauseByAccessType(
-      SeqThreadStatementClause pCaseClause, BitVectorAccessType pAccessType) {
-
-    ImmutableList.Builder<CVariableDeclaration> rGlobalVariables = ImmutableList.builder();
-    // TODO the problem here is that all statements may contain more statements than what we
-    //  actually need, but this approach is still safe, but may result in additional interleavings
-    for (SeqThreadStatement statement : pCaseClause.getAllStatements()) {
-      rGlobalVariables.addAll(
-          recursivelyFindGlobalVariablesByAccessType(
-              ImmutableList.builder(), statement, pAccessType));
-    }
-    return rGlobalVariables.build();
-  }
-
-  /**
-   * Searches {@code pStatement} and all linked statements for their global variables based on
-   * {@code pAccessType}.
-   */
-  private static ImmutableList<CVariableDeclaration> recursivelyFindGlobalVariablesByAccessType(
-      ImmutableList.Builder<CVariableDeclaration> pFound,
-      SeqThreadStatement pStatement,
-      BitVectorAccessType pAccessType) {
-
-    for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
-      for (CVariableDeclaration variable :
-          substituteEdge.getGlobalVariablesByAccessType(pAccessType)) {
-        assert variable.isGlobal() : "collected variables in SubstituteEdge must be global";
-        pFound.add(variable);
-      }
-    }
-    return pFound.build();
-  }
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {

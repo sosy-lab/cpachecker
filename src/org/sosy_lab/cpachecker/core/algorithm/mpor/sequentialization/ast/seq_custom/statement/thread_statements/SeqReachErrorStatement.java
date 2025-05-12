@@ -115,7 +115,7 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     return false;
   }
 

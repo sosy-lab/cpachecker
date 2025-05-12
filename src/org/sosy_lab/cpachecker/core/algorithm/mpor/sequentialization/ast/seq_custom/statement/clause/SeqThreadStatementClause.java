@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
+import static org.sosy_lab.common.collect.Collections3.elementAndList;
+
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -75,7 +77,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public ImmutableList<SeqThreadStatementBlock> getAllBlocks() {
-    return ImmutableList.<SeqThreadStatementBlock>builder().add(block).addAll(mergedBlocks).build();
+    return elementAndList(block, mergedBlocks);
   }
 
   public ImmutableList<SeqThreadStatement> getAllStatements() {
@@ -125,10 +127,9 @@ public class SeqThreadStatementClause implements SeqStatement {
     return true;
   }
 
-  /** Returns {@code true} if any statement in this case clause is a start to a critical section. */
-  public boolean isCriticalSectionStart() {
+  public boolean requiresAssumeEvaluation() {
     for (SeqThreadStatement statement : block.getStatements()) {
-      if (statement.isCriticalSectionStart()) {
+      if (statement.requiresAssumeEvaluation()) {
         return true;
       }
     }
