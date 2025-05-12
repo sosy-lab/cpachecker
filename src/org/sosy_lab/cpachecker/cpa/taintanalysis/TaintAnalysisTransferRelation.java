@@ -282,27 +282,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
             if (shouldBePublic == 1) {
               if (pState.getTaintedVariables().contains(variableToSanitize)) {
-                logger.log(
-                    Level.INFO,
-                    String.format(
-                        "Sanitizing variable '%s' at %s: Marking as public.",
-                        variableToSanitize.getName(), pCfaEdge.getFileLocation()));
                 killedVars.add(variableToSanitize);
               }
             } else {
               if (!pState.getTaintedVariables().contains(variableToSanitize)) {
-                logger.log(
-                    Level.INFO,
-                    String.format(
-                        "Marking variable '%s' as tainted at %s.",
-                        variableToSanitize.getName(), pCfaEdge.getFileLocation()));
                 generatedVars.add(variableToSanitize);
               }
             }
 
           } catch (CPATransferException e) {
-            logger.log(Level.WARNING, "Invalid sanitization request: " + e.getMessage());
-            throw new CPATransferException("Error processing sanitization call", e);
+            throw new CPATransferException("Error processing setPublic call", e);
           }
         }
       } else if ("__VERIFIER_is_public".equals(functionName)) {
@@ -384,12 +373,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (arrayExpr instanceof CIdExpression arrayVariable) {
           if (taintedVarsRHS) {
             generatedVars.add(arrayVariable);
-            logger.log(
-                Level.INFO,
-                String.format(
-                    "Marking array '%s' as tainted at %s because a tainted value was assigned to"
-                        + " one of its elements.",
-                    arrayVariable.getName(), pCfaEdge.getFileLocation()));
           }
         }
       }
