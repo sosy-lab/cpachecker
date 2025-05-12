@@ -197,11 +197,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
             ARGState argState = (ARGState) reachedState;
 
-            Collection<ARGState> parentArgStates = argState.getParents();
-
-            assert (parentArgStates.size() == 1);
-
-            ARGState parentArgState = parentArgStates.iterator().next();
+            ARGState parentArgState = getParentArgState(argState);
 
             CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
             if (targetEdge != null) {
@@ -218,6 +214,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
+                  runExtractorAlgo(pReached);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -272,6 +269,40 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     }
 
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private ARGState getParentArgState(ARGState argState)
+  {
+    Collection<ARGState> parentArgStates = argState.getParents();
+
+    assert (parentArgStates.size() == 1);
+
+    return parentArgStates.iterator().next();
+  }
+
+  // eReached is a single arg state thats the starting point of the extraction value analysis
+  // after the algo is done, the newly reached states are added to this variable
+  private void runExtractorAlgo(final ReachedSet eReached) {// not as its own class, changes in the target edges need to be done in TCGA
+    Boolean goalsLeft = true;
+    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
+//
+//  status = extractorAlgo.run(extractorReached);
+// try catch finaly block
+//
+//  targetAbstractStates = from(extractorReached).filter(AbstractStates::isTargetState);
+
+    while (goalsLeft == true) {
+//      AbstractState reachedState =
+//        from(eReached).firstMatch(AbstractStates::isTargetState).orNull();
+//    if (reachedState == null) {
+//      goalsLeft = false;
+//    } else {
+//      ARGState argState = (ARGState) reachedState;
+//      ARGState parentArgState = getParentArgState(argState);
+//      CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
+//      testTargets.remove(targetEdge);
+//      }
+//    }
   }
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
