@@ -100,7 +100,7 @@ public class StatementLinker {
 
     return pStatement.isLinkable()
         && !pTarget.requiresAssumeEvaluation()
-        // do not link atomic blocks, this is handled by AtomicBlockBuilder
+        // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // only consider global if not ignored
         && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal);
@@ -131,17 +131,25 @@ public class StatementLinker {
 
     // use lists to add at list start
     List<SeqThreadStatementClause> rMerged = new ArrayList<>();
-    List<SeqThreadStatementBlock> collected = new ArrayList<>();
+    List<SeqThreadStatementBlock> temporary = new ArrayList<>();
     // in reverse, merge not directly reachable blocks to first directly reachable
     for (int i = pClauses.size() - 1; i >= 0; i--) {
       SeqThreadStatementClause clause = pClauses.get(i);
-      if (pCollectedTargetIds.contains(clause.id)) {
-        collected.add(0, clause.block);
+      if (clause.block.startsAtomicBlock()) {
+        // atomic blocks are merged by AtomicBlockMerger already, add as is
+        rMerged.add(0, clause);
       } else {
-        SeqThreadStatementClause mergedClause =
-            clause.cloneWithMergedBlocks(ImmutableList.copyOf(collected));
-        rMerged.add(0, mergedClause);
-        collected = new ArrayList<>();
+        if (pCollectedTargetIds.contains(clause.id)) {
+          temporary.add(0, clause.block);
+          temporary.addAll(0, clause.mergedBlocks);
+        } else {
+          // still need all mergedBlocks here
+          temporary.addAll(0, clause.mergedBlocks);
+          SeqThreadStatementClause mergedClause =
+              clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
+          rMerged.add(0, mergedClause);
+          temporary.clear();
+        }
       }
     }
     return ImmutableList.copyOf(rMerged);

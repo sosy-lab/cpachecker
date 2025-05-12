@@ -297,7 +297,7 @@ public class SequentializationTest {
   }
 
   @Test
-  public void test_stack1() throws Exception {
+  public void test_stack_1() throws Exception {
     Path path = Path.of("./test/programs/mpor_seq/seq_compilable/stack-1.c");
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =

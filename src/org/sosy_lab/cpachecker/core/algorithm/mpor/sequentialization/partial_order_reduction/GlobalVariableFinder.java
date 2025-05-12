@@ -16,7 +16,6 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
@@ -71,7 +70,7 @@ public class GlobalVariableFinder {
       final BitVectorAccessType pAccessType) {
 
     // recursively search the target pc and goto statements
-    for (SeqThreadStatement targetStatement : getStatementsByTarget(pStatement, pLabelBlockMap)) {
+    for (SeqThreadStatement targetStatement : getTargetGotoStatements(pStatement, pLabelBlockMap)) {
       // prevent infinite loops when statements contain loops
       if (pFound.add(targetStatement)) {
         return recursivelyFindGlobalVariablesByAccessType(
@@ -81,14 +80,14 @@ public class GlobalVariableFinder {
     return extractGlobalVariablesFromStatements(ImmutableSet.copyOf(pFound), pAccessType);
   }
 
-  private static ImmutableList<SeqThreadStatement> getStatementsByTarget(
+  /**
+   * Searches all statements targeted by {@code pStatement} via {@code goto}. This excludes target
+   * {@code pc} because they represent a cut i.e. context switch in the sequentialization.
+   */
+  private static ImmutableList<SeqThreadStatement> getTargetGotoStatements(
       SeqThreadStatement pStatement,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
-      int targetNumber = pStatement.getTargetPc().orElseThrow();
-      return Objects.requireNonNull(pLabelBlockMap.get(targetNumber)).getStatements();
-    }
     if (pStatement.getTargetGoto().isPresent()) {
       int targetNumber = pStatement.getTargetGoto().orElseThrow().labelNumber;
       return Objects.requireNonNull(pLabelBlockMap.get(targetNumber)).getStatements();

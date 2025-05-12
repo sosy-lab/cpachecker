@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
  */
 public class MPOROptions {
 
+  public final boolean atomicBlockMerge;
+
   public final BitVectorEncoding bitVectorEncoding;
 
   public final boolean bitVectorEvaluationPrune;
@@ -73,6 +75,7 @@ public class MPOROptions {
   public final boolean validatePc;
 
   public MPOROptions(
+      boolean pAtomicBlockMerge,
       BitVectorEncoding pBitVectorEncoding,
       boolean pBitVectorEvaluationPrune,
       BitVectorReduction pBitVectorReduction,
@@ -104,6 +107,7 @@ public class MPOROptions {
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
 
+    atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
     bitVectorEvaluationPrune = pBitVectorEvaluationPrune;
     bitVectorReduction = pBitVectorReduction;
@@ -146,6 +150,8 @@ public class MPOROptions {
       boolean pThreadLoopsNext) {
 
     return new MPOROptions(
+        // always merge atomic blocks because not doing so may add additional interleavings
+        true,
         pBitVectorEncoding,
         pPruneBitVectorEvaluation,
         pBitVectorReduction,

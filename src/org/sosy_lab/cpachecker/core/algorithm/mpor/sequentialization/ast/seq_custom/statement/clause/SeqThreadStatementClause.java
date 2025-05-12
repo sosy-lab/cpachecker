@@ -99,15 +99,6 @@ public class SeqThreadStatementClause implements SeqStatement {
     return new SeqThreadStatementClause(id, isGlobal, isLoopStart, block, pMergedBlocks);
   }
 
-  public SeqThreadStatementClause cloneWithAddedMergedBlocks(
-      ImmutableList<SeqThreadStatementBlock> pAddedMergedBlocks) {
-
-    ImmutableList.Builder<SeqThreadStatementBlock> allMergedBlocks = ImmutableList.builder();
-    allMergedBlocks.addAll(mergedBlocks);
-    allMergedBlocks.addAll(pAddedMergedBlocks);
-    return cloneWithMergedBlocks(allMergedBlocks.build());
-  }
-
   public SeqThreadStatementClause cloneWithBlockAndMergedBlock(
       SeqThreadStatementBlock pBlock, ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 

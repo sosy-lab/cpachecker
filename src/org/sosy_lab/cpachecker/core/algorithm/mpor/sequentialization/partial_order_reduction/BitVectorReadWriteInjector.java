@@ -104,7 +104,27 @@ class BitVectorReadWriteInjector {
                 labelBlockMap,
                 pBinaryExpressionBuilder));
       }
-      rInjected.add(clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
+      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
+      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
+        for (SeqThreadStatement statement : mergedBlock.getStatements()) {
+          newMergedStatements.add(
+              injectBitVectorsIntoSingleStatement(
+                  pOptions,
+                  pThread,
+                  pBitVectorEvaluation,
+                  statement,
+                  pBitVectorVariables,
+                  labelClauseMap,
+                  labelBlockMap,
+                  pBinaryExpressionBuilder));
+        }
+        SeqThreadStatementBlock newMergedBlock =
+            mergedBlock.cloneWithStatements(newMergedStatements.build());
+        newMergedBlocks.add(newMergedBlock);
+      }
+      rInjected.add(clause.cloneWithBlockAndMergedBlock(newBlock, newMergedBlocks.build()));
     }
     return rInjected.build();
   }

@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -36,9 +35,9 @@ public class AtomicBlockMerger {
     for (var entry : pCaseClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
-      ImmutableMap<Integer, SeqThreadStatementClause> labelMap =
-          SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
-      ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelMap);
+      ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
+          SeqThreadStatementClauseUtil.mapLabelNumberToBlock(clauses);
+      ImmutableList<SeqThreadStatementClause> withGotos = injectAtomicGotos(clauses, labelBlockMap);
       rWithBlocks.put(thread, mergeAtomicBlocks(withGotos));
     }
     return rWithBlocks.buildOrThrow();
@@ -46,34 +45,32 @@ public class AtomicBlockMerger {
 
   private static ImmutableList<SeqThreadStatementClause> injectAtomicGotos(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableMap<Integer, SeqThreadStatementClause> pLabelMap) {
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rWithGotos = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+      // at this stage, mergedBlocks is empty, we only require the main block
       for (SeqThreadStatement statement : clause.block.getStatements()) {
-        newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelMap));
+        newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelBlockMap));
       }
-      rWithGotos.add(
-          clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
+      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
+      rWithGotos.add(clause.cloneWithBlock(newBlock));
     }
     return rWithGotos.build();
   }
 
   private static SeqThreadStatement injectAtomicGotosIntoStatement(
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelMap) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present -> clone with targetIndex
+    if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC && pLabelMap.containsKey(targetPc)) {
-        SeqThreadStatementClause targetClause = Objects.requireNonNull(pLabelMap.get(targetPc));
-        SeqThreadStatement firstStatement = targetClause.block.getFirstStatement();
-        // only add goto when the target starts in an atomic block
-        if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
-          return pCurrentStatement.cloneWithTargetGoto(targetClause.block.getGotoLabel());
-        }
+      SeqThreadStatementBlock targetBlock = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
+      SeqThreadStatement firstStatement = targetBlock.getFirstStatement();
+      // only add goto when the target starts in an atomic block
+      if (SeqThreadStatementUtil.startsInAtomicBlock(firstStatement)) {
+        return pCurrentStatement.cloneWithTargetGoto(targetBlock.getGotoLabel());
       }
     }
     // no int target pc -> no replacement
@@ -90,11 +87,11 @@ public class AtomicBlockMerger {
       if (visited.add(clause)) {
         if (isAtomicMergeAllowed(clause, pClauses, i)) {
           // when beginning atomic, merge all blocks until encountering atomic end
-          int toIndex = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
-          // start at following index, since we clone with adding, not replacing
+          int exclusiveTo = findFirstExclusiveIndexNotInAtomicBlock(i, pClauses, visited);
+          // start at i + 1 so that atomic_begin is not inside mergedBlocks, but block itself
           ImmutableList<SeqThreadStatementBlock> newMergedBlocks =
-              collectAllBlocksAndMergedBlocks(i + 1, toIndex, pClauses);
-          rMerged.add(clause.cloneWithAddedMergedBlocks(newMergedBlocks));
+              collectAllBlocksAndMergedBlocks(i + 1, exclusiveTo, pClauses);
+          rMerged.add(clause.cloneWithMergedBlocks(newMergedBlocks));
         } else {
           rMerged.add(clause);
         }

@@ -56,6 +56,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
+          "merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end via"
+              + " gotos?")
+  private boolean atomicBlockMerge = true;
+
+  @Option(
+      secure = true,
+      description =
           "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
   // using optional for @Options is not allowed, unfortunately...
   private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
@@ -68,6 +75,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean bitVectorEvaluationPrune = false;
 
   @Option(
+      secure = true,
       description =
           "add partial order reduction (bit vectors storing global variable) in the"
               + " sequentialization to reduce the state space? distinguishing between global"
@@ -267,6 +275,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     options =
         new MPOROptions(
+            atomicBlockMerge,
             bitVectorEncoding,
             bitVectorEvaluationPrune,
             bitVectorReduction,

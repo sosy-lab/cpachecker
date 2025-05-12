@@ -60,31 +60,31 @@ public class SeqThreadStatementClauseBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    // initialize case clauses from ThreadCFAs
+    // initialize clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> initialCaseClauses =
         initCaseClauses(
             pOptions, pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
-    // if enabled, prune case clauses so that no case clause has only pc writes
+    // if enabled, prune clauses so that no clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> prunedCases =
         pOptions.pruneEmptyStatements
             ? SeqPruner.pruneCaseClauses(initialCaseClauses)
             : initialCaseClauses;
-    // if enabled, apply partial order reduction and reduce number of cases
+    // ensure that atomic blocks are not interleaved by adding direct gotos
+    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
+        pOptions.atomicBlockMerge ? AtomicBlockMerger.merge(prunedCases) : prunedCases;
+    // if enabled, apply partial order reduction and reduce number of clauses
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedCases =
         PartialOrderReducer.reduce(
-            pOptions, pBitVectorVariables, prunedCases, pBinaryExpressionBuilder, pLogger);
-    // ensure case labels are consecutive (enforce start at 0, end at casesNum - 1)
+            pOptions, pBitVectorVariables, atomicBlocks, pBinaryExpressionBuilder, pLogger);
+    // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabelCases =
         pOptions.consecutiveLabels
             ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabels(reducedCases)
             : reducedCases;
-    // ensure that atomic blocks are not interleaved by adding direct gotos
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> atomicBlocks =
-        AtomicBlockMerger.merge(consecutiveLabelCases);
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc
-        ? SeqValidator.validateCaseClauses(atomicBlocks, pLogger)
-        : atomicBlocks;
+        ? SeqValidator.validateCaseClauses(consecutiveLabelCases, pLogger)
+        : consecutiveLabelCases;
   }
 
   /** Maps threads to the case clauses they potentially execute. */
