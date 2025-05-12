@@ -138,7 +138,6 @@ public class TraceFormulaTest {
             lines.add(traceElement.correspondingEdge().getFileLocation().getStartingLineInOrigin());
           }
         }
-        default -> throw new AssertionError(algorithm + " is not a valid algorithm.");
       }
     }
 
@@ -169,7 +168,6 @@ public class TraceFormulaTest {
                       .collect(ImmutableList.toImmutableList());
               assertThat(variableValues).containsExactlyElementsIn(expectedValues);
             }
-            default -> throw new AssertionError("Unknown log keyword: " + key);
           }
         });
   }

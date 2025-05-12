@@ -166,7 +166,6 @@ public class ARGMergeJoin implements MergeOperator {
                     + " should not happen for this configuration. Either set this option to a"
                     + " different value or file a bug about this crash in the issue tracker. Cf."
                     + " issue #991 for more information about late merges.");
-        default -> throw new AssertionError("missing switch case");
       }
     }
 

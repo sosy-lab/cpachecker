@@ -251,7 +251,6 @@ public final class ArithmeticOverflowAssumptionBuilder implements GenericAssumpt
       case FunctionReturnEdge, CallToReturnEdge -> {
         // No overflows for summary edges.
       }
-      default -> throw new UnsupportedOperationException("Unexpected edge type");
     }
 
     if (simplifyExpressions) {

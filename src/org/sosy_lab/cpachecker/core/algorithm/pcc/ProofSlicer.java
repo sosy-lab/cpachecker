@@ -329,7 +329,6 @@ public class ProofSlicer {
       case BlankEdge -> {
         updatedVars.addAll(succVars);
       }
-      default -> throw new AssertionError();
     }
   }
 

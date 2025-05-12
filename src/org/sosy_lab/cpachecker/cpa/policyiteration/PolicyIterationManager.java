@@ -908,7 +908,6 @@ public class PolicyIterationManager {
             logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
           }
-          default -> throw new AssertionError("Unhandled enum value in switch: " + status);
         }
       }
     } catch (SolverException e) {

@@ -313,7 +313,6 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
           startOfSubTree.add(stack.getLast().getSecond());
           formulas.add(formula);
         }
-        default -> throw new AssertionError();
       }
     }
     ImmutableIntArray resultingStartOfSubtree = startOfSubTree.build();

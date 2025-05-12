@@ -183,7 +183,7 @@ public class ApronTransferRelation
       }
 
     } else if (expression instanceof CBinaryExpression) {
-      return handleBinaryAssumption(expression, truthAssumption, cfaEdge);
+      return handleBinaryAssumption(expression, truthAssumption);
 
     } else {
       Set<Texpr0Node> coeffs = expression.accept(new CApronExpressionVisitor());
@@ -205,8 +205,8 @@ public class ApronTransferRelation
     }
   }
 
-  private Set<ApronState> handleBinaryAssumption(
-      CExpression expression, boolean truthAssumption, CFAEdge edge) throws CPATransferException {
+  private Set<ApronState> handleBinaryAssumption(CExpression expression, boolean truthAssumption)
+      throws CPATransferException {
     CBinaryExpression binExp = (CBinaryExpression) expression;
 
     Double leftVal = binExp.getOperand1().accept(new CLiteralExpressionVisitor());
@@ -453,7 +453,6 @@ public class ApronTransferRelation
                               new Texpr0BinNode(Texpr0BinNode.OP_SUB, constantMin, innerExp)))));
             }
           }
-          default -> throw new UnrecognizedCodeException("unknown binary operator", edge, binExp);
         }
       }
     }
@@ -981,7 +980,6 @@ public class ApronTransferRelation
                 returnCoefficients.add(new Texpr0CstNode(new Interval(1, 1)));
               }
             }
-            default -> throw new AssertionError("Unhandled case statement");
           }
         }
       }

@@ -150,7 +150,6 @@ public class DssAnalysisWorker extends DssWorker {
         //noinspection ResultOfMethodCallIgnored
         dssBlockAnalysis.shouldRepeatAnalysis((DssPostConditionMessage) message);
       }
-      default -> throw new AssertionError("MessageType " + message.getType() + " does not exist");
     }
   }
 

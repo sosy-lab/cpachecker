@@ -116,7 +116,6 @@ public class TargetFunctionsProvider {
           // Not necessary, only matching functions are in the
           // candidateFunctions set
         }
-        default -> throw new AssertionError();
       }
     }
     return predicates.stream().reduce((a, b) -> true, BiPredicate::and);

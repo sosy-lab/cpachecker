@@ -167,7 +167,6 @@ public class ReferencedVariablesCollector {
       case BlankEdge, FunctionReturnEdge -> {
         // nothing to do
       }
-      default -> throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
     }
   }
 

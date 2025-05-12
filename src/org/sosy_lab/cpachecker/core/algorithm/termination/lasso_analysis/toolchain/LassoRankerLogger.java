@@ -107,7 +107,6 @@ public class LassoRankerLogger implements ILogger {
       case OFF -> {
         // logging disabled
       }
-      default -> throw new AssertionError("Unhandled loglevel: " + pLevel);
     }
   }
 

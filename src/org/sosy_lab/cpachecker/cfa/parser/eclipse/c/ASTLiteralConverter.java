@@ -370,9 +370,6 @@ class ASTLiteralConverter {
         }
       }
       case U, UL, ULL -> stream = stream.filter(x -> !x.isSigned());
-      default ->
-          throw new CFAGenerationRuntimeException(
-              String.format("Unhandled suffix: %s", pDenotedSuffix.name()));
     }
 
     return stream.collect(ImmutableList.toImmutableList());
