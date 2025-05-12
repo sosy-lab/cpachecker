@@ -18,7 +18,6 @@ public class ExistsEquivalenceCheck implements EquivalenceCheck {
   private final Solver solver;
 
   public ExistsEquivalenceCheck(Solver pSolver) {
-    // Constructor implementation
     solver = pSolver;
   }
 

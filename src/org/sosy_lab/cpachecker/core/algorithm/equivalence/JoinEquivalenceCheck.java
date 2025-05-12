@@ -19,7 +19,6 @@ public class JoinEquivalenceCheck implements EquivalenceCheck {
   private final Solver solver;
 
   public JoinEquivalenceCheck(Solver pSolver) {
-    // Constructor implementation
     solver = pSolver;
   }
 
