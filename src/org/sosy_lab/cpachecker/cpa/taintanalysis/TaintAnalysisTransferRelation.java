@@ -23,18 +23,32 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -281,6 +295,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
 
+    if(pStatement instanceof CExpressionStatement) { // TODO: implement, see taintByCommaOperator, line 19
+      logger.log(Level.INFO, "Statement is an expression statement");
+    }
+
     if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
       String functionName = callExpr.getFunctionNameExpression().toString();
@@ -289,6 +307,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         List<CExpression> params = callExpr.getParameterExpressions();
 
         if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToSanitize) {
+          // TODO: this already handles the tainting of arrays, but still check whether further cases are needed
           CExpression sanitizationFlag = params.get(1);
 
           try {
@@ -311,11 +330,59 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       } else if ("__VERIFIER_is_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
-        if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToCheck) {
+        if (params.size() == 2) {
           CExpression taintCheck = params.get(1);
+          int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
 
-          try {
-            int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
+          if (params.get(0) instanceof CPointerExpression pointerToCheck) {
+            logger.log(Level.INFO, "first parameter is a CPointerExpression");
+          }
+
+          if (params.get(0) instanceof CFieldReference fieldToCheck) {
+            logger.log(Level.INFO, "first parameter is a CFieldReference");
+          }
+
+          if (params.get(0) instanceof CArraySubscriptExpression arraySubscriptToCheck) {
+            logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
+          }
+
+          if (params.get(0) instanceof CUnaryExpression unaryExpression) {
+            logger.log(Level.INFO, "first parameter is a CUnaryExpression");
+          }
+
+          if (params.get(0) instanceof CBinaryExpression binaryExpression) {
+            logger.log(Level.INFO, "first parameter is a CBinaryExpression");
+            Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(binaryExpression);
+
+          }
+
+          if (params.get(0) instanceof CCastExpression castExpression) {
+            logger.log(Level.INFO, "first parameter is a CCastExpression");
+          }
+
+          if (params.get(0) instanceof CTypeIdExpression typeIdExpression) {
+            logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
+          }
+
+          if (params.get(0) instanceof CCharLiteralExpression charLiteralExpression) {
+            logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
+          }
+
+          if (params.get(0) instanceof CStringLiteralExpression stringLiteralExpression) {
+            logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
+          }
+
+          if (params.get(0) instanceof CFloatLiteralExpression floatLiteralExpression) {
+            logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
+          }
+
+          if (params.get(0) instanceof CIntegerLiteralExpression integerLiteralExpression) {
+            logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
+          }
+
+          // add further cases where the first parameter is a longer expression e.g. x + y * z
+          if (params.get(0) instanceof CIdExpression variableToCheck) {
+            logger.log(Level.INFO, "first parameter is a CIdExpression");
 
             boolean isCurrentlyTainted = pState.getTaintedVariables().contains(variableToCheck);
 
@@ -344,16 +411,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               newState.setViolatesProperty();
               return newState;
             }
-
-          } catch (CPATransferException e) {
-            logger.log(Level.WARNING, "Invalid public assertion detected: " + e.getMessage());
-            throw new CPATransferException("Error processing public assertion", e);
           }
         }
       }
     }
 
     if (pStatement instanceof CExpressionAssignmentStatement) {
+      // E.g.: z = x * x + y;
       CLeftHandSide lhs =
           ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
       CExpression rhs =
@@ -390,7 +454,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           }
         }
       }
-    } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
+    }
+
+    if (pStatement instanceof CFunctionCallAssignmentStatement) {
+      // e.g., x = __VERIFIER_nondet_int();
       CLeftHandSide lhs =
           ((CFunctionCallAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
       if (lhs instanceof CIdExpression variableLHS) {
