@@ -14,7 +14,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -106,7 +105,7 @@ public class SeqDefaultStatement implements SeqThreadStatement {
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        SeqThreadStatementClauseUtil.replaceTargetGotoLabel(injectedStatements, pTargetPc));
+        injectedStatements);
   }
 
   @Override

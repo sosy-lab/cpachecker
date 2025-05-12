@@ -155,8 +155,15 @@ public class SeqThreadStatementClauseUtil {
     if (isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       // for pc writes, use clause labels
-      int index = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      return pCurrentStatement.cloneWithTargetPc(index);
+      int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
+      // for injected statements (e.g. bitvector gotos), use the block label
+      int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
+      ImmutableList<SeqInjectedStatement> newInjectedStatements =
+          SeqThreadStatementClauseUtil.replaceTargetGotoLabel(
+              pCurrentStatement.getInjectedStatements(), blockIndex);
+      return pCurrentStatement
+          .cloneWithTargetPc(clauseIndex)
+          .cloneWithInjectedStatements(newInjectedStatements);
 
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockGotoLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
