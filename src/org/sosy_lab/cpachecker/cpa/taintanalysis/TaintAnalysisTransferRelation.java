@@ -404,24 +404,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           killedVars.add(variableLHS);
         }
       }
-    } else if (pStatement instanceof CFunctionCallStatement) {
-
-      // Finally, check if Statement is a call to a sink and if any tainted variables are given as
-      // argument
-      if (isSink((CFunctionCallStatement) pStatement)) {
-        CFunctionCallExpression call =
-            ((CFunctionCallStatement) pStatement).getFunctionCallExpression();
-        boolean leaked =
-            call.getParameterExpressions().stream()
-                .filter(e -> e instanceof CIdExpression)
-                .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
-        if (leaked) {
-          logger.log(Level.WARNING, "Leaking information");
-          TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
-          newState.setViolatesProperty();
-          return newState;
-        }
-      }
     }
 
     return generateNewState(pState, killedVars, generatedVars);
