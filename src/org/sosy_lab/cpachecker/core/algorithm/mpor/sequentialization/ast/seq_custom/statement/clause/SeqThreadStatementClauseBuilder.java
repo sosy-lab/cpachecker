@@ -79,7 +79,7 @@ public class SeqThreadStatementClauseBuilder {
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabelCases =
         pOptions.consecutiveLabels
-            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabels(reducedCases)
+            ? SeqThreadStatementClauseUtil.cloneWithConsecutiveLabelNumbers(reducedCases)
             : reducedCases;
     // if enabled, ensure that all label and target pc are valid
     return pOptions.validatePc

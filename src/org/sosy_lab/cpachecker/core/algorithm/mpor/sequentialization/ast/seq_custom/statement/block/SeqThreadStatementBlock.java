@@ -85,13 +85,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return new SeqThreadStatementBlock(options, gotoLabel, pStatements);
   }
 
-  public SeqThreadStatementBlock cloneWithLabelNumberAndStatements(
-      int pLabelNumber, ImmutableList<SeqThreadStatement> pStatements) {
-
-    return new SeqThreadStatementBlock(
-        options, gotoLabel.cloneWithLabelNumber(pLabelNumber), pStatements);
-  }
-
   public boolean startsAtomicBlock() {
     return getFirstStatement() instanceof SeqAtomicBeginStatement;
   }

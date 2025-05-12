@@ -124,7 +124,7 @@ class BitVectorReadWriteInjector {
             mergedBlock.cloneWithStatements(newMergedStatements.build());
         newMergedBlocks.add(newMergedBlock);
       }
-      rInjected.add(clause.cloneWithBlockAndMergedBlock(newBlock, newMergedBlocks.build()));
+      rInjected.add(clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
     return rInjected.build();
   }
@@ -278,7 +278,8 @@ class BitVectorReadWriteInjector {
               injectBitVectorInitializationsIntoBlock(
                   pOptions, pBitVectorVariables, mergedBlock, pWithBitVectors));
         }
-        newClauses.add(clause.cloneWithBlockAndMergedBlock(newBlock, newMergedBlocks.build()));
+        newClauses.add(
+            clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
       }
       rInjected.put(entry.getKey(), newClauses.build());
     }

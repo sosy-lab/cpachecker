@@ -198,7 +198,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
    */
   private static int getLabelNumberOrIndex(SeqStatement pStatement, int pIndex) {
     return pStatement instanceof SeqThreadStatementClause
-        ? ((SeqThreadStatementClause) pStatement).getLabelNumber()
+        ? ((SeqThreadStatementClause) pStatement).labelNumber
         : pIndex;
   }
 }
