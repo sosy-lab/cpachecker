@@ -76,7 +76,7 @@ public class SeqThreadStatementClauseUtil {
     for (SubstituteEdge substituteEdge : pStatement.getSubstituteEdges()) {
       for (CVariableDeclaration variable :
           substituteEdge.getGlobalVariablesByAccessType(pAccessType)) {
-        assert variable.isGlobal();
+        assert variable.isGlobal() : "collected variables in SubstituteEdge must be global";
         pFound.add(variable);
       }
     }
@@ -94,17 +94,30 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * A helper mapping {@link SeqThreadStatementClause}s to their label values which are always
-   * {@code int} values in the sequentialization.
+   * Maps the first {@link SeqThreadStatementBlock} in each {@link SeqThreadStatementClause}s to
+   * their label number.
    */
   public static ImmutableMap<Integer, SeqThreadStatementClause> mapLabelNumberToClause(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      rOriginPcs.put(caseClause.labelNumber, caseClause);
+    for (SeqThreadStatementClause caseClause : pClauses) {
+      rOriginPcs.put(caseClause.getLabelNumber(), caseClause);
     }
     return rOriginPcs.buildOrThrow();
+  }
+
+  /** Maps {@link SeqThreadStatementBlock}s to their label numbers. */
+  public static ImmutableMap<Integer, SeqThreadStatementBlock> mapLabelNumberToBlock(
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
+    for (SeqThreadStatementClause clause : pClauses) {
+      for (SeqThreadStatementBlock block : clause.getAllBlocks()) {
+        rMap.put(block.getGotoLabel().labelNumber, block);
+      }
+    }
+    return rMap.buildOrThrow();
   }
 
   /**
@@ -145,12 +158,14 @@ public class SeqThreadStatementClauseUtil {
         int mergeBlockIndex =
             Objects.requireNonNull(labelToIndexMap.get(mergedBlock.getGotoLabel().labelNumber));
         newMergedBlocks.add(
-            mergedBlock.cloneWithLabelAndStatements(mergeBlockIndex, newMergedStatements.build()));
+            mergedBlock.cloneWithLabelNumberAndStatements(
+                mergeBlockIndex, newMergedStatements.build()));
       }
-      int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.labelNumber));
+      int index = Objects.requireNonNull(labelToIndexMap.get(caseClause.getLabelNumber()));
       rConsecutiveLabels.add(
-          caseClause.cloneWithLabelAndBlockStatementsAndMergedBlocks(
-              index, newStatements.build(), newMergedBlocks.build()));
+          caseClause.cloneWithBlockAndMergedBlock(
+              caseClause.block.cloneWithLabelNumberAndStatements(index, newStatements.build()),
+              newMergedBlocks.build()));
     }
     return rConsecutiveLabels.build();
   }
@@ -161,7 +176,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     int index = 0;
     for (SeqThreadStatementClause clause : pCaseClauses) {
-      rLabelToIndex.put(clause.labelNumber, index++);
+      rLabelToIndex.put(clause.getLabelNumber(), index++);
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
         rLabelToIndex.put(mergedBlock.getGotoLabel().labelNumber, index++);
       }
@@ -262,7 +277,7 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatement firstStatement = pCurrent.block.getFirstStatement();
       SeqThreadStatementClause next = pLabelCaseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";
-      if (pCurrent.labelNumber + 1 == next.labelNumber) {
+      if (pCurrent.getLabelNumber() + 1 == next.getLabelNumber()) {
         return isConsecutiveLabelPath(next, pTarget, pLabelCaseMap);
       } else {
         return false;

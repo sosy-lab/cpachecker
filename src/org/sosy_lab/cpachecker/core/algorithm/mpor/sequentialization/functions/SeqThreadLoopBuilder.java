@@ -276,28 +276,29 @@ public class SeqThreadLoopBuilder {
       PcVariables pPcVariables,
       MPORThread pThread,
       SeqThreadLoopLabelStatement pAssumeLabel,
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     CExpression pcExpression = pPcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
 
     ImmutableList.Builder<SeqThreadStatementClause> pUpdatedCases = ImmutableList.builder();
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
+    for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
+      for (SeqThreadStatement statement : clause.block.getStatements()) {
         SeqThreadStatement newStatement =
             SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
                 iterationSmallerMax, pAssumeLabel, statement, labelValueMap);
         newStatements.add(newStatement);
       }
-      pUpdatedCases.add(caseClause.cloneWithBlockStatements(newStatements.build()));
+      pUpdatedCases.add(
+          clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
     }
     SeqSwitchStatement switchStatement =
         new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);

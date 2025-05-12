@@ -234,7 +234,6 @@ public class SeqThreadStatementClauseBuilder {
         new SeqThreadStatementClause(
             anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
-            labelPc,
             new SeqThreadStatementBlock(pOptions, gotoLabel, statements.build())));
   }
 

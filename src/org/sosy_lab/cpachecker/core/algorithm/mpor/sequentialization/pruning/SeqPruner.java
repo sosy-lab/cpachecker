@@ -52,9 +52,10 @@ public class SeqPruner {
           rPruned.put(
               thread,
               ImmutableList.of(
-                  threadExit.labelNumber == Sequentialization.INIT_PC
+                  threadExit.getLabelNumber() == Sequentialization.INIT_PC
                       ? threadExit
-                      : threadExit.cloneWithLabel(Sequentialization.INIT_PC)));
+                      : threadExit.cloneWithBlock(
+                          threadExit.block.cloneWithLabelNumber(Sequentialization.INIT_PC))));
         } else {
           rPruned.put(thread, pruneSingleThreadCaseClauses(caseClauses));
         }
@@ -109,10 +110,10 @@ public class SeqPruner {
       ImmutableMap<Integer, Integer> pPcUpdates) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rUpdatedTargetPc = ImmutableList.builder();
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
-      if (!caseClause.onlyWritesPc()) {
+    for (SeqThreadStatementClause clause : pCaseClauses) {
+      if (!clause.onlyWritesPc()) {
         ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-        for (SeqThreadStatement statement : caseClause.block.getStatements()) {
+        for (SeqThreadStatement statement : clause.block.getStatements()) {
           if (statement.getTargetPc().isPresent()) {
             int targetPc = statement.getTargetPc().orElseThrow();
             if (pPcUpdates.containsKey(targetPc)) {
@@ -125,7 +126,8 @@ public class SeqPruner {
           // otherwise add unchanged statement
           newStatements.add(statement);
         }
-        rUpdatedTargetPc.add(caseClause.cloneWithBlockStatements(newStatements.build()));
+        rUpdatedTargetPc.add(
+            clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
       }
     }
     return rUpdatedTargetPc.build();
@@ -166,7 +168,7 @@ public class SeqPruner {
       }
     }
     // otherwise return label pc of the found non-blank
-    return pNonBlank.labelNumber;
+    return pNonBlank.getLabelNumber();
   }
 
   private static SeqThreadStatementClause getThreadExitCaseClause(

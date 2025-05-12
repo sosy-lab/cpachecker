@@ -48,7 +48,7 @@ public class StatementLinker {
       ImmutableList<SeqThreadStatementClause> pCaseClauses,
       ImmutableSet.Builder<Integer> pClauseTargets) {
 
-    ImmutableList.Builder<SeqThreadStatementClause> rNewCaseClauses = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
 
@@ -59,9 +59,10 @@ public class StatementLinker {
         newStatements.add(
             linkStatements(i == 0, clause.isGlobal, statement, labelValueMap, pClauseTargets));
       }
-      rNewCaseClauses.add(clause.cloneWithBlockStatements(newStatements.build()));
+      rNewClauses.add(
+          clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
     }
-    return rNewCaseClauses.build();
+    return rNewClauses.build();
   }
 
   /**

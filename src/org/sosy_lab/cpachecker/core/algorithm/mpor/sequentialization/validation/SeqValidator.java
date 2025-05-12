@@ -136,7 +136,7 @@ public class SeqValidator {
       for (SeqThreadStatement statement : caseClause.getAllStatements()) {
         targetPcs.addAll(SeqThreadStatementClauseUtil.collectAllIntegerTargetPc(statement));
       }
-      rPcMap.put(caseClause.labelNumber, targetPcs.build());
+      rPcMap.put(caseClause.getLabelNumber(), targetPcs.build());
     }
     return rPcMap.buildOrThrow();
   }

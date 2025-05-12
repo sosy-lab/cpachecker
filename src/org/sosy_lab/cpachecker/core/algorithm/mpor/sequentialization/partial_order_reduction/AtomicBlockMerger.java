@@ -54,7 +54,8 @@ public class AtomicBlockMerger {
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(injectAtomicGotosIntoStatement(statement, pLabelMap));
       }
-      rWithGotos.add(clause.cloneWithBlockStatements(newStatements.build()));
+      rWithGotos.add(
+          clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
     }
     return rWithGotos.build();
   }

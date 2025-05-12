@@ -87,9 +87,9 @@ class BitVectorAccessInjector {
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
-    for (SeqThreadStatementClause caseClause : pCaseClauses) {
+    for (SeqThreadStatementClause clause : pCaseClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : caseClause.block.getStatements()) {
+      for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
             injectBitVectorsIntoSingleStatement(
                 pOptions,
@@ -99,7 +99,7 @@ class BitVectorAccessInjector {
                 pBitVectorVariables,
                 labelValueMap));
       }
-      rInjected.add(caseClause.cloneWithBlockStatements(newStatements.build()));
+      rInjected.add(clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
     }
     return rInjected.build();
   }

@@ -93,7 +93,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   private static String buildCasePrefix(SeqStatement pStatement, int pIndex) {
     if (pStatement instanceof SeqThreadStatementClause clause) {
       // if case statement is clause, use label number
-      return buildCaseWithLabelNumber(clause, clause.labelNumber);
+      return buildCaseWithLabelNumber(clause, clause.getLabelNumber());
     } else {
       // otherwise enumerate from 0 to caseNum - 1
       return buildCaseWithLabelNumber(pStatement, pIndex);

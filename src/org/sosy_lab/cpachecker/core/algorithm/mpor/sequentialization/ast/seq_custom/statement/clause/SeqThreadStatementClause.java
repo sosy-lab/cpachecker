@@ -34,8 +34,6 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public final boolean isLoopStart;
 
-  public final int labelNumber;
-
   // TODO why not merge block and mergedBlocks into just blocks? should make for better architecture
 
   /** The case block e.g. {@code fib(42); break;} */
@@ -47,12 +45,11 @@ public class SeqThreadStatementClause implements SeqStatement {
   public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
 
   public SeqThreadStatementClause(
-      boolean pIsGlobal, boolean pIsLoopStart, int pLabelNumber, SeqThreadStatementBlock pBlock) {
+      boolean pIsGlobal, boolean pIsLoopStart, SeqThreadStatementBlock pBlock) {
 
     id = getNewId();
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
-    labelNumber = pLabelNumber;
     block = pBlock;
     mergedBlocks = ImmutableList.of();
   }
@@ -62,16 +59,19 @@ public class SeqThreadStatementClause implements SeqStatement {
       int pId,
       boolean pIsGlobal,
       boolean pIsLoopStart,
-      int pLabelNumber,
       SeqThreadStatementBlock pBlock,
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     id = pId;
     isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
-    labelNumber = pLabelNumber;
     block = pBlock;
     mergedBlocks = pMergedBlocks;
+  }
+
+  /** Returns the label number of the very first {@link SeqThreadStatementBlock} in this clause. */
+  public int getLabelNumber() {
+    return block.getGotoLabel().labelNumber;
   }
 
   public ImmutableList<SeqThreadStatementBlock> getAllBlocks() {
@@ -87,28 +87,14 @@ public class SeqThreadStatementClause implements SeqStatement {
     return rAll.build();
   }
 
-  public SeqThreadStatementClause cloneWithLabel(int pLabelNumber) {
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, pLabelNumber, block, mergedBlocks);
-  }
-
-  public SeqThreadStatementClause cloneWithBlockStatements(
-      ImmutableList<SeqThreadStatement> pStatements) {
-
-    return new SeqThreadStatementClause(
-        id,
-        isGlobal,
-        isLoopStart,
-        labelNumber,
-        block.cloneWithStatements(pStatements),
-        mergedBlocks);
+  public SeqThreadStatementClause cloneWithBlock(SeqThreadStatementBlock pBlock) {
+    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, pBlock, mergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithMergedBlocks(
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, labelNumber, block, pMergedBlocks);
+    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, block, pMergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithAddedMergedBlocks(
@@ -123,22 +109,7 @@ public class SeqThreadStatementClause implements SeqStatement {
   public SeqThreadStatementClause cloneWithBlockAndMergedBlock(
       SeqThreadStatementBlock pBlock, ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, labelNumber, pBlock, pMergedBlocks);
-  }
-
-  public SeqThreadStatementClause cloneWithLabelAndBlockStatementsAndMergedBlocks(
-      int pLabelNumber,
-      ImmutableList<SeqThreadStatement> pStatements,
-      ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
-
-    return new SeqThreadStatementClause(
-        id,
-        isGlobal,
-        isLoopStart,
-        pLabelNumber,
-        block.cloneWithLabelAndStatements(pLabelNumber, pStatements),
-        pMergedBlocks);
+    return new SeqThreadStatementClause(id, isGlobal, isLoopStart, pBlock, pMergedBlocks);
   }
 
   /**
