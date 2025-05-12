@@ -147,8 +147,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
       case DeclarationEdge -> {
         if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
-          return Collections.singleton(
-              handleDeclarationEdge(state, declarationEdge));
+          return Collections.singleton(handleDeclarationEdge(state, declarationEdge));
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -286,7 +285,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.FINE, "declaration is instance of CTypeDefDeclaration");
     }
 
-      return generateNewState(pState, killedVars, generatedVars);
+    return generateNewState(pState, killedVars, generatedVars);
   }
 
   private TaintAnalysisState handleStatementEdge(TaintAnalysisState pState, CStatementEdge pCfaEdge)
@@ -295,7 +294,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
 
-    if(pStatement instanceof CExpressionStatement) { // TODO: implement, see taintByCommaOperator, line 19
+    if (pStatement
+        instanceof CExpressionStatement) { // TODO: implement, see taintByCommaOperator, line 19
       logger.log(Level.INFO, "Statement is an expression statement");
     }
 
@@ -307,7 +307,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         List<CExpression> params = callExpr.getParameterExpressions();
 
         if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToSanitize) {
-          // TODO: this already handles the tainting of arrays, but still check whether further cases are needed
+          // TODO: this already handles the tainting of arrays, but still check whether further
+          // cases are needed
           CExpression sanitizationFlag = params.get(1);
 
           try {
@@ -352,8 +353,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (params.get(0) instanceof CBinaryExpression binaryExpression) {
             logger.log(Level.INFO, "first parameter is a CBinaryExpression");
-            Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(binaryExpression);
-
+            Set<CIdExpression> allVarsAsCExpr =
+                TaintAnalysisUtils.getAllVarsAsCExpr(binaryExpression);
           }
 
           if (params.get(0) instanceof CCastExpression castExpression) {
