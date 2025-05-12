@@ -134,7 +134,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       case DeclarationEdge -> {
         if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
           return Collections.singleton(
-              handleDeclarationEdge(state, declarationEdge, declarationEdge.getDeclaration()));
+              handleDeclarationEdge(state, declarationEdge));
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -194,35 +194,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return generateNewState(pState, killedVars, generatedVars);
   }
 
-  private TaintAnalysisState handleDeclarationEdge(
-      TaintAnalysisState pState, CDeclarationEdge pCfaEdge, CDeclaration pDeclaration) {
-    Set<CIdExpression> killedVars = new HashSet<>();
-    Set<CIdExpression> generatedVars = new HashSet<>();
-
-    if (pDeclaration instanceof CVariableDeclaration) {
-      CVariableDeclaration dec = (CVariableDeclaration) pCfaEdge.getDeclaration();
-      CInitializer initializer = dec.getInitializer();
-      CIdExpression variableLHS = TaintAnalysisUtils.getCidExpressionForCVarDec(dec);
-      // If a RHS contains an expression with a tainted variable, also mark the variable on the
-      // LHS as tainted. If no variable or not expression is present, kill is
-      if (Objects.nonNull(initializer) && initializer instanceof CInitializerExpression) {
-        CExpression expr = ((CInitializerExpression) initializer).getExpression();
-        boolean taintedVarsRHS =
-            TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
-                .anyMatch(var -> pState.getTaintedVariables().contains(var));
-        if (taintedVarsRHS) {
-          generatedVars.add(variableLHS);
-        } else {
-          killedVars.add(variableLHS);
-        }
-      } else {
-        killedVars.add(variableLHS);
-      }
-    }
-
-    return generateNewState(pState, killedVars, generatedVars);
-  }
-
   @SuppressWarnings("unused")
   private TaintAnalysisState handleFunctionCallEdge(
       TaintAnalysisState pState,
@@ -259,6 +230,49 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> generatedVars = new HashSet<>();
 
     return generateNewState(pState, killedVars, generatedVars);
+  }
+
+  private TaintAnalysisState handleDeclarationEdge(
+      TaintAnalysisState pState, CDeclarationEdge pCfaEdge) {
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
+
+    CDeclaration pDeclaration = pCfaEdge.getDeclaration();
+
+    if (pDeclaration instanceof CVariableDeclaration) {
+      CVariableDeclaration dec = (CVariableDeclaration) pCfaEdge.getDeclaration();
+      CInitializer initializer = dec.getInitializer();
+      CIdExpression variableLHS = TaintAnalysisUtils.getCidExpressionForCVarDec(dec);
+      // If a RHS contains an expression with a tainted variable, also mark the variable on the
+      // LHS as tainted. If no variable or not expression is present, kill it.
+      if (Objects.nonNull(initializer) && initializer instanceof CInitializerExpression) {
+        CExpression expr = ((CInitializerExpression) initializer).getExpression();
+        boolean taintedVarsRHS =
+            TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
+                .anyMatch(var -> pState.getTaintedVariables().contains(var));
+        if (taintedVarsRHS) {
+          generatedVars.add(variableLHS);
+        } else {
+          killedVars.add(variableLHS);
+        }
+      } else {
+        killedVars.add(variableLHS);
+      }
+    }
+
+    if (pDeclaration instanceof CFunctionDeclaration) {
+      logger.log(Level.FINE, "declaration is instance of CFunctionDeclaration");
+    }
+
+    if (pDeclaration instanceof CComplexTypeDeclaration) {
+      logger.log(Level.FINE, "declaration is instance of CComplexTypeDeclaration");
+    }
+
+    if (pDeclaration instanceof CTypeDefDeclaration) {
+      logger.log(Level.FINE, "declaration is instance of CTypeDefDeclaration");
+    }
+
+      return generateNewState(pState, killedVars, generatedVars);
   }
 
   private TaintAnalysisState handleStatementEdge(TaintAnalysisState pState, CStatementEdge pCfaEdge)
