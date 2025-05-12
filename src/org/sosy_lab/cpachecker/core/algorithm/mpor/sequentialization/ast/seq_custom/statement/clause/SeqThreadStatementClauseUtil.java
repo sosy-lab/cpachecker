@@ -178,12 +178,12 @@ public class SeqThreadStatementClauseUtil {
         ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
         // add previous injections BEFORE (otherwise undefined behavior in seq!)
         newInjections.addAll(pCurrentStatement.getInjectedStatements());
-        SeqThreadStatementClause target = pLabelValueMap.get(targetPc);
+        SeqThreadStatementClause target = Objects.requireNonNull(pLabelValueMap.get(targetPc));
         newInjections.add(
             new SeqThreadLoopGotoStatement(
                 pIterationSmallerMax,
                 // for statements targeting starts of critical sections, assumes are reevaluated
-                priorCriticalSection(pCurrentStatement)
+                target.requiresAssumeEvaluation()
                     ? pAssumeLabel
                     : Objects.requireNonNull(target).block.getGotoLabel()));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
@@ -191,10 +191,6 @@ public class SeqThreadStatementClauseUtil {
     }
     // no int target pc -> no replacement
     return pCurrentStatement;
-  }
-
-  public static boolean priorCriticalSection(SeqThreadStatement pStatement) {
-    return pStatement.getInjectedStatements().stream().anyMatch(i -> i.priorCriticalSection());
   }
 
   public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {

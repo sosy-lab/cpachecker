@@ -14,9 +14,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 
 public interface SeqInjectedStatement extends SeqStatement {
 
-  // TODO remove, this always returns false
-  boolean priorCriticalSection();
-
   /** The thread simulation variable of this injected statement, used for assumptions. */
   Optional<CIdExpression> getIdExpression();
 }

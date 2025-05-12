@@ -34,11 +34,6 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEva
   }
 
   @Override
-  public boolean priorCriticalSection() {
-    return false;
-  }
-
-  @Override
   public Optional<CIdExpression> getIdExpression() {
     return Optional.empty();
   }

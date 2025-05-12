@@ -149,7 +149,6 @@ class BitVectorReadWriteInjector {
           newInjected.addAll(bitVectorAssignments);
           Optional<SeqBitVectorReadWriteEvaluationStatement> evaluation =
               buildBitVectorReadWriteEvaluationStatements(
-                  pCurrentStatement,
                   bitVectorAssignments,
                   BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
                       pOptions,
@@ -216,22 +215,21 @@ class BitVectorReadWriteInjector {
 
   private static Optional<SeqBitVectorReadWriteEvaluationStatement>
       buildBitVectorReadWriteEvaluationStatements(
-          SeqThreadStatement pCurrentStatement,
           ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
           BitVectorEvaluationExpression pBitVectorEvaluation,
           SeqThreadStatementClause pTarget) {
 
     // no bit vector evaluation if prior to critical sections, so that loop head is evaluated
-    if (!SeqThreadStatementClauseUtil.priorCriticalSection(pCurrentStatement)) {
-      boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
-      // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
-      Optional<BitVectorEvaluationExpression> expression =
-          allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
-      SeqBitVectorReadWriteEvaluationStatement rEvaluation =
-          new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.block.getGotoLabel());
-      return Optional.of(rEvaluation);
+    if (pTarget.requiresAssumeEvaluation()) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
+    // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
+    Optional<BitVectorEvaluationExpression> expression =
+        allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
+    SeqBitVectorReadWriteEvaluationStatement rEvaluation =
+        new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.block.getGotoLabel());
+    return Optional.of(rEvaluation);
   }
 
   // Bit Vector Initialization =====================================================================

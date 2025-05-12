@@ -31,11 +31,6 @@ public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
   }
 
   @Override
-  public boolean priorCriticalSection() {
-    return false;
-  }
-
-  @Override
   public Optional<CIdExpression> getIdExpression() {
     return Optional.empty();
   }

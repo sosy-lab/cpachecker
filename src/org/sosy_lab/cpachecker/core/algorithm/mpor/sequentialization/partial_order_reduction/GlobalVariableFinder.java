@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_or
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -50,7 +51,8 @@ public class GlobalVariableFinder {
 
     ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
-      Set<SeqThreadStatement> found = Set.of(statement);
+      Set<SeqThreadStatement> found = new HashSet<>();
+      found.add(statement);
       rGlobalVariables.addAll(
           recursivelyFindGlobalVariablesByAccessType(
               found, pLabelBlockMap, statement, pAccessType));

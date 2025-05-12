@@ -27,11 +27,6 @@ public class SeqBitVectorAssignmentStatement implements SeqInjectedBitVectorStat
     value = pValue;
   }
 
-  @Override
-  public boolean priorCriticalSection() {
-    return false;
-  }
-
   // TODO remove this or add another interface, its confusing...
   @Override
   public Optional<CIdExpression> getIdExpression() {
