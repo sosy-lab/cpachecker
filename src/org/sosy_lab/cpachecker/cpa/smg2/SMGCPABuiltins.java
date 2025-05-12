@@ -1256,6 +1256,11 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateExternalAllocationFunction(
       CFunctionCallExpression pFunctionCall, SMGState pState) {
 
+    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)) {
+      // Non-allocating call, return unknown value.
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+    }
+
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
     Value allocationSize =
         new NumericValue(BigInteger.valueOf(options.getExternalAllocationSize()));

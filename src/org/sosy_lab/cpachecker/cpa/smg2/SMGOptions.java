@@ -83,8 +83,9 @@ public class SMGOptions {
               + " the result is a UNKNOWN value (which may itself violate memorysafety etc.)."
               + " ASSUME_EXTERNAL_ALLOCATED: Input into the function is checked for validity and"
               + " may cause memory based errors. Returned values are unknown, but in a valid new"
-              + " memory section that can be freed normally with the size defined by option"
-              + " externalAllocationSize.")
+              + " memory section that can be freed normally. Functions allocating external memory"
+              + " and returning their address can be defined with option"
+              + " externalAllocationFunction. externalAllocationSize.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
   @Option(
@@ -250,13 +251,15 @@ public class SMGOptions {
   @Option(
       secure = true,
       name = "externalAllocationFunction",
-      description = "Functions which indicate on external allocated memory")
+      description =
+          "Functions which return externally allocated memory with bit size defined by option"
+              + " externalAllocationSize")
   private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of("ext_allocation");
 
   @Option(
       secure = true,
       name = "externalAllocationSize",
-      description = "Default size of externally allocated memory")
+      description = "Default bit size of externally allocated memory")
   private int externalAllocationSize = Integer.MAX_VALUE;
 
   @Option(
