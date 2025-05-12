@@ -30,16 +30,19 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.PredicateOperatorUtil.UniqueIndexProvider;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExportableToFormula;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -49,7 +52,8 @@ public abstract sealed class PredicateAbstractState
         Partitionable,
         Serializable,
         Splitable,
-        ViolationConditionReportingState {
+        ViolationConditionReportingState,
+        ExportableToFormula {
 
   @Serial private static final long serialVersionUID = -265763837277453447L;
 
@@ -227,6 +231,12 @@ public abstract sealed class PredicateAbstractState
     public BooleanFormula getViolationCondition(FormulaManagerView manager) {
       return getFormulaApproximation(manager);
     }
+
+    @Override
+    public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr)
+        throws CPATransferException, InterruptedException {
+      return getAbstractionFormula().asFormulaFromOtherSolver(fmgr);
+    }
   }
 
   private static final class NonAbstractionState extends PredicateAbstractState {
@@ -281,6 +291,12 @@ public abstract sealed class PredicateAbstractState
       return PredicateOperatorUtil.uninstantiate(
               getPathFormula(), manager, UniqueIndexProvider.withUUID())
           .booleanFormula();
+    }
+
+    @Override
+    public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr)
+        throws CPATransferException, InterruptedException {
+      return getAbstractionFormula().asFormulaFromOtherSolver(fmgr);
     }
   }
 

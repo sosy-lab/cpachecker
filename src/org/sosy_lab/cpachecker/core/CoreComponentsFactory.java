@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ExportARGLeafs;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationByImport;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
@@ -381,6 +382,12 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.exportARGLeaves",
+      description = "Whether to export the leaves of the ARG as formula.")
+  private boolean exportLeaves = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.importFaults",
       description = "Import faults stored in a JSON format.")
   private boolean useImportFaults = false;
@@ -723,6 +730,9 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
+      }
+      if (exportLeaves) {
+        algorithm = new ExportARGLeafs(config, logger, shutdownNotifier, specification, cfa);
       }
     }
 

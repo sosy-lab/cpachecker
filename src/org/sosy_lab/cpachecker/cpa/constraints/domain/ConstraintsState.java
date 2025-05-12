@@ -18,9 +18,17 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExportableToFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.SymbolicExpressionToCExpressionTransformer;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -28,7 +36,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  * satisfiability. This class is immutable.
  */
 public final class ConstraintsState extends ForwardingSet<Constraint>
-    implements AbstractState, Graphable {
+    implements AbstractState, Graphable, ExportableToFormula {
 
   /** The constraints of this state */
   private final ImmutableSet<Constraint> constraints;
@@ -197,5 +205,18 @@ public final class ConstraintsState extends ForwardingSet<Constraint>
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  @Override
+  public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr)
+      throws CPATransferException, InterruptedException {
+    PathFormula formula = pfmgr.makeEmptyPathFormula();
+    for (Constraint constraint : constraints) {
+      SymbolicExpressionToCExpressionTransformer constraintVisitor =
+          new SymbolicExpressionToCExpressionTransformer();
+      CExpression expr = constraint.accept(constraintVisitor);
+      formula = pfmgr.makeAnd(formula, expr);
+    }
+    return formula.getFormula();
   }
 }

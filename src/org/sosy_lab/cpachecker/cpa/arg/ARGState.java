@@ -37,11 +37,17 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperSt
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithDummyLocation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
+import org.sosy_lab.cpachecker.core.interfaces.ExportableToFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class ARGState extends AbstractSerializableSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable {
+    implements Comparable<ARGState>, Graphable, Splitable, ExportableToFormula {
 
   @Serial private static final long serialVersionUID = 2608287648397165040L;
 
@@ -584,5 +590,21 @@ public class ARGState extends AbstractSerializableSingleWrapperState
     } else {
       assert !pOtherParent.children.contains(this) : "Problem detected!";
     }
+  }
+
+  @Override
+  public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr)
+      throws CPATransferException, InterruptedException {
+    BooleanFormulaManagerView bmgr = fmgr.getBooleanFormulaManager();
+    BooleanFormula conjunction = bmgr.makeTrue();
+    for (AbstractState flatState : AbstractStates.asIterable(this)) {
+      if (flatState == this) {
+        continue;
+      }
+      if (flatState instanceof ExportableToFormula exportable) {
+        conjunction = bmgr.and(conjunction, exportable.toFormula(fmgr, pfmgr));
+      }
+    }
+    return conjunction;
   }
 }
