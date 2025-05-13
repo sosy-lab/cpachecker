@@ -61,6 +61,17 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
     solver = pSolver;
   }
 
+  private ValueTransferBasedStrongestPostOperator createValueTransferBasedStrongestPostOperator(
+      CFA pCfa) throws InvalidConfigurationException {
+    CtoFormulaConverter converter =
+        initializeCToFormulaConverter(
+            solver.getFormulaManager(), logger, config, shutdownNotifier, pCfa.getMachineModel());
+    ConstraintsSolver constraintsSolver =
+        new ConstraintsSolver(
+            config, solver, solver.getFormulaManager(), converter, new ConstraintsStatistics());
+    return new ValueTransferBasedStrongestPostOperator(constraintsSolver, logger, config, pCfa);
+  }
+
   @Override
   public SafeAndUnsafeConstraints export(ReachedSet pReachedSet, CFA pCfa, AlgorithmStatus pStatus)
       throws CPAException, InterruptedException, InvalidConfigurationException {
@@ -72,14 +83,6 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
             shutdownNotifier,
             pCfa,
             AnalysisDirection.FORWARD);
-    CtoFormulaConverter converter =
-        initializeCToFormulaConverter(
-            solver.getFormulaManager(), logger, config, shutdownNotifier, pCfa.getMachineModel());
-    ConstraintsSolver constraintsSolver =
-        new ConstraintsSolver(
-            config, solver, solver.getFormulaManager(), converter, new ConstraintsStatistics());
-    ValueTransferBasedStrongestPostOperator strongestPostOperator =
-        new ValueTransferBasedStrongestPostOperator(constraintsSolver, logger, config, pCfa);
     FluentIterable<ARGState> statesWithoutChildren =
         LeafStrategy.filterStatesWithNoChildren(pReachedSet);
     ImmutableList.Builder<BooleanFormula> safe = ImmutableList.builder();
@@ -87,8 +90,7 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
     for (ARGState state : statesWithoutChildren) {
       for (ARGPath path : ARGUtils.getAllPaths(pReachedSet, state)) {
         BooleanFormula formula =
-            runSymbolicExecutionOnCex(
-                path.getFullPath(), pCfa, strongestPostOperator, pathFormulaManager);
+            runSymbolicExecutionOnCex(path.getFullPath(), pCfa, pathFormulaManager);
         if (state.isTarget()) {
           unsafe.add(formula);
         } else {
@@ -125,15 +127,14 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
         AnalysisDirection.FORWARD);
   }
 
-  private BooleanFormula runSymbolicExecutionOnCex(
-      List<CFAEdge> cex,
-      CFA cfa,
-      ValueTransferBasedStrongestPostOperator strongestPostOperator,
-      PathFormulaManagerImpl pathFormulaManager)
-      throws CPAException, InterruptedException {
+  BooleanFormula runSymbolicExecutionOnCex(
+      List<CFAEdge> cex, CFA cfa, PathFormulaManagerImpl pathFormulaManager)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     ForgettingCompositeState currentState =
         new ForgettingCompositeState(
             new ValueAnalysisState(cfa.getMachineModel()), new ConstraintsState());
+    ValueTransferBasedStrongestPostOperator strongestPostOperator =
+        createValueTransferBasedStrongestPostOperator(cfa);
     for (CFAEdge edge : cex) {
       currentState =
           strongestPostOperator

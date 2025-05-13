@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.Safe
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.ExistsEquivalenceCheck;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.JoinEquivalenceCheck;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.LeafStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.equivalence.MixEquivalenceStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.SymbolicExecutionLeafStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -50,7 +51,8 @@ public class ExportARGLeafs implements Algorithm {
 
   enum LeafStrategies {
     SYMBOLIC_EXECUTION,
-    ARG
+    ARG,
+    MIX
   }
 
   enum EquivalenceStrategies {
@@ -59,7 +61,7 @@ public class ExportARGLeafs implements Algorithm {
   }
 
   @Option(description = "Which strategy to use for leaf export")
-  private LeafStrategies strategy = LeafStrategies.ARG;
+  private LeafStrategies leafStrategy = LeafStrategies.MIX;
 
   @Option(description = "Which strategy to use for equivalence checking")
   private EquivalenceStrategies equivalenceStrategy = EquivalenceStrategies.EXISTS;
@@ -108,12 +110,13 @@ public class ExportARGLeafs implements Algorithm {
     inputProgram = pCFA;
   }
 
-  private LeafStrategy getStrategy() {
-    return switch (strategy) {
+  private LeafStrategy getLeafStrategy() {
+    return switch (leafStrategy) {
       case SYMBOLIC_EXECUTION ->
           new SymbolicExecutionLeafStrategy(config, logger, shutdownNotifier, solver);
       case ARG -> new ARGLeafStrategy(config, logger, shutdownNotifier, solver);
-      default -> throw new AssertionError("Unknown strategy: " + strategy);
+      case MIX -> new MixEquivalenceStrategy(config, logger, shutdownNotifier, solver);
+      default -> throw new AssertionError("Unknown strategy: " + leafStrategy);
     };
   }
 
@@ -135,14 +138,19 @@ public class ExportARGLeafs implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    logger.logf(
+        Level.INFO,
+        "Running leaf strategy %s with the %s equivalence check",
+        leafStrategy,
+        equivalenceStrategy);
     pReachedSet.clear();
     try {
       ImmutableMap.Builder<Path, SafeAndUnsafeConstraints> data = ImmutableMap.builder();
       data.put(
           inputProgram.getFileNames().get(0),
-          equivalenceRunner.runStrategy(inputProgram, getStrategy()));
+          equivalenceRunner.runStrategy(inputProgram, getLeafStrategy()));
       for (Path program : programs) {
-        data.put(program, equivalenceRunner.runStrategy(createCfa(program), getStrategy()));
+        data.put(program, equivalenceRunner.runStrategy(createCfa(program), getLeafStrategy()));
       }
       ImmutableMap<Path, SafeAndUnsafeConstraints> constraints = data.buildOrThrow();
       if (constraints.isEmpty()) {
@@ -190,8 +198,9 @@ public class ExportARGLeafs implements Algorithm {
       }
 
       StringBuilder csvBuilder = new StringBuilder();
-      csvBuilder.append(
-          String.format("Original\tMutant\t%s\tSafe\n", EquivalenceData.getCsvHeader()));
+      csvBuilder
+          .append(String.format("Original\tMutant\t%s\tSafe", EquivalenceData.getCsvHeader()))
+          .append('\n');
       for (EquivalenceResult result : safeResults.build()) {
         csvBuilder
             .append(
