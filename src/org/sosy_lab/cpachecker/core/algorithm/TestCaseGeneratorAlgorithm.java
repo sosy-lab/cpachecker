@@ -214,7 +214,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  runExtractorAlgo(pReached);
+                  runExtractorAlgo(pReached, reachedState);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -282,27 +282,40 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // eReached is a single arg state thats the starting point of the extraction value analysis
   // after the algo is done, the newly reached states are added to this variable
-  private void runExtractorAlgo(final ReachedSet eReached) {// not as its own class, changes in the target edges need to be done in TCGA
-    Boolean goalsLeft = true;
+  private void runExtractorAlgo(
+      final ReachedSet eReached,
+      AbstractState reachedState) {// not as its own class, changes in the target edges need to be done in TCGA
+
     assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 //
-//  status = extractorAlgo.run(extractorReached);
-// try catch finaly block
+//  status = extractorAlgo.run(eReached);
+// todo add try catch finaly block
 //
-//  targetAbstractStates = from(extractorReached).filter(AbstractStates::isTargetState);
+//    todo call processGoalState() for all elements of eReached that are testTargets
+//  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
+    //processGoalState(reachedState);
+  }
 
-    while (goalsLeft == true) {
-//      AbstractState reachedState =
-//        from(eReached).firstMatch(AbstractStates::isTargetState).orNull();
-//    if (reachedState == null) {
-//      goalsLeft = false;
-//    } else {
-//      ARGState argState = (ARGState) reachedState;
-//      ARGState parentArgState = getParentArgState(argState);
-//      CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
-//      testTargets.remove(targetEdge);
-//      }
-//    }
+  private void processGoalState(AbstractState nextGoalState) {
+    if (nextGoalState == null) {
+      return;
+    }
+    ARGState argState = (ARGState) nextGoalState;
+    ARGState parentArgState = getParentArgState(argState);
+    CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
+    if (targetEdge != null) {
+      if (testTargets.contains(targetEdge)) {
+        logger.log(Level.FINE, "Removing test target: " + targetEdge);
+        testTargets.remove(targetEdge);
+      } else {
+        logger.log( //todo remove this logger message?
+            Level.FINE,
+            "Found test target is not in provided set of test targets or that was already covered:"
+                + targetEdge);
+      }
+    } else { //todo update logger?
+      logger.log(Level.FINE, "Target edge was null.");
+    }
   }
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
