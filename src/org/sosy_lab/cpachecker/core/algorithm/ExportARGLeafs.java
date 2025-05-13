@@ -162,6 +162,7 @@ public class ExportARGLeafs implements Algorithm {
       ImmutableList.Builder<EquivalenceResult> safeResults = ImmutableList.builder();
       ImmutableList.Builder<EquivalenceResult> unsafeResults = ImmutableList.builder();
       int index = 0;
+      Files.createDirectories(touchedLinesOut);
       for (Entry<Path, SafeAndUnsafeConstraints> firstConstraint : constraints.entrySet()) {
         index++;
         status = status.update(firstConstraint.getValue().status());
