@@ -365,6 +365,13 @@ public final class PredicateAbstractionManager {
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
+    /* Provide the LemmaPrecision with a map of instantiated variables to their concrete values
+    TODO: This is only a temporary hack!
+     */
+    ConcreteValueExtractionVisitor valueExtractor =
+        new ConcreteValueExtractionVisitor(solver.getRealFormulaManager());
+    pLemmaPrecision.setValueMap(fmgr.visit(symbFormula, valueExtractor));
+
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
       // TODO we do not yet support multiple CFA nodes per abstraction here
@@ -492,6 +499,7 @@ public final class PredicateAbstractionManager {
       abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
     } else {
+      // Boolean Abstraction
       abs =
           rmgr.makeAnd(
               abs, computeAbstraction(f, remainingPredicates, instantiator, pLemmaPrecision));
@@ -1093,8 +1101,12 @@ public final class PredicateAbstractionManager {
       BooleanFormula var = p.getSymbolicVariable();
 
       // Replace the calls for a lemma in the predicate with the definition of the lemma
+      /*
       BooleanFormula atom = (BooleanFormula) fmgr.visit(p.getSymbolicAtom(), lemmaVisitor);
       final BooleanFormula def = instantiator.apply(atom);
+       */
+      BooleanFormula def = instantiator.apply(p.getSymbolicAtom());
+      def = (BooleanFormula) fmgr.visit(def, lemmaVisitor);
 
       assert !bfmgr.isFalse(def);
 
