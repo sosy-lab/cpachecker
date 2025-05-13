@@ -143,7 +143,6 @@ public class ConstraintsCPA
     return switch (mergeType) {
       case SEP -> MergeSepOperator.getInstance();
       case JOIN_FITTING_CONSTRAINT -> new ConstraintsMergeOperator(stats);
-      default -> throw new AssertionError("Unhandled merge type " + mergeType);
     };
   }
 
@@ -155,9 +154,6 @@ public class ConstraintsCPA
     abstractDomain =
         switch (lessOrEqualType) {
           case SUBSET -> SubsetLessOrEqualOperator.getInstance();
-          default ->
-              throw new AssertionError(
-                  "Unhandled type for less-or-equal operator: " + lessOrEqualType);
         };
 
     return abstractDomain;

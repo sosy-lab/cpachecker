@@ -98,24 +98,19 @@ class PointerVisitor extends ExpressionValueVisitor {
     UnaryOperator unaryOperator = unaryExpression.getOperator();
     CExpression unaryOperand = unaryExpression.getOperand();
 
-    switch (unaryOperator) {
-      case AMPER:
-        return handleAmper(unaryOperand);
-
-      case SIZEOF:
-        throw new UnrecognizedCodeException(
-            "Misinterpreted the expression type of "
-                + unaryOperand.toASTString()
-                + " as pointer type",
-            cfaEdge,
-            unaryExpression);
-
-      case MINUS:
-      case TILDE:
-      default:
-        // Can't evaluate these Addresses
-        return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
-    }
+    return switch (unaryOperator) {
+      case AMPER -> handleAmper(unaryOperand);
+      case ALIGNOF, SIZEOF ->
+          throw new UnrecognizedCodeException(
+              "Misinterpreted the expression type of "
+                  + unaryOperand.toASTString()
+                  + " as pointer type",
+              cfaEdge,
+              unaryExpression);
+      case MINUS, TILDE ->
+          // Can't evaluate these Addresses
+          Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
+    };
   }
 
   private List<SMGAddressValueAndState> handleAmper(CRightHandSide amperOperand)

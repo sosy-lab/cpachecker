@@ -8,10 +8,20 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -19,6 +29,7 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
@@ -27,6 +38,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,6 +56,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
@@ -75,9 +89,11 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -219,6 +235,18 @@ public class CFACreator {
 
   @Option(
       secure = true,
+      name = "cfa.pathForExportingVariablesInScopeWithTheirType",
+      description =
+          "the path to export a json mapping which for each"
+              + " location contains the variables"
+              + " in scope and their type. Please be aware that this "
+              + "is **not** a stable interface and the output format of "
+              + "the file may change in future versions.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path pathForExportingVariablesInScopeWithTheirType = null;
+
+  @Option(
+      secure = true,
       name = "cfa.pixelGraphicFile",
       description =
           "Export CFA as pixel graphic to the given file name. The suffix is added"
@@ -325,6 +353,8 @@ public class CFACreator {
     private final List<Statistics> statisticsCollection;
     private final LogManager logger;
 
+    private @Nullable Thread exportThread;
+
     private CFACreatorStatistics(LogManager pLogger) {
       logger = pLogger;
       statisticsCollection = new ArrayList<>();
@@ -346,6 +376,11 @@ public class CFACreator {
       out.println("    Time for loop structure:  " + loopStructureTime);
       out.println("    Time for AST structure:   " + astStructureTime);
 
+      if (exportThread != null) {
+        // If export is still running we should wait such that statistics are correct
+        // and we don't kill the export once CPAchecker terminates.
+        Uninterruptibles.joinUninterruptibly(exportThread);
+      }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
       }
@@ -662,7 +697,8 @@ public class CFACreator {
         || ((exportFunctionCallsFile != null) && exportFunctionCalls)
         || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
         || (exportCfaPixelFile != null)
-        || (exportCfaToCFile != null && exportCfaToC)) {
+        || (exportCfaToCFile != null && exportCfaToC)
+        || (pathForExportingVariablesInScopeWithTheirType != null)) {
       exportCFAAsync(immutableCFA);
     }
 
@@ -1122,7 +1158,96 @@ public class CFACreator {
   private void exportCFAAsync(final CFA cfa) {
     // Execute asynchronously, this may take several seconds for large programs on slow disks.
     // This is safe because we don't modify the CFA from this point on.
-    Concurrency.newThread("CFA export thread", () -> exportCFA(cfa)).start();
+    stats.exportThread = Concurrency.newThread("CFA export thread", () -> exportCFA(cfa));
+    stats.exportThread.start();
+  }
+
+  /**
+   * A helper class to have some information about the type of a variable at a certain point in the
+   * scope
+   */
+  private record AVariableDeclarationExchange(
+      @JsonProperty("name") @NonNull String name,
+      @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
+
+    public AVariableDeclarationExchange {
+      checkNotNull(name);
+      checkNotNull(simpleType);
+    }
+  }
+
+  /**
+   * Export a json file containing information about what the types of variables are at a certain
+   * location in the program.
+   *
+   * @param pCFA the CFA to export the information from
+   */
+  private void exportTypeInformationForEachVariable(CFA pCFA) {
+    // This is a map from a filename, line and column to a set of variable names with their types
+    // at that location.
+    // To be able to export this to json we need to separate this mapping from a triple to a set
+    // into multiple maps each one with a single key.
+    Map<String, Map<Integer, Map<Integer, Set<AVariableDeclarationExchange>>>>
+        locationToVariablesInScope = new HashMap<>();
+
+    for (CFANode node : pCFA.nodes()) {
+      Optional<FileLocation> statementContainingNode =
+          pCFA.getAstCfaRelation().getStatementFileLocationForNode(node);
+      if (statementContainingNode.isEmpty()) {
+        continue;
+      }
+
+      Optional<FluentIterable<AbstractSimpleDeclaration>> declarationAtNode =
+          pCFA.getAstCfaRelation().getVariablesAndParametersInScope(node);
+
+      if (declarationAtNode.isEmpty()) {
+        continue;
+      }
+
+      Set<AVariableDeclarationExchange> variables =
+          declarationAtNode
+              .orElseThrow()
+              .filter(Predicates.notNull())
+              .transform(
+                  declaration ->
+                      declaration.getType() instanceof CSimpleType pCSimpleType
+                          ? new AVariableDeclarationExchange(
+                              declaration.getOrigName(), pCSimpleType.getType())
+                          : null)
+              .toSet();
+
+      // create a new map if it does not exist
+      FileLocation statementFileLocation = statementContainingNode.orElseThrow();
+      String filename = statementFileLocation.getFileName().toString();
+      Integer lineNumber = statementFileLocation.getStartingLineNumber();
+      Integer columnNumber = statementFileLocation.getStartColumnInLine();
+      locationToVariablesInScope.putIfAbsent(filename, new HashMap<>());
+      locationToVariablesInScope.get(filename).putIfAbsent(lineNumber, new HashMap<>());
+      locationToVariablesInScope
+          .get(filename)
+          .get(lineNumber)
+          .putIfAbsent(columnNumber, new HashSet<>());
+      locationToVariablesInScope.get(filename).get(lineNumber).get(columnNumber).addAll(variables);
+    }
+
+    ObjectMapper mapper = new ObjectMapper(JsonFactory.builder().build());
+    mapper.setSerializationInclusion(Include.NON_NULL);
+
+    try (Writer writer =
+        IO.openOutputFile(
+            pathForExportingVariablesInScopeWithTheirType, Charset.defaultCharset())) {
+      mapper.writeValue(writer, locationToVariablesInScope);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Could not serialize the variables in scope to json.", e);
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          String.format(
+              "exporting information about what variables are in scope at each statement in the CFA"
+                  + " to %s  failed due to not being able to write to the output file.",
+              pathForExportingVariablesInScopeWithTheirType));
+    }
   }
 
   private void exportCFA(final CFA cfa) {
@@ -1184,6 +1309,10 @@ public class CFACreator {
       } catch (CPAException | IOException | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
+    }
+
+    if (pathForExportingVariablesInScopeWithTheirType != null) {
+      exportTypeInformationForEachVariable(cfa);
     }
 
     stats.exportTime.stop();

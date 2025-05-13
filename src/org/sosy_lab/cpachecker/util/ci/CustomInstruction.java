@@ -480,8 +480,6 @@ public class CustomInstruction {
               ((CFunctionSummaryEdge) aciEdge).getExpression(),
               ciVarToAciVar,
               outVariables);
-      default ->
-          throw new AssertionError("Unhandeled enum value in switch: " + ciEdge.getEdgeType());
     }
   }
 

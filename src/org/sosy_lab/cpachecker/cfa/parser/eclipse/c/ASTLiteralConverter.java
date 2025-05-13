@@ -280,9 +280,6 @@ class ASTLiteralConverter {
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
             case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
-            default ->
-                throw parseContext.parseError(
-                    String.format("invalid constant type: %s", type.name()), e);
           };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);
@@ -373,9 +370,6 @@ class ASTLiteralConverter {
         }
       }
       case U, UL, ULL -> stream = stream.filter(x -> !x.isSigned());
-      default ->
-          throw new CFAGenerationRuntimeException(
-              String.format("Unhandled suffix: %s", pDenotedSuffix.name()));
     }
 
     return stream.collect(ImmutableList.toImmutableList());

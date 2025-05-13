@@ -114,23 +114,17 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private PointerState getAbstractSuccessor(PointerState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    PointerState resultState = pState;
-    switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge -> resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
-      case BlankEdge -> {}
-      case CallToReturnEdge -> {}
-      case DeclarationEdge ->
-          resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
-      case FunctionCallEdge ->
-          resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
-      case FunctionReturnEdge ->
-          resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
+    return switch (pCfaEdge.getEdgeType()) {
+      case AssumeEdge -> handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
+      case BlankEdge -> pState;
+      case CallToReturnEdge -> pState;
+      case DeclarationEdge -> handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
+      case FunctionCallEdge -> handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
+      case FunctionReturnEdge -> handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
       case ReturnStatementEdge ->
-          resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
-      case StatementEdge -> resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
-      default -> throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
-    }
-    return resultState;
+          handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
+      case StatementEdge -> handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
+    };
   }
 
   private PointerState handleFunctionReturnEdge(PointerState pState, CFunctionReturnEdge pCfaEdge)

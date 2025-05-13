@@ -520,43 +520,36 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL -> {
-        return getSizeofBool();
-      }
-      case CHAR -> {
-        return getSizeofChar();
-      }
-      case FLOAT -> {
-        return getSizeofFloat();
-      }
+    return switch (type.getType()) {
+      case BOOL -> getSizeofBool();
+
+      case CHAR -> getSizeofChar();
+
+      case FLOAT -> getSizeofFloat();
+
       case UNSPECIFIED, INT -> {
         // unspecified is the same as int
         if (type.hasLongLongSpecifier()) {
-          return getSizeofLongLongInt();
+          yield getSizeofLongLongInt();
         } else if (type.hasLongSpecifier()) {
-          return getSizeofLongInt();
+          yield getSizeofLongInt();
         } else if (type.hasShortSpecifier()) {
-          return getSizeofShortInt();
+          yield getSizeofShortInt();
         } else {
-          return getSizeofInt();
+          yield getSizeofInt();
         }
       }
-      case INT128 -> {
-        return getSizeofInt128();
-      }
+      case INT128 -> getSizeofInt128();
+
       case DOUBLE -> {
         if (type.hasLongSpecifier()) {
-          return getSizeofLongDouble();
+          yield getSizeofLongDouble();
         } else {
-          return getSizeofDouble();
+          yield getSizeofDouble();
         }
       }
-      case FLOAT128 -> {
-        return getSizeofFloat128();
-      }
-      default -> throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
+      case FLOAT128 -> getSizeofFloat128();
+    };
   }
 
   public ByteOrder getEndianness() {

@@ -149,7 +149,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- google-java-format
              A source-code formatter for Java -->
-        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.26.0" conf="format-source->default"/>
+        <dependency org="com.google.googlejavaformat" name="google-java-format" rev="1.27.0" conf="format-source->default"/>
 
         <!-- SpotBugs -->
         <dependency org="com.github.spotbugs" name="spotbugs-ant" rev="4.9.3" conf="spotbugs->default"/>
@@ -159,21 +159,21 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.44.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.23.0" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.23.1" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
         <!-- We do not ship GPLv3 licensed software like the SMT solver Yices2.
              The user has to enable such components directly.
              We provide the following configuration for this case.
-             A user can either replace the configuration of JavaSMT with the 'complete' runtime configuration:
+             A user can either replace the configuration of JavaSMT below with the 'complete' runtime configuration:
              <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime; contrib->sources">
              or just add the additional dependency 'javasmt-yices2':
-             <dependency org="org.sosy_lab" name="javasmt-yices2" rev="4.1.1-734-g3732f7e08" conf="runtime->runtime; contrib->sources"/>
+             <dependency org="org.sosy_lab" name="javasmt-yices2" rev="5.0.0" conf="runtime->runtime; contrib->sources"/>
         -->
+        <dependency org="org.sosy_lab" name="java-smt" rev="5.0.0" conf="runtime->runtime-without-gpl; contrib->sources">
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
         </dependency>

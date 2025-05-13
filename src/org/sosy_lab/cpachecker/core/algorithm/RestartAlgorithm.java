@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -515,7 +515,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         pCfa,
         singleShutdownManager,
         aggregateReached,
-        Sets.newHashSet("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
+        ImmutableSet.of("restartAlgorithm.configFiles", "analysis.restartAfterUnknown"),
         stats.getSubStatistics());
   }
 

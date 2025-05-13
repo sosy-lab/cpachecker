@@ -176,7 +176,6 @@ public class SMTHeapReadAndWriteTest extends SMTHeapBasedTest0 {
     return switch (heapToUse) {
       case SINGLE_BYTE_ARRAY -> TEST_TARGET_PRE + model.getSizeofPtrInBits();
       case ARRAYS, UF -> TEST_TARGET_PRE + model.getSizeofPtrInBits() + "_" + length;
-      default -> throw new AssertionError();
     };
   }
 

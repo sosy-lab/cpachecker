@@ -29,7 +29,7 @@ def create_arg_parser():
     parser.add_argument(
         "--messages-json",
         help="Path to directory containing JSON files sent during distributed block analysis.",
-        default="output/block_analysis/block_analysis",
+        default="output/block_analysis/messages",
     )
     parser.add_argument(
         "--block-structure-json",

@@ -554,13 +554,11 @@ class ASTConverter {
     // check condition kind so we can eventually skip creating an unnecessary branch
     Condition conditionKind = getConditionKind(e.getLogicalConditionExpression());
 
-    switch (conditionKind) {
-      case ALWAYS_TRUE -> {
-        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-      }
-      case ALWAYS_FALSE -> {
-        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-      }
+    return switch (conditionKind) {
+      case ALWAYS_TRUE -> convertExpressionWithSideEffects(e.getPositiveResultExpression());
+
+      case ALWAYS_FALSE -> convertExpressionWithSideEffects(e.getNegativeResultExpression());
+
       case NORMAL -> {
         // this means the return value (if there could be one) of the conditional
         // expression is not used
@@ -569,16 +567,15 @@ class ASTConverter {
 
           // TODO we should not return a variable here, however null cannot be returned
           // perhaps we need a DummyExpression here
-          return CIntegerLiteralExpression.ZERO;
+          yield CIntegerLiteralExpression.ZERO;
         }
 
         CIdExpression tmp = createTemporaryVariableWithTypeOf(e);
         assert !(tmp.getExpressionType() instanceof CVoidType);
         sideAssignmentStack.addConditionalExpression(e, tmp);
-        return tmp;
+        yield tmp;
       }
-      default -> throw new AssertionError("Unhandled case statement: " + conditionKind);
-    }
+    };
   }
 
   /**
@@ -602,7 +599,6 @@ class ASTConverter {
                 yield Condition.NORMAL;
               }
             }
-            default -> throw new AssertionError("unhandled case statement");
           };
         }
         case IASTBinaryExpression.op_logicalOr -> {
@@ -618,7 +614,6 @@ class ASTConverter {
                 yield right;
               }
             }
-            default -> throw new AssertionError("unhandled case statement");
           };
         }
         default -> throw new AssertionError("unhandled case statement");

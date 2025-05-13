@@ -175,7 +175,6 @@ public abstract class ConditionFolder {
       case LOOP_BOUND -> new BoundUnrollingLoopFolder(pCfa, pConfig);
       case LOOP_BOUND_SAME_CONTEXT -> new BoundUnrollingContextLoopFolder(pCfa, pConfig);
       case LOOP_SAME_CONTEXT -> new ContextLoopFolder(pCfa);
-      default -> throw new AssertionError("Unknown condition folder.");
     };
   }
 

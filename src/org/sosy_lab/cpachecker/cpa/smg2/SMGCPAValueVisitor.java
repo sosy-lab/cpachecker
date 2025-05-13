@@ -1075,24 +1075,24 @@ public class SMGCPAValueVisitor
     final TypeIdOperator idOperator = e.getOperator();
     final CType innerType = e.getType();
 
-    switch (idOperator) {
-      case SIZEOF:
+    return switch (idOperator) {
+      case SIZEOF -> {
         BigInteger size = evaluator.getBitSizeof(state, innerType);
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
-
-      case ALIGNOF:
+        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
+      }
+      case ALIGNOF -> {
         BigInteger align = evaluator.getAlignOf(innerType);
-        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
-
-      case TYPEOF: // This can't really be solved here as we can only return Values
-
-      default:
+        yield ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
+      }
+      case TYPEOF -> {
+        // This can't really be solved here as we can only return Values
         logger.log(
             Level.WARNING,
             "Approximated unknown value due to missing handling of type id expression in "
                 + cfaEdge);
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
-    }
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
+      }
+    };
   }
 
   @Override
@@ -2351,7 +2351,6 @@ public class SMGCPAValueVisitor
           factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
-      default -> throw new AssertionError("Unhandled binary operation " + pOperator);
     };
   }
 

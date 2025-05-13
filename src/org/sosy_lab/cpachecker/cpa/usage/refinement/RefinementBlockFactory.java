@@ -153,9 +153,6 @@ public class RefinementBlockFactory {
                         currentBlock,
                     RelationForSharedRefiner);
           }
-          default ->
-              throw new InvalidConfigurationException(
-                  "The type " + RefinementChain.get(i) + " is not supported");
         }
       } else {
         throw new InvalidConfigurationException(

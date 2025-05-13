@@ -152,7 +152,6 @@ public class StateSimplifier {
             }
           }
         }
-        default -> throw new AssertionError("Unhandled activity type: " + s.getActivity());
       }
     }
 
@@ -206,7 +205,6 @@ public class StateSimplifier {
             t.markDeleted();
           }
         }
-        default -> throw new AssertionError("Unhandled state of ActivityInfo: " + t.getActivity());
       }
     }
 

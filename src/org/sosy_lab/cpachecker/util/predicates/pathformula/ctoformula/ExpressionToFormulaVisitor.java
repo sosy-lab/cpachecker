@@ -464,7 +464,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CUnaryExpression exp) throws UnrecognizedCodeException {
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
-    switch (op) {
+    return switch (op) {
       case MINUS, TILDE -> {
         // Handle Integer Promotion
         CType t = operand.getExpressionType();
@@ -495,20 +495,16 @@ public class ExpressionToFormulaVisitor
                 + mgr.getFormulaType(ret)
                 + " do not match in visit(CUnaryExpression) for "
                 + exp;
-        return ret;
+        yield ret;
       }
-      case AMPER -> {
-        return visitDefault(exp);
-      }
+      case AMPER -> visitDefault(exp);
+
       case SIZEOF -> {
         CType lCType = exp.getOperand().getExpressionType();
-        return getSizeExpression(lCType);
+        yield getSizeExpression(lCType);
       }
-      case ALIGNOF -> {
-        return handleAlignOf(exp, exp.getOperand().getExpressionType());
-      }
-      default -> throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
-    }
+      case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
+    };
   }
 
   @Override

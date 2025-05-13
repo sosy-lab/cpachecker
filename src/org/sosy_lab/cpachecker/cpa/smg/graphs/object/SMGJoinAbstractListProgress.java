@@ -41,7 +41,6 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
       case RIGHT_ENTAIL -> updateREntailSegment(candidateLengths, pPrevCandidate);
       case LEFT_ENTAIL -> updateLEntailSegment(candidateLengths, pPrevCandidate);
       case INCOMPARABLE -> updateIncomparableSegment(candidateLengths, pPrevCandidate);
-      default -> throw new AssertionError();
     }
   }
 

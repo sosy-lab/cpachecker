@@ -96,17 +96,10 @@ public class ToCodeFormulaVisitor
       }
       return CNumericTypes.INT;
     } else if (pTypeInfo instanceof FloatingPointTypeInfo fpTypeInfo) {
-      switch (fpTypeInfo) {
-        case FLOAT -> {
-          return CNumericTypes.FLOAT;
-        }
-        case DOUBLE -> {
-          return CNumericTypes.DOUBLE;
-        }
-        default -> {
-          // do nothing and throw the AssertionError below
-        }
-      }
+      return switch (fpTypeInfo) {
+        case FLOAT -> CNumericTypes.FLOAT;
+        case DOUBLE -> CNumericTypes.DOUBLE;
+      };
     }
     throw new AssertionError("Unsupported type: " + pTypeInfo);
   }

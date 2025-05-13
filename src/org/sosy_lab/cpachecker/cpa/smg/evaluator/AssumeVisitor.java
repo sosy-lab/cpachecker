@@ -221,29 +221,21 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         impliesEqWhenTrue = true;
         impliesNeqWhenFalse = true;
       }
-      case GREATER_EQUAL, LESS_EQUAL, LESS_THAN, GREATER_THAN -> {
-        switch (pOp) {
-          case LESS_EQUAL:
-          case GREATER_EQUAL:
-            if (areEqual) {
-              isTrue = true;
-              impliesEqWhenTrue = true;
-              impliesNeqWhenFalse = true;
-            } else {
-              impliesNeqWhenFalse = true;
-            }
-            break;
-          case GREATER_THAN:
-          case LESS_THAN:
-            if (areEqual) {
-              isFalse = true;
-            }
-
-            impliesNeqWhenTrue = true;
-            break;
-          default:
-            throw new AssertionError("Impossible case thrown");
+      case LESS_EQUAL, GREATER_EQUAL -> {
+        if (areEqual) {
+          isTrue = true;
+          impliesEqWhenTrue = true;
+          impliesNeqWhenFalse = true;
+        } else {
+          impliesNeqWhenFalse = true;
         }
+      }
+      case GREATER_THAN, LESS_THAN -> {
+        if (areEqual) {
+          isFalse = true;
+        }
+
+        impliesNeqWhenTrue = true;
       }
       default -> throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
     }

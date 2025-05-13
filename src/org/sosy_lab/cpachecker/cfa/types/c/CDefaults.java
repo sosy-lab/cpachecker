@@ -52,7 +52,6 @@ public final class CDefaults {
                 fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
-        default -> throw new AssertionError("Unknown basic type '" + basicType + "'");
       };
 
     } else if (type instanceof CEnumType) {

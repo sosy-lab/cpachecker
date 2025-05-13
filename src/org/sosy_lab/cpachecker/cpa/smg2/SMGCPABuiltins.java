@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,8 +103,8 @@ public class SMGCPABuiltins {
 
   // TODO: Properly model printf (dereferences and stuff)
   // TODO: General modelling system for functions which do not modify state?
-  private final Set<String> BUILTINS =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> BUILTINS =
+      ImmutableSet.of(
           "__VERIFIER_BUILTIN_PLOT",
           "memcpy",
           "memcmp",
@@ -231,56 +231,51 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocation(cFCExpression, pState);
+      return evaluateExternalAllocationFunction(cFCExpression, pState);
     }
 
-    switch (calledFunctionName) {
-      case "alloca":
-      case "__builtin_alloca":
-        return evaluateAlloca(cFCExpression, pState, pCfaEdge);
+    return switch (calledFunctionName) {
+      case "alloca", "__builtin_alloca" -> evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
-      case "memset":
-        return evaluateMemset(cFCExpression, pState, pCfaEdge);
+      case "memset" -> evaluateMemset(cFCExpression, pState, pCfaEdge);
 
-      case "memcpy":
-        return evaluateMemcpy(cFCExpression, pState, pCfaEdge);
+      case "memcpy" -> evaluateMemcpy(cFCExpression, pState, pCfaEdge);
 
-      case "memcmp":
-        return evaluateMemcmp(cFCExpression, pState, pCfaEdge);
+      case "memcmp" -> evaluateMemcmp(cFCExpression, pState, pCfaEdge);
 
-      case "strcmp":
-        return evaluateStrcmp(cFCExpression, pState, pCfaEdge);
+      case "strcmp" -> evaluateStrcmp(cFCExpression, pState, pCfaEdge);
 
-      case "__VERIFIER_BUILTIN_PLOT":
+      case "__VERIFIER_BUILTIN_PLOT" -> {
         evaluateVBPlot(cFCExpression, pState);
-      // $FALL-THROUGH$
-      case "printf":
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+
+      case "printf" -> {
         List<SMGState> checkedStates =
             checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE, "Returned unknown value due to call to printf function in " + pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
+        yield Collections3.transformedImmutableListCopy(
             checkedStates, ValueAndSMGState::ofUnknownValue);
+      }
 
-      case "realloc":
-        return evaluateRealloc(cFCExpression, pState, pCfaEdge);
+      case "realloc" -> evaluateRealloc(cFCExpression, pState, pCfaEdge);
 
-      case "__builtin_va_start":
-        return evaluateVaStart(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_arg":
-        return evaluateVaArg(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_copy":
-        return evaluateVaCopy(cFCExpression, pCfaEdge, pState);
-      case "__builtin_va_end":
-        return evaluateVaEnd(cFCExpression, pCfaEdge, pState);
-      case "atexit":
-        return evaluateAtExit(cFCExpression, pCfaEdge, pState);
-      case "__CPACHECKER_atexit_next":
-        return evaluateAtExitNext(pState);
+      case "__builtin_va_start" -> evaluateVaStart(cFCExpression, pCfaEdge, pState);
 
-      default:
+      case "__builtin_va_arg" -> evaluateVaArg(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_copy" -> evaluateVaCopy(cFCExpression, pCfaEdge, pState);
+
+      case "__builtin_va_end" -> evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+
+      case "atexit" -> evaluateAtExit(cFCExpression, pCfaEdge, pState);
+
+      case "__CPACHECKER_atexit_next" -> evaluateAtExitNext(pState);
+
+      default -> {
         if (isNondetBuiltin(calledFunctionName)) {
-          return Collections.singletonList(
+          yield Collections.singletonList(
               ValueAndSMGState.ofUnknownValue(
                   pState,
                   "Returned unknown value due to call to nondeterministic havoc function as defined"
@@ -290,7 +285,8 @@ public class SMGCPABuiltins {
           throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
-    }
+      }
+    };
   }
 
   /*
@@ -626,34 +622,43 @@ public class SMGCPABuiltins {
     if (calledFunctionName.contains("pthread")) {
       throw new SMGException("Concurrency analysis not supported in this configuration.");
     }
-    switch (options.getHandleUnknownFunctions()) {
-      case STRICT:
+    return switch (options.getHandleUnknownFunctions()) {
+      case STRICT -> {
         if (!isSafeFunction(calledFunctionName)) {
           throw new CPATransferException(
               String.format(
                   "Unknown function '%s' may be unsafe. See the"
                       + " cpa.smg2.SMGCPABuiltins.handleUnknownFunction()",
-                  calledFunctionName));
+                  cFCExpression));
         }
-      // fallthrough for safe functions
-      // $FALL-THROUGH$
-      case ASSUME_SAFE:
-      case ASSUME_EXTERNAL_ALLOCATED:
-        List<SMGState> checkedStates =
-            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName);
         logger.log(
             Level.FINE,
-            "Returned unknown value for unknown function that is "
-                + options.getHandleUnknownFunctions()
-                + " allocated in ",
+            "Returned unknown value for strict handling of unknown functions, but flagged as safe"
+                + " unknown function: "
+                + cFCExpression,
             pCfaEdge);
-        return Collections3.transformedImmutableListCopy(
-            checkedStates, ValueAndSMGState::ofUnknownValue);
-      default:
-        throw new UnsupportedOperationException(
-            "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
-                + options.getHandleUnknownFunctions());
-    }
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_SAFE -> {
+        logger.log(
+            Level.FINE,
+            "Returned unknown value for assumed to be safe unknown function " + cFCExpression,
+            pCfaEdge);
+        yield ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+      }
+      case ASSUME_EXTERNAL_ALLOCATED -> {
+        ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
+        for (SMGState checkedState :
+            checkAllParametersForValidity(pState, pCfaEdge, cFCExpression, calledFunctionName)) {
+          logger.log(
+              Level.FINE,
+              "Returned unknown value with allocated memory for unknown function " + cFCExpression,
+              pCfaEdge);
+          builder.addAll(evaluateExternalAllocationFunction(cFCExpression, checkedState));
+        }
+        yield builder.build();
+      }
+    };
   }
 
   /**
@@ -1244,32 +1249,32 @@ public class SMGCPABuiltins {
     }
   }
 
-  // TODO all functions are external in C, do we even need this?
-  @SuppressWarnings("unused")
-  private List<ValueAndSMGState> evaluateExternalAllocation(
-      CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGException {
-    throw new SMGException("evaluateExternalAllocation in SMGBUILTINS");
-    /*
+  private List<ValueAndSMGState> evaluateExternalAllocationFunction(
+      CFunctionCallExpression pFunctionCall, SMGState pState) {
+
+    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)) {
+      // Non-allocating call, return unknown value.
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
+    }
+
     String functionName = pFunctionCall.getFunctionNameExpression().toASTString();
+    Value allocationSize =
+        new NumericValue(BigInteger.valueOf(options.getExternalAllocationSize()));
 
-    List<ValueAndSMGState> result = new ArrayList<>();
+    // TODO line numbers are not unique when we have multiple input files!
+    String extAllocationLabel =
+        "_EXTERNAL_ALLOC_"
+            + functionName
+            + "_ID"
+            + U_ID_GENERATOR.getFreshId()
+            + "_Line:"
+            + pFunctionCall.getFileLocation().getStartingLineNumber();
 
-
-    String allocation_label =
-        functionName
-            + "_PARAMETERS_"
-            + pFunctionCall.getParameterExpressions().size()
-            + "_RETURN_"
-            + pFunctionCall.getExpressionType();
-
-
-    result.add(ValueAndSMGState.of(pState, pState.addExternalAllocation(allocation_label)));
-    addExternalAllocation would create a pointer (points to edge) to a memory region created with
-    size: options.getExternalAllocationSize(), offset: options.getExternalAllocationSize() / 2, as external
-    and i don't see why
-
-    return result;
-    */
+    // TODO: allocation is easy, but not all cases of handling external memory are implemented
+    //  currently.
+    // TODO: can this fail?
+    return ImmutableList.of(
+        evaluator.createExternalHeapMemoryAndPointer(pState, allocationSize, extAllocationLabel));
   }
 
   /**
