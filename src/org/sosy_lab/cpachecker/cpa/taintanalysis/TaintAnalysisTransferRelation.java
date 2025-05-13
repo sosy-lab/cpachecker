@@ -71,7 +71,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private static final List<String> SOURCES =
       Lists.newArrayList("__VERIFIER_nondet_int", "__VERIFIER_nondet_char");
-//  private static final List<String> SINKS = Lists.newArrayList("printf");
+  //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
 
@@ -579,11 +579,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
   }
 
-//  private boolean isSink(CFunctionCall pStatement) {
-//
-//    return SINKS.contains(
-//        pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
-//  }
+  //  private boolean isSink(CFunctionCall pStatement) {
+  //
+  //    return SINKS.contains(
+  //        pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
+  //  }
 
   private boolean isSource(CFunctionCall pStatement) {
 
