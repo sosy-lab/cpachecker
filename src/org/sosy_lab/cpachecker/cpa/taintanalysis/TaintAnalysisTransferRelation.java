@@ -523,18 +523,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pStatement instanceof CExpressionAssignmentStatement) {
+    if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
       // E.g.: z = x * x + y;
-      CLeftHandSide lhs =
-          ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
-      CExpression rhs =
-          ((CExpressionAssignmentStatement) pCfaEdge.getStatement()).getRightHandSide();
-
+      CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
+      CExpression rhs = exprAssignStmt.getRightHandSide();
       Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
 
       boolean functionContainsTaintedVar = false;
 
       if (allVarsAsCExpr.isEmpty()) {
+        // TODO: delete this string parsing. Handle every function from which we can't access the
+        // parameters via CPAchecker's parsing, as a tainting source.
         functionContainsTaintedVar = rhsOfRawStatementContainsTaintedParameters(pCfaEdge, pState);
       }
 
@@ -561,23 +560,25 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           }
         }
       }
+      // TODO: Add more instance-cases, if necessary
     }
 
-    if (pStatement instanceof CFunctionCallAssignmentStatement) {
+    if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignStmt) {
       // e.g., x = __VERIFIER_nondet_int();
-      CLeftHandSide lhs =
-          ((CFunctionCallAssignmentStatement) pCfaEdge.getStatement()).getLeftHandSide();
+      CLeftHandSide lhs = functionCallAssignStmt.getLeftHandSide();
+
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS is a function call to a source or a function that
         // takes a tainted variable as parameter, mark the variable on the LHS as tainted and
         // generate the lhs variable. Otherwise, kill the variable.
-        if (isSource((CFunctionCallAssignmentStatement) pStatement)
-            || hasTaintedParameters((CFunctionCallAssignmentStatement) pStatement, pState)) {
+        if (isSource(functionCallAssignStmt)
+            || hasTaintedParameters(functionCallAssignStmt, pState)) {
           generatedVars.add(variableLHS);
         } else {
           killedVars.add(variableLHS);
         }
       }
+      // TODO: Add more instance-cases, if necessary
     }
 
     return generateNewState(pState, killedVars, generatedVars);
