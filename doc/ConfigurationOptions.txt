@@ -267,7 +267,7 @@ analysis.algorithm.conditionAdjustment = false
 analysis.algorithm.distributedSummarySynthesis = false
 
 # Whether to export the leaves of the ARG as formula.
-analysis.algorithm.exportARGLeaves = false
+analysis.algorithm.exportARGLeafs = false
 
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false

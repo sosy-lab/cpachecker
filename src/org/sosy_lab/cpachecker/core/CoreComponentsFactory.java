@@ -382,9 +382,9 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.exportARGLeaves",
+      name = "algorithm.exportARGLeafs",
       description = "Whether to export the leaves of the ARG as formula.")
-  private boolean exportLeaves = false;
+  private boolean exportLeafs = false;
 
   @Option(
       secure = true,
@@ -523,6 +523,8 @@ public class CoreComponentsFactory {
     } else if (useRandomTestCaseGeneratorAlgorithm) {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (exportLeafs) {
+      algorithm = new ExportARGLeafs(config, logger, shutdownNotifier, specification, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -730,9 +732,6 @@ public class CoreComponentsFactory {
       }
       if (useImportFaults) {
         algorithm = new FaultLocalizationByImport(config, algorithm, cfa, logger);
-      }
-      if (exportLeaves) {
-        algorithm = new ExportARGLeafs(config, logger, shutdownNotifier, specification, cfa);
       }
     }
 
