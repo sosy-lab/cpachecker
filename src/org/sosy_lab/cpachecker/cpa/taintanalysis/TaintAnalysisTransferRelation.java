@@ -216,7 +216,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       List<? extends CExpression> pArguments,
       List<? extends AParameterDeclaration> pFunctionParameters,
       String pCalledFunctionName) {
-    // This is only needed for intra-procedural analyzes
+    // This is only needed for intra-procedural analyses
     return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
@@ -227,14 +227,14 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CFunctionSummaryEdge pSummaryEdge,
       CFunctionCall pExpression,
       String pCallerFunctionName) {
-    // This is only needed for intra-procedural analayzes
+    // This is only needed for intra-procedural analyses
     return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
   @SuppressWarnings("unused")
   private TaintAnalysisState handleFunctionSummaryEdge(
       TaintAnalysisState pState, CFunctionSummaryEdge pCfaEdge) {
-    // This is only needed for intra-procedural analayzes
+    // This is only needed for intra-procedural analyses
     return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
   }
 
@@ -722,12 +722,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         .filter(e -> e instanceof CIdExpression)
         .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
   }
-
-  //  private boolean isSink(CFunctionCall pStatement) {
-  //
-  //    return SINKS.contains(
-  //        pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
-  //  }
 
   private boolean isSource(CFunctionCall pStatement) {
 
