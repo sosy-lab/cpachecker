@@ -266,6 +266,9 @@ analysis.algorithm.conditionAdjustment = false
 # https://doi.org/10.1145/3660766 for details.
 analysis.algorithm.distributedSummarySynthesis = false
 
+# Whether to export the leaves of the ARG as formula.
+analysis.algorithm.exportARGLeaves = false
+
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
 
@@ -4465,6 +4468,26 @@ language = no default value
   enum:     [C, JAVA, LLVM]
 language = C
   enum:     [C, JAVA, LLVM]
+
+# Which abstraction to use
+leafExport.configuration = "config/svcomp25.properties"
+
+# Where to store output csv.
+leafExport.csvOut = "leafs.csv"
+
+# Which strategy to use for equivalence checking
+leafExport.equivalenceStrategy = EXISTS
+  enum:     [EXISTS, JOIN]
+
+# All equivalent programs
+leafExport.programs = []
+
+# Which strategy to use for leaf export
+leafExport.strategy = ARG
+  enum:     [SYMBOLIC_EXECUTION, ARG]
+
+# Where to store touched lines.
+leafExport.touchedLinesOut = "touchedLines"
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
