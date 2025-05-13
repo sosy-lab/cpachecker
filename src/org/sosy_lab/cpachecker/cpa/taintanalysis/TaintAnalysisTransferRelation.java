@@ -273,7 +273,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pDeclaration instanceof CFunctionDeclaration) {
+    if (pDeclaration instanceof CFunctionDeclaration) { // extern function defs land here
       logger.log(Level.FINE, "declaration is instance of CFunctionDeclaration");
     }
 
@@ -294,8 +294,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
 
-    if (pStatement
-        instanceof CExpressionStatement) { // TODO: implement, see taintByCommaOperator, line 19
+    if (pStatement instanceof CExpressionStatement) {
+      // TODO: implement, see taintByCommaOperator, line 19
       logger.log(Level.INFO, "Statement is an expression statement");
     }
 
@@ -332,85 +332,103 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         List<CExpression> params = callExpr.getParameterExpressions();
 
         if (params.size() == 2) {
+
+          CExpression firstArg = params.get(0);
           CExpression taintCheck = params.get(1);
           int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
+          boolean expressionIsTainted = false;
 
-          if (params.get(0) instanceof CPointerExpression) {
+          if (firstArg instanceof CIdExpression) {
+            // E.g., __VERIFIER_is_public(x, 1);
+            expressionIsTainted = pState.getTaintedVariables().contains(firstArg);
+          }
+
+          if (firstArg instanceof CBinaryExpression) {
+            // E.g., __VERIFIER_is_public(x + y * z, 1);
+            Set<CIdExpression> firstArgParams = TaintAnalysisUtils.getAllVarsAsCExpr(firstArg);
+            expressionIsTainted =
+                firstArgParams.stream().anyMatch(pState.getTaintedVariables()::contains);
+          }
+
+          if (firstArg instanceof CArraySubscriptExpression) {
+            // E.g., __VERIFIER_is_public(d[i], 1);
+            // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
+
+            CExpression arrayExpr = ((CArraySubscriptExpression) firstArg).getArrayExpression();
+
+            // When an array d is tainted, we taint all its components as well, and
+            // when one part of an array is tainted, we taint the whole array.
+            // I.e., isTainted(d) <==> isTainted(d[i]), for all 0 <= i < d.length.
+            expressionIsTainted = pState.getTaintedVariables().contains((CIdExpression) arrayExpr);
+          }
+
+          if (firstArg instanceof CUnaryExpression) {
+            // E.g., __VERIFIER_is_public(-x, 1);
+            CExpression operand = ((CUnaryExpression) firstArg).getOperand();
+            expressionIsTainted = pState.getTaintedVariables().contains((CIdExpression) operand);
+          }
+
+          if (firstArg instanceof CPointerExpression) {
+            // E.g., __VERIFIER_is_public(*x, 1);
+            // TODO
             logger.log(Level.INFO, "first parameter is a CPointerExpression");
           }
 
-          if (params.get(0) instanceof CFieldReference) {
+          if (firstArg instanceof CFieldReference) {
+            // E.g., __VERIFIER_is_public(x.y, 1);
+            // TODO
             logger.log(Level.INFO, "first parameter is a CFieldReference");
           }
 
-          if (params.get(0) instanceof CArraySubscriptExpression) {
-            logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
-          }
-
-          if (params.get(0) instanceof CUnaryExpression) {
-            logger.log(Level.INFO, "first parameter is a CUnaryExpression");
-          }
-
-          if (params.get(0) instanceof CBinaryExpression) {
-            logger.log(Level.INFO, "first parameter is a CBinaryExpression");
-          }
-
-          if (params.get(0) instanceof CCastExpression) {
+          if (firstArg instanceof CCastExpression) {
+            // E.g., __VERIFIER_is_public((int) sizeof(int), 1);
+            // --> not reachable, cause CPAchecker evaluates the expression before passing
+            // it to the taint analysis
             logger.log(Level.INFO, "first parameter is a CCastExpression");
           }
 
-          if (params.get(0) instanceof CTypeIdExpression) {
+          if (firstArg instanceof CTypeIdExpression) {
+            // E.g., __VERIFIER_is_public(sizeof(int), 1);
+            // --> not reachable, cause CPAchecker evaluates the expression before passing
+            // it to the taint analysis
             logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
           }
 
-          if (params.get(0) instanceof CCharLiteralExpression) {
+          if (firstArg instanceof CCharLiteralExpression) {
+            // E.g., __VERIFIER_is_public('a', 1);
+            // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
           }
 
-          if (params.get(0) instanceof CStringLiteralExpression) {
+          if (firstArg instanceof CStringLiteralExpression) {
+            // E.g., __VERIFIER_is_public("hello", 1);
+            // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
           }
 
-          if (params.get(0) instanceof CFloatLiteralExpression) {
+          if (firstArg instanceof CFloatLiteralExpression) {
+            // E.g., __VERIFIER_is_public(5.3, 1);
+            // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
           }
 
-          if (params.get(0) instanceof CIntegerLiteralExpression) {
+          if (firstArg instanceof CIntegerLiteralExpression) {
+            // E.g., __VERIFIER_is_public(5, 1);
+            // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
           }
 
-          // add further cases where the first parameter is a longer expression e.g. x + y * z
-          if (params.get(0) instanceof CIdExpression variableToCheck) {
-            logger.log(Level.INFO, "first parameter is a CIdExpression");
+          TaintAnalysisState newErrorState =
+              checkInformationFlowViolation(
+                  pState,
+                  pCfaEdge,
+                  expectedPublicity,
+                  expressionIsTainted,
+                  firstArg,
+                  killedVars,
+                  generatedVars);
 
-            boolean isCurrentlyTainted = pState.getTaintedVariables().contains(variableToCheck);
-
-            if (expectedPublicity == 1 && isCurrentlyTainted) {
-              logger.log(
-                  Level.WARNING,
-                  String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be public but is"
-                          + " tainted.",
-                      pCfaEdge.getFileLocation(), variableToCheck.getName()));
-
-              TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
-              newState.setViolatesProperty();
-              return newState;
-            }
-
-            if (expectedPublicity == 0 && !isCurrentlyTainted) {
-              logger.log(
-                  Level.WARNING,
-                  String.format(
-                      "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
-                          + " public.",
-                      pCfaEdge.getFileLocation(), variableToCheck.getName()));
-
-              TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
-              newState.setViolatesProperty();
-              return newState;
-            }
-          }
+          if (newErrorState != null) return newErrorState;
         }
       }
     }
@@ -473,6 +491,42 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return generateNewState(pState, killedVars, generatedVars);
+  }
+
+  @Nullable
+  private TaintAnalysisState checkInformationFlowViolation(
+      TaintAnalysisState pState,
+      CStatementEdge pCfaEdge,
+      int expectedPublicity,
+      boolean isCurrentlyTainted,
+      CExpression firstArg,
+      Set<CIdExpression> killedVars,
+      Set<CIdExpression> generatedVars) {
+
+    if (expectedPublicity == 1 && isCurrentlyTainted) {
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Assertion violation at %s: Array '%s' was expected to be public but is"
+                  + " tainted.",
+              pCfaEdge.getFileLocation(), firstArg.toASTString()));
+      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+      newState.setViolatesProperty();
+      return newState;
+    }
+    if (expectedPublicity == 0 && !isCurrentlyTainted) {
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Assertion violation at %s: Array '%s' was expected to be tainted but is"
+                  + " public.",
+              pCfaEdge.getFileLocation(), firstArg.toASTString()));
+
+      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+      newState.setViolatesProperty();
+      return newState;
+    }
+    return null;
   }
 
   /**
