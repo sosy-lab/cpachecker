@@ -71,7 +71,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private static final List<String> SOURCES =
       Lists.newArrayList("__VERIFIER_nondet_int", "__VERIFIER_nondet_char");
-  private static final List<String> SINKS = Lists.newArrayList("printf");
+//  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
 
@@ -335,49 +335,47 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           CExpression taintCheck = params.get(1);
           int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
 
-          if (params.get(0) instanceof CPointerExpression pointerToCheck) {
+          if (params.get(0) instanceof CPointerExpression) {
             logger.log(Level.INFO, "first parameter is a CPointerExpression");
           }
 
-          if (params.get(0) instanceof CFieldReference fieldToCheck) {
+          if (params.get(0) instanceof CFieldReference) {
             logger.log(Level.INFO, "first parameter is a CFieldReference");
           }
 
-          if (params.get(0) instanceof CArraySubscriptExpression arraySubscriptToCheck) {
+          if (params.get(0) instanceof CArraySubscriptExpression) {
             logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
           }
 
-          if (params.get(0) instanceof CUnaryExpression unaryExpression) {
+          if (params.get(0) instanceof CUnaryExpression) {
             logger.log(Level.INFO, "first parameter is a CUnaryExpression");
           }
 
-          if (params.get(0) instanceof CBinaryExpression binaryExpression) {
+          if (params.get(0) instanceof CBinaryExpression) {
             logger.log(Level.INFO, "first parameter is a CBinaryExpression");
-            Set<CIdExpression> allVarsAsCExpr =
-                TaintAnalysisUtils.getAllVarsAsCExpr(binaryExpression);
           }
 
-          if (params.get(0) instanceof CCastExpression castExpression) {
+          if (params.get(0) instanceof CCastExpression) {
             logger.log(Level.INFO, "first parameter is a CCastExpression");
           }
 
-          if (params.get(0) instanceof CTypeIdExpression typeIdExpression) {
+          if (params.get(0) instanceof CTypeIdExpression) {
             logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
           }
 
-          if (params.get(0) instanceof CCharLiteralExpression charLiteralExpression) {
+          if (params.get(0) instanceof CCharLiteralExpression) {
             logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
           }
 
-          if (params.get(0) instanceof CStringLiteralExpression stringLiteralExpression) {
+          if (params.get(0) instanceof CStringLiteralExpression) {
             logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
           }
 
-          if (params.get(0) instanceof CFloatLiteralExpression floatLiteralExpression) {
+          if (params.get(0) instanceof CFloatLiteralExpression) {
             logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
           }
 
-          if (params.get(0) instanceof CIntegerLiteralExpression integerLiteralExpression) {
+          if (params.get(0) instanceof CIntegerLiteralExpression) {
             logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
           }
 
@@ -581,11 +579,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         .anyMatch(arg -> pState.getTaintedVariables().contains(arg));
   }
 
-  private boolean isSink(CFunctionCall pStatement) {
-
-    return SINKS.contains(
-        pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
-  }
+//  private boolean isSink(CFunctionCall pStatement) {
+//
+//    return SINKS.contains(
+//        pStatement.getFunctionCallExpression().getFunctionNameExpression().toString());
+//  }
 
   private boolean isSource(CFunctionCall pStatement) {
 
