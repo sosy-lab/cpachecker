@@ -250,6 +250,11 @@ public class SeqThreadStatementBuilder {
     assert pGhostVariables.function.parameterAssignments.containsKey(pThreadEdge);
     ImmutableList<FunctionParameterAssignment> assignments =
         Objects.requireNonNull(pGhostVariables.function.parameterAssignments.get(pThreadEdge));
+    if (MPORUtil.isAssumeAbortIfNotCall(pThreadEdge.cfaEdge)) {
+      // add separate assume call - it triggers loop head assumption re-evaluation
+      return new SeqAssumeAbortIfNotStatement(
+          assignments, pcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+    }
     if (assignments.isEmpty()) {
       return new SeqBlankStatement(pcLeftHandSide, pTargetPc);
     }

@@ -40,6 +40,8 @@ public class SeqToken {
 
   public static final String ASSUME = "ASSUME";
 
+  public static final String assume_abort_if_not = "assume_abort_if_not";
+
   /** "bit vector access" */
   public static final String ba = "ba";
 
@@ -97,13 +99,13 @@ public class SeqToken {
 
   public static final String L = "L";
 
+  public static final String ldv_assume = "ldv_assume";
+
   public static final String LOCAL = "LOCAL";
 
   public static final String LOCKED = "LOCKED";
 
   public static final String LOCKS = "LOCKS";
-
-  public static final String LOOP_HEAD = "LOOP_HEAD";
 
   public static final String M = "M";
 
@@ -140,8 +142,6 @@ public class SeqToken {
 
   public static final String STRING_0 = "\"0\"";
 
-  public static final String SWITCH = "SWITCH";
-
   public static final String T = "T";
 
   public static final String _t = "_t";
@@ -149,6 +149,8 @@ public class SeqToken {
   public static final String THREAD = "THREAD";
 
   public static final String uint = "uint";
+
+  public static final String __VERIFIER_assume = "__VERIFIER_assume";
 
   public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
 

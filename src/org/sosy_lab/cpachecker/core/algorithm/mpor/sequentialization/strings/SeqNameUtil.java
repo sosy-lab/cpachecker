@@ -23,8 +23,6 @@ public class SeqNameUtil {
 
   private static int variableId = 0;
 
-  private static int loopHeadId = 0;
-
   private static String createVariableId() {
     return SeqSyntax.UNDERSCORE + variableId++ + SeqSyntax.UNDERSCORE;
   }
@@ -44,20 +42,9 @@ public class SeqNameUtil {
     return buildThreadPrefix(pOptions, pThreadId) + SeqToken.ASSUME;
   }
 
-  public static String buildThreadSwitchLabelName(MPOROptions pOptions, int pThreadId) {
-    return buildThreadPrefix(pOptions, pThreadId) + SeqToken.SWITCH;
-  }
-
   public static String buildSwitchCaseGotoLabelPrefix(MPOROptions pOptions, int pThreadId) {
 
     return buildThreadPrefix(pOptions, pThreadId);
-  }
-
-  public static String buildLoopHeadLabelName(MPOROptions pOptions, int pThreadId) {
-    return buildThreadPrefix(pOptions, pThreadId)
-        + SeqToken.LOOP_HEAD
-        + SeqSyntax.UNDERSCORE
-        + loopHeadId++;
   }
 
   public static String buildGlobalVariableName(
