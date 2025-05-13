@@ -1747,7 +1747,7 @@ public class CFABuilder {
         };
     final boolean isUnsignedCmp =
         switch (cmpPredicate) {
-          case IntUGT, IntULT, IntULE, IntSGE -> true;
+          case IntUGT, IntULT, IntULE, IntUGE -> true;
           default -> false;
         };
 
