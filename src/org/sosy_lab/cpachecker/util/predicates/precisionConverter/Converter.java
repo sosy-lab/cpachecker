@@ -111,7 +111,6 @@ public class Converter {
       case INT2BV -> new BVConverter(cfa, logger);
       case BV2INT -> new IntConverter(cfa, logger);
       case DISABLE -> null;
-      default -> throw new AssertionError("invalid value for option");
     };
   }
 }

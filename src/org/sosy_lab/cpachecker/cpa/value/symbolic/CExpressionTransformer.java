@@ -130,9 +130,6 @@ public class CExpressionTransformer extends ExpressionTransformer
       case GREATER_EQUAL ->
           factory.greaterThanOrEqual(
               operand1Expression, operand2Expression, calculationType, calculationType);
-      default ->
-          throw new AssertionError(
-              "Unhandled binary operation " + pIastBinaryExpression.getOperator());
     };
   }
 

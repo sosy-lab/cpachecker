@@ -1442,7 +1442,6 @@ class CFAFunctionBuilder extends ASTVisitor {
         return CIntegerLiteralExpression.ONE;
       }
       case NORMAL -> {}
-      default -> throw new AssertionError();
     }
 
     if (furtherThenComputation) {

@@ -129,8 +129,7 @@ public class BDDVectorCExpressionVisitor
       rVal = castCValue(rVal, rType, calculationType, bvmgr, machineModel);
     }
 
-    Region[] result;
-    switch (binaryOperator) {
+    return switch (binaryOperator) {
       case PLUS,
           MINUS,
           DIVIDE,
@@ -141,10 +140,9 @@ public class BDDVectorCExpressionVisitor
           BINARY_AND,
           BINARY_OR,
           BINARY_XOR -> {
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
-        result =
-            castCValue(
-                result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
+        Region[] result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
+        yield castCValue(
+            result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
@@ -155,13 +153,10 @@ public class BDDVectorCExpressionVisitor
           size = machineModel.getSizeofInBits((CSimpleType) calculationType);
         }
 
-        result = bvmgr.wrapLast(tmp, size);
+        yield bvmgr.wrapLast(tmp, size);
         // we do not cast here, because 0 and 1 should be small enough for every type.
       }
-      default -> throw new AssertionError("unhandled binary operator");
-    }
-
-    return result;
+    };
   }
 
   private static Region[] arithmeticOperation(

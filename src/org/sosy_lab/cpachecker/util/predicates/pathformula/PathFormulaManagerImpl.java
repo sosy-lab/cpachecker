@@ -244,7 +244,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   private PathFormula makeAnd(
       PathFormula pOldFormula, final CFAEdge pEdge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
     PathFormula pf = converter.makeAnd(pOldFormula, pEdge, errorConditions);
 
     if (useNondetFlags) {

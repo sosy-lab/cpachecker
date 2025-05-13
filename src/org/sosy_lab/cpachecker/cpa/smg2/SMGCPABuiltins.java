@@ -658,10 +658,6 @@ public class SMGCPABuiltins {
         }
         yield builder.build();
       }
-      default ->
-          throw new UnsupportedOperationException(
-              "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
-                  + options.getHandleUnknownFunctions());
     };
   }
 

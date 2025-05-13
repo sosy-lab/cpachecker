@@ -169,7 +169,6 @@ public class MemoryAccessExtractor {
         }
       }
       case FunctionReturnEdge, BlankEdge, CallToReturnEdge -> {}
-      default -> throw new AssertionError("Unhandled edge type: " + edge.getEdgeType());
     }
 
     for (OverapproximatingMemoryLocation possibleLocations : readLocationBuilder) {

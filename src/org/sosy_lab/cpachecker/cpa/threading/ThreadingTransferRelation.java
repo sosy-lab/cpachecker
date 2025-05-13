@@ -260,30 +260,33 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               throw new UnsupportedCodeException("pthread condition variables", cfaEdge);
             }
             switch (functionName) {
-              case THREAD_START:
+              case THREAD_START -> {
                 return startNewThread(threadingState, statement, results, cfaEdge);
-              case THREAD_MUTEX_LOCK:
+              }
+              case THREAD_MUTEX_LOCK -> {
                 return addLock(threadingState, activeThread, extractLockId(statement), results);
-              case THREAD_MUTEX_UNLOCK:
+              }
+              case THREAD_MUTEX_UNLOCK -> {
                 return removeLock(activeThread, extractLockId(statement), results);
-              case THREAD_JOIN:
+              }
+              case THREAD_JOIN -> {
                 return joinThread(threadingState, statement, results);
-              case THREAD_EXIT:
+              }
+              case THREAD_EXIT -> {
                 // this function-call is already handled in the beginning with isLastNodeOfThread.
                 // return exitThread(threadingState, activeThread, results);
-                break;
-              case VERIFIER_ATOMIC_BEGIN:
+              }
+              case VERIFIER_ATOMIC_BEGIN -> {
                 if (useAtomicLocks) {
                   return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
                 }
-                break;
-              case VERIFIER_ATOMIC_END:
+              }
+              case VERIFIER_ATOMIC_END -> {
                 if (useAtomicLocks) {
                   return removeLock(activeThread, ATOMIC_LOCK, results);
                 }
-                break;
-              default:
-                // nothing to do, return results
+              }
+              default -> {} // nothing to do, return results
             }
           }
         }

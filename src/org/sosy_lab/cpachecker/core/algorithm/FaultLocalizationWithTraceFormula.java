@@ -322,7 +322,6 @@ public class FaultLocalizationWithTraceFormula
           FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
-      default -> throw new AssertionError("The specified algorithm type does not exist");
     };
   }
 
@@ -417,7 +416,6 @@ public class FaultLocalizationWithTraceFormula
       case LAST_ASSUME_EDGES_ON_SAME_LINE ->
           new FinalAssumeEdgesOnSameLinePostConditionComposer(context);
       case LAST_ASSUME_EDGE_CLUSTER -> new FinalAssumeClusterPostConditionComposer(context);
-      default -> throw new AssertionError("Unknown post-condition type");
     };
   }
 
@@ -428,7 +426,6 @@ public class FaultLocalizationWithTraceFormula
       case INITIAL_ASSIGNMENT ->
           new VariableAssignmentPreConditionComposer(context, options, true, includeDeclared);
       case ALWAYS_TRUE -> new TruePreConditionComposer(context);
-      default -> throw new AssertionError("Unknown precondition type: " + preconditionType);
     };
   }
 

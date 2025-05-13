@@ -525,8 +525,6 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       case BlankEdge, CallToReturnEdge -> {
         // other cases are not interesting
       }
-      default ->
-          throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 

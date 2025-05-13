@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @Options(prefix = "cpa.functionpointer")
@@ -346,7 +345,6 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
         // nothing to do.
       }
       case BlankEdge, CallToReturnEdge -> {}
-      default -> throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
   }
 

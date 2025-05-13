@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -222,7 +221,6 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       case AssumeEdge -> visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
       case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) pCfaEdge);
       case FunctionReturnEdge, ReturnStatementEdge, BlankEdge, CallToReturnEdge -> {}
-      default -> throw new UnrecognizedCFAEdgeException(pCfaEdge);
     }
   }
 

@@ -313,7 +313,6 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
           startOfSubTree.add(stack.getLast().getSecond());
           formulas.add(formula);
         }
-        default -> throw new AssertionError();
       }
     }
     ImmutableIntArray resultingStartOfSubtree = startOfSubTree.build();
@@ -366,18 +365,17 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
         positionOfA++) {
       // last interpolant would be False.
 
-      final BooleanFormula itp;
-      switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START -> itp = bfmgr.makeTrue();
-        case END -> {
-          // add the last inner formula and the common root (merge-formula)
-          final BooleanFormula functionSummary = iter.next();
-          final BooleanFormula functionExecution = iter.next();
-          itp = rebuildInterpolant(functionSummary, functionExecution);
-        }
-        case MIDDLE -> itp = iter.next();
-        default -> throw new AssertionError();
-      }
+      final BooleanFormula itp =
+          switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
+            case START -> bfmgr.makeTrue();
+            case END -> {
+              // add the last inner formula and the common root (merge-formula)
+              final BooleanFormula functionSummary = iter.next();
+              final BooleanFormula functionExecution = iter.next();
+              yield rebuildInterpolant(functionSummary, functionExecution);
+            }
+            case MIDDLE -> iter.next();
+          };
       interpolants.add(itp);
     }
 

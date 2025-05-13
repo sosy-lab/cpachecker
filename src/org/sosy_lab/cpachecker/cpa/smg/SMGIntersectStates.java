@@ -461,24 +461,17 @@ public final class SMGIntersectStates {
 
     if (pObj1.getKind() != pObj2.getKind()) {
 
-      switch (pObj1.getKind()) {
-        case OPTIONAL -> {
-          switch (pObj2.getKind()) {
-            case REG:
-            case DLL:
-            case SLL:
-              return true;
-            default:
-              return false;
-          }
-        }
-        case REG, DLL, SLL -> {
-          return pObj2.getKind() == SMGObjectKind.OPTIONAL;
-        }
-        default -> {
-          return false;
-        }
-      }
+      return switch (pObj1.getKind()) {
+        case OPTIONAL ->
+            switch (pObj2.getKind()) {
+              case REG, DLL, SLL -> true;
+              default -> false;
+            };
+
+        case REG, DLL, SLL -> pObj2.getKind() == SMGObjectKind.OPTIONAL;
+
+        default -> false;
+      };
     }
 
     return switch (pObj1.getKind()) {

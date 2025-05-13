@@ -446,7 +446,7 @@ public class SMGExpressionEvaluator {
 
     BinaryOperator binaryOperator = binaryExp.getOperator();
 
-    switch (binaryOperator) {
+    return switch (binaryOperator) {
       case PLUS, MINUS -> {
         ImmutableList.Builder<SMGAddressValueAndState> result =
             ImmutableList.builderWithExpectedSize(4);
@@ -474,28 +474,26 @@ public class SMGExpressionEvaluator {
             SMGExplicitValue addressOffset = addressValue.getOffset();
 
             SMGExplicitValue newAddressOffset;
-            switch (binaryOperator) {
-              case PLUS:
-                newAddressOffset = addressOffset.add(pointerOffsetValue);
-                break;
-              case MINUS:
-                if (lVarIsAddress) {
-                  newAddressOffset = addressOffset.subtract(pointerOffsetValue);
-                  break;
-                } else {
-                  throw new UnrecognizedCodeException(
-                      "Expected pointer arithmetic "
-                          + " with + or - but found "
-                          + binaryExp.toASTString(),
-                      binaryExp);
-                }
-              default:
-                throw new AssertionError();
-            }
+            newAddressOffset =
+                switch (binaryOperator) {
+                  case PLUS -> addressOffset.add(pointerOffsetValue);
+                  case MINUS -> {
+                    if (lVarIsAddress) {
+                      yield addressOffset.subtract(pointerOffsetValue);
+                    } else {
+                      throw new UnrecognizedCodeException(
+                          "Expected pointer arithmetic "
+                              + " with + or - but found "
+                              + binaryExp.toASTString(),
+                          binaryExp);
+                    }
+                  }
+                  default -> throw new AssertionError();
+                };
             result.addAll(createAddress(newState, target, newAddressOffset));
           }
         }
-        return result.build();
+        yield result.build();
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL ->
           throw new UnrecognizedCodeException(
@@ -511,10 +509,7 @@ public class SMGExpressionEvaluator {
                   + " has a non arithmetic type",
               cfaEdge,
               binaryExp);
-      default -> {
-        return singletonList(SMGAddressValueAndState.of(initialSmgState));
-      }
-    }
+    };
   }
 
   List<SMGAddressAndState> evaluateArraySubscriptAddress(

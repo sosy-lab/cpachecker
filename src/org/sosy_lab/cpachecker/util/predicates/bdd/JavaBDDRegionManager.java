@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.BDDFactory.ReorderMethod;
 import net.sf.javabdd.BDDPairing;
 import net.sf.javabdd.JFactory;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -467,18 +468,17 @@ class JavaBDDRegionManager implements RegionManager {
 
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
-    switch (strategy) {
-      case RANDOM -> factory.reorder(BDDFactory.REORDER_RANDOM);
-      case SIFT -> factory.reorder(BDDFactory.REORDER_SIFT);
-      case SIFTITE -> factory.reorder(BDDFactory.REORDER_SIFTITE);
-      case WIN2 -> factory.reorder(BDDFactory.REORDER_WIN2);
-      case WIN2ITE -> factory.reorder(BDDFactory.REORDER_WIN2ITE);
-      case WIN3 -> factory.reorder(BDDFactory.REORDER_WIN3);
-      case WIN3ITE -> factory.reorder(BDDFactory.REORDER_WIN3ITE);
-      default ->
-          throw new UnsupportedOperationException(
-              "Reorder strategy " + strategy + " not supported");
-    }
+    ReorderMethod reorderMethod =
+        switch (strategy) {
+          case RANDOM -> BDDFactory.REORDER_RANDOM;
+          case SIFT -> BDDFactory.REORDER_SIFT;
+          case SIFTITE -> BDDFactory.REORDER_SIFTITE;
+          case WIN2 -> BDDFactory.REORDER_WIN2;
+          case WIN2ITE -> BDDFactory.REORDER_WIN2ITE;
+          case WIN3 -> BDDFactory.REORDER_WIN3;
+          case WIN3ITE -> BDDFactory.REORDER_WIN3ITE;
+        };
+    factory.reorder(reorderMethod);
   }
 
   @Override
