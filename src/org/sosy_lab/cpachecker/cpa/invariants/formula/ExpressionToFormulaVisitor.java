@@ -452,11 +452,11 @@ public class ExpressionToFormulaVisitor
 
       case LESS_EQUAL ->
           compoundIntervalFormulaManager.fromBoolean(
-              typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
+              typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
 
       case LESS_THAN ->
           compoundIntervalFormulaManager.fromBoolean(
-              typeInfo, compoundIntervalFormulaManager.lessThanOrEqual(left, right));
+              typeInfo, compoundIntervalFormulaManager.lessThan(left, right));
 
       case LOGICAL_AND ->
           compoundIntervalFormulaManager.fromBoolean(
