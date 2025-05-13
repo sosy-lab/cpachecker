@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -247,26 +249,42 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private TaintAnalysisState handleDeclarationEdge(
       TaintAnalysisState pState, CDeclarationEdge pCfaEdge) {
+
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
-
     CDeclaration pDeclaration = pCfaEdge.getDeclaration();
 
     if (pDeclaration instanceof CVariableDeclaration) {
+
       CVariableDeclaration dec = (CVariableDeclaration) pCfaEdge.getDeclaration();
       CInitializer initializer = dec.getInitializer();
       CIdExpression variableLHS = TaintAnalysisUtils.getCidExpressionForCVarDec(dec);
+
       // If a RHS contains an expression with a tainted variable, also mark the variable on the
-      // LHS as tainted. If no variable or not expression is present, kill it.
-      if (Objects.nonNull(initializer) && initializer instanceof CInitializerExpression) {
-        CExpression expr = ((CInitializerExpression) initializer).getExpression();
-        boolean taintedVarsRHS =
-            TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
-                .anyMatch(var -> pState.getTaintedVariables().contains(var));
-        if (taintedVarsRHS) {
-          generatedVars.add(variableLHS);
-        } else {
-          killedVars.add(variableLHS);
+      // LHS as tainted. If no variable or no expression is present, kill it.
+      if (Objects.nonNull(initializer)) {
+
+        if (initializer instanceof CInitializerExpression initExpr) {
+
+          checkIfInitializerExpressionIsTainted(
+              pState, initExpr, generatedVars, variableLHS, killedVars);
+        }
+
+        if (initializer instanceof CInitializerList initList) {
+
+          List<CInitializer> initializerList = initList.getInitializers();
+
+          for (CInitializer init : initializerList) {
+            if (init instanceof CInitializerExpression initExpr) {
+
+              checkIfInitializerExpressionIsTainted(
+                  pState, initExpr, generatedVars, variableLHS, killedVars);
+            }
+          }
+        }
+
+        if (initializer instanceof CDesignatedInitializer) {
+          logger.log(Level.FINE, "initializer is a designated initializer");
         }
       } else {
         killedVars.add(variableLHS);
@@ -277,7 +295,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.FINE, "declaration is instance of CFunctionDeclaration");
     }
 
-    if (pDeclaration instanceof CComplexTypeDeclaration) {
+    if (pDeclaration instanceof CComplexTypeDeclaration) { // E.g., struct Triple{int a, b, c}
       logger.log(Level.FINE, "declaration is instance of CComplexTypeDeclaration");
     }
 
@@ -288,11 +306,32 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return generateNewState(pState, killedVars, generatedVars);
   }
 
+  private static void checkIfInitializerExpressionIsTainted(
+      TaintAnalysisState pState,
+      CInitializerExpression initializer,
+      Set<CIdExpression> generatedVars,
+      CIdExpression variableLHS,
+      Set<CIdExpression> killedVars) {
+
+    CExpression expr = initializer.getExpression();
+
+    boolean taintedVarsRHS =
+        TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
+            .anyMatch(var -> pState.getTaintedVariables().contains(var));
+
+    if (taintedVarsRHS) {
+      generatedVars.add(variableLHS);
+    } else {
+      killedVars.add(variableLHS);
+    }
+  }
+
   private TaintAnalysisState handleStatementEdge(TaintAnalysisState pState, CStatementEdge pCfaEdge)
       throws CPATransferException {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
+    Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
 
     if (pStatement instanceof CExpressionStatement) {
       // TODO: implement, see taintByCommaOperator, line 19
@@ -306,22 +345,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       if ("__VERIFIER_set_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
-        if (params.size() == 2 && params.get(0) instanceof CIdExpression variableToSanitize) {
+        if (params.size() == 2 && params.get(0) instanceof CIdExpression expr) {
           // TODO: this already handles the tainting of arrays, but still check whether further
           // cases are needed
-          CExpression sanitizationFlag = params.get(1);
-
           try {
-            int shouldBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(sanitizationFlag);
+            CExpression sanitizationFlag = params.get(1);
+            int varMustBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(sanitizationFlag);
+            int varIsCurrentlyTainted = taintedVariables.contains(expr) ? 1 : 0;
 
-            if (shouldBePublic == 1) {
-              if (pState.getTaintedVariables().contains(variableToSanitize)) {
-                killedVars.add(variableToSanitize);
-              }
-            } else {
-              if (!pState.getTaintedVariables().contains(variableToSanitize)) {
-                generatedVars.add(variableToSanitize);
-              }
+            if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
+              killedVars.add(expr);
+            } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
+              generatedVars.add(expr);
             }
 
           } catch (CPATransferException e) {
@@ -340,32 +375,32 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (firstArg instanceof CIdExpression) {
             // E.g., __VERIFIER_is_public(x, 1);
-            expressionIsTainted = pState.getTaintedVariables().contains(firstArg);
+            expressionIsTainted = taintedVariables.contains(firstArg);
           }
 
           if (firstArg instanceof CBinaryExpression) {
             // E.g., __VERIFIER_is_public(x + y * z, 1);
             Set<CIdExpression> firstArgParams = TaintAnalysisUtils.getAllVarsAsCExpr(firstArg);
-            expressionIsTainted =
-                firstArgParams.stream().anyMatch(pState.getTaintedVariables()::contains);
+            expressionIsTainted = firstArgParams.stream().anyMatch(taintedVariables::contains);
           }
 
-          if (firstArg instanceof CArraySubscriptExpression) {
+          if (firstArg instanceof CArraySubscriptExpression arrayArg) {
             // E.g., __VERIFIER_is_public(d[i], 1);
             // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
 
-            CExpression arrayExpr = ((CArraySubscriptExpression) firstArg).getArrayExpression();
+            CExpression arrayExpr = arrayArg.getArrayExpression();
 
             // When an array d is tainted, we taint all its components as well, and
             // when one part of an array is tainted, we taint the whole array.
             // I.e., isTainted(d) <==> isTainted(d[i]), for all 0 <= i < d.length.
-            expressionIsTainted = pState.getTaintedVariables().contains((CIdExpression) arrayExpr);
+            expressionIsTainted = taintedVariables.contains((CIdExpression) arrayExpr);
           }
 
           if (firstArg instanceof CUnaryExpression) {
             // E.g., __VERIFIER_is_public(-x, 1);
+            // E.g., __VERIFIER_is_public(&x, 1);
             CExpression operand = ((CUnaryExpression) firstArg).getOperand();
-            expressionIsTainted = pState.getTaintedVariables().contains((CIdExpression) operand);
+            expressionIsTainted = taintedVariables.contains((CIdExpression) operand);
           }
 
           if (firstArg instanceof CPointerExpression) {
@@ -374,17 +409,72 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             logger.log(Level.INFO, "first parameter is a CPointerExpression");
           }
 
-          if (firstArg instanceof CFieldReference) {
-            // E.g., __VERIFIER_is_public(x.y, 1);
-            // TODO
-            logger.log(Level.INFO, "first parameter is a CFieldReference");
+          if (firstArg instanceof CFieldReference fieldRef) {
+            // E.g., __VERIFIER_is_public(t.a, 1);
+
+            expressionIsTainted =
+                taintedVariables.contains((CIdExpression) fieldRef.getFieldOwner());
           }
 
-          if (firstArg instanceof CCastExpression) {
-            // E.g., __VERIFIER_is_public((int) sizeof(int), 1);
-            // --> not reachable, cause CPAchecker evaluates the expression before passing
-            // it to the taint analysis
-            logger.log(Level.INFO, "first parameter is a CCastExpression");
+          if (firstArg instanceof CCastExpression castExpr) {
+            // E.g., __VERIFIER_is_public((char) x, 1);
+            CExpression operand = castExpr.getOperand();
+
+            if (operand instanceof CIdExpression idExpr) {
+              expressionIsTainted = taintedVariables.contains(idExpr);
+            }
+
+            if (operand instanceof CBinaryExpression binExpr) {
+
+              Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(binExpr);
+
+              expressionIsTainted =
+                  allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
+            }
+
+            if (operand instanceof CTypeIdExpression) {
+              logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
+            }
+
+            if (operand instanceof CCharLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
+            }
+
+            if (operand instanceof CStringLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
+            }
+
+            if (operand instanceof CFloatLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
+            }
+
+            if (operand instanceof CIntegerLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
+            }
+
+            if (operand instanceof CUnaryExpression) {
+              logger.log(Level.INFO, "first parameter is a CUnaryExpression");
+            }
+
+            if (operand instanceof CPointerExpression) {
+              logger.log(Level.INFO, "first parameter is a CPointerExpression");
+            }
+
+            if (operand instanceof CFieldReference) {
+              logger.log(Level.INFO, "first parameter is a CFieldReference");
+            }
+
+            if (operand instanceof CArraySubscriptExpression) {
+              logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
+            }
+
+            if (operand instanceof CStringLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
+            }
+
+            if (operand instanceof CFloatLiteralExpression) {
+              logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
+            }
           }
 
           if (firstArg instanceof CTypeIdExpression) {
@@ -449,7 +539,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
 
       boolean taintedVarsRHS =
-          allVarsAsCExpr.stream().anyMatch(var -> pState.getTaintedVariables().contains(var))
+          allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var))
               || functionContainsTaintedVar;
 
       if (lhs instanceof CIdExpression variableLHS) {
