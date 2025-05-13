@@ -68,7 +68,7 @@ public class ExportARGLeafs implements Algorithm {
 
   @Option(description = "All equivalent programs")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
-  private List<Path> programs = ImmutableList.of();
+  private List<Path> mutants = ImmutableList.of();
 
   @Option(description = "Which abstraction to use")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
@@ -149,7 +149,7 @@ public class ExportARGLeafs implements Algorithm {
       data.put(
           inputProgram.getFileNames().get(0),
           equivalenceRunner.runStrategy(inputProgram, getLeafStrategy()));
-      for (Path program : programs) {
+      for (Path program : mutants) {
         data.put(program, equivalenceRunner.runStrategy(createCfa(program), getLeafStrategy()));
       }
       ImmutableMap<Path, SafeAndUnsafeConstraints> constraints = data.buildOrThrow();

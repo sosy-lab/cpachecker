@@ -4479,12 +4479,12 @@ leafExport.csvOut = "leafs.csv"
 leafExport.equivalenceStrategy = EXISTS
   enum:     [EXISTS, JOIN]
 
-# All equivalent programs
-leafExport.programs = []
-
 # Which strategy to use for leaf export
-leafExport.strategy = ARG
-  enum:     [SYMBOLIC_EXECUTION, ARG]
+leafExport.leafStrategy = MIX
+  enum:     [SYMBOLIC_EXECUTION, ARG, MIX]
+
+# All equivalent programs
+leafExport.mutants = []
 
 # Where to store touched lines.
 leafExport.touchedLinesOut = "touchedLines"
