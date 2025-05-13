@@ -102,8 +102,10 @@ public class StatementLinker {
         && !pTarget.requiresAssumeEvaluation()
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
+        // must have context switch
         // only consider global if not ignored
-        && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal);
+        && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal)
+        && !PartialOrderReducer.requiresAssumeEvaluation(pStatement, pTarget);
   }
 
   /**

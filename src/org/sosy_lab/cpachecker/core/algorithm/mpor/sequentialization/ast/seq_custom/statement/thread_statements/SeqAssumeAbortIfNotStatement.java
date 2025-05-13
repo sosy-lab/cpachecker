@@ -141,9 +141,7 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
 
   @Override
   public boolean requiresAssumeEvaluation() {
-    // see e.g. pthread-wmm/mix000.oepc - not re-evaluating triggers a pre-emptive termination and
-    // an incorrect 'true' verdict
-    return true;
+    return false;
   }
 
   @Override

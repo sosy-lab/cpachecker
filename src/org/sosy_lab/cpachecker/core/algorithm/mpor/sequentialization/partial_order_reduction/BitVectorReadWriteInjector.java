@@ -156,7 +156,7 @@ class BitVectorReadWriteInjector {
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
         // always need context switch when targeting critical section start -> no bit vectors
-        if (!newTarget.requiresAssumeEvaluation()) {
+        if (!PartialOrderReducer.requiresAssumeEvaluation(pCurrentStatement, newTarget)) {
           ImmutableSet<CVariableDeclaration> readVariables =
               GlobalVariableFinder.findGlobalVariablesByAccessType(
                   pLabelBlockMap, newTarget.block, BitVectorAccessType.READ);
