@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -92,7 +93,10 @@ public class DetailedCounterexampleExport implements Algorithm {
 
   record FormulaAndName(Formula formula, String name) {}
 
-  record PathAndVariables(PathFormula path, ImmutableMap<FormulaAndName, CFAEdge> variables) {}
+  record PathAliasesAndVariables(
+      PathFormula path,
+      ImmutableMap<String, String> aliases,
+      ImmutableMap<FormulaAndName, CFAEdge> variables) {}
 
   /**
    * Exports concrete variable assignments of all variables at all locations. If there is a loop,
@@ -190,14 +194,15 @@ public class DetailedCounterexampleExport implements Algorithm {
    * @param solver The solver to use for extracting variables.
    * @param pmgr The path formula manager to use for creating path formulas.
    * @param counterExample The counterexample containing the path.
-   * @return A PathAndVariables object containing the path formula and the mapping of variables to
-   *     edges.
+   * @return A PathAliasesAndVariables object containing the path formula and the mapping of
+   *     variables to edges.
    * @throws CPATransferException Thrown if there is an error in the transfer relation.
    * @throws InterruptedException Thrown if the operation is interrupted.
    */
-  private PathAndVariables computeVariablesToEdgeMap(
+  private PathAliasesAndVariables computeVariablesToEdgeMap(
       Solver solver, PathFormulaManager pmgr, CounterexampleInfo counterExample)
       throws CPATransferException, InterruptedException {
+    ImmutableMap.Builder<String, String> aliases = ImmutableMap.builder();
     PathFormula cexPath = pmgr.makeEmptyPathFormula();
     Set<FormulaAndName> before = ImmutableSet.of();
     ImmutableMap.Builder<FormulaAndName, CFAEdge> variableToLineNumber = ImmutableMap.builder();
@@ -218,10 +223,20 @@ public class DetailedCounterexampleExport implements Algorithm {
               entry -> new FormulaAndName(entry.getValue(), entry.getKey()));
       for (FormulaAndName variable : Sets.difference(after, before)) {
         variableToLineNumber.put(variable, cfaEdge);
+        if (variable.name().startsWith("*")
+            && (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge
+                || cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge)) {
+          if (cfaEdge.getRawStatement().contains(" = ")) {
+            aliases.put(
+                variable.name(),
+                Splitter.on(" = ").splitToList(cfaEdge.getRawStatement()).get(0).trim());
+          }
+        }
       }
       before = after;
     }
-    return new PathAndVariables(cexPath, variableToLineNumber.buildOrThrow());
+    return new PathAliasesAndVariables(
+        cexPath, aliases.buildKeepingLast(), variableToLineNumber.buildOrThrow());
   }
 
   public void exportErrorInducingInputs(CounterexampleInfo counterExample, Path pCounterexamplePath)
@@ -234,15 +249,16 @@ public class DetailedCounterexampleExport implements Algorithm {
     PathFormulaManager pmgr =
         new PathFormulaManagerImpl(
             solver.getFormulaManager(), config, logger, notifier, cfa, AnalysisDirection.FORWARD);
-    PathAndVariables cexPathAndVariables = computeVariablesToEdgeMap(solver, pmgr, counterExample);
-    List<Map<String, Object>> assignments = assignments(solver, cexPathAndVariables.path());
+    PathAliasesAndVariables cexPathAliasesAndVariables =
+        computeVariablesToEdgeMap(solver, pmgr, counterExample);
+    List<Map<String, Object>> assignments = assignments(solver, cexPathAliasesAndVariables.path());
     Multimap<String, String> variableToValues = ArrayListMultimap.create();
     for (Map<String, Object> assignment : assignments) {
       assignment.forEach((variable, value) -> variableToValues.put(variable, value.toString()));
     }
     ImmutableMap.Builder<String, CFAEdge> linesBuilder = ImmutableMap.builder();
     for (Entry<FormulaAndName, CFAEdge> formulaAndNameCFAEdgeEntry :
-        cexPathAndVariables.variables().entrySet()) {
+        cexPathAliasesAndVariables.variables().entrySet()) {
       linesBuilder.put(
           formulaAndNameCFAEdgeEntry.getKey().name(), formulaAndNameCFAEdgeEntry.getValue());
     }
@@ -261,6 +277,7 @@ public class DetailedCounterexampleExport implements Algorithm {
           continue;
         }
         CFAEdge cfaEdge = Objects.requireNonNull(lines.get(variable));
+        variable = cexPathAliasesAndVariables.aliases().getOrDefault(variable, variable);
         if (variable.contains("::")) {
           variable = Splitter.on("::").limit(2).splitToList(variable).get(1);
         }
