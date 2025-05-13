@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -83,8 +82,8 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
         new ValueTransferBasedStrongestPostOperator(constraintsSolver, logger, config, pCfa);
     FluentIterable<ARGState> statesWithoutChildren =
         LeafStrategy.filterStatesWithNoChildren(pReachedSet);
-    Builder<BooleanFormula> safe = ImmutableList.builder();
-    Builder<BooleanFormula> unsafe = ImmutableList.builder();
+    ImmutableList.Builder<BooleanFormula> safe = ImmutableList.builder();
+    ImmutableList.Builder<BooleanFormula> unsafe = ImmutableList.builder();
     for (ARGState state : statesWithoutChildren) {
       for (ARGPath path : ARGUtils.getAllPaths(pReachedSet, state)) {
         BooleanFormula formula =
@@ -97,7 +96,8 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
         }
       }
     }
-    return new SafeAndUnsafeConstraints(pStatus, safe.build(), unsafe.build());
+    return new SafeAndUnsafeConstraints(
+        pStatus, safe.build(), unsafe.build(), LeafStrategy.findTouchedLines(pReachedSet));
   }
 
   // Can only be called after machineModel and formulaManager are set

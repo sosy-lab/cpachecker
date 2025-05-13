@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -57,8 +56,8 @@ public class ARGLeafStrategy implements LeafStrategy {
             AnalysisDirection.FORWARD);
     FluentIterable<ARGState> statesWithoutChildren =
         LeafStrategy.filterStatesWithNoChildren(pReachedSet);
-    Builder<BooleanFormula> safe = ImmutableList.builder();
-    Builder<BooleanFormula> unsafe = ImmutableList.builder();
+    ImmutableList.Builder<BooleanFormula> safe = ImmutableList.builder();
+    ImmutableList.Builder<BooleanFormula> unsafe = ImmutableList.builder();
     for (ARGState state : statesWithoutChildren) {
       if (state.isTarget()) {
         unsafe.add(state.toFormula(solver.getFormulaManager(), pathFormulaManager));
@@ -66,6 +65,7 @@ public class ARGLeafStrategy implements LeafStrategy {
         safe.add(state.toFormula(solver.getFormulaManager(), pathFormulaManager));
       }
     }
-    return new SafeAndUnsafeConstraints(pStatus, safe.build(), unsafe.build());
+    return new SafeAndUnsafeConstraints(
+        pStatus, safe.build(), unsafe.build(), LeafStrategy.findTouchedLines(pReachedSet));
   }
 }

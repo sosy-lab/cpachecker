@@ -14,6 +14,33 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public interface EquivalenceCheck {
 
-  boolean isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
+  record EquivalenceData(
+      boolean equivalent,
+      int sizeOriginal,
+      int sizeMutant,
+      int totalChecks,
+      int checkedSafe,
+      int checkedUnsafe,
+      int checkedUnknown) {
+
+    public String toCsvString() {
+      return String.format(
+          "%b\t%d\t%d\t%d\t%d\t%d\t%d",
+          equivalent,
+          sizeOriginal,
+          sizeMutant,
+          totalChecks,
+          checkedSafe,
+          checkedUnsafe,
+          checkedUnknown);
+    }
+
+    public static String getCsvHeader() {
+      return "equivalent\tsizeOriginal\tsizeMutant\ttotalChecks\tcheckedSafe\tcheckedUnsafe"
+          + "\tcheckedUnknown";
+    }
+  }
+
+  EquivalenceData isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
       throws InterruptedException, SolverException;
 }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
 import com.google.common.collect.ImmutableList;
-import java.io.IOException;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class EquivalenceRunner {
@@ -37,7 +35,8 @@ public class EquivalenceRunner {
   public record SafeAndUnsafeConstraints(
       AlgorithmStatus status,
       ImmutableList<BooleanFormula> safe,
-      ImmutableList<BooleanFormula> unsafe) {}
+      ImmutableList<BooleanFormula> unsafe,
+      ImmutableList<Integer> touchedLines) {}
 
   private record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, CFA cfa, ReachedSet reached) {}
@@ -104,11 +103,7 @@ public class EquivalenceRunner {
   }
 
   public SafeAndUnsafeConstraints runStrategy(CFA program, LeafStrategy strategy)
-      throws ParserException,
-          CPAException,
-          IOException,
-          InterruptedException,
-          InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     AnalysisComponents analysis = createAnalysis(program);
     AlgorithmStatus status = runFullAnalysis(analysis.algorithm(), analysis.reached());
     return strategy.export(analysis.reached(), analysis.cfa(), status);

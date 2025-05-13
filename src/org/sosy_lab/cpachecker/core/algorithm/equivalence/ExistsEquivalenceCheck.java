@@ -22,8 +22,11 @@ public class ExistsEquivalenceCheck implements EquivalenceCheck {
   }
 
   @Override
-  public boolean isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
+  public EquivalenceData isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
       throws InterruptedException, SolverException {
+    int originalSize = original.size();
+    int checkedSafe = 0;
+    int checkedUnsafe = 0;
     for (BooleanFormula origFormula : original) {
       boolean foundImplication = false;
       for (BooleanFormula mutantFormula : mutant) {
@@ -33,9 +36,19 @@ public class ExistsEquivalenceCheck implements EquivalenceCheck {
         }
       }
       if (!foundImplication) {
-        return false;
+        checkedUnsafe++;
+        break;
+      } else {
+        checkedSafe++;
       }
     }
-    return true;
+    return new EquivalenceData(
+        checkedSafe == originalSize,
+        originalSize,
+        mutant.size(),
+        originalSize,
+        checkedSafe,
+        checkedUnsafe,
+        originalSize - checkedSafe - checkedUnsafe);
   }
 }

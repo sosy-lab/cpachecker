@@ -23,9 +23,19 @@ public class JoinEquivalenceCheck implements EquivalenceCheck {
   }
 
   @Override
-  public boolean isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
+  public EquivalenceData isEquivalent(List<BooleanFormula> original, List<BooleanFormula> mutant)
       throws InterruptedException, SolverException {
     BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    return solver.implies(bmgr.or(original), bmgr.or(mutant));
+    boolean check = solver.implies(bmgr.or(original), bmgr.or(mutant));
+    int checkedSafe = check ? 1 : 0;
+    int checkedUnsafe = check ? 0 : 1;
+    return new EquivalenceData(
+        solver.implies(bmgr.or(original), bmgr.or(mutant)),
+        original.size(),
+        mutant.size(),
+        1,
+        checkedSafe,
+        checkedUnsafe,
+        0);
   }
 }
