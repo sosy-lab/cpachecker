@@ -18,30 +18,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class GlobalVariableFinder {
-
-  public static ImmutableSet<CVariableDeclaration> findGlobalVariablesByReductionType(
-      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
-      SeqThreadStatementBlock pBlock,
-      BitVectorReduction pReductionType) {
-
-    return switch (pReductionType) {
-      case NONE -> ImmutableSet.of();
-      case ACCESS_ONLY ->
-          findGlobalVariablesByAccessType(pLabelBlockMap, pBlock, BitVectorAccessType.ACCESS);
-      case READ_AND_WRITE ->
-          ImmutableSet.<CVariableDeclaration>builder()
-              .addAll(
-                  findGlobalVariablesByAccessType(pLabelBlockMap, pBlock, BitVectorAccessType.READ))
-              .addAll(
-                  findGlobalVariablesByAccessType(
-                      pLabelBlockMap, pBlock, BitVectorAccessType.WRITE))
-              .build();
-    };
-  }
 
   public static ImmutableSet<CVariableDeclaration> findGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
@@ -52,32 +31,32 @@ public class GlobalVariableFinder {
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
-      rGlobalVariables.addAll(
-          recursivelyFindGlobalVariablesByAccessType(
-              found, pLabelBlockMap, statement, pAccessType));
+      recursivelyFindLinkedStatements(found, statement, pLabelBlockMap);
+      ImmutableSet<CVariableDeclaration> foundGlobalVariables =
+          extractGlobalVariablesFromStatements(ImmutableSet.copyOf(found), pAccessType);
+      rGlobalVariables.addAll(foundGlobalVariables);
     }
     return rGlobalVariables.build();
   }
 
   /**
-   * Searches {@code pStatement} and all linked statements for their global variables based on
-   * {@code pAccessType}.
+   * Searches {@code pStatement} and all directly linked via {@code goto} statements and stores them
+   * in {@code pFound}.
    */
-  private static ImmutableSet<CVariableDeclaration> recursivelyFindGlobalVariablesByAccessType(
+  private static void recursivelyFindLinkedStatements(
       Set<SeqThreadStatement> pFound,
-      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatement pStatement,
-      final BitVectorAccessType pAccessType) {
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
     // recursively search the target pc and goto statements
-    for (SeqThreadStatement targetStatement : getTargetGotoStatements(pStatement, pLabelBlockMap)) {
+    ImmutableList<SeqThreadStatement> targetGotoStatements =
+        getTargetGotoStatements(pStatement, pLabelBlockMap);
+    for (SeqThreadStatement targetStatement : targetGotoStatements) {
       // prevent infinite loops when statements contain loops
       if (pFound.add(targetStatement)) {
-        return recursivelyFindGlobalVariablesByAccessType(
-            pFound, pLabelBlockMap, targetStatement, pAccessType);
+        recursivelyFindLinkedStatements(pFound, targetStatement, pLabelBlockMap);
       }
     }
-    return extractGlobalVariablesFromStatements(ImmutableSet.copyOf(pFound), pAccessType);
   }
 
   /**
@@ -90,7 +69,9 @@ public class GlobalVariableFinder {
 
     if (pStatement.getTargetGoto().isPresent()) {
       int targetNumber = pStatement.getTargetGoto().orElseThrow().labelNumber;
-      return Objects.requireNonNull(pLabelBlockMap.get(targetNumber)).getStatements();
+      SeqThreadStatementBlock targetBlock =
+          Objects.requireNonNull(pLabelBlockMap.get(targetNumber));
+      return targetBlock.getStatements();
     }
     return ImmutableList.of();
   }

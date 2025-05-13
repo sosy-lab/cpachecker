@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -153,8 +152,8 @@ class BitVectorAccessInjector {
         // always need context switch when targeting critical section start -> no bit vectors
         if (!newTarget.requiresAssumeEvaluation()) {
           ImmutableSet<CVariableDeclaration> accessedVariables =
-              GlobalVariableFinder.findGlobalVariablesByReductionType(
-                  pLabelBlockMap, newTarget.block, BitVectorReduction.ACCESS_ONLY);
+              GlobalVariableFinder.findGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
           ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
               buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
           newInjected.addAll(bitVectorAssignments);
