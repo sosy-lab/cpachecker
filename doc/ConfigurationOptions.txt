@@ -5042,8 +5042,13 @@ sampling.random.counterexampleExport = "Counterexample.trace.%d.txt"
 # File name for analysis report in case no counterexample was found.
 sampling.random.safeExport = "Safe.trace.%d.txt"
 
-# Amount of samples to be generated.
+# Amount of samples to be generated. Generate an infinite amount of samples
+# with a value less than 0.
 sampling.random.samplesToBeGenerated = 10
+
+# Stop after finding the first counterexample. This is useful when using this
+# as an actual analysis.
+sampling.random.stopAfterFirstCounterexample = false
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
