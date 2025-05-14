@@ -25,11 +25,11 @@ public class StatementLinker {
 
   /** Links commuting clauses by replacing {@code pc} writes with {@code goto} statements. */
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> link(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rLinked =
         ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       // collect IDs of targets that result in valid links.
       // these clauses must not be directly reachable, and their labels are pruned later
       ImmutableSet.Builder<Integer> clauseTargets = ImmutableSet.builder();
@@ -45,19 +45,19 @@ public class StatementLinker {
   // Inject Gotos ==================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       ImmutableSet.Builder<Integer> pClauseTargets) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
-    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
 
-    for (int i = 0; i < pCaseClauses.size(); i++) {
-      SeqThreadStatementClause clause = pCaseClauses.get(i);
+    for (int i = 0; i < pClauses.size(); i++) {
+      SeqThreadStatementClause clause = pClauses.get(i);
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
-            linkStatements(i == 0, clause.isGlobal, statement, labelValueMap, pClauseTargets));
+            linkStatements(i == 0, clause.isGlobal, statement, labelClauseMap, pClauseTargets));
       }
       rNewClauses.add(
           clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
@@ -75,12 +75,12 @@ public class StatementLinker {
       final boolean pIsFirstLink,
       final boolean pIsGlobal,
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap,
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableSet.Builder<Integer> pClauseTargets) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelValueMap.get(targetPc));
+      SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       if (validLink(pIsFirstLink, pIsGlobal, pCurrentStatement, newTarget)) {
         pClauseTargets.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getGotoLabel());
@@ -102,26 +102,25 @@ public class StatementLinker {
         && !pTarget.requiresAssumeEvaluation()
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
-        // must have context switch
         // only consider global if not ignored
         && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal)
         && !PartialOrderReducer.requiresAssumeEvaluation(pStatement, pTarget);
   }
 
   /**
-   * Whether we can ignore the local/global property of {@code pCaseClause}, e.g. unlocks of global
+   * Whether we can ignore the local/global property of {@code pClause}, e.g. unlocks of global
    * mutexes.
    */
   private static boolean canIgnoreGlobal(
-      SeqThreadStatementClause pCaseClause, boolean pIsFirstLink, boolean pIsGlobal) {
+      SeqThreadStatementClause pClause, boolean pIsFirstLink, boolean pIsGlobal) {
 
     // global loop heads are not linked but must be directly reachable -> loops can be interleaved
-    if (pCaseClause.isLoopStart) {
+    if (pClause.isLoopStart) {
       return false;
     }
     // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute
     //  anymore) -> remove if adding pthread_mutex_trylock support
-    if (pCaseClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
+    if (pClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
       return true;
     }
     // the first link in the thread can also link global, if it is not global itself

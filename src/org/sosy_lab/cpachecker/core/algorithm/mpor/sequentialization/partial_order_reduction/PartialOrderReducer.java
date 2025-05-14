@@ -26,12 +26,12 @@ public class PartialOrderReducer {
 
   /**
    * Applies a Partial Order Reduction based on the settings in {@code pOptions}, or returns {@code
-   * pCaseClauses} as is if disabled.
+   * pClauses} as is if disabled.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reduce(
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -39,21 +39,21 @@ public class PartialOrderReducer {
     if (pOptions.linkReduction
         && pOptions.bitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
-          StatementLinker.link(pCaseClauses);
+          StatementLinker.link(pClauses);
       return BitVectorAccessInjector.inject(
           pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.linkReduction
         && pOptions.bitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
-          StatementLinker.link(pCaseClauses);
+          StatementLinker.link(pClauses);
       return BitVectorReadWriteInjector.inject(
           pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.linkReduction) {
-      return StatementLinker.link(pCaseClauses);
+      return StatementLinker.link(pClauses);
     }
-    return pCaseClauses;
+    return pClauses;
   }
 
   public static boolean requiresAssumeEvaluation(

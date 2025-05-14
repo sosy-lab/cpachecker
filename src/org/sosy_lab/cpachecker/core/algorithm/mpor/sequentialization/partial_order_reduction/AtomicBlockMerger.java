@@ -24,15 +24,15 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class AtomicBlockMerger {
 
   /**
-   * Builds atomic blocks for {@code pCaseClauses} by adding {@code goto} statements when
-   * encountering an atomic_begin, until an atomic_end is encountered.
+   * Builds atomic blocks for {@code pClauses} by adding {@code goto} statements when encountering
+   * an atomic_begin, until an atomic_end is encountered.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> merge(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rWithBlocks =
         ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
       ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =

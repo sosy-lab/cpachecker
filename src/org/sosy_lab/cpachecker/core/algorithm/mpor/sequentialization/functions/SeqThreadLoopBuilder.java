@@ -51,7 +51,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -80,7 +80,7 @@ public class SeqThreadLoopBuilder {
             pOptions,
             pPcVariables,
             pThreadAssumptions,
-            pCaseClauses,
+            pClauses,
             kNondet,
             kGreaterZero,
             rReset,
@@ -94,7 +94,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -107,7 +107,7 @@ public class SeqThreadLoopBuilder {
           pOptions,
           pPcVariables,
           pThreadAssumptions,
-          pCaseClauses,
+          pClauses,
           pKNondet,
           pKGreaterZero,
           pRReset,
@@ -118,7 +118,7 @@ public class SeqThreadLoopBuilder {
           pOptions,
           pPcVariables,
           pThreadAssumptions,
-          pCaseClauses,
+          pClauses,
           pKNondet,
           pKGreaterZero,
           pRReset,
@@ -131,7 +131,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -150,7 +150,7 @@ public class SeqThreadLoopBuilder {
     rThreadLoops.add(LineOfCode.of(2, pRReset.toASTString()));
 
     int i = 0;
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       CIntegerLiteralExpression threadId =
           SeqExpressionBuilder.buildIntegerLiteralExpression(thread.id);
@@ -191,7 +191,7 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
@@ -200,7 +200,7 @@ public class SeqThreadLoopBuilder {
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
 
@@ -240,7 +240,7 @@ public class SeqThreadLoopBuilder {
       MPORThread pThread,
       ImmutableList<SeqAssumption> pThreadAssumptions,
       CExpressionAssignmentStatement pRIncrement,
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -254,13 +254,7 @@ public class SeqThreadLoopBuilder {
 
     ImmutableList<LineOfCode> switchStatement =
         buildThreadLoopSwitchStatement(
-            pOptions,
-            pPcVariables,
-            pThread,
-            assumeLabel,
-            pCaseClauses,
-            3,
-            pBinaryExpressionBuilder);
+            pOptions, pPcVariables, pThread, assumeLabel, pClauses, 3, pBinaryExpressionBuilder);
 
     // add all lines of code: loop head, assumptions, iteration increment, switch statement
     rThreadLoop.add(LineOfCode.of(3, assumeLabel.toASTString()));
@@ -281,7 +275,7 @@ public class SeqThreadLoopBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableMap<Integer, SeqThreadStatementClause> labelValueMap =
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     CExpression pcExpression = pPcVariables.get(pThread.id);
     CBinaryExpression iterationSmallerMax =
@@ -294,7 +288,7 @@ public class SeqThreadLoopBuilder {
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         SeqThreadStatement newStatement =
             SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
-                iterationSmallerMax, pAssumeLabel, statement, labelValueMap);
+                iterationSmallerMax, pAssumeLabel, statement, labelClauseMap);
         newStatements.add(newStatement);
       }
       pUpdatedCases.add(

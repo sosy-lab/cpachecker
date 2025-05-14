@@ -45,8 +45,8 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
-    for (SeqThreadStatementClause caseClause : pClauses) {
-      rOriginPcs.put(caseClause.labelNumber, caseClause);
+    for (SeqThreadStatementClause clause : pClauses) {
+      rOriginPcs.put(clause.labelNumber, clause);
     }
     return rOriginPcs.buildOrThrow();
   }
@@ -65,19 +65,19 @@ public class SeqThreadStatementClauseUtil {
   }
 
   /**
-   * Ensures that all {@code int} labels in {@code pCaseClauses} are numbered consecutively, i.e.
-   * the numbers {@code 0} to {@code pCaseClauses.size() - 1} are present (no gaps).
+   * Ensures that all {@code int} labels in {@code pClauses} are numbered consecutively, i.e. the
+   * numbers {@code 0} to {@code pClauses.size() - 1} are present (no gaps).
    *
    * <p>This function also recursively searches for all target {@code pc} and adjusts them
    * accordingly.
    */
   public static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
       cloneWithConsecutiveLabelNumbers(
-          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses) {
+          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rConsecutiveLabels =
         ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       rConsecutiveLabels.put(entry.getKey(), cloneWithConsecutiveLabelNumbers(entry.getValue()));
     }
     return rConsecutiveLabels.buildOrThrow();
@@ -123,11 +123,11 @@ public class SeqThreadStatementClauseUtil {
   }
 
   private static ImmutableMap<Integer, Integer> mapBlockLabelNumberToIndex(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     int index = 0;
-    for (SeqThreadStatementClause clause : pCaseClauses) {
+    for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.block.getGotoLabel().labelNumber, index++);
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
         rLabelToIndex.put(mergedBlock.getGotoLabel().labelNumber, index++);
@@ -137,11 +137,11 @@ public class SeqThreadStatementClauseUtil {
   }
 
   private static ImmutableMap<Integer, Integer> mapClauseLabelNumberToIndex(
-      ImmutableList<SeqThreadStatementClause> pCaseClauses) {
+      ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     int index = 0;
-    for (SeqThreadStatementClause clause : pCaseClauses) {
+    for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.labelNumber, index++);
     }
     return rLabelToIndex.buildOrThrow();
@@ -197,7 +197,7 @@ public class SeqThreadStatementClauseUtil {
       CBinaryExpression pIterationSmallerMax,
       SeqThreadLoopLabelStatement pAssumeLabel,
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelValueMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present -> clone with targetIndex
@@ -206,7 +206,7 @@ public class SeqThreadStatementClauseUtil {
         ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
         // add previous injections BEFORE (otherwise undefined behavior in seq!)
         newInjections.addAll(pCurrentStatement.getInjectedStatements());
-        SeqThreadStatementClause target = Objects.requireNonNull(pLabelValueMap.get(targetPc));
+        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         newInjections.add(
             new SeqThreadLoopGotoStatement(
                 pIterationSmallerMax,
@@ -237,16 +237,17 @@ public class SeqThreadStatementClauseUtil {
   public static boolean isConsecutiveLabelPath(
       SeqThreadStatementClause pCurrent,
       final SeqThreadStatementClause pTarget,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelCaseMap) {
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (pCurrent.equals(pTarget)) {
       return true;
     } else {
       SeqThreadStatement firstStatement = pCurrent.block.getFirstStatement();
-      SeqThreadStatementClause next = pLabelCaseMap.get(firstStatement.getTargetPc().orElseThrow());
+      SeqThreadStatementClause next =
+          pLabelClauseMap.get(firstStatement.getTargetPc().orElseThrow());
       assert next != null : "could not find target case clause";
       if (pCurrent.labelNumber + 1 == next.labelNumber) {
-        return isConsecutiveLabelPath(next, pTarget, pLabelCaseMap);
+        return isConsecutiveLabelPath(next, pTarget, pLabelClauseMap);
       } else {
         return false;
       }

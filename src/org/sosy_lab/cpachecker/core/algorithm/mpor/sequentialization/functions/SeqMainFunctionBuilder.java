@@ -41,9 +41,9 @@ public class SeqMainFunctionBuilder {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    // create case clauses in main method
-    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> caseClauses =
-        SeqThreadStatementClauseBuilder.buildCaseClauses(
+    // create clauses in main method
+    ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses =
+        SeqThreadStatementClauseBuilder.buildClauses(
             pOptions,
             pSubstitutions,
             pSubstituteEdges,
@@ -60,7 +60,7 @@ public class SeqMainFunctionBuilder {
         pOptions,
         pSubstitutions,
         threadSimulationAssumptions,
-        caseClauses,
+        clauses,
         pBitVectorVariables,
         pPcVariables,
         pBinaryExpressionBuilder,

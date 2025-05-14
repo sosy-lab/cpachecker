@@ -45,7 +45,7 @@ class BitVectorReadWriteInjector {
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -54,11 +54,11 @@ class BitVectorReadWriteInjector {
       pLogger.log(
           Level.INFO,
           "bit vectors are enabled, but the program does not contain any global variables.");
-      return pCaseClauses; // no global variables -> no bit vectors
+      return pClauses; // no global variables -> no bit vectors
     }
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> injected =
         ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       Optional<BitVectorEvaluationExpression> bitVectorEvaluation =
           BitVectorEvaluationBuilder.buildReadWriteBitVectorEvaluationByEncoding(
@@ -80,17 +80,17 @@ class BitVectorReadWriteInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       Optional<BitVectorEvaluationExpression> pBitVectorEvaluation,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pCaseClauses);
-    for (SeqThreadStatementClause clause : pCaseClauses) {
+        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
+    for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(

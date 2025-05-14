@@ -29,12 +29,12 @@ public class SeqSingleLoopBuilder {
   protected static ImmutableList<LineOfCode> buildSingleLoopThreadSimulationStatements(
       MPOROptions pOptions,
       PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<SeqMultiControlFlowStatement> controlFlow = ImmutableList.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       controlFlow.add(
           buildSingleLoopMultiControlFlowStatement(
@@ -59,15 +59,15 @@ public class SeqSingleLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     CLeftHandSide pcExpression = pPcVariables.get(pThread.id);
     return switch (pOptions.controlFlowEncoding) {
-      case SWITCH_CASE -> new SeqSwitchStatement(pOptions, pcExpression, pCaseClauses, pTabs);
+      case SWITCH_CASE -> new SeqSwitchStatement(pOptions, pcExpression, pClauses, pTabs);
       case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(pcExpression, pCaseClauses, pTabs, pBinaryExpressionBuilder);
+          new SeqBinaryIfTreeStatement(pcExpression, pClauses, pTabs, pBinaryExpressionBuilder);
     };
   }
 }

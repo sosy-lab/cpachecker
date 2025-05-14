@@ -68,8 +68,8 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
 
-  /** The thread-specific case clauses in the while loop. */
-  private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> caseClauses;
+  /** The thread-specific clauses in the while loop. */
+  private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses;
 
   private final ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations;
 
@@ -111,7 +111,7 @@ public class SeqMainFunction extends SeqFunction {
                 SeqInitializerBuilder.buildInitializerExpression(
                     SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads))));
     threadAssumptions = pThreadAssumptions;
-    caseClauses = pClauses;
+    clauses = pClauses;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
@@ -175,11 +175,11 @@ public class SeqMainFunction extends SeqFunction {
     if (options.threadLoops) {
       rBody.addAll(
           SeqThreadLoopBuilder.buildThreadLoopsSwitchStatements(
-              options, pcVariables, threadAssumptions, caseClauses, binaryExpressionBuilder));
+              options, pcVariables, threadAssumptions, clauses, binaryExpressionBuilder));
     } else {
       rBody.addAll(
           SeqSingleLoopBuilder.buildSingleLoopThreadSimulationStatements(
-              options, pcVariables, caseClauses, binaryExpressionBuilder));
+              options, pcVariables, clauses, binaryExpressionBuilder));
     }
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---

@@ -46,7 +46,7 @@ class BitVectorAccessInjector {
   protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pCaseClauses,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
       LogManager pLogger)
       throws UnrecognizedCodeException {
@@ -56,11 +56,11 @@ class BitVectorAccessInjector {
           Level.WARNING,
           "Bit Vectors over global variables are enabled, but the input program does not contain"
               + " any global variables.");
-      return pCaseClauses; // no global variables -> no bit vectors
+      return pClauses; // no global variables -> no bit vectors
     }
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> injected =
         ImmutableMap.builder();
-    for (var entry : pCaseClauses.entrySet()) {
+    for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       Optional<BitVectorEvaluationExpression> fullBitVectorEvaluation =
           BitVectorEvaluationBuilder.buildBitVectorAccessEvaluationByEncoding(
@@ -81,15 +81,15 @@ class BitVectorAccessInjector {
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableList<SeqThreadStatementClause> pCaseClauses,
+      ImmutableList<SeqThreadStatementClause> pClauses,
       Optional<BitVectorEvaluationExpression> pFullBitVectorEvaluation) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rInjected = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pCaseClauses);
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
-        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pCaseClauses);
-    for (SeqThreadStatementClause clause : pCaseClauses) {
+        SeqThreadStatementClauseUtil.mapLabelNumberToBlock(pClauses);
+    for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         newStatements.add(
@@ -146,7 +146,7 @@ class BitVectorAccessInjector {
         newInjected.addAll(
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, ImmutableSet.of()));
       } else {
-        // for all other target pc, set the bit vector based on global accesses in the target case
+        // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
         // always need context switch when targeting critical section start -> no bit vectors
