@@ -14,6 +14,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -141,6 +142,10 @@ public class RandomSamplingAlgorithm implements Algorithm {
       // Add a dummy target state
       reachedSet.add(
           new ARGState(firstStateOriginalArg.getWrappedState(), firstStateOriginalArg) {
+
+            @Serial
+            private static final long serialVersionUID = 2608790182643565040L;
+
             @Override
             public boolean isTarget() {
               return true;
