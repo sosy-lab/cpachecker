@@ -338,6 +338,46 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.INFO, "Statement is an expression statement");
     }
 
+    if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
+      // E.g.: z = x * x + y;
+      CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
+      CExpression rhs = exprAssignStmt.getRightHandSide();
+      Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
+
+      boolean functionContainsTaintedVar = false;
+
+      if (allVarsAsCExpr.isEmpty()) {
+        // TODO: delete this string parsing. Handle every function from which we can't access the
+        // parameters via CPAchecker's parsing, as a tainting source.
+        functionContainsTaintedVar = rhsOfRawStatementContainsTaintedParameters(pCfaEdge, pState);
+      }
+
+      boolean taintedVarsRHS =
+          allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var))
+              || functionContainsTaintedVar;
+
+      if (lhs instanceof CIdExpression variableLHS) {
+        // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
+        // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
+        // LHS
+        if (taintedVarsRHS) {
+          generatedVars.add(variableLHS);
+        } else {
+          killedVars.add(variableLHS);
+        }
+      } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
+        // If the LHS is an array element and the RHS contains a tainted variable,
+        // mark the array variable as tainted
+        CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
+        if (arrayExpr instanceof CIdExpression arrayVariable) {
+          if (taintedVarsRHS) {
+            generatedVars.add(arrayVariable);
+          }
+        }
+      }
+      // TODO: Add more instance-cases, if necessary
+    }
+
     if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
       String functionName = callExpr.getFunctionNameExpression().toString();
@@ -517,47 +557,34 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
           if (newErrorState != null) return newErrorState;
         }
-      }
-    }
+      } else {
+        // E.g., calls to any function like f(param1, ..., paramN);, where the parameters
+        // can also be functions or expressions.
+        List<CExpression> params =
+            functionCallStmt.getFunctionCallExpression().getParameterExpressions();
 
-    if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
-      // E.g.: z = x * x + y;
-      CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
-      CExpression rhs = exprAssignStmt.getRightHandSide();
-      Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
+        Set<CIdExpression> allVarsAsCExpr = new HashSet<>();
 
-      boolean functionContainsTaintedVar = false;
+        // loop for extracting the parameters as CIdExpressions
+        for (CExpression param : params) {
+          if (param instanceof CBinaryExpression) {
+            Set<CIdExpression> allVars = TaintAnalysisUtils.getAllVarsAsCExpr(param);
+            allVarsAsCExpr.addAll(allVars);
+          }
 
-      if (allVarsAsCExpr.isEmpty()) {
-        // TODO: delete this string parsing. Handle every function from which we can't access the
-        // parameters via CPAchecker's parsing, as a tainting source.
-        functionContainsTaintedVar = rhsOfRawStatementContainsTaintedParameters(pCfaEdge, pState);
-      }
-
-      boolean taintedVarsRHS =
-          allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var))
-              || functionContainsTaintedVar;
-
-      if (lhs instanceof CIdExpression variableLHS) {
-        // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
-        // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
-        // LHS
-        if (taintedVarsRHS) {
-          generatedVars.add(variableLHS);
-        } else {
-          killedVars.add(variableLHS);
+          if (param instanceof CIdExpression cIdExpr) {
+            allVarsAsCExpr.add(cIdExpr);
+          }
         }
-      } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
-        // If the LHS is an array element and the RHS contains a tainted variable,
-        // mark the array variable as tainted
-        CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
-        if (arrayExpr instanceof CIdExpression arrayVariable) {
-          if (taintedVarsRHS) {
-            generatedVars.add(arrayVariable);
+
+        // if one of the parameters is tainted, mark the other parameters as tainted as well
+        for (CIdExpression cIdExpression : allVarsAsCExpr) {
+          if (taintedVariables.contains(cIdExpression)) {
+            generatedVars.addAll(allVarsAsCExpr);
+            break;
           }
         }
       }
-      // TODO: Add more instance-cases, if necessary
     }
 
     if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignStmt) {
