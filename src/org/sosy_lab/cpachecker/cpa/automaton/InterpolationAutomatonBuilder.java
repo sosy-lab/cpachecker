@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.predicate.LemmaPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -220,8 +219,7 @@ public class InterpolationAutomatonBuilder {
             Optional.empty(),
             pathFormula.getFormula(),
             pathFormula,
-            pPredicates,
-            LemmaPrecision.EMPTY);
+            pPredicates);
 
     logger.logf(Level.FINE, "Current Itp: %s", pCurrentInterpolant);
 

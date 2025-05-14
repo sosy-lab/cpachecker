@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.predicate.LemmaPrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
@@ -478,8 +477,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
               callstackWrapper,
               abstractionFormula,
               pathFormula,
-              relevantPreds,
-              LemmaPrecision.EMPTY);
+              relevantPreds);
 
       logger.logf(Level.FINER, "New abstraction formula: %s\n", abstractionFormula);
       printHoareTriple(relevantPreds, abstractionResult);

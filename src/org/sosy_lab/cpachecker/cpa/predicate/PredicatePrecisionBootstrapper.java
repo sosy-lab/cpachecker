@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.cfa.Language.C;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
@@ -227,6 +226,7 @@ public final class PredicatePrecisionBootstrapper {
                   result.mergeWith(
                       parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
             }
+            result = result.addAbstractionLemmas(prepareInitialLemmas(predicatesFile));
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -243,35 +243,27 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
-  public LemmaPrecision prepareInitialLemmas()
-      throws InterruptedException, InvalidConfigurationException {
+  public Set<AbstractionLemma> prepareInitialLemmas(Path lemmaFile)
+      throws InvalidConfigurationException {
     ImmutableList.Builder<LemmaSetEntry> lemmaSetEntriesBuilder = ImmutableList.builder();
-    ImmutableList.Builder<LemmaEntry> lemmaSetBuilder = ImmutableList.builder();
-    ImmutableList.Builder<String> declarationEntriesBuilder = ImmutableList.builder();
+    ImmutableList<LemmaSetEntry> lemmaSetEntries;
 
-    if (!predicatesFiles.isEmpty()) {
-      for (Path lemmaFile : predicatesFiles) {
-        try {
-          IO.checkReadableFile(lemmaFile);
-          if (!AutomatonWitnessV2ParserUtils.isYAMLWitness(lemmaFile)) {
-            logger.log(Level.WARNING, "Lemmas can only be supplied via a YAML file.");
-            continue;
-          }
-          ImmutableList<LemmaSetEntry> lemmaSetEntries =
-              lemmaSetEntriesBuilder
-                  .addAll(AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile))
-                  .build();
-          declarationEntriesBuilder.addAll(
-              AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries));
-          lemmaSetBuilder.addAll(
-              AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries));
-        } catch (IOException e) {
-          logger.logfUserException(Level.WARNING, e, "Could not read lemma file");
-        }
-      }
+    try {
+      lemmaSetEntriesBuilder.addAll(AutomatonWitnessV2ParserUtils.readLemmaFile(lemmaFile));
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not read lemma set from file");
     }
-    ImmutableList<LemmaEntry> lemmaSet = lemmaSetBuilder.build();
-    ImmutableList<String> declarationEntries = declarationEntriesBuilder.build();
+    lemmaSetEntries = lemmaSetEntriesBuilder.build();
+
+    ImmutableList<String> declarationEntries =
+        ImmutableList.<String>builder()
+            .addAll(AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries))
+            .build();
+
+    ImmutableList<LemmaEntry> lemmaSet =
+        ImmutableList.<LemmaEntry>builder()
+            .addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries))
+            .build();
 
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
@@ -285,21 +277,23 @@ public final class PredicatePrecisionBootstrapper {
     for (CDeclaration declaration : declarations) {
       scope.addDeclarationToScope(declaration);
     }
-    ImmutableMap.Builder<String, AbstractionLemma> lemmas = ImmutableMap.builder();
+
+    ImmutableSet.Builder<AbstractionLemma> abstractionLemmas = ImmutableSet.builder();
     LemmaExtractorVisitor extractor = new LemmaExtractorVisitor();
+
     for (LemmaEntry lemma : lemmaSet) {
+      BooleanFormula lemmaFormula = formulaManagerView.getBooleanFormulaManager().makeTrue();
       try {
-        BooleanFormula lemmaFormula = toFormula(transformer.parseLemmaEntry(lemma, scope));
-        Pair<BitvectorFormula, BitvectorFormula> lemmaPair =
-            formulaManagerView.visit(lemmaFormula, extractor);
-        lemmas.put(
-            "MaxArray",
-            new AbstractionLemma(lemmaFormula, lemmaPair.getFirst(), lemmaPair.getSecond()));
+        lemmaFormula = toFormula(transformer.parseLemmaEntry(lemma, scope));
       } catch (Exception e) {
         logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
       }
+      Pair<BitvectorFormula, BitvectorFormula> lemmaPair =
+          formulaManagerView.visit(lemmaFormula, extractor);
+      abstractionLemmas.add(
+          new AbstractionLemma(lemmaFormula, lemmaPair.getFirst(), lemmaPair.getSecond()));
     }
-    return new LemmaPrecision(lemmas.buildOrThrow());
+    return abstractionLemmas.build();
   }
 
   private PredicatePrecision parseInvariantFromYMLCorrectnessWitnessNonLocally(

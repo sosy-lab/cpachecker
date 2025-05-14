@@ -50,7 +50,6 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private final PredicateCPAInvariantsManager invariants;
   private final PredicateProvider predicateProvider;
-  private final LemmaPrecision lemmaPrecision;
 
   // Statistics
   final StatTimer totalPrecTime = new StatTimer("Time for prec operator");
@@ -67,8 +66,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
-      PredicateProvider pPredicateProvider,
-      LemmaPrecision pLemmaPrecision) {
+      PredicateProvider pPredicateProvider) {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;
@@ -77,7 +75,6 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     invariants = pInvariantSupplier;
     predicateProvider = pPredicateProvider;
-    lemmaPrecision = pLemmaPrecision;
   }
 
   @Override
@@ -190,12 +187,7 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
           formulaManager.buildAbstraction(
-              pLocations,
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              additionalPredicates,
-              lemmaPrecision);
+              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }

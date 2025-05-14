@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 
 /**
@@ -107,28 +108,50 @@ public final class PredicatePrecision implements AdjustablePrecision {
   private final ImmutableSetMultimap<CFANode, AbstractionPredicate> mLocalPredicates;
   private final ImmutableSetMultimap<String, AbstractionPredicate> mFunctionPredicates;
   private final ImmutableSet<AbstractionPredicate> mGlobalPredicates;
+  private final ImmutableSet<AbstractionLemma> mLemmas;
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
-          ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of(),
+          ImmutableList.of());
 
+  public PredicatePrecision(
+      Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
+      Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
+      Multimap<String, AbstractionPredicate> pFunctionPredicates,
+      Iterable<AbstractionPredicate> pGlobalPredicates,
+      Iterable<AbstractionLemma> pLemmas) {
+    this(
+        pLocationInstancePredicates.entries(),
+        pLocalPredicates.entries(),
+        pFunctionPredicates.entries(),
+        pGlobalPredicates,
+        pLemmas);
+  }
+
+  /** Constructor for a precision without lemmas */
   public PredicatePrecision(
       Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
       Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
       Multimap<String, AbstractionPredicate> pFunctionPredicates,
       Iterable<AbstractionPredicate> pGlobalPredicates) {
     this(
-        pLocationInstancePredicates.entries(),
-        pLocalPredicates.entries(),
-        pFunctionPredicates.entries(),
-        pGlobalPredicates);
+        pLocationInstancePredicates,
+        pLocalPredicates,
+        pFunctionPredicates,
+        pGlobalPredicates,
+        ImmutableList.of());
   }
 
   private PredicatePrecision(
       Iterable<Map.Entry<LocationInstance, AbstractionPredicate>> pLocationInstancePredicates,
       Iterable<Map.Entry<CFANode, AbstractionPredicate>> pLocalPredicates,
       Iterable<Map.Entry<String, AbstractionPredicate>> pFunctionPredicates,
-      Iterable<AbstractionPredicate> pGlobalPredicates) {
+      Iterable<AbstractionPredicate> pGlobalPredicates,
+      Iterable<AbstractionLemma> pLemmas) {
     // We want the precision to have
     // - no duplicate predicates,
     // - deterministic order, and
@@ -151,6 +174,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
     // and makes mergeWith() and the various addSomethingPredicates() methods more efficient.
 
     mGlobalPredicates = ImmutableSet.copyOf(pGlobalPredicates);
+    mLemmas = ImmutableSet.copyOf(pLemmas);
 
     Multimap<String, AbstractionPredicate> functionPredicates =
         MultimapBuilder.treeKeys().arrayListValues().build();
@@ -205,7 +229,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         from(precisions).transformAndConcat(prec -> prec.getLocationInstancePredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getLocalPredicates().entries()),
         from(precisions).transformAndConcat(prec -> prec.getFunctionPredicates().entries()),
-        from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates));
+        from(precisions).transformAndConcat(PredicatePrecision::getGlobalPredicates),
+        from(precisions).transformAndConcat(PredicatePrecision::getLemmas));
   }
 
   /**
@@ -259,6 +284,11 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return mGlobalPredicates;
   }
 
+  /** Return all lemmas in this precision. */
+  public ImmutableSet<AbstractionLemma> getLemmas() {
+    return mLemmas;
+  }
+
   /**
    * Return all predicates for one specific location in this precision.
    *
@@ -294,7 +324,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getLocationInstancePredicates(),
         getLocalPredicates(),
         getFunctionPredicates(),
-        Iterables.concat(getGlobalPredicates(), newPredicates));
+        Iterables.concat(getGlobalPredicates(), newPredicates),
+        getLemmas());
   }
 
   /**
@@ -310,7 +341,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getLocationInstancePredicates().entries(),
         getLocalPredicates().entries(),
         Iterables.concat(getFunctionPredicates().entries(), newPredicates),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getLemmas());
   }
 
   /**
@@ -326,7 +358,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getLocationInstancePredicates().entries(),
         Iterables.concat(getLocalPredicates().entries(), newPredicates),
         getFunctionPredicates().entries(),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getLemmas());
   }
 
   /**
@@ -342,7 +375,17 @@ public final class PredicatePrecision implements AdjustablePrecision {
         Iterables.concat(getLocationInstancePredicates().entries(), newPredicates),
         getLocalPredicates().entries(),
         getFunctionPredicates().entries(),
-        getGlobalPredicates());
+        getGlobalPredicates(),
+        getLemmas());
+  }
+
+  public PredicatePrecision addAbstractionLemmas(Collection<AbstractionLemma> newLemmas) {
+    return new PredicatePrecision(
+        getLocationInstancePredicates(),
+        getLocalPredicates(),
+        getFunctionPredicates(),
+        getGlobalPredicates(),
+        Iterables.concat(getLemmas(), newLemmas));
   }
 
   /** Create a new precision which contains all predicates of this precision and a second one. */
@@ -359,7 +402,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
             prec.getLocationInstancePredicates().entries()),
         Iterables.concat(getLocalPredicates().entries(), prec.getLocalPredicates().entries()),
         Iterables.concat(getFunctionPredicates().entries(), prec.getFunctionPredicates().entries()),
-        Iterables.concat(getGlobalPredicates(), prec.getGlobalPredicates()));
+        Iterables.concat(getGlobalPredicates(), prec.getGlobalPredicates()),
+        Iterables.concat(getLemmas(), prec.getLemmas()));
   }
 
   /**
@@ -387,6 +431,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
                 getLocationInstancePredicates().entries(),
                 other.getLocationInstancePredicates().entries())
             .size();
+
     return difference;
   }
 
@@ -395,7 +440,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return getGlobalPredicates().isEmpty()
         && getFunctionPredicates().isEmpty()
         && getLocalPredicates().isEmpty()
-        && getLocationInstancePredicates().isEmpty();
+        && getLocationInstancePredicates().isEmpty()
+        && getLemmas().isEmpty();
   }
 
   @Override
@@ -404,7 +450,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
         getGlobalPredicates(),
         getFunctionPredicates(),
         getLocalPredicates(),
-        getLocationInstancePredicates());
+        getLocationInstancePredicates(),
+        getLemmas());
   }
 
   @Override
@@ -419,7 +466,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return getLocationInstancePredicates().equals(other.getLocationInstancePredicates())
         && getLocalPredicates().equals(other.getLocalPredicates())
         && getFunctionPredicates().equals(other.getFunctionPredicates())
-        && getGlobalPredicates().equals(other.getGlobalPredicates());
+        && getGlobalPredicates().equals(other.getGlobalPredicates())
+        && getLemmas().equals(other.getLemmas());
   }
 
   @Override
@@ -450,6 +498,10 @@ public final class PredicatePrecision implements AdjustablePrecision {
       sb.append("location-instance predicates: ");
       sb.append(getLocationInstancePredicates());
     }
+    if (!getLemmas().isEmpty()) {
+      sb.append("abstraction lemmas: ");
+      sb.append(getLemmas());
+    }
 
     if (sb.length() == 0) {
       return "empty";
@@ -474,6 +526,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
             mLocationInstancePredicates.entries(), other.getLocationInstancePredicates().entries()),
         Sets.difference(mLocalPredicates.entries(), other.getLocalPredicates().entries()),
         Sets.difference(mFunctionPredicates.entries(), other.getFunctionPredicates().entries()),
-        Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()));
+        Sets.difference(getGlobalPredicates(), other.getGlobalPredicates()),
+        Sets.difference(getLemmas(), other.getLemmas()));
   }
 }
