@@ -12,11 +12,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -37,7 +34,6 @@ import org.sosy_lab.cpachecker.core.algorithm.detailed_counterexample_export.Det
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
@@ -103,22 +99,6 @@ public class RandomSamplingAlgorithm implements Algorithm {
     exporter = new DetailedCounterexampleExport(pAlgorithm, pConfig, pLogger, pNotifier, pCfa);
   }
 
-  private AbstractState cloneAbstractState(AbstractState pAbstractStatesSet) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      ObjectOutputStream oos = new ObjectOutputStream(baos);
-      oos.writeObject(pAbstractStatesSet);
-
-      ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-      ObjectInputStream ois = new ObjectInputStream(bais);
-      return (AbstractState) ois.readObject();
-    } catch (IOException e) {
-      return null;
-    } catch (ClassNotFoundException e) {
-      return null;
-    }
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     // Copy the current reached set
@@ -127,12 +107,15 @@ public class RandomSamplingAlgorithm implements Algorithm {
         (reachedSet.getFirstState() instanceof ARGState),
         "The reached set must contain an ARGState as the first state.");
 
-    ARGState argState = (ARGState) reachedSet.getFirstState();
+    ARGState firstStateOriginalArg = (ARGState) reachedSet.getFirstState();
     ARGState clonedArgState =
-        new ARGState(argState.getWrappedState(), null /* The first state has no parent */);
+        new ARGState(
+            firstStateOriginalArg.getWrappedState(), null /* The first state has no parent */);
     // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
     // to copy the precision.
-    Precision precision = reachedSet.getPrecision(argState);
+    Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
+
+    boolean counterexampleFound = false;
 
     while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated) {
       notifier.shutdownIfNecessary();
@@ -148,9 +131,30 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
       // export the resulting trace
       exportReachedSet(newReachedSet);
+
+      boolean isSafeTrace =
+          FluentIterable.from(newReachedSet).filter(AbstractStates::isTargetState).isEmpty();
+      counterexampleFound = counterexampleFound || !isSafeTrace;
     }
 
-    return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    if (counterexampleFound) {
+      // Add a dummy target state
+      reachedSet.add(
+          new ARGState(firstStateOriginalArg.getWrappedState(), firstStateOriginalArg) {
+            @Override
+            public boolean isTarget() {
+              return true;
+            }
+
+            @Override
+            public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
+              return ImmutableSet.of();
+            }
+          },
+          precision);
+    }
+
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
   void exportReachedSet(ReachedSet pReachedSet) throws CPAException, InterruptedException {
