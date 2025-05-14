@@ -12,9 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
-import java.io.Serial;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -45,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "sampling.random")
@@ -69,6 +68,13 @@ public class RandomSamplingAlgorithm implements Algorithm {
           "Amount of samples to be generated. Generate an infinite amount of samples with a value"
               + " less than 0.")
   private int samplesToBeGenerated = 10;
+
+  @Option(
+      secure = true,
+      description =
+          "Stop after finding the first counterexample. This is useful when using this as an actual"
+              + " analysis.")
+  private boolean stopAfterFirstCounterexample = false;
 
   private int exportedCounterexampleCount = 0;
 
@@ -119,8 +125,6 @@ public class RandomSamplingAlgorithm implements Algorithm {
     // to copy the precision.
     Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
 
-    boolean counterexampleFound = false;
-
     while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated
         || samplesToBeGenerated < 0) {
       notifier.shutdownIfNecessary();
@@ -139,27 +143,16 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
       boolean isSafeTrace =
           FluentIterable.from(newReachedSet).filter(AbstractStates::isTargetState).isEmpty();
-      counterexampleFound = counterexampleFound || !isSafeTrace;
-    }
+      if (!isSafeTrace) {
+        reachedSet.clear();
+        reachedSet.addAll(
+            FluentIterable.from(newReachedSet.asCollection())
+                .transform(a -> Pair.of(a, newReachedSet.getPrecision(Objects.requireNonNull(a)))));
+      }
 
-    if (counterexampleFound) {
-      // Add a dummy target state
-      reachedSet.add(
-          new ARGState(firstStateOriginalArg.getWrappedState(), firstStateOriginalArg) {
-
-            @Serial private static final long serialVersionUID = 2608790182643565040L;
-
-            @Override
-            public boolean isTarget() {
-              return true;
-            }
-
-            @Override
-            public Set<TargetInformation> getTargetInformation() throws IllegalStateException {
-              return ImmutableSet.of();
-            }
-          },
-          precision);
+      if (stopAfterFirstCounterexample) {
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
