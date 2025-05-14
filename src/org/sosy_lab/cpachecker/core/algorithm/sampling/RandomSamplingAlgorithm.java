@@ -143,8 +143,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
       reachedSet.add(
           new ARGState(firstStateOriginalArg.getWrappedState(), firstStateOriginalArg) {
 
-            @Serial
-            private static final long serialVersionUID = 2608790182643565040L;
+            @Serial private static final long serialVersionUID = 2608790182643565040L;
 
             @Override
             public boolean isTarget() {
