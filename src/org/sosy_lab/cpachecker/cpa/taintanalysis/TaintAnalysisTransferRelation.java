@@ -388,19 +388,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             // E.g., __VERIFIER_is_public(d[i], 1);
             // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
 
-            CExpression arrayExpr = arrayArg.getArrayExpression();
-
             // When an array d is tainted, we taint all its components as well, and
             // when one part of an array is tainted, we taint the whole array.
             // I.e., isTainted(d) <==> isTainted(d[i]), for all 0 <= i < d.length.
-            expressionIsTainted = taintedVariables.contains((CIdExpression) arrayExpr);
+            expressionIsTainted = taintedVariables.contains(arrayArg.getArrayExpression());
           }
 
-          if (firstArg instanceof CUnaryExpression) {
+          if (firstArg instanceof CUnaryExpression unaryExpr) {
             // E.g., __VERIFIER_is_public(-x, 1);
             // E.g., __VERIFIER_is_public(&x, 1);
-            CExpression operand = ((CUnaryExpression) firstArg).getOperand();
-            expressionIsTainted = taintedVariables.contains((CIdExpression) operand);
+            expressionIsTainted = taintedVariables.contains(unaryExpr.getOperand());
           }
 
           if (firstArg instanceof CPointerExpression) {
@@ -412,8 +409,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           if (firstArg instanceof CFieldReference fieldRef) {
             // E.g., __VERIFIER_is_public(t.a, 1);
 
-            expressionIsTainted =
-                taintedVariables.contains((CIdExpression) fieldRef.getFieldOwner());
+            expressionIsTainted = taintedVariables.contains(fieldRef.getFieldOwner());
           }
 
           if (firstArg instanceof CCastExpression castExpr) {
