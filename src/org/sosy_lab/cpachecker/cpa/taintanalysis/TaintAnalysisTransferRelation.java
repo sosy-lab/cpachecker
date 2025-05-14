@@ -426,7 +426,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             logger.log(Level.INFO, "first parameter is a CBinaryExpression");
           }
 
-          if (exprToCheck instanceof CArraySubscriptExpression arrayArg) {
+          if (exprToCheck instanceof CArraySubscriptExpression) {
             // E.g., __VERIFIER_is_public(d[i], 1);
             // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
 
@@ -436,7 +436,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
           }
 
-          if (exprToCheck instanceof CUnaryExpression unaryExpr) {
+          if (exprToCheck instanceof CUnaryExpression) {
             // E.g., __VERIFIER_is_public(-x, 1);
             // E.g., __VERIFIER_is_public(&x, 1);
             logger.log(Level.INFO, "first parameter is a CUnaryExpression");
