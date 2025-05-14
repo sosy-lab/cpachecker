@@ -59,13 +59,8 @@ public class MPORSubstitution {
    */
   private final ImmutableMap<CVariableDeclaration, CIdExpression> globalSubstitutes;
 
-  // TODO what if multiple declarations have no call context - duplicate key in map?
-  /**
-   * The map of thread local variable declarations to their substitutes. Not every local variable
-   * declaration has a calling context, hence {@link Optional}s.
-   */
-  private final ImmutableMap<
-          CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
+  /** The map of thread local variable declarations to their substitutes. */
+  private final ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute>
       localSubstitutes;
 
   /**
@@ -86,8 +81,7 @@ public class MPORSubstitution {
       boolean pIsDummy,
       MPORThread pThread,
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
-      ImmutableMap<CVariableDeclaration, ImmutableMap<Optional<ThreadEdge>, CIdExpression>>
-          pLocalSubstitutes,
+      ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute> pLocalSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pParameterSubstitutes,
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
@@ -389,8 +383,10 @@ public class MPORSubstitution {
 
     if (pSimpleDeclaration instanceof CVariableDeclaration variableDeclaration) {
       if (localSubstitutes.containsKey(variableDeclaration)) {
-        ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
+        LocalVariableDeclarationSubstitute localSubstitute =
             Objects.requireNonNull(localSubstitutes.get(variableDeclaration));
+        ImmutableMap<Optional<ThreadEdge>, CIdExpression> substitutes =
+            Objects.requireNonNull(localSubstitute.substitutes);
         return Objects.requireNonNull(substitutes.get(pCallContext));
       } else {
         checkArgument(
@@ -450,11 +446,20 @@ public class MPORSubstitution {
         "parameter declaration could not be found for given call context");
   }
 
-  public CVariableDeclaration getVariableDeclarationSubstitute(
-      CSimpleDeclaration pSimpleDeclaration, Optional<ThreadEdge> pCallContext) {
+  public CVariableDeclaration getLocalVariableDeclarationSubstitute(
+      CVariableDeclaration pLocalDeclaration, Optional<ThreadEdge> pCallContext) {
 
-    CIdExpression idExpression = getVariableSubstitute(pSimpleDeclaration, pCallContext);
+    CIdExpression idExpression = getVariableSubstitute(pLocalDeclaration, pCallContext);
     return (CVariableDeclaration) idExpression.getDeclaration();
+  }
+
+  public ImmutableSet<CVariableDeclaration> getGlobalVariablesUsedInLocalVariableDeclaration(
+      CVariableDeclaration pLocalDeclaration) {
+
+    checkArgument(
+        localSubstitutes.containsKey(pLocalDeclaration),
+        "could not find pLocalDeclaration substitute");
+    return Objects.requireNonNull(localSubstitutes.get(pLocalDeclaration)).accessedGlobalVariables;
   }
 
   public <T extends CSimpleDeclaration> T castTo(
@@ -485,11 +490,10 @@ public class MPORSubstitution {
 
   public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
-    for (ImmutableMap<Optional<ThreadEdge>, CIdExpression> localVariables :
-        localSubstitutes.values()) {
-      for (CIdExpression localVariable : localVariables.values()) {
+    for (LocalVariableDeclarationSubstitute localSubstitute : localSubstitutes.values()) {
+      for (var entry : localSubstitute.substitutes.entrySet()) {
         CVariableDeclaration variableDeclaration =
-            castTo(localVariable.getDeclaration(), CVariableDeclaration.class);
+            castTo(entry.getValue().getDeclaration(), CVariableDeclaration.class);
         rLocalDeclarations.add(variableDeclaration);
       }
     }

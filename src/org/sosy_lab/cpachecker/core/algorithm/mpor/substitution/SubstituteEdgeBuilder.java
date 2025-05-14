@@ -73,6 +73,7 @@ public class SubstituteEdgeBuilder {
     CFAEdge cfaEdge = pThreadEdge.cfaEdge;
     Optional<ThreadEdge> callContext =
         ThreadUtil.getCallContextOrStartRoutineCall(pThreadEdge.callContext, pSubstitution.thread);
+
     if (cfaEdge instanceof CDeclarationEdge declarationEdge) {
       // TODO what about structs?
       if (SubstituteUtil.isExcludedDeclarationEdge(pOptions, declarationEdge)) {
@@ -80,16 +81,31 @@ public class SubstituteEdgeBuilder {
       } else {
         CDeclaration declaration = declarationEdge.getDeclaration();
         // we only substitute variables, not functions or types
-        if (declaration instanceof CVariableDeclaration) {
-          CVariableDeclaration variableDeclaration =
-              pSubstitution.getVariableDeclarationSubstitute(declaration, callContext);
-          // TODO which global variables to include for the set?
-          return Optional.of(
-              new SubstituteEdge(
-                  substituteDeclarationEdge(declarationEdge, variableDeclaration),
-                  pThreadEdge,
-                  ImmutableSet.of(),
-                  ImmutableSet.of()));
+        if (declaration instanceof CVariableDeclaration variableDeclaration) {
+          if (declaration.isGlobal()) {
+            CVariableDeclaration declarationSubstitute =
+                pSubstitution.getLocalVariableDeclarationSubstitute(
+                    variableDeclaration, callContext);
+            return Optional.of(
+                new SubstituteEdge(
+                    substituteDeclarationEdge(declarationEdge, declarationSubstitute),
+                    pThreadEdge,
+                    // no global accesses needed, global declarations are outside main()
+                    ImmutableSet.of(),
+                    ImmutableSet.of()));
+          } else {
+            CVariableDeclaration declarationSubstitute =
+                pSubstitution.getLocalVariableDeclarationSubstitute(
+                    variableDeclaration, callContext);
+            ImmutableSet<CVariableDeclaration> accessedGlobalVariables =
+                pSubstitution.getGlobalVariablesUsedInLocalVariableDeclaration(variableDeclaration);
+            return Optional.of(
+                new SubstituteEdge(
+                    substituteDeclarationEdge(declarationEdge, declarationSubstitute),
+                    pThreadEdge,
+                    ImmutableSet.of(),
+                    accessedGlobalVariables));
+          }
         }
       }
 
