@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@SuppressWarnings("unused")
 @Options(prefix = "sampling.random")
 public class RandomSamplingAlgorithm implements Algorithm {
 
@@ -64,7 +63,11 @@ public class RandomSamplingAlgorithm implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate safeExport = PathTemplate.ofFormatString("Safe.trace.%d.txt");
 
-  @Option(secure = true, description = "Amount of samples to be generated.")
+  @Option(
+      secure = true,
+      description =
+          "Amount of samples to be generated. Generate an infinite amount of samples with a value"
+              + " less than 0.")
   private int samplesToBeGenerated = 10;
 
   private int exportedCounterexampleCount = 0;
@@ -118,7 +121,8 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
     boolean counterexampleFound = false;
 
-    while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated) {
+    while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated
+        || samplesToBeGenerated < 0) {
       notifier.shutdownIfNecessary();
 
       ARGState newInitialState =
