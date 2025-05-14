@@ -700,8 +700,7 @@ public class CFAUtils {
   /**
    * Extracts all variables with their types from the given CFA.
    *
-   * @param cfa
-   * @return Map of memory locations of variables to their types.
+   * @return Map of memory locations of variables within cfa to their types.
    */
   public static Map<MemoryLocation, CType> extractVariableTypes(CFA cfa) {
     Map<MemoryLocation, CType> types = new HashMap<>();

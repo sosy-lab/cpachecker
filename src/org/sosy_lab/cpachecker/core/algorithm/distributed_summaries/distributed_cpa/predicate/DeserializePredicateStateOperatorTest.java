@@ -86,7 +86,7 @@ public class DeserializePredicateStateOperatorTest {
     CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
     cfa = creator.parseFileAndCreateCFA(ImmutableList.of(TEST_PROGRAM_PATH));
     variableTypes = CFAUtils.extractVariableTypes(cfa);
-    blockGraph = createBlockGraph(cfa, config);
+    blockGraph = createBlockGraph();
 
     specification =
         Specification.fromFiles(
@@ -160,7 +160,7 @@ public class DeserializePredicateStateOperatorTest {
     }
   }
 
-  private BlockGraph createBlockGraph(CFA cfa, Configuration config)
+  private BlockGraph createBlockGraph()
       throws InvalidConfigurationException, CPAException, InterruptedException {
     BlockOperator blockOperator = new BlockOperator();
     blockOperator.setCFA(cfa);

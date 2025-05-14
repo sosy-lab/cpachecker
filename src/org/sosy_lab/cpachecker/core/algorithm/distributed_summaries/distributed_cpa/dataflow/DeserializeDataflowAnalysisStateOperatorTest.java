@@ -87,7 +87,7 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
     CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
     cfa = creator.parseFileAndCreateCFA(ImmutableList.of(TEST_PROGRAM_PATH));
     variableTypes = CFAUtils.extractVariableTypes(cfa);
-    blockGraph = createBlockGraph(cfa, config);
+    blockGraph = createBlockGraph();
 
     solver = Solver.create(config, logger, shutdownNotifier);
     specification =
@@ -134,7 +134,7 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
     assertWithMessage("Deserialized state must imply original formula").that(implication).isTrue();
   }
 
-  private BlockGraph createBlockGraph(CFA cfa, Configuration config)
+  private BlockGraph createBlockGraph()
       throws InvalidConfigurationException, CPAException, InterruptedException {
     BlockOperator blockOperator = new BlockOperator();
     blockOperator.setCFA(cfa);
