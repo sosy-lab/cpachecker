@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -37,9 +35,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -69,14 +64,8 @@ public class DssFactory {
       throws InvalidConfigurationException {
     ImmutableMap<Integer, CFANode> integerToNodeMap =
         ImmutableMap.copyOf(CFAUtils.getMappingFromNodeIDsToCFANodes(pCFA));
-    CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-        CompoundBitVectorIntervalManagerFactory.forbidSignedWrapAround();
-    EdgeAnalyzer edgeAnalyzer =
-        new EdgeAnalyzer(compoundIntervalManagerFactory, pCFA.getMachineModel());
-    Map<MemoryLocation, CType> variableTypes = new HashMap<>();
-    for (CFAEdge edge : CFAUtils.allEdges(pCFA)) {
-      variableTypes.putAll(edgeAnalyzer.getInvolvedVariableTypes(edge));
-    }
+
+    Map<MemoryLocation, CType> variableTypes = CFAUtils.extractVariableTypes(pCFA);
     if (pCPA instanceof PredicateCPA predicateCPA) {
       return distribute(
           predicateCPA,

@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownManager;
@@ -19,12 +22,15 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysisFactory.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -32,10 +38,12 @@ import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.test.DeserializationTestUtils;
+import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -60,23 +68,35 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
 
   @Before
   public void setUp() throws Exception {
-    config = DeserializationTestUtils.createTestConfiguration(CONFIG_PATH);
+    config =
+        TestDataTools.configurationForTest()
+            .loadFromFile(CONFIG_PATH)
+            .setOption("cpa.predicate.blk.alwaysAtJoin", "true")
+            .setOption("cpa.predicate.blk.alwaysAtBranch", "true")
+            .setOption("cpa.predicate.blk.alwaysAtProgramExit", "true")
+            .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
+            .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
+            .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
+            .setOption("cpa.predicate.blk.alwaysAtFunctionHeads", "true")
+            .setOption("cpa.predicate.blk.alwaysAtFunctionCallNodes", "false")
+            .setOption("cpa.predicate.blk.alwaysAtFunctionExit", "true")
+            .build();
     logger = LogManager.createTestLogManager();
-    shutdownManager = DeserializationTestUtils.createShutdownManager();
+    shutdownManager = ShutdownManager.create();
     shutdownNotifier = shutdownManager.getNotifier();
+    CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
+    cfa = creator.parseFileAndCreateCFA(ImmutableList.of(TEST_PROGRAM_PATH));
+    variableTypes = CFAUtils.extractVariableTypes(cfa);
+    blockGraph = createBlockGraph(cfa, config);
 
-    cfa = DeserializationTestUtils.parseCFA(config, logger, shutdownNotifier, TEST_PROGRAM_PATH);
-    variableTypes = DeserializationTestUtils.extractVariableTypes(cfa);
-    blockGraph = DeserializationTestUtils.createBlockGraph(cfa, config);
-
-    solver = DeserializationTestUtils.createSolver(config, logger, shutdownNotifier);
+    solver = Solver.create(config, logger, shutdownNotifier);
     specification =
-        DeserializationTestUtils.loadSpecification(
-            SPEC_PATH, cfa, config, logger, shutdownNotifier);
+        Specification.fromFiles(
+            ImmutableList.of(Path.of(SPEC_PATH)), cfa, config, logger, shutdownNotifier);
   }
 
   @Test
-  public void testDeserializeFromFormula_equivalenceHolds() throws Exception {
+  public void testDeserializeFromFormula_implicationHolds() throws Exception {
     for (BlockNode blockNode : blockGraph.getNodes()) {
       runAnalysisAndCheckDeserialization(blockNode);
     }
@@ -112,5 +132,16 @@ public class DeserializeDataflowAnalysisStateOperatorTest {
     boolean implication = solver.implies(deserializedFormula, originalFormula);
 
     assertWithMessage("Deserialized state must imply original formula").that(implication).isTrue();
+  }
+
+  private BlockGraph createBlockGraph(CFA cfa, Configuration config)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    BlockOperator blockOperator = new BlockOperator();
+    blockOperator.setCFA(cfa);
+    config.inject(blockOperator);
+
+    Predicate<CFANode> isBlockEnd = n -> blockOperator.isBlockEnd(n, -1);
+    LinearBlockNodeDecomposition decomposition = new LinearBlockNodeDecomposition(isBlockEnd);
+    return decomposition.decompose(cfa);
   }
 }

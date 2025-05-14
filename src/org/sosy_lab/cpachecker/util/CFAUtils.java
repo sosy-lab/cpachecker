@@ -28,6 +28,7 @@ import com.google.errorprone.annotations.InlineMe;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -114,6 +115,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
@@ -122,6 +125,7 @@ import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class CFAUtils {
 
@@ -691,6 +695,28 @@ public class CFAUtils {
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
+  }
+
+  /**
+   * Extracts all variables with their types from the given CFA.
+   *
+   * @param cfa
+   * @return Map of memory locations of variables to their types.
+   */
+  public static Map<MemoryLocation, CType> extractVariableTypes(CFA cfa) {
+    Map<MemoryLocation, CType> types = new HashMap<>();
+
+    for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
+      ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(edge);
+      if (lhs instanceof AIdExpression idExpr) {
+        String qualifiedName = idExpr.getDeclaration().getQualifiedName();
+        Type type = CFAEdgeUtils.getLeftHandType(edge);
+        if (type instanceof CType) {
+          types.put(MemoryLocation.fromQualifiedName(qualifiedName), (CType) type);
+        }
+      }
+    }
+    return types;
   }
 
   /**
