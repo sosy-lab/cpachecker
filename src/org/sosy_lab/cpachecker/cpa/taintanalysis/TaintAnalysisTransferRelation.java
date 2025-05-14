@@ -86,7 +86,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       TaintAnalysisState pState,
       Set<CIdExpression> pKilledVars,
       Set<CIdExpression> pGeneratedVars) {
-    logger.log(Level.INFO, String.format("Killed %s, generated %s", pKilledVars, pGeneratedVars));
+    logger.log(Level.FINEST, String.format("Killed %s, generated %s", pKilledVars, pGeneratedVars));
     return new TaintAnalysisState(
         Sets.union(Sets.difference(pState.getTaintedVariables(), pKilledVars), pGeneratedVars));
   }
@@ -734,7 +734,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
     logger.log(
-        Level.INFO,
+        Level.FINEST,
         String.format(
             "Current abstract state at location %s is  '%s'",
             AbstractStates.extractLocations(pOtherStates).first().get(),
