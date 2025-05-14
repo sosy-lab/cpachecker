@@ -368,51 +368,52 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
         if (params.size() == 2) {
 
-          CExpression firstArg = params.get(0);
+          CExpression exprToCheck = params.get(0);
           CExpression taintCheck = params.get(1);
           int expectedPublicity = TaintAnalysisUtils.evaluateExpressionToInteger(taintCheck);
-          boolean expressionIsTainted = false;
+          boolean expressionIsTainted;
 
-          if (firstArg instanceof CIdExpression) {
+          Set<CIdExpression> exprToCheckParams = TaintAnalysisUtils.getAllVarsAsCExpr(exprToCheck);
+          expressionIsTainted = taintedVariables.stream().anyMatch(exprToCheckParams::contains);
+
+          if (exprToCheck instanceof CIdExpression) {
             // E.g., __VERIFIER_is_public(x, 1);
-            expressionIsTainted = taintedVariables.contains(firstArg);
+            logger.log(Level.INFO, "first parameter is a CIdExpression");
           }
 
-          if (firstArg instanceof CBinaryExpression) {
+          if (exprToCheck instanceof CBinaryExpression) {
             // E.g., __VERIFIER_is_public(x + y * z, 1);
-            Set<CIdExpression> firstArgParams = TaintAnalysisUtils.getAllVarsAsCExpr(firstArg);
-            expressionIsTainted = firstArgParams.stream().anyMatch(taintedVariables::contains);
+            logger.log(Level.INFO, "first parameter is a CBinaryExpression");
           }
 
-          if (firstArg instanceof CArraySubscriptExpression arrayArg) {
+          if (exprToCheck instanceof CArraySubscriptExpression arrayArg) {
             // E.g., __VERIFIER_is_public(d[i], 1);
             // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
 
             // When an array d is tainted, we taint all its components as well, and
             // when one part of an array is tainted, we taint the whole array.
             // I.e., isTainted(d) <==> isTainted(d[i]), for all 0 <= i < d.length.
-            expressionIsTainted = taintedVariables.contains(arrayArg.getArrayExpression());
+            logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
           }
 
-          if (firstArg instanceof CUnaryExpression unaryExpr) {
+          if (exprToCheck instanceof CUnaryExpression unaryExpr) {
             // E.g., __VERIFIER_is_public(-x, 1);
             // E.g., __VERIFIER_is_public(&x, 1);
-            expressionIsTainted = taintedVariables.contains(unaryExpr.getOperand());
+            logger.log(Level.INFO, "first parameter is a CUnaryExpression");
           }
 
-          if (firstArg instanceof CPointerExpression) {
+          if (exprToCheck instanceof CPointerExpression) {
             // E.g., __VERIFIER_is_public(*x, 1);
             // TODO
             logger.log(Level.INFO, "first parameter is a CPointerExpression");
           }
 
-          if (firstArg instanceof CFieldReference fieldRef) {
+          if (exprToCheck instanceof CFieldReference fieldRef) {
             // E.g., __VERIFIER_is_public(t.a, 1);
-
             expressionIsTainted = taintedVariables.contains(fieldRef.getFieldOwner());
           }
 
-          if (firstArg instanceof CCastExpression castExpr) {
+          if (exprToCheck instanceof CCastExpression castExpr) {
             // E.g., __VERIFIER_is_public((char) x, 1);
             CExpression operand = castExpr.getOperand();
 
@@ -473,32 +474,32 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             }
           }
 
-          if (firstArg instanceof CTypeIdExpression) {
+          if (exprToCheck instanceof CTypeIdExpression) {
             // E.g., __VERIFIER_is_public(sizeof(int), 1);
             // --> not reachable, cause CPAchecker evaluates the expression before passing
             // it to the taint analysis
             logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
           }
 
-          if (firstArg instanceof CCharLiteralExpression) {
+          if (exprToCheck instanceof CCharLiteralExpression) {
             // E.g., __VERIFIER_is_public('a', 1);
             // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
           }
 
-          if (firstArg instanceof CStringLiteralExpression) {
+          if (exprToCheck instanceof CStringLiteralExpression) {
             // E.g., __VERIFIER_is_public("hello", 1);
             // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
           }
 
-          if (firstArg instanceof CFloatLiteralExpression) {
+          if (exprToCheck instanceof CFloatLiteralExpression) {
             // E.g., __VERIFIER_is_public(5.3, 1);
             // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
           }
 
-          if (firstArg instanceof CIntegerLiteralExpression) {
+          if (exprToCheck instanceof CIntegerLiteralExpression) {
             // E.g., __VERIFIER_is_public(5, 1);
             // Will never be tainted
             logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
@@ -510,7 +511,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   pCfaEdge,
                   expectedPublicity,
                   expressionIsTainted,
-                  firstArg,
+                  exprToCheck,
                   killedVars,
                   generatedVars);
 
