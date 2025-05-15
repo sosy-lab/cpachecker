@@ -11,7 +11,7 @@ extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x = __VERIFIER_nondet_int(); // Tainted
+    int x = __VERIFIER_nondet_int();
     int y = 1;
 
     // y is expected to be tainted by the RHS
