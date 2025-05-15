@@ -119,15 +119,6 @@ public class SeqThreadStatementClause implements SeqStatement {
     return true;
   }
 
-  public boolean requiresAssumeEvaluation() {
-    for (SeqThreadStatement statement : block.getStatements()) {
-      if (statement.requiresAssumeEvaluation()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder rString = new StringBuilder();

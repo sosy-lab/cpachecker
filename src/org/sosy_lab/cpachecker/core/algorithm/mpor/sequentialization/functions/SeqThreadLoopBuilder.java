@@ -34,12 +34,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -246,18 +244,12 @@ public class SeqThreadLoopBuilder {
 
     ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
 
-    // create assumption and switch labels
-    // TODO maybe add per-variable labels so that even less assumes are evaluated?
-    SeqThreadLoopLabelStatement assumeLabel =
-        new SeqThreadLoopLabelStatement(
-            SeqNameUtil.buildThreadAssumeLabelName(pOptions, pThread.id));
-
+    // TODO binary tree option
     ImmutableList<LineOfCode> switchStatement =
         buildThreadLoopSwitchStatement(
-            pOptions, pPcVariables, pThread, assumeLabel, pClauses, 3, pBinaryExpressionBuilder);
+            pOptions, pPcVariables, pThread, pClauses, 3, pBinaryExpressionBuilder);
 
-    // add all lines of code: loop head, assumptions, iteration increment, switch statement
-    rThreadLoop.add(LineOfCode.of(3, assumeLabel.toASTString()));
+    // add all lines of code: assumptions, iteration increment, switch statement
     rThreadLoop.addAll(buildThreadLoopAssumptions(pThreadAssumptions));
     rThreadLoop.add(LineOfCode.of(3, pRIncrement.toASTString()));
     rThreadLoop.addAll(switchStatement);
@@ -269,7 +261,6 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
-      SeqThreadLoopLabelStatement pAssumeLabel,
       ImmutableList<SeqThreadStatementClause> pClauses,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -288,7 +279,7 @@ public class SeqThreadLoopBuilder {
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         SeqThreadStatement newStatement =
             SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
-                iterationSmallerMax, pAssumeLabel, statement, labelClauseMap);
+                iterationSmallerMax, statement, labelClauseMap);
         newStatements.add(newStatement);
       }
       pUpdatedCases.add(

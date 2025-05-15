@@ -491,9 +491,9 @@ public class MPORSubstitution {
   public ImmutableList<CVariableDeclaration> getLocalDeclarations() {
     ImmutableList.Builder<CVariableDeclaration> rLocalDeclarations = ImmutableList.builder();
     for (LocalVariableDeclarationSubstitute localSubstitute : localSubstitutes.values()) {
-      for (var entry : localSubstitute.substitutes.entrySet()) {
+      for (CIdExpression idExpression : localSubstitute.substitutes.values()) {
         CVariableDeclaration variableDeclaration =
-            castTo(entry.getValue().getDeclaration(), CVariableDeclaration.class);
+            castTo(idExpression.getDeclaration(), CVariableDeclaration.class);
         rLocalDeclarations.add(variableDeclaration);
       }
     }

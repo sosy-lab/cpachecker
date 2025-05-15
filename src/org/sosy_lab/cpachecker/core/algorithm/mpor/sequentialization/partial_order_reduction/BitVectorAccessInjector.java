@@ -157,7 +157,7 @@ class BitVectorAccessInjector {
           ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
               buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, accessedVariables);
           newInjected.addAll(bitVectorAssignments);
-          Optional<SeqBitVectorAccessEvaluationStatement> evaluation =
+          SeqBitVectorAccessEvaluationStatement evaluation =
               buildBitVectorEvaluationStatements(
                   bitVectorAssignments,
                   BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
@@ -167,9 +167,7 @@ class BitVectorAccessInjector {
                       pBitVectorVariables,
                       pFullBitVectorEvaluation),
                   newTarget);
-          if (evaluation.isPresent()) {
-            newInjected.add(evaluation.orElseThrow());
-          }
+          newInjected.add(evaluation);
         }
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
@@ -205,22 +203,16 @@ class BitVectorAccessInjector {
     return rStatements.build();
   }
 
-  private static Optional<SeqBitVectorAccessEvaluationStatement> buildBitVectorEvaluationStatements(
+  private static SeqBitVectorAccessEvaluationStatement buildBitVectorEvaluationStatements(
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorEvaluationExpression pBitVectorEvaluation,
       SeqThreadStatementClause pTarget) {
 
-    // no bit vector evaluation if target requires assume evaluation, so that loop head is reached
-    if (pTarget.requiresAssumeEvaluation()) {
-      return Optional.empty();
-    }
     boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
     // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
     Optional<SeqLogicalNotExpression> expression =
         allZero ? Optional.empty() : Optional.of(new SeqLogicalNotExpression(pBitVectorEvaluation));
-    SeqBitVectorAccessEvaluationStatement rEvaluation =
-        new SeqBitVectorAccessEvaluationStatement(expression, pTarget.block.getGotoLabel());
-    return Optional.of(rEvaluation);
+    return new SeqBitVectorAccessEvaluationStatement(expression, pTarget.block.getGotoLabel());
   }
 
   // Bit Vector Initialization =====================================================================

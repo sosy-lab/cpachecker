@@ -152,11 +152,6 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public boolean requiresAssumeEvaluation() {
-    return false;
-  }
-
-  @Override
   public boolean onlyWritesPc() {
     return false;
   }

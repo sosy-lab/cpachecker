@@ -59,9 +59,6 @@ public class PartialOrderReducer {
   public static boolean requiresAssumeEvaluation(
       SeqThreadStatement pCurrentStatement, SeqThreadStatementClause pTarget) {
 
-    if (pTarget.requiresAssumeEvaluation()) {
-      return true;
-    }
     if (pCurrentStatement instanceof SeqThreadCreationStatement) {
       if (!(pTarget.block.getFirstStatement() instanceof SeqThreadCreationStatement)) {
         // if this statement creates a thread and the target does not, enforce context switch.

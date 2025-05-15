@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadLoopLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
@@ -195,7 +194,6 @@ public class SeqThreadStatementClauseUtil {
 
   public static SeqThreadStatement recursivelyInjectGotoThreadLoopLabels(
       CBinaryExpression pIterationSmallerMax,
-      SeqThreadLoopLabelStatement pAssumeLabel,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -209,11 +207,7 @@ public class SeqThreadStatementClauseUtil {
         SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
         newInjections.add(
             new SeqThreadLoopGotoStatement(
-                pIterationSmallerMax,
-                // for statements targeting starts of critical sections, assumes are reevaluated
-                target.requiresAssumeEvaluation()
-                    ? pAssumeLabel
-                    : Objects.requireNonNull(target).block.getGotoLabel()));
+                pIterationSmallerMax, Objects.requireNonNull(target).block.getGotoLabel()));
         return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
       }
     }

@@ -115,11 +115,6 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean requiresAssumeEvaluation() {
-    return false;
-  }
-
-  @Override
   public boolean onlyWritesPc() {
     return false;
   }

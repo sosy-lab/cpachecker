@@ -179,11 +179,6 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public boolean requiresAssumeEvaluation() {
-    return true;
-  }
-
-  @Override
   public boolean onlyWritesPc() {
     return false;
   }
