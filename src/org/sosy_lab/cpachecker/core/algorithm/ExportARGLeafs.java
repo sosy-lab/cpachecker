@@ -61,7 +61,7 @@ public class ExportARGLeafs implements Algorithm {
   }
 
   @Option(description = "Which strategy to use for leaf export")
-  private LeafStrategies leafStrategy = LeafStrategies.MIX;
+  private LeafStrategies leafStrategy = LeafStrategies.SYMBOLIC_EXECUTION;
 
   @Option(description = "Which strategy to use for equivalence checking")
   private EquivalenceStrategies equivalenceStrategy = EquivalenceStrategies.EXISTS;

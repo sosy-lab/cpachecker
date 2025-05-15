@@ -4480,7 +4480,7 @@ leafExport.equivalenceStrategy = EXISTS
   enum:     [EXISTS, JOIN]
 
 # Which strategy to use for leaf export
-leafExport.leafStrategy = MIX
+leafExport.leafStrategy = SYMBOLIC_EXECUTION
   enum:     [SYMBOLIC_EXECUTION, ARG, MIX]
 
 # All equivalent programs
