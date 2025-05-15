@@ -282,7 +282,7 @@ public final class PredicatePrecisionBootstrapper {
         }
         formulas.add(formula);
       }
-      abstractionLemmas.add(new AbstractionLemma(formulas.build()));
+      abstractionLemmas.add(new AbstractionLemma("MaxArray", formulas.build()));
     }
 
     return abstractionLemmas.build();

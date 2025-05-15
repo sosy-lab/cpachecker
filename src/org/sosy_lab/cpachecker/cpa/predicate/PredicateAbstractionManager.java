@@ -14,6 +14,7 @@ import static com.google.common.base.Predicates.equalTo;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsSt
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -326,6 +328,27 @@ public final class PredicateAbstractionManager {
   }
 
   /**
+   * Calls {@link PredicateAbstractionManager#buildAbstraction(Collection, Optional,
+   * AbstractionFormula, PathFormula, Collection, Collection)} with an empty set of {@link
+   * AbstractionLemma}.
+   */
+  public AbstractionFormula buildAbstraction(
+      final Collection<CFANode> locations,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
+      final AbstractionFormula abstractionFormula,
+      final PathFormula pathFormula,
+      final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
+    return buildAbstraction(
+        locations,
+        callstackInformation,
+        abstractionFormula,
+        pathFormula,
+        pPredicates,
+        ImmutableList.of());
+  }
+
+  /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and a PathFormula. The
    * AbstractionFormula will be used in its instantiated form, so the indices there should match
    * those from the PathFormula.
@@ -333,6 +356,7 @@ public final class PredicateAbstractionManager {
    * @param abstractionFormula An AbstractionFormula that is used as input.
    * @param pathFormula A PathFormula that is used as input.
    * @param pPredicates The set of predicates used for abstraction.
+   * @param pLemmas The set of lemmas used for the abstraction
    * @return An AbstractionFormula instance representing an abstraction of "abstractionFormula &
    *     pathFormula" with pathFormula as the block formula.
    */
@@ -341,7 +365,8 @@ public final class PredicateAbstractionManager {
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
-      final Collection<AbstractionPredicate> pPredicates)
+      final Collection<AbstractionPredicate> pPredicates,
+      final Collection<AbstractionLemma> pLemmas)
       throws SolverException, InterruptedException {
 
     int currentAbstractionId = stats.numCallsAbstraction.getAndIncrement();
@@ -390,7 +415,14 @@ public final class PredicateAbstractionManager {
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, primaryFormula, instantiator);
 
-    // TODO: getRelevantLemmas
+    // TODO: get relevant lemmas based on relevant predicates replace the variable
+    // then append them to the primary formula
+    LemmaSelectionVisitor lemmaSelectionVisitor = new LemmaSelectionVisitor(pLemmas, fmgr);
+    ImmutableList.Builder<BooleanFormula> relevantLemmas = ImmutableList.builder();
+
+    for (AbstractionPredicate predicate : remainingPredicates) {
+      relevantLemmas.addAll(fmgr.visit(predicate.getSymbolicAtom(), lemmaSelectionVisitor));
+    }
 
     if (fmgr.useBitwiseAxioms()) {
       for (AbstractionPredicate predicate : remainingPredicates) {
@@ -711,9 +743,6 @@ public final class PredicateAbstractionManager {
       }
 
       BooleanFormula instantiatedPredicate = instantiator.apply(predicateTerm);
-
-      // TODO apply lemmas here already?
-
       Set<String> predVariables = fmgr.extractVariableNames(instantiatedPredicate);
 
       if (predVariables.isEmpty() || !Sets.intersection(predVariables, variables).isEmpty()) {

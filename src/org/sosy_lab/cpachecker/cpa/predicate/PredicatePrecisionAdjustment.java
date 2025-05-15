@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionLemma;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -172,6 +173,9 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // get additional predicates
     Set<AbstractionPredicate> additionalPredicates = predicateProvider.getPredicates(fullState);
 
+    // get the abstraction lemmas
+    Set<AbstractionLemma> abstractionLemmas = precision.getLemmas();
+
     AbstractionFormula newAbstractionFormula = null;
 
     // compute new abstraction
@@ -187,7 +191,12 @@ final class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula =
           formulaManager.buildAbstraction(
-              pLocations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
+              pLocations,
+              callstackWrapper,
+              abstractionFormula,
+              pathFormula,
+              additionalPredicates,
+              abstractionLemmas);
     } finally {
       computingAbstractionTime.stop();
     }
