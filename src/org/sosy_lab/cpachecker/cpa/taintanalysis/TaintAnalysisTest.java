@@ -102,9 +102,45 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByBasicArithmeticOperationUnsafe() throws Exception {
+  public void testTaintByBasicArithmeticOperationUnsafe_Addition() throws Exception {
     TestResults results =
-        runCPAchecker("taintByBasicArithmeticOperationUnsafe.c", "c_infix_operators");
+        runCPAchecker("taintByBasicArithmeticOperationUnsafe_Addition.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBasicArithmeticOperationUnsafe_Division() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByBasicArithmeticOperationUnsafe_Division.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBasicArithmeticOperationUnsafe_MixedOp() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByBasicArithmeticOperationUnsafe_MixedOp.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBasicArithmeticOperationUnsafe_Modulo() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByBasicArithmeticOperationUnsafe_Modulo.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBasicArithmeticOperationUnsafe_Multiplication() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "taintByBasicArithmeticOperationUnsafe_Multiplication.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBasicArithmeticOperationUnsafe_Subtraction() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByBasicArithmeticOperationUnsafe_Subtraction.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 

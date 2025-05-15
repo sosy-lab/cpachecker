@@ -7,15 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
-    int y = 5;
+    int y = 1;
+    int z;
 
-    // RHS taints the LHS
-    y = y + x;
-
-    // Property violation expected
-    __VERIFIER_is_public(y,1);
+    // z is expected to be tainted by x and the * operation
+    z = y * x;
+    __VERIFIER_is_public(z, 1);
 }
