@@ -12,16 +12,37 @@ import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder.buildIntegerLiteralExpression;
 import static org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder.buildStringLiteralExpression;
 
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqParameterDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 public class SeqExpressions {
+
+  public static class SeqFunctionCallExpressions {
+
+    public static final CFunctionCallExpression VERIFIER_NONDET_INT =
+        SeqExpressionBuilder.buildFunctionCallExpression(
+            SeqSimpleType.INT,
+            SeqIdExpression.VERIFIER_NONDET_INT,
+            ImmutableList.of(),
+            SeqFunctionDeclaration.VERIFIER_NONDET_INT);
+
+    public static final CFunctionCallExpression VERIFIER_NONDET_UINT =
+        SeqExpressionBuilder.buildFunctionCallExpression(
+            SeqSimpleType.UNSIGNED_INT,
+            SeqIdExpression.VERIFIER_NONDET_UINT,
+            ImmutableList.of(),
+            SeqFunctionDeclaration.VERIFIER_NONDET_UINT);
+  }
 
   public static class SeqIntegerLiteralExpression {
 

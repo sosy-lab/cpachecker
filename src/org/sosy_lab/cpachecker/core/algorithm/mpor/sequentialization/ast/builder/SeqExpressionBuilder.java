@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqExpressionBuilder {
@@ -114,35 +115,16 @@ public class SeqExpressionBuilder {
         SeqFunctionDeclaration.REACH_ERROR);
   }
 
-  // TODO add function that takes MPOROptions and returns (u)int
-  public static CFunctionCallExpression buildVerifierNondetInt() {
-    return buildFunctionCallExpression(
-        SeqSimpleType.INT,
-        SeqIdExpression.VERIFIER_NONDET_INT,
-        ImmutableList.of(),
-        SeqFunctionDeclaration.VERIFIER_NONDET_INT);
-  }
-
-  public static CFunctionCallExpression buildVerifierNondetUint() {
-    return buildFunctionCallExpression(
-        SeqSimpleType.UNSIGNED_INT,
-        SeqIdExpression.VERIFIER_NONDET_UINT,
-        ImmutableList.of(),
-        SeqFunctionDeclaration.VERIFIER_NONDET_UINT);
-  }
-
   public static Optional<CFunctionCallExpression> buildVerifierNondetByType(CType pType) {
-    // TODO add more functions here
-    if (pType.equals(SeqSimpleType.INT)) {
-      return Optional.of(buildVerifierNondetInt());
-
-    } else if (pType.equals(SeqSimpleType.UNSIGNED_INT)) {
-      return Optional.of(buildVerifierNondetUint());
+    for (VerifierNondetFunctionType nondetType : VerifierNondetFunctionType.values()) {
+      if (nondetType.getReturnType().equals(pType)) {
+        return Optional.of(nondetType.getFunctionCallExpression());
+      }
     }
     return Optional.empty();
   }
 
-  private static CFunctionCallExpression buildFunctionCallExpression(
+  public static CFunctionCallExpression buildFunctionCallExpression(
       CType pType,
       CExpression pFunctionName,
       List<CExpression> pParameters,

@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadLoopBuilder {
@@ -59,8 +60,8 @@ public class SeqThreadLoopBuilder {
         SeqStatementBuilder.buildFunctionCallAssignmentStatement(
             SeqIdExpression.K,
             pOptions.signedNondet
-                ? SeqExpressionBuilder.buildVerifierNondetInt()
-                : SeqExpressionBuilder.buildVerifierNondetUint());
+                ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
+                : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
     CBinaryExpression kGreaterZero =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);

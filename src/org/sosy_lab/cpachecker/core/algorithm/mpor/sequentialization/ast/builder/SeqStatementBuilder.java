@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 
 public class SeqStatementBuilder {
 
@@ -41,8 +42,8 @@ public class SeqStatementBuilder {
         FileLocation.DUMMY,
         SeqIdExpression.NEXT_THREAD,
         pIsSigned
-            ? SeqExpressionBuilder.buildVerifierNondetInt()
-            : SeqExpressionBuilder.buildVerifierNondetUint());
+            ? VerifierNondetFunctionType.INT.getFunctionCallExpression()
+            : VerifierNondetFunctionType.UINT.getFunctionCallExpression());
   }
 
   /**

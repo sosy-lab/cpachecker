@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class LineOfCodeUtil {
@@ -239,10 +240,10 @@ public class LineOfCodeUtil {
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
     if (pOptions.signedNondet) {
       rFunctionDeclarations.add(
-          LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_INT.toASTString()));
+          LineOfCode.of(0, VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString()));
     } else {
       rFunctionDeclarations.add(
-          LineOfCode.of(0, SeqFunctionDeclaration.VERIFIER_NONDET_UINT.toASTString()));
+          LineOfCode.of(0, VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString()));
     }
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ABORT.toASTString()));
     rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.REACH_ERROR.toASTString()));

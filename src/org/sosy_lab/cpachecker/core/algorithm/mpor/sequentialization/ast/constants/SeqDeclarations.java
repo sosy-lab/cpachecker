@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 
 public class SeqDeclarations {
 
@@ -89,7 +90,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.VERIFIER_NONDET_INT,
-            SeqToken.__VERIFIER_nondet_int,
+            VerifierNondetFunctionType.INT.getName(),
             ImmutableList.of(),
             ImmutableSet.of());
 
@@ -97,7 +98,7 @@ public class SeqDeclarations {
         new CFunctionDeclaration(
             FileLocation.DUMMY,
             SeqFunctionType.VERIFIER_NONDET_UINT,
-            SeqToken.__VERIFIER_nondet_uint,
+            VerifierNondetFunctionType.UINT.getName(),
             ImmutableList.of(),
             ImmutableSet.of());
 

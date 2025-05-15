@@ -151,8 +151,4 @@ public class SeqToken {
   public static final String uint = "uint";
 
   public static final String __VERIFIER_assume = "__VERIFIER_assume";
-
-  public static final String __VERIFIER_nondet_int = "__VERIFIER_nondet_int";
-
-  public static final String __VERIFIER_nondet_uint = "__VERIFIER_nondet_uint";
 }

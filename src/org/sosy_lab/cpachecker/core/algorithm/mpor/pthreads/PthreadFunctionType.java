@@ -273,6 +273,7 @@ public enum PthreadFunctionType {
       Optional.empty(),
       Optional.empty(),
       Optional.empty()),
+  // __VERIFIER_atomic functions are not part of the pthread standard, but still related to threads
   __VERIFIER_ATOMIC_BEGIN(
       "__VERIFIER_atomic_begin",
       true,

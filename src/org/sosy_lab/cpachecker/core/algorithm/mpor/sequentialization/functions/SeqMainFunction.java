@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
@@ -216,7 +217,7 @@ public class SeqMainFunction extends SeqFunction {
     for (CIdExpression mainArg : pMainSubstitution.mainFunctionArgSubstitutes.values()) {
       CType mainArgType = mainArg.getExpressionType();
       Optional<CFunctionCallExpression> verifierNondet =
-          SeqExpressionBuilder.buildVerifierNondetByType(mainArgType);
+          VerifierNondetFunctionType.buildVerifierNondetByType(mainArgType);
       if (verifierNondet.isPresent()) {
         CFunctionCallAssignmentStatement assignment =
             SeqStatementBuilder.buildFunctionCallAssignmentStatement(
