@@ -145,6 +145,36 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testTaintByBitwiseOperationUnsafe_AND() throws Exception {
+    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_AND.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBitwiseOperationUnsafe_LeftShift() throws Exception {
+    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_LeftShift.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBitwiseOperationUnsafe_OR() throws Exception {
+    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_OR.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBitwiseOperationUnsafe_RightShift() throws Exception {
+    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_RightShift.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByBitwiseOperationUnsafe_XOR() throws Exception {
+    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_XOR.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
   public void testTaintByCommaOperatorSafe() throws Exception {
     TestResults results = runCPAchecker("taintByCommaOperatorSafe.c", "c_infix_operators");
     results.assertIsSafe();
