@@ -102,7 +102,16 @@ public class RandomSamplingAlgorithm implements Algorithm {
     algorithm = pAlgorithm;
     allocator = AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
     // TODO: Refactor this such that the export can be used statically
-    exporter = new DetailedCounterexampleExport(pAlgorithm, pConfig, pLogger, pNotifier, pCfa);
+    // We need to set the amount of maxAssignments to 1 here, since we want to export exactly the
+    // path we found and not ask an SMT solver for some new assignments.
+    Configuration detailedCexExportConfig =
+        Configuration.builder()
+            .copyFrom(pConfig)
+            .setOption("detailed_cex.maxAssignments", "1")
+            .build();
+    exporter =
+        new DetailedCounterexampleExport(
+            pAlgorithm, detailedCexExportConfig, pLogger, pNotifier, pCfa);
   }
 
   @Override
