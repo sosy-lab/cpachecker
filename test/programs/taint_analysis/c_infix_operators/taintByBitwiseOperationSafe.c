@@ -7,26 +7,29 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
-extern void __VERIFIER_set_public(int variable, int booleanFlag);
-extern void __VERIFIER_is_public(int variable, int booleanFlag);
+extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
     int y = 0b1010; // CVariableDeclaration with initializer 10 parsed from binary (1010) to int (10).
-    int z;
 
-    // y & x is expected to be tainted by x and the & operation
+    // y & x is expected to be tainted by x and the & operation, independent of the order
     __VERIFIER_is_public(y & x, 0);
+    __VERIFIER_is_public(x & y, 0);
 
-    // y | x is expected to be tainted by x and the | operation
+    // y | x is expected to be tainted by x and the | operation, independent of the order
     __VERIFIER_is_public(y | x, 0);
+    __VERIFIER_is_public(x | y, 0);
 
-    // y ^ x is expected to be tainted by x and the ^ operation
+    // y ^ x is expected to be tainted by x and the ^ operation, independent of the order
     __VERIFIER_is_public(y ^ x, 0);
+    __VERIFIER_is_public(x ^ y, 0);
 
-    // y << x is expected to be tainted by x and the << operation
+    // y << x is expected to be tainted by x and the << operation, independent of the order
     __VERIFIER_is_public(y << x, 0);
+    __VERIFIER_is_public(x << y, 0);
 
-    // y >> x is expected to be tainted by x and the >> operation
+    // y >> x is expected to be tainted by x and the >> operation, independent of the order
     __VERIFIER_is_public(y >> x, 0);
+    __VERIFIER_is_public(x >> y, 0);
 }
