@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
-import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -231,15 +230,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
         binaryExpressionBuilder,
         shutdownNotifier,
         logger);
-  }
-
-  private static final String INTERNAL_ERROR =
-      "MPOR FAIL. Sequentialization could not be created due to an internal error: ";
-
-  /** Stops the algorithm by throwing an {@link AssertionError}. */
-  @TerminatesExecution
-  public static void fail(String pMessage) {
-    throw new AssertionError(INTERNAL_ERROR + pMessage);
   }
 
   private final ConfigurableProgramAnalysis cpa;

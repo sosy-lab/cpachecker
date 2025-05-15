@@ -94,8 +94,7 @@ public class InputRejection {
       LogManager pLogger, InputRejectionMessage pMessage, Object... args) {
     String formatted = String.format(pMessage.formatMessage(), args);
     // using RuntimeException because checkArgument throws IllegalArgumentExceptions
-    pLogger.logUserException(
-        Level.SEVERE, new RuntimeException(), String.format(pMessage.formatMessage(), args));
+    pLogger.logfUserException(Level.SEVERE, new RuntimeException(), "%s", formatted);
     // we need the error message here too for unit tests (matching error messages to programs)
     throw new RuntimeException(formatted);
   }

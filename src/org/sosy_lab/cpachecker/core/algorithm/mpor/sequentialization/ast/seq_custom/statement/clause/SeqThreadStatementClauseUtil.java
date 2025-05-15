@@ -108,7 +108,8 @@ public class SeqThreadStatementClauseUtil {
                 .cloneWithLabelNumber(mergeBlockIndex)
                 .cloneWithStatements(newMergedStatements.build()));
       }
-      int blockIndex = Objects.requireNonNull(labelBlockMap.get(clause.labelNumber));
+      int blockIndex =
+          Objects.requireNonNull(labelBlockMap.get(clause.block.getGotoLabel().labelNumber));
       SeqThreadStatementBlock newBlock =
           clause.block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build());
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
