@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
+import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -23,6 +26,43 @@ public class SeqThreadStatementUtil {
       // use the predecessor, since we require information about this statement
       if (threadEdge.getPredecessor().isInAtomicBlock) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  public static boolean allHaveTargetGoto(ImmutableList<SeqThreadStatement> pStatements) {
+    for (SeqThreadStatement statement : pStatements) {
+      if (statement.getTargetGoto().isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static boolean allHaveBitVectorEvaluationWithOnlyGoto(
+      ImmutableList<SeqThreadStatement> pStatements) {
+
+    boolean anyBitVectorEvaluation = false;
+    for (SeqThreadStatement statement : pStatements) {
+      for (SeqInjectedStatement injected : statement.getInjectedStatements()) {
+        if (injected instanceof SeqBitVectorEvaluationStatement bitVectorEvaluation) {
+          anyBitVectorEvaluation = true;
+          if (!bitVectorEvaluation.isOnlyGoto()) {
+            return false;
+          }
+        }
+      }
+    }
+    return anyBitVectorEvaluation;
+  }
+
+  public static boolean hasBitVectorEvaluationWithOnlyGoto(SeqThreadStatement pStatement) {
+    for (SeqInjectedStatement injectedStatement : pStatement.getInjectedStatements()) {
+      if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluation) {
+        if (evaluation.isOnlyGoto()) {
+          return true;
+        }
       }
     }
     return false;

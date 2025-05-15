@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqThreadStatementClauseUtil {
@@ -193,27 +194,58 @@ public class SeqThreadStatementClauseUtil {
     return rNewInjected.build();
   }
 
-  public static SeqThreadStatement recursivelyInjectGotoThreadLoopLabels(
+  public static SeqThreadStatement tryInjectGotoThreadLoopLabelIntoStatement(
       CBinaryExpression pIterationSmallerMax,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
+    if (SeqThreadStatementUtil.hasBitVectorEvaluationWithOnlyGoto(pCurrentStatement)) {
+      // bit vector evaluation only goto -> no need for thread loop check
+      return pCurrentStatement;
+    }
     if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present -> clone with targetIndex
+      // int target is present -> retrieve label by pc from map
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
-        ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-        // add previous injections BEFORE (otherwise undefined behavior in seq!)
-        newInjections.addAll(pCurrentStatement.getInjectedStatements());
-        SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-        newInjections.add(
-            new SeqThreadLoopGotoStatement(
-                pIterationSmallerMax, Objects.requireNonNull(target).block.getGotoLabel()));
-        return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
+        return injectGotoThreadLoopLabelIntoStatementByTargetPc(
+            targetPc, pIterationSmallerMax, pCurrentStatement, pLabelClauseMap);
       }
+    }
+    if (pCurrentStatement.getTargetGoto().isPresent()) {
+      // target goto present -> use goto label for injection
+      return injectGotoThreadLoopLabelIntoStatementByTargetGoto(
+          pCurrentStatement.getTargetGoto().orElseThrow(), pIterationSmallerMax, pCurrentStatement);
     }
     // no int target pc -> no replacement
     return pCurrentStatement;
+  }
+
+  private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetPc(
+      int pTargetPc,
+      CBinaryExpression pIterationSmallerMax,
+      SeqThreadStatement pCurrentStatement,
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
+    // add previous injections BEFORE (otherwise undefined behavior in seq!)
+    newInjections.addAll(pCurrentStatement.getInjectedStatements());
+    SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
+    newInjections.add(
+        new SeqThreadLoopGotoStatement(
+            pIterationSmallerMax, Objects.requireNonNull(target).block.getGotoLabel()));
+    return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
+  }
+
+  private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetGoto(
+      SeqBlockGotoLabelStatement pTargetGoto,
+      CBinaryExpression pIterationSmallerMax,
+      SeqThreadStatement pCurrentStatement) {
+
+    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
+    // add previous injections BEFORE (otherwise undefined behavior in seq!)
+    newInjections.addAll(pCurrentStatement.getInjectedStatements());
+    newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pTargetGoto));
+    return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
   }
 
   public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {

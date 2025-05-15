@@ -182,8 +182,8 @@ public class SeqStringUtil {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     Set<SeqInjectedStatement> pruned = new HashSet<>();
-    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluation) {
+    for (SeqInjectedStatement outerInjected : pInjectedStatements) {
+      if (outerInjected instanceof SeqBitVectorEvaluationStatement evaluation) {
         if (evaluation.isOnlyGoto()) {
           // if the evaluation is only goto, prune all unnecessary bit vector assignments
           pruned.addAll(
@@ -204,9 +204,9 @@ public class SeqStringUtil {
     ImmutableList.Builder<SeqInjectedStatement> rOrdered = ImmutableList.builder();
     ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-      // bit vector assignments / evaluations are placed last (cf. threadLoops)
-      if (injectedStatement instanceof SeqInjectedBitVectorStatement) {
-        leftOver.add(injectedStatement);
+      if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
+        // other bit vector statements placed last (more expensive than r < K (cf. threadLoops))
+        leftOver.add(bitVectorStatement);
       } else {
         rOrdered.add(injectedStatement);
       }

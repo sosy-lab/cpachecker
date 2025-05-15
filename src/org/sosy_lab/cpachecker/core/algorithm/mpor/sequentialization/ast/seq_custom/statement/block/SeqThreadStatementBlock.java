@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
@@ -53,13 +54,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
       statementsString.append(SeqSyntax.NEWLINE).append(SeqStringUtil.buildTab(BLOCK_TABS));
       statementsString.append(statements.get(i).toASTString()).append(SeqSyntax.SPACE);
     }
-    String suffix = SeqStringUtil.buildControlFlowSuffixByEncoding(options);
+    Optional<String> suffix = tryBuildControlFlowSuffixByEncoding(options, statements);
     return SeqSyntax.NEWLINE
         + SeqStringUtil.buildTab(GOTO_LABEL_TABS)
         + gotoLabel.toASTString()
         + SeqSyntax.SPACE
         + statementsString
-        + suffix;
+        + (suffix.isPresent() ? suffix.orElseThrow() : SeqSyntax.EMPTY_STRING);
   }
 
   public SeqBlockGotoLabelStatement getGotoLabel() {
@@ -91,5 +92,17 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public boolean startsInAtomicBlock() {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
+  }
+
+  private static Optional<String> tryBuildControlFlowSuffixByEncoding(
+      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
+
+    if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
+      return Optional.empty();
+    }
+    if (SeqThreadStatementUtil.allHaveBitVectorEvaluationWithOnlyGoto(pStatements)) {
+      return Optional.empty();
+    }
+    return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
   }
 }

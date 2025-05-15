@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
@@ -274,20 +275,34 @@ public class SeqThreadLoopBuilder {
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
 
-    ImmutableList.Builder<SeqThreadStatementClause> pUpdatedCases = ImmutableList.builder();
+    ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
+      // first inject into block
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         SeqThreadStatement newStatement =
-            SeqThreadStatementClauseUtil.recursivelyInjectGotoThreadLoopLabels(
+            SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
                 iterationSmallerMax, statement, labelClauseMap);
         newStatements.add(newStatement);
       }
-      pUpdatedCases.add(
-          clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
+      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
+      // then inject into merged blocks
+      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
+        for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
+          SeqThreadStatement newMergedStatement =
+              SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
+                  iterationSmallerMax, mergedStatement, labelClauseMap);
+          newMergedStatements.add(newMergedStatement);
+        }
+        newMergedBlocks.add(mergedBlock.cloneWithStatements(newMergedStatements.build()));
+      }
+      updatedClauses.add(
+          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
     SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(pOptions, pcExpression, pUpdatedCases.build(), pTabs);
+        new SeqSwitchStatement(pOptions, pcExpression, updatedClauses.build(), pTabs);
     return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
   }
 
