@@ -249,6 +249,14 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
+  @Test
+  public void testTaintByConditionalTernaryOperatorUnsafe_UnreachableCond() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_UnreachableCond.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
   @Test
   public void testTaintByConditionalTernaryOperatorUnsafe_1_1() throws Exception {
     TestResults results =
