@@ -17,5 +17,7 @@ int main() {
 
     // z is expected to be tainted by x in the comma operator expression
     z = (y, x);
+
+    // Property violation expected
     __VERIFIER_is_public(z, 1);
 }
