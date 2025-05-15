@@ -8,46 +8,41 @@
 
 // Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/2.ta_sizeof_alignof.c
 
+// We use an extern function sizeOf to, conceptually, emulate the original sizeof.
+// The actual functionality of sizeof is not relevant here, but the information flow is.
+
+extern int sizeOf(int number);
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x, y, z, w;
 
     // All variables start tainted
-    x = __VERIFIER_nondet_int();
-    y = __VERIFIER_nondet_int();
-    z = __VERIFIER_nondet_int();
-    w = __VERIFIER_nondet_int();
+    int x = __VERIFIER_nondet_int();
+    int y = __VERIFIER_nondet_int();
+    int z = __VERIFIER_nondet_int();
+    int w = __VERIFIER_nondet_int();
 
-    // `sizeof(int)` assigns an untainted value to `x`. `x` becomes sanitized
-    x = sizeof(int);
+    // `sizeof(1)` assigns an untainted value to `x`. `x` becomes sanitized
+    x = sizeOf(1);
     __VERIFIER_is_public(x, 1);
 
-    // taint flows from z to taintedSum
-    int taintedSum = x + z;
-
-    // `sizeof(taintedSum)` assigns a tainted value to `y`; `y` remains tainted
-    y = sizeof(taintedSum);
+    // The taint flows from `z` to `y`; `y` remains tainted
+    y = sizeOf(x + z);
     __VERIFIER_is_public(y, 0);
 
-    // `sizeof(y)` assigns a tainted value to `z`; `z` remains tainted
-    z = sizeof(y);
+    // The taint flows from `y` to `z`; `z` remains tainted
+    z = sizeOf(y);
     __VERIFIER_is_public(z, 0);
 
-    // Since x is not tainted, taintedMult is not tainted
-    int taintedMult = x * x;
-
-    // `sizeof(taintedMult)` assigns an untainted value to `w` as `x` is now untainted
-    w = sizeof(taintedMult);
+    // `sizeof(x * x)` assigns an untainted value to `w` as `x` is now untainted
+    w = sizeOf(x * x);
     __VERIFIER_is_public(w, 1);
 
     // Expected taint analysis result: `x` and `w` are public, `y` and `z` are tainted.
-    int totalSum = x + y + z + w;
-
     // No property violation expected. However, the function sizeof is not returning sensitive information.
     // Due to the overapproximation, the taint is being propagated to variables that are not actually containing sensitive information.
     // A false positive (report tainted, when not really tainted) is expected here.
-    __VERIFIER_is_public(totalSum, 0);
+    __VERIFIER_is_public(x + y + z + w, 0);
 }

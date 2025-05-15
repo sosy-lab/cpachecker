@@ -8,6 +8,10 @@
 
 // Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/2.ta_sizeof_alignof.c
 
+// We use an extern function sizeOf to, conceptually, emulate the original sizeof.
+// The actual functionality of sizeof is not relevant here, but the information flow is.
+
+extern int sizeOf(int number);
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern void __VERIFIER_is_public(int variable, int booleanFlag);
@@ -22,32 +26,24 @@ int main() {
     w = __VERIFIER_nondet_int();
 
     // `sizeof(int)` assigns an untainted value to `x`. `x` becomes sanitized
-    x = sizeof(int);
+    x = sizeOf(1);
     __VERIFIER_is_public(x, 1);
 
-    // taint flows from z to taintedSum
-    int taintedSum = x + z;
-
-    // `sizeof(taintedSum)` assigns a tainted value to `y`; `y` remains tainted
-    y = sizeof(taintedSum);
+    // `sizeof(x + z)` assigns a tainted value to `y`; `y` remains tainted
+    y = sizeOf(x + z);
     __VERIFIER_is_public(y, 0);
 
     // `sizeof(y)` assigns a tainted value to `z`; `z` remains tainted
-    z = sizeof(y);
+    z = sizeOf(y);
     __VERIFIER_is_public(z, 0);
 
-    // Since x is not tainted, taintedMult is not tainted
-    int taintedMult = x * x;
-
-    // `sizeof(taintedMult)` assigns an untainted value to `w` as `x` is now untainted
-    w = sizeof(taintedMult);
+    // `sizeof(x * x)` assigns an untainted value to `w` as `x` is now untainted
+    w = sizeOf(x * x);
     __VERIFIER_is_public(w, 1);
 
     // Expected taint analysis result: `x` and `w` are public, `y` and `z` are tainted.
-    int totalSum = x + y + z + w;
-
-    // No information disclosure here, but we expect that the analysis propagated to all
-    // LHS elements, when in the RHS there is a tainted variable. Because of that we expect the
-    // total sum to be tainted and with that a property violation.
-    __VERIFIER_is_public(totalSum, 1);
+    // No information disclosure here, but we expect that the analysis propagates taint to all
+    // LHS elements when in the RHS there is a tainted variable. Because of that we expect the
+    // total sum to be tainted and with that a property violation here.
+    __VERIFIER_is_public(x + y + z + w, 1);
 }
