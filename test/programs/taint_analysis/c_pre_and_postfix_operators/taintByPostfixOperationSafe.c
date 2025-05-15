@@ -14,14 +14,9 @@ int main() {
     int x = __VERIFIER_nondet_int(); // Tainted
     int y = 1;
 
-    // y is expected to be tainted by the postfix ++ operator
-    y = x++;
-    __VERIFIER_is_public(y, 0);
+    // x++ is expected to be tainted by the postfix ++ operator
+    __VERIFIER_is_public(x++, 0);
 
-    // Sanitize y
-    __VERIFIER_set_public(y, 1);
-
-    // y is expected to be tainted by the postfix -- operator
-    y = x--;
-    __VERIFIER_is_public(y, 0);
+    // x-- is expected to be tainted by the postfix -- operator
+    __VERIFIER_is_public(x--, 0);
 }
