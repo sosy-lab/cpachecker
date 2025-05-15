@@ -88,9 +88,9 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByAssignmentOperationUnsafe_Substraction() throws Exception {
+  public void testTaintByAssignmentOperationUnsafe_Subtraction() throws Exception {
     TestResults results =
-        runCPAchecker("taintByAssignmentOperationUnsafe_Substraction.c", "c_infix_operators");
+        runCPAchecker("taintByAssignmentOperationUnsafe_Subtraction.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
