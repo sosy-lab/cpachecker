@@ -15,9 +15,9 @@ int main() {
     x = __VERIFIER_nondet_int();
     y = 1;
 
-    // z is expected to be tainted by x and the && operation
-    z = (y || x);
+    // z is expected to be public (explanation in taintByANDLogicalOperationUnsafe.c)
+    z = y || x;
 
     // taint violation expected
-    __VERIFIER_is_public(z, 1);
+    __VERIFIER_is_public(z, 0);
 }
