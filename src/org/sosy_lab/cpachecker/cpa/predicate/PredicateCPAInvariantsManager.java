@@ -465,7 +465,6 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
               wasSuccessful =
                   findInvariantInterpolants(
                       allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
-          default -> throw new AssertionError("Unhandled case statement");
         }
 
         if (wasSuccessful) {

@@ -238,12 +238,11 @@ class ExpressionValueVisitor
     UnaryOperator unaryOperator = unaryExpression.getOperator();
     CExpression unaryOperand = unaryExpression.getOperand();
 
-    switch (unaryOperator) {
-      case AMPER:
-        throw new UnrecognizedCodeException(
-            "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
-
-      case MINUS:
+    return switch (unaryOperator) {
+      case AMPER ->
+          throw new UnrecognizedCodeException(
+              "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
+      case MINUS -> {
         ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
         List<? extends SMGValueAndState> valueAndStates = unaryOperand.accept(this);
@@ -256,9 +255,9 @@ class ExpressionValueVisitor
           result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
         }
 
-        return result.build();
-
-      case SIZEOF:
+        yield result.build();
+      }
+      case SIZEOF -> {
         long size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
@@ -266,12 +265,10 @@ class ExpressionValueVisitor
                 getInitialSmgState(),
                 unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-        return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-      case TILDE:
-
-      default:
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-    }
+        yield singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+      }
+      case ALIGNOF, TILDE -> singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
+    };
   }
 
   @Override
@@ -363,83 +360,61 @@ class ExpressionValueVisitor
       return singletonList(SMGValueAndState.withUnknownValue(newState));
     }
 
-    switch (binaryOperator) {
-      case PLUS,
-          MINUS,
-          DIVIDE,
-          MULTIPLY,
-          SHIFT_LEFT,
-          MODULO,
-          SHIFT_RIGHT,
-          BINARY_AND,
-          BINARY_OR,
-          BINARY_XOR -> {
-        boolean isZero;
-
-        switch (binaryOperator) {
-          case PLUS:
-          case SHIFT_LEFT:
-          case BINARY_OR:
-          case BINARY_XOR:
-          case SHIFT_RIGHT:
-            isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
-            SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-            return singletonList(SMGValueAndState.of(newState, val));
-
-          case MINUS:
-            if (lVal instanceof SMGKnownAddressValue lValAddress
-                && rVal instanceof SMGKnownAddressValue rValAddress) {
-              if (lValAddress.getObject().equals(rValAddress.getObject())) {
-                CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
-                final CType type;
-                if (lVarType instanceof CPointerType) {
-                  // normal pointer type
-                  type = ((CPointerType) lVarType).getType();
-                } else if (lVarType instanceof CSimpleType) {
-                  // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
-                  // Lets assume, that invalid combinations like "int" for 64bit do not appear.
-                  type = lVarType;
-                } else {
-                  throw new AssertionError(
-                      String.format(
-                          "unhandled type '%s' for pointer comparison using '%s'.",
-                          lVarType, lVarInBinaryExp));
-                }
-                BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
-                SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
-                diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
-                return singletonList(SMGValueAndState.of(newState, diff));
-              }
+    return switch (binaryOperator) {
+      case PLUS, SHIFT_LEFT, BINARY_OR, BINARY_XOR, SHIFT_RIGHT -> {
+        boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
+        SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        yield singletonList(SMGValueAndState.of(newState, val));
+      }
+      case MINUS -> {
+        if (lVal instanceof SMGKnownAddressValue lValAddress
+            && rVal instanceof SMGKnownAddressValue rValAddress) {
+          if (lValAddress.getObject().equals(rValAddress.getObject())) {
+            CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+            final CType type;
+            if (lVarType instanceof CPointerType) {
+              // normal pointer type
+              type = ((CPointerType) lVarType).getType();
+            } else if (lVarType instanceof CSimpleType) {
+              // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
+              // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+              type = lVarType;
+            } else {
+              throw new AssertionError(
+                  String.format(
+                      "unhandled type '%s' for pointer comparison using '%s'.",
+                      lVarType, lVarInBinaryExp));
             }
-            // else
-            isZero = lVal.equals(rVal);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-            return singletonList(SMGValueAndState.of(newState, val));
-
-          case MODULO:
-            isZero = lVal.equals(rVal);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-            return singletonList(SMGValueAndState.of(newState, val));
-
-          case DIVIDE:
-            // TODO maybe we should signal a division by zero error?
-            if (rVal.equals(SMGZeroValue.INSTANCE)) {
-              return singletonList(SMGValueAndState.withUnknownValue(newState));
-            }
-
-            isZero = lVal.equals(SMGZeroValue.INSTANCE);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-            return singletonList(SMGValueAndState.of(newState, val));
-
-          case MULTIPLY:
-          case BINARY_AND:
-            isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
-            val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
-            return singletonList(SMGValueAndState.of(newState, val));
-
-          default:
-            throw new AssertionError();
+            BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
+            SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+            diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+            yield singletonList(SMGValueAndState.of(newState, diff));
+          }
         }
+        // else
+        boolean isZero = lVal.equals(rVal);
+        SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        yield singletonList(SMGValueAndState.of(newState, val));
+      }
+      case MODULO -> {
+        boolean isZero = lVal.equals(rVal);
+        SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        yield singletonList(SMGValueAndState.of(newState, val));
+      }
+      case DIVIDE -> {
+        // TODO maybe we should signal a division by zero error?
+        if (rVal.equals(SMGZeroValue.INSTANCE)) {
+          yield singletonList(SMGValueAndState.withUnknownValue(newState));
+        }
+
+        boolean isZero = lVal.equals(SMGZeroValue.INSTANCE);
+        SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        yield singletonList(SMGValueAndState.of(newState, val));
+      }
+      case MULTIPLY, BINARY_AND -> {
+        boolean isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
+        SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+        yield singletonList(SMGValueAndState.of(newState, val));
       }
       case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
@@ -462,12 +437,9 @@ class ExpressionValueVisitor
           }
         }
 
-        return result.build();
+        yield result.build();
       }
-      default -> {
-        return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
-      }
-    }
+    };
   }
 
   @Override

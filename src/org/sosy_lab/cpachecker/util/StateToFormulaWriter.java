@@ -228,7 +228,6 @@ public class StateToFormulaWriter implements StatisticsProvider {
       case ATOM ->
           // atomize formulas
           formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
-      default -> throw new AssertionError("unknown option");
     }
 
     // filter out formulas with no information

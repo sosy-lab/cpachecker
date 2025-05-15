@@ -13,7 +13,7 @@ import static org.sosy_lab.java_smt.api.FormulaType.getBitvectorTypeWithSize;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Serial;
 import java.nio.charset.Charset;
@@ -47,15 +47,15 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class SymbolEncoding {
 
-  private Set<CSimpleDeclaration> decls = new HashSet<>();
-  private MachineModel machineModel = null;
+  private final Set<CSimpleDeclaration> decls;
+  private final MachineModel machineModel;
 
   /**
    * This set contains function symbols that have a (maybe) unknown, but valid type. We do not care
    * about the type, because it is automatically determined.
    */
-  private static final Set<String> functionSymbols =
-      Sets.newHashSet(
+  private static final ImmutableSet<String> FUNCTION_SYMBOLS =
+      ImmutableSet.of(
           "and",
           "or",
           "not",
@@ -108,9 +108,6 @@ public class SymbolEncoding {
           "_",
           "divisible");
 
-  /** create an empty symbol encoding */
-  public SymbolEncoding() {}
-
   /** create symbol encoding with information about symbol from variables of the CFA */
   public SymbolEncoding(CFA pCfa) {
     decls = getAllDeclarations(pCfa.nodes());
@@ -149,7 +146,7 @@ public class SymbolEncoding {
 
   public Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
 
-    if (functionSymbols.contains(symbol)) {
+    if (FUNCTION_SYMBOLS.contains(symbol)) {
       return null;
     }
 

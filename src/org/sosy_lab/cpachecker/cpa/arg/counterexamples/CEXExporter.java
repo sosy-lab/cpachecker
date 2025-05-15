@@ -278,7 +278,6 @@ public class CEXExporter {
               pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
             }
           }
-          default -> throw new AssertionError("Unhandled case statement: " + codeStyle);
         }
       }
     }

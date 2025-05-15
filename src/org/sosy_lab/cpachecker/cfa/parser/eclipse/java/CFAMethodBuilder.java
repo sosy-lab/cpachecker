@@ -1390,7 +1390,6 @@ class CFAMethodBuilder extends ASTVisitor {
               elseNode,
               true,
               true);
-      default -> throw new AssertionError("Missing switch clause");
     }
   }
 

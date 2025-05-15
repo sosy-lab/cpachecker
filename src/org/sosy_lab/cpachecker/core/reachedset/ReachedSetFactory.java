@@ -272,7 +272,6 @@ public class ReachedSetFactory {
           case LOCATIONMAPPED -> new LocationMappedReachedSet(cpa, waitlistFactory);
           case USAGE -> new UsageReachedSet(cpa, waitlistFactory, usageConfig, logger);
           case NORMAL -> new DefaultReachedSet(cpa, waitlistFactory);
-          default -> new DefaultReachedSet(cpa, waitlistFactory);
         };
     if (withStatistics) {
       reached = new StatisticsReachedSet(reached);

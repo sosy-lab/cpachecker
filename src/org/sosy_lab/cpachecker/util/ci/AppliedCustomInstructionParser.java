@@ -478,48 +478,43 @@ public class AppliedCustomInstructionParser {
   }
 
   private boolean containsGlobalVars(final CFAEdge pLeave) {
-    switch (pLeave.getEdgeType()) {
-      case BlankEdge -> {
-        // no additional check needed.
-      }
-      case AssumeEdge -> {
-        return ((CAssumeEdge) pLeave).getExpression().accept(visitor);
-      }
-      case StatementEdge -> {
-        return globalVarInStatement(((CStatementEdge) pLeave).getStatement());
-      }
+    return switch (pLeave.getEdgeType()) {
+      case BlankEdge -> false; // no additional check needed.
+
+      case AssumeEdge -> ((CAssumeEdge) pLeave).getExpression().accept(visitor);
+
+      case StatementEdge -> globalVarInStatement(((CStatementEdge) pLeave).getStatement());
+
       case DeclarationEdge -> {
         if (((CDeclarationEdge) pLeave).getDeclaration() instanceof CVariableDeclaration) {
           CInitializer init =
               ((CVariableDeclaration) ((CDeclarationEdge) pLeave).getDeclaration())
                   .getInitializer();
           if (init != null) {
-            return init.accept(visitor);
+            yield init.accept(visitor);
           }
         }
+        yield false;
       }
       case ReturnStatementEdge -> {
         if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
-          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
+          yield ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
         }
+        yield false;
       }
       case FunctionCallEdge -> {
         for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
           if (exp.accept(visitor)) {
-            return true;
+            yield true;
           }
         }
+        yield false;
       }
-      case FunctionReturnEdge -> {
-        // no additional check needed.
-      }
-      case CallToReturnEdge -> {
-        return globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
-      }
-      default ->
-          throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
-    }
-    return false;
+      case FunctionReturnEdge -> false; // no additional check needed.
+
+      case CallToReturnEdge ->
+          globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
+    };
   }
 
   private boolean globalVarInStatement(final CStatement statement) {

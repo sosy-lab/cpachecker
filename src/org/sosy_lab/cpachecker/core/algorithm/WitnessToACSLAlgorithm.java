@@ -219,7 +219,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String newFileName = makeNameForAnnotatedFile(pathToOriginalFile.getFileName().toString());
     Path outFile = outDir.resolve(newFileName);
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      writer.write(String.join("\n", newContent) + "\n");
+      for (String line : newContent) {
+        writer.write(line);
+        writer.write("\n");
+      }
     }
   }
 

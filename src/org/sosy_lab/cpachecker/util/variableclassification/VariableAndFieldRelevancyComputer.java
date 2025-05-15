@@ -566,8 +566,6 @@ final class VariableAndFieldRelevancyComputer {
         }
       }
       case BlankEdge, CallToReturnEdge -> {}
-      default ->
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
     }
 
     return result;

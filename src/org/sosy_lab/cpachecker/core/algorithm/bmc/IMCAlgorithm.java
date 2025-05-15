@@ -772,8 +772,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           }
         }
         case NONE -> {}
-        default ->
-            throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
       }
       if (hasReachedFixedPoint) {
         InterpolationHelper.removeUnreachableTargetStates(pReachedSet);

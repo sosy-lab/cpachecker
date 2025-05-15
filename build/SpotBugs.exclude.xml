@@ -52,10 +52,7 @@ SPDX-License-Identifier: Apache-2.0
     </And></Match>
     <Match>
         <!-- Handled by Eclipse. -->
-        <Or>
-          <Bug pattern="SF_SWITCH_FALLTHROUGH"/>
-          <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
-        </Or>
+        <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
     </Match>
     <Match>
         <!-- Ignore Antlr-generated files. -->

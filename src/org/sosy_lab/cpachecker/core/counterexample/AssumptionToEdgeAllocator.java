@@ -1099,34 +1099,31 @@ public class AssumptionToEdgeAllocator {
           addressType = rVarInBinaryExpType;
         } else {
           if (assumeLinearArithmetics) {
-            switch (binaryExp.getOperator()) {
-              case MULTIPLY:
+            return switch (binaryExp.getOperator()) {
+              case MULTIPLY -> {
                 // Multiplication with constants is sometimes supported
                 if (allowMultiplicationWithConstants
                     && (lVarInBinaryExp instanceof ALiteralExpression
                         || rVarInBinaryExp instanceof ALiteralExpression)) {
-                  return super.visit(binaryExp);
+                  yield super.visit(binaryExp);
                 }
-                return Value.UnknownValue.getInstance();
-              case DIVIDE:
-              case MODULO:
+                yield Value.UnknownValue.getInstance();
+              }
+              case DIVIDE, MODULO -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
-                  break;
+                  yield super.visit(binaryExp);
                 }
-              // $FALL-THROUGH$
-              case BINARY_AND:
-              case BINARY_OR:
-              case BINARY_XOR:
-              case SHIFT_LEFT:
-              case SHIFT_RIGHT:
-                return Value.UnknownValue.getInstance();
-              default:
-                break;
-            }
+                yield Value.UnknownValue.getInstance();
+              }
+              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+                  Value.UnknownValue.getInstance();
+              default -> super.visit(binaryExp);
+            };
+          } else {
+            return super.visit(binaryExp);
           }
-          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
@@ -1136,7 +1133,7 @@ public class AssumptionToEdgeAllocator {
                 ? ((CPointerType) addressType).getType().getCanonicalType()
                 : ((CArrayType) addressType).getType().getCanonicalType();
 
-        switch (binaryOperator) {
+        return switch (binaryOperator) {
           case PLUS, MINUS -> {
             Value addressValueV = address.accept(this);
 
@@ -1146,7 +1143,7 @@ public class AssumptionToEdgeAllocator {
                 || offsetValueV.isUnknown()
                 || !addressValueV.isNumericValue()
                 || !offsetValueV.isNumericValue()) {
-              return Value.UnknownValue.getInstance();
+              yield Value.UnknownValue.getInstance();
             }
 
             Number addressValueNumber = addressValueV.asNumericValue().getNumber();
@@ -1157,12 +1154,11 @@ public class AssumptionToEdgeAllocator {
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
-            switch (binaryOperator) {
-              case PLUS:
-                return new NumericValue(addressValue.add(pointerOffsetValue));
-              case MINUS:
+            yield switch (binaryOperator) {
+              case PLUS -> new NumericValue(addressValue.add(pointerOffsetValue));
+              case MINUS -> {
                 if (lVarIsAddress) {
-                  return new NumericValue(addressValue.subtract(pointerOffsetValue));
+                  yield new NumericValue(addressValue.subtract(pointerOffsetValue));
                 } else {
                   throw new UnrecognizedCodeException(
                       "Expected pointer arithmetic "
@@ -1170,14 +1166,12 @@ public class AssumptionToEdgeAllocator {
                           + binaryExp.toASTString(),
                       binaryExp);
                 }
-              default:
-                throw new AssertionError();
-            }
+              }
+              default -> throw new AssertionError();
+            };
           }
-          default -> {
-            return Value.UnknownValue.getInstance();
-          }
-        }
+          default -> Value.UnknownValue.getInstance();
+        };
       }
 
       @Override
