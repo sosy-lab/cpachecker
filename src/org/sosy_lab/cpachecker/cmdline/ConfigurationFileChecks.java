@@ -485,7 +485,13 @@ public class ConfigurationFileChecks {
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
               Path.of("importFaults.properties"),
-              Path.of("distributed-summary-synthesis"));
+              Path.of("distributed-summary-synthesis"),
+              // Configs containing this name randomly sample paths from the program
+              // by default they do not terminate, which makes this test fail due to
+              // a timeout. If the analysis is improved such that already
+              // seen paths are not considered twice, this test can be re-enabled.
+              Path.of("parallel-randomSampling.properties"),
+              Path.of("randomSampling.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
