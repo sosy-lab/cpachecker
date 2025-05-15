@@ -241,10 +241,39 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe() throws Exception {
+  public void testTaintByConditionalTernaryOperatorSafe_UnreachableCond() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe.c", "c_infix_operators");
+        runCPAchecker("taintByConditionalTernaryOperatorSafe_UnreachableCond.c", "c_infix_operators");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintByConditionalTernaryOperatorUnsafe_1_1() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_1_1.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByConditionalTernaryOperatorUnsafe_1_2() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_1_2.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByConditionalTernaryOperatorUnsafe_2() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_2.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByConditionalTernaryOperatorUnsafe_3() throws Exception {
+    TestResults results =
+        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_3.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
