@@ -473,15 +473,16 @@ public class ARGUtils {
       ARGState child;
       CFAEdge edge;
       switch (childrenInArg.size()) {
-        case 0:
+        case 0 -> {
           return builder.build(currentElement);
-
-        case 1: // only one successor, easy
+        }
+        case 1 -> {
+          // only one successor, easy
           child = Iterables.getOnlyElement(childrenInArg);
           edge = currentElement.getEdgeToChild(child);
-          break;
-
-        case 2: // branch
+        }
+        case 2 -> {
+          // branch
           // first, find out the edges and the children
           AssumeEdge trueEdge = null;
           AssumeEdge falseEdge = null;
@@ -489,10 +490,11 @@ public class ARGUtils {
           ARGState falseChild = null;
 
           Iterable<CFANode> locs = AbstractStates.extractLocations(currentElement);
-          if (Iterables.any(
-              locs, loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class)))) {
-            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
-          }
+          checkArgument(
+              !Iterables.any(
+                  locs,
+                  loc -> !leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))),
+              "ARG branches where there is no AssumeEdge!");
 
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
@@ -504,17 +506,15 @@ public class ARGUtils {
               falseChild = currentChild;
             }
           }
-          if (trueEdge == null || falseEdge == null) {
-            throw new IllegalArgumentException("ARG branches with non-complementary AssumeEdges!");
-          }
+          checkArgument(
+              trueEdge != null && falseEdge != null,
+              "ARG branches with non-complementary AssumeEdges!");
           assert trueChild != null;
           assert falseChild != null;
 
           // search first idx where we have a predicate for the current branching
           Boolean predValue = branchingInformation.apply(currentElement, trueEdge);
-          if (predValue == null) {
-            throw new IllegalArgumentException("ARG branches without direction information!");
-          }
+          checkArgument(predValue != null, "ARG branches without direction information!");
 
           // now select the right edge
           if (predValue) {
@@ -524,10 +524,8 @@ public class ARGUtils {
             edge = falseEdge;
             child = falseChild;
           }
-          break;
-
-        default:
-          throw new IllegalArgumentException("ARG splits with more than two branches!");
+        }
+        default -> throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
       checkArgument(stateFilter.test(child), "ARG and direction information from solver disagree!");
@@ -1195,21 +1193,11 @@ public class ARGUtils {
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
-        case '\n':
-          appendTo.append("\\n");
-          break;
-        case '\r':
-          appendTo.append("\\r");
-          break;
-        case '\"':
-          appendTo.append("\\\"");
-          break;
-        case '\\':
-          appendTo.append("\\\\");
-          break;
-        default:
-          appendTo.append(c);
-          break;
+        case '\n' -> appendTo.append("\\n");
+        case '\r' -> appendTo.append("\\r");
+        case '\"' -> appendTo.append("\\\"");
+        case '\\' -> appendTo.append("\\\\");
+        default -> appendTo.append(c);
       }
     }
   }

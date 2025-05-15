@@ -302,41 +302,27 @@ public class UndefinedFunctionCollectorAlgorithm
   // size_t, u32, uchar, uint, ulong, unsigned, ushort
   private Pair<String, String> convertType(CSimpleType ct) {
     CBasicType bt = ct.getType();
-    if (bt == CBasicType.BOOL) {
-      return Pair.of("bool", "bool");
-    } else if (bt == CBasicType.CHAR) {
-      if (ct.hasUnsignedSpecifier()) {
-        return Pair.of("unsigned char", "uchar");
-      } else {
-        return Pair.of("char", "char");
-      }
-    } else if (bt == CBasicType.DOUBLE) {
-      return Pair.of("double", "double");
-    } else if (bt == CBasicType.FLOAT) {
-      return Pair.of("float", "float");
-    } else if (bt == CBasicType.INT || bt == CBasicType.UNSPECIFIED) {
-      if (ct.hasShortSpecifier()) {
-        if (ct.hasUnsignedSpecifier()) {
-          return Pair.of("unsigned short", "ushort");
+    return switch (bt) {
+      case BOOL -> Pair.of("bool", "bool");
+      case CHAR ->
+          ct.hasUnsignedSpecifier() ? Pair.of("unsigned char", "uchar") : Pair.of("char", "char");
+      case DOUBLE -> Pair.of("double", "double");
+      case FLOAT -> Pair.of("float", "float");
+      case INT, UNSPECIFIED -> {
+        if (ct.hasShortSpecifier()) {
+          yield ct.hasUnsignedSpecifier()
+              ? Pair.of("unsigned short", "ushort")
+              : Pair.of("short", "short");
+        } else if (ct.hasLongSpecifier() || ct.hasLongLongSpecifier()) {
+          yield ct.hasUnsignedSpecifier()
+              ? Pair.of("unsigned long", "ulong")
+              : Pair.of("long", "long");
         } else {
-          return Pair.of("short", "short");
-        }
-      } else if (ct.hasLongSpecifier() || ct.hasLongLongSpecifier()) {
-        if (ct.hasUnsignedSpecifier()) {
-          return Pair.of("unsigned long", "ulong");
-        } else {
-          return Pair.of("long", "long");
-        }
-      } else {
-        if (ct.hasUnsignedSpecifier()) {
-          return Pair.of("unsigned int", "uint");
-        } else {
-          return Pair.of("int", "int");
+          yield ct.hasUnsignedSpecifier() ? Pair.of("unsigned int", "uint") : Pair.of("int", "int");
         }
       }
-    } else {
-      throw new RuntimeException("Unknown type " + ct);
-    }
+      default -> throw new RuntimeException("Unknown type " + ct);
+    };
   }
 
   @Override

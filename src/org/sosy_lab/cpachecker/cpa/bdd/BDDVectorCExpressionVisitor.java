@@ -129,31 +129,22 @@ public class BDDVectorCExpressionVisitor
       rVal = castCValue(rVal, rType, calculationType, bvmgr, machineModel);
     }
 
-    Region[] result;
-    switch (binaryOperator) {
-      case PLUS:
-      case MINUS:
-      case DIVIDE:
-      case MODULO:
-      case MULTIPLY:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
-        result =
-            castCValue(
-                result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
-
-        break;
-
-      case EQUALS:
-      case NOT_EQUALS:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case LESS_THAN:
-      case LESS_EQUAL:
+    return switch (binaryOperator) {
+      case PLUS,
+          MINUS,
+          DIVIDE,
+          MODULO,
+          MULTIPLY,
+          SHIFT_LEFT,
+          SHIFT_RIGHT,
+          BINARY_AND,
+          BINARY_OR,
+          BINARY_XOR -> {
+        Region[] result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
+        yield castCValue(
+            result, calculationType, binaryExpr.getExpressionType(), bvmgr, machineModel);
+      }
+      case EQUALS, NOT_EQUALS, GREATER_THAN, GREATER_EQUAL, LESS_THAN, LESS_EQUAL -> {
         final Region tmp = booleanOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         // return 1 if expression holds, 0 otherwise
 
@@ -162,16 +153,10 @@ public class BDDVectorCExpressionVisitor
           size = machineModel.getSizeofInBits((CSimpleType) calculationType);
         }
 
-        result = bvmgr.wrapLast(tmp, size);
+        yield bvmgr.wrapLast(tmp, size);
         // we do not cast here, because 0 and 1 should be small enough for every type.
-
-        break;
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-    }
-
-    return result;
+      }
+    };
   }
 
   private static Region[] arithmeticOperation(

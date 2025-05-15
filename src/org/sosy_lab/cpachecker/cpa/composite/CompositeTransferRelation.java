@@ -351,7 +351,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         }
 
         final int predIndex =
-            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+            Iterables.indexOf(strengthenedState, PredicateAbstractState.class::isInstance);
         Preconditions.checkState(
             predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
         AbstractState predElement = strengthenedState.get(predIndex);
@@ -402,25 +402,23 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
-      case 0:
-        // at least one CPA decided that there is no successor
-        allResultingElements = ImmutableSet.of();
-        break;
-
-      case 1:
+      case 0 ->
+          // at least one CPA decided that there is no successor
+          allResultingElements = ImmutableSet.of();
+      case 1 -> {
         List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
         for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
           resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
         }
         allResultingElements = Collections.singleton(resultingElements);
-        break;
-
-      default:
+      }
+      default -> {
         // create cartesian product of all componentSuccessors and store the result in
         // allResultingElements
         List<AbstractState> initialPrefix = ImmutableList.of();
         allResultingElements = new ArrayList<>(resultCount);
         createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
+      }
     }
 
     assert resultCount == allResultingElements.size();

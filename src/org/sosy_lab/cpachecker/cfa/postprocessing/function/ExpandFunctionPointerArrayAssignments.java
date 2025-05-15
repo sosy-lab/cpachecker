@@ -64,15 +64,10 @@ public class ExpandFunctionPointerArrayAssignments {
 
       for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(function))) {
         switch (node.getNumLeavingEdges()) {
-          case 0:
-            break;
-          case 1:
-            handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
-            break;
-          case 2:
-            break;
-          default:
-            throw new AssertionError("Too many leaving edges on CFANode");
+          case 0 -> {}
+          case 1 -> handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
+          case 2 -> {}
+          default -> throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }

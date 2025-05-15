@@ -124,12 +124,9 @@ public class NullPointerChecks {
 
       for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(functionName))) {
         switch (node.getNumLeavingEdges()) {
-          case 0:
-            break;
-          case 1:
-            handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
-            break;
-          case 2:
+          case 0 -> {}
+          case 1 -> handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
+          case 2 -> {
             if (node.getLeavingEdge(0) instanceof AssumeEdge
                 && node.getLeavingEdge(1) instanceof AssumeEdge) {
               // handle only one edge, both contain the same expression
@@ -138,9 +135,8 @@ public class NullPointerChecks {
               handleEdge(node.getLeavingEdge(0), cfa, targetNodeSupplier, binBuilder);
               handleEdge(node.getLeavingEdge(1), cfa, targetNodeSupplier, binBuilder);
             }
-            break;
-          default:
-            throw new AssertionError("Too many leaving edges on CFANode");
+          }
+          default -> throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }

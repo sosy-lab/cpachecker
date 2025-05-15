@@ -177,127 +177,67 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of edge
     final CFAEdge newEdge;
     switch (edge.getEdgeType()) {
-      case BlankEdge:
-        {
+      case BlankEdge ->
           newEdge = new BlankEdge(rawStatement, loc, start, end, edge.getDescription());
-          break;
+      case AssumeEdge -> {
+        if (edge instanceof CAssumeEdge e) {
+          newEdge =
+              new CAssumeEdge(
+                  rawStatement,
+                  loc,
+                  start,
+                  end,
+                  cloneAst(e.getExpression()),
+                  e.getTruthAssumption(),
+                  e.isSwapped(),
+                  e.isArtificialIntermediate());
+        } else {
+          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-
-      case AssumeEdge:
-        {
-          if (edge instanceof CAssumeEdge e) {
-            newEdge =
-                new CAssumeEdge(
-                    rawStatement,
-                    loc,
-                    start,
-                    end,
-                    cloneAst(e.getExpression()),
-                    e.getTruthAssumption(),
-                    e.isSwapped(),
-                    e.isArtificialIntermediate());
-          } else {
-            throw new AssertionError(ONLY_C_SUPPORTED);
-          }
-          break;
-        }
-
-      case StatementEdge:
-        {
-          if (edge instanceof CFunctionSummaryStatementEdge) {
-            throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
-          } else if (edge instanceof CStatementEdge) {
-            newEdge =
-                new CStatementEdge(
-                    rawStatement,
-                    cloneAst(((CStatementEdge) edge).getStatement()),
-                    loc,
-                    start,
-                    end);
-          } else {
-            throw new AssertionError(ONLY_C_SUPPORTED);
-          }
-          break;
-        }
-
-      case DeclarationEdge:
-        {
-          if (edge instanceof CDeclarationEdge) {
-            newEdge =
-                new CDeclarationEdge(
-                    rawStatement,
-                    loc,
-                    start,
-                    end,
-                    cloneAst(((CDeclarationEdge) edge).getDeclaration()));
-          } else {
-            throw new AssertionError(ONLY_C_SUPPORTED);
-          }
-          break;
-        }
-
-      case ReturnStatementEdge:
-        {
-          assert end instanceof FunctionExitNode
-              : "Expected FunctionExitNode: " + end + ", " + end.getClass();
-          if (edge instanceof CReturnStatementEdge) {
-            newEdge =
-                new CReturnStatementEdge(
-                    rawStatement,
-                    cloneAst(((CReturnStatementEdge) edge).getReturnStatement()),
-                    loc,
-                    start,
-                    (FunctionExitNode) end);
-          } else {
-            throw new AssertionError(ONLY_C_SUPPORTED);
-          }
-          break;
-        }
-
-      case FunctionCallEdge:
-        {
+      }
+      case StatementEdge -> {
+        if (edge instanceof CFunctionSummaryStatementEdge) {
           throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
-
-          // if (edge instanceof CFunctionCallEdge) {
-          //   CFunctionCallEdge e = (CFunctionCallEdge) edge;
-          //   newEdge = new CFunctionCallEdge(rawStatement, line, start, (CFunctionEntryNode) end,
-          //       cloneAst((CFunctionCall) e.getRawAST().get()), e.getSummaryEdge());
-          // } else {
-          //   throw new AssertionError();
-          // }
-          // break;
+        } else if (edge instanceof CStatementEdge) {
+          newEdge =
+              new CStatementEdge(
+                  rawStatement, cloneAst(((CStatementEdge) edge).getStatement()), loc, start, end);
+        } else {
+          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-
-      case FunctionReturnEdge:
-        {
-          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
-
-          // if (edge instanceof CFunctionReturnEdge) {
-          //   CFunctionReturnEdge e = (CFunctionReturnEdge) edge;
-          //   newEdge = new CFunctionReturnEdge(loc, (FunctionExitNode) start, end,
-          // cloneEdge(e.getSummaryEdge()));
-          // } else {
-          //   throw new AssertionError(ONLY_C_SUPPORTED);
-          // }
-          // break;
+      }
+      case DeclarationEdge -> {
+        if (edge instanceof CDeclarationEdge) {
+          newEdge =
+              new CDeclarationEdge(
+                  rawStatement,
+                  loc,
+                  start,
+                  end,
+                  cloneAst(((CDeclarationEdge) edge).getDeclaration()));
+        } else {
+          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-
-      case CallToReturnEdge:
-        {
-          throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
-
-          // if (edge instanceof CFunctionSummaryEdge) {
-          //   CFunctionSummaryEdge e = (CFunctionSummaryEdge) edge;
-          //   newEdge = new CFunctionSummaryEdge(rawStatement, loc, start, end,
-          // cloneAst(e.getExpression()));
-          // } else {
-          //   throw new AssertionError();
-          // }
-          // break;
+      }
+      case ReturnStatementEdge -> {
+        assert end instanceof FunctionExitNode
+            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
+        if (edge instanceof CReturnStatementEdge) {
+          newEdge =
+              new CReturnStatementEdge(
+                  rawStatement,
+                  cloneAst(((CReturnStatementEdge) edge).getReturnStatement()),
+                  loc,
+                  start,
+                  (FunctionExitNode) end);
+        } else {
+          throw new AssertionError(ONLY_C_SUPPORTED);
         }
-
-      default:
-        throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
+      }
+      case FunctionCallEdge -> throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      case FunctionReturnEdge -> throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      case CallToReturnEdge -> throw new AssertionError(SUPERGRAPH_BUILD_TOO_EARLY);
+      default -> throw new AssertionError("unhandled type of edge: " + edge.getEdgeType());
     }
 
     return (T) newEdge;

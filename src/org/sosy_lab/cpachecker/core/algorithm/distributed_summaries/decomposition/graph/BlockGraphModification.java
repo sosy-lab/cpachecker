@@ -239,7 +239,7 @@ public class BlockGraphModification {
     MappingInformation blockMapping =
         createMappingBetweenOriginalAndInstrumentedCFA(pOriginalCfa, pMutableCfa);
     ImmutableSet<CFANode> blockEnds =
-        transformedImmutableSetCopy(pBlockGraph.getNodes(), n -> n.getFinalLocation());
+        transformedImmutableSetCopy(pBlockGraph.getNodes(), BlockNode::getFinalLocation);
     ImmutableSet.Builder<CFANode> unableToAbstract = ImmutableSet.builder();
     ImmutableMap.Builder<CFANode, CFAEdge> abstractions = ImmutableMap.builder();
     for (CFANode originalBlockEnd : blockEnds) {

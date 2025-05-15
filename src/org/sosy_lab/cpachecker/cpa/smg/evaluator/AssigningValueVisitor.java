@@ -203,16 +203,17 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     CExpression operand = pE.getOperand();
 
     switch (op) {
-      case AMPER:
-        throw new AssertionError("In this case, the assume should be able to be calculated");
-      case MINUS:
-      case TILDE:
+      case AMPER ->
+          throw new AssertionError("In this case, the assume should be able to be calculated");
+      case MINUS, TILDE -> {
         // don't change the truth value
         return operand.accept(this);
-      case SIZEOF:
-        throw new AssertionError("At the moment, this case should be able to be calculated");
-      default:
+      }
+      case SIZEOF ->
+          throw new AssertionError("At the moment, this case should be able to be calculated");
+      default -> {
         // TODO alignof is not handled
+      }
     }
 
     return null;

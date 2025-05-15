@@ -43,7 +43,6 @@ public final class CDefaults {
             initializerFor(new CFloatLiteralExpression(fileLoc, type, BigDecimal.ZERO), fileLoc);
         case UNSPECIFIED, BOOL, INT128, INT ->
             initializerFor(new CIntegerLiteralExpression(fileLoc, type, BigInteger.ZERO), fileLoc);
-        default -> throw new AssertionError("Unknown basic type '" + basicType + "'");
       };
 
     } else if (type instanceof CEnumType) {

@@ -81,15 +81,13 @@ public class BaseSizeofVisitor<X extends Exception> implements CTypeVisitor<BigI
   @Override
   public BigInteger visit(CCompositeType pCompositeType) throws X {
 
-    switch (pCompositeType.getKind()) {
-      case STRUCT:
-        return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
-      case UNION:
-        return handleSizeOfUnion(pCompositeType);
-      case ENUM: // There is no such kind of Composit Type.
-      default:
-        throw new AssertionError();
-    }
+    return switch (pCompositeType.getKind()) {
+      case STRUCT -> getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
+      case UNION -> handleSizeOfUnion(pCompositeType);
+      case ENUM ->
+          // There is no such kind of Composit Type.
+          throw new AssertionError();
+    };
   }
 
   BigInteger calculateByteSize(BigInteger pBitFieldsSize) {

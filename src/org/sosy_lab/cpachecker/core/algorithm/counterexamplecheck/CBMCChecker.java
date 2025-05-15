@@ -170,13 +170,15 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
     if (!cbmc.producedErrorOutput()) {
       switch (exitCode) {
-        case 0: // Verification successful (Path is infeasible)
+        case 0 -> {
+          // Verification successful (Path is infeasible)
           return false;
-
-        case 10: // Verification failed (Path is feasible)
+        }
+        case 10 -> {
+          // Verification failed (Path is feasible)
           return true;
-
-        default:
+        }
+        default -> {}
       }
 
     } else {

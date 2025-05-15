@@ -290,45 +290,43 @@ public abstract class PathTranslator {
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
     switch (relevantChildrenOfElement.size()) {
-      case 0:
+      case 0 -> {
         return ImmutableList.of();
+      }
+      case 1 -> {
+        // If there is only one child on the path, get the next ARG state, create a new edge using
+        // the same stack and add it to the waitlist.
+        ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
+        CFAEdge e = currentElement.getEdgeToChild(elem);
+        return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
+      }
+      case 2 -> {
+        // If there are more than one relevant child, then this is a condition.
+        // We need to update the stack.
+        ARGState child1 = relevantChildrenOfElement.get(0);
+        ARGState child2 = relevantChildrenOfElement.get(1);
+        CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
+        CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);
+        verify(edge1.getExpression().equals(edge2.getExpression()));
+        verify(edge1.getTruthAssumption() != edge2.getTruthAssumption());
 
-      case 1:
-        { // If there is only one child on the path, get the next ARG state, create a new edge using
-          // the same stack and add it to the waitlist.
-          ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
-          CFAEdge e = currentElement.getEdgeToChild(elem);
-          return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
+        if (edge2.getTruthAssumption()) {
+          // swap edges such that edge1 is the positive one
+          ARGState tmpState = child1;
+          CAssumeEdge tmpEdge = edge1;
+          child1 = child2;
+          edge1 = edge2;
+          child2 = tmpState;
+          edge2 = tmpEdge;
         }
 
-      case 2:
-        { // If there are more than one relevant child, then this is a condition.
-          // We need to update the stack.
-          ARGState child1 = relevantChildrenOfElement.get(0);
-          ARGState child2 = relevantChildrenOfElement.get(1);
-          CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
-          CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);
-          verify(edge1.getExpression().equals(edge2.getExpression()));
-          verify(edge1.getTruthAssumption() != edge2.getTruthAssumption());
+        String cond = "if (" + edge1.getExpression().toASTString() + ")";
 
-          if (edge2.getTruthAssumption()) {
-            // swap edges such that edge1 is the positive one
-            ARGState tmpState = child1;
-            CAssumeEdge tmpEdge = edge1;
-            child1 = child2;
-            edge1 = edge2;
-            child2 = tmpState;
-            edge2 = tmpEdge;
-          }
-
-          String cond = "if (" + edge1.getExpression().toASTString() + ")";
-
-          return ImmutableList.of(
-              createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
-              createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
-        }
-      default:
-        throw new AssertionError();
+        return ImmutableList.of(
+            createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
+            createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
+      }
+      default -> throw new AssertionError();
     }
   }
 
@@ -408,39 +406,32 @@ public abstract class PathTranslator {
   protected String processSimpleEdge(CFAEdge pCFAEdge, BasicBlock currentBlock) {
 
     switch (pCFAEdge.getEdgeType()) {
-      case BlankEdge:
-      case StatementEdge:
-      case ReturnStatementEdge:
+      case BlankEdge, StatementEdge, ReturnStatementEdge -> {
         return pCFAEdge.getCode();
+      }
+      case AssumeEdge -> {
+        CAssumeEdge lAssumeEdge = (CAssumeEdge) pCFAEdge;
+        return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
+      }
+      case DeclarationEdge -> {
+        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
 
-      case AssumeEdge:
-        {
-          CAssumeEdge lAssumeEdge = (CAssumeEdge) pCFAEdge;
-          return ("__CPROVER_assume(" + lAssumeEdge.getCode() + ");");
-          //    return ("if(! (" + lAssumptionString + ")) { return (0); }");
+        if (lDeclarationEdge.getDeclaration().isGlobal()) {
+          mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
+          return "";
         }
 
-      case DeclarationEdge:
-        {
-          CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
-
-          if (lDeclarationEdge.getDeclaration().isGlobal()) {
-            mGlobalDefinitionsList.add(lDeclarationEdge.getCode());
-            return "";
-          }
-
-          // avoid having the same declaration edge twice in one basic block
-          if (currentBlock.hasDeclaration(lDeclarationEdge)) {
-            return "";
-          } else {
-            currentBlock.addDeclaration(lDeclarationEdge);
-            return lDeclarationEdge.getCode();
-          }
+        // avoid having the same declaration edge twice in one basic block
+        if (currentBlock.hasDeclaration(lDeclarationEdge)) {
+          return "";
+        } else {
+          currentBlock.addDeclaration(lDeclarationEdge);
+          return lDeclarationEdge.getCode();
         }
-
-      default:
-        throw new AssertionError(
-            "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
+      }
+      default ->
+          throw new AssertionError(
+              "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
     }
   }
 

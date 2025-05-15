@@ -348,17 +348,12 @@ class CFloatUtil {
 
   static int[] getDecimalArray(int pType, long pSignificand) {
     switch (pType) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-        pSignificand = pSignificand << 40;
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-        pSignificand = pSignificand << 11;
-        break;
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+      case CFloatNativeAPI.FP_TYPE_SINGLE -> pSignificand = pSignificand << 40;
+      case CFloatNativeAPI.FP_TYPE_DOUBLE -> pSignificand = pSignificand << 11;
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> {
         // nothing to do
-        break;
-      default:
-        throw new AssertionError("Unsupported type: " + pType);
+      }
+      default -> throw new AssertionError("Unsupported type: " + pType);
     }
     return BIT_TO_DEC_MAP.get(pSignificand).toArray();
   }
