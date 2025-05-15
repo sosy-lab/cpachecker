@@ -48,12 +48,6 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByORLogicalOperationUnsafe() throws Exception {
-    TestResults results = runCPAchecker("taintByORLogicalOperationUnsafe.c", "c_infix_operators");
-    results.assertIsUnsafe();
-  }
-
-  @Test
   public void testTaintByAssignmentOperationSafe() throws Exception {
     TestResults results = runCPAchecker("taintByAssignmentOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
@@ -228,6 +222,12 @@ public class TaintAnalysisTest {
   public void testTaintByLogicalOperationSafe() throws Exception {
     TestResults results = runCPAchecker("taintByLogicalOperationSafe.c", "c_infix_operators");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintByORLogicalOperationUnsafe() throws Exception {
+    TestResults results = runCPAchecker("taintByORLogicalOperationUnsafe.c", "c_infix_operators");
+    results.assertIsUnsafe();
   }
 
   @Ignore
