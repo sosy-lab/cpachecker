@@ -211,9 +211,11 @@ public class DetailedCounterexampleExport implements Algorithm {
       CFAEdge cfaEdge = cfaEdgeWithAssumptions.getCFAEdge();
       cexPath = pmgr.makeAnd(cexPath, cfaEdge);
 
-      for (AExpressionStatement aExpressionStatement : cfaEdgeWithAssumptions.getExpStmts()) {
-        if (aExpressionStatement instanceof CExpressionStatement pCExpressionStatement) {
-          cexPath = pmgr.makeAnd(cexPath, pCExpressionStatement.getExpression());
+      if (maxAssignments == 1) {
+        for (AExpressionStatement aExpressionStatement : cfaEdgeWithAssumptions.getExpStmts()) {
+          if (aExpressionStatement instanceof CExpressionStatement pCExpressionStatement) {
+            cexPath = pmgr.makeAnd(cexPath, pCExpressionStatement.getExpression());
+          }
         }
       }
 
