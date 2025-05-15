@@ -80,11 +80,9 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
   private int exportedSafeTracesCount = 0;
 
-  private Algorithm algorithm;
-  private final Configuration config;
+  private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier notifier;
-  private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
   private final AssumptionToEdgeAllocator allocator;
   private final DetailedCounterexampleExport exporter;
@@ -98,13 +96,11 @@ public class RandomSamplingAlgorithm implements Algorithm {
       ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    config = pConfig;
     logger = pLogger;
     notifier = pNotifier;
-    cfa = pCfa;
     cpa = pCpa;
     algorithm = pAlgorithm;
-    allocator = AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
+    allocator = AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
     // TODO: Refactor this such that the export can be used statically
     exporter = new DetailedCounterexampleExport(pAlgorithm, pConfig, pLogger, pNotifier, pCfa);
   }
