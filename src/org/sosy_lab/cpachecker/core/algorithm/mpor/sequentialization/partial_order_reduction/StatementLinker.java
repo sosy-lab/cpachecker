@@ -32,11 +32,11 @@ public class StatementLinker {
     for (var entry : pClauses.entrySet()) {
       // collect IDs of targets that result in valid links.
       // these clauses must not be directly reachable, and their labels are pruned later
-      ImmutableSet.Builder<Integer> clauseTargets = ImmutableSet.builder();
+      ImmutableSet.Builder<Integer> linkedTargetIds = ImmutableSet.builder();
       ImmutableList<SeqThreadStatementClause> linkedClauses =
-          linkCommutingClausesWithGotos(entry.getValue(), clauseTargets);
+          linkCommutingClausesWithGotos(entry.getValue(), linkedTargetIds);
       ImmutableList<SeqThreadStatementClause> merged =
-          mergeNotDirectlyReachableStatements(clauseTargets.build(), linkedClauses);
+          mergeNotDirectlyReachableStatements(linkedClauses, linkedTargetIds.build());
       rLinked.put(entry.getKey(), merged);
     }
     return rLinked.buildOrThrow();
@@ -46,18 +46,16 @@ public class StatementLinker {
 
   private static ImmutableList<SeqThreadStatementClause> linkCommutingClausesWithGotos(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      ImmutableSet.Builder<Integer> pClauseTargets) {
+      ImmutableSet.Builder<Integer> pLinkedTargetIds) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rNewClauses = ImmutableList.builder();
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
 
-    for (int i = 0; i < pClauses.size(); i++) {
-      SeqThreadStatementClause clause = pClauses.get(i);
+    for (SeqThreadStatementClause clause : pClauses) {
       ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
       for (SeqThreadStatement statement : clause.block.getStatements()) {
-        newStatements.add(
-            linkStatements(i == 0, clause.isGlobal, statement, labelClauseMap, pClauseTargets));
+        newStatements.add(linkStatements(statement, pLinkedTargetIds, labelClauseMap));
       }
       rNewClauses.add(
           clause.cloneWithBlock(clause.block.cloneWithStatements(newStatements.build())));
@@ -68,21 +66,17 @@ public class StatementLinker {
   /**
    * Links the target statements of {@code pCurrentStatement}, if applicable i.e. if the target
    * statement is guaranteed to commute.
-   *
-   * @param pIsFirstLink for the very first link, we can link global statements
    */
   private static SeqThreadStatement linkStatements(
-      final boolean pIsFirstLink,
-      final boolean pIsGlobal,
       SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
-      ImmutableSet.Builder<Integer> pClauseTargets) {
+      ImmutableSet.Builder<Integer> pLinkedTargetIds,
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      if (validLink(pIsFirstLink, pIsGlobal, pCurrentStatement, newTarget)) {
-        pClauseTargets.add(newTarget.id);
+      if (validLink(pCurrentStatement, newTarget)) {
+        pLinkedTargetIds.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getGotoLabel());
       }
     }
@@ -93,16 +87,13 @@ public class StatementLinker {
 
   /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
   private static boolean validLink(
-      final boolean pIsFirstLinker,
-      final boolean pIsGlobal,
-      SeqThreadStatement pStatement,
-      SeqThreadStatementClause pTarget) {
+      SeqThreadStatement pStatement, SeqThreadStatementClause pTarget) {
 
     return pStatement.isLinkable()
         // do not link atomic blocks, this is handled by AtomicBlockMerger
         && !(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
         // only consider global if not ignored
-        && !(!canIgnoreGlobal(pTarget, pIsFirstLinker, pIsGlobal) && pTarget.isGlobal)
+        && !(!canIgnoreGlobal(pTarget) && pTarget.isGlobal)
         && !PartialOrderReducer.requiresAssumeEvaluation(pStatement, pTarget);
   }
 
@@ -110,24 +101,17 @@ public class StatementLinker {
    * Whether we can ignore the local/global property of {@code pClause}, e.g. unlocks of global
    * mutexes.
    */
-  private static boolean canIgnoreGlobal(
-      SeqThreadStatementClause pClause, boolean pIsFirstLink, boolean pIsGlobal) {
-
-    // global loop heads are not linked but must be directly reachable -> loops can be interleaved
-    if (pClause.isLoopStart) {
-      return false;
-    }
+  private static boolean canIgnoreGlobal(SeqThreadStatementClause pTarget) {
     // TODO only holds without pthread_mutex_trylock (i.e. unlock does not guarantee commute
     //  anymore) -> remove if adding pthread_mutex_trylock support
-    if (pClause.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
+    if (pTarget.block.getFirstStatement() instanceof SeqMutexUnlockStatement) {
       return true;
     }
-    // the first link in the thread can also link global, if it is not global itself
-    return pIsFirstLink && !pIsGlobal;
+    return false;
   }
 
   private static ImmutableList<SeqThreadStatementClause> mergeNotDirectlyReachableStatements(
-      ImmutableSet<Integer> pCollectedTargetIds, ImmutableList<SeqThreadStatementClause> pClauses) {
+      ImmutableList<SeqThreadStatementClause> pClauses, ImmutableSet<Integer> pLinkedTargetIds) {
 
     // use lists to add at list start
     List<SeqThreadStatementClause> rMerged = new ArrayList<>();
@@ -140,7 +124,7 @@ public class StatementLinker {
         rMerged.add(0, clause);
       } else {
         // if i == 0, then add clause even if it is not directly reachable, otherwise it is pruned
-        if (i != 0 && pCollectedTargetIds.contains(clause.id)) {
+        if (i != 0 && pLinkedTargetIds.contains(clause.id)) {
           temporary.add(0, clause.block);
           temporary.addAll(0, clause.mergedBlocks);
         } else {
