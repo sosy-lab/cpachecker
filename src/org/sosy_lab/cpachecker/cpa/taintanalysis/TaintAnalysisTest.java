@@ -261,10 +261,9 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByPostfixOperationUnsafe_Substraction() throws Exception {
+  public void testTaintByPostfixOperationUnsafe_Subtraction() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "taintByPostfixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
+        runCPAchecker("taintByPostfixOperationUnsafe_Subtraction.c", "c_pre_and_postfix_operators");
     results.assertIsUnsafe();
   }
 
