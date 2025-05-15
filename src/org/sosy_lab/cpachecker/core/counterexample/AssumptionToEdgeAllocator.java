@@ -466,6 +466,11 @@ public class AssumptionToEdgeAllocator {
     return pLeftHandSide.accept(v);
   }
 
+  public CExpression convert(Object pValue, CSimpleType pSimpleType) {
+    ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, null, null);
+    return v.getValueLiteral(pSimpleType, pValue).getValueLiteral();
+  }
+
   private ValueLiterals getValueAsCode(
       Object pValue,
       Type pExpectedType,

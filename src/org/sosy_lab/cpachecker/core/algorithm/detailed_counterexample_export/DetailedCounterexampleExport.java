@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -30,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -163,13 +161,8 @@ public class DetailedCounterexampleExport implements Algorithm {
           String variableName =
               solver.getFormulaManager().uninstantiate(modelAssignment.getKey()).toString();
           CType type = pPathFormula.getSsa().getType(variableName);
-          if (Pattern.compile("-?\\d+").matcher(value).matches()
-              && type instanceof CSimpleType simpleType) {
-            value =
-                PotentialOverflowHandler.handlePotentialIntegerOverflow(
-                        allocator, new BigInteger(value), simpleType)
-                    .map(v -> v.value().toString())
-                    .orElse("");
+          if (type instanceof CSimpleType simpleType) {
+            value = allocator.convert(modelAssignment.getValue(), simpleType).toString();
           }
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
           if (!formula.toString().contains("__VERIFIER_nondet")) {
