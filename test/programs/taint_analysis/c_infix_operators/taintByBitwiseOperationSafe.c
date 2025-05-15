@@ -12,38 +12,21 @@ extern void __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
-    int y = 0b1010;
+    int y = 0b1010; // CVariableDeclaration with initializer 10 parsed from binary (1010) to int (10).
     int z;
 
-    // z is expected to be tainted by x and the & operation
-    z = y & x;
-    __VERIFIER_is_public(z, 0);
+    // y & x is expected to be tainted by x and the & operation
+    __VERIFIER_is_public(y & x, 0);
 
-    // Sanitize z
-    __VERIFIER_set_public(z, 1);
+    // y | x is expected to be tainted by x and the | operation
+    __VERIFIER_is_public(y | x, 0);
 
-    // z is expected to be tainted by x and the | operation
-    z = y | x;
-    __VERIFIER_is_public(z, 0);
+    // y ^ x is expected to be tainted by x and the ^ operation
+    __VERIFIER_is_public(y ^ x, 0);
 
-    // Sanitize z
-    __VERIFIER_set_public(z, 1);
+    // y << x is expected to be tainted by x and the << operation
+    __VERIFIER_is_public(y << x, 0);
 
-    // z is expected to be tainted by x and the ^ operation
-    z = y ^ x;
-    __VERIFIER_is_public(z, 0);
-
-    // Sanitize z
-    __VERIFIER_set_public(z, 1);
-
-    // z is expected to be tainted by x and the << operation
-    z = y << x;
-    __VERIFIER_is_public(z, 0);
-
-    // Sanitize z
-    __VERIFIER_set_public(z, 1);
-
-    // z is expected to be tainted by x and the >> operation
-    z = y >> x;
-    __VERIFIER_is_public(z, 0);
+    // y >> x is expected to be tainted by x and the >> operation
+    __VERIFIER_is_public(y >> x, 0);
 }
