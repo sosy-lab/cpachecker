@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -79,7 +78,7 @@ public class SeqPruner {
   }
 
   /**
-   * Maps pre prune {@code int pc} to post prune {@link CExpression}. Not all target {@code pc} are
+   * Maps pre prune {@code int pc} to their post prune counterparts. Not all target {@code pc} are
    * present as keys.
    */
   private static ImmutableMap<Integer, Integer> createPrunedPcUpdates(
@@ -146,6 +145,8 @@ public class SeqPruner {
           SeqThreadStatementClause nonBlank =
               findNonBlankClause(pClause, nextClause, pLabelClauseMap);
           return Optional.of(extractTargetPc(nonBlank));
+        } else {
+          return Optional.of(extractTargetPc(nextClause));
         }
       }
     }

@@ -139,7 +139,8 @@ public class StatementLinker {
         // atomic blocks are merged by AtomicBlockMerger already, add as is
         rMerged.add(0, clause);
       } else {
-        if (pCollectedTargetIds.contains(clause.id)) {
+        // if i == 0, then add clause even if it is not directly reachable, otherwise it is pruned
+        if (i != 0 && pCollectedTargetIds.contains(clause.id)) {
           temporary.add(0, clause.block);
           temporary.addAll(0, clause.mergedBlocks);
         } else {
