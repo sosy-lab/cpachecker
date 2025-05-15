@@ -1239,13 +1239,12 @@ public class CFACreator {
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Could not serialize the variables in scope to json.", e);
     } catch (IOException e) {
-      logger.logUserException(
+      logger.logfUserException(
           Level.WARNING,
           e,
-          String.format(
-              "exporting information about what variables are in scope at each statement in the CFA"
-                  + " to %s  failed due to not being able to write to the output file.",
-              pathForExportingVariablesInScopeWithTheirType));
+          "exporting information about what variables are in scope at each statement in the CFA"
+              + " to %s  failed due to not being able to write to the output file.",
+          pathForExportingVariablesInScopeWithTheirType);
     }
   }
 
