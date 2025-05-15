@@ -8,30 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import org.sosy_lab.java_smt.api.BitvectorFormula;
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AbstractionLemma {
-  private final BooleanFormula formula;
-  private final BitvectorFormula signature;
-  private final BitvectorFormula body;
+  private final ImmutableSet<BooleanFormula> formulas;
 
-  public AbstractionLemma(
-      BooleanFormula pFormula, BitvectorFormula pSignature, BitvectorFormula pBody) {
-    formula = pFormula;
-    signature = pSignature;
-    body = pBody;
+  public AbstractionLemma(Iterable<BooleanFormula> pFormulas) {
+    formulas = ImmutableSet.copyOf(pFormulas);
   }
 
-  public BooleanFormula getFormula() {
-    return formula;
-  }
-
-  public BitvectorFormula getSignature() {
-    return signature;
-  }
-
-  public BitvectorFormula getBody() {
-    return body;
+  public ImmutableSet<BooleanFormula> getFormulas() {
+    return formulas;
   }
 }

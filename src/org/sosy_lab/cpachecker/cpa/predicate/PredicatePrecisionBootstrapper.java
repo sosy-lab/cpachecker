@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ACSLParserUtils;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -72,7 +71,6 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchange
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -245,6 +243,7 @@ public final class PredicatePrecisionBootstrapper {
 
   public Set<AbstractionLemma> prepareInitialLemmas(Path lemmaFile)
       throws InvalidConfigurationException {
+    ImmutableSet.Builder<AbstractionLemma> abstractionLemmas = ImmutableSet.builder();
     ImmutableList.Builder<LemmaSetEntry> lemmaSetEntriesBuilder = ImmutableList.builder();
     ImmutableList<LemmaSetEntry> lemmaSetEntries;
 
@@ -259,15 +258,6 @@ public final class PredicatePrecisionBootstrapper {
         ImmutableList.<String>builder()
             .addAll(AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries))
             .build();
-
-    ImmutableList<LemmaEntry> lemmaSet =
-        ImmutableList.<LemmaEntry>builder()
-            .addAll(AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries))
-            .build();
-
-    InvariantExchangeFormatTransformer transformer =
-        new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
-
     List<CDeclaration> declarations = ACSLParserUtils.parseDeclarations(declarationEntries);
 
     if (cfa.getLanguage() != C) {
@@ -278,21 +268,23 @@ public final class PredicatePrecisionBootstrapper {
       scope.addDeclarationToScope(declaration);
     }
 
-    ImmutableSet.Builder<AbstractionLemma> abstractionLemmas = ImmutableSet.builder();
-    LemmaExtractorVisitor extractor = new LemmaExtractorVisitor();
+    InvariantExchangeFormatTransformer transformer =
+        new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
 
-    for (LemmaEntry lemma : lemmaSet) {
-      BooleanFormula lemmaFormula = formulaManagerView.getBooleanFormulaManager().makeTrue();
-      try {
-        lemmaFormula = toFormula(transformer.parseLemmaEntry(lemma, scope));
-      } catch (Exception e) {
-        logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
+    for (LemmaSetEntry lemmaSet : lemmaSetEntries) {
+      ImmutableList.Builder<BooleanFormula> formulas = ImmutableList.builder();
+      for (LemmaEntry entry : lemmaSet.getContent()) {
+        BooleanFormula formula = formulaManagerView.getBooleanFormulaManager().makeTrue();
+        try {
+          formula = toFormula(transformer.parseLemmaEntry(entry, scope));
+        } catch (Exception e) {
+          logger.logUserException(Level.WARNING, e, "Could not parse Lemmas");
+        }
+        formulas.add(formula);
       }
-      Pair<BitvectorFormula, BitvectorFormula> lemmaPair =
-          formulaManagerView.visit(lemmaFormula, extractor);
-      abstractionLemmas.add(
-          new AbstractionLemma(lemmaFormula, lemmaPair.getFirst(), lemmaPair.getSecond()));
+      abstractionLemmas.add(new AbstractionLemma(formulas.build()));
     }
+
     return abstractionLemmas.build();
   }
 

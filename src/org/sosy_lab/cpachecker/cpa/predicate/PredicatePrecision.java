@@ -118,6 +118,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
           ImmutableList.of(),
           ImmutableList.of());
 
+  /** Constructor for precision with lemmas */
   public PredicatePrecision(
       Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
       Multimap<CFANode, AbstractionPredicate> pLocalPredicates,
