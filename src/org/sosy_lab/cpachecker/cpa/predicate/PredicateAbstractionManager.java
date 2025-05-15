@@ -390,15 +390,7 @@ public final class PredicateAbstractionManager {
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, primaryFormula, instantiator);
 
-    /* Provide the LemmaPrecision with a map of instantiated variables to their concrete values
-    TODO: This is only a temporary hack!
-     */
-    /*
-    ConcreteValueExtractionVisitor valueExtractor =
-        new ConcreteValueExtractionVisitor(solver.getRealFormulaManager());
-    pLemmaPrecision.setValueMap(fmgr.visit(symbFormula, valueExtractor));
-
-     */
+    // TODO: getRelevantLemmas
 
     if (fmgr.useBitwiseAxioms()) {
       for (AbstractionPredicate predicate : remainingPredicates) {
@@ -531,11 +523,11 @@ public final class PredicateAbstractionManager {
 
   /**
    * Compute an abstraction of a formula. This is a low-level version of {@link
-   * #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection, LemmaPrecision)}:
-   * it does not handle instantiation and does not return an {@link AbstractionFormula} but just a
-   * {@link BooleanFormula}. It also misses several of the optimizations and features of {@link
-   * #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection, LemmaPrecision)},
-   * so if possible use that method.formulaManagerView
+   * #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection)}: it does not
+   * handle instantiation and does not return an {@link AbstractionFormula} but just a {@link
+   * BooleanFormula}. It also misses several of the optimizations and features of {@link
+   * #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection)}, so if possible
+   * use that method.formulaManagerView
    *
    * @param pF The formula to be abstracted. Must not be instantiated.
    * @param pPredicates The set of predicates to use for abstraction.
@@ -1087,26 +1079,10 @@ public final class PredicateAbstractionManager {
     BooleanFormula predDef = bfmgr.makeTrue();
     List<BooleanFormula> predVars = new ArrayList<>(predicates.size());
 
-    /*
-    RecursiveLemmaApplicationVisitor lemmaVisitor =
-        new RecursiveLemmaApplicationVisitor(pLemmaPrecision, solver.getRealFormulaManager());
-
-     */
-
     for (AbstractionPredicate p : predicates) {
       // get propositional variable and definition of predicate
       BooleanFormula var = p.getSymbolicVariable();
-
-      // Replace the calls for a lemma in the predicate with the definition of the lemma
-      /*
-      BooleanFormula atom = (BooleanFormula) fmgr.visit(p.getSymbolicAtom(), lemmaVisitor);
-      final BooleanFormula def = instantiator.apply(atom);
-       */
       BooleanFormula def = instantiator.apply(p.getSymbolicAtom());
-      /*
-      def = (BooleanFormula) fmgr.visit(def, lemmaVisitor);
-
-       */
 
       assert !bfmgr.isFalse(def);
 
