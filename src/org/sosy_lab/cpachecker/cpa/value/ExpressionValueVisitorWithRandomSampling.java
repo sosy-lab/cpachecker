@@ -81,7 +81,21 @@ public class ExpressionValueVisitorWithRandomSampling extends ExpressionValueVis
                 "Cannot handle type UNSPECIFIED in random value generation");
         case BOOL -> new NumericValue(randomGenerator.nextBoolean() ? 1 : 0);
         case CHAR -> new NumericValue(randomGenerator.nextInt(-128, 127));
-        case INT -> new NumericValue(randomGenerator.nextInt());
+        case INT -> {
+          if (pCSimpleType.hasLongSpecifier()) {
+            yield new NumericValue(
+                randomGenerator.nextLong(
+                    -2 ^ getMachineModel().getSizeofLongInt(),
+                    2 ^ getMachineModel().getSizeofLongInt()));
+          } else if (pCSimpleType.hasShortSpecifier()) {
+            yield new NumericValue(
+                randomGenerator.nextLong(
+                    -2 ^ getMachineModel().getSizeofShortInt(),
+                    2 ^ getMachineModel().getSizeofShortInt()));
+          } else {
+            yield new NumericValue(randomGenerator.nextInt());
+          }
+        }
         // Does not use the full range of INT128, but should be okay
         case INT128 -> new NumericValue(randomGenerator.nextLong());
         case FLOAT -> new NumericValue(BigDecimal.valueOf(randomGenerator.nextFloat()));
