@@ -182,15 +182,15 @@ public class ExportARGLeafs implements Algorithm {
                   secondConstraint.getKey(),
                   getEquivalenceCheck()
                       .isEquivalent(
-                          secondConstraint.getValue().safe(), firstConstraint.getValue().safe())));
+                          firstConstraint.getValue().safe(), secondConstraint.getValue().safe())));
           unsafeResults.add(
               new EquivalenceResult(
                   firstConstraint.getKey(),
                   secondConstraint.getKey(),
                   getEquivalenceCheck()
                       .isEquivalent(
-                          secondConstraint.getValue().unsafe(),
-                          firstConstraint.getValue().unsafe())));
+                          firstConstraint.getValue().unsafe(),
+                          secondConstraint.getValue().unsafe())));
         }
       }
 
@@ -202,7 +202,9 @@ public class ExportARGLeafs implements Algorithm {
       csvBuilder
           .append(String.format("Original\tMutant\t%s\tSafe", EquivalenceData.getCsvHeader()))
           .append('\n');
-      for (EquivalenceResult result : safeResults.build()) {
+      ImmutableList<EquivalenceResult> resultsSafe = safeResults.build();
+      ImmutableList<EquivalenceResult> resultsUnsafe = unsafeResults.build();
+      for (EquivalenceResult result : resultsSafe) {
         csvBuilder
             .append(
                 String.format(
@@ -210,7 +212,7 @@ public class ExportARGLeafs implements Algorithm {
                     result.original(), result.mutant(), result.equivalent().toCsvString()))
             .append('\n');
       }
-      for (EquivalenceResult result : unsafeResults.build()) {
+      for (EquivalenceResult result : resultsUnsafe) {
         csvBuilder
             .append(
                 String.format(
@@ -221,6 +223,10 @@ public class ExportARGLeafs implements Algorithm {
       Files.writeString(
           csvOut, csvBuilder.toString(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
       logger.logf(Level.INFO, "Exported results to %s", csvOut);
+      boolean equivalent =
+          resultsSafe.stream().allMatch(e -> e.equivalent().equivalent())
+              && resultsUnsafe.stream().allMatch(e -> e.equivalent().equivalent());
+      logger.logf(Level.INFO, "The programs are %s.", equivalent ? "equivalent" : "not equivalent");
       return status;
     } catch (ParserException e) {
       throw new CPAException("Parsing the program is not possible", e);
