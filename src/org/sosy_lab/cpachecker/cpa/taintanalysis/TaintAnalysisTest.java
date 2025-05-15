@@ -283,9 +283,9 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByPrefixOperationUnsafe_Substraction() throws Exception {
+  public void testTaintByPrefixOperationUnsafe_Subtraction() throws Exception {
     TestResults results =
-        runCPAchecker("taintByPrefixOperationUnsafe_Substraction.c", "c_pre_and_postfix_operators");
+        runCPAchecker("taintByPrefixOperationUnsafe_Subtraction.c", "c_pre_and_postfix_operators");
     results.assertIsUnsafe();
   }
 
