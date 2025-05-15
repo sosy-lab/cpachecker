@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.Collection;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -344,17 +342,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CExpression rhs = exprAssignStmt.getRightHandSide();
       Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(rhs);
 
-      boolean functionContainsTaintedVar = false;
-
-      if (allVarsAsCExpr.isEmpty()) {
-        // TODO: delete this string parsing. Handle every function from which we can't access the
-        // parameters via CPAchecker's parsing, as a tainting source.
-        functionContainsTaintedVar = rhsOfRawStatementContainsTaintedParameters(pCfaEdge, pState);
-      }
-
       boolean taintedVarsRHS =
-          allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var))
-              || functionContainsTaintedVar;
+          allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
 
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
@@ -657,101 +646,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       return newState;
     }
     return null;
-  }
-
-  /**
-   * Analyzes the right-hand side (RHS) of a raw statement in the form of a {@link CStatementEdge}
-   * for potential tainted parameters. This is necessary for taint analysis in CPAchecker when
-   * dealing with specific cases where the RHS contains function calls or logical operations.
-   *
-   * <p>CPAchecker processes certain code structures (e.g., function calls with parameters or
-   * logical operations like `&&` and `||`) by evaluating the expressions and passing the results
-   * instead of the original raw parameters to the taint analysis. This overrides the needed
-   * variables, making raw statement parsing essential to ensure proper recognition and propagation
-   * of taint.
-   *
-   * <p>Special cases handled:
-   *
-   * <ul>
-   *   <li>Function calls with parameters, in the form:
-   *       <pre><code>functionName(param1, param2, ..., paramN)</code></pre>
-   *   <li>Logical (non-bitwise) operations, in the form:
-   *       <pre><code>lhs && rhs</code></pre>
-   *       or
-   *       <pre><code>lhs || rhs</code></pre>
-   * </ul>
-   *
-   * <p>For these specific cases, the method extracts individual parameters from the RHS, either
-   * from function calls or logical operations, and checks whether any of them are tainted by
-   * comparing them against the list of tainted variables in {@link TaintAnalysisState}.
-   *
-   * @param pCfaEdge the {@link CStatementEdge} representing the statement in the CFA being analyzed
-   * @param pState the current {@link TaintAnalysisState}, which contains the collection of tainted
-   *     variables
-   * @return {@code true} if any variable in the RHS of the raw statement matches a tainted variable
-   *     from the state, indicating potential taint propagation; {@code false} otherwise
-   */
-  private boolean rhsOfRawStatementContainsTaintedParameters(
-      CStatementEdge pCfaEdge, TaintAnalysisState pState) {
-
-    String rawStatement = pCfaEdge.getRawStatement();
-
-    if (rawStatement == null) {
-      return false;
-    }
-
-    String rhsString;
-
-    if (rawStatement.contains("=")) {
-      // case: function of the form <functionName><(params)>
-      rhsString = rawStatement.substring(rawStatement.indexOf('=') + 1).trim();
-    } else {
-      // case: logical operations && or ||
-      rhsString = rawStatement.trim();
-    }
-
-    // Check if the RHS contains a function call pattern: functionName(param1, param2, ...)
-    if (rhsString.contains("(") && rhsString.contains(")")) {
-      int openParenIndex = rhsString.indexOf('(');
-      int closeParenIndex = rhsString.lastIndexOf(')');
-
-      if (openParenIndex < closeParenIndex) {
-        String paramsString = rhsString.substring(openParenIndex + 1, closeParenIndex).trim();
-
-        Iterable<String> paramsArray =
-            Splitter.on(Pattern.compile("\\s*,\\s*")).split(paramsString);
-
-        Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
-
-        for (String param : paramsArray) {
-          param = param.trim();
-
-          if (taintedVariables.stream().map(CIdExpression::getName).anyMatch(param::equals)) {
-            return true;
-          }
-        }
-      }
-    }
-
-    if (rhsString.contains("&&") || rhsString.contains("||")) {
-
-      List<String> logicalParams =
-          Splitter.on(Pattern.compile("\\s*(&&|\\|\\|)\\s*")).splitToList(rhsString);
-
-      if (logicalParams.size() == 2) {
-        Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
-
-        for (String param : logicalParams) {
-          param = param.trim();
-
-          if (taintedVariables.stream().map(CIdExpression::getName).anyMatch(param::equals)) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
   }
 
   private boolean isSource(CFunctionCall pStatement) {
