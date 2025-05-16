@@ -152,7 +152,8 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByBitwiseOperationUnsafe_LeftShift() throws Exception {
-    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_LeftShift.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByBitwiseOperationUnsafe_LeftShift.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -164,7 +165,8 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintByBitwiseOperationUnsafe_RightShift() throws Exception {
-    TestResults results = runCPAchecker("taintByBitwiseOperationUnsafe_RightShift.c", "c_infix_operators");
+    TestResults results =
+        runCPAchecker("taintByBitwiseOperationUnsafe_RightShift.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -245,7 +247,8 @@ public class TaintAnalysisTest {
   @Test
   public void testTaintByConditionalTernaryOperatorSafe_UnreachableCond() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorSafe_UnreachableCond.c", "c_infix_operators");
+        runCPAchecker(
+            "taintByConditionalTernaryOperatorSafe_UnreachableCond.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
@@ -253,7 +256,8 @@ public class TaintAnalysisTest {
   @Test
   public void testTaintByConditionalTernaryOperatorUnsafe_UnreachableCond() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_UnreachableCond.c", "c_infix_operators");
+        runCPAchecker(
+            "taintByConditionalTernaryOperatorUnsafe_UnreachableCond.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
