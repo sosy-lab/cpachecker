@@ -22,6 +22,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -52,14 +53,14 @@ public class RandomSamplingAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description = "File name for analysis report in case a counterexample was found.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private PathTemplate counterexampleExport =
       PathTemplate.ofFormatString("Counterexample.trace.%d.txt");
 
   @Option(
       secure = true,
       description = "File name for analysis report in case no counterexample was found.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
+  @FileOption(Type.OUTPUT_FILE)
   private PathTemplate safeExport = PathTemplate.ofFormatString("Safe.trace.%d.txt");
 
   @Option(
@@ -114,6 +115,13 @@ public class RandomSamplingAlgorithm implements Algorithm {
             pAlgorithm, detailedCexExportConfig, pLogger, pNotifier, pCfa);
   }
 
+  private void copyReachedSet(ReachedSet pSourceReachedSet, ReachedSet pTargetReachedSet) {
+    pTargetReachedSet.clear();
+    pTargetReachedSet.addAll(
+        FluentIterable.from(pSourceReachedSet.asCollection())
+            .transform(a -> Pair.of(a, pSourceReachedSet.getPrecision(Objects.requireNonNull(a)))));
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     // Copy the current reached set
@@ -129,7 +137,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
     // We explicitly do not do CEGAR in the value analysis for sampling, so we do not need
     // to copy the precision.
     Precision precision = reachedSet.getPrecision(firstStateOriginalArg);
-
+    ReachedSet newReachedSet = null;
     while (exportedSafeTracesCount + exportedCounterexampleCount < samplesToBeGenerated
         || samplesToBeGenerated < 0) {
       notifier.shutdownIfNecessary();
@@ -137,7 +145,7 @@ public class RandomSamplingAlgorithm implements Algorithm {
       ARGState newInitialState =
           new ARGState(clonedArgState.getWrappedState(), null /* The first state has no parent */);
 
-      ReachedSet newReachedSet = new PartitionedReachedSet(cpa, TraversalMethod.DFS);
+      newReachedSet = new PartitionedReachedSet(cpa, TraversalMethod.DFS);
       newReachedSet.add(newInitialState, precision);
 
       // run the algorithm
@@ -148,16 +156,14 @@ public class RandomSamplingAlgorithm implements Algorithm {
 
       boolean isSafeTrace =
           FluentIterable.from(newReachedSet).filter(AbstractStates::isTargetState).isEmpty();
-      if (!isSafeTrace) {
-        reachedSet.clear();
-        reachedSet.addAll(
-            FluentIterable.from(newReachedSet.asCollection())
-                .transform(a -> Pair.of(a, newReachedSet.getPrecision(Objects.requireNonNull(a)))));
-      }
-
-      if (stopAfterFirstCounterexample) {
+      if (stopAfterFirstCounterexample && !isSafeTrace) {
+        copyReachedSet(newReachedSet, reachedSet);
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
+    }
+
+    if (newReachedSet != null) {
+      copyReachedSet(newReachedSet, reachedSet);
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
