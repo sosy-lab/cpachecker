@@ -356,14 +356,32 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testArraySanitizationBySettingPublicSafe() throws Exception {
-    TestResults results = runCPAchecker("arraySanitizationBySettingPublicSafe.c", "");
+  public void testArraySanitizationSafe() throws Exception {
+    TestResults results = runCPAchecker("arraySanitizationSafe.c", "");
     results.assertIsSafe();
   }
 
   @Test
-  public void testArraySanitizationBySettingPublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("arraySanitizationBySettingPublicUnsafe.c", "");
+  public void testArraySanitizationUnsafe_1_1() throws Exception {
+    TestResults results = runCPAchecker("arraySanitizationUnsafe_1_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testArraySanitizationUnsafe_1_2() throws Exception {
+    TestResults results = runCPAchecker("arraySanitizationUnsafe_1_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testArraySanitizationUnsafe_2_1() throws Exception {
+    TestResults results = runCPAchecker("arraySanitizationUnsafe_2_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testArraySanitizationUnsafe_2_2() throws Exception {
+    TestResults results = runCPAchecker("arraySanitizationUnsafe_2_2.c", "");
     results.assertIsUnsafe();
   }
 

@@ -10,16 +10,19 @@ extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-// Test that sanitizing an array element works correctly
 int main() {
-    int x = __VERIFIER_nondet_int();
+    int x = 0;
+    int y = __VERIFIER_nondet_int();
 
-    int d[1];
-    d[0] = x; // `d` is now tainted
+    // taint flows to d
+    int d[2] = {x, y};
 
-    // Sanitize the array `d` by making it public
+    // Sanitize the whole array `d`
     __VERIFIER_set_public(d, 1);
 
-    // `d` should be public now. No property violation expected
-    __VERIFIER_is_public(d, 1);
+    // Information-flow violation expected:
+    // elements of the array `d` are now expected to be untainted
+    for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
+        __VERIFIER_is_public(d[i], 0);
+    }
 }

@@ -11,14 +11,16 @@ extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x = __VERIFIER_nondet_int();
+    int x = 0;
+    int y = __VERIFIER_nondet_int();
 
-    int d[1];
-    d[0] = x; // d is now tainted
+    // taint flows to d
+    int d[2] = {x, y};
 
-    // Sanitize the array by making it public
+    // Sanitize the whole array `d`
     __VERIFIER_set_public(d, 1);
 
-    // Property violation expected
+    // Information-flow violation expected:
+    // array `d` is now expected to be untainted
     __VERIFIER_is_public(d, 0);
 }
