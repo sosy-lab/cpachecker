@@ -8,6 +8,7 @@
 
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_set_public(int variable, int booleanFlag);
+extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = 1;
