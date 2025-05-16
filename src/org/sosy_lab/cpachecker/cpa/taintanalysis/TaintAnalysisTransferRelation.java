@@ -84,7 +84,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       TaintAnalysisState pState,
       Set<CIdExpression> pKilledVars,
       Set<CIdExpression> pGeneratedVars) {
-    logger.log(Level.FINEST, String.format("Killed %s, generated %s", pKilledVars, pGeneratedVars));
+    logger.logf(Level.FINEST, "Killed %s, generated %s", pKilledVars, pGeneratedVars);
     return new TaintAnalysisState(
         Sets.union(Sets.difference(pState.getTaintedVariables(), pKilledVars), pGeneratedVars));
   }
@@ -625,23 +625,21 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       Set<CIdExpression> generatedVars) {
 
     if (expectedPublicity == 1 && isCurrentlyTainted) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Assertion violation at %s: Array '%s' was expected to be public but is"
-                  + " tainted.",
-              pCfaEdge.getFileLocation(), firstArg.toASTString()));
+          "Assertion violation at %s: Array '%s' was expected to be public but is" + " tainted.",
+          pCfaEdge.getFileLocation(),
+          firstArg.toASTString());
       TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
       newState.setViolatesProperty();
       return newState;
     }
     if (expectedPublicity == 0 && !isCurrentlyTainted) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Assertion violation at %s: Array '%s' was expected to be tainted but is"
-                  + " public.",
-              pCfaEdge.getFileLocation(), firstArg.toASTString()));
+          "Assertion violation at %s: Array '%s' was expected to be tainted but is" + " public.",
+          pCfaEdge.getFileLocation(),
+          firstArg.toASTString());
 
       TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
       newState.setViolatesProperty();
@@ -663,12 +661,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    logger.log(
+    logger.logf(
         Level.FINEST,
-        String.format(
-            "Current abstract state at location %s is  '%s'",
-            AbstractStates.extractLocations(pOtherStates).first().get(),
-            AbstractStates.extractStateByType(pState, TaintAnalysisState.class)));
+        "Current abstract state at location %s is  '%s'",
+        AbstractStates.extractLocations(pOtherStates).first().get(),
+        AbstractStates.extractStateByType(pState, TaintAnalysisState.class));
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 }
