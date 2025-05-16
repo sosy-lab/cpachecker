@@ -7,17 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int x = __VERIFIER_nondet_int();
+    int x = 1;
 
-    __VERIFIER_is_public(x, 0);
+    // Initialize array `d` with a non-tainted variable
+    int d[1] = {x};
 
-    // Taint flows into d
-    int d[1];
-    d[0] = x;
-
-    // Property violation expected
-    __VERIFIER_is_public(d, 1);
+    // Information-flow violation expected, because the array `d` is expected to be still public
+    __VERIFIER_is_public(d, 0);
 }

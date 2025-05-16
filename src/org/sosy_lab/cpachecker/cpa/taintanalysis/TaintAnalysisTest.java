@@ -476,14 +476,56 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testSecretArraySafe() throws Exception {
-    TestResults results = runCPAchecker("secretArraySafe.c", "");
+  public void testTaintedArraySafe() throws Exception {
+    TestResults results = runCPAchecker("taintedArraySafe.c", "");
     results.assertIsSafe();
   }
 
   @Test
-  public void testSecretArrayUnsafe() throws Exception {
-    TestResults results = runCPAchecker("secretArrayUnsafe.c", "");
+  public void testTaintedArrayUnsafe_1_1() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_1_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_1_2() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_1_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_2_1() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_2_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_2_2() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_2_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_3_1() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_3_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_3_2() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_3_2.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_4() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_4.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintedArrayUnsafe_5() throws Exception {
+    TestResults results = runCPAchecker("taintedArrayUnsafe_5.c", "");
     results.assertIsUnsafe();
   }
 
