@@ -498,6 +498,48 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testSecretVariableSafe() throws Exception {
+    TestResults results = runCPAchecker("secretVariableSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSecretVariableUnsafe() throws Exception {
+    TestResults results = runCPAchecker("secretVariableUnsafe.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSetPublicVariableSecretSafe() throws Exception {
+    TestResults results = runCPAchecker("setPublicVariableSecretSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSetPublicVariableSecretUnsafe() throws Exception {
+    TestResults results = runCPAchecker("setPublicVariableSecretUnsafe.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSetSecretVariablePublicSafe() throws Exception {
+    TestResults results = runCPAchecker("setSecretVariablePublicSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSetSecretVariablePublicUnsafe() throws Exception {
+    TestResults results = runCPAchecker("setSecretVariablePublicUnsafe.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testCastedExpressionSafe() throws Exception {
+    TestResults results = runCPAchecker("taintCastedExpressionSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
   public void testTaintedArraySafe() throws Exception {
     TestResults results = runCPAchecker("taintedArraySafe.c", "");
     results.assertIsSafe();
@@ -552,38 +594,8 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testSecretVariableSafe() throws Exception {
-    TestResults results = runCPAchecker("secretVariableSafe.c", "");
+  public void testTaintStructSafe() throws Exception {
+    TestResults results = runCPAchecker("taintStructSafe.c", "");
     results.assertIsSafe();
-  }
-
-  @Test
-  public void testSecretVariableUnsafe() throws Exception {
-    TestResults results = runCPAchecker("secretVariableUnsafe.c", "");
-    results.assertIsUnsafe();
-  }
-
-  @Test
-  public void testSetPublicVariableSecretSafe() throws Exception {
-    TestResults results = runCPAchecker("setPublicVariableSecretSafe.c", "");
-    results.assertIsSafe();
-  }
-
-  @Test
-  public void testSetPublicVariableSecretUnsafe() throws Exception {
-    TestResults results = runCPAchecker("setPublicVariableSecretUnsafe.c", "");
-    results.assertIsUnsafe();
-  }
-
-  @Test
-  public void testSetSecretVariablePublicSafe() throws Exception {
-    TestResults results = runCPAchecker("setSecretVariablePublicSafe.c", "");
-    results.assertIsSafe();
-  }
-
-  @Test
-  public void testSetSecretVariablePublicUnsafe() throws Exception {
-    TestResults results = runCPAchecker("setSecretVariablePublicUnsafe.c", "");
-    results.assertIsUnsafe();
   }
 }
