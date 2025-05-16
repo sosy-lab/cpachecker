@@ -544,7 +544,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   killedVars,
                   generatedVars);
 
-          if (newErrorState != null) return newErrorState;
+          if (newErrorState != null) {
+            return newErrorState;
+          }
         }
       } else {
         // E.g., calls to any function like f(param1, ..., paramN);, where the parameters
