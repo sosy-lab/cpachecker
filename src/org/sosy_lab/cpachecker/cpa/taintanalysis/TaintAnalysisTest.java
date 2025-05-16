@@ -379,7 +379,7 @@ public class TaintAnalysisTest {
 
   @Test
   public void testArraySanitizationUnsafe_2_1() throws Exception {
-    TestResults results = runCPAchecker("arraySanitizationUnsafe_2_2.c", "");
+    TestResults results = runCPAchecker("arraySanitizationUnsafe_2_1.c", "");
     results.assertIsUnsafe();
   }
 
