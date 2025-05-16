@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
-extern void __VERIFIER_is_public(int, int);
+extern int __VERIFIER_is_public(int, int);
 
 int main() {
     int x = __VERIFIER_nondet_int();

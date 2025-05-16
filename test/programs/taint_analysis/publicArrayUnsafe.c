@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-extern void __VERIFIER_is_public(int variable, int booleanFlag);
+extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
 
