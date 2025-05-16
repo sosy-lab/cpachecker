@@ -183,8 +183,14 @@ public class RandomSamplingAlgorithm implements Algorithm {
         FluentIterable.from(pReachedSet).filter(AbstractStates::isTargetState).isEmpty();
     Path exportPath;
     if (isSafeTrace) {
+      if (safeExport == null) {
+        return;
+      }
       exportPath = safeExport.getPath(exportedSafeTracesCount++);
     } else {
+      if (counterexampleExport == null) {
+        return;
+      }
       exportPath = counterexampleExport.getPath(exportedCounterexampleCount++);
     }
 
