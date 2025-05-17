@@ -12,8 +12,6 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 extern void f(int var1, int var2);
 extern int g(int var);
 
-// how do we define global variables in C (if possible). When, e.g., a call to a function with unknown body is made, should we taint the global variables?
-
 int main() {
     int x = __VERIFIER_nondet_int();
     int y = 1;
