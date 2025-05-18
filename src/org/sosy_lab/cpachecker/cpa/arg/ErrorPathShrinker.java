@@ -177,24 +177,17 @@ public final class ErrorPathShrinker {
     }
 
     switch (cfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        handleAssumption(((AssumeEdge) cfaEdge).getExpression());
-        break;
-
-      case FunctionCallEdge:
+      case AssumeEdge -> handleAssumption(((AssumeEdge) cfaEdge).getExpression());
+      case FunctionCallEdge -> {
         final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
         final FunctionEntryNode succ = fnkCall.getSuccessor();
         handleFunctionCallEdge(fnkCall.getArguments(), succ.getFunctionParameters());
-        break;
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
         handleFunctionReturnEdge(fnkReturnEdge, fnkReturnEdge.getFunctionCall());
-
-        break;
-
-      default:
-        handleSimpleEdge(cfaEdge);
+      }
+      default -> handleSimpleEdge(cfaEdge);
     }
   }
 
@@ -206,32 +199,18 @@ public final class ErrorPathShrinker {
   private void handleSimpleEdge(final CFAEdge cfaEdge) {
 
     switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclarationEdge(((ADeclarationEdge) cfaEdge).getDeclaration());
-        break;
-
-      case StatementEdge:
-        handleStatementEdge(((AStatementEdge) cfaEdge).getStatement());
-        break;
-
-      case ReturnStatementEdge:
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge,
-        // this is a statement edge, which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
-        handleReturnStatementEdge((AReturnStatementEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        handleBlankEdge((BlankEdge) cfaEdge);
-        break;
-
-      case CallToReturnEdge:
-        throw new AssertionError("function summaries not supported");
-
-      default:
-        throw new AssertionError("unknown edge type");
+      case DeclarationEdge -> handleDeclarationEdge(((ADeclarationEdge) cfaEdge).getDeclaration());
+      case StatementEdge -> handleStatementEdge(((AStatementEdge) cfaEdge).getStatement());
+      case ReturnStatementEdge ->
+          // this statement is a function return, e.g. return (a);
+          // note that this is different from return edge,
+          // this is a statement edge, which leads the function to the
+          // last node of its CFA, where return edge is from that last node
+          // to the return site of the caller function
+          handleReturnStatementEdge((AReturnStatementEdge) cfaEdge);
+      case BlankEdge -> handleBlankEdge((BlankEdge) cfaEdge);
+      case CallToReturnEdge -> throw new AssertionError("function summaries not supported");
+      default -> throw new AssertionError("unknown edge type");
     }
   }
 

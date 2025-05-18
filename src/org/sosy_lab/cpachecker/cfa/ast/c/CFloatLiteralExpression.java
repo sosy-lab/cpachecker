@@ -54,16 +54,16 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
 
     CBasicType basicType = ((CSimpleType) pType).getType();
     switch (basicType) {
-      case FLOAT:
-      case DOUBLE:
+      case FLOAT, DOUBLE -> {
         if (pIsNegative) {
           return APPROX_INFINITY.negate();
         } else {
           return APPROX_INFINITY;
         }
-      default:
+      }
+      default -> {
         // unsupported operation
-        break;
+      }
     }
 
     throw new NumberFormatException(String.format("Invalid type for float infinity: %s", pType));

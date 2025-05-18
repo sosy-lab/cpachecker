@@ -327,31 +327,15 @@ class ASTTypeConverter {
   CType convert(final IASTSimpleDeclSpecifier dd) {
     CBasicType type;
     switch (dd.getType()) {
-      case IASTSimpleDeclSpecifier.t_bool:
-        type = CBasicType.BOOL;
-        break;
-      case IASTSimpleDeclSpecifier.t_char:
-        type = CBasicType.CHAR;
-        break;
-      case IASTSimpleDeclSpecifier.t_double:
-        type = CBasicType.DOUBLE;
-        break;
-      case IASTSimpleDeclSpecifier.t_float:
-        type = CBasicType.FLOAT;
-        break;
-      case IASTSimpleDeclSpecifier.t_float128:
-        type = CBasicType.FLOAT128;
-        break;
-      case IASTSimpleDeclSpecifier.t_int:
-        type = CBasicType.INT;
-        break;
-      case IASTSimpleDeclSpecifier.t_int128:
-        type = CBasicType.INT128;
-        break;
-      case IASTSimpleDeclSpecifier.t_unspecified:
-        type = CBasicType.UNSPECIFIED;
-        break;
-      case IASTSimpleDeclSpecifier.t_void:
+      case IASTSimpleDeclSpecifier.t_bool -> type = CBasicType.BOOL;
+      case IASTSimpleDeclSpecifier.t_char -> type = CBasicType.CHAR;
+      case IASTSimpleDeclSpecifier.t_double -> type = CBasicType.DOUBLE;
+      case IASTSimpleDeclSpecifier.t_float -> type = CBasicType.FLOAT;
+      case IASTSimpleDeclSpecifier.t_float128 -> type = CBasicType.FLOAT128;
+      case IASTSimpleDeclSpecifier.t_int -> type = CBasicType.INT;
+      case IASTSimpleDeclSpecifier.t_int128 -> type = CBasicType.INT128;
+      case IASTSimpleDeclSpecifier.t_unspecified -> type = CBasicType.UNSPECIFIED;
+      case IASTSimpleDeclSpecifier.t_void -> {
         if (dd.isComplex()
             || dd.isImaginary()
             || dd.isLong()
@@ -362,7 +346,8 @@ class ASTTypeConverter {
           throw parseContext.parseError("Void type with illegal modifier", dd);
         }
         return CVoidType.create(dd.isConst(), dd.isVolatile());
-      case IASTSimpleDeclSpecifier.t_typeof:
+      }
+      case IASTSimpleDeclSpecifier.t_typeof -> {
         CType ctype;
         if (dd.getDeclTypeExpression() instanceof IASTTypeIdExpression typeId) {
           verify(
@@ -383,9 +368,10 @@ class ASTTypeConverter {
           ctype = CTypes.withVolatile(ctype);
         }
         return ctype;
-      default:
-        throw parseContext.parseError(
-            "Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), dd);
+      }
+      default ->
+          throw parseContext.parseError(
+              "Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), dd);
     }
 
     if ((dd.isShort() && dd.isLong())

@@ -114,34 +114,17 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   private PointerState getAbstractSuccessor(PointerState pState, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    PointerState resultState = pState;
-    switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
-        break;
-      case BlankEdge:
-        break;
-      case CallToReturnEdge:
-        break;
-      case DeclarationEdge:
-        resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
-        break;
-      case FunctionCallEdge:
-        resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
-        break;
-      case FunctionReturnEdge:
-        resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
-        break;
-      case ReturnStatementEdge:
-        resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
-        break;
-      case StatementEdge:
-        resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
-        break;
-      default:
-        throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
-    }
-    return resultState;
+    return switch (pCfaEdge.getEdgeType()) {
+      case AssumeEdge -> handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
+      case BlankEdge -> pState;
+      case CallToReturnEdge -> pState;
+      case DeclarationEdge -> handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
+      case FunctionCallEdge -> handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
+      case FunctionReturnEdge -> handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
+      case ReturnStatementEdge ->
+          handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
+      case StatementEdge -> handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
+    };
   }
 
   private PointerState handleFunctionReturnEdge(PointerState pState, CFunctionReturnEdge pCfaEdge)

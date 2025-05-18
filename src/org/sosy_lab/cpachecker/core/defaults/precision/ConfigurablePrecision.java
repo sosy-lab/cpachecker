@@ -154,9 +154,10 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
   private boolean isInTrackedVarClass(final String variableName) {
     // when there is no variable classification we cannot make any assumptions
     // about the tracking of variables and say that all variables are tracked
-    if (!vc.isPresent()) {
+    if (vc.isEmpty()) {
       return true;
     }
+
     VariableClassification varClass = vc.orElseThrow();
 
     final boolean varIsAddressed = varClass.getAddressedVariables().contains(variableName);
@@ -230,11 +231,11 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
     if (!variableWhitelist.toString().isEmpty()) {
       return false;
     }
-    if (!vc.isPresent()) {
+    if (vc.isEmpty()) {
       return true;
     }
-    VariableClassification varClass = vc.orElseThrow();
 
+    VariableClassification varClass = vc.orElseThrow();
     boolean trackSomeIntBools = trackBooleanVariables && !varClass.getIntBoolVars().isEmpty();
     boolean trackSomeIntEquals = trackIntEqualVariables && !varClass.getIntEqualVars().isEmpty();
     boolean trackSomeIntAdds = trackIntAddVariables && !varClass.getIntAddVars().isEmpty();

@@ -169,7 +169,7 @@ public final class CompositeCPA
     }
 
     switch (merge) {
-      case "AGREE":
+      case "AGREE" -> {
         if (inCPAEnabledAnalysis) {
           PredicateCPA predicateCPA =
               Collections3.filterByClass(cpas.stream(), PredicateCPA.class)
@@ -184,17 +184,16 @@ public final class CompositeCPA
         } else {
           return () -> new CompositeMergeAgreeOperator(getMergeOperators(), getStopOperators());
         }
-
-      case "PLAIN":
+      }
+      case "PLAIN" -> {
         if (inCPAEnabledAnalysis) {
           throw new InvalidConfigurationException(
               "Merge PLAIN is currently not supported for CompositeCPA in predicated analysis");
         } else {
           return () -> new CompositeMergePlainOperator(getMergeOperators());
         }
-
-      default:
-        throw new AssertionError();
+      }
+      default -> throw new AssertionError();
     }
   }
 
@@ -216,7 +215,7 @@ public final class CompositeCPA
     ImmutableList<PrecisionAdjustment> precisionAdjustments =
         transformedImmutableListCopy(cpas, ConfigurableProgramAnalysis::getPrecisionAdjustment);
 
-    if (precisionAdjustments.stream().allMatch(prec -> prec instanceof SimplePrecisionAdjustment)) {
+    if (precisionAdjustments.stream().allMatch(SimplePrecisionAdjustment.class::isInstance)) {
       @SuppressWarnings("unchecked") // cast is safe because we just checked this
       ImmutableList<SimplePrecisionAdjustment> simplePrecisionAdjustments =
           (ImmutableList<SimplePrecisionAdjustment>)

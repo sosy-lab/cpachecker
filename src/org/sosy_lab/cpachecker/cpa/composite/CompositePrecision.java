@@ -19,11 +19,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
+public class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   private final ImmutableList<Precision> precisions;
 
-  CompositePrecision(List<Precision> precisions) {
+  public CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
   }
 

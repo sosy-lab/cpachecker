@@ -118,7 +118,6 @@ public class UnsafeDetector {
         case RACE -> isRace(point1, point2);
         case DEADLOCKDISPATCH -> isDeadlockDispatch(point1, point2);
         case DEADLOCKCIRCULAR -> isDeadlockCircular(point1, point2);
-        default -> throw new AssertionError("Unknown mode: " + config.getUnsafeMode());
       };
     }
     return false;

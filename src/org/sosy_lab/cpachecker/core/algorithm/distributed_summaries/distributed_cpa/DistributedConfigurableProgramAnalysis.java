@@ -8,12 +8,18 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.NoPrecisionSerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -25,13 +31,9 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   SerializeOperator getSerializeOperator();
 
-  /**
-   * Operator that knows how to combine several abstract states from {@link
-   * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
-   *
-   * @return Combine operator for a distributed CPA.
-   */
-  CombineOperator getCombineOperator();
+  default SerializePrecisionOperator getSerializePrecisionOperator() {
+    return new NoPrecisionSerializeOperator();
+  }
 
   /**
    * Operator that knows how to deserialize a message to abstract states of type {@link
@@ -40,6 +42,10 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return Deserialize operator for a distributed CPA.
    */
   DeserializeOperator getDeserializeOperator();
+
+  default DeserializePrecisionOperator getDeserializePrecisionOperator() {
+    return new NoPrecisionDeserializeOperator();
+  }
 
   /**
    * Operator that decides whether to proceed with an analysis based on the given message.
@@ -56,6 +62,17 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   Class<? extends AbstractState> getAbstractStateClass();
 
   /**
+   * Returns the underlying {@link ConfigurableProgramAnalysis} of this distributed analysis.
+   *
+   * @return underlying CPA
+   */
+  ConfigurableProgramAnalysis getCPA();
+
+  boolean isTop(AbstractState pAbstractState);
+
+  ViolationConditionOperator getViolationConditionOperator();
+
+  /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
    * @param pClass Decide whether this DCPA can work with this class.
@@ -63,5 +80,12 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);
+  }
+
+  default DssMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
+    return DssMessagePayload.builder()
+        .addAllEntries(getSerializeOperator().serialize(pAbstractState))
+        .addAllEntries(getSerializePrecisionOperator().serializePrecision(pPrecision))
+        .buildPayload();
   }
 }

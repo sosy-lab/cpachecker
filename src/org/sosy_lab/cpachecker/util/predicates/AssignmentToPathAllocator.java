@@ -212,15 +212,10 @@ public class AssignmentToPathAllocator {
         String opString = binExp.getOperator().getOperator();
 
         switch (binExp.getOperator()) {
-          case MULTIPLY:
-          // $FALL-THROUGH$
-          case MODULO:
-          // $FALL-THROUGH$
-          case DIVIDE:
-            opString = "_" + opString;
-            break;
-          default:
+          case MULTIPLY, MODULO, DIVIDE -> opString = "_" + opString;
+          default -> {
             // default
+          }
         }
 
         return typeName + "_" + opString + "_";

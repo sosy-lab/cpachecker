@@ -74,12 +74,12 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
   public CExpression visit(NumericValue pValue) {
     if (type instanceof CSimpleType) {
       switch (((CSimpleType) type).getType()) {
-        case FLOAT:
-        case DOUBLE:
+        case FLOAT, DOUBLE -> {
           return visitFloatingValue(pValue, (CSimpleType) type);
-        default:
+        }
+        default -> {
           // DO NOTHING
-          break;
+        }
       }
     }
 
@@ -91,24 +91,19 @@ public class ValueToCExpressionTransformer implements ValueVisitor<CExpression> 
     boolean isNegative;
     boolean isNan;
     switch (pType.getType()) {
-      case FLOAT:
-        {
-          float val = pValue.floatValue();
-          isInfinite = Float.isInfinite(val);
-          isNegative = val < 0;
-          isNan = Float.isNaN(val);
-          break;
-        }
-      case DOUBLE:
-        {
-          double val = pValue.doubleValue();
-          isInfinite = Double.isInfinite(val);
-          isNegative = val < 0;
-          isNan = Double.isNaN(val);
-          break;
-        }
-      default:
-        throw new AssertionError("Unhandled type: " + pType);
+      case FLOAT -> {
+        float val = pValue.floatValue();
+        isInfinite = Float.isInfinite(val);
+        isNegative = val < 0;
+        isNan = Float.isNaN(val);
+      }
+      case DOUBLE -> {
+        double val = pValue.doubleValue();
+        isInfinite = Double.isInfinite(val);
+        isNegative = val < 0;
+        isNan = Double.isNaN(val);
+      }
+      default -> throw new AssertionError("Unhandled type: " + pType);
     }
 
     assert !(isInfinite && isNan);

@@ -88,15 +88,10 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
   private void handleEdge(final CFAEdge cfaEdge, final UninitializedVariablesState successor)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException {
     switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
-        break;
-
-      case StatementEdge:
-        handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
-        break;
-
-      case ReturnStatementEdge:
+      case DeclarationEdge -> handleDeclaration(successor, (CDeclarationEdge) cfaEdge);
+      case StatementEdge ->
+          handleStatement(successor, ((CStatementEdge) cfaEdge).getStatement(), cfaEdge);
+      case ReturnStatementEdge -> {
         // this is the return-statement of a function
         // set a local variable tracking the return statement's initialization status
         if (isExpressionUninitialized(
@@ -105,32 +100,24 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         } else {
           setInitialized(successor, "CPAchecker_UninitVars_FunctionReturn");
         }
-        break;
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         // handle statement like a = func(x) in the CFunctionSummaryEdge
         CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
         CFunctionSummaryEdge ctrEdge = functionReturnEdge.getSummaryEdge();
         handleStatement(successor, functionReturnEdge.getFunctionCall(), ctrEdge);
-        break;
-
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         // just check if there are uninitialized variable usages
         if (printWarnings) {
           isExpressionUninitialized(successor, ((CAssumeEdge) cfaEdge).getExpression(), cfaEdge);
         }
-        break;
-
-      case FunctionCallEdge:
-        // on calling a function, check initialization status of the parameters
-        handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(cfaEdge);
+      }
+      case FunctionCallEdge ->
+          // on calling a function, check initialization status of the parameters
+          handleFunctionCall(successor, (CFunctionCallEdge) cfaEdge);
+      case BlankEdge -> {}
+      default -> throw new UnrecognizedCFAEdgeException(cfaEdge);
     }
   }
 

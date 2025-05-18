@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -46,20 +45,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 class CmdLineArguments {
 
   private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
-
-  /** Exception thrown when something invalid is specified on the command line. */
-  public static class InvalidCmdlineArgumentException extends Exception {
-
-    @Serial private static final long serialVersionUID = -6526968677815416436L;
-
-    InvalidCmdlineArgumentException(final String msg) {
-      super(msg);
-    }
-
-    public InvalidCmdlineArgumentException(String msg, Throwable cause) {
-      super(msg, cause);
-    }
-  }
 
   private CmdLineArguments() {} // prevent instantiation, this is a static helper class
 

@@ -99,24 +99,23 @@ class ASTLiteralConverter {
             true,
             type.hasLongLongSpecifier());
     switch (exp.getKind()) {
-      case IASTLiteralExpression.lk_char_constant:
+      case IASTLiteralExpression.lk_char_constant -> {
         return new CImaginaryLiteralExpression(
             fileLoc,
             type,
             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
-
-      case IASTLiteralExpression.lk_integer_constant:
+      }
+      case IASTLiteralExpression.lk_integer_constant -> {
         CLiteralExpression intLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
         return new CImaginaryLiteralExpression(
             fileLoc, intLiteralExp.getExpressionType(), intLiteralExp);
-
-      case IASTLiteralExpression.lk_float_constant:
+      }
+      case IASTLiteralExpression.lk_float_constant -> {
         CLiteralExpression floatLiteralExp = parseFloatLiteral(fileLoc, type, valueStr, exp);
         return new CImaginaryLiteralExpression(
             fileLoc, floatLiteralExp.getExpressionType(), floatLiteralExp);
-
-      default:
-        throw parseContext.parseError("Unknown imaginary literal", exp);
+      }
+      default -> throw parseContext.parseError("Unknown imaginary literal", exp);
     }
   }
 
@@ -281,9 +280,6 @@ class ASTLiteralConverter {
             case OCTAL -> new BigInteger(s, 8);
             case DECIMAL -> new BigInteger(s, 10);
             case HEXADECIMAL -> new BigInteger(s.substring(2), 16); // remove "0x" from the string
-            default ->
-                throw parseContext.parseError(
-                    String.format("invalid constant type: %s", type.name()), e);
           };
     } catch (NumberFormatException exception) {
       throw parseContext.parseError("invalid number", e);
@@ -368,23 +364,12 @@ class ASTLiteralConverter {
         Arrays.stream(Suffix.values()).filter(x -> x.compareTo(pDenotedSuffix) >= 0);
 
     switch (pDenotedSuffix) {
-      case NONE:
-      case L:
-      case LL:
+      case NONE, L, LL -> {
         if (pType == ConstantType.DECIMAL) {
           stream = stream.filter(Suffix::isSigned);
         }
-        break;
-
-      case U:
-      case UL:
-      case ULL:
-        stream = stream.filter(x -> !x.isSigned());
-        break;
-
-      default:
-        throw new CFAGenerationRuntimeException(
-            String.format("Unhandled suffix: %s", pDenotedSuffix.name()));
+      }
+      case U, UL, ULL -> stream = stream.filter(x -> !x.isSigned());
     }
 
     return stream.collect(ImmutableList.toImmutableList());

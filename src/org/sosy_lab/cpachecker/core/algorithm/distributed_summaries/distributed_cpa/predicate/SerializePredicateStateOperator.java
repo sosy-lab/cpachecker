@@ -10,65 +10,68 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.io.IOException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssSerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class SerializePredicateStateOperator implements SerializeOperator {
-
-  private final PathFormulaManager pathFormulaManager;
-  private final FormulaManagerView formulaManagerView;
   private final CFA cfa;
   private final PredicateCPA predicateCPA;
+  private final boolean writeReadableFormulas;
 
-  public SerializePredicateStateOperator(PredicateCPA pPredicateCPA, CFA pCFA) {
-    pathFormulaManager = pPredicateCPA.getPathFormulaManager();
-    formulaManagerView = pPredicateCPA.getSolver().getFormulaManager();
+  public SerializePredicateStateOperator(
+      PredicateCPA pPredicateCPA, CFA pCFA, boolean pWriteReadableFormulas) {
     cfa = pCFA;
     predicateCPA = pPredicateCPA;
+    writeReadableFormulas = pWriteReadableFormulas;
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(AbstractState pState) {
+  public DssMessagePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
-    PathFormula pathFormula;
+    FormulaManagerView formulaManagerView = predicateCPA.getSolver().getFormulaManager();
+    BooleanFormula booleanFormula;
+    SSAMap ssaMap = state.getPathFormula().getSsa();
     if (state.isAbstractionState()) {
-      if (state.getAbstractionFormula().isTrue()) {
-        // fall-back
-        pathFormula = state.getAbstractionFormula().getBlockFormula();
-      } else {
-        pathFormula =
-            pathFormulaManager.makeEmptyPathFormulaWithContextFrom(
-                state.getAbstractionFormula().getBlockFormula());
-        pathFormula =
-            pathFormulaManager.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
+      booleanFormula = state.getAbstractionFormula().asFormula();
+      SSAMapBuilder reset = SSAMap.emptySSAMap().builder();
+      for (String variable : ssaMap.allVariables()) {
+        reset.setIndex(variable, ssaMap.getType(variable), 1);
       }
+      ssaMap = reset.build();
+      booleanFormula =
+          predicateCPA.getSolver().getFormulaManager().instantiate(booleanFormula, ssaMap);
     } else {
-      pathFormula = state.getPathFormula();
+      booleanFormula = state.getPathFormula().getFormula();
     }
-    String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
+    String serializedFormula = formulaManagerView.dumpFormula(booleanFormula).toString();
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
-    String ssa;
+    String serializedSSAMap;
     String pts;
     try {
-      ssa = SerializeUtil.serialize(pathFormula.getSsa());
-      pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
+      serializedSSAMap = DssSerializeUtil.serialize(ssaMap);
+      pts = DssSerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException e) {
-      throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
+      throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     } finally {
       SerializationInfoStorage.clear();
     }
-    return new BlockSummaryMessagePayload.Builder()
-        .addEntry(PredicateCPA.class.getName(), formula)
-        .addEntry(BlockSummaryMessagePayload.SSA, ssa)
-        .addEntry(BlockSummaryMessagePayload.PTS, pts)
-        .buildPayload();
+    DssMessagePayload.Builder payload =
+        DssMessagePayload.builder()
+            .addEntry(PredicateCPA.class.getName(), serializedFormula)
+            .addEntry(DssMessagePayload.SSA, serializedSSAMap)
+            .addEntry(DssMessagePayload.PTS, pts);
+    if (writeReadableFormulas) {
+      payload.addEntry("readable", booleanFormula.toString());
+    }
+    return payload.buildPayload();
   }
 }

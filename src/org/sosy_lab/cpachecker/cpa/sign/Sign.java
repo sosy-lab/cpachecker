@@ -79,7 +79,7 @@ public enum Sign implements Serializable {
   public ImmutableSet<Sign> split() { // TODO performance
     ImmutableSet.Builder<Sign> builder = ImmutableSet.builder();
     for (Sign s : ImmutableList.of(PLUS, MINUS, ZERO)) {
-      if ((s.numVal & numVal) > 0) {
+      if ((s.numVal & numVal) != 0) {
         builder.add(s);
       }
     }

@@ -2082,9 +2082,7 @@ public class FormulaManagerView {
               Formula pF, List<Formula> args, FunctionDeclaration<?> decl) {
             assert !args.isEmpty();
             switch (decl.getKind()) {
-              case AND:
-              case OR:
-              case NOT:
+              case AND, OR, NOT -> {
                 BigInteger count = BigInteger.valueOf(args.size());
                 for (Formula arg : args) {
                   final BigInteger subCount = cache.get(arg);
@@ -2098,8 +2096,10 @@ public class FormulaManagerView {
                   }
                 }
                 return count;
-              default:
+              }
+              default -> {
                 return visitDefault(pF);
+              }
             }
           }
         };

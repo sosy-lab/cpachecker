@@ -111,9 +111,17 @@ public final class LoopStructure {
     private ImmutableSet<CFAEdge> incomingEdges;
     private ImmutableSet<CFAEdge> outgoingEdges;
 
+    private Loop(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      loopHeads = ImmutableSet.copyOf(pLoopHeads);
+      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).addAll(pLoopHeads).build();
+    }
+
     private Loop(CFANode loopHead, Set<CFANode> pNodes) {
-      loopHeads = ImmutableSet.of(loopHead);
-      nodes = ImmutableSortedSet.<CFANode>naturalOrder().addAll(pNodes).add(loopHead).build();
+      this(ImmutableSet.of(loopHead), pNodes);
+    }
+
+    public static Loop fromLoopHeadsAndNodes(Set<CFANode> pLoopHeads, Set<CFANode> pNodes) {
+      return new Loop(pLoopHeads, pNodes);
     }
 
     private void computeSets() {
@@ -462,6 +470,10 @@ public final class LoopStructure {
     return new LoopStructure(loops.build());
   }
 
+  public static LoopStructure of(ImmutableListMultimap<String, Loop> pLoops) {
+    return new LoopStructure(pLoops);
+  }
+
   /**
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
    * with any nodes outside of this set. This method tries to differentiate nested loops.
@@ -622,12 +634,13 @@ public final class LoopStructure {
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       switch (language) {
-        case C:
-          throw new CParserException("Code structure is too complex, could not detect all loops!");
-        case JAVA:
-          throw new JParserException("Code structure is too complex, could not detect all loops!");
-        default:
-          throw new AssertionError("unknown language");
+        case C ->
+            throw new CParserException(
+                "Code structure is too complex, could not detect all loops!");
+        case JAVA ->
+            throw new JParserException(
+                "Code structure is too complex, could not detect all loops!");
+        default -> throw new AssertionError("unknown language");
       }
     }
 

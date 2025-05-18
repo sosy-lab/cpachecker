@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,11 +83,7 @@ public class CFATraversal {
     ignoreEdge = pIgnoreEdge;
   }
 
-  /**
-   * Returns a default instance of this class, which iterates forward through the CFA, visiting all
-   * nodes in a DFS-like strategy. For every visited node, all outgoing edges are visited
-   * immediately. Hence, edges are not visited in a DFS-like strategy.
-   */
+  /** Returns a default instance of this class, which iterates forward through the CFA. */
   public static CFATraversal dfs() {
     return new CFATraversal(FORWARD_EDGE_SUPPLIER, CFAEdge::getSuccessor, Predicates.alwaysFalse());
   }
@@ -148,6 +145,8 @@ public class CFATraversal {
   /**
    * Traverse through the CFA according to the strategy represented by the current instance,
    * starting at a given node and passing each encountered node and edge to a given visitor.
+   * Outgoing CFA edges are visited immediately after the node they originate from. Therefore, they
+   * are not visited in depth-first order.
    *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
@@ -192,11 +191,65 @@ public class CFATraversal {
    * <p>Each node will be visited only once. This method does the same as wrapping the given visitor
    * in a {@link NodeCollectingCFAVisitor} and calling {@link #traverse(CFANode, CFAVisitor)}.
    *
+   * <p>Outgoing CFA edges are visited immediately after the node they originate from. Therefore,
+   * they are not visited in depth-first order.
+   *
    * @param startingNode The starting node.
    * @param visitor The visitor to notify.
    */
   public void traverseOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
     traverse(startingNode, new NodeCollectingCFAVisitor(visitor));
+  }
+
+  /**
+   * Traverse through the CFA according to the strategy represented by the current instance,
+   * starting at a given node and passing each encountered node and edge to a given visitor. Unlike
+   * {@link #traverse(CFANode, CFAVisitor)} and {@link #traverseOnce(CFANode, CFAVisitor)}, this
+   * method visits the CFA edges in depth-first order and not only the CFA nodes.
+   *
+   * @param startingNode The starting node.
+   * @param visitor The visitor to notify.
+   */
+  public void traverseEdgesOnce(final CFANode startingNode, final CFATraversal.CFAVisitor visitor) {
+
+    record CFANodeCFAEdgePair(CFANode successor, CFAEdge enteringEdge) {}
+
+    Deque<CFANodeCFAEdgePair> toProcess = new ArrayDeque<>();
+    Set<CFANode> discovered = new LinkedHashSet<>();
+
+    toProcess.addLast(new CFANodeCFAEdgePair(startingNode, null));
+
+    while (!toProcess.isEmpty()) {
+      CFANodeCFAEdgePair cfaNodeCFAEdgePair = toProcess.removeLast();
+      CFANode currentNode = cfaNodeCFAEdgePair.successor();
+      CFAEdge entering = cfaNodeCFAEdgePair.enteringEdge();
+      if (entering != null) {
+        TraversalProcess result = visitor.visitEdge(entering);
+        if (result == TraversalProcess.ABORT) {
+          return;
+        }
+        if (result == TraversalProcess.SKIP) {
+          continue;
+        }
+      }
+      if (discovered.contains(currentNode)) {
+        continue;
+      }
+      discovered.add(currentNode);
+      CFATraversal.TraversalProcess result = visitor.visitNode(currentNode);
+      if (result == TraversalProcess.ABORT) {
+        return;
+      }
+      if (result == TraversalProcess.SKIP) {
+        continue;
+      }
+      for (CFAEdge edge : edgeSupplier.apply(currentNode)) {
+        if (ignoreEdge.apply(edge)) {
+          continue;
+        }
+        toProcess.add(new CFANodeCFAEdgePair(edge.getSuccessor(), edge));
+      }
+    }
   }
 
   /**

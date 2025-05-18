@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serial;
 import java.util.List;
 import java.util.Objects;
@@ -28,7 +27,6 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Serial private static final long serialVersionUID = -3585082910610497708L;
 
-  @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "writeReplace() takes care of this")
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
