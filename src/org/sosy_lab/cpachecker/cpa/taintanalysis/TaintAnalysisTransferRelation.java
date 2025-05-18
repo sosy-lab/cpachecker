@@ -152,8 +152,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       case AssumeEdge -> {
         if (cfaEdge instanceof CAssumeEdge assumption) {
           return Collections.singleton(
-              handleAssumption(
-                  state, assumption, assumption.getExpression(), assumption.getTruthAssumption()));
+              handleAssumption(state, assumption, assumption.getExpression()));
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -234,14 +233,29 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   @SuppressWarnings("unused")
   private TaintAnalysisState handleAssumption(
-      TaintAnalysisState pState,
-      CAssumeEdge pCfaEdge,
-      CExpression pExpression,
-      boolean pTruthAssumption) {
+      TaintAnalysisState pState, CAssumeEdge pCfaEdge, CExpression pExpression) {
+
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
+    Map<CIdExpression, CExpression> values = new HashMap<>();
 
-    return generateNewState(pState, killedVars, generatedVars);
+    // Evaluate the assumption expression if it's a binary expression
+    if (pExpression instanceof CBinaryExpression binaryExpression) {
+      CIntegerLiteralExpression evaluatedCondition =
+          (CIntegerLiteralExpression)
+              TaintAnalysisUtils.evaluateExpression(
+                  binaryExpression, pState.getTaintedVariables(), pState.getUntaintedVariables());
+
+      if (evaluatedCondition != null) {
+        boolean conditionHolds = evaluatedCondition.getValue().equals(BigInteger.ONE);
+        if (conditionHolds) {
+          return generateNewState(pState, killedVars, generatedVars, values);
+        }
+      }
+    }
+
+    // If no condition holds or the expression is not binary, create a new state with empty values
+    return generateNewState(pState, killedVars, generatedVars, values);
   }
 
   @SuppressWarnings("unused")
