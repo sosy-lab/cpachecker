@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
@@ -81,7 +82,8 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty();
     }
     ImmutableSet<CExpression> zeroes =
-        BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
+        BitVectorUtil.getZeroesFromBitVectorAssignmentsByReachType(
+            BitVectorReachType.DIRECT, pBitVectorAssignments);
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
         pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
@@ -122,14 +124,15 @@ public class BitVectorEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
-        CExpression bitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.ACCESS, pActiveThread);
+        CExpression directBitVector =
+            pBitVectorVariables.getDenseBitVectorByAccessAndReachType(
+                BitVectorAccessType.ACCESS, BitVectorReachType.DIRECT, pActiveThread);
         ImmutableSet<CExpression> otherBitVectors =
-            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 BitVectorAccessType.ACCESS, pActiveThread);
         CBinaryExpression binaryExpression =
-            buildAccessBitVectorEvaluation(bitVector, otherBitVectors, pBinaryExpressionBuilder);
+            buildAccessBitVectorEvaluation(
+                directBitVector, otherBitVectors, pBinaryExpressionBuilder);
         yield Optional.of(
             new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty()));
       }
@@ -231,7 +234,8 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty(); // no bit vectors (e.g. no global variables) -> no evaluation
     }
     ImmutableSet<CExpression> zeroAssignments =
-        BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
+        BitVectorUtil.getZeroesFromBitVectorAssignmentsByReachType(
+            BitVectorReachType.DIRECT, pBitVectorAssignments);
 
     Optional<SeqLogicalNotExpression> leftHandSide =
         getPrunedDenseReadWriteBitVectorLeftHandSideEvaluation(
@@ -261,17 +265,18 @@ public class BitVectorEvaluationBuilder {
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
-    CExpression readBitVector =
-        pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.READ, pActiveThread);
-    if (pZeroAssignments.contains(readBitVector)) {
+    CExpression directReadBitVector =
+        pBitVectorVariables.getDenseBitVectorByAccessAndReachType(
+            BitVectorAccessType.READ, BitVectorReachType.DIRECT, pActiveThread);
+    if (pZeroAssignments.contains(directReadBitVector)) {
       return Optional.empty();
     } else {
       ImmutableSet<CExpression> otherWriteBitVectors =
-          pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+          pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pActiveThread);
       CBinaryExpression rLeftHandSide =
           buildDenseReadWriteBitVectorLeftHandSideEvaluation(
-              readBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
+              directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
       return Optional.of(new SeqLogicalNotExpression(rLeftHandSide));
     }
   }
@@ -284,20 +289,24 @@ public class BitVectorEvaluationBuilder {
           CBinaryExpressionBuilder pBinaryExpressionBuilder)
           throws UnrecognizedCodeException {
 
-    CExpression writeBitVector =
-        pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.WRITE, pActiveThread);
-    if (pZeroAssignments.contains(writeBitVector)) {
+    CExpression directWriteBitVector =
+        pBitVectorVariables.getDenseBitVectorByAccessAndReachType(
+            BitVectorAccessType.WRITE, BitVectorReachType.DIRECT, pActiveThread);
+    if (pZeroAssignments.contains(directWriteBitVector)) {
       return Optional.empty();
     } else {
       ImmutableSet<CExpression> otherReadBitVectors =
-          pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+          pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.READ, pActiveThread);
       ImmutableSet<CExpression> otherWriteBitVectors =
-          pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+          pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pActiveThread);
       CBinaryExpression rRightHandSide =
           buildDenseReadWriteBitVectorRightHandSideEvaluation(
-              writeBitVector, otherReadBitVectors, otherWriteBitVectors, pBinaryExpressionBuilder);
+              directWriteBitVector,
+              otherReadBitVectors,
+              otherWriteBitVectors,
+              pBinaryExpressionBuilder);
       return Optional.of(new SeqLogicalNotExpression(rRightHandSide));
     }
   }
@@ -311,7 +320,8 @@ public class BitVectorEvaluationBuilder {
       return Optional.empty(); // no bit vectors (e.g. no global variables) -> no evaluation
     }
     ImmutableSet<CExpression> zeroAssignments =
-        BitVectorUtil.getZeroesFromBitVectorAssignments(pBitVectorAssignments);
+        BitVectorUtil.getZeroesFromBitVectorAssignmentsByReachType(
+            BitVectorReachType.DIRECT, pBitVectorAssignments);
 
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
@@ -406,16 +416,16 @@ public class BitVectorEvaluationBuilder {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, HEXADECIMAL -> {
         CExpression readBitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.READ, pActiveThread);
+            pBitVectorVariables.getDenseBitVectorByAccessAndReachType(
+                BitVectorAccessType.READ, BitVectorReachType.DIRECT, pActiveThread);
         CExpression writeBitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.WRITE, pActiveThread);
+            pBitVectorVariables.getDenseBitVectorByAccessAndReachType(
+                BitVectorAccessType.WRITE, BitVectorReachType.DIRECT, pActiveThread);
         ImmutableSet<CExpression> otherReadBitVectors =
-            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 BitVectorAccessType.READ, pActiveThread);
         ImmutableSet<CExpression> otherWriteBitVectors =
-            pBitVectorVariables.getOtherDenseBitVectorsByAccessType(
+            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 BitVectorAccessType.WRITE, pActiveThread);
         SeqLogicalAndExpression evaluationExpression =
             buildDenseReadWriteBitVectorEvaluation(

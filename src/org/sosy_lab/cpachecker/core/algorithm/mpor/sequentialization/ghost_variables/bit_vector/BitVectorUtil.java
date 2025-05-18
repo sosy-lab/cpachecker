@@ -165,13 +165,22 @@ public class BitVectorUtil {
    * Returns all bit vectors in {@code pAssignments} that are assigned a {@code 0}. Also considers
    * binary {@code 0b00000000} and hex {@code 0x00}.
    */
-  public static ImmutableSet<CExpression> getZeroesFromBitVectorAssignments(
-      ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
+  public static ImmutableSet<CExpression> getZeroesFromBitVectorAssignmentsByReachType(
+      BitVectorReachType pReachType, ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
 
     return pAssignments.stream()
         .filter(a -> a.value.isZero())
+        .filter(a -> a.reachType.equals(pReachType))
         .map(a -> a.variable)
         .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public static boolean areAllZeroAssignmentsByReachType(
+      BitVectorReachType pReachType, ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
+
+    return pAssignments.stream()
+        .filter(a -> a.reachType.equals(pReachType))
+        .allMatch(a -> a.value.isZero());
   }
 
   // Helpers =======================================================================================

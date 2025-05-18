@@ -16,13 +16,19 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
 public class GlobalVariableFinder {
 
-  public static ImmutableSet<CVariableDeclaration> findGlobalVariablesByAccessType(
+  /**
+   * Returns all global variables accessed when executing {@code pBlock} and its directly linked
+   * blocks.
+   */
+  public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -31,7 +37,7 @@ public class GlobalVariableFinder {
     for (SeqThreadStatement statement : pBlock.getStatements()) {
       Set<SeqThreadStatement> found = new HashSet<>();
       found.add(statement);
-      recursivelyFindLinkedStatements(found, statement, pLabelBlockMap);
+      recursivelyFindTargetGotoStatements(found, statement, pLabelBlockMap);
       ImmutableSet<CVariableDeclaration> foundGlobalVariables =
           extractGlobalVariablesFromStatements(ImmutableSet.copyOf(found), pAccessType);
       rGlobalVariables.addAll(foundGlobalVariables);
@@ -39,24 +45,86 @@ public class GlobalVariableFinder {
     return rGlobalVariables.build();
   }
 
+  // TODO also use ReachType here and remove redundant pLabelClauseMap
+  /**
+   * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
+   * and all possible successor blocks, that may or may not actually be executed.
+   */
+  public static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      SeqThreadStatementBlock pBlock,
+      BitVectorAccessType pAccessType) {
+
+    ImmutableSet.Builder<CVariableDeclaration> rGlobalVariables = ImmutableSet.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      Set<SeqThreadStatement> found = new HashSet<>();
+      found.add(statement);
+      recursivelyFindTargetStatements(found, statement, pLabelClauseMap, pLabelBlockMap);
+      ImmutableSet<CVariableDeclaration> foundGlobalVariables =
+          extractGlobalVariablesFromStatements(ImmutableSet.copyOf(found), pAccessType);
+      rGlobalVariables.addAll(foundGlobalVariables);
+    }
+    return rGlobalVariables.build();
+  }
+
+  // Private Methods ===============================================================================
+
+  /**
+   * Searches {@code pStatement}, all directly linked statements via {@code goto} and all target
+   * {@code pc} statements and stores them in {@code pFound}.
+   */
+  private static void recursivelyFindTargetStatements(
+      Set<SeqThreadStatement> pFound,
+      SeqThreadStatement pStatement,
+      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+
+    // recursively search the target goto statements
+    ImmutableList<SeqThreadStatement> targetStatements =
+        ImmutableList.<SeqThreadStatement>builder()
+            .addAll(getTargetPcStatements(pStatement, pLabelClauseMap))
+            .addAll(getTargetGotoStatements(pStatement, pLabelBlockMap))
+            .build();
+    for (SeqThreadStatement targetStatement : targetStatements) {
+      // prevent infinite loops when statements contain loops
+      if (pFound.add(targetStatement)) {
+        recursivelyFindTargetStatements(pFound, targetStatement, pLabelClauseMap, pLabelBlockMap);
+      }
+    }
+  }
+
   /**
    * Searches {@code pStatement} and all directly linked via {@code goto} statements and stores them
    * in {@code pFound}.
    */
-  private static void recursivelyFindLinkedStatements(
+  private static void recursivelyFindTargetGotoStatements(
       Set<SeqThreadStatement> pFound,
       SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
 
-    // recursively search the target pc and goto statements
+    // recursively search the target goto statements
     ImmutableList<SeqThreadStatement> targetGotoStatements =
         getTargetGotoStatements(pStatement, pLabelBlockMap);
     for (SeqThreadStatement targetStatement : targetGotoStatements) {
       // prevent infinite loops when statements contain loops
       if (pFound.add(targetStatement)) {
-        recursivelyFindLinkedStatements(pFound, targetStatement, pLabelBlockMap);
+        recursivelyFindTargetGotoStatements(pFound, targetStatement, pLabelBlockMap);
       }
     }
+  }
+
+  private static ImmutableList<SeqThreadStatement> getTargetPcStatements(
+      SeqThreadStatement pStatement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    if (SeqThreadStatementClauseUtil.isValidTargetPc(pStatement.getTargetPc())) {
+      int targetNumber = pStatement.getTargetPc().orElseThrow();
+      SeqThreadStatementClause targetClause =
+          Objects.requireNonNull(pLabelClauseMap.get(targetNumber));
+      return targetClause.block.getStatements();
+    }
+    return ImmutableList.of();
   }
 
   /**

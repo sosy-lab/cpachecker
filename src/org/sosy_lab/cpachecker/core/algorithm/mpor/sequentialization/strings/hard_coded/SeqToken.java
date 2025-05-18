@@ -71,7 +71,11 @@ public class SeqToken {
 
   public static final String __CPAchecker_TMP_ = "__CPAchecker_TMP_";
 
+  public static final String d = "d";
+
   public static final String _default = "default";
+
+  public static final String DIRECT = "DIRECT";
 
   public static final String dummy = "dummy";
 

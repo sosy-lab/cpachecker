@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -149,23 +150,21 @@ class BitVectorReadWriteInjector {
       if (intTargetPc == Sequentialization.EXIT_PC) {
         // exit pc -> reset bit vector to 0s so that no interference with still active threads
         newInjected.addAll(
-            buildBitVectorReadWriteAssignments(
-                pOptions, pThread, pBitVectorVariables, ImmutableSet.of(), ImmutableSet.of()));
+            buildBitVectorReadWriteZeroAssignments(pOptions, pThread, pBitVectorVariables));
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
         // always need context switch when targeting critical section start -> no bit vectors
         if (!PartialOrderReducer.requiresAssumeEvaluation(pCurrentStatement, newTarget)) {
-          ImmutableSet<CVariableDeclaration> readVariables =
-              GlobalVariableFinder.findGlobalVariablesByAccessType(
-                  pLabelBlockMap, newTarget.block, BitVectorAccessType.READ);
-          ImmutableSet<CVariableDeclaration> writeVariables =
-              GlobalVariableFinder.findGlobalVariablesByAccessType(
-                  pLabelBlockMap, newTarget.block, BitVectorAccessType.WRITE);
           ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
               buildBitVectorReadWriteAssignments(
-                  pOptions, pThread, pBitVectorVariables, readVariables, writeVariables);
+                  pOptions,
+                  pThread,
+                  pBitVectorVariables,
+                  newTarget.block,
+                  pLabelClauseMap,
+                  pLabelBlockMap);
           newInjected.addAll(bitVectorAssignments);
           SeqBitVectorReadWriteEvaluationStatement evaluation =
               buildBitVectorReadWriteEvaluationStatements(
@@ -187,48 +186,103 @@ class BitVectorReadWriteInjector {
     return pCurrentStatement;
   }
 
+  private static ImmutableList<SeqBitVectorAssignmentStatement>
+      buildBitVectorReadWriteZeroAssignments(
+          MPOROptions pOptions, MPORThread pThread, BitVectorVariables pBitVectorVariables) {
+
+    return buildBitVectorReadWriteAssignments(
+        pOptions,
+        pThread,
+        pBitVectorVariables,
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of(),
+        ImmutableSet.of());
+  }
+
   private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorReadWriteAssignments(
       MPOROptions pOptions,
       MPORThread pThread,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<CVariableDeclaration> pReadVariables,
-      ImmutableSet<CVariableDeclaration> pWrittenVariables) {
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      ImmutableSet<CVariableDeclaration> pReachableReadVariables,
+      ImmutableSet<CVariableDeclaration> pReachableWrittenVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
     if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
       for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
-        boolean value = pReadVariables.contains(entry.getKey());
+        boolean value = pReachableReadVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                readVariables.get(pThread), scalarBitVectorExpression));
+                // TODO change later with scalar reachable bit vectors
+                BitVectorReachType.DIRECT, readVariables.get(pThread), scalarBitVectorExpression));
       }
       for (var entry : pBitVectorVariables.scalarWriteBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
-        boolean value = pWrittenVariables.contains(entry.getKey());
+        boolean value = pReachableWrittenVariables.contains(entry.getKey());
         ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                writeVariables.get(pThread), scalarBitVectorExpression));
+                // TODO change later with scalar reachable bit vectors
+                BitVectorReachType.DIRECT, writeVariables.get(pThread), scalarBitVectorExpression));
       }
     } else {
-      CExpression readBitVectorVariable =
-          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.READ, pThread);
-      BitVectorExpression readBitVectorExpression =
-          BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.globalVariableIds, pReadVariables);
+      // TODO the assignments can be split, the reachable assignment is only required if the
+      //  commutes check fails
       rStatements.add(
-          new SeqBitVectorAssignmentStatement(readBitVectorVariable, readBitVectorExpression));
-      CExpression writeBitVectorVariable =
-          pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.WRITE, pThread);
-      BitVectorExpression writeBitVectorExpression =
-          BitVectorUtil.buildBitVectorExpression(
-              pOptions, pBitVectorVariables.globalVariableIds, pWrittenVariables);
+          buildDenseBitVectorReadWriteAssignmentStatementByReachType(
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              BitVectorAccessType.READ,
+              BitVectorReachType.DIRECT,
+              pDirectReadVariables));
       rStatements.add(
-          new SeqBitVectorAssignmentStatement(writeBitVectorVariable, writeBitVectorExpression));
+          buildDenseBitVectorReadWriteAssignmentStatementByReachType(
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              BitVectorAccessType.READ,
+              BitVectorReachType.REACHABLE,
+              pReachableReadVariables));
+      rStatements.add(
+          buildDenseBitVectorReadWriteAssignmentStatementByReachType(
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              BitVectorAccessType.WRITE,
+              BitVectorReachType.DIRECT,
+              pDirectWriteVariables));
+      rStatements.add(
+          buildDenseBitVectorReadWriteAssignmentStatementByReachType(
+              pOptions,
+              pThread,
+              pBitVectorVariables,
+              BitVectorAccessType.WRITE,
+              BitVectorReachType.REACHABLE,
+              pReachableWrittenVariables));
     }
     return rStatements.build();
+  }
+
+  private static SeqBitVectorAssignmentStatement
+      buildDenseBitVectorReadWriteAssignmentStatementByReachType(
+          MPOROptions pOptions,
+          MPORThread pThread,
+          BitVectorVariables pBitVectorVariables,
+          BitVectorAccessType pAccessType,
+          BitVectorReachType pReachType,
+          ImmutableSet<CVariableDeclaration> pAccessedVariables) {
+
+    CExpression bitVectorVariable =
+        pBitVectorVariables.getDenseBitVectorByAccessAndReachType(pAccessType, pReachType, pThread);
+    BitVectorExpression bitVectorExpression =
+        BitVectorUtil.buildBitVectorExpression(
+            pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);
+    return new SeqBitVectorAssignmentStatement(pReachType, bitVectorVariable, bitVectorExpression);
   }
 
   private static SeqBitVectorReadWriteEvaluationStatement
@@ -237,8 +291,9 @@ class BitVectorReadWriteInjector {
           BitVectorEvaluationExpression pBitVectorEvaluation,
           SeqThreadStatementClause pTarget) {
 
-    boolean allZero = pBitVectorAssignments.stream().allMatch(a -> a.value.isZero());
-    // TODO a direct goto makes the following statements unreachable (r < K, break, etc)
+    boolean allZero =
+        BitVectorUtil.areAllZeroAssignmentsByReachType(
+            BitVectorReachType.DIRECT, pBitVectorAssignments);
     Optional<BitVectorEvaluationExpression> expression =
         allZero ? Optional.empty() : Optional.of(pBitVectorEvaluation);
     return new SeqBitVectorReadWriteEvaluationStatement(expression, pTarget.block.getGotoLabel());
@@ -290,27 +345,61 @@ class BitVectorReadWriteInjector {
         MPORThread createdThread = threadCreation.createdThread;
         SeqThreadStatementClause firstClause =
             Objects.requireNonNull(pClauses.get(createdThread)).get(0);
+        ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+            SeqThreadStatementClauseUtil.mapLabelNumberToClause(
+                Objects.requireNonNull(pClauses.get(createdThread)));
         ImmutableMap<Integer, SeqThreadStatementBlock> labelBlockMap =
             SeqThreadStatementClauseUtil.mapLabelNumberToBlock(
                 Objects.requireNonNull(pClauses.get(createdThread)));
-        ImmutableSet<CVariableDeclaration> readVariables =
-            GlobalVariableFinder.findGlobalVariablesByAccessType(
-                labelBlockMap, firstClause.block, BitVectorAccessType.READ);
-        ImmutableSet<CVariableDeclaration> writtenVariables =
-            GlobalVariableFinder.findGlobalVariablesByAccessType(
-                labelBlockMap, firstClause.block, BitVectorAccessType.WRITE);
+
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorReadWriteAssignments(
                 pOptions,
                 threadCreation.createdThread,
                 pBitVectorVariables,
-                readVariables,
-                writtenVariables);
+                firstClause.block,
+                labelClauseMap,
+                labelBlockMap);
+
         newStatements.add(threadCreation.cloneWithBitVectorAssignments(bitVectorAssignments));
       } else {
         newStatements.add(statement);
       }
     }
     return pBlock.cloneWithStatements(newStatements.build());
+  }
+
+  // Helper ========================================================================================
+
+  private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorReadWriteAssignments(
+      MPOROptions pOptions,
+      MPORThread pThread,
+      BitVectorVariables pBitVectorVariables,
+      SeqThreadStatementBlock pBlock,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
+
+    ImmutableSet<CVariableDeclaration> directReadVariables =
+        GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            pLabelBlockMap, pBlock, BitVectorAccessType.READ);
+    ImmutableSet<CVariableDeclaration> directWrittenVariables =
+        GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+            pLabelBlockMap, pBlock, BitVectorAccessType.WRITE);
+
+    ImmutableSet<CVariableDeclaration> reachableReadVariables =
+        GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+            pLabelClauseMap, pLabelBlockMap, pBlock, BitVectorAccessType.READ);
+    ImmutableSet<CVariableDeclaration> reachableWrittenVariables =
+        GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+            pLabelClauseMap, pLabelBlockMap, pBlock, BitVectorAccessType.WRITE);
+
+    return buildBitVectorReadWriteAssignments(
+        pOptions,
+        pThread,
+        pBitVectorVariables,
+        directReadVariables,
+        directWrittenVariables,
+        reachableReadVariables,
+        reachableWrittenVariables);
   }
 }

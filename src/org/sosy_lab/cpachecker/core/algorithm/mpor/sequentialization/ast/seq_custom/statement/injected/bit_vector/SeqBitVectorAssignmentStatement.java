@@ -12,17 +12,23 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReachType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAssignmentStatement implements SeqInjectedBitVectorStatement {
+
+  public final BitVectorReachType reachType;
 
   // TODO CIdExpression?
   public final CExpression variable;
 
   public final BitVectorExpression value;
 
-  public SeqBitVectorAssignmentStatement(CExpression pVariable, BitVectorExpression pValue) {
+  public SeqBitVectorAssignmentStatement(
+      BitVectorReachType pReachType, CExpression pVariable, BitVectorExpression pValue) {
+
+    reachType = pReachType;
     variable = pVariable;
     value = pValue;
   }

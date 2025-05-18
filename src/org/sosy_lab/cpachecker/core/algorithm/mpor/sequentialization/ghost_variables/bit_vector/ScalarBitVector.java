@@ -20,6 +20,7 @@ public class ScalarBitVector {
 
   public final BitVectorAccessType accessType;
 
+  // TODO need direct and reachable variable maps
   public ScalarBitVector(
       ImmutableMap<MPORThread, CIdExpression> pAccessVariables, BitVectorAccessType pAccessType) {
 

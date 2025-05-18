@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -19,6 +20,7 @@ public class BitVectorVariables {
 
   public final int numGlobalVariables;
 
+  // TODO make this consider memory locations, not variable names
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
@@ -52,25 +54,28 @@ public class BitVectorVariables {
     scalarWriteBitVectors = pScalarWriteBitVectors;
   }
 
-  public CExpression getDenseBitVectorByAccessType(
-      BitVectorAccessType pAccessType, MPORThread pThread) {
+  public CExpression getDenseBitVectorByAccessAndReachType(
+      BitVectorAccessType pAccessType, BitVectorReachType pReachType, MPORThread pThread) {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
-        return variable.idExpression;
+        return switch (pReachType) {
+          case DIRECT -> variable.directVariable;
+          case REACHABLE -> variable.reachableVariable;
+        };
       }
     }
     throw new IllegalArgumentException("could not find pThread");
   }
 
   // TODO CIdExpression?
-  public ImmutableSet<CExpression> getOtherDenseBitVectorsByAccessType(
+  public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
       BitVectorAccessType pAccessType, MPORThread pThread) {
 
-    ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
+    Builder<CExpression> rVariables = ImmutableSet.builder();
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (!variable.thread.equals(pThread)) {
-        rVariables.add(variable.idExpression);
+        rVariables.add(variable.reachableVariable);
       }
     }
     return rVariables.build();

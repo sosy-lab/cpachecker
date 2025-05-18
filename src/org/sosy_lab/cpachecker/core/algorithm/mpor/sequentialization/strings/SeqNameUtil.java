@@ -143,32 +143,58 @@ public class SeqNameUtil {
         + SeqToken.return_value;
   }
 
-  public static String buildBitVectorNameByAccessType(
+  // Dense Bit Vectors =============================================================================
+
+  public static String buildDirectBitVectorNameByAccessType(
       MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
+
     return switch (pAccessType) {
       case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
-      case ACCESS -> buildBitVectorAccessName(pOptions, pThreadId);
-      case READ -> buildBitVectorReadName(pOptions, pThreadId);
-      case WRITE -> buildBitVectorWriteName(pOptions, pThreadId);
+      case ACCESS -> buildBitVectorAccessName(pOptions, true, pThreadId);
+      case READ -> buildBitVectorReadName(pOptions, true, pThreadId);
+      case WRITE -> buildBitVectorWriteName(pOptions, true, pThreadId);
     };
   }
 
-  public static String buildBitVectorAccessName(MPOROptions pOptions, int pThreadId) {
-    return pOptions.shortVariables
-        ? SeqToken.ba + pThreadId
-        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_ACCESS;
+  public static String buildReachableBitVectorNameByAccessType(
+      MPOROptions pOptions, int pThreadId, BitVectorAccessType pAccessType) {
+
+    return switch (pAccessType) {
+      case NONE -> throw new IllegalArgumentException("cannot build name for NONE access type");
+      case ACCESS -> buildBitVectorAccessName(pOptions, false, pThreadId);
+      case READ -> buildBitVectorReadName(pOptions, false, pThreadId);
+      case WRITE -> buildBitVectorWriteName(pOptions, false, pThreadId);
+    };
   }
 
-  public static String buildBitVectorReadName(MPOROptions pOptions, int pThreadId) {
+  private static String buildBitVectorAccessName(
+      MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
+
     return pOptions.shortVariables
-        ? SeqToken.br + pThreadId
-        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_READ;
+        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.ba + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId)
+            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
+            + SeqToken.BIT_VECTOR_ACCESS;
   }
 
-  public static String buildBitVectorWriteName(MPOROptions pOptions, int pThreadId) {
+  private static String buildBitVectorReadName(
+      MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
+
     return pOptions.shortVariables
-        ? SeqToken.bw + pThreadId
-        : buildThreadPrefix(pOptions, pThreadId) + SeqToken.BIT_VECTOR_WRITE;
+        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.br + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId)
+            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
+            + SeqToken.BIT_VECTOR_READ;
+  }
+
+  private static String buildBitVectorWriteName(
+      MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
+
+    return pOptions.shortVariables
+        ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.bw + pThreadId
+        : buildThreadPrefix(pOptions, pThreadId)
+            + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
+            + SeqToken.BIT_VECTOR_WRITE;
   }
 
   // Scalar Bit Vector =============================================================================

@@ -162,16 +162,22 @@ public class GhostVariableUtil {
     }
     ImmutableSet.Builder<DenseBitVector> rBitVectors = ImmutableSet.builder();
     for (MPORThread thread : pThreads) {
-      String readName =
-          SeqNameUtil.buildBitVectorNameByAccessType(pOptions, thread.id, pAccessType);
-      // this declaration is not actually used, we only need it for the CIdExpression
-      CVariableDeclaration readDeclaration =
+      String directReadName =
+          SeqNameUtil.buildDirectBitVectorNameByAccessType(pOptions, thread.id, pAccessType);
+      String reachableReadName =
+          SeqNameUtil.buildReachableBitVectorNameByAccessType(pOptions, thread.id, pAccessType);
+      // these declarations are not actually used, we only need it for the CIdExpression
+      CVariableDeclaration directReadDeclaration =
           SeqDeclarationBuilder.buildVariableDeclaration(
-              false, SeqSimpleType.UNSIGNED_LONG_INT, readName, SeqInitializer.INT_MINUS_1);
+              false, SeqSimpleType.INT, directReadName, SeqInitializer.INT_0);
+      CVariableDeclaration reachableReadDeclaration =
+          SeqDeclarationBuilder.buildVariableDeclaration(
+              false, SeqSimpleType.INT, reachableReadName, SeqInitializer.INT_0);
       rBitVectors.add(
           new DenseBitVector(
               thread,
-              SeqExpressionBuilder.buildIdExpression(readDeclaration),
+              SeqExpressionBuilder.buildIdExpression(directReadDeclaration),
+              SeqExpressionBuilder.buildIdExpression(reachableReadDeclaration),
               pAccessType,
               pOptions.bitVectorEncoding));
     }

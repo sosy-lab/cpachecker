@@ -43,38 +43,37 @@ public class SeqBitVectorDeclarationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> ImmutableList.of();
       case BINARY, HEXADECIMAL ->
-          createBitVectorDeclarationsByReduction(pOptions, pBitVectorVariables.orElseThrow());
+          buildDenseBitVectorDeclarationsByReduction(pOptions, pBitVectorVariables.orElseThrow());
       case SCALAR ->
-          createScalarBitVectorDeclarationsByReduction(
+          buildScalarBitVectorDeclarationsByReduction(
               pOptions, pBitVectorVariables.orElseThrow(), pThreads);
     };
   }
 
-  private static ImmutableList<SeqBitVectorDeclaration> createBitVectorDeclarationsByReduction(
+  private static ImmutableList<SeqBitVectorDeclaration> buildDenseBitVectorDeclarationsByReduction(
       MPOROptions pOptions, BitVectorVariables pBitVectorVariables) {
 
     return switch (pOptions.bitVectorReduction) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
-          createDenseBitVectorDeclarationsByAccessType(
+          buildDenseBitVectorDeclarationsByAccessType(
               pOptions, pBitVectorVariables, BitVectorAccessType.ACCESS);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
-                  createDenseBitVectorDeclarationsByAccessType(
+                  buildDenseBitVectorDeclarationsByAccessType(
                       pOptions, pBitVectorVariables, BitVectorAccessType.READ))
               .addAll(
-                  createDenseBitVectorDeclarationsByAccessType(
+                  buildDenseBitVectorDeclarationsByAccessType(
                       pOptions, pBitVectorVariables, BitVectorAccessType.WRITE))
               .build();
     };
   }
 
-  private static ImmutableList<SeqBitVectorDeclaration>
-      createDenseBitVectorDeclarationsByAccessType(
-          MPOROptions pOptions,
-          BitVectorVariables pBitVectorVariables,
-          BitVectorAccessType pAccessType) {
+  private static ImmutableList<SeqBitVectorDeclaration> buildDenseBitVectorDeclarationsByAccessType(
+      MPOROptions pOptions,
+      BitVectorVariables pBitVectorVariables,
+      BitVectorAccessType pAccessType) {
 
     int binaryLength = BitVectorUtil.getBinaryLength(pBitVectorVariables.numGlobalVariables);
     BitVectorDataType type = BitVectorUtil.getDataTypeByLength(binaryLength);
@@ -85,18 +84,20 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, ImmutableSet.of());
-      SeqBitVectorDeclaration declaration =
-          new SeqBitVectorDeclaration(type, denseBitVector.idExpression, initializer);
-      rDeclarations.add(declaration);
+      SeqBitVectorDeclaration directDeclaration =
+          new SeqBitVectorDeclaration(type, denseBitVector.directVariable, initializer);
+      SeqBitVectorDeclaration reachableDeclaration =
+          new SeqBitVectorDeclaration(type, denseBitVector.reachableVariable, initializer);
+
+      rDeclarations.add(directDeclaration).add(reachableDeclaration);
     }
     return rDeclarations.build();
   }
 
-  private static ImmutableList<SeqBitVectorDeclaration>
-      createScalarBitVectorDeclarationsByReduction(
-          MPOROptions pOptions,
-          BitVectorVariables pBitVectorVariables,
-          ImmutableSet<MPORThread> pThreads) {
+  private static ImmutableList<SeqBitVectorDeclaration> buildScalarBitVectorDeclarationsByReduction(
+      MPOROptions pOptions,
+      BitVectorVariables pBitVectorVariables,
+      ImmutableSet<MPORThread> pThreads) {
 
     return switch (pOptions.bitVectorReduction) {
       case NONE -> ImmutableList.of();

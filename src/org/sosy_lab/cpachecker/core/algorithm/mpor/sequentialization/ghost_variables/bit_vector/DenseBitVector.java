@@ -17,7 +17,11 @@ public class DenseBitVector {
 
   public final MPORThread thread;
 
-  public final CIdExpression idExpression;
+  /** The bit vector for the next statement. */
+  public final CIdExpression directVariable;
+
+  /** The bit vector for all reachable statements, from this location. */
+  public final CIdExpression reachableVariable;
 
   public final BitVectorAccessType accessType;
 
@@ -25,13 +29,15 @@ public class DenseBitVector {
 
   public DenseBitVector(
       MPORThread pThread,
-      CIdExpression pIdExpression,
+      CIdExpression pDirectVariable,
+      CIdExpression pReachableVariable,
       BitVectorAccessType pAccessType,
       BitVectorEncoding pEncoding) {
 
     checkArgument(pEncoding.isDense, "encoding must be dense");
     thread = pThread;
-    idExpression = pIdExpression;
+    directVariable = pDirectVariable;
+    reachableVariable = pReachableVariable;
     accessType = pAccessType;
     encoding = pEncoding;
   }
