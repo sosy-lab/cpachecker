@@ -2012,8 +2012,8 @@ public class InvariantsState
 
   @Override
   public org.sosy_lab.java_smt.api.BooleanFormula toFormula(
-      FormulaManagerView fmgr,
-      PathFormulaManager pfmgr) throws CPATransferException, InterruptedException {
+      FormulaManagerView fmgr, PathFormulaManager pfmgr)
+      throws CPATransferException, InterruptedException {
     return getFormulaApproximation(fmgr);
   }
 
