@@ -12,8 +12,6 @@ int main() {
     int x = __VERIFIER_nondet_int();
     int y = 1;
 
-    int cond = y < 0;
-
     // No property violation expected because the tainted branch is not reachable
-    __VERIFIER_is_public(y < 0 ? x : y, 1);
+    __VERIFIER_is_public(y > 0 ? x : y, 0);
 }
