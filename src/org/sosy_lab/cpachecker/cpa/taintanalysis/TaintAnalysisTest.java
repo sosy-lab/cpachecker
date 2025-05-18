@@ -598,4 +598,17 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("taintStructSafe.c", "");
     results.assertIsSafe();
   }
+
+  @Ignore
+  @Test
+  public void testUnreachableTaintSafe() throws Exception {
+    TestResults results = runCPAchecker("unreachableTaintSafe.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testTaintFunctionCallSafe() throws Exception {
+    TestResults results = runCPAchecker("taintFunctionCallSafe.c", "");
+    results.assertIsSafe();
+  }
 }
