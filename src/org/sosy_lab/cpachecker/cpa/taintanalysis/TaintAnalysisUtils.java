@@ -8,11 +8,23 @@
 
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -53,5 +65,184 @@ public class TaintAnalysisUtils {
     }
     throw new CPATransferException(
         "Invalid taint assertion: Second parameter must be an integer literal (0 or 1).");
+  }
+
+  @Nullable
+  public static CLiteralExpression evaluateExpression(
+      CExpression expression,
+      Map<CIdExpression, CExpression> taintedVariables,
+      Map<CIdExpression, CExpression> untaintedVariables) {
+
+    // TODO: Use visitor (?)
+    if (expression instanceof CLiteralExpression literalExpression) {
+
+      // Base case: the expression is already a literal
+      return literalExpression;
+
+    } else if (expression instanceof CIdExpression idExpression) {
+
+      // Look up the value of the variable in the tainted and untainted maps
+      CExpression lastSavedValue =
+          taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression));
+
+      // If a value is found, return it
+      return (CLiteralExpression) lastSavedValue;
+
+    } else if (expression instanceof CBinaryExpression binaryExpression) {
+
+      // Evaluate recursively
+      CLiteralExpression operand1 =
+          evaluateExpression(binaryExpression.getOperand1(), taintedVariables, untaintedVariables);
+      CLiteralExpression operand2 =
+          evaluateExpression(binaryExpression.getOperand2(), taintedVariables, untaintedVariables);
+
+      return computeBinaryOperation(operand1, operand2, binaryExpression.getOperator());
+
+    } else if (expression instanceof CUnaryExpression unaryExpression) {
+      CLiteralExpression operand =
+          evaluateExpression(unaryExpression.getOperand(), taintedVariables, untaintedVariables);
+
+      return computeUnaryOperation(operand, unaryExpression.getOperator());
+
+    } else if (expression instanceof CCastExpression castExpression) {
+      // For cast expressions, evaluate the inner expression
+      return evaluateExpression(castExpression.getOperand(), taintedVariables, untaintedVariables);
+    }
+
+    return null;
+  }
+
+  private static CLiteralExpression computeBinaryOperation(
+      CLiteralExpression operand1,
+      CLiteralExpression operand2,
+      CBinaryExpression.BinaryOperator operator) {
+
+    if (operator.isLogicalOperator() && operand1 != null && operand2 != null) {
+      BigInteger evaluatedBinExpr = evaluateBinaryCondition(operand1, operand2, operator);
+      return new CIntegerLiteralExpression(
+          operand1.getFileLocation(), operand1.getExpressionType(), evaluatedBinExpr);
+    }
+
+    if (operand1 instanceof CIntegerLiteralExpression intExpr1
+        && operand2 instanceof CIntegerLiteralExpression intExpr2) {
+      BigInteger value1 = intExpr1.getValue();
+      BigInteger value2 = intExpr2.getValue();
+
+      BigInteger result =
+          switch (operator) {
+            case PLUS -> value1.add(value2);
+            case MINUS -> value1.subtract(value2);
+            case MULTIPLY -> value1.multiply(value2);
+            case DIVIDE -> {
+              if (value2.equals(BigInteger.ZERO)) {
+                throw new ArithmeticException("Division by zero.");
+              }
+              yield value1.divide(value2);
+            }
+            case MODULO -> value1.mod(value2);
+            default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+          };
+
+      return new CIntegerLiteralExpression(
+          operand1.getFileLocation(), operand1.getExpressionType(), result);
+    }
+
+    if (operand1 instanceof CFloatLiteralExpression floatExpr1
+        && operand2 instanceof CFloatLiteralExpression floatExpr2) {
+
+      BigDecimal value1 = BigDecimal.valueOf(floatExpr1.getValue().doubleValue());
+      BigDecimal value2 = BigDecimal.valueOf(floatExpr2.getValue().doubleValue());
+
+      BigDecimal result =
+          switch (operator) {
+            case PLUS -> value1.add(value2);
+            case MINUS -> value1.subtract(value2);
+            case MULTIPLY -> value1.multiply(value2);
+            case DIVIDE -> {
+              if (value2.compareTo(BigDecimal.ZERO) == 0) {
+                throw new ArithmeticException("Division by zero.");
+              }
+              yield value1.divide(value2, BigDecimal.ROUND_HALF_UP);
+            }
+            default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+          };
+
+      return new CFloatLiteralExpression(
+          operand1.getFileLocation(), operand1.getExpressionType(), result);
+    }
+
+    if (operand1 instanceof CStringLiteralExpression strExpr1
+        && operand2 instanceof CStringLiteralExpression strExpr2) {
+
+      // TODO: other operations for strings (?)
+      if (operator == CBinaryExpression.BinaryOperator.PLUS) {
+        String result = strExpr1.toASTString() + strExpr2.toASTString();
+        return new CStringLiteralExpression(operand1.getFileLocation(), result);
+      }
+      throw new UnsupportedOperationException("Unsupported operation for strings: " + operator);
+    }
+
+    return null;
+  }
+
+  public static BigInteger evaluateBinaryCondition(
+      CLiteralExpression leftOperand,
+      CLiteralExpression rightOperand,
+      CBinaryExpression.BinaryOperator operator) {
+
+    // TODO: parsing of values, e.g., for ((int) x < (float) y) (?)
+
+    if (leftOperand instanceof CIntegerLiteralExpression leftInt
+        && rightOperand instanceof CIntegerLiteralExpression rightInt) {
+      BigInteger leftValue = leftInt.getValue();
+      BigInteger rightValue = rightInt.getValue();
+
+      boolean result = switch (operator) {
+        case EQUALS -> leftValue.equals(rightValue);
+        case NOT_EQUALS -> !leftValue.equals(rightValue);
+        case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
+        case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
+        case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
+        case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
+        default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+      };
+      return BigInteger.valueOf(result ? 1 : 0);
+    }
+
+    // Handle float-based conditions
+    if (leftOperand instanceof CFloatLiteralExpression leftFloat
+        && rightOperand instanceof CFloatLiteralExpression rightFloat) {
+      BigDecimal leftValue = BigDecimal.valueOf(leftFloat.getValue().doubleValue());
+      BigDecimal rightValue = BigDecimal.valueOf(rightFloat.getValue().doubleValue());
+
+      boolean result = switch (operator) {
+        case EQUALS -> leftValue.compareTo(rightValue) == 0;
+        case NOT_EQUALS -> leftValue.compareTo(rightValue) != 0;
+        case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
+        case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
+        case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
+        case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
+        default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+      };
+      return BigInteger.valueOf(result ? 1 : 0);
+    }
+    return BigInteger.valueOf(0);
+  }
+
+  private static CLiteralExpression computeUnaryOperation(
+      CLiteralExpression operand, CUnaryExpression.UnaryOperator operator) {
+
+    BigInteger value = ((CIntegerLiteralExpression) operand).getValue();
+    BigInteger result;
+
+    // TODO: more unary operator cases (?)
+    if (Objects.requireNonNull(operator) == UnaryOperator.MINUS) {
+      result = value.negate();
+    } else {
+      throw new UnsupportedOperationException("Unsupported unary operator: " + operator);
+    }
+
+    return new CIntegerLiteralExpression(
+        operand.getFileLocation(), operand.getExpressionType(), result);
   }
 }
