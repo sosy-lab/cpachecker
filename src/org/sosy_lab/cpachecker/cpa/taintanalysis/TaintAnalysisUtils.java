@@ -197,15 +197,16 @@ public class TaintAnalysisUtils {
       BigInteger leftValue = leftInt.getValue();
       BigInteger rightValue = rightInt.getValue();
 
-      boolean result = switch (operator) {
-        case EQUALS -> leftValue.equals(rightValue);
-        case NOT_EQUALS -> !leftValue.equals(rightValue);
-        case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
-        case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
-        case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
-        case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
-        default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
-      };
+      boolean result =
+          switch (operator) {
+            case EQUALS -> leftValue.equals(rightValue);
+            case NOT_EQUALS -> !leftValue.equals(rightValue);
+            case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
+            case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
+            case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
+            case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
+            default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+          };
       return BigInteger.valueOf(result ? 1 : 0);
     }
 
@@ -215,15 +216,16 @@ public class TaintAnalysisUtils {
       BigDecimal leftValue = BigDecimal.valueOf(leftFloat.getValue().doubleValue());
       BigDecimal rightValue = BigDecimal.valueOf(rightFloat.getValue().doubleValue());
 
-      boolean result = switch (operator) {
-        case EQUALS -> leftValue.compareTo(rightValue) == 0;
-        case NOT_EQUALS -> leftValue.compareTo(rightValue) != 0;
-        case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
-        case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
-        case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
-        case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
-        default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
-      };
+      boolean result =
+          switch (operator) {
+            case EQUALS -> leftValue.compareTo(rightValue) == 0;
+            case NOT_EQUALS -> leftValue.compareTo(rightValue) != 0;
+            case LESS_THAN -> leftValue.compareTo(rightValue) < 0;
+            case LESS_EQUAL -> leftValue.compareTo(rightValue) <= 0;
+            case GREATER_THAN -> leftValue.compareTo(rightValue) > 0;
+            case GREATER_EQUAL -> leftValue.compareTo(rightValue) >= 0;
+            default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
+          };
       return BigInteger.valueOf(result ? 1 : 0);
     }
     return BigInteger.valueOf(0);

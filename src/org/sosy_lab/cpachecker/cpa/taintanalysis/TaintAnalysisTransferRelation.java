@@ -814,8 +814,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           pCfaEdge.getFileLocation(),
           firstArg.toASTString());
       Map<CIdExpression, CExpression> values = new HashMap<>();
-      TaintAnalysisState newState =
-          generateNewState(pState, killedVars, generatedVars, values);
+      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
       newState.setViolatesProperty();
       return newState;
     }
@@ -827,8 +826,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           firstArg.toASTString());
 
       Map<CIdExpression, CExpression> values = new HashMap<>();
-      TaintAnalysisState newState =
-          generateNewState(pState, killedVars, generatedVars, values);
+      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
       newState.setViolatesProperty();
       return newState;
     }
