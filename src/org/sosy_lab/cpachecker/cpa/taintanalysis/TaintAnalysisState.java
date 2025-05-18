@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.SimpleTargetInformation;
@@ -33,20 +36,40 @@ public class TaintAnalysisState
   @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
-  private Set<CIdExpression> taintedVariables;
+  private final Map<CIdExpression, CExpression> taintedVariables;
+  private final Map<CIdExpression, CExpression> untaintedVariables;
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
-    this.taintedVariables = pElements;
+    this.taintedVariables = new HashMap<>();
+    this.untaintedVariables = new HashMap<>();
+    for (CIdExpression expr : pElements) {
+      this.taintedVariables.put(expr, null);
+    }
   }
 
-  public Set<CIdExpression> getTaintedVariables() {
+  public TaintAnalysisState(
+      Map<CIdExpression, CExpression> pTaintedVariables,
+      Map<CIdExpression, CExpression> pUntaintedVariables) {
+    this.taintedVariables = new HashMap<>(pTaintedVariables);
+    this.untaintedVariables = new HashMap<>(pUntaintedVariables);
+  }
+
+  public Map<CIdExpression, CExpression> getTaintedVariables() {
     return taintedVariables;
+  }
+
+  public Map<CIdExpression, CExpression> getUntaintedVariables() {
+    return untaintedVariables;
+  }
+
+  public Set<CIdExpression> getTaintedVariablesAsSet() {
+    return taintedVariables.keySet();
   }
 
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
-    return other.getTaintedVariables().containsAll(this.taintedVariables);
+    return other.getTaintedVariables().keySet().containsAll(this.taintedVariables.keySet());
   }
 
   @Override
@@ -56,7 +79,7 @@ public class TaintAnalysisState
 
   /**
    * Compares the specified object with this TaintAnalysisState for equality. Returns {@code true}
-   * if the specified object is also a TaintAnalysisState, and both have equivalent sets of tainted
+   * if the specified object is also a TaintAnalysisState, and both have equivalent maps of tainted
    * variables.
    *
    * @param obj the object to be compared for equality with this state
@@ -68,7 +91,8 @@ public class TaintAnalysisState
       return true;
     }
     return obj instanceof TaintAnalysisState other
-        && Objects.equals(taintedVariables, other.taintedVariables);
+        && Objects.equals(taintedVariables, other.taintedVariables)
+        && Objects.equals(untaintedVariables, other.untaintedVariables);
   }
 
   @Override
@@ -78,7 +102,11 @@ public class TaintAnalysisState
 
   @Override
   public String toDOTLabel() {
-    return "{" + this.taintedVariables + "}";
+    return "{tainted: "
+        + this.taintedVariables.keySet()
+        + ", untainted: "
+        + this.untaintedVariables.keySet()
+        + "}";
   }
 
   @Override
@@ -89,10 +117,17 @@ public class TaintAnalysisState
     } else if (pOther.isLessOrEqual(this)) {
       return this;
     }
-    Set<CIdExpression> resSet = new HashSet<>(this.taintedVariables);
-    resSet.addAll(this.taintedVariables);
-    resSet.addAll(pOther.getTaintedVariables());
-    return new TaintAnalysisState(resSet);
+
+    Map<CIdExpression, CExpression> joinedTaintedVars = new HashMap<>(this.taintedVariables);
+    Map<CIdExpression, CExpression> joinedUntaintedVars = new HashMap<>(this.untaintedVariables);
+
+    // Add all tainted variables from the other state
+    joinedTaintedVars.putAll(pOther.getTaintedVariables());
+
+    // For untainted variables, only keep those that are untainted in both states
+    joinedUntaintedVars.keySet().retainAll(pOther.getUntaintedVariables().keySet());
+
+    return new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars);
   }
 
   @Override

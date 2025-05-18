@@ -9,18 +9,24 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -43,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -52,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -83,10 +92,42 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private TaintAnalysisState generateNewState(
       TaintAnalysisState pState,
       Set<CIdExpression> pKilledVars,
-      Set<CIdExpression> pGeneratedVars) {
+      Set<CIdExpression> pGeneratedVars,
+      Map<CIdExpression, CExpression> pValues) {
     logger.logf(Level.FINEST, "Killed %s, generated %s", pKilledVars, pGeneratedVars);
-    return new TaintAnalysisState(
-        Sets.union(Sets.difference(pState.getTaintedVariables(), pKilledVars), pGeneratedVars));
+
+    Map<CIdExpression, CExpression> newTaintedVars = new HashMap<>(pState.getTaintedVariables());
+    Map<CIdExpression, CExpression> newUntaintedVars =
+        new HashMap<>(pState.getUntaintedVariables());
+
+    Map<CIdExpression, CLiteralExpression> evaluatedValues = new HashMap<>();
+
+    for (Entry<CIdExpression, CExpression> entry : pValues.entrySet()) {
+      CIdExpression var = entry.getKey();
+      CExpression expr = entry.getValue();
+
+      CLiteralExpression evaluatedExpr =
+          TaintAnalysisUtils.evaluateExpression(
+              expr, pState.getTaintedVariables(), pState.getUntaintedVariables());
+
+      evaluatedValues.put(var, evaluatedExpr);
+    }
+
+    for (CIdExpression killedVar : pKilledVars) {
+      newTaintedVars.remove(killedVar);
+
+      CExpression value = evaluatedValues.getOrDefault(killedVar, null);
+      newUntaintedVars.put(killedVar, value);
+    }
+
+    for (CIdExpression generatedVar : pGeneratedVars) {
+      newUntaintedVars.remove(generatedVar);
+
+      CExpression value = evaluatedValues.getOrDefault(generatedVar, null);
+      newTaintedVars.put(generatedVar, value);
+    }
+
+    return new TaintAnalysisState(newTaintedVars, newUntaintedVars);
   }
 
   /**
@@ -203,8 +244,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private TaintAnalysisState handleBlankEdge(TaintAnalysisState pState, BlankEdge pCfaEdge) {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
+    Map<CIdExpression, CExpression> values = new HashMap<>();
 
-    return generateNewState(pState, killedVars, generatedVars);
+    return generateNewState(pState, killedVars, generatedVars, values);
   }
 
   @SuppressWarnings("unused")
@@ -233,7 +275,11 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   private TaintAnalysisState handleFunctionSummaryEdge(
       TaintAnalysisState pState, CFunctionSummaryEdge pCfaEdge) {
     // This is only needed for intra-procedural analyses
-    return new TaintAnalysisState(new HashSet<>(pState.getTaintedVariables()));
+    Set<CIdExpression> killedVars = new HashSet<>();
+    Set<CIdExpression> generatedVars = new HashSet<>();
+    Map<CIdExpression, CExpression> values = new HashMap<>();
+
+    return generateNewState(pState, killedVars, generatedVars, values);
   }
 
   @SuppressWarnings("unused")
@@ -250,6 +296,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
+    Map<CIdExpression, CExpression> values = new HashMap<>();
     CDeclaration pDeclaration = pCfaEdge.getDeclaration();
 
     if (pDeclaration instanceof CVariableDeclaration) {
@@ -265,18 +312,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (initializer instanceof CInitializerExpression initExpr) {
 
           checkIfInitializerExpressionIsTainted(
-              pState, initExpr, generatedVars, variableLHS, killedVars);
+              pState, initExpr, generatedVars, variableLHS, killedVars, values);
         }
 
         if (initializer instanceof CInitializerList initList) {
-
           List<CInitializer> initializerList = initList.getInitializers();
 
           for (CInitializer init : initializerList) {
             if (init instanceof CInitializerExpression initExpr) {
 
               checkIfInitializerExpressionIsTainted(
-                  pState, initExpr, generatedVars, variableLHS, killedVars);
+                  pState, initExpr, generatedVars, variableLHS, killedVars, values);
             }
           }
         }
@@ -301,7 +347,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.FINE, "declaration is instance of CTypeDefDeclaration");
     }
 
-    return generateNewState(pState, killedVars, generatedVars);
+    return generateNewState(pState, killedVars, generatedVars, values);
   }
 
   private static void checkIfInitializerExpressionIsTainted(
@@ -309,18 +355,21 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CInitializerExpression initializer,
       Set<CIdExpression> generatedVars,
       CIdExpression variableLHS,
-      Set<CIdExpression> killedVars) {
+      Set<CIdExpression> killedVars,
+      Map<CIdExpression, CExpression> values) {
 
     CExpression expr = initializer.getExpression();
 
     boolean taintedVarsRHS =
         TaintAnalysisUtils.getAllVarsAsCExpr(expr).stream()
-            .anyMatch(var -> pState.getTaintedVariables().contains(var));
+            .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
 
     if (taintedVarsRHS) {
       generatedVars.add(variableLHS);
+      values.put(variableLHS, expr);
     } else {
       killedVars.add(variableLHS);
+      values.put(variableLHS, expr);
     }
   }
 
@@ -329,7 +378,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
-    Set<CIdExpression> taintedVariables = pState.getTaintedVariables();
+    Set<CIdExpression> taintedVariables = pState.getTaintedVariables().keySet();
 
     if (pStatement instanceof CExpressionStatement) {
       // TODO: implement, see taintByCommaOperator, line 19
@@ -345,14 +394,18 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       boolean taintedVarsRHS =
           allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
 
+      Map<CIdExpression, CExpression> values = new HashMap<>();
+
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
         // mark the variable on the LHS as tainted. If no variable is tainted, kill the variable on
         // LHS
         if (taintedVarsRHS) {
           generatedVars.add(variableLHS);
+          values.put(variableLHS, rhs);
         } else {
           killedVars.add(variableLHS);
+          values.put(variableLHS, rhs);
         }
       } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
         // If the LHS is an array element and the RHS contains a tainted variable,
@@ -361,10 +414,16 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         if (arrayExpr instanceof CIdExpression arrayVariable) {
           if (taintedVarsRHS) {
             generatedVars.add(arrayVariable);
+            values.put(arrayVariable, rhs);
           }
         }
+
+      } else {
+        logger.log(
+            Level.INFO, "lhs is not an instance of CIdExpression or CArraySubscriptExpression");
       }
-      // TODO: Add more instance-cases, if necessary
+
+      return generateNewState(pState, killedVars, generatedVars, values);
     }
 
     if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
@@ -611,7 +670,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       // TODO: Add more instance-cases, if necessary
     }
 
-    return generateNewState(pState, killedVars, generatedVars);
+    Map<CIdExpression, CExpression> values = new HashMap<>();
+    return generateNewState(pState, killedVars, generatedVars, values);
   }
 
   @Nullable
@@ -630,7 +690,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           "Assertion violation at %s: Array '%s' was expected to be public but is" + " tainted.",
           pCfaEdge.getFileLocation(),
           firstArg.toASTString());
-      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+      Map<CIdExpression, CExpression> values = new HashMap<>();
+      TaintAnalysisState newState =
+          generateNewState(pState, killedVars, generatedVars, values);
       newState.setViolatesProperty();
       return newState;
     }
@@ -641,7 +703,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           pCfaEdge.getFileLocation(),
           firstArg.toASTString());
 
-      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars);
+      Map<CIdExpression, CExpression> values = new HashMap<>();
+      TaintAnalysisState newState =
+          generateNewState(pState, killedVars, generatedVars, values);
       newState.setViolatesProperty();
       return newState;
     }
