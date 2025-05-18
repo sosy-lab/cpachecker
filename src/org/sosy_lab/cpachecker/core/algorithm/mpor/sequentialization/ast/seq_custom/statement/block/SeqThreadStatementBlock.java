@@ -97,6 +97,10 @@ public class SeqThreadStatementBlock implements SeqStatement {
   private static Optional<String> tryBuildControlFlowSuffixByEncoding(
       MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
 
+    // e.g. mutex lock always requires break/continue if mutex is locked
+    if (SeqThreadStatementUtil.anySynchronizesThreads(pStatements)) {
+      return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
+    }
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
     }

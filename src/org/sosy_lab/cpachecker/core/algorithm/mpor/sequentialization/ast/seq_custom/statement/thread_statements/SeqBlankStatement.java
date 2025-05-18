@@ -97,6 +97,11 @@ public class SeqBlankStatement implements SeqThreadStatement {
   }
 
   @Override
+  public boolean synchronizesThreads() {
+    return false;
+  }
+
+  @Override
   public boolean onlyWritesPc() {
     return injectedStatements.isEmpty();
   }

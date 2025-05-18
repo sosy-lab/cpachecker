@@ -152,6 +152,11 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
+  public boolean synchronizesThreads() {
+    return false;
+  }
+
+  @Override
   public boolean onlyWritesPc() {
     return false;
   }

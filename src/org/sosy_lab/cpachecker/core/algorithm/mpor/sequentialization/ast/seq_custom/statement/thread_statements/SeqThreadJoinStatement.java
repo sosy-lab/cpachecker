@@ -211,6 +211,11 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
+  public boolean synchronizesThreads() {
+    return true;
+  }
+
+  @Override
   public boolean onlyWritesPc() {
     return false;
   }

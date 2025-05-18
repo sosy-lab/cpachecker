@@ -138,6 +138,11 @@ public class SeqParameterAssignmentStatements implements SeqThreadStatement {
   }
 
   @Override
+  public boolean synchronizesThreads() {
+    return false;
+  }
+
+  @Override
   public boolean onlyWritesPc() {
     return false;
   }

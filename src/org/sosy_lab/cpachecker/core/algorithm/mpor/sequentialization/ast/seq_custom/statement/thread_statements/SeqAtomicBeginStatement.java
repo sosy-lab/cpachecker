@@ -118,6 +118,12 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   }
 
   @Override
+  public boolean synchronizesThreads() {
+    // atomic sections do not synchronize threads per se. when encountered, no check is required
+    return false;
+  }
+
+  @Override
   public boolean onlyWritesPc() {
     return false;
   }

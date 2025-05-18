@@ -31,6 +31,15 @@ public class SeqThreadStatementUtil {
     return false;
   }
 
+  public static boolean anySynchronizesThreads(ImmutableList<SeqThreadStatement> pStatements) {
+    for (SeqThreadStatement statement : pStatements) {
+      if (statement.synchronizesThreads()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static boolean allHaveTargetGoto(ImmutableList<SeqThreadStatement> pStatements) {
     for (SeqThreadStatement statement : pStatements) {
       if (statement.getTargetGoto().isEmpty()) {
