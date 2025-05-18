@@ -155,30 +155,27 @@ class BitVectorReadWriteInjector {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
-        // always need context switch when targeting critical section start -> no bit vectors
-        if (!PartialOrderReducer.requiresAssumeEvaluation(pCurrentStatement, newTarget)) {
-          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-              buildBitVectorReadWriteAssignments(
-                  pOptions,
-                  pThread,
-                  pBitVectorVariables,
-                  newTarget.block,
-                  pLabelClauseMap,
-                  pLabelBlockMap);
-          newInjected.addAll(bitVectorAssignments);
-          SeqBitVectorReadWriteEvaluationStatement evaluation =
-              buildBitVectorReadWriteEvaluationStatements(
-                  bitVectorAssignments,
-                  BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
-                      pOptions,
-                      pThread,
-                      bitVectorAssignments,
-                      pBitVectorVariables,
-                      pFullBitVectorEvaluation,
-                      pBinaryExpressionBuilder),
-                  newTarget);
-          newInjected.add(evaluation);
-        }
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+            buildBitVectorReadWriteAssignments(
+                pOptions,
+                pThread,
+                pBitVectorVariables,
+                newTarget.block,
+                pLabelClauseMap,
+                pLabelBlockMap);
+        newInjected.addAll(bitVectorAssignments);
+        SeqBitVectorReadWriteEvaluationStatement evaluation =
+            buildBitVectorReadWriteEvaluationStatements(
+                bitVectorAssignments,
+                BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
+                    pOptions,
+                    pThread,
+                    bitVectorAssignments,
+                    pBitVectorVariables,
+                    pFullBitVectorEvaluation,
+                    pBinaryExpressionBuilder),
+                newTarget);
+        newInjected.add(evaluation);
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }

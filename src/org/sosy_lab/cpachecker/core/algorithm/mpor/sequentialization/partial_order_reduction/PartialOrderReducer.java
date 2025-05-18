@@ -15,7 +15,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -53,19 +52,5 @@ public class PartialOrderReducer {
       return StatementLinker.link(pClauses);
     }
     return pClauses;
-  }
-
-  public static boolean requiresAssumeEvaluation(
-      SeqThreadStatement pCurrentStatement, SeqThreadStatementClause pTarget) {
-
-    /*if (pCurrentStatement instanceof SeqThreadCreationStatement) {
-      if (!(pTarget.block.getFirstStatement() instanceof SeqThreadCreationStatement)) {
-        // if this statement creates a thread and the target does not, enforce context switch.
-        // this is needed e.g. in pthread-wmm/mix000.oepc - otherwise an assume call triggers a
-        // pre-emptive thread termination and an incorrect 'true' verdict
-        return true;
-      }
-    }*/
-    return false;
   }
 }

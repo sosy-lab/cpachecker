@@ -151,30 +151,27 @@ class BitVectorAccessInjector {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
-        // always need context switch when targeting critical section start -> no bit vectors
-        if (!PartialOrderReducer.requiresAssumeEvaluation(pCurrentStatement, newTarget)) {
-          ImmutableSet<CVariableDeclaration> directVariables =
-              GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                  pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-          ImmutableSet<CVariableDeclaration> reachableVariables =
-              GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
-                  pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-              buildBitVectorAssignments(
-                  pOptions, pThread, pBitVectorVariables, directVariables, reachableVariables);
-          newInjected.addAll(bitVectorAssignments);
-          SeqBitVectorAccessEvaluationStatement evaluation =
-              buildBitVectorEvaluationStatements(
-                  bitVectorAssignments,
-                  BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
-                      pOptions,
-                      pThread,
-                      bitVectorAssignments,
-                      pBitVectorVariables,
-                      pFullBitVectorEvaluation),
-                  newTarget);
-          newInjected.add(evaluation);
-        }
+        ImmutableSet<CVariableDeclaration> directVariables =
+            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
+        ImmutableSet<CVariableDeclaration> reachableVariables =
+            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+                pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+            buildBitVectorAssignments(
+                pOptions, pThread, pBitVectorVariables, directVariables, reachableVariables);
+        newInjected.addAll(bitVectorAssignments);
+        SeqBitVectorAccessEvaluationStatement evaluation =
+            buildBitVectorEvaluationStatements(
+                bitVectorAssignments,
+                BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
+                    pOptions,
+                    pThread,
+                    bitVectorAssignments,
+                    pBitVectorVariables,
+                    pFullBitVectorEvaluation),
+                newTarget);
+        newInjected.add(evaluation);
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
