@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ExportableToFormula;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Add;
@@ -89,11 +90,13 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.ToCodeFormulaVisitor;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Union;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Variable;
 import org.sosy_lab.cpachecker.cpa.invariants.variableselection.VariableSelection;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -103,6 +106,7 @@ public class InvariantsState
         ExpressionTreeReportingState,
         FormulaReportingState,
         LatticeAbstractState<InvariantsState>,
+        ExportableToFormula,
         AbstractQueryableState {
 
   private static final String PROPERTY_OVERFLOW = "overflow";
@@ -2004,6 +2008,13 @@ public class InvariantsState
 
   private static boolean isAssignableToDouble(Number pNumber) {
     return pNumber instanceof Double || pNumber instanceof Float;
+  }
+
+  @Override
+  public org.sosy_lab.java_smt.api.BooleanFormula toFormula(
+      FormulaManagerView fmgr,
+      PathFormulaManager pfmgr) throws CPATransferException, InterruptedException {
+    return getFormulaApproximation(fmgr);
   }
 
   private static class Tools {

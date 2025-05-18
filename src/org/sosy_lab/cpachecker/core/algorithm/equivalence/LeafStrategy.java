@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -34,11 +35,13 @@ public interface LeafStrategy {
   static ImmutableList<Integer> findTouchedLines(ReachedSet pReachedSet) {
     Set<CFANode> nodes =
         FluentIterable.from(pReachedSet).transform(AbstractStates::extractLocation).toSet();
-    ImmutableList.Builder<Integer> touchedLines = ImmutableList.builder();
+    ImmutableSet.Builder<Integer> touchedLines = ImmutableSet.builder();
     for (CFANode node : nodes) {
       for (CFAEdge leaving : CFAUtils.allLeavingEdges(node)) {
         if (nodes.contains(leaving.getSuccessor())) {
-          touchedLines.add(leaving.getLineNumber());
+          if (leaving.getLineNumber() != 0) {
+            touchedLines.add(leaving.getLineNumber());
+          }
         }
       }
     }
