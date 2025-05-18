@@ -24,25 +24,27 @@ int main() {
     int z = __VERIFIER_nondet_int();
     int w = __VERIFIER_nondet_int();
 
-    // `sizeof(1)` assigns an untainted value to `x`. `x` becomes sanitized
+    // `sizeof(1)` assigns an untainted value to `x`. `x` is now expected to be public
     x = sizeOf(1);
     __VERIFIER_is_public(x, 1);
 
-    // The taint flows from `z` to `y`; `y` remains tainted
+    // The taint flows from `z` to `y`. `y` is expected to remain tainted
     y = sizeOf(x + z);
     __VERIFIER_is_public(y, 0);
 
-    // The taint flows from `y` to `z`; `z` remains tainted
+    // The taint flows from `y` to `z`; `z` is expected to remain tainted
     z = sizeOf(y);
     __VERIFIER_is_public(z, 0);
 
-    // `sizeof(x * x)` assigns an untainted value to `w` as `x` is now untainted
+    // `sizeof(x * x)` assigns an untainted value to `w` as `x` is now untainted.
+    // `b` is expected to be public
     w = sizeOf(x * x);
     __VERIFIER_is_public(w, 1);
 
     // Expected taint analysis result: `x` and `w` are public, `y` and `z` are tainted.
-    // No property violation expected. However, the function sizeof is not returning sensitive information.
-    // Due to the overapproximation, the taint is being propagated to variables that are not actually containing sensitive information.
-    // A false positive (report tainted, when not really tainted) is expected here.
+    // The combined expression is expected to be tainted.
     __VERIFIER_is_public(x + y + z + w, 0);
+    // Note that the function sizeof is not returning sensitive information.
+    // Regardless, due to overapproximation, the taint is expected to be propagated to variables
+    // that are not actually containing sensitive information.
 }
