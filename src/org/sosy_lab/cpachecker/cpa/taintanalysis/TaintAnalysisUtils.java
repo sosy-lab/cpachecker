@@ -35,6 +35,10 @@ public class TaintAnalysisUtils {
     return new CIdExpression(pDec.getFileLocation(), pDec);
   }
 
+  public static CIdExpression getCidExpressionForCParDec(CParameterDeclaration pDec) {
+    return new CIdExpression(pDec.getFileLocation(), pDec);
+  }
+
   public static int evaluateExpressionToInteger(CExpression expression)
       throws CPATransferException {
     if (expression instanceof CIntegerLiteralExpression integerLiteral) {
