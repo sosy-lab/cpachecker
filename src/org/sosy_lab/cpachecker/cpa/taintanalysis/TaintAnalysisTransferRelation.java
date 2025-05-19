@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -151,8 +152,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     switch (cfaEdge.getEdgeType()) {
       case AssumeEdge -> {
         if (cfaEdge instanceof CAssumeEdge assumption) {
-          return Collections.singleton(
-              handleAssumption(state, assumption, assumption.getExpression()));
+          return Collections.checkedList(
+              handleAssumption(state, assumption, assumption.getExpression()),
+              TaintAnalysisState.class);
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -232,8 +234,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @SuppressWarnings("unused")
-  private TaintAnalysisState handleAssumption(
+  private List<TaintAnalysisState> handleAssumption(
       TaintAnalysisState pState, CAssumeEdge pCfaEdge, CExpression pExpression) {
+
+    List<TaintAnalysisState> states = new ArrayList<>();
 
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
@@ -247,15 +251,25 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   binaryExpression, pState.getTaintedVariables(), pState.getUntaintedVariables());
 
       if (evaluatedCondition != null) {
-        boolean conditionHolds = evaluatedCondition.getValue().equals(BigInteger.ONE);
-        if (conditionHolds) {
-          return generateNewState(pState, killedVars, generatedVars, values);
-        }
-      }
-    }
+        boolean conditionHolds =
+            evaluatedCondition.getValue().equals(BigInteger.ONE);
 
-    // If no condition holds or the expression is not binary, create a new state with empty values
-    return generateNewState(pState, killedVars, generatedVars, values);
+        // flip the truth value of the evaluated condition when we are analyzing the negation
+        conditionHolds = pCfaEdge.getTruthAssumption() == conditionHolds;
+
+        if (conditionHolds) {
+          // generate a new state when the condition holds
+          TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
+          states.add(newState);
+        }
+      } else {
+        // generate a new state when cannot determine if the condition holds
+        TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
+        states.add(newState);
+      }
+    } // TODO: more cases for instances of the pExpression might be needed (?)
+
+    return states;
   }
 
   @SuppressWarnings("unused")
