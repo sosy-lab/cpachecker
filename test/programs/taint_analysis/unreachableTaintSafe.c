@@ -15,14 +15,12 @@ int main() {
 
     int z;
 
-    if (x > 0) {
-        z = y; // tainted - reachable
+    if (x < 0) {
+        z = y; // tainted - unreachable
     } else {
-        z = x; // not tainted - unreachable
+        z = x;
     }
 
     // No property violation expected
-    __VERIFIER_is_public(z, 0);
-
-    // TODO: the analysis is exploring the unreachable branch z = x, leading to wrong results - FIX
+    __VERIFIER_is_public(z, 1);
 }
