@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads;
 
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+
 // TODO pthread_once_t
 // TODO pthread_rwlock_t
 // TODO pthread_key_t
@@ -20,5 +22,10 @@ public enum PthreadObjectType {
 
   PthreadObjectType(String pName) {
     name = pName;
+  }
+
+  public boolean equalsType(CType pType) {
+    // there seems no better way than comparing by string, unfortunately
+    return this.name.equals(pType.toASTString("").strip());
   }
 }

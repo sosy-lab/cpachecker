@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -100,6 +102,31 @@ public class MPORSubstitution {
   }
 
   /**
+   * If applicable, adds the {@link CVariableDeclaration} of {@code pIdExpression} to the respective
+   * sets.
+   */
+  private void handleGlobalVariableAccesses(
+      CIdExpression pIdExpression,
+      boolean pIsAssignmentLeftHandSide,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
+      Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
+
+    if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+      if (variableDeclaration.isGlobal()) {
+        // treat pthread_mutex_t accesses as writes, otherwise interleavings are lost
+        boolean isMutex =
+            PthreadObjectType.PTHREAD_MUTEX_T.equalsType(variableDeclaration.getType());
+        if (pAccessedGlobalVariables.isPresent()) {
+          pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
+        }
+        if (pWrittenGlobalVariables.isPresent() && (pIsAssignmentLeftHandSide || isMutex)) {
+          pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
+        }
+      }
+    }
+  }
+
+  /**
    * Substitutes the given expression, and tracks if any global variable was substituted alongside
    * in {@code pAccessedGlobalVariables}.
    */
@@ -126,16 +153,11 @@ public class MPORSubstitution {
 
     if (pExpression instanceof CIdExpression idExpression) {
       if (isSubstitutable(idExpression.getDeclaration())) {
-        if (idExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
-          if (variableDeclaration.isGlobal()) {
-            if (pAccessedGlobalVariables.isPresent()) {
-              pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
-            }
-            if (pWrittenGlobalVariables.isPresent() && pIsAssignmentLeftHandSide) {
-              pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
-            }
-          }
-        }
+        handleGlobalVariableAccesses(
+            idExpression,
+            pIsAssignmentLeftHandSide,
+            pWrittenGlobalVariables,
+            pAccessedGlobalVariables);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
       }
 
@@ -471,6 +493,11 @@ public class MPORSubstitution {
     return pClass.cast(pSimpleDeclaration);
   }
 
+  /**
+   * Whether {@code pSimpleDeclaration} is a {@link CVariableDeclaration} or {@link
+   * CParameterDeclaration}. Other declarations such as {@link CFunctionDeclaration}s are not
+   * substituted.
+   */
   private boolean isSubstitutable(CSimpleDeclaration pSimpleDeclaration) {
     return pSimpleDeclaration instanceof CVariableDeclaration
         || pSimpleDeclaration instanceof CParameterDeclaration;
