@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
@@ -31,6 +32,8 @@ public class SubstituteEdge {
 
   public final ImmutableSet<CVariableDeclaration> writtenGlobalVariables;
 
+  public final ImmutableSet<CFunctionDeclaration> accessedFunctionPointers;
+
   // TODO parameters are a bit trickier due to passed on parameters
   /** The list of parameters pointing to global variable declarations that this edge accesses. */
   // public final ImmutableList<CParameterDeclaration> globalParameterVariables;
@@ -39,7 +42,8 @@ public class SubstituteEdge {
       CFAEdge pCfaEdge,
       ThreadEdge pThreadEdge,
       ImmutableSet<CVariableDeclaration> pWrittenGlobalVariables,
-      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables) {
+      ImmutableSet<CVariableDeclaration> pAccessedGlobalVariables,
+      ImmutableSet<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     checkArgument(
         pCfaEdge.equals(pThreadEdge.cfaEdge), "pCfaEdge and pThreadEdge cfaEdge must match");
@@ -50,6 +54,7 @@ public class SubstituteEdge {
     accessedGlobalVariables = pAccessedGlobalVariables;
     readGlobalVariables =
         Sets.symmetricDifference(writtenGlobalVariables, accessedGlobalVariables).immutableCopy();
+    accessedFunctionPointers = pAccessedFunctionPointers;
   }
 
   public ImmutableSet<CVariableDeclaration> getGlobalVariablesByAccessType(

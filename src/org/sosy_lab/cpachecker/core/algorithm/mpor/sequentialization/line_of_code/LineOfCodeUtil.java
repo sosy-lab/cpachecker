@@ -8,15 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -78,6 +82,23 @@ public class LineOfCodeUtil {
     return rOriginalDeclarations.build();
   }
 
+  public static ImmutableList<LineOfCode> buildEmptyInputFunctionDeclarations(
+      ImmutableCollection<SubstituteEdge> pSubstituteEdges) {
+
+    Set<CFunctionDeclaration> visited = new HashSet<>();
+    ImmutableList.Builder<LineOfCode> rEmptyFunctionDeclarations = ImmutableList.builder();
+    for (SubstituteEdge substituteEdge : pSubstituteEdges) {
+      for (CFunctionDeclaration functionDeclaration : substituteEdge.accessedFunctionPointers) {
+        if (visited.add(functionDeclaration)) {
+          String emptyDefinition =
+              SeqStringUtil.buildEmptyFunctionDefinitionFromDeclaration(functionDeclaration);
+          rEmptyFunctionDeclarations.add(LineOfCode.of(0, emptyDefinition));
+        }
+      }
+    }
+    return rEmptyFunctionDeclarations.build();
+  }
+
   public static ImmutableList<LineOfCode> buildGlobalDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
@@ -109,11 +130,17 @@ public class LineOfCodeUtil {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
       for (CVariableDeclaration localDeclaration : localDeclarations) {
         if (!PthreadUtil.isPthreadObjectType(localDeclaration.getType())) {
-          if (localDeclaration.getInitializer() == null) {
+          CInitializer initializer = localDeclaration.getInitializer();
+          if (initializer == null) {
             // no initializer -> add declaration as is
             rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
-            // const CPAchecker_TMP variables are declared and initialized directly in the case
+
+          } else if (MPORUtil.isFunctionPointer(localDeclaration.getInitializer())) {
+            // function pointer initializer -> add declaration as is
+            rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
+
           } else if (!MPORUtil.isConstCpaCheckerTmp(localDeclaration)) {
+            // const CPAchecker_TMP variables are declared and initialized directly in the case.
             // everything else: add declaration without initializer (and assign later in cases)
             rLocalDeclarations.add(
                 LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));

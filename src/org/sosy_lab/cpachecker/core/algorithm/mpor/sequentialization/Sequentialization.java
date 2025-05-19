@@ -177,7 +177,8 @@ public class Sequentialization {
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
-    // add function, struct, variable declarations in the order: global, local, parameters
+    rProgram.addAll(LineOfCodeUtil.buildEmptyInputFunctionDeclarations(substituteEdges.values()));
+    // add struct and variable declarations
     rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));

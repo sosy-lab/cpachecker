@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -54,7 +55,12 @@ public class SubstituteEdgeBuilder {
               threadEdge,
               substitute.isPresent()
                   ? substitute.orElseThrow()
-                  : new SubstituteEdge(cfaEdge, threadEdge, ImmutableSet.of(), ImmutableSet.of()));
+                  : new SubstituteEdge(
+                      cfaEdge,
+                      threadEdge,
+                      ImmutableSet.of(),
+                      ImmutableSet.of(),
+                      ImmutableSet.of()));
         }
       }
     }
@@ -92,6 +98,7 @@ public class SubstituteEdgeBuilder {
                     pThreadEdge,
                     // no global accesses needed, global declarations are outside main()
                     ImmutableSet.of(),
+                    ImmutableSet.of(),
                     ImmutableSet.of()));
           } else {
             CVariableDeclaration declarationSubstitute =
@@ -104,7 +111,8 @@ public class SubstituteEdgeBuilder {
                     substituteDeclarationEdge(declarationEdge, declarationSubstitute),
                     pThreadEdge,
                     ImmutableSet.of(),
-                    accessedGlobalVariables));
+                    accessedGlobalVariables,
+                    ImmutableSet.of()));
           }
         }
       }
@@ -112,87 +120,104 @@ public class SubstituteEdgeBuilder {
     } else if (cfaEdge instanceof CAssumeEdge assume) {
       ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
       ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
       CExpression substituteAssumption =
           pSubstitution.substitute(
               assume.getExpression(),
               callContext,
               false,
+              false,
               Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables));
+              Optional.of(accessedGlobalVariables),
+              accessedFunctionPointers);
       return Optional.of(
           new SubstituteEdge(
               substituteAssumeEdge(assume, substituteAssumption),
               pThreadEdge,
               writtenGlobalVariables.build(),
-              accessedGlobalVariables.build()));
+              accessedGlobalVariables.build(),
+              accessedFunctionPointers.build()));
 
     } else if (cfaEdge instanceof CStatementEdge statement) {
       ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
       ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
       CStatement substituteStatement =
           pSubstitution.substitute(
               statement.getStatement(),
               callContext,
               Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables));
+              Optional.of(accessedGlobalVariables),
+              accessedFunctionPointers);
       return Optional.of(
           new SubstituteEdge(
               substituteStatementEdge(statement, substituteStatement),
               pThreadEdge,
               writtenGlobalVariables.build(),
-              accessedGlobalVariables.build()));
+              accessedGlobalVariables.build(),
+              accessedFunctionPointers.build()));
 
     } else if (cfaEdge instanceof CFunctionSummaryEdge functionSummary) {
       // only substitute assignments (e.g. CPAchecker_TMP = func();)
       if (functionSummary.getExpression() instanceof CFunctionCallAssignmentStatement assignment) {
         ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
         ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+        ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers =
+            ImmutableSet.builder();
         CStatement substituteAssignment =
             pSubstitution.substitute(
                 assignment,
                 callContext,
                 Optional.of(writtenGlobalVariables),
-                Optional.of(accessedGlobalVariables));
+                Optional.of(accessedGlobalVariables),
+                accessedFunctionPointers);
         return Optional.of(
             new SubstituteEdge(
                 substituteFunctionSummaryEdge(functionSummary, substituteAssignment),
                 pThreadEdge,
                 writtenGlobalVariables.build(),
-                accessedGlobalVariables.build()));
+                accessedGlobalVariables.build(),
+                accessedFunctionPointers.build()));
       }
 
     } else if (cfaEdge instanceof CFunctionCallEdge functionCall) {
       // CFunctionCallEdges also assign CPAchecker_TMPs -> handle assignment statements here too
       ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
       ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
       CStatement substituteFunctionCall =
           pSubstitution.substitute(
               functionCall.getFunctionCall(),
               callContext,
               Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables));
+              Optional.of(accessedGlobalVariables),
+              accessedFunctionPointers);
       return Optional.of(
           new SubstituteEdge(
               substituteFunctionCallEdge(functionCall, (CFunctionCall) substituteFunctionCall),
               pThreadEdge,
               writtenGlobalVariables.build(),
-              accessedGlobalVariables.build()));
+              accessedGlobalVariables.build(),
+              accessedFunctionPointers.build()));
 
     } else if (cfaEdge instanceof CReturnStatementEdge returnStatement) {
       ImmutableSet.Builder<CVariableDeclaration> writtenGlobalVariables = ImmutableSet.builder();
       ImmutableSet.Builder<CVariableDeclaration> accessedGlobalVariables = ImmutableSet.builder();
+      ImmutableSet.Builder<CFunctionDeclaration> accessedFunctionPointers = ImmutableSet.builder();
       CReturnStatement substituteReturnStatement =
           pSubstitution.substitute(
               returnStatement.getReturnStatement(),
               callContext,
               Optional.of(writtenGlobalVariables),
-              Optional.of(accessedGlobalVariables));
+              Optional.of(accessedGlobalVariables),
+              accessedFunctionPointers);
       return Optional.of(
           new SubstituteEdge(
               substituteReturnStatementEdge(returnStatement, substituteReturnStatement),
               pThreadEdge,
               writtenGlobalVariables.build(),
-              accessedGlobalVariables.build()));
+              accessedGlobalVariables.build(),
+              accessedFunctionPointers.build()));
     }
     return Optional.empty();
   }

@@ -16,6 +16,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -253,6 +257,19 @@ public final class MPORUtil {
     if (pCfaEdge instanceof CDeclarationEdge declarationEdge) {
       if (declarationEdge.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
         return isConstCpaCheckerTmp(variableDeclaration);
+      }
+    }
+    return false;
+  }
+
+  // Function Pointers =============================================================================
+
+  public static boolean isFunctionPointer(CInitializer pInitializer) {
+    if (pInitializer instanceof CInitializerExpression initializerExpression) {
+      if (initializerExpression.getExpression() instanceof CIdExpression idExpression) {
+        if (idExpression.getDeclaration() instanceof CFunctionDeclaration) {
+          return true;
+        }
       }
     }
     return false;

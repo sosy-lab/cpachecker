@@ -135,8 +135,10 @@ public class MPORSubstitutionBuilder {
                     initializerExpression.getExpression(),
                     Optional.empty(),
                     false,
+                    false,
                     Optional.empty(),
-                    Optional.empty()));
+                    Optional.empty(),
+                    ImmutableSet.builder()));
         CVariableDeclaration finalSub =
             substituteVariableDeclaration(variableDeclaration, initExprSub);
         rFinalSubstitutes.put(finalSub, idExpression);
@@ -350,8 +352,10 @@ public class MPORSubstitutionBuilder {
                       initializerExpression.getExpression(),
                       callContext,
                       false,
+                      false,
                       Optional.empty(),
-                      Optional.of(accessedGlobalVariables)));
+                      Optional.of(accessedGlobalVariables),
+                      ImmutableSet.builder()));
           CVariableDeclaration finalSubstitute =
               substituteVariableDeclaration(substituteDeclaration, initializerSubstitute);
           substitutes.put(callContext, SeqExpressionBuilder.buildIdExpression(finalSubstitute));

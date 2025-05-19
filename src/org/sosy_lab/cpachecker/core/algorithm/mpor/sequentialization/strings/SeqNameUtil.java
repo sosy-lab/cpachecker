@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.nio.file.Path;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -107,6 +108,15 @@ public class SeqNameUtil {
         + pCallNumber
         + createVariableId()
         + pParameterDeclaration.getName();
+  }
+
+  public static String buildParameterNameForEmptyFunctionDefinition(
+      CFunctionDeclaration pFunctionDeclaration, int pParameterNumber) {
+
+    return pFunctionDeclaration.getOrigName()
+        + SeqSyntax.UNDERSCORE
+        + SeqToken.PARAMETER
+        + pParameterNumber;
   }
 
   public static String buildMainFunctionArgName(

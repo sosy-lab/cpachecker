@@ -17,7 +17,9 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
@@ -137,6 +139,38 @@ public class SeqStringUtil {
 
   public static String hexFormat(int pLength, BigInteger pBigInteger) {
     return String.format("%0" + pLength + "x", pBigInteger);
+  }
+
+  public static String buildEmptyFunctionDefinitionFromDeclaration(
+      CFunctionDeclaration pDeclaration) {
+
+    StringBuilder declaration = new StringBuilder();
+    declaration.append(pDeclaration.getType().getReturnType().toASTString(""));
+    declaration.append(SeqSyntax.SPACE);
+    declaration.append(pDeclaration.getOrigName());
+    // add parameters either with original or generic name, if declaration without names
+    declaration.append(SeqSyntax.BRACKET_LEFT);
+    for (int i = 0; i < pDeclaration.getParameters().size(); i++) {
+      CParameterDeclaration parameter = pDeclaration.getParameters().get(i);
+      declaration
+          .append(parameter.getType().getCanonicalType().toASTString(""))
+          .append(SeqSyntax.SPACE);
+      if (parameter.getName().isEmpty()) {
+        declaration.append(
+            SeqNameUtil.buildParameterNameForEmptyFunctionDefinition(pDeclaration, i));
+      } else {
+        declaration.append(parameter.getOrigName());
+      }
+      if (i != pDeclaration.getParameters().size() - 1) {
+        declaration.append(SeqSyntax.COMMA).append(SeqSyntax.SPACE);
+      }
+    }
+    declaration.append(SeqSyntax.BRACKET_RIGHT);
+    // no body, only {}. the parser still accepts it, even with e.g. int return type
+    declaration.append(SeqSyntax.SPACE);
+    declaration.append(SeqSyntax.CURLY_BRACKET_LEFT);
+    declaration.append(SeqSyntax.CURLY_BRACKET_RIGHT);
+    return declaration.toString();
   }
 
   /**
