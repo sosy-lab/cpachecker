@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -162,7 +163,7 @@ public class TaintAnalysisUtils {
               if (value2.compareTo(BigDecimal.ZERO) == 0) {
                 throw new ArithmeticException("Division by zero.");
               }
-              yield value1.divide(value2, BigDecimal.ROUND_HALF_UP);
+              yield value1.divide(value2, MathContext.DECIMAL128);
             }
             default -> throw new UnsupportedOperationException("Unsupported operator: " + operator);
           };
