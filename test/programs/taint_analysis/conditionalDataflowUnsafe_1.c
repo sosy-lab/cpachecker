@@ -27,13 +27,15 @@ int main() {
         z = x; // Tainted data flows into z
     }
 
-    // equivalent to ( see taintByConditionalTernaryOperator*.c):
-    // y = condition ? y = x : y = y;
-    // z = condition ? z = x : z = z;
+    // equivalent to (see taintByConditionalTernaryOperator*.c):
+    // y = condition ? x : y;
+    // z = condition ? x : z;
 
-    // At this point either y or z is tainted
+    // By uncertainty about the truth value of the condition, both branches should be explored.
+    // w contains then the taint status of the union of the taint status of y and z.
+    // Therefore, w is expected to be tainted
     int w = y + z;
 
-    // Property violation expected
+    // Information-flow violation expected
     __VERIFIER_is_public(w, 1);
 }

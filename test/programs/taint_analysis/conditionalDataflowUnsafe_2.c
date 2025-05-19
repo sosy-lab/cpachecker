@@ -26,7 +26,7 @@ int main() {
     }
 
     // equivalent to
-    // z = condition ? z = x : z = y;
+    // z = condition ? x : y;
 
     // Property violation expected
     __VERIFIER_is_public(z, 1);
