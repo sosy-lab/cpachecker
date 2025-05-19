@@ -69,7 +69,25 @@ public class TaintAnalysisState
 
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
-    return other.getTaintedVariables().keySet().containsAll(this.taintedVariables.keySet());
+    // Verify that all tainted variables in "this" exist in "other" with the same values
+    boolean otherContainsThisTainted =
+        this.taintedVariables.entrySet().stream()
+            .allMatch(
+                entry ->
+                    other.getTaintedVariables().containsKey(entry.getKey())
+                        && Objects.equals(
+                            other.getTaintedVariables().get(entry.getKey()), entry.getValue()));
+
+    // Verify that all untainted variables in "this" exist in "other" with the same values
+    boolean otherContainsThisUntainted =
+        this.untaintedVariables.entrySet().stream()
+            .allMatch(
+                entry ->
+                    other.getUntaintedVariables().containsKey(entry.getKey())
+                        && Objects.equals(
+                            other.getUntaintedVariables().get(entry.getKey()), entry.getValue()));
+
+    return otherContainsThisTainted && otherContainsThisUntainted;
   }
 
   @Override
