@@ -15,7 +15,5 @@ int main() {
     int z = y < 0 ? x : y;
 
     // Property violation expected because the tainted branch z = x is not reachable
-    __VERIFIER_is_public(z, 1);
-
-    // TODO: The analysis wrongly explores the unreachable branch
+    __VERIFIER_is_public(z, 0);
 }

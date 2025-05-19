@@ -13,5 +13,5 @@ int main() {
     int y = 1;
 
     // No property violation expected because the tainted branch is not reachable
-    __VERIFIER_is_public(y > 0 ? x : y, 0);
+    __VERIFIER_is_public(y < 0 ? x : y, 1);
 }
