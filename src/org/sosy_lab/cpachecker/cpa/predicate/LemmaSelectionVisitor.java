@@ -35,6 +35,13 @@ public class LemmaSelectionVisitor extends DefaultFormulaVisitor<ImmutableSet<Bo
     for (AbstractionLemma lemma : abstractionLemmas) {
       if (functionDeclaration.getName().equals(lemma.getIdentifier())) {
         result.addAll(lemma.getFormulas());
+        // Map the variables to each other here and just append them?
+        // eg A = a
+        LemmaVariableVisitor variableVisitor =
+            new LemmaVariableVisitor(functionDeclaration.getName(), args, fmgr);
+        for (BooleanFormula formula : lemma.getFormulas()) {
+          result.addAll(fmgr.visit(formula, variableVisitor));
+        }
       }
       for (Formula arg : args) {
         result.addAll(fmgr.visit(arg, this));

@@ -424,6 +424,9 @@ public final class PredicateAbstractionManager {
       relevantLemmas.addAll(fmgr.visit(predicate.getSymbolicAtom(), lemmaSelectionVisitor));
     }
 
+    BooleanFormula lemmaFormula = bfmgr.and(relevantLemmas.build());
+    primaryFormula = bfmgr.and(primaryFormula, lemmaFormula);
+
     if (fmgr.useBitwiseAxioms()) {
       for (AbstractionPredicate predicate : remainingPredicates) {
         primaryFormula =
