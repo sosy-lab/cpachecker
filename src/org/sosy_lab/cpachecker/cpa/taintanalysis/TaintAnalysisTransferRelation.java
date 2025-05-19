@@ -251,8 +251,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   binaryExpression, pState.getTaintedVariables(), pState.getUntaintedVariables());
 
       if (evaluatedCondition != null) {
-        boolean conditionHolds =
-            evaluatedCondition.getValue().equals(BigInteger.ONE);
+        boolean conditionHolds = evaluatedCondition.getValue().equals(BigInteger.ONE);
 
         // flip the truth value of the evaluated condition when we are analyzing the negation
         conditionHolds = pCfaEdge.getTruthAssumption() == conditionHolds;
