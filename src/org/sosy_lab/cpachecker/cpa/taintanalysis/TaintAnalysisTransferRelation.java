@@ -347,7 +347,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     // If the function call has a return value, track it
     if (returnVariableOpt.isPresent()) {
-      CVariableDeclaration returnVariable = returnVariableOpt.get();
+      CVariableDeclaration returnVariable = returnVariableOpt.orElseThrow();
       CIdExpression returnVariableAsCIdExpr =
           TaintAnalysisUtils.getCidExpressionForCVarDec(returnVariable);
 
@@ -397,9 +397,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     Optional<CAssignment> returnStatementAsAssignment =
         pCfaEdge.getReturnStatement().asAssignment();
-    CIdExpression lhs = (CIdExpression) returnStatementAsAssignment.get().getLeftHandSide();
+    CIdExpression lhs = (CIdExpression) returnStatementAsAssignment.orElseThrow().getLeftHandSide();
     CExpression returnExpression =
-        (CExpression) returnStatementAsAssignment.get().getRightHandSide();
+        (CExpression) returnStatementAsAssignment.orElseThrow().getRightHandSide();
 
     boolean returnExpressionIsTainted =
         TaintAnalysisUtils.getAllVarsAsCExpr(returnExpression).stream()
