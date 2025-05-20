@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.collect.ImmutableSet;
+import org.checkerframework.checker.units.qual.A;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AbstractionLemma {
@@ -18,6 +19,12 @@ public class AbstractionLemma {
   public AbstractionLemma(String pIdentifier, Iterable<BooleanFormula> pFormulas) {
     identifier = pIdentifier;
     formulas = ImmutableSet.copyOf(pFormulas);
+  }
+
+  public AbstractionLemma addFormulas(Iterable<BooleanFormula> pFormulas) {
+    ImmutableSet.Builder<BooleanFormula> newFormulas = ImmutableSet.builder();
+    newFormulas.addAll(this.formulas).addAll(pFormulas);
+    return new AbstractionLemma(this.identifier, newFormulas.build());
   }
 
   public String getIdentifier() {

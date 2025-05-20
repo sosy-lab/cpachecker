@@ -418,14 +418,14 @@ public final class PredicateAbstractionManager {
     // TODO: get relevant lemmas based on relevant predicates replace the variable
     // then append them to the primary formula
     LemmaSelectionVisitor lemmaSelectionVisitor = new LemmaSelectionVisitor(pLemmas, fmgr);
-    ImmutableList.Builder<BooleanFormula> relevantLemmas = ImmutableList.builder();
+    ImmutableList.Builder<AbstractionLemma> relevantLemmas = ImmutableList.builder();
 
     for (AbstractionPredicate predicate : remainingPredicates) {
       relevantLemmas.addAll(fmgr.visit(predicate.getSymbolicAtom(), lemmaSelectionVisitor));
     }
 
-    BooleanFormula lemmaFormula = bfmgr.and(relevantLemmas.build());
-    primaryFormula = bfmgr.and(primaryFormula, lemmaFormula);
+    // BooleanFormula lemmaFormula = bfmgr.and(relevantLemmas.build());
+    // primaryFormula = bfmgr.and(primaryFormula, lemmaFormula);
 
     if (fmgr.useBitwiseAxioms()) {
       for (AbstractionPredicate predicate : remainingPredicates) {
@@ -527,7 +527,10 @@ public final class PredicateAbstractionManager {
 
     } else {
       // Boolean Abstraction
-      abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
+      abs =
+          rmgr.makeAnd(
+              abs,
+              computeAbstraction(f, remainingPredicates, relevantLemmas.build(), instantiator));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
@@ -846,6 +849,14 @@ public final class PredicateAbstractionManager {
     return region;
   }
 
+  private Region computeAbstraction(
+      final BooleanFormula f,
+      final Collection<AbstractionPredicate> remainingPredicates,
+      final Function<BooleanFormula, BooleanFormula> instantiator)
+      throws SolverException, InterruptedException {
+    return computeAbstraction(f, remainingPredicates, ImmutableSet.of(), instantiator);
+  }
+
   /**
    * Actually compute an abstraction of a formula, without fancy caching etc.
    *
@@ -859,6 +870,7 @@ public final class PredicateAbstractionManager {
   private Region computeAbstraction(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> remainingPredicates,
+      final Collection<AbstractionLemma> relevantLemmas,
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws SolverException, InterruptedException {
     Region abs = rmgr.makeTrue();
@@ -903,7 +915,9 @@ public final class PredicateAbstractionManager {
           try {
             abs =
                 rmgr.makeAnd(
-                    abs, computeBooleanAbstraction(thmProver, remainingPredicates, instantiator));
+                    abs,
+                    computeBooleanAbstraction(
+                        thmProver, remainingPredicates, relevantLemmas, instantiator));
           } finally {
             stats.booleanAbstractionTime.stop();
           }
@@ -1102,6 +1116,7 @@ public final class PredicateAbstractionManager {
   private Region computeBooleanAbstraction(
       final ProverEnvironment thmProver,
       final Collection<AbstractionPredicate> predicates,
+      final Collection<AbstractionLemma> pLemmas,
       final Function<BooleanFormula, BooleanFormula> instantiator)
       throws InterruptedException, SolverException {
 
@@ -1125,8 +1140,18 @@ public final class PredicateAbstractionManager {
       predVars.add(var);
     }
 
-    // the formula is (abstractionFormula & pathFormula & predDef)
+    BooleanFormula lemmaDef = bfmgr.makeTrue();
+    for (AbstractionLemma lemma : pLemmas) {
+      for (BooleanFormula formula : lemma.getFormulas()) {
+        BooleanFormula def = instantiator.apply(formula);
+        assert !bfmgr.isFalse(def);
+        lemmaDef = bfmgr.and(lemmaDef, def);
+      }
+    }
+
+    // the formula is (abstractionFormula & pathFormula & predDef & lemmaDef)
     thmProver.push(predDef);
+    thmProver.push(lemmaDef);
     AllSatCallbackImpl callback = new AllSatCallbackImpl();
     Region result = thmProver.allSat(callback, predVars);
 

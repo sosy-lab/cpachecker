@@ -19,7 +19,16 @@
           line: 18
           column: 3
           function: maxArray
-        value: "m == ACSL(MaxArray(arr,j-1))"
+        value: "m == ACSL(MaxArray(arr,j))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: maxArray.c
+          line: 18
+          column: 3
+          function: maxArray
+        value: "0<= j <= l"
         format: c_expression
 - entry_type: lemma_set
   declarations: 

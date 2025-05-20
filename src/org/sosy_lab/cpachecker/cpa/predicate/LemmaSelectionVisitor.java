@@ -18,7 +18,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 
-public class LemmaSelectionVisitor extends DefaultFormulaVisitor<ImmutableSet<BooleanFormula>> {
+public class LemmaSelectionVisitor extends DefaultFormulaVisitor<ImmutableSet<AbstractionLemma>> {
 
   private final ImmutableSet<AbstractionLemma> abstractionLemmas;
   private final FormulaManagerView fmgr;
@@ -29,19 +29,19 @@ public class LemmaSelectionVisitor extends DefaultFormulaVisitor<ImmutableSet<Bo
   }
 
   @Override
-  public ImmutableSet<BooleanFormula> visitFunction(
+  public ImmutableSet<AbstractionLemma> visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
-    ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
+    ImmutableSet.Builder<AbstractionLemma> result = ImmutableSet.builder();
     for (AbstractionLemma lemma : abstractionLemmas) {
       if (functionDeclaration.getName().equals(lemma.getIdentifier())) {
-        result.addAll(lemma.getFormulas());
         // Map the variables to each other here and just append them?
         // eg A = a
         LemmaVariableVisitor variableVisitor =
             new LemmaVariableVisitor(functionDeclaration.getName(), args, fmgr);
         for (BooleanFormula formula : lemma.getFormulas()) {
-          result.addAll(fmgr.visit(formula, variableVisitor));
+          lemma = lemma.addFormulas(fmgr.visit(formula, variableVisitor));
         }
+        result.add(lemma);
       }
       for (Formula arg : args) {
         result.addAll(fmgr.visit(arg, this));
@@ -51,7 +51,7 @@ public class LemmaSelectionVisitor extends DefaultFormulaVisitor<ImmutableSet<Bo
   }
 
   @Override
-  protected ImmutableSet<BooleanFormula> visitDefault(Formula pFormula) {
+  protected ImmutableSet<AbstractionLemma> visitDefault(Formula pFormula) {
     return ImmutableSet.of();
   }
 }
