@@ -569,19 +569,21 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       if ("__VERIFIER_set_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
-        if (params.size() == 2 && params.get(0) instanceof CIdExpression expr) {
-          // TODO: this already handles the tainting of arrays, but still check whether further
-          // cases are needed
-          try {
-            CExpression sanitizationFlag = params.get(1);
-            int varMustBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(sanitizationFlag);
-            int varIsCurrentlyTainted = taintedVariables.contains(expr) ? 1 : 0;
+        if (params.size() == 2) {
 
-            if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
-              killedVars.add(expr);
-            } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
-              generatedVars.add(expr);
-            }
+          CExpression exprToCheck = params.get(0);
+          CExpression newPublicState = params.get(1);
+
+          if (exprToCheck instanceof CIdExpression expr) {
+            try {
+              int varMustBePublic = TaintAnalysisUtils.evaluateExpressionToInteger(newPublicState);
+              int varIsCurrentlyTainted = taintedVariables.contains(expr) ? 1 : 0;
+
+              if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
+                killedVars.add(expr);
+              } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
+                generatedVars.add(expr);
+              }
 
             } catch (CPATransferException e) {
               throw new CPATransferException("Error processing setPublic call", e);
