@@ -16,10 +16,10 @@ int main() {
 // NOTE: Using conditional ternary operator the order matters:
 
     // No taint violation is expected here:
-    // the expression is tainted, we expect it to be tainted, and the tainted branch is explored first
+    // the expression is expected to be tainted ( here the tainted branch is explored first)
     __VERIFIER_is_public(x < 0 ? y : x, 0);
 
     // A taint violation is expected here:
-    // the expression is tainted, and we expect it to be tainted, but the non-tainted branch is explored first
-    __VERIFIER_is_public(x < 0 ? x : y, 0);
+    // the expression is expected to be tainted no matter the order of the branches (here the non-tainted branch is explored first)
+    __VERIFIER_is_public(x < 0 ? x : y, 1);
 }
