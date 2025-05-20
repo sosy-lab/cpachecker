@@ -259,10 +259,7 @@ public final class PredicateMapParser {
     }
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.of(),
-        localPredicates,
-        functionPredicates,
-        globalPredicates);
+        ImmutableSetMultimap.of(), localPredicates, functionPredicates, globalPredicates);
   }
 
   private @Nullable String convertFormula(final Converter converter, final String line) {

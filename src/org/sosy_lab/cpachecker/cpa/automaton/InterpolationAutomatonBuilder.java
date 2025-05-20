@@ -215,11 +215,7 @@ public class InterpolationAutomatonBuilder {
 
     AbstractionFormula abstractionResult =
         predicateAbstractionManager.buildAbstraction(
-            locationNode,
-            Optional.empty(),
-            pathFormula.getFormula(),
-            pathFormula,
-            pPredicates);
+            locationNode, Optional.empty(), pathFormula.getFormula(), pathFormula, pPredicates);
 
     logger.logf(Level.FINE, "Current Itp: %s", pCurrentInterpolant);
 

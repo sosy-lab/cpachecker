@@ -473,11 +473,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
       AbstractionFormula abstractionResult =
           predicateAbstractionManager.buildAbstraction(
-              pCfaNodes,
-              callstackWrapper,
-              abstractionFormula,
-              pathFormula,
-              relevantPreds);
+              pCfaNodes, callstackWrapper, abstractionFormula, pathFormula, relevantPreds);
 
       logger.logf(Level.FINER, "New abstraction formula: %s\n", abstractionFormula);
       printHoareTriple(relevantPreds, abstractionResult);
