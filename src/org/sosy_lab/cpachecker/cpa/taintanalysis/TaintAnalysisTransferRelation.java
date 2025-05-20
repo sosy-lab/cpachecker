@@ -411,7 +411,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
-        CIdExpression functionParameter = (TaintAnalysisUtils.getCidExpressionForCParDec(parmDec));
+        CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
         killedVars.add(functionParameter);
         values.put(functionParameter, null);
       }
