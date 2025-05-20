@@ -22,6 +22,7 @@ public class LemmaVariableEqualityVisitor extends DefaultFormulaVisitor<BooleanF
     fmgr = pFmgr;
   }
 
+  @Override
   public BooleanFormula visitFreeVariable(Formula f, String name) {
     return fmgr.makeEqual(predArg, f);
   }

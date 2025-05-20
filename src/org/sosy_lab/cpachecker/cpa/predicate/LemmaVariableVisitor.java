@@ -28,6 +28,7 @@ public class LemmaVariableVisitor extends DefaultFormulaVisitor<ImmutableSet<Boo
     fmgr = pFmgr;
   }
 
+  @Override
   public ImmutableSet<BooleanFormula> visitFunction(
       Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
     ImmutableSet.Builder<BooleanFormula> result = ImmutableSet.builder();
@@ -44,10 +45,6 @@ public class LemmaVariableVisitor extends DefaultFormulaVisitor<ImmutableSet<Boo
       result.addAll(fmgr.visit(arg, this));
     }
     return result.build();
-  }
-
-  public ImmutableSet<BooleanFormula> visitFreeVariable(Formula f, String name) {
-    return ImmutableSet.of();
   }
 
   @Override

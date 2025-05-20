@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.collect.ImmutableSet;
-import org.checkerframework.checker.units.qual.A;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AbstractionLemma {
