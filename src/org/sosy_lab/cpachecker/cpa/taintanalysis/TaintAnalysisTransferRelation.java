@@ -521,8 +521,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Map<CIdExpression, CExpression> values = new HashMap<>();
 
     if (pStatement instanceof CExpressionStatement) {
-      // TODO: implement, see taintByCommaOperator, line 19
-      logger.log(Level.INFO, "Statement is an expression statement");
+      newStates.add(generateNewState(pState, killedVars, generatedVars, values));
     }
 
     if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
@@ -584,10 +583,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               generatedVars.add(expr);
             }
 
-          } catch (CPATransferException e) {
-            throw new CPATransferException("Error processing setPublic call", e);
+            } catch (CPATransferException e) {
+              throw new CPATransferException("Error processing setPublic call", e);
+            }
           }
         }
+        newStates.add(generateNewState(pState, killedVars, generatedVars, values));
+
       } else if ("__VERIFIER_is_public".equals(functionName)) {
         List<CExpression> params = callExpr.getParameterExpressions();
 
