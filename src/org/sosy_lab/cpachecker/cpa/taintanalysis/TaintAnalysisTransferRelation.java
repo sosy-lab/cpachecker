@@ -605,147 +605,29 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           Set<CIdExpression> exprToCheckParams = TaintAnalysisUtils.getAllVarsAsCExpr(exprToCheck);
           expressionIsTainted = taintedVariables.stream().anyMatch(exprToCheckParams::contains);
 
-          if (exprToCheck instanceof CIdExpression) {
-            // E.g., __VERIFIER_is_public(x, 1);
-            logger.log(Level.INFO, "first parameter is a CIdExpression");
-          }
+          checkInformationFlowViolation(
+              pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
 
-          if (exprToCheck instanceof CBinaryExpression) {
-            // E.g., __VERIFIER_is_public(x + y * z, 1);
-            logger.log(Level.INFO, "first parameter is a CBinaryExpression");
-          }
+          if (!pState.isTarget()) {
+            newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
-          if (exprToCheck instanceof CArraySubscriptExpression) {
-            // E.g., __VERIFIER_is_public(d[i], 1);
-            // (Passing only d as the first arg --no index-- will be handled as a CIdExpression)
+          } else {
 
-            // When an array d is tainted, we taint all its components as well, and
-            // when one part of an array is tainted, we taint the whole array.
-            // I.e., isTainted(d) <==> isTainted(d[i]), for all 0 <= i < d.length.
-            logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
-          }
-
-          if (exprToCheck instanceof CUnaryExpression) {
-            // E.g., __VERIFIER_is_public(-x, 1);
-            // E.g., __VERIFIER_is_public(&x, 1);
-            logger.log(Level.INFO, "first parameter is a CUnaryExpression");
-          }
-
-          if (exprToCheck instanceof CPointerExpression) {
-            // E.g., __VERIFIER_is_public(*x, 1);
-            // TODO
-            logger.log(Level.INFO, "first parameter is a CPointerExpression");
-          }
-
-          if (exprToCheck instanceof CFieldReference fieldRef) {
-            // E.g., __VERIFIER_is_public(t.a, 1);
-            expressionIsTainted = taintedVariables.contains(fieldRef.getFieldOwner());
-          }
-
-          if (exprToCheck instanceof CCastExpression castExpr) {
-            // E.g., __VERIFIER_is_public((char) x, 1);
-            CExpression operand = castExpr.getOperand();
-
-            if (operand instanceof CIdExpression idExpr) {
-              expressionIsTainted = taintedVariables.contains(idExpr);
+            for (TaintAnalysisState successor : pState.getSuccessors()) {
+              if (successor.getPredecessors().size() == 2) {
+                pState.setViolatesProperty(false);
+                TaintAnalysisState newState =
+                    generateNewState(successor, killedVars, generatedVars, values);
+                return List.of(newState);
+              }
             }
 
-            if (operand instanceof CBinaryExpression binExpr) {
-
-              Set<CIdExpression> allVarsAsCExpr = TaintAnalysisUtils.getAllVarsAsCExpr(binExpr);
-
-              expressionIsTainted =
-                  allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
+            if (pState.getPredecessors().size() == 2) {
+              TaintAnalysisState newState =
+                  generateNewState(pState, killedVars, generatedVars, values);
+              newState.setViolatesProperty();
+              return List.of(newState);
             }
-
-            if (operand instanceof CTypeIdExpression) {
-              logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
-            }
-
-            if (operand instanceof CCharLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
-            }
-
-            if (operand instanceof CStringLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
-            }
-
-            if (operand instanceof CFloatLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
-            }
-
-            if (operand instanceof CIntegerLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
-            }
-
-            if (operand instanceof CUnaryExpression) {
-              logger.log(Level.INFO, "first parameter is a CUnaryExpression");
-            }
-
-            if (operand instanceof CPointerExpression) {
-              logger.log(Level.INFO, "first parameter is a CPointerExpression");
-            }
-
-            if (operand instanceof CFieldReference) {
-              logger.log(Level.INFO, "first parameter is a CFieldReference");
-            }
-
-            if (operand instanceof CArraySubscriptExpression) {
-              logger.log(Level.INFO, "first parameter is a CArraySubscriptExpression");
-            }
-
-            if (operand instanceof CStringLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
-            }
-
-            if (operand instanceof CFloatLiteralExpression) {
-              logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
-            }
-          }
-
-          if (exprToCheck instanceof CTypeIdExpression) {
-            // E.g., __VERIFIER_is_public(sizeof(int), 1);
-            // --> not reachable, cause CPAchecker evaluates the expression before passing
-            // it to the taint analysis
-            logger.log(Level.INFO, "first parameter is a CTypeIdExpression");
-          }
-
-          if (exprToCheck instanceof CCharLiteralExpression) {
-            // E.g., __VERIFIER_is_public('a', 1);
-            // Will never be tainted
-            logger.log(Level.INFO, "first parameter is a CCharLiteralExpression");
-          }
-
-          if (exprToCheck instanceof CStringLiteralExpression) {
-            // E.g., __VERIFIER_is_public("hello", 1);
-            // Will never be tainted
-            logger.log(Level.INFO, "first parameter is a CStringLiteralExpression");
-          }
-
-          if (exprToCheck instanceof CFloatLiteralExpression) {
-            // E.g., __VERIFIER_is_public(5.3, 1);
-            // Will never be tainted
-            logger.log(Level.INFO, "first parameter is a CFloatLiteralExpression");
-          }
-
-          if (exprToCheck instanceof CIntegerLiteralExpression) {
-            // E.g., __VERIFIER_is_public(5, 1);
-            // Will never be tainted
-            logger.log(Level.INFO, "first parameter is a CIntegerLiteralExpression");
-          }
-
-          TaintAnalysisState newErrorState =
-              checkInformationFlowViolation(
-                  pState,
-                  pCfaEdge,
-                  expectedPublicity,
-                  expressionIsTainted,
-                  exprToCheck,
-                  killedVars,
-                  generatedVars);
-
-          if (newErrorState != null) {
-            return newErrorState;
           }
         }
       } else {
