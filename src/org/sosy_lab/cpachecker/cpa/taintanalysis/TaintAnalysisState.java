@@ -199,6 +199,10 @@ public class TaintAnalysisState
     violatesProperty = true;
   }
 
+  public void setViolatesProperty(boolean pViolatesProperty) {
+    violatesProperty = pViolatesProperty;
+  }
+
   @Override
   public String getCPAName() {
     return "TaintAnalysisCPA";
