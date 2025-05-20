@@ -201,7 +201,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       case StatementEdge -> {
         if (cfaEdge instanceof CStatementEdge statementEdge) {
 
-          return Collections.singleton(handleStatementEdge(state, statementEdge));
+          return Collections.checkedList(
+              handleStatementEdge(state, statementEdge), TaintAnalysisState.class);
         } else {
           throw new AssertionError("unknown edge");
         }
@@ -509,12 +510,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private TaintAnalysisState handleStatementEdge(TaintAnalysisState pState, CStatementEdge pCfaEdge)
-      throws CPATransferException {
+  private List<TaintAnalysisState> handleStatementEdge(
+      TaintAnalysisState pState, CStatementEdge pCfaEdge) throws CPATransferException {
+
     Set<CIdExpression> killedVars = new HashSet<>();
     Set<CIdExpression> generatedVars = new HashSet<>();
     CStatement pStatement = pCfaEdge.getStatement();
     Set<CIdExpression> taintedVariables = pState.getTaintedVariables().keySet();
+    List<TaintAnalysisState> newStates = new ArrayList<>();
+    Map<CIdExpression, CExpression> values = new HashMap<>();
 
     if (pStatement instanceof CExpressionStatement) {
       // TODO: implement, see taintByCommaOperator, line 19
@@ -529,8 +533,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       boolean taintedVarsRHS =
           allVarsAsCExpr.stream().anyMatch(var -> taintedVariables.contains(var));
-
-      Map<CIdExpression, CExpression> values = new HashMap<>();
 
       if (lhs instanceof CIdExpression variableLHS) {
         // If a LHS is a variable and the RHS contains an expression with a tainted variable, also
@@ -558,8 +560,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         logger.log(
             Level.INFO, "lhs is not an instance of CIdExpression or CArraySubscriptExpression");
       }
-
-      return generateNewState(pState, killedVars, generatedVars, values);
+      newStates.add(generateNewState(pState, killedVars, generatedVars, values));
     }
 
     if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
@@ -770,6 +771,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             break;
           }
         }
+        newStates.add(generateNewState(pState, killedVars, generatedVars, values));
       }
     }
 
@@ -803,11 +805,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           killedVars.add(variableLHS);
         }
       }
-      // TODO: Add more instance-cases, if necessary
+      newStates.add(generateNewState(pState, killedVars, generatedVars, values));
     }
 
-    Map<CIdExpression, CExpression> values = new HashMap<>();
-    return generateNewState(pState, killedVars, generatedVars, values);
+    return newStates;
   }
 
   @Nullable
