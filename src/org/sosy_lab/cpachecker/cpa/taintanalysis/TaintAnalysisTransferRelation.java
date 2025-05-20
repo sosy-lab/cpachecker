@@ -697,15 +697,12 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return newStates;
   }
 
-  @Nullable
-  private TaintAnalysisState checkInformationFlowViolation(
+  private void checkInformationFlowViolation(
       TaintAnalysisState pState,
       CStatementEdge pCfaEdge,
       int expectedPublicity,
       boolean isCurrentlyTainted,
-      CExpression firstArg,
-      Set<CIdExpression> killedVars,
-      Set<CIdExpression> generatedVars) {
+      CExpression firstArg) {
 
     if (expectedPublicity == 1 && isCurrentlyTainted) {
       logger.logf(
@@ -713,10 +710,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           "Assertion violation at %s: Array '%s' was expected to be public but is" + " tainted.",
           pCfaEdge.getFileLocation(),
           firstArg.toASTString());
-      Map<CIdExpression, CExpression> values = new HashMap<>();
-      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
-      newState.setViolatesProperty();
-      return newState;
+      pState.setViolatesProperty();
     }
     if (expectedPublicity == 0 && !isCurrentlyTainted) {
       logger.logf(
@@ -724,13 +718,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           "Assertion violation at %s: Array '%s' was expected to be tainted but is" + " public.",
           pCfaEdge.getFileLocation(),
           firstArg.toASTString());
-
-      Map<CIdExpression, CExpression> values = new HashMap<>();
-      TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
-      newState.setViolatesProperty();
-      return newState;
+      pState.setViolatesProperty();
     }
-    return null;
   }
 
   private boolean isSource(CFunctionCall pStatement) {
