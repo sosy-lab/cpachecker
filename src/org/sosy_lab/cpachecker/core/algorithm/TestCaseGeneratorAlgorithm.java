@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,8 +27,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -214,7 +220,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  runExtractorAlgo(pReached, reachedState);
+                  runExtractorAlgo(pReached, (ARGState) reachedState, cexInfo);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -283,38 +289,64 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // eReached is a single arg state thats the starting point of the extraction value analysis
   // after the algo is done, the newly reached states are added to this variable
   private void runExtractorAlgo(
-      final ReachedSet eReached,
-      AbstractState reachedState) {// not as its own class, changes in the target edges need to be done in TCGA
+      final ReachedSet pReached,
+      ARGState reachedState,
+      CounterexampleInfo cexInfo) {// not as its own class, changes in the target edges need to be done in TCGA
 
-    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
+//    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
+//    SingletonPrecision.getInstance());
+//    ReachedSet eReached = null;
+//    eReached = factory.createReachedSet(cpa);
+//    eReached.add(reachedState, isPrecise())
+//      //missing cfa, factory, intitializeReachedSet method
+//  removeAll
+
+
+    getAssignments(reachedState);
+//    pReached.add(reachedState, pReached.getPrecision(reachedState));
 //
 //  status = extractorAlgo.run(eReached);
 // todo add try catch finaly block
 //
 //    todo call processGoalState() for all elements of eReached that are testTargets
+//    todo optimisation: do not call for the first element of eReached, as that got already covered
 //  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
-    //processGoalState(reachedState);
+    processGoalState(reachedState);
   }
 
-  private void processGoalState(AbstractState nextGoalState) {
+  private void getAssignments(ARGState reachedState) {
+    // extract all variable assignments from reached state
+    CFAPathWithAssumptions reachStateAssignments =
+        reachedState.getCounterexampleInformation().orElseThrow().getCFAPathWithAssignments();
+
+    CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(8);
+    ImmutableList<AExpressionStatement> stateExpStmts =  edgeWithAssignment.getExpStmts();
+    logger.log(
+        Level.FINE,
+        "Extractor: reachedState Assignments"
+            + stateExpStmts);
+  }
+
+  // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
+  // if so, the goal is marked as covered
+  private void processGoalState(ARGState nextGoalState) {
     if (nextGoalState == null) {
       return;
     }
-    ARGState argState = (ARGState) nextGoalState;
-    ARGState parentArgState = getParentArgState(argState);
-    CFAEdge targetEdge = parentArgState.getEdgeToChild(argState);
+    ARGState parentArgState = getParentArgState(nextGoalState);
+    CFAEdge targetEdge = parentArgState.getEdgeToChild(nextGoalState);
     if (targetEdge != null) {
       if (testTargets.contains(targetEdge)) {
         logger.log(Level.FINE, "Removing test target: " + targetEdge);
         testTargets.remove(targetEdge);
       } else {
-        logger.log( //todo remove this logger message?
+        logger.log(
             Level.FINE,
-            "Found test target is not in provided set of test targets or that was already covered:"
+            "Extractor: Ignoring target as it is not in set of test targets."
                 + targetEdge);
       }
-    } else { //todo update logger?
-      logger.log(Level.FINE, "Target edge was null.");
+    } else {
+      logger.log(Level.FINE, "Extractor: Target edge was null.");
     }
   }
 
