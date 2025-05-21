@@ -244,18 +244,34 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorSafe_UnreachableCond() throws Exception {
+  public void testTernaryOperatorSafe_unreachableBranch_1() throws Exception {
     TestResults results =
         runCPAchecker(
-            "taintByConditionalTernaryOperatorSafe_UnreachableCond.c", "c_infix_operators");
+            "ternaryOperatorSafe_unreachableBranch_1.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe_UnreachableCond() throws Exception {
+  public void testTernaryOperatorSafe_unreachableBranch_2() throws Exception {
     TestResults results =
         runCPAchecker(
-            "taintByConditionalTernaryOperatorUnsafe_UnreachableCond.c", "c_infix_operators");
+            "ternaryOperatorSafe_unreachableBranch_2.c", "c_infix_operators");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testTernaryOperatorUnsafe_unreachableBranch_1() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "ternaryOperatorUnsafe_unreachableBranch_1.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTernaryOperatorUnsafe_unreachableBranch_2() throws Exception {
+    TestResults results =
+        runCPAchecker(
+            "ternaryOperatorUnsafe_unreachableBranch_2.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
