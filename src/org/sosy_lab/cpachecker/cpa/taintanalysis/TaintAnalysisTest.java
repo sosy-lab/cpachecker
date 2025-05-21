@@ -246,32 +246,28 @@ public class TaintAnalysisTest {
   @Test
   public void testTernaryOperatorSafe_unreachableBranch_1() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "ternaryOperatorSafe_unreachableBranch_1.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorSafe_unreachableBranch_1.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTernaryOperatorSafe_unreachableBranch_2() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "ternaryOperatorSafe_unreachableBranch_2.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorSafe_unreachableBranch_2.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
   @Test
   public void testTernaryOperatorUnsafe_unreachableBranch_1() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "ternaryOperatorUnsafe_unreachableBranch_1.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_unreachableBranch_1.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTernaryOperatorUnsafe_unreachableBranch_2() throws Exception {
     TestResults results =
-        runCPAchecker(
-            "ternaryOperatorUnsafe_unreachableBranch_2.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_unreachableBranch_2.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
@@ -453,13 +449,15 @@ public class TaintAnalysisTest {
 
   @Test
   public void testOverApproximationLeadsToFalsePositiveSafe() throws Exception {
-    TestResults results = runCPAchecker("overApproximationLeadsToFalsePositiveSafe.c", "");
+    TestResults results =
+        runCPAchecker("overApproximationLeadsToFalsePositiveSafe.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
   @Test
   public void testOverApproximationLeadsToFalsePositiveUnsafe() throws Exception {
-    TestResults results = runCPAchecker("overApproximationLeadsToFalsePositiveUnsafe.c", "");
+    TestResults results =
+        runCPAchecker("overApproximationLeadsToFalsePositiveUnsafe.c", "extern_benchmarks");
     results.assertIsUnsafe();
   }
 
@@ -625,6 +623,79 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
+  @Test
+  public void testAssignSafe() throws Exception {
+    TestResults results = runCPAchecker("assignSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleIfSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleIfSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleIfSafe_2() throws Exception {
+    TestResults results = runCPAchecker("simpleIfSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleIfSafe_3() throws Exception {
+    TestResults results = runCPAchecker("simpleIfSafe_3.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleIfSafe_4() throws Exception {
+    TestResults results = runCPAchecker("simpleIfSafe_4.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testInnerIfSafe_1() throws Exception {
+    TestResults results = runCPAchecker("innerIfSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_1_1() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_1_1.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_1_2() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_1_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_1_3() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_1_3.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_2_1() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_2_1.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_2_2() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_2_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleIfUnsafe_2_3() throws Exception {
+    TestResults results = runCPAchecker("simpleIfUnsafe_2_3.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
   @Test
   public void testWhileLoopSafe_1() throws Exception {
     TestResults results = runCPAchecker("whileLoopSafe_1.c", "");
@@ -635,5 +706,107 @@ public class TaintAnalysisTest {
   public void testWhileLoopUnsafe_1() throws Exception {
     TestResults results = runCPAchecker("whileLoopUnsafe_1.c", "");
     results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testSimpleWhileLoopSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleWhileLoopSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleWhileLoopSafe_2() throws Exception {
+    TestResults results = runCPAchecker("simpleWhileLoopSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimpleWhileLoopSafe_3() throws Exception {
+    TestResults results = runCPAchecker("simpleWhileLoopSafe_3.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleWhileLoopSafe_4() throws Exception {
+    TestResults results = runCPAchecker("simpleWhileLoopSafe_4.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testInnerWhileLoopSafe_1() throws Exception {
+    TestResults results = runCPAchecker("innerWhileLoopSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testTrippleWhileLoopSafe_1() throws Exception {
+    TestResults results = runCPAchecker("trippleWhileLoopSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testCondTaintNotPropagatedSafe_1() throws Exception {
+    TestResults results = runCPAchecker("condTaintNotPropagatedSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopPostTaintSafe() throws Exception {
+    TestResults results = runCPAchecker("whileLoopPostTaintSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleForLoop_1() throws Exception {
+    TestResults results = runCPAchecker("simpleForLoop_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimpleCondForLoopSafe() throws Exception {
+    TestResults results = runCPAchecker("simpleCondForLoopSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testAllLoopsSafe_1() throws Exception {
+    TestResults results = runCPAchecker("allLoopsSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleInterproceduralSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleInterproceduralSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleInterproceduralSafe_2() throws Exception {
+    TestResults results = runCPAchecker("simpleInterproceduralSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleInterproceduralSafe_multipleFuncs() throws Exception {
+    TestResults results =
+        runCPAchecker("simpleInterproceduralSafe_multipleFuncs.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testPointerAssignmentSafe() throws Exception {
+    TestResults results = runCPAchecker("pointerAssignmentSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleCastSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleCastSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
   }
 }

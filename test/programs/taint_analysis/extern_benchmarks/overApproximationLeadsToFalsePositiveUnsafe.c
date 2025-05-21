@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/2.ta_sizeof_alignof.c
+// Benchmark case extracted from project https://github.com/dceara/tanalysis/blob/master/tanalysis/tests/func_tests/
 
 // We use an extern function sizeOf to, conceptually, emulate the original sizeof.
 // The actual functionality of sizeof is not relevant here, but the information flow is.
