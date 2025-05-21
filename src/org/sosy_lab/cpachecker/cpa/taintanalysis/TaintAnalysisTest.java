@@ -237,9 +237,9 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorSafe() throws Exception {
+  public void testTernaryOperatorSafe_bothBranchesReachable() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorSafe.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorSafe_bothBranchesReachable.c", "c_infix_operators");
     results.assertIsSafe();
   }
 
@@ -260,30 +260,30 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe_1_1() throws Exception {
+  public void testTernaryOperatorUnsafe_bothBranchesReachable_1_1() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_1_1.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_bothBranchesReachable_1_1.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe_1_2() throws Exception {
+  public void testTernaryOperatorUnsafe_bothBranchesReachable_1_2() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_1_2.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_bothBranchesReachable_1_2.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe_2() throws Exception {
+  public void testTernaryOperatorUnsafe_bothBranchesReachable_2() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_2.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_bothBranchesReachable_2.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
   @Test
-  public void testTaintByConditionalTernaryOperatorUnsafe_3() throws Exception {
+  public void testTernaryOperatorUnsafe_bothBranchesReachable_3() throws Exception {
     TestResults results =
-        runCPAchecker("taintByConditionalTernaryOperatorUnsafe_3.c", "c_infix_operators");
+        runCPAchecker("ternaryOperatorUnsafe_bothBranchesReachable_3.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 
