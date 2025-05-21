@@ -319,12 +319,23 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CFAPathWithAssumptions reachStateAssignments =
         reachedState.getCounterexampleInformation().orElseThrow().getCFAPathWithAssignments();
 
-    CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(8);
+    CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(13);
     ImmutableList<AExpressionStatement> stateExpStmts =  edgeWithAssignment.getExpStmts();
+    writeExpressionToState(stateExpStmts, reachedState);
     logger.log(
         Level.FINE,
         "Extractor: reachedState Assignments"
             + stateExpStmts);
+  }
+
+  // reads the value assigned to a variable, and adds that value to the abstract state,
+  // but only if there is no disctinct value tracked already for that variable
+  private void writeExpressionToState(ImmutableList<AExpressionStatement> expStmt, ARGState startState){
+    if (expStmt.isEmpty()) return;
+    assert expStmt.size() == 1; //todo can expStmt contain more than 1 element?
+    // todoread from Expression
+
+    // todo write to ARGState
   }
 
   // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
