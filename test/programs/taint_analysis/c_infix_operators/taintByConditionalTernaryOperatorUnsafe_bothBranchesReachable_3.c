@@ -11,15 +11,9 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int x = __VERIFIER_nondet_int();
-    int y = 1;
+    int y = __VERIFIER_nondet_int();
 
-// NOTE: Using conditional ternary operator the order matters:
-
-    // No taint violation is expected here:
-    // the expression is expected to be tainted ( here the tainted branch is explored first)
-    __VERIFIER_is_public(x < 0 ? y : x, 0);
-
+    // Only tainted branches are expected to taint the return value.
     // A taint violation is expected here:
-    // the expression is expected to be tainted no matter the order of the branches (here the non-tainted branch is explored first)
     __VERIFIER_is_public(x < 0 ? x : y, 1);
 }
