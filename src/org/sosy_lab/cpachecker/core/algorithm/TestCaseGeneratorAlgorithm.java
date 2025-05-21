@@ -333,8 +333,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private void writeExpressionToState(ImmutableList<AExpressionStatement> expStmt, ARGState startState){
     if (expStmt.isEmpty()) return;
     assert expStmt.size() == 1; //todo can expStmt contain more than 1 element?
-    // todoread from Expression
-
+    //todo check expStmt for being instance of CBinaryExpression
+    // todo read from Expression
+    expStmt.get(0).getExpression();
+//    getOperand1()
+//        getOperand2()
+//    getOperator()
     // todo write to ARGState
   }
 
