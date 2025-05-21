@@ -624,4 +624,16 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("taintFunctionCallSafe.c", "");
     results.assertIsSafe();
   }
+
+  @Test
+  public void testWhileLoopSafe_1() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_1.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("whileLoopUnsafe_1.c", "");
+    results.assertIsUnsafe();
+  }
 }
