@@ -20,7 +20,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -336,7 +335,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       // Edges which successor node equal to the predecessor of the currently processed edge.
       Collection<EdgeWrapper> candidates = out.row(predecessor).values();
 
-      if (candidates.size() >= 1) {
+      if (!candidates.isEmpty()) {
         out.remove(e.getSuccessor(), e.getPredecessor());
         logger.log(Level.ALL, "Removing", e);
 
@@ -430,17 +429,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
     AndEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
-      List<EdgeWrapper> l = new ArrayList<>();
+      ImmutableList.Builder<EdgeWrapper> l = ImmutableList.builder();
       for (EdgeWrapper w : pEdges) {
-        if (w instanceof AndEdge) {
-
-          // Simplification.
+        if (w instanceof AndEdge) { // flatten nested edges
           l.addAll(((AndEdge) w).edges);
         } else {
           l.add(w);
         }
       }
-      edges = ImmutableList.copyOf(l);
+      edges = l.build();
       predecessor = edges.iterator().next().getPredecessor();
       successor = Iterables.getLast(edges).getSuccessor();
     }
