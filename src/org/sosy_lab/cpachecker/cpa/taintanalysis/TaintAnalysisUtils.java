@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -114,9 +115,7 @@ public class TaintAnalysisUtils {
   }
 
   private static CLiteralExpression computeBinaryOperation(
-      CLiteralExpression operand1,
-      CLiteralExpression operand2,
-      CBinaryExpression.BinaryOperator operator) {
+      CLiteralExpression operand1, CLiteralExpression operand2, BinaryOperator operator) {
 
     if (operator.isLogicalOperator() && operand1 != null && operand2 != null) {
       BigInteger evaluatedBinExpr = evaluateBinaryCondition(operand1, operand2, operator);
@@ -176,7 +175,7 @@ public class TaintAnalysisUtils {
         && operand2 instanceof CStringLiteralExpression strExpr2) {
 
       // TODO: other operations for strings (?)
-      if (operator == CBinaryExpression.BinaryOperator.PLUS) {
+      if (operator == BinaryOperator.PLUS) {
         String result = strExpr1.toASTString() + strExpr2.toASTString();
         return new CStringLiteralExpression(operand1.getFileLocation(), result);
       }
@@ -187,9 +186,7 @@ public class TaintAnalysisUtils {
   }
 
   public static BigInteger evaluateBinaryCondition(
-      CLiteralExpression leftOperand,
-      CLiteralExpression rightOperand,
-      CBinaryExpression.BinaryOperator operator) {
+      CLiteralExpression leftOperand, CLiteralExpression rightOperand, BinaryOperator operator) {
 
     // TODO: parsing of values, e.g., for ((int) x < (float) y) (?)
 
