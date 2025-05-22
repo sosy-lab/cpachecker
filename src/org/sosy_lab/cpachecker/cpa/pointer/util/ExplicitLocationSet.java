@@ -1,0 +1,218 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cpa.pointer.util;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Set;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import java.util.List;
+
+public class ExplicitLocationSet implements LocationSet {
+
+  private final Set<MemoryLocation> explicitSet;
+  private final boolean containsNull;
+
+  private ExplicitLocationSet(Set<MemoryLocation> pLocations) {
+    assert !pLocations.isEmpty() : "set should not be empty";
+    explicitSet = ImmutableSortedSet.copyOf(pLocations);
+    containsNull = false;
+  }
+
+  private ExplicitLocationSet(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+    assert (!pLocations.isEmpty() || pContainsNull) : "set should not be empty";
+    explicitSet = ImmutableSortedSet.copyOf(pLocations);
+    containsNull = pContainsNull;
+  }
+
+  private ExplicitLocationSet(boolean pContainsNull) {
+    explicitSet = ImmutableSet.of();
+    containsNull = pContainsNull;
+  }
+
+  @Override
+  public boolean mayPointTo(MemoryLocation pLocation) {
+    return explicitSet.contains(pLocation);
+  }
+
+  @Override
+  public LocationSet addElements(LocationSet pElements) {
+    if (pElements == this) {
+      return this;
+    }
+    if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
+      return addElements(explicitLocationSet.explicitSet, explicitLocationSet.containsNull);
+    }
+    return pElements.addElements(this.getExplicitLocations(), this.containsNull);
+  }
+
+  @Override
+  public LocationSet addElements(Set<MemoryLocation> pLocations) {
+    if (explicitSet.containsAll(pLocations)) {
+      return this;
+    }
+    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
+    builder.addAll(explicitSet);
+    builder.addAll(pLocations);
+    return new ExplicitLocationSet(builder.build(), containsNull);
+  }
+
+  @Override
+  public LocationSet addElements(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+    if (explicitSet.containsAll(pLocations) && containsNull == pContainsNull) {
+      return this;
+    }
+    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
+    builder.addAll(explicitSet);
+    builder.addAll(pLocations);
+    boolean newContainsNull = containsNull || pContainsNull;
+    return new ExplicitLocationSet(builder.build(), newContainsNull);
+  }
+
+  public static LocationSet from(MemoryLocation pLocation) {
+    return new ExplicitLocationSet(ImmutableSet.of(pLocation));
+  }
+
+  public static LocationSet from(Set<MemoryLocation> pLocations) {
+    if (pLocations.isEmpty()) {
+      return LocationSetBot.INSTANCE;
+    }
+    return new ExplicitLocationSet(pLocations);
+  }
+
+  public static LocationSet from(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+    if (pLocations.isEmpty() && !pContainsNull) {
+      return LocationSetBot.INSTANCE;
+    }
+    return new ExplicitLocationSet(pLocations, pContainsNull);
+  }
+
+  public static LocationSet fromNull(boolean pContainsNull) {
+    if (!pContainsNull) {
+      return LocationSetBot.INSTANCE;
+    }
+    return new ExplicitLocationSet(pContainsNull);
+  }
+
+  @Override
+  public boolean isBot() {
+    return explicitSet.isEmpty() && !containsNull;
+  }
+
+  @Override
+  public boolean isTop() {
+    return false;
+  }
+
+  @Override
+  public boolean isNull() {
+    return containsNull && explicitSet.isEmpty();
+  }
+
+  @Override
+  public boolean containsNull() {
+    return containsNull;
+  }
+
+  @Override
+  public boolean containsAll(LocationSet pElements) {
+    if (pElements == this) {
+      return true;
+    }
+    if (pElements instanceof ExplicitLocationSet explicitLocationSet) {
+      boolean containsAllElements = explicitSet.containsAll(explicitLocationSet.explicitSet);
+      boolean containsRequiredNull = !explicitLocationSet.containsNull || containsNull;
+      return containsAllElements && containsRequiredNull;
+    }
+    return pElements.containsAll(this);
+  }
+
+  // @Override
+  public String toStringOld() {
+    return (containsNull ? "NULL, " : "") + explicitSet.toString();
+  }
+
+  @Override
+  public String toString() {
+    List<String> elements = new ArrayList<>();
+    if (containsNull) {
+      elements.add("NULL");
+    }
+    for (Object o : explicitSet) {
+      elements.add(o.toString());
+    }
+    return "[" + String.join(", ", elements) + "]";
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    // FIXME violates contract because it is not symmetric with LocationSetBot.equals()
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther instanceof LocationSet otherLocationSet) {
+      if (otherLocationSet.isTop()) {
+        return false;
+      }
+      if (otherLocationSet.isBot()) {
+        return isBot();
+      }
+      if (otherLocationSet instanceof ExplicitLocationSet otherExplicitLocationSet) {
+        return (explicitSet.equals(otherExplicitLocationSet.explicitSet)
+            && containsNull == otherExplicitLocationSet.containsNull);
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return 31 * explicitSet.hashCode() + Boolean.hashCode(containsNull);
+  }
+
+  public int getSize() {
+    return explicitSet.size() + (containsNull ? 1 : 0);
+  }
+
+  public int getSizeWithoutNull() {
+    return explicitSet.size();
+  }
+
+  public Set<MemoryLocation> getExplicitLocations() {
+    return explicitSet;
+  }
+
+  @Override
+  public int compareTo(LocationSet pSetToCompare) {
+    if (this.equals(pSetToCompare)) {
+      return 0;
+    } else if (pSetToCompare instanceof LocationSetBot) {
+      return 1;
+    } else if (pSetToCompare instanceof LocationSetTop) {
+      return -1;
+    } else if (pSetToCompare instanceof ExplicitLocationSet explicitSetToCompare) {
+      if (containsNull != explicitSetToCompare.containsNull) {
+        return containsNull ? 1 : -1;
+      }
+      Iterator<MemoryLocation> i1 = explicitSet.iterator();
+      Iterator<MemoryLocation> i2 = explicitSetToCompare.explicitSet.iterator();
+      while (i1.hasNext() && i2.hasNext()) {
+        int compare = i1.next().compareTo(i2.next());
+        if (compare != 0) {
+          return compare;
+        }
+      }
+      return i1.hasNext() ? 1 : i2.hasNext() ? -1 : 0;
+    } else {
+      throw new AssertionError();
+    }
+  }
+}

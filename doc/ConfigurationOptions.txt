@@ -2215,6 +2215,14 @@ cpa.octagon.octagonLibrary = "INT"
 # seconds or specify a unit; 0 for infinite)
 cpa.octagon.refiner.timeForOctagonFeasibilityCheck = 0ns
 
+# which merge operator to use for PointerAnalysisCPA
+cpa.pointer.merge = "JOIN"
+  allowed values: [JOIN, SEP]
+
+# which stop operator to use for PointerAnalysisCPA
+cpa.pointer.stop = "SEP"
+  allowed values: [JOIN, SEP]
+
 # which merge operator to use for PointerCPA
 cpa.pointer2.merge = "JOIN"
   allowed values: [JOIN, SEP]
