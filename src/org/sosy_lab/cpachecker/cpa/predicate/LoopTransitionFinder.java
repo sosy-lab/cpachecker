@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 /** Return a path-formula describing all possible transitions inside the loop. */
 @Options(prefix = "cpa.predicate.loopTransition", deprecatedPrefix = "cpa.slicing")
-public class LoopTransitionFinder implements StatisticsProvider {
+class LoopTransitionFinder implements StatisticsProvider {
 
   /** Statistics for formula slicing. */
   private static class Stats implements Statistics {
@@ -104,7 +104,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   private final Map<CFANode, Table<CFANode, CFANode, EdgeWrapper>> LBEcache;
 
-  public LoopTransitionFinder(
+  LoopTransitionFinder(
       Configuration config,
       LoopStructure pLoopStructure,
       PathFormulaManager pPathFormulaManager,
@@ -121,7 +121,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     LBEcache = new HashMap<>();
   }
 
-  public PathFormula generateLoopTransition(SSAMap start, PointerTargetSet pts, CFANode loopHead)
+  PathFormula generateLoopTransition(SSAMap start, PointerTargetSet pts, CFANode loopHead)
       throws CPATransferException, InterruptedException {
 
     Preconditions.checkState(loopStructure.getAllLoopHeads().contains(loopHead));
