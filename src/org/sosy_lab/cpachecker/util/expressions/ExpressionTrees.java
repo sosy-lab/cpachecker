@@ -755,7 +755,7 @@ public final class ExpressionTrees {
 
       // 1. If we can factor out common facts of the operands, we do so and call simplify
       // recursively.
-      // Next time we enter, there are no common facts and we continue with 2.
+      // Next time we enter, there are no common facts, and we continue with 2.
       Iterator<ExpressionTree<LeafType>> opIt = pOr.iterator();
       if (opIt.hasNext()) {
         int nOperands = 1;

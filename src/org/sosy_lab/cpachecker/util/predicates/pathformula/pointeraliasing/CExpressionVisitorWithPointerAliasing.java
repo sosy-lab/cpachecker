@@ -387,7 +387,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the expression of a identification expression.
+   * Evaluates the expression of an identification expression.
    *
    * @param e The C id expression.
    * @return The expression.
@@ -415,7 +415,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the value of an unary expression in C.
+   * Evaluates the value of a unary expression in C.
    *
    * @param e The C expression.
    * @return The value of the expression.
@@ -429,17 +429,15 @@ class CExpressionVisitorWithPointerAliasing
       BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
       final Variable baseVariable = operand.accept(baseVisitor);
       // Whether the addressed location was previously aliased (tracked with UFs)
-      // If it was, there was no base variable/prefix used to hold its value and we simply return
-      // the
-      // aliased location
+      // If it was, there was no base variable/prefix used to hold its value,
+      // and we simply return the aliased location.
       // Otherwise, we should make it aliased by importing the value into the UF
       // There is an exception, though: arrays in function parameters are tracked as variables
       // (unaliased locations),
       // because they are actually pointers and can be assigned (in function calls)
       // See also see § 6.7.5.3 (7) of the C99 standard
       // But here they should be treated as if they are normal arrays and e.g. &a for int a[] should
-      // have the
-      // same semantics as &a[0] rather than the address of the pointer variable
+      // have the same semantics as &a[0] rather than the address of the pointer variable
       // (imagine &a for int *a parameter)
       if (baseVariable == null) {
         AliasedLocation addressExpression = null;
@@ -465,7 +463,7 @@ class CExpressionVisitorWithPointerAliasing
 
         if (errorConditions.isEnabled() && operand instanceof CFieldReference field) {
           // for &(s->f) and &((*s).f) do special case because the pointer is
-          // not actually dereferenced and thus we don't want to add error conditions
+          // not actually dereferenced, and thus we don't want to add error conditions
           // for invalid-deref
           CExpression fieldOwner = field.getFieldOwner();
           boolean isDeref = field.isPointerDereference();
@@ -635,7 +633,7 @@ class CExpressionVisitorWithPointerAliasing
         }
       }
 
-      // modf, modff, and modfl raise a side-effect by writing
+      // modf, modff, and modfl raise a side effect by writing
       // the integral part of their first parameter into the
       // pointer-address given as the second parameter,
       // which is handled here
@@ -725,7 +723,7 @@ class CExpressionVisitorWithPointerAliasing
               memoryFunctionHandler.handleMemoryAssignmentFunction(functionName, e);
           // Result value creation
 
-          // all of the functions just return destination
+          // all the functions just return destination
           // we convert the destination to a formula, and return it as a value
           AliasedLocation destinationAsAliasedLocation =
               dereference(resultExpression, resultExpression.accept(this));
@@ -821,13 +819,13 @@ class CExpressionVisitorWithPointerAliasing
 
     // As result, we use a nondeterministic value. Furthermore, we add constraints that force this
     // value to be >0 or <0 depending on whether s1>s2 or s1<s2 (and implicitly, force the value to
-    // be 0 if s1==s2.
+    // be 0 if s1==s2).
     // These constraints have recursive form and simulate "if comparison at first char determines
     // the result, then ... else (if comparison at second char determines the result, then ... else
     // ...)". Furthermore, additional clauses at each recursive step check for the string end
     // (in case of strcmp/strncmp) or "cut off" the chain if the bound is reached (in case of
     // strncmp/memcmp).
-    // Creating these constraints is done starting with the inner-most term (with highest index).
+    // Creating these constraints is done starting with the innermost term (with the highest index).
     // We also need a base case for the recursive constraints, and this needs to make our bounded
     // approximation sound: if the strings are longer than our approximation bound and equal up to
     // the approximation bound, we need to make both constraints have nondeterministic value.

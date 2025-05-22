@@ -118,7 +118,7 @@ class MemoryManipulationFunctionHandler {
   CExpression handleMemoryAssignmentFunction(
       final String functionName, final CFunctionCallExpression functionCall)
       throws UnrecognizedCodeException, InterruptedException {
-    // all of the functions have exactly three arguments
+    // all the functions have exactly three arguments
     // the first and third argument is the same for all functions
     final List<CExpression> arguments = functionCall.getParameterExpressions();
     verify(arguments.size() == 3);
@@ -425,7 +425,7 @@ class MemoryManipulationFunctionHandler {
    * the argument should be non-const, an exception is thrown.
    *
    * <p>Next, if the outer expression is now address-of applied on an array-type expression, it is
-   * removed as it just syntactically makes the array into an rvalue pointer.
+   * removed as it just syntactically makes the array into a rvalue pointer.
    *
    * <p>Lastly, if the processed argument now is just a multidimensional array, it is flattened to a
    * single-dimensional array with appropriate size. This invokes undefined behavior in C, but is

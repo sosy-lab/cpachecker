@@ -368,8 +368,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
    * Apply solver-integrated quantifier elimination on the Formula
    *
    * @param pExistFormula The Formula to eliminate quantifiers in
-   * @return The Formula after applying Solver-QE or in case of an solver Exception the input
-   *     Formula
+   * @return The Formula after applying Solver-QE or in case of a solver Exception the input Formula
    * @throws InterruptedException When interrupted
    */
   PseudoExistFormula applyRealQuantifierElimination(PseudoExistFormula pExistFormula)

@@ -301,7 +301,7 @@ class CFloatUtil {
 
   /**
    * Split a {@link CFloat} object into its fields and put their bit representation as well as their
-   * human readable base-10 format into a {@link String}.
+   * human-readable base-10 format into a {@link String}.
    *
    * <p>This method is meant mostly for any kind of debugging purpose, where one could need some
    * clear visualization of the components of some {@link CFloat} object to evaluate potential

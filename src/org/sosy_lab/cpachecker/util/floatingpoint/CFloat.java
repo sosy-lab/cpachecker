@@ -177,8 +177,8 @@ public abstract class CFloat {
   /**
    * Determine whether <code>this</code> has an absolute value of 0.
    *
-   * <p>In general it should not matter for this method whether the sign-bit is set. Implementations
-   * which differ from that interpretation should clearly state so.
+   * <p>In general, it should not matter for this method whether the sign-bit is set.
+   * Implementations which differ from that interpretation should clearly state so.
    *
    * @return whether <code>this</code> has an absolute value of 0 or not
    */
@@ -187,8 +187,8 @@ public abstract class CFloat {
   /**
    * Determine whether <code>this</code> has an absolute value of 1.
    *
-   * <p>In general it should not matter for this method whether the sign-bit is set. Implementations
-   * which differ from that interpretation should clearly state so.
+   * <p>In general, it should not matter for this method whether the sign-bit is set.
+   * Implementations which differ from that interpretation should clearly state so.
    *
    * @return whether <code>this</code> has an absolute value of 1 or not
    */

@@ -329,7 +329,7 @@ public class TemplatePrecision implements Precision {
   private static final Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
       Equivalence.equals().onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
 
-  /** Check whether all variables inside a expression have the same type. */
+  /** Check whether all variables inside an expression have the same type. */
   private boolean hasSameType(LinearExpression<CIdExpression> expr) {
     return expr.getMap().keySet().stream()
         .allMatch(x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
@@ -507,7 +507,7 @@ public class TemplatePrecision implements Precision {
         }
       }
 
-      // Otherwise just add/subtract templates.
+      // Otherwise, just add/subtract templates.
       if (templateA.isPresent()
           && templateB.isPresent()
           && binaryExpression.getCalculationType() instanceof CSimpleType) {

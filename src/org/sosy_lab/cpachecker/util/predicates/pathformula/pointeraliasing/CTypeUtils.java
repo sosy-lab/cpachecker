@@ -60,7 +60,7 @@ class CTypeUtils {
    * The method is used to check if a composite type contains array as this means it can't be
    * encoded as a bunch of variables. It also returns {@code true} on stand-alone arrays assuming
    * they are not function parameters. Normally stand-alone arrays are different from pointers as
-   * their address cannot change, unlike the value of a pointer. Thus arrays are usually encoded as
+   * their address cannot change, unlike the value of a pointer. Thus, arrays are usually encoded as
    * uninterpreted constants corresponding to their starting addresses, just as variables of
    * structure types. They can also be "assigned" somewhat similar to structures by initialization
    * or zeroing allocation function. So usually stand-alone arrays are treated together with
@@ -159,7 +159,7 @@ class CTypeUtils {
   /**
    * The code in this package works only with "simplified" types, which have typedefs resolved and
    * const and volatile removed (as produced by {@link
-   * TypeHandlerWithPointerAliasing#simplifyType(CType)}. This method can be used as an assertion
+   * TypeHandlerWithPointerAliasing#simplifyType(CType)}). This method can be used as an assertion
    * check that a given type has been simplified.
    *
    * @param type A C-type.

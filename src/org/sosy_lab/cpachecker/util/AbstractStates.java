@@ -49,7 +49,7 @@ public final class AbstractStates {
    * Retrieve one of the wrapped abstract states by type. If the hierarchy of (wrapped) abstract
    * states has several levels, this method searches through them recursively.
    *
-   * <p>The type does not need to match exactly, the returned state has just to be a sub-type of the
+   * <p>The type does not need to match exactly, the returned state has just to be a subtype of the
    * type passed as argument.
    *
    * <p>If you want to get all wrapped states with this type, use <code>
@@ -58,7 +58,7 @@ public final class AbstractStates {
    * @param <T> The type of the wrapped state.
    * @param pState An abstract state
    * @param pType The class object of the type of the wrapped state.
-   * @return An instance of an state with type T or null if there is none.
+   * @return An instance of a state with type T or null if there is none.
    */
   @Nullable
   public static <T extends AbstractState> T extractStateByType(
@@ -239,7 +239,7 @@ public final class AbstractStates {
    */
   public static BooleanFormula extractReportedFormulas(
       FormulaManagerView manager, AbstractState state) {
-    // traverse through all the sub-states contained in this state
+    // traverse through all the substates contained in this state
     return asIterable(state)
         .filter(FormulaReportingState.class)
         .transform(s -> s.getFormulaApproximation(manager))

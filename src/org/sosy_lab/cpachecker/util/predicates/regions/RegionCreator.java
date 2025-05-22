@@ -62,7 +62,7 @@ public interface RegionCreator {
   Region makeEqual(Region f1, Region f2);
 
   /**
-   * Creates a region representing an disequality (XOR) of the two argument
+   * Creates a region representing an inequality (XOR) of the two argument
    *
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula

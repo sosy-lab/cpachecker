@@ -68,7 +68,7 @@ import org.sosy_lab.java_smt.api.Model;
 
 /**
  * Class implementing the FormulaManager interface, providing some commonly used stuff which is
- * independent from specific libraries.
+ * independent of specific libraries.
  *
  * <p>This class inherits from CtoFormulaConverter to import the stuff there.
  */

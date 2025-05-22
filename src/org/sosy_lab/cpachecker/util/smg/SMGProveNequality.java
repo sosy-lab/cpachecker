@@ -36,12 +36,12 @@ public class SMGProveNequality {
 
   /**
    * Implementation of Algorithm 13 Appendix E. Tries to prove the not equality of two given
-   * addresses. Returns true if the prove of not equality succeeded, returns false if both are
+   * addresses. Returns true if the proof of inequality succeeded, returns false if both are
    * potentially equal.
    *
    * @param value1 the first address
    * @param value2 the second address
-   * @return true if the prove of not equality succeeded, false if both are potentially equal.
+   * @return true if the proof of not equality succeeded, false if both are potentially equal.
    */
   public boolean proveInequality(SMGValue value1, SMGValue value2) throws SMGSolverException {
     SMG smg = state.getMemoryModel().getSmg();

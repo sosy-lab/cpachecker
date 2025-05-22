@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * copy operations.
  *
  * @param <T> arbitrary type containing all information necessary for the implementation to recreate
- *     the previous state after a delete
+ *     the previous state after a delete.
  */
 public interface ImmutableForgetfulState<T> extends ForgetfulState<T> {
 

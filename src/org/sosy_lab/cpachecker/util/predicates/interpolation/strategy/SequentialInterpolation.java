@@ -217,8 +217,8 @@ public class SequentialInterpolation extends ITPStrategy {
 
   /**
    * Just a simple heuristic for weighting formulas depending on their structure. We assume
-   * something like less variables and less operations are good, equalities are bad, comparisons are
-   * better (loop invariants!), and we ignore quantifiers.
+   * something like less variables and fewer operations are good, equalities are bad, comparisons
+   * are better (loop invariants!), and we ignore quantifiers.
    */
   private long getWeight(List<BooleanFormula> formulas) {
     long weight = 0;

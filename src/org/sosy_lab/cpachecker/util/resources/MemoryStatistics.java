@@ -62,8 +62,8 @@ import org.sosy_lab.common.time.TimeSpan;
  * <p>4) is only supported on Sun-family JVMs (at least the method is defined only in internal JVM
  * classes). I do not know whether this method works on other OS. On Linux this gives the same
  * number as the "top" command in the "VIRT" column. According to the man page this includes "all
- * code, data and shared libraries plus pages that pages that have been mapped but not used" (and
- * thus this measure includes more than we would like).
+ * code, data and shared libraries plus pages that have been mapped but not used" (and thus this
+ * measure includes more than we would like).
  *
  * <p>With the {@link java.lang.management.MemoryPoolMXBean}, one can configure thresholds for
  * notification when they are full. There is also a threshold for notification when they are full
@@ -108,7 +108,7 @@ public class MemoryStatistics implements Runnable {
   private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
 
   /**
-   * Instantiate this thread. You need to call {@link Thread#start()} afterwards to start measuring.
+   * Instantiate this thread. You need to call {@link Thread#start()} afterward to start measuring.
    */
   public MemoryStatistics(LogManager pLogger) {
     //    super("CPAchecker memory statistics collector");

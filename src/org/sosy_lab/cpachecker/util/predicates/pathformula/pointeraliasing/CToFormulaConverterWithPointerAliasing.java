@@ -523,7 +523,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
       if (hasIndex(baseName, baseType, ssa)) {
         // This adds a constraint *a = a for the case where we previously tracked
-        // a variable directly and now via its address (we do not want to loose
+        // a variable directly and now via its address (we do not want to lose
         // the value previously stored in the variable).
         // Make sure to not add invalid-deref constraints for this dereference
         MemoryRegion newRegion = region;

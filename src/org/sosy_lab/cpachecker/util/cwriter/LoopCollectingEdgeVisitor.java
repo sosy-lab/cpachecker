@@ -101,7 +101,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       }
 
       // check if the cfaNode has more than one outgoing edges, and if yes
-      // if one of these is a functionsummary edge, we want to skip
+      // if one of these is a function summary edge, we want to skip
       // all states until the next state in the current function if it is so
       if (edge instanceof CFunctionReturnEdge) {
         CFANode beforeFunctionCall = ((CFunctionReturnEdge) edge).getCallNode();

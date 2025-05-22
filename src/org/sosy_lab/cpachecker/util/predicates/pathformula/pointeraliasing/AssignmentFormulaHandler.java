@@ -274,7 +274,7 @@ class AssignmentFormulaHandler {
 
   /**
    * Constructs the complete right-hand-side expression from partial resolved right-hand-sides and
-   * previous resolved left-hand-side, together with the its type to be considered.
+   * previous resolved left-hand-side, together with its type to be considered.
    *
    * <p>This is done by first casting / reinterpreting (according to {@link AssignmentOptions}) each
    * partial RHS to the target type. After that, the interesting part of RHS is extracted and stored
@@ -432,7 +432,7 @@ class AssignmentFormulaHandler {
   }
 
   /**
-   * Construct an span-sized bitvector formula containing the part of given right-hand-side formula,
+   * Construct a span-sized bitvector formula containing the part of given right-hand-side formula,
    * as determined by {@code rhsSpan}.
    *
    * @param rhs Resolved array slice containing the expression to convert and type we are converting
@@ -473,7 +473,7 @@ class AssignmentFormulaHandler {
   }
 
   /**
-   * Construct an bitvector formula retaining a range of bits from a given bitvector.
+   * Construct a bitvector formula retaining a range of bits from a given bitvector.
    *
    * @param formula Bitvector formula.
    * @param retainedRange The range determining the bits to retain. The range is assumed to be

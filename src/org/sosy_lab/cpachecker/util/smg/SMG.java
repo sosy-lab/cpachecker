@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.smg.util.SMGAndHasValueEdges;
 import org.sosy_lab.cpachecker.util.smg.util.SMGAndSMGValues;
 
 /**
- * Class to represent a immutable bipartite symbolic memory graph. Manipulating methods return a
+ * Class to represent an immutable bipartite symbolic memory graph. Manipulating methods return a
  * modified copy but do not modify a certain instance. Consists of (SMG-)objects, values, edges from
  * the objects to the values (has-value edges), edges from the values to objects (points-to edges)
  * and labelling functions (to get the kind, nesting level, size etc. of objects etc.)
@@ -897,7 +897,7 @@ public class SMG {
   }
 
   /**
-   * @param pObject the object whos HVEs are to be removed.
+   * @param pObject the object whose HVEs are to be removed.
    * @param deleteDanglingPointers true if pointers that have no saved HVEs are to be deleted from
    *     the PTE map.
    * @return a new SMG with the edges ob pObject removed from value to memory map and pointer points
@@ -1076,7 +1076,7 @@ public class SMG {
    * Returned the set of SMGHasValueEdges associated with the region that is specified by the
    * entered SMGObject. The region is an interval [object.offset, object.offset + object.size).
    *
-   * @param pRegion SMGObject for whos region one wants the SMGHasValueEdges.
+   * @param pRegion SMGObject for whose region one wants the SMGHasValueEdges.
    * @return The set of SMGHasValueEdges associated with the region.
    */
   public Set<SMGHasValueEdge> getEdges(SMGObject pRegion) {
@@ -1105,7 +1105,7 @@ public class SMG {
   }
 
   /**
-   * This is a general method to get a all SMGHasValueEdges by object and a filter predicate.
+   * This is a general method to get all SMGHasValueEdges by object and a filter predicate.
    * Examples:
    *
    * <p>{@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
@@ -1133,7 +1133,7 @@ public class SMG {
    * @param object The object from which is to be read.
    * @param offset The offset from which on the field in the object is to be read.
    * @param sizeInBits Size in bits, specifying the size to be read from the offset.
-   * @return A updated SMG and the SMTValue that is a read re-interpretation of the field in the
+   * @return An updated SMG and the SMTValue that is a read re-interpretation of the field in the
    *     object. May be 0, a symbolic value or a new unknown symbolic value.
    */
   public SMGAndHasValueEdges readValue(
@@ -1217,7 +1217,7 @@ public class SMG {
 
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
-    // let v := 0. Otherwise extend V by a fresh value node v.
+    // let v := 0. Otherwise, extend V by a fresh value node v.
     Optional<SMGValue> isCoveredBy = isCoveredByNullifiedBlocks(object, offset, sizeInBits);
     if (isCoveredBy.isPresent()) {
       return SMGAndHasValueEdges.of(
@@ -1245,7 +1245,7 @@ public class SMG {
    * @param offset The offset (beginning of the field).
    * @param sizeInBits Size in bits of the field.
    * @param value The value to be written into the field.
-   * @return A SMG with the value at the specified position.
+   * @return An SMG with the value at the specified position.
    */
   public SMG writeValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, SMGValue value) {
@@ -1341,8 +1341,8 @@ public class SMG {
   }
 
   /**
-   * Calculates bit precise the size of new SMGHasValueEdges. This is needed as sizes used by us are
-   * bit precise, and we need bit precision! Bit fields exist! This is only ok for 0 values!
+   * Calculates bit-precise the size of new SMGHasValueEdges. This is needed as sizes used by us are
+   * bit-precise, and we need bit-precision! Bit fields exist! This is only ok for 0 values!
    *
    * @param first The precision in bits that will be subtracted upon.
    * @param second The precision that will be subtracted from first.
@@ -1355,11 +1355,11 @@ public class SMG {
   /**
    * This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
    * field [offset; offset + size) is covered by nullObjects. Important: One may not take
-   * SMGHasValueEdges into account which lay outside of the SMGObject! Else it would be possible to
+   * SMGHasValueEdges into account which lay outside the SMGObject! Else it would be possible to
    * read potentially invalid memory!
    *
    * @param object The SMGObject in which a field is to be checked for nullified blocks.
-   * @param offset The offset (=start) of the field. Has to be inside of the object.
+   * @param offset The offset (=start) of the field. Has to be inside the object.
    * @param size The size in bits of the field. Has to be larger than the offset but still inside
    *     the field.
    * @return An optional with the correct zero edge, empty if not covered.
@@ -1392,7 +1392,7 @@ public class SMG {
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
-        // This value is guaranteed to exists because of the map
+        // This value is guaranteed to exist because of the map
         return Optional.of(
             getHasValueEdgeByPredicate(object, hv -> hv.getOffset().compareTo(entry.getKey()) == 0)
                 .orElseThrow()
@@ -1405,9 +1405,9 @@ public class SMG {
 
   /**
    * Returns the sorted Map<offset, max size> of SMGHasValueEdge of values equaling zero that cover
-   * the entered SMGObject somewhere. Only edges that do not exceed the boundries of the range
+   * the entered SMGObject somewhere. Only edges that do not exceed the boundaries of the range
    * offset to offset + size are used. It always defaults to the max size, such that no smaller size
-   * for a offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
+   * for an offset exists. Example: <0, 16> and <0, 24> would result in <0, 24>.
    *
    * @param smgObject The SMGObject one wants to check for covering NullObjects.
    * @return TreeMap<offset, max size> of covering edges.
@@ -1419,8 +1419,8 @@ public class SMG {
     }
     BigInteger offsetPlusSize = offset.add(sizeInBits);
     // FIT-TR-2013-4 appendix B states that the entered field has to be covered. It does not matter
-    // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
-    // They must be in the objects boundries however.
+    // if this is done in a single edge, or multiple, or that the edges exceed the field entered.
+    // They must be in the objects boundaries, however.
     return hasValueEdges.get(smgObject).stream()
         .filter(
             n ->
@@ -1577,8 +1577,8 @@ public class SMG {
   }
 
   /**
-   * Checks whether there exists an other edge for a given SMGObject, that overlaps with the
-   * provided edge.
+   * Checks whether there exists another edge for a given SMGObject, that overlaps with the provided
+   * edge.
    *
    * @param pHValueEdge - the provided edge
    * @param pObject - the given SMGObject

@@ -391,7 +391,7 @@ public class TestCaseExporter {
     env.put("create", "true");
 
     Preconditions.checkNotNull(testCaseZip);
-    // create parent directories if do not exist
+    // create parent directories if missing
     Path parent = testCaseZip.getParent();
     if (parent != null) {
       Files.createDirectories(parent);

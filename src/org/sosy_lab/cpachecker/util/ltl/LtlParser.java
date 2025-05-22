@@ -58,7 +58,7 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
 
   /**
    * Parse a ltl property from a file into a {@link LtlFormula}. The property is required to be in
-   * SVComp-format (i.e., <code>CHECK( init( FUNCTION ), LTL( FORMULA )) )</code>, where FORMULA is
+   * SVComp-format, i.e., <code>CHECK( init( FUNCTION ), LTL( FORMULA )) )</code>, where FORMULA is
    * a valid ltl property and FUNCTION a valid function name for code written in C.
    *
    * @param pPath path to a file containing a ltl property in valid SVComp syntax.
@@ -99,7 +99,7 @@ public abstract class LtlParser extends LtlGrammarParserBaseVisitor<LtlFormula> 
       // Tokenize the stream
       LtlLexer lexer = new LtlLexer(input);
       // Raise an exception instead of printing long error messages on the console
-      // For more informations, see https://stackoverflow.com/a/26573239/8204996
+      // For more information, see https://stackoverflow.com/a/26573239/8204996
       lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
       // Add a fail-fast behavior for token errors
       lexer.addErrorListener(LtlParserErrorListener.INSTANCE);

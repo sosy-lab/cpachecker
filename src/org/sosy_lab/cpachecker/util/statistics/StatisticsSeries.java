@@ -85,7 +85,7 @@ public class StatisticsSeries<T> {
     }
   }
 
-  /** Sub-class with additional methods for statistics. */
+  /** Subclass with additional methods for statistics. */
   public static class StatisticsSeriesWithNumbers extends StatisticsSeries<Integer> {
 
     /**

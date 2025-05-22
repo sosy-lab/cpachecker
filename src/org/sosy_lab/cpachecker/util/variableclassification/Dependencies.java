@@ -36,7 +36,7 @@ class Dependencies {
   /** map to get partition of a var */
   private final Map<String, Partition> varToPartition = new HashMap<>();
 
-  /** table to get a partition for a edge. */
+  /** table to get a partition for an edge. */
   final Table<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
 
   /**
@@ -137,7 +137,7 @@ class Dependencies {
   }
 
   /**
-   * This function adds all depending vars to the set, if necessary. If A depends on B and A is part
+   * This function adds all dependent vars to the set, if necessary. If A depends on B and A is part
    * of the set, B is added to the set, and vice versa. Example: If A is not boolean, B is not
    * boolean.
    */

@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * State that allows forgetting values of {@link MemoryLocation}s and re-adding them.
  *
  * @param <T> arbitrary type containing all information necessary for the implementation to recreate
- *     the previous state after a delete
+ *     the previous state after a delete.
  */
 public interface ForgetfulState<T> extends AbstractState {
 

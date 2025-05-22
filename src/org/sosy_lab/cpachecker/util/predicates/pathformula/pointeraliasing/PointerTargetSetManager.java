@@ -330,7 +330,7 @@ class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
-    // For all bases only in pts1, add required constraints regarding pts2 and vice-versa.
+    // For all bases only in pts1, add required constraints regarding pts2 and vice versa.
     // basesOnlyPtsX may contain bases for with ptsY has a fake base, but for these ptsY also had
     // constraints created already, and duplicate constraints would contradict. So we filter these.
     highestAllocatedAddresses2 =

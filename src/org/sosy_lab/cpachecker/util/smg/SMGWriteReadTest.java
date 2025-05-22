@@ -229,7 +229,8 @@ public class SMGWriteReadTest extends SMGTest0 {
             BigInteger.ZERO,
             testObject2.getSize().asNumericValue().bigIntegerValue());
 
-    // We added the zero edge to object2, and did not change anything, so thats the only edge in it!
+    // We added the zero edge to object2, and did not change anything, so that's the only edge in
+    // it!
     assertThat(smg.getEdges(testObject2))
         .containsExactlyElementsIn(ImmutableList.of(expectedZeroEdgeObject2));
 
@@ -1172,7 +1173,7 @@ public class SMGWriteReadTest extends SMGTest0 {
 
   /**
    * Write an object to the smg, write the field of the object to 0, write a value, read the value
-   * in different situations. The 0 value can only be read if its covered in completely nullified
+   * in different situations. The 0 value can only be read if It's covered in completely nullified
    * blocks. We read the entie value field (results in the value), a combination of value and 0 (=
    * new value) and a subpart ob the value (=new value).
    */

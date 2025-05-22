@@ -263,7 +263,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
   }
 
   /**
-   * Calculates the StrongestPostCondition at all states on a error-trace.
+   * Calculates the StrongestPostCondition at all states on an error-trace.
    *
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
@@ -337,8 +337,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               break;
             }
 
-            // Throw an exception if the type of the Edge is none of the above but it holds a
-            // PathFormula
+            // Throw an exception if the type of the Edge is none of the above,
+            // but it holds a PathFormula
             throw new UnsupportedOperationException(
                 "Found unsupported EdgeType in Newton Refinement: "
                     + edge.getDescription()
@@ -355,7 +355,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         preCondition = postCondition;
       }
 
-      // Remove the last predicate as it is should be false
+      // Remove the last predicate as it should be false
       return ImmutableList.copyOf(predicates);
     } finally {
       stats.postConditionTimer.stop();
@@ -669,7 +669,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding Abstraction state
      *
-     * @return true iff there is an corresponding state and this state also is an abstraction state
+     * @return true iff there is a corresponding state and this state also is an abstraction state
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {

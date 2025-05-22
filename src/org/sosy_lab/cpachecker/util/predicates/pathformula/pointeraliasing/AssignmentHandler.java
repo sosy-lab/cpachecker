@@ -384,7 +384,7 @@ class AssignmentHandler {
     final CRightHandSide lhsBase = assignment.lhs.base();
     ResolvedSlice resolvedLhsBase = resolveBase(lhsBase, lhsBaseVisitor);
 
-    // add initialized and used fields of LHS base to pointer-target set as essential
+    // add initialized and used fields of LHS base to pointer-target set as essentially
     // this is only needed for UF heap
     pts.addEssentialFields(lhsBaseVisitor.getInitializedFields());
     pts.addEssentialFields(lhsBaseVisitor.getUsedFields());
@@ -412,7 +412,7 @@ class AssignmentHandler {
             conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
     final ResolvedSlice resolvedRhsBase = resolveBase(rhsBase, rhsBaseVisitor);
 
-    // add initialized and used fields of RHS to pointer-target set as essential
+    // add initialized and used fields of RHS to pointer-target set as essentially
     // this is only needed for UF heap
     pts.addEssentialFields(rhsBaseVisitor.getInitializedFields());
     pts.addEssentialFields(rhsBaseVisitor.getUsedFields());
@@ -437,7 +437,7 @@ class AssignmentHandler {
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
       if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
-        // lhsType may be an array but we have to interpret it as a pointer instead
+        // lhsType may be an array, but we have to interpret it as a pointer instead
         lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
       }
 

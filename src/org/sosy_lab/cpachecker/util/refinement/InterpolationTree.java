@@ -181,7 +181,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method decides whether or not there are more paths left for interpolation.
+   * This method decides whether there are more paths left for interpolation.
    *
    * @return true if there are more paths left for interpolation, else false
    */
@@ -401,7 +401,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * This method checks if for the given state a non-trivial interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a non-trivial interpolant is present, else false
+   * @return true if a non-trivial interpolant is present, else false
    */
   public boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
@@ -411,7 +411,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * This method checks if for the given state a false interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a false interpolant is present, else false
+   * @return true if a false interpolant is present, else false
    */
   public boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
@@ -421,7 +421,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * This method checks if an interpolant is associated with the given state.
    *
    * @param currentState the state for which to check for associated interpolants
-   * @return true, if an interpolant is associated with the given state
+   * @return true if an interpolant is associated with the given state
    */
   public boolean hasInterpolantForState(final ARGState currentState) {
     return interpolants.containsKey(currentState);
@@ -516,7 +516,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * The given state is not a valid interpolation root if it is associated with an interpolant
      * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {

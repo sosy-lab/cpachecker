@@ -72,7 +72,7 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
 
   /**
    * Create a universal quantified formula for that the quantification is restricted to a specific
-   * range (an interval.
+   * range (an interval).
    *
    * <p>The result is a 'range predicate' (this term is used in several papers that describe
    * quantified formulas over arrays).

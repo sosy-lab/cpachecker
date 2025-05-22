@@ -156,8 +156,8 @@ public final class AbstractionManager {
   /**
    * Get predicate corresponding to a variable.
    *
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to
-   *     makePredicate earlier.
+   * @param var A symbolic formula representing the variable. The same formula has to have been
+   *     passed to makePredicate earlier.
    * @return a Predicate
    */
   public AbstractionPredicate getPredicate(BooleanFormula var) {
@@ -290,7 +290,7 @@ public final class AbstractionManager {
    * be fixed either, because when using symbolic regions we do not know what are the predicates (a
    * predicate does not need to be an SMT atom, it can be larger).
    *
-   * <p>Thus better avoid using this method if possible.
+   * <p>Thus, better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();

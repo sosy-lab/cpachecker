@@ -61,7 +61,7 @@ public class StatisticsUtils {
   /**
    * This method calls {@link Statistics#printStatistics(PrintStream, Result,
    * UnmodifiableReachedSet)} but additionally prints the title and handles cases like statistics
-   * that take too much resources.
+   * that take too many resources.
    */
   public static void printStatistics(
       final Statistics pStatistics,
@@ -94,7 +94,7 @@ public class StatisticsUtils {
 
   /**
    * This method calls {@link Statistics#writeOutputFiles(Result, UnmodifiableReachedSet)} but
-   * additionally handles cases like statistics that take too much resources.
+   * additionally handles cases like statistics that take too many resources.
    */
   public static void writeOutputFiles(
       Statistics statistics, LogManager logger, Result result, UnmodifiableReachedSet reached) {

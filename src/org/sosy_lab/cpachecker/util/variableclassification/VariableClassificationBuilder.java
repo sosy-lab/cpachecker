@@ -636,7 +636,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     for (int i = 0; i < params.size(); i++) {
       final CExpression param = params.get(i);
 
-      /* special case: external functioncall with possible side-effect!
+      /* special case: external functioncall with possible side effect!
        * this is the only statement, where a pointer-operation is allowed
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
@@ -672,7 +672,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /**
-   * This function puts each param in same partition than its arg. If there the functionresult is
+   * This function puts each param in same partition than its arg. If the functionresult is
    * assigned, it is also handled.
    */
   private void handleFunctionCallEdge(CFunctionCallEdge edge) {

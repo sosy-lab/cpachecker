@@ -47,7 +47,7 @@ public interface ResourceLimit {
   long getCurrentMeasurementValue();
 
   /**
-   * Check whether a given value (that was returned by {@link #getCurrentMeasurementValue()} means
+   * Check whether a given value (that was returned by {@link #getCurrentMeasurementValue()}) means
    * that the limit has been exceeded and we should stop. The limit won't be asked again after this
    * method returned true once.
    *

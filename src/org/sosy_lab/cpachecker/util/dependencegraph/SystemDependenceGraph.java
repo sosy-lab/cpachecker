@@ -1384,7 +1384,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
       /**
        * Inserts a new node and the previously chosen edge for the specified parameters if they do
-       * not not already exist.
+       * not already exist.
        *
        * <p>The node specified by the parameters is used as the edge predecessor.
        *

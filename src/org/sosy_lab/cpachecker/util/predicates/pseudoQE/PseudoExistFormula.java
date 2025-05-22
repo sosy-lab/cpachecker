@@ -81,7 +81,7 @@ class PseudoExistFormula {
   }
 
   /**
-   * Get the inner formula in its not quantified form
+   * Get the inner formula in its not-quantified form
    *
    * @return the inner part of the quantified Formula
    */

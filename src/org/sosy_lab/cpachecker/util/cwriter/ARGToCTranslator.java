@@ -239,7 +239,7 @@ public class ARGToCTranslator {
     Collection<ARGState> childrenOfElement = currentElement.getChildren();
 
     if (childrenOfElement.isEmpty()) {
-      // if there is no child of the element, maybe it was covered by other?
+      // if there is no child of the element, maybe it was covered by others?
       if (currentElement.isCovered()) {
         // it was indeed covered; jump to element it was covered by
         if (copyValuesForGoto.containsKey(currentElement.getCoveringState())) {

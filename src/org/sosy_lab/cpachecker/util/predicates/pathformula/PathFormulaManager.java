@@ -208,7 +208,7 @@ public interface PathFormulaManager {
   PathFormulaBuilder createNewPathFormulaBuilder();
 
   /**
-   * Builds a weakest precondition for the given edge and the postcondition
+   * Builds a weakest precondition for the given edge and the postcondition.
    *
    * @param pEdge Edge containing the statement for the precondition to be built
    * @param pPostcond Postcondition

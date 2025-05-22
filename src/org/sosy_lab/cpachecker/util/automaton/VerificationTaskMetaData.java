@@ -72,7 +72,7 @@ public class VerificationTaskMetaData {
 
   /**
    * Gets the specifications considered for this verification task that are not associated with
-   * specification properties (see {@link VerificationTaskMetaData#getProperties}.
+   * specification properties (see {@link VerificationTaskMetaData#getProperties}).
    *
    * @return the specifications considered for this verification task.
    * @throws IOException if the specification files cannot be accessed.

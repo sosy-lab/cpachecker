@@ -1264,7 +1264,7 @@ public class ExpressionToFormulaVisitor
 
     // Now let's handle "normal" functions assumed to be pure
     if (parameters.isEmpty()) {
-      // This is a function of arity 0 and we assume its constant.
+      // This is a function of arity 0, and we assume its constant.
       return conv.makeConstant(functionName, returnType);
 
     } else {

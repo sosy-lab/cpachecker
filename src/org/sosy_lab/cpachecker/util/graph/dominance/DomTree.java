@@ -35,8 +35,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * <p>Every node, except the start node of a graph, has an immediate dominator that is the unique
  * node that strictly dominates {@code N}, but doesn't strictly dominate any other node that
  * strictly dominates {@code N}. Due to the uniqueness of the immediate dominator, a tree can be
- * constructed, where the children of each node are the nodes it immediately dominates. This so
- * called dominator tree has as its single root the start node of a graph. All other nodes are
+ * constructed, where the children of each node are the nodes it immediately dominates. This
+ * so-called dominator tree has as its single root the start node of a graph. All other nodes are
  * descendants of the start node. A node is strictly dominated by all its ancestors.
  *
  * @param <T> the graph's node type
@@ -131,7 +131,7 @@ public final class DomTree<T> implements Iterable<T> {
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterwards
+    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterward
 
     while (changed) {
 
@@ -169,8 +169,8 @@ public final class DomTree<T> implements Iterable<T> {
 
   /**
    * Computes the intersection of doms(pFst) and doms(pSnd) (doms(N) == all nodes that dominate N).
-   * Cooper et al. describe it as "[walking] up the the dominator tree from two different nodes
-   * until a common parent is reached".
+   * Cooper et al. describe it as "[walking] up the dominator tree from two different nodes until a
+   * common parent is reached".
    */
   private static int intersect(final int[] pDoms, final int pFst, final int pSnd) {
 

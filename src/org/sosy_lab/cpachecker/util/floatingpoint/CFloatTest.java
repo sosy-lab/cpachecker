@@ -17,8 +17,8 @@ import org.junit.Test;
 public class CFloatTest {
 
   /**
-   * Following are test cases as provided by a x86_64 amd architecture with a 64-bit linux (ubuntu),
-   * compiled using gcc in c11 compliance.
+   * Following are test cases as provided by an x86_64 amd architecture with a 64-bit linux
+   * (ubuntu), compiled using gcc in c11 compliance.
    */
   @Test
   public void infTest() {

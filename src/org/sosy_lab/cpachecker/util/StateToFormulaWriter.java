@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class allows to export the information of abstract states as SMT-formula. Therefore we
+ * This class allows to export the information of abstract states as SMT-formula. Therefore, we
  * filter the abstract states for matching {@link FormulaReportingState}s and retrieve the formula
  * from there. Then we export the formulas in a fixed line-based format, which allows re-usage with
  * a further predicate analysis.

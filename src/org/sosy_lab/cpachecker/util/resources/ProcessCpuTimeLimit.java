@@ -17,7 +17,7 @@ import org.sosy_lab.common.time.TimeSpan;
 
 /**
  * A limit that is based on how much CPU time is spent for the whole process. This includes our
- * code, code in native libraries, the JVM and its garbage collector, etc. (not not started
+ * code, code in native libraries, the JVM and its garbage collector, etc. (not started
  * subprocesses).
  *
  * <p>This limit might not be available on all JVMs.

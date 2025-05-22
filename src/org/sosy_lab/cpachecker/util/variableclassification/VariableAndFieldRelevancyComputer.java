@@ -353,7 +353,7 @@ final class VariableAndFieldRelevancyComputer {
     }
 
     /**
-     * This methods performs a forward search on the graph formed by the previously collected
+     * This method performs a forward search on the graph formed by the previously collected
      * dependencies. We start at the variables and fields that are already found to be relevant and
      * flag everything as relevant that is reachable from there.
      *

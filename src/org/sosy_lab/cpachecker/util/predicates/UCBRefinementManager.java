@@ -69,10 +69,10 @@ public class UCBRefinementManager {
     // does not contain the root element.
     trace.add(0, allStatesTrace.getFirstState());
 
-    // Compute weakest preconditions on the error trace
+    // Compute the weakest preconditions on the error trace
     // If the list is empty then the trace is feasible,
     // otherwise compute UCB predicates by refining the weakest-preconditions.
-    // If the list is non-empty, then the first element is the first non false WP.
+    // If the list is non-empty, then the first element is the first non-false WP.
     List<BooleanFormula> preds = computeWeakestPreconditions(trace);
 
     if (preds == null) {

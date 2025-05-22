@@ -791,7 +791,7 @@ public class CFloatImpl extends CFloat {
    * for correct rounding.
    *
    * @param manyOnesMantissa the mantissa containing more bits set to one
-   * @param lesserOnesMantissa the mantissa containing less bits set to one
+   * @param lesserOnesMantissa the mantissa containing fewer bits set to one
    * @param mantissaLength the length of the mantissas
    * @param bitfield the bitfield to store the multiplication result
    */

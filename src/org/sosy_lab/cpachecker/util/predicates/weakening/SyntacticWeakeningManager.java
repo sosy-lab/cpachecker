@@ -30,7 +30,7 @@ public class SyntacticWeakeningManager {
    * and the formula should be unsatisfiable.
    *
    * @param selectionInfo selection variable -> corresponding (uninstantiated) lemma
-   * @param pFromStateLemmas Uninstantiated lemmas describing the from- state.
+   * @param pFromStateLemmas Uninstantiated lemmas describing the from-state.
    * @return Set of selectors which correspond to atoms which *should* be abstracted.
    */
   public Set<BooleanFormula> performWeakening(

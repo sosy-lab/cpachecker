@@ -90,7 +90,7 @@ public class LiveVariables {
   /**
    * Equivalence implementation especially for the use with live variables. We have to use this
    * wrapper, because of the storageType in CVariableDeclarations which does not always have to be
-   * the same for exactly the same variable (e.g. one declaration is extern, and afterwards the real
+   * the same for exactly the same variable (e.g. one declaration is extern, and afterward the real
    * declaration is following which then has storageType auto: for live variables we need to
    * consider them as one).
    */
@@ -142,7 +142,7 @@ public class LiveVariables {
         description =
             "Timelimit for collecting the liveness information with one approach, (p.e. if global"
                 + " analysis is selected and fails in the specified timelimit the function wise"
-                + " approach will have the same time-limit afterwards to compute the live"
+                + " approach will have the same time-limit afterward to compute the live"
                 + " variables).(use seconds or specify a unit; 0 for infinite)")
     @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
@@ -519,7 +519,7 @@ public class LiveVariables {
       for (Loop l : loops) {
 
         // we need only one loop head for each loop, as we are doing a merge
-        // afterwards during the analysis, and we do never stop besides when
+        // afterward during the analysis, and we do never stop besides when
         // there is coverage (we have no target states)
         // additionally we have to remove all functionCallEdges from the outgoing
         // edges because the LoopStructure is not able to say that loops with
@@ -578,8 +578,8 @@ public class LiveVariables {
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {
-      // this should never happen, but if it does we continue the
-      // analysis without having the live variable analysis
+      // this should never happen, but if it does,
+      // then we continue the analysis without having the live variable analysis
       logger.logUserException(
           Level.WARNING,
           e,

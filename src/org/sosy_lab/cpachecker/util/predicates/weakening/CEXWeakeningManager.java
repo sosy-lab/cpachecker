@@ -49,7 +49,9 @@ public class CEXWeakeningManager {
     /** Abstract a random matching child. */
     RANDOM,
 
-    /** Follow the branch which eventually results in least abstractions [on the given model]. */
+    /**
+     * Follow the branch which eventually results in the least abstractions [on the given model].
+     */
     LEAST_REMOVALS
   }
 

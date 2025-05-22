@@ -264,7 +264,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private boolean isInitialInterpolantTooWeak(ARGState root, I initialItp, ARGPath errorPath)
       throws CPAException, InterruptedException {
 
-    // if the first state of the error path is the root, the interpolant cannot be to weak
+    // if the first state of the error path is the root, the interpolant cannot be too weak
     if (Objects.equals(errorPath.getFirstState(), root)) {
       return false;
     }
@@ -363,7 +363,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
    * #ROOT} means that the analysis is restarted from the root of the ARG {@link #PIVOT} means that
    * the analysis is restarted from the lowest possible refinement root, i.e., the first ARGNode
    * associated with a non-trivial interpolant (cf. Lazy Abstraction, 2002) {@link #COMMON} means
-   * that the analysis is restarted from lowest ancestor common to all refinement roots, if more
+   * that the analysis is restarted from the lowest ancestor common to all refinement roots, if more
    * than two refinement roots where identified
    */
   public enum RestartStrategy {
