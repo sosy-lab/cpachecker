@@ -394,7 +394,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     if (returnStatementAsAssignment.isPresent()) {
 
-      CIdExpression lhs = (CIdExpression) returnStatementAsAssignment.orElseThrow().getLeftHandSide();
+      CIdExpression lhs =
+          (CIdExpression) returnStatementAsAssignment.orElseThrow().getLeftHandSide();
       CExpression returnExpression =
           (CExpression) returnStatementAsAssignment.orElseThrow().getRightHandSide();
 
@@ -418,8 +419,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
         CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-//        killedVars.add(functionParameter);
-//        values.put(functionParameter, null);
+        //        killedVars.add(functionParameter);
+        //        values.put(functionParameter, null);
         // TODO: must be checked if this line is only reachable from a return statement
         pState.getTaintedVariables().remove(functionParameter);
         pState.getUntaintedVariables().remove(functionParameter);
@@ -511,7 +512,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  private List<TaintAnalysisState> handleStatementEdge(
+  private ImmutableList<TaintAnalysisState> handleStatementEdge(
       TaintAnalysisState pState, CStatementEdge pCfaEdge) throws CPATransferException {
 
     Set<CIdExpression> killedVars = new HashSet<>();
@@ -700,7 +701,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
     }
 
-    return newStates;
+    return ImmutableList.copyOf(newStates);
   }
 
   private void checkInformationFlowViolation(
