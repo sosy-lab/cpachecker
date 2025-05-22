@@ -10,23 +10,26 @@
 
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
-// TODO: In this benchmark there is things to do
+
 int main() {
-    int a, b, c;
-    int *p, *q;
-    p = __VERIFIER_nondet_int(); // tainted address? How to handle?
-    c = __VERIFIER_nondet_int();
 
-    a = 2;
+    int tainted = __VERIFIER_nondet_int();
+    int a[234];
 
-    p = &a;
+    // what are these three variables?
+    int* b;
+    int* c;
+    int* d;
 
-    b = *p;
-    *q = c;
+    b = __VERIFIER_nondet_int();
 
+    a[2] = 2;
     __VERIFIER_is_public(a, 1);
-//    __VERIFIER_is_public(b, 0); // should it be tainted. *p dereferences to 2, but the address is tainted?
-    __VERIFIER_is_public(c, 0);
-    __VERIFIER_is_public(p, 0); // tainted address? How to handle?
-    __VERIFIER_is_public(q, 0);
+
+    a[tainted] = 354;
+    __VERIFIER_is_public(a, 1);
+
+    d[345] = tainted;
+    __VERIFIER_is_public(a, 0);
+
 }

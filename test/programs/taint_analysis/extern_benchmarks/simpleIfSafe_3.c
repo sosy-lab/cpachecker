@@ -17,7 +17,7 @@ int main() {
     int a = __VERIFIER_nondet_int();
     int b = __VERIFIER_nondet_int();
 
-    // TODO: Does not work fine for check of single variables: In the if blocks the order still matters.
+    // TODO: Does not work completely fine. In the if blocks the order still matters.
 
     // problem, when we here analyse first the branch that violates the property the analyse fails wrongly.
     if (x) { // with standalone x the if-branch is analysed first, with x == 0 the else-branch goes first
@@ -36,5 +36,5 @@ int main() {
     __VERIFIER_is_public(a + b, 0);
 
     // with a does not work as expected
-//    __VERIFIER_is_public(a, 0); // fails
+    __VERIFIER_is_public(a, 0); // fails
 }
