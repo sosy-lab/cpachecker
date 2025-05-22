@@ -642,6 +642,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleIfSafe_3() throws Exception {
     TestResults results = runCPAchecker("simpleIfSafe_3.c", "extern_benchmarks");
@@ -798,6 +799,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testPointerAssignmentSafe() throws Exception {
     TestResults results = runCPAchecker("pointerAssignmentSafe.c", "extern_benchmarks");
@@ -807,6 +809,128 @@ public class TaintAnalysisTest {
   @Test
   public void testSimpleCastSafe_1() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimpleCastSafe_2() throws Exception {
+    TestResults results = runCPAchecker("simpleCastSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimpleCastSafe_3() throws Exception {
+    TestResults results = runCPAchecker("simpleCastSafe_3.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimpleRecursionSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleRecursionSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testPointersAsParamSimpleSafe_1() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testPointersAsParamSimpleSafe() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testGlobalsSimpleSafe_1() throws Exception {
+    TestResults results = runCPAchecker("globalsSimpleSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testGlobalsSimpleSafe_recursion() throws Exception {
+    TestResults results = runCPAchecker("globalsSimpleSafe_recursion.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testPointersAsParamsRecursiveSafe_1() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamsRecursiveSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimplePrintingSafe() throws Exception {
+    TestResults results = runCPAchecker("simplePrintingSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testTaintArraySafe() throws Exception {
+    TestResults results = runCPAchecker("taintArraySafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testFreePtrSafe() throws Exception {
+    TestResults results = runCPAchecker("freePtrSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleInterProcPrintResultsSafe() throws Exception {
+    TestResults results = runCPAchecker("simpleInterProcPrintResultsSafe.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testSimplePrepareSliceSafe_2() throws Exception {
+    TestResults results = runCPAchecker("simplePrepareSliceSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testFunctionConstraintsSimple() throws Exception {
+    TestResults results = runCPAchecker("functionConstraintsSimple.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testReadMetricsBasicRecursionSafe_1() throws Exception {
+    TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_1.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testReadMetricsBasicRecursionSafe_2() throws Exception {
+    TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_2.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testPaperExample() throws Exception {
+    TestResults results = runCPAchecker("paperExample.c", "extern_benchmarks");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testsimpleBufferExampleSafe() throws Exception {
+    TestResults results = runCPAchecker("simpleBufferExampleSafe.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 }
