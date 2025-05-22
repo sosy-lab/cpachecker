@@ -62,7 +62,7 @@ public interface DssActor extends Runnable {
   boolean shutdownRequested();
 
   /**
-   * Get an unique ID of this actor.
+   * Get a unique ID of this actor.
    *
    * @return Unique ID of this worker.
    */

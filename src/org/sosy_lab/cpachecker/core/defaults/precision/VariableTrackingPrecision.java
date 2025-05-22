@@ -96,7 +96,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * from some variable class, if it maintains a refinable precision, or if it contains a variable
    * blacklist.
    *
-   * @return true, if this precision allows for abstraction, else false
+   * @return true if this precision allows for abstraction, else false
    */
   public abstract boolean allowsAbstraction();
 
@@ -110,7 +110,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param pType the type of the variable, necessary for checking if the variable should be handled
    *     (necessary for floats / doubles)
    * @param location the location of the variable
-   * @return true, if the variable has to be tracked, else false
+   * @return true if the variable has to be tracked, else false
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
 
@@ -132,7 +132,7 @@ public abstract class VariableTrackingPrecision implements Precision {
   /**
    * This method transforms the precision and writes it using the given writer.
    *
-   * @param writer the write to write the precision to
+   * @param writer where to write the precision to
    */
   public abstract void serialize(Writer writer) throws IOException;
 
@@ -144,7 +144,7 @@ public abstract class VariableTrackingPrecision implements Precision {
   public abstract VariableTrackingPrecision join(VariableTrackingPrecision otherPrecision);
 
   /**
-   * This methods compares if this precision tracks the same variables as another precision. Only
+   * This method compares if this precision tracks the same variables as another precision. Only
    * precisions of the same class can track the same variables.
    *
    * @param otherPrecision the precision to compare the tracking behavior

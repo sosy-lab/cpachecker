@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /**
- * This class is used to represent a identifier of a C primary expression.
+ * This class is used to represent an identifier of a C primary expression.
  *
  * <p>It is usually used in the concrete state {@link ConcreteState} to assign a value to a variable
  * without needing to calculate an address for it. It is also used to define an address for a

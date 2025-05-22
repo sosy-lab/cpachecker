@@ -34,9 +34,8 @@ public interface ProofChecker {
       throws CPATransferException, InterruptedException;
 
   /**
-   * Checks whether the given state is covered by an other state. That is, the set of
-   * concretisations of the state has to be a subset of the set of concretisations of the other
-   * state.
+   * Checks whether the given state is covered by another state. That is, the set of concretisations
+   * of the state has to be a subset of the set of concretisations of the other state.
    */
   boolean isCoveredBy(AbstractState state, AbstractState otherState)
       throws CPAException, InterruptedException;

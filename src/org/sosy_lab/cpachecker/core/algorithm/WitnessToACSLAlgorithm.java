@@ -251,7 +251,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   }
 
   /**
-   * Returns a String containing only space chars the same length as the given parameters
+   * Returns a String containing only space chars the same length as the given parameters'
    * indentation. Note that length refers to the length of the printed whitespace and not
    * necessarily the value returned by <code>String.length()</code>.
    *

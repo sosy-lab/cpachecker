@@ -29,7 +29,7 @@ public class CFAEdgeWithAssumptions {
   private final String comment;
 
   /**
-   * Creates a edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
+   * Creates an edge {@link CFAEdgeWithAssumptions} that contains concrete assumptions along the
    * error path.
    *
    * @param pEdge The CFAEdge that represents a part of the errorpath.
@@ -147,7 +147,7 @@ public class CFAEdgeWithAssumptions {
    * Try to merge two different edges {@link CFAEdgeWithAssumptions}.
    *
    * @param pEdge the other edge to be merged with this edge.
-   * @return A Edge that contain both assumptions of the merged edges.
+   * @return an edge that contains both assumptions of the merged edges.
    */
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {
     // FIXME this method is not matured, it just combines all assumptions

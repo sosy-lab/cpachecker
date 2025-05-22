@@ -14,9 +14,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Waitlist implementation that sorts the abstract states depending on the content of the
- * ExplicitState (if there is any). Stas where less variables have a value assigned are considered
- * first. This states are expected to cover a bigger part of the state space, so states with more
- * variables will probably be covered later.
+ * ExplicitState (if there is any). States where fewer variables have a value assigned are
+ * considered first. These states are expected to cover a bigger part of the state space, so states
+ * with more variables will probably be covered later.
  */
 public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 

@@ -447,7 +447,7 @@ public final class MainCPAStatistics implements Statistics {
           mostFrequentLocation = location.getElement();
 
         } else if (size == mostFrequentLocationCount) {
-          // use node with smallest number to have deterministic output
+          // use node with the smallest number to have deterministic output
           mostFrequentLocation =
               Ordering.natural().min(mostFrequentLocation, location.getElement());
         }

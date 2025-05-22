@@ -67,7 +67,7 @@ public abstract class AbstractSingleProperty {
   }
 
   /**
-   * Set final result for the property. Note, that FALSE result cannot be change to UNKNOWN if some
+   * Set final result for the property. Note, that FALSE result cannot be changed to UNKNOWN if some
    * property violations were not found.
    */
   public void updateResult(Result newResult) {

@@ -134,7 +134,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
     }
 
     /**
-     * Transform a non linear multiplication operation into a new linear {@link Formula} and adds it
+     * Transform a non-linear multiplication operation into a new linear {@link Formula} and adds it
      * to {@link #additionalAxioms}. The returned {@link Formula} represents the multiplication
      * opertion's result if that {@link Formula} is satisfied.
      *

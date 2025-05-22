@@ -252,7 +252,7 @@ public class AutomaticCPAFactory implements CPAFactory {
    * <p>This method does not modify the CPAFactory instance on which it is called. All calls to the
    * various set* methods that were made before this call reflect in the CPAFactory instance
    * returned by this method, but subsequent calls to set* on this instance don't affect the new
-   * instance and vice-versa.
+   * instance and vice versa.
    *
    * <p>It is safe to call this method again on its result, although only once for each class passed
    * as a parameter (similar to {@link #set(Object, Class)}).

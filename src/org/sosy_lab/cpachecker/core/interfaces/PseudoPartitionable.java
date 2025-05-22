@@ -28,7 +28,7 @@ public interface PseudoPartitionable {
    *   <li>the <b>'equal' partition</b> consists of states, that might or might not be 'lessOrEqual'
    *       to the current state. For abstract states with an 'equal' key, the implementation of
    *       {@link #getPseudoHashCode} should be sufficient to further limit the possible states that
-   *       are considered as 'lessOrEqual' without cutting to much.
+   *       are considered as 'lessOrEqual' without cutting too much.
    *   <li>the <b>'greaterThan' partition</b> consists of states, that are <b>definitely not</b>
    *       'lessOrEqual' to the current state.
    * </ul>

@@ -86,7 +86,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   /**
    * This method returns true if the limit of target states to be found is reached.
    *
-   * @return true, if the limit of target states to be found is reached, else false
+   * @return true if the limit of target states to be found is reached, else false
    */
   private boolean foundTargetLimitReached() {
     return foundTargetCounter >= foundTargetLimit;
@@ -95,7 +95,7 @@ public class BreakOnTargetsPrecisionAdjustment implements PrecisionAdjustment {
   /**
    * This method return true if the limit of extra iterations is reached.
    *
-   * @return true, if the maximum of extra iterations is reached, else false
+   * @return true if the maximum of extra iterations is reached, else false
    */
   private boolean extraIterationsLimitReached() {
     return (foundTargetCounter > 0)

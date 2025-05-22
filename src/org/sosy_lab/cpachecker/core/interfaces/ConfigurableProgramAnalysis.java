@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
  *
  * <p>All instances of this class have to have a public static method "factory()" which takes no
  * arguments, returns an instance of {@link CPAFactory} and never fails that is, it never returns
- * null or throws an exception).
+ * null or throws an exception.
  */
 public interface ConfigurableProgramAnalysis {
   AbstractDomain getAbstractDomain();

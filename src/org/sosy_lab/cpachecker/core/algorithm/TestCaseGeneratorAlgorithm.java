@@ -183,7 +183,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           }
         } catch (InterruptedException e1) {
           // may be thrown only be counterexample check, if not will be thrown again in finally
-          // block due to respective shutdown notifier call)
+          // block due to respective shutdown notifier call
           status = status.withPrecise(false);
         } finally {
 

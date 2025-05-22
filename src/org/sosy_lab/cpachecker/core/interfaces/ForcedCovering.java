@@ -31,11 +31,11 @@ public interface ForcedCovering {
    * waitlist. It is necessary to re-add states to the waitlist, which are covered by strengthened
    * state, and this method is responsible for this!
    *
-   * <p>The methods returns a boolean indicating success in covering the state or not. This means,
-   * if this method returns true, the stop operator called with the same arguments after this method
+   * <p>The methods return a boolean indicating success in covering the state or not. This means, if
+   * this method returns true, the stop operator called with the same arguments after this method
    * returned also needs to return true.
    *
-   * @param state The state which hopefully is covered afterwards.
+   * @param state The state which hopefully is covered afterward.
    * @param precision The precision for the state.
    * @param reached The current reached set.
    * @return Whether forced covering was successful.

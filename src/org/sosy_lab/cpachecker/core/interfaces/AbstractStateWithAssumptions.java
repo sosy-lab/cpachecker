@@ -28,7 +28,7 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    *
    * <p>Assumptions about function return value are transformed from "return N;" to "retVar == N",
    * where "retVar" is the name of a pseudo variable (just as {@link
-   * AReturnStatement#asAssignment()} does.
+   * AReturnStatement#asAssignment()} does).
    *
    * @return A (possibly empty list) of expressions.
    */

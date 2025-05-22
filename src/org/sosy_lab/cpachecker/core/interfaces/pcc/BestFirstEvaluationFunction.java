@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
 
 /**
- * Interface providing a method to compute a nodes priority. With this priority best-first-algorithm
- * can determine which node to be explored next.
+ * Interface providing a method to compute a node's priority. With this priority
+ * best-first-algorithm can determine which node to be explored next.
  */
 public interface BestFirstEvaluationFunction {
 

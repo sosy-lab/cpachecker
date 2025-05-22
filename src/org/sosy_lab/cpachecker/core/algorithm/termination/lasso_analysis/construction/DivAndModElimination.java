@@ -54,7 +54,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
   /**
    * Replaces division and modulo by linear formulas and auxiliary variables.
    *
-   * <p>Note: The remainder will be always non negative as defined in the SMT-LIB standard
+   * <p>Note: The remainder will be always non-negative as defined in the SMT-LIB standard
    * (http://smtlib.cs.uiowa.edu/theories-Ints.shtml)
    */
   private static class DivAndModTransformation extends DefaultFormulaVisitor<Formula> {

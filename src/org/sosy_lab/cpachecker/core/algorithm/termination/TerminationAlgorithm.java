@@ -356,7 +356,7 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
             logger.logf(WARNING, "Repeated ranking relation %s for %s", rankingRelation, pLoop);
 
             // Do not use the first reached target state again and again
-            // if we cannot synthesis new termination arguments from it.
+            // if we cannot synthesise new termination arguments from it.
             if (repeatedRankingFunctionsSinceSuccessfulIteration
                 > maxRepeatedRankingFunctionsPerLoop / 5) {
               removeTargetState(pReachedSet, targetState);

@@ -223,7 +223,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         //        exceptionStates.add(state.getStatetId());
 
         // remove state
-        // remove it's parents from waitlist (CPAAlgorithm re-added them)
+        // remove its parents from waitlist (CPAAlgorithm re-added them)
         // and create assumptions for the parents
 
         // we have to do this for the parents and not for the errorState itself,
@@ -430,7 +430,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    *     assumption TRUE).
    * @param falseAssumptionStates A set with all states with the assumption FALSE
    * @param branchingThreshold After branchingThreshold many branches on a path the automaton will
-   *     be ignored (0 to disable)")
+   *     be ignored (0 to disable)
    * @param ignoreAssumptions if set to true, the automaton does not add assumption which is
    *     considered to continue path with corresponding this edge.
    * @return the number of states contained in the written automaton

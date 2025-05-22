@@ -26,14 +26,14 @@ import org.sosy_lab.cpachecker.cpa.propertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Interface for classes implementing proof carrying code approaches. Theses classes can be used by
+ * Interface for classes implementing proof carrying code approaches. These classes can be used by
  * ProofGenerator and ProofCheckAlgorithm.
  */
 public interface PCCStrategy {
 
   /**
-   * Constructs the proof/certificate from the given save overapproximation. Subsequently writes the
-   * certificate to disk, etc.
+   * Constructs the proof/certificate from the given save overapproximation. Subsequently, writes
+   * the certificate to disk, etc.
    *
    * @param pReached - save overapproximation of state space
    */
