@@ -623,7 +623,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               if (successor.getPredecessors().size() == 2) {
                 pState.setViolatesProperty(false);
                 TaintAnalysisState newState =
-                    generateNewState(successor, killedVars, generatedVars, values);
+                    generateNewState(pState, killedVars, generatedVars, values);
                 return ImmutableList.of(newState);
               }
             }
