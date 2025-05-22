@@ -230,19 +230,43 @@ public class TaintAnalysisUtils {
   }
 
   private static CLiteralExpression computeUnaryOperation(
-      CLiteralExpression operand, CUnaryExpression.UnaryOperator operator) {
+      CLiteralExpression operand, UnaryOperator operator) {
 
-    BigInteger value = ((CIntegerLiteralExpression) operand).getValue();
-    BigInteger result;
+    BigInteger result = null;
+    if (operand instanceof CIntegerLiteralExpression intExpr) {
+      if (intExpr.getValue() != null) {
 
-    // TODO: more unary operator cases (?)
-    if (Objects.requireNonNull(operator) == UnaryOperator.MINUS) {
-      result = value.negate();
-    } else {
-      throw new UnsupportedOperationException("Unsupported unary operator: " + operator);
+        BigInteger value = ((CIntegerLiteralExpression) operand).getValue();
+
+        // TODO: more unary operator cases (?)
+        if (Objects.requireNonNull(operator) == UnaryOperator.MINUS) {
+          result = value.negate();
+        }
+
+        if (Objects.requireNonNull(operator) == UnaryOperator.AMPER) {
+          result = value.and(BigInteger.valueOf(0xffffffffL));
+        }
+
+        if (Objects.requireNonNull(operator) == UnaryOperator.TILDE) {
+          result = value.not();
+        }
+
+        if (Objects.requireNonNull(operator) == UnaryOperator.SIZEOF) {
+          result = BigInteger.valueOf(((CIntegerLiteralExpression) operand).getValue().bitLength());
+        }
+
+        if (Objects.requireNonNull(operator) == UnaryOperator.ALIGNOF) {
+          result = BigInteger.valueOf(((CIntegerLiteralExpression) operand).getValue().bitLength());
+        }
+
+        if (result == null) {
+          throw new UnsupportedOperationException("Unsupported operator: " + operator);
+        }
+      }
+      return new CIntegerLiteralExpression(
+          operand.getFileLocation(), operand.getExpressionType(), result);
     }
 
-    return new CIntegerLiteralExpression(
-        operand.getFileLocation(), operand.getExpressionType(), result);
+    return null;
   }
 }
