@@ -391,30 +391,38 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     Optional<CAssignment> returnStatementAsAssignment =
         pCfaEdge.getReturnStatement().asAssignment();
-    CIdExpression lhs = (CIdExpression) returnStatementAsAssignment.orElseThrow().getLeftHandSide();
-    CExpression returnExpression =
-        (CExpression) returnStatementAsAssignment.orElseThrow().getRightHandSide();
 
-    boolean returnExpressionIsTainted =
-        TaintAnalysisUtils.getAllVarsAsCExpr(returnExpression).stream()
-            .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
+    if (returnStatementAsAssignment.isPresent()) {
 
-    if (returnExpressionIsTainted) {
-      generatedVars.add(lhs);
-      values.put(lhs, returnExpression);
-    } else {
-      killedVars.add(lhs);
-      values.put(lhs, returnExpression);
+      CIdExpression lhs = (CIdExpression) returnStatementAsAssignment.orElseThrow().getLeftHandSide();
+      CExpression returnExpression =
+          (CExpression) returnStatementAsAssignment.orElseThrow().getRightHandSide();
+
+      boolean returnExpressionIsTainted =
+          TaintAnalysisUtils.getAllVarsAsCExpr(returnExpression).stream()
+              .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
+
+      if (returnExpressionIsTainted) {
+        generatedVars.add(lhs);
+        values.put(lhs, returnExpression);
+      } else {
+        killedVars.add(lhs);
+        values.put(lhs, returnExpression);
+      }
     }
 
+    // clean up the variable values that have only scope inside the called function
     CFANode predecessor = pCfaEdge.getPredecessor();
     AFunctionDeclaration functionDeclaration = predecessor.getFunction();
 
     for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
         CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-        killedVars.add(functionParameter);
-        values.put(functionParameter, null);
+//        killedVars.add(functionParameter);
+//        values.put(functionParameter, null);
+        // TODO: must be checked if this line is only reachable from a return statement
+        pState.getTaintedVariables().remove(functionParameter);
+        pState.getUntaintedVariables().remove(functionParameter);
       }
     }
 
