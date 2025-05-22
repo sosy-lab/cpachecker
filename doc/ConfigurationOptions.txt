@@ -206,6 +206,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -2583,6 +2584,13 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # deprecated name for cpa.predicate.invariants.kInductionTries
 cpa.predicate.kInductionTries = 3
 
+# Apply AND- LBE transformation to loop transition relation.
+cpa.predicate.loopTransition.applyLBETransformation = true
+
+# Time for loop generation before aborting.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.predicate.loopTransition.timeForLoopGeneration = 0s
+
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
@@ -3049,7 +3057,7 @@ cpa.sign.stop = "SEP"
 # max length of a chain of states, -1 for infinity
 cpa.singleSuccessorCompactor.maxChainLength = -1
 
-# Apply AND- LBE transformation to loop transition relation.
+# deprecated name for cpa.predicate.loopTransition.applyLBETransformation
 cpa.slicing.applyLBETransformation = true
 
 # Check target states reachability
@@ -3105,8 +3113,7 @@ cpa.slicing.refinement.takeEagerSlice = false
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
 
-# Time for loop generation before aborting.
-# (Use seconds or specify a unit; 0 for infinite)
+# deprecated name for cpa.predicate.loopTransition.timeForLoopGeneration
 cpa.slicing.timeForLoopGeneration = 0s
 
 # Inductive weakening strategy

@@ -2,12 +2,12 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 // SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.formulaslicing;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 /** Return a path-formula describing all possible transitions inside the loop. */
-@Options(prefix = "cpa.slicing")
+@Options(prefix = "cpa.predicate.loopTransition", deprecatedPrefix = "cpa.slicing")
 public class LoopTransitionFinder implements StatisticsProvider {
 
   /** Statistics for formula slicing. */
