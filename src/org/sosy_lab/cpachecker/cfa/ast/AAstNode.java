@@ -54,7 +54,7 @@ public interface AAstNode extends Serializable {
    * this method but one of the normal "accept" methods.
    *
    * @param v The visitor.
-   * @returnthe object returned by the visit method.
+   * @return the object returned by the visit method.
    */
   <
           R,
