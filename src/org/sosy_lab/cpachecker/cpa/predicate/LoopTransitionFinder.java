@@ -153,18 +153,18 @@ public class LoopTransitionFinder implements StatisticsProvider {
    * Return all edges in the local {@link Loop} associated with the {@code node}, or an empty set,
    * if {@code node} is not a loop-head.
    */
-  private List<CFAEdge> getEdgesInSCC(CFANode node) {
+  private Set<CFAEdge> getEdgesInSCC(CFANode node) {
     SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();
     SummarizingVisitor backwardsVisitor = new SummarizingVisitorBackwards();
 
     CFATraversal.dfs().traverse(node, forwardVisitor);
     CFATraversal.dfs().backwards().traverse(node, backwardsVisitor);
 
-    Set<CFAEdge> forwardsReachable = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
-    Set<CFAEdge> backwardsReachable = ImmutableSet.copyOf(backwardsVisitor.getVisitedEdges());
+    Set<CFAEdge> forwardsReachable = forwardVisitor.getVisitedEdges();
+    Set<CFAEdge> backwardsReachable = backwardsVisitor.getVisitedEdges();
 
     Set<CFAEdge> intersection = Sets.intersection(forwardsReachable, backwardsReachable);
-    return ImmutableList.copyOf(intersection);
+    return ImmutableSet.copyOf(intersection);
   }
 
   /**
@@ -283,21 +283,17 @@ public class LoopTransitionFinder implements StatisticsProvider {
       out = LBEcache.get(loopHead);
     } else {
 
-      // Looping edges: intersection of forwards-reachable
-      // and backwards-reachable.
-      List<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
+      // Looping edges: intersection of forwards-reachable and backwards-reachable.
+      Collection<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
       out = convert(edgesInLoop);
 
       // Otherwise it's not a loop.
       Preconditions.checkState(!edgesInLoop.isEmpty());
-      boolean changed;
-      do {
-        shutdownNotifier.shutdownIfNecessary();
-        changed = false;
-        if (applyLBETransformation && applyLargeBlockEncodingTransformationPass(out)) {
-          changed = true;
+      if (applyLBETransformation) {
+        while (applyLargeBlockEncodingTransformationPass(out)) {
+          shutdownNotifier.shutdownIfNecessary();
         }
-      } while (changed);
+      }
 
       LBEcache.put(loopHead, out);
     }
