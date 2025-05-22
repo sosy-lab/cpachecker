@@ -585,8 +585,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
               if (varIsCurrentlyTainted == 1 && varMustBePublic == 1) {
                 killedVars.add(expr);
+                values.put(expr, expr);
               } else if (varIsCurrentlyTainted == 0 && varMustBePublic == 0) {
                 generatedVars.add(expr);
+                values.put(expr, expr);
               }
 
             } catch (CPATransferException e) {
