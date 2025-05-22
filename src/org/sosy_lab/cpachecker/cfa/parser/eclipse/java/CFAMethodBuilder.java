@@ -182,7 +182,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     handleMethodDeclaration(mdef);
 
-    // If Declaration is Constructor add non static field member Declarations
+    // If Declaration is Constructor add non-static field member Declarations
     if (mDeclaration.isConstructor()) {
       addNonStaticFieldMember();
     }
@@ -352,7 +352,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private CFANode handleSideassignments(
       CFANode prevNode, String rawSignature, FileLocation fileLocation) {
-    // When Expressions, which are expected to be side effect free, are converted,
+    // When Expressions, which are expected to be side-effect free, are converted,
     // all side effects are transformed to Side Assignments. This Method
     // inserts them before the expression is inserted in the AST:
 
@@ -700,8 +700,8 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   /**
-   * This Method checks, if Statement is start of a else Condition Block or Statement, changes the
-   * cfa accordingly.
+   * This method checks if Statement is the start of an else-condition block or statement, and
+   * changes the CFA accordingly.
    *
    * @param statement Given statement to be checked.
    */
@@ -892,10 +892,10 @@ class CFAMethodBuilder extends ASTVisitor {
   private void searchForRunTimeClass(
       JReferencedMethodInvocationExpression methodInvocation, CFANode prevNode) {
 
-    // This Algorithm  goes backwards from methodInvocation and searches
+    // This algorithm goes backwards from methodInvocation and searches
     // for a Class Instance Creation, which Class can be distinctly assigned as Run Time Class
-    // If there is a distinct variable Assignment , the searched for variable reference will
-    // changes to the assigned variable reference.
+    // If there is a distinct variable Assignment, the searched for variable reference will
+    // change to the assigned variable reference.
 
     // Class can only be found if there is only one Path to
     // a ClassInstanceCreation, stop if there is not exactly one
@@ -911,7 +911,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       // Look for Instance Creation Assignment and Variable Assignment.
       // Stop if there is a function Call and the Variable is a FieldDeclaration
-      // or there is an Assignment Function Call which isn't a Instance Creation Assignment
+      // or there is an Assignment Function Call which isn't an Instance Creation Assignment
 
       if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
@@ -1008,7 +1008,7 @@ class CFAMethodBuilder extends ASTVisitor {
       parentExp = parentExp.getParent();
     }
 
-    // evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
+    // evaluates to true if the ternary expressions return value is not used (i.e. var==0 ? 0 : 1;)
     if (parentExp.getNodeType() != ASTNode.VARIABLE_DECLARATION_STATEMENT
         && parentExp.getNodeType() != ASTNode.ASSIGNMENT) {
       handleTernaryStatement(condExp, prevNode, lastNode);
@@ -1657,7 +1657,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(LabeledStatement labelStatement) {
 
-    // If parent is a else Condition without block
+    // If parent is an else-condition without block
     handleElseCondition(labelStatement);
 
     String labelName = labelStatement.getLabel().getIdentifier();
@@ -2012,7 +2012,7 @@ class CFAMethodBuilder extends ASTVisitor {
     Expression iterable = forStatement.getExpression();
 
     // loopStartNodes is the Node before the loop itself,
-    // it is the the one after the iterator
+    // it is the one after the iterator
     final CFANode loopStart = createIteratorEdgeForEnhancedForLoop(iterable, fileloc, loopInit);
     loopStart.setLoopStart();
 
@@ -2115,7 +2115,7 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", fileloc, prevNode, loopInit, "for"));
 
     // loopStartNodes is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     @SuppressWarnings("unchecked")
     List<Expression> iniBlock = forStatement.initializers();
 

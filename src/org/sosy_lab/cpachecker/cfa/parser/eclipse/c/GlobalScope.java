@@ -239,7 +239,7 @@ class GlobalScope extends AbstractScope {
       // This is an elaborated type like "struct s__filename;" We check that it has the
       // proper name (the filename suffix)
       // if there is already a type with this name (or the not file specific version
-      // registered we can quit here.
+      // registered we can quit here).
     } else if (type instanceof CElaboratedType) {
       if (isOnlyElaboratedType) {
         assert isFileSpecificTypeName(type.getName())
@@ -260,8 +260,8 @@ class GlobalScope extends AbstractScope {
     boolean programContainsExactNamedType =
         !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
 
-    // when entering this if clause we know that the current type is not an elaborated
-    // type, as this would have been captured in the if clause above, thus it was
+    // when entering this if-clause we know that the current type is not an elaborated
+    // type, as this would have been captured in the if-clause above, thus it was
     // not renamed before, however if there is a former elaborated type it was
     // renamed, thus we have to search for the renamed name in the types map
     if (types.containsKey(getFileSpecificTypeName(name))) {

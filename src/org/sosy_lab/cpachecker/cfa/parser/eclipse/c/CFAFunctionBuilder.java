@@ -256,7 +256,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   void finish() {
 
     // cleanup unnecessary nodes and edges, that were created before.
-    // cfaNodes were collected with with a FORWARD-search,
+    // cfaNodes were collected with a FORWARD-search,
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
@@ -1660,7 +1660,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", onlyFirstLine(fileLocation), prevNode, loopInit, "for"));
 
     // loopStart is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     final CFANode loopStart =
         createInitEdgeForForLoop(forStatement.getInitializerStatement(), fileLocation, loopInit);
     loopStart.setLoopStart();
@@ -2125,7 +2125,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   /////////////////////////////////////////////////////////////////////////////
 
   /**
-   * This methods handles all side effects and an eventual ternary or shortcutting operator.
+   * This method handles all side effects and an eventual ternary or shortcutting operator.
    *
    * @param prevNode The CFANode where to start adding edges.
    * @param fileLocation The file location.
@@ -2437,7 +2437,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condExp.getPositiveResultExpression() == null) {
       // Converting the logical-condition expression twice may cause problems,
       // for example if it defines labels inside it.
-      // Thus we reuse the condition expression returned by createConditionEdges,
+      // Thus, we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
         createEdgesForTernaryOperatorBranch(

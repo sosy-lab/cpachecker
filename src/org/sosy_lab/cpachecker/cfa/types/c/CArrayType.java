@@ -69,7 +69,7 @@ public final class CArrayType extends AArrayType implements CType {
    *       refer to the current value of this variable!
    * </ul>
    *
-   * Note that if you would like to get all length expressions even for cases like multi-dimensional
+   * Note that if you would like to get all length expressions even for cases like multidimensional
    * arrays of structs that again contain arrays, use {@link
    * CTypes#getArrayLengthExpressions(CType)}.
    */

@@ -367,7 +367,7 @@ public enum MachineModel {
   }
 
   /**
-   * This method returns the <code>ssize_t</code> type. This is an signed integer type capable of
+   * This method returns the <code>ssize_t</code> type. This is a signed integer type capable of
    * representing allocation sizes and -1.
    */
   public CSimpleType getSignedSizeType() {
@@ -679,7 +679,7 @@ public enum MachineModel {
    * <p>A {@link ComplexTypeKind#UNION} will result in a {@link Map} of fields to zeroes.
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
-   * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
+   * @return a mapping of typeMemberDeclarations to their corresponding offsets in pOwnerType
    */
   public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
       CCompositeType pOwnerType) {
@@ -728,7 +728,7 @@ public enum MachineModel {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
     // remainder of its own alignment unit that is already partially occupied by
-    // 'A'. Otherwise 'B' is pushed into its corresponding next alignment unit.
+    // 'A'. Otherwise, 'B' is pushed into its corresponding next alignment unit.
     //
     // E.g., in 'struct s { char a: 7; int b: 25; };', 'b' is placed directly
     // preceding 'a' and a 'struct s' allocates 4 bytes.

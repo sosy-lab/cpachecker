@@ -49,7 +49,7 @@ public interface CFAEdge {
   String getDescription();
 
   /**
-   * Returns a full representation of this edge (including as many information as possible) which is
+   * Returns a full representation of this edge (including as much information as possible) which is
    * meant to be shown to the user.
    */
   @Override

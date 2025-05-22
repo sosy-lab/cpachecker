@@ -97,7 +97,7 @@ public class CFASecondPassBuilder {
   }
 
   /**
-   * Inserts call edges and return edges (@see {@link #insertCallEdges(AStatementEdge)} in all
+   * Inserts call edges and return edges (@see {@link #insertCallEdges(AStatementEdge)}) in all
    * functions.
    */
   public void insertCallEdgesRecursively() throws ParserException {

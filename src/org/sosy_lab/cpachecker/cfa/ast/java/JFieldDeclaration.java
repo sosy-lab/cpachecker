@@ -119,7 +119,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
     return visibility;
   }
 
-  /** Method for setting a initializer. DO ONLY CALL IT WHILE CREATING THE CFA. */
+  /** Method for setting an initializer. DO ONLY CALL IT WHILE CREATING THE CFA. */
   public void updateInitializer(AbstractInitializer initializer) {
     addInitializer(initializer);
   }

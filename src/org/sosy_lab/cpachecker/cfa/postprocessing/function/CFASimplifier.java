@@ -80,7 +80,7 @@ public final class CFASimplifier {
    */
   private static Deque<CFANode> findBranchingPoints(final CFANode root, MutableCFA cfa) {
 
-    // at first we check if there is at least one branching with following blank
+    // at first, we check if there is at least one branching with following blank
     // edges, if not we can immediately return an empty list as it is not possible
     // to reduce anything then, later on (when we have found at least one such case)
     // it is enough to have an AssumeEdge or a BlankEdge following, as due to
@@ -114,7 +114,7 @@ public final class CFASimplifier {
 
     // The order is important: branching points at the beginning need to come first,
     // (similar to reverse post order).
-    // Thus we iterate through the CFA and visit each sucessor only
+    // Thus, we iterate through the CFA and visit each sucessor only
     // after all its predecessors have been handled.
 
     final Deque<CFANode> branchingPoints = new ArrayDeque<>();

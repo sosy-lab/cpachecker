@@ -122,7 +122,7 @@ class ASTTypeConverter {
             false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
       }
 
-      // empty linkedList for the Fields of the struct, they are created afterwards
+      // empty linkedList for the Fields of the struct, they are created afterward
       // with the right references in case of pointers to a struct of the same type
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set
@@ -130,7 +130,7 @@ class ASTTypeConverter {
       CCompositeType compType = new CCompositeType(false, false, kind, name, name);
 
       // We need to cache compType before converting the type of its fields!
-      // Otherwise we run into an infinite recursion if the type of one field
+      // Otherwise, we run into an infinite recursion if the type of one field
       // is (a pointer to) the struct itself.
       // In order to prevent a recursive reference from compType to itself,
       // we cheat and put a CElaboratedType instance in the map.

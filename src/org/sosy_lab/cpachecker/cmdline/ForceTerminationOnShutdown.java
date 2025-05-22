@@ -82,8 +82,8 @@ class ForceTerminationOnShutdown implements Runnable {
         if (success) {
           t.start();
         }
-        // Otherwise a second instance of such a thread was created in the meantime,
-        // we do not need to start our's.
+        // Otherwise, a second instance of such a thread was created in the meantime,
+        // we do not need to start ours.
       }
     };
   }

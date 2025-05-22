@@ -59,7 +59,7 @@ public class ProgramDeclarations {
   /**
    * Register a type in the program wide scope. This does not mean that every other file of the
    * program has access to this type, but it does mean that if the same type is declared in another
-   * file these types will be identical afterwards. (This happens in conjunction to the proper
+   * file these types will be identical afterward. (This happens in conjunction to the proper
    * handling of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
@@ -270,8 +270,8 @@ public class ProgramDeclarations {
   }
 
   /**
-   * This methods completes all uncompleted elaborated types by setting another elaborated type as
-   * realType (we cannot chose a real realtype as we do not know which this should be)
+   * This method completes all uncompleted elaborated types by setting another elaborated type as
+   * realType (we cannot choose a real realtype as we do not know which this should be)
    */
   public void completeUncompletedElaboratedTypes() {
     Set<String> handledTypes = new HashSet<>();
@@ -306,7 +306,7 @@ public class ProgramDeclarations {
     }
   }
 
-  /** This method checks the equality of two types (with regards to fields inside of structs). */
+  /** This method checks the equality of two types (in regard to fields inside of structs). */
   private static boolean areEqualTypes(CType type1, CType type2) {
     return areEqualTypes(type1, type2, new HashMap<>());
   }
@@ -407,7 +407,7 @@ public class ProgramDeclarations {
         }
       }
 
-      // length is ok, so check the if the types are ok, too
+      // length is ok, so check if the types are ok, too
       return areEqualTypes(
           ((CArrayType) type1).getType(), ((CArrayType) type2).getType(), foundTypes);
 

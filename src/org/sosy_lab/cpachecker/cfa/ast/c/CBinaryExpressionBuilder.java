@@ -435,7 +435,7 @@ public class CBinaryExpressionBuilder {
       final CExpression op2)
       throws UnrecognizedCodeException {
 
-    // if one type is an pointer, return the pointer.
+    // if one type is a pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
@@ -593,7 +593,7 @@ public class CBinaryExpressionBuilder {
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 

@@ -158,7 +158,7 @@ public final class CTypes {
    * Return a copy of a given type that has the "const" flag not set. If the given type is already a
    * non-const type, it is returned unchanged.
    *
-   * <p>This method only eliminates the outer-most const flag, if it is present, i.e., it does not
+   * <p>This method only eliminates the outermost const flag, if it is present, i.e., it does not
    * change a non-const pointer to a const int.
    */
   public static <T extends CType> T withoutConst(T type) {
@@ -169,7 +169,7 @@ public final class CTypes {
    * Return a copy of a given type that has the "const" flag set. If the given type is already a
    * const type, it is returned unchanged.
    *
-   * <p>This method only adds the outer-most const flag, if it is not present, i.e., it does not
+   * <p>This method only adds the outermost const flag, if it is not present, i.e., it does not
    * change a const pointer to a non-const int.
    */
   public static <T extends CType> T withConst(T type) {
@@ -179,7 +179,7 @@ public final class CTypes {
   /**
    * Return a copy of a given type that has the "const" flag set to the given value.
    *
-   * <p>This method only changes the outer-most const flag.
+   * <p>This method only changes the outermost const flag.
    *
    * <p>If you want to set the const flag to a constant, prefer {@link #withoutConst(CType)} and
    * {@link #withConst(CType)}.
@@ -201,8 +201,8 @@ public final class CTypes {
    * Return a copy of a given type that has the "volatile" flag not set. If the given type is
    * already a non-volatile type, it is returned unchanged.
    *
-   * <p>This method only eliminates the outer-most volatile flag, if it is present, i.e., it does
-   * not change a non-volatile pointer to a volatile int.
+   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does not
+   * change a non-volatile pointer to a volatile int.
    */
   public static <T extends CType> T withoutVolatile(T type) {
     return withVolatileSetTo(type, false);
@@ -212,7 +212,7 @@ public final class CTypes {
    * Return a copy of a given type that has the "volatile" flag set. If the given type is already a
    * volatile type, it is returned unchanged.
    *
-   * <p>This method only adds the outer-most volatile flag, if it is not present, i.e., it does not
+   * <p>This method only adds the outermost volatile flag, if it is not present, i.e., it does not
    * change a volatile pointer to a non-volatile int.
    */
   public static <T extends CType> T withVolatile(T type) {
@@ -222,7 +222,7 @@ public final class CTypes {
   /**
    * Return a copy of a given type that has the "volatile" flag set to the given value.
    *
-   * <p>This method only changes the outer-most volatile flag.
+   * <p>This method only changes the outermost volatile flag.
    *
    * <p>If you want to set the volatile flag to a constant, prefer {@link #withoutVolatile(CType)}
    * and {@link #withVolatile(CType)}.
@@ -271,7 +271,7 @@ public final class CTypes {
     // Note, that in particular the signed and the unsigned version
     // of a type are not compatible to each other, since the conversion
     // of, e.g., an unsigned int to a signed int might change the
-    // expressions value from a positive to a negative one and vice-versa,
+    // expressions value from a positive to a negative one and vice versa,
     // which is explicitly forbidden for compatible types (C-Standard §6.3 (2)).
     //
     // Note also, that even the equals methods of the other {@link CType}s

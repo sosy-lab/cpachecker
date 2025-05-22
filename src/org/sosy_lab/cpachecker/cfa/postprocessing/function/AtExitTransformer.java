@@ -236,7 +236,7 @@ public class AtExitTransformer {
         CFAEdge e0 = new CStatementEdge("", stmtExit, loc, n5, edge.getSuccessor());
         CFACreationUtils.addEdgeUnconditionallyToCFA(e0);
 
-        // Otherwise continue with the body of the loop:
+        // Otherwise, continue with the body of the loop:
         // Add an edge for the call to the function pointer
         CPointerExpression expFPointer =
             new CPointerExpression(loc, functionType, new CIdExpression(loc, declVar));
