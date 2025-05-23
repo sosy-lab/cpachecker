@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.propertyChecker;
+package org.sosy_lab.cpachecker.cpa.PropertyChecker;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
