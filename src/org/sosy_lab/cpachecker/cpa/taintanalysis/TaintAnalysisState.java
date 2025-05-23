@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -41,8 +39,8 @@ public class TaintAnalysisState
   private final Map<CIdExpression, CExpression> taintedVariables;
   private final Map<CIdExpression, CExpression> untaintedVariables;
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
-  private List<TaintAnalysisState> predecessors;
-  private final List<TaintAnalysisState> successors = new ArrayList<>();
+  private Set<TaintAnalysisState> predecessors = new HashSet<>();
+  private final Set<TaintAnalysisState> successors = new HashSet<>();
   private TaintAnalysisState siblingState;
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
@@ -56,7 +54,7 @@ public class TaintAnalysisState
   public TaintAnalysisState(
       Map<CIdExpression, CExpression> pTaintedVariables,
       Map<CIdExpression, CExpression> pUntaintedVariables,
-      List<TaintAnalysisState> pPredecessors) {
+      Set<TaintAnalysisState> pPredecessors) {
     this.taintedVariables = new HashMap<>(pTaintedVariables);
     this.untaintedVariables = new HashMap<>(pUntaintedVariables);
     this.predecessors = pPredecessors;
@@ -70,15 +68,15 @@ public class TaintAnalysisState
     return siblingState;
   }
 
-  public List<TaintAnalysisState> getPredecessors() {
+  public Set<TaintAnalysisState> getPredecessors() {
     return predecessors;
   }
 
-  public void setPredecessors(List<TaintAnalysisState> pPredecessors) {
+  public void setPredecessors(Set<TaintAnalysisState> pPredecessors) {
     predecessors = pPredecessors;
   }
 
-  public List<TaintAnalysisState> getSuccessors() {
+  public Set<TaintAnalysisState> getSuccessors() {
     return successors;
   }
 
@@ -177,7 +175,7 @@ public class TaintAnalysisState
     joinedUntaintedVars.keySet().retainAll(pOther.getUntaintedVariables().keySet());
 
     TaintAnalysisState joinedState =
-        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, List.of(this, pOther));
+        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, Set.of(this, pOther));
 
     this.siblingState = pOther;
     pOther.siblingState = this;
