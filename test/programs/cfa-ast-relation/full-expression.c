@@ -34,12 +34,62 @@ int main() {
   int s = 0;
   int p = s != q ? s == 1 : q == 2;
   int l = (0);
-}
+
+  int t = 1;
+  a(1, 1); t = 2;
+  int arr[3] = {0, 0, 0};
+
+  g(2/* comment inside the function call */, 2);
+  g /* comment between function and argument */ (1, 1);
+  arr[ /* comment in element of array */ 0] = 1;
+  arr[0] = /* comment in value of array */ 0;
+
+  t = d(1, 2) || g(3, 3);
+  if (g(3, 0) == 3) {
+    t = 4 + g(2, 3);
+  } else if (d(3, 2)) {
+    for (int i = 0; i < 3; i++) {
+      t += g(0, 1);
+    }
+  }
+
+  int u = g(a(3, 2), a(2, 3)) * a(4, 1);
+
+  arr[1] = a(1, 4);
+  }
 
 int rec(int x) {
    int p = rec(0);
    p = rec(2);
+   int m = rec(/* comment in recursion */ 1);
+   int n = rec(a(5, 4));
    int q = rec(rec(3));
    q = rec(rec(4));
    return rec(x - 2);
 }
+
+int a(int v, int w) { if (v > w) { return v - w; } else { return v - 1; } }
+
+int b() {
+  int a = 0; int b = 1, c = 3; a = 3; b = 0;
+  if ((a > 0 && b == 0) || (c == 3)) {c = 2; int d = a + b;} else {c = 1;}
+  do {++b; c--;} while (b < 2 && c > 0);
+  c = 4; return b;
+}
+
+int c/* testing for comments */ ()  {
+  int e = 2; /* comment at end of line */
+  /* comment at beginning of line */ int f = 1;
+  int /* comment between type and variable */ g = 0;
+  if ((e > f) /* comment in conditional */ && (g /* comment in conditional */ == 0)) {
+    e /* comment between variable and setting of value */ = 3;
+  } else {
+    for (int p = 0 /* comment in loop */ ; p /* comment in loop */ < 2; p++ /* comment in loop */) {
+    e += /* comment in iteration */ 1;
+      }
+  }
+  return /* comment in return */ f /* comment between operation */ + g;
+}
+
+int d(int h, int k) { return (a(h, k) > 0); }
+
