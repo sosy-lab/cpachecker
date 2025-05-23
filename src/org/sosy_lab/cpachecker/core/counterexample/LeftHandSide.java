@@ -56,7 +56,7 @@ public abstract sealed class LeftHandSide permits FieldReference, IDExpression {
   /**
    * Checks if the left hand side is defined in a global scope.
    *
-   * @returntrue, if the address is defined globally in the program, false otherwise.
+   * @return true, if the address is defined globally in the program, false otherwise.
    */
   public boolean isGlobal() {
     return functionName == null;
