@@ -19,7 +19,6 @@ int main() {
         x = x + y;
     }
 
-    // Note that the problem from simpleWhileLoopSafe_3.c is not present here. In this case the analysis recognizes that the state space was completely explored.
     // x is expected to be tainted
     __VERIFIER_is_public(x, 0);
 }

@@ -17,24 +17,22 @@ int main() {
     int a = __VERIFIER_nondet_int();
     int b = __VERIFIER_nondet_int();
 
-    // TODO: Does not work completely fine. In the if blocks the order still matters.
-
-    // problem, when we here analyse first the branch that violates the property the analyse fails wrongly.
     if (x) { // with standalone x the if-branch is analysed first, with x == 0 the else-branch goes first
-        a = 3; // t(a) = U, t(b) = T
+        a = 3;
+        // t(a) = U, t(b) = T
     } else {
-        b = 4; // t(a) = T, t(b) = U
+        a = 1;
+        b = 4;
+        // t(a) = U, t(b) = U
     }
 
-    // Failure trigger: whenever the branch that contradicts the public-check is explored first
+    // t(a) = U + U = U -> a expected to be untainted
+    __VERIFIER_is_public(a, 1);
 
-    // with ternary op it works fine
-//    a = x ? a : 3;
-//    b = x ? b : 4;
+    // t(b) = T + U = T -> b expected to be tainted
+    __VERIFIER_is_public(b, 0);
 
     // a + b is expected to be tainted
     __VERIFIER_is_public(a + b, 0);
 
-    // with a does not work as expected
-    __VERIFIER_is_public(a, 0); // fails
 }
