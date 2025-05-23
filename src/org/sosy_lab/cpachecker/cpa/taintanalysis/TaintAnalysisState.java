@@ -116,7 +116,16 @@ public class TaintAnalysisState
                         && Objects.equals(
                             other.getUntaintedVariables().get(entry.getKey()), entry.getValue()));
 
-    return otherContainsThisTainted && otherContainsThisUntainted;
+    boolean otherContainsThisPredecessors =
+        new HashSet<>(other.getPredecessors()).containsAll(this.getPredecessors());
+
+    boolean otherContainsThisSuccessors =
+        new HashSet<>(other.getSuccessors()).containsAll(this.getSuccessors());
+
+    return otherContainsThisTainted
+        && otherContainsThisUntainted
+        && otherContainsThisSuccessors
+        && otherContainsThisPredecessors;
   }
 
   @Override
