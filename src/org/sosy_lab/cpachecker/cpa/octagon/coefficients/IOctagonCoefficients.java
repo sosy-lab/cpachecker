@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
 
 /**
- * Class for representing Coeffecients which show the value of a variable dependant on all other
+ * Class for representing Coeffecients which show the value of a variable dependent on all other
  * variables and a constant value.
  */
 @SuppressWarnings("rawtypes")

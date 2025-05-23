@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 public enum InvariantsSpecificationAutomatonBuilder {
 
   /**
-   * Lets the automaton unchanged when calling {@link
+   * Let's the automaton unchanged when calling {@link
    * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager,
    * ShutdownNotifier, CFA)}.
    */

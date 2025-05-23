@@ -85,7 +85,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
 
   // Attention! Error trace may be restored incorrectly.
   // If two states with different locks are reduced to the one state,
-  // the path will be always restored through the first one
+  // the path will always be restored through the first one.
   @Option(description = "reduce unused locks", secure = true)
   private boolean reduceUselessLocks = false;
 

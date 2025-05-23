@@ -76,8 +76,8 @@ public final class PredicateCPARefinerFactory {
 
   /**
    * Ensure that {@link PredicateStaticRefiner} is not used. This is mostly useful for
-   * configurations where static refinements do not make sense, or a the predicate refiner is used
-   * as a helper for other refinements and should always generate interpolants.
+   * configurations where static refinements do not make sense, or the predicate refiner is used as
+   * a helper for other refinements and should always generate interpolants.
    *
    * @return this
    * @throws InvalidConfigurationException If static refinements are enabled by the configuration.

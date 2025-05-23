@@ -91,7 +91,7 @@ public class DeterministicVariablesTransferRelation
 
     if (initializer instanceof CInitializerExpression
         && areAllDeterministic(getVariablesUsedForInitialization(initializer))) {
-      /* an initializer can either contains constants or variables or both, but no function calls
+      /* an initializer can either contain constants or variables or both, but no function calls
        * so the initialized variable is deterministic if all initializing identifiers are deterministic
        * this is trivially true in the case where an initializer consists of constants, only,
        * so this does not need to be handled in a special case, but all in the same

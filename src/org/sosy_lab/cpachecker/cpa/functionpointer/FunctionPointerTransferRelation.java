@@ -190,7 +190,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
             // function pointer call into a series of if-else-if-else edges,
             // where there is a single static function call in each branch.
             // If the user wishes, we skip these function calls by not going entering the branches.
-            // Of course we have to go into the else branches.
+            // Of course, we have to go into the else branches.
 
             if (ignoreInvalidFunctionPointerCalls) {
               if (v1 instanceof InvalidTarget && v2 instanceof NamedFunctionTarget) {
@@ -263,7 +263,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // functions may be called either as f() or as (*f)(),
-    // so remove the star operator if its there
+    // so remove the star operator if it's there
     if (nameExp instanceof CPointerExpression) {
       nameExp = ((CPointerExpression) nameExp).getOperand();
     }
@@ -421,7 +421,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       // external function call without return value
 
     } else if (pStatement instanceof CExpressionStatement) {
-      // side-effect free statement
+      // side effect free statement
 
     } else {
       throw new UnrecognizedCodeException("unknown statement", pCfaEdge, pStatement);

@@ -332,7 +332,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     if (coveringLevel != null) {
       // if level is twice in stack, we have endless recursion.
       // with current knowledge we would never abort unrolling the recursion.
-      // lets skip the function and return only a short "summary" of the function.
+      // let's skip the function and return only a short "summary" of the function.
       // this summary is the result of a previous analysis of this block from the cache.
       logger.logf(
           Level.FINEST,

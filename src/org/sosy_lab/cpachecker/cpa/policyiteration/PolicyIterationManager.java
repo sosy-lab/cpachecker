@@ -442,7 +442,8 @@ public class PolicyIterationManager {
 
   /**
    * Emulate the JOIN step on {@code newState} (recently produced abstracted state) and {@code
-   * latestSibling} (state in the same {@link ReachedSet} partition found by following backpointers.
+   * latestSibling} (state in the same {@link ReachedSet} partition found by following
+   * backpointers).
    */
   private PolicyAbstractedState emulateLargeStep(
       PolicyAbstractedState newState,

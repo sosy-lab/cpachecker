@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
  * This Visitor implements evaluation of simply typed expressions. An expression is defined as
  * simply typed iff it is not an array type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CArrayType}), a struct or union type ({@link
- * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), a imaginary type ({@link
+ * org.sosy_lab.cpachecker.cfa.types.c.CComplexType}), an imaginary type ({@link
  * CImaginaryLiteralExpression}), or a pointer type ({@link
  * org.sosy_lab.cpachecker.cfa.types.c.CPointerType}). The key distinction between these types and
- * simply typed types is, that a value of simply typed types can be represented as a numerical value
+ * simply-typed types is, that a value of simply-typed types can be represented as a numerical value
  * without losing information.
  */
 public class BDDVectorCExpressionVisitor
@@ -338,7 +338,7 @@ public class BDDVectorCExpressionVisitor
   /**
    * This method returns the input-value, casted to match the type. If the value matches the type,
    * it is returned unchanged. This method handles overflows and print warnings for the user.
-   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * Example: This method is called, when a value of type 'integer' is assigned to a variable of
    * type 'char'.
    *
    * @param value will be casted. If value is null, null is returned.
@@ -363,7 +363,7 @@ public class BDDVectorCExpressionVisitor
           machineModel.isSigned((CSimpleType) sourceType),
           value);
     }
-    // currently we do not handle floats, doubles or voids, pointers, so lets ignore this case.
+    // currently we do not handle floats, doubles or voids, pointers, so let's ignore this case.
     return value;
   }
 }

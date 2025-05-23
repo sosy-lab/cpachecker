@@ -88,7 +88,7 @@ public class BDDPartitionOrderer {
     Set<CFAEdge> reachable2 = fCol2.getEdges();
 
     // get edges, that are either in left or in right branch.
-    // edges, that are reachable from both branches, are independent from the assumption
+    // edges, that are reachable from both branches, are independent of the assumption
     SetView<CFAEdge> distinctEdges = Sets.symmetricDifference(reachable1, reachable2);
     for (CFAEdge edge : distinctEdges) {
       if (edge instanceof FunctionCallEdge funcCall) {
@@ -107,7 +107,7 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** returns a ordered list of partitions, so that the BDD stays small. */
+  /** returns an ordered list of partitions, so that the BDD stays small. */
   public List<Partition> getOrderedPartitions() {
 
     // TODO use some "Minimum Linear Arrangement Algorithm"?
@@ -141,8 +141,8 @@ public class BDDPartitionOrderer {
   }
 
   /**
-   * This Visitor collects all edges reachable from the a node until a split-point (assumption) is
-   * reached. The leaving edges of the splitpoint are cllected, too.
+   * This Visitor collects all edges reachable from a node until a split-point (assumption) is
+   * reached. The leaving edges of the split-point are collected, too.
    */
   private static class CFAUntilSplitCollector implements CFAVisitor {
 

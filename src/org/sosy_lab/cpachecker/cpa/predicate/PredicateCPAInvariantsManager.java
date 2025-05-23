@@ -921,8 +921,8 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                           try {
                             return candidateInvariant.getFormula(fmgr, pfmgr, null);
                           } catch (CPATransferException | InterruptedException e) {
-                            // this should never happen, if it does we log
-                            // the exception and return TRUE as invariant
+                            // this should never happen,
+                            // if it does, we log the exception and return TRUE as invariant
                             logger.logUserException(
                                 Level.WARNING,
                                 e,

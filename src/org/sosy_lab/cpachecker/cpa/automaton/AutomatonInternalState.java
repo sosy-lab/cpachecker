@@ -106,7 +106,7 @@ public class AutomatonInternalState {
   }
 
   /**
-   * Lets all outgoing transitions of this state resolve their "sink" states.
+   * Let's all outgoing transitions of this state resolve their "sink" states.
    *
    * @param pAllStates map of all states of this automaton.
    */

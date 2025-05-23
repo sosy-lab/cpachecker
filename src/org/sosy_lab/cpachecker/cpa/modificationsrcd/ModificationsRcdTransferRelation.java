@@ -109,7 +109,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
 
         // If no outgoing edge matched, add all outgoing edges to list of modified edges.
         // Since the modified edges do not have any successors we do not need to worry about the
-        // changed variables any more and can simply pass an empty set instead.
+        // changed variables anymore and can simply pass an empty set instead.
         if (successors.isEmpty()) {
           for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
             successors.add(
