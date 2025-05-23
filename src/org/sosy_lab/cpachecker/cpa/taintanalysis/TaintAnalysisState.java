@@ -43,6 +43,7 @@ public class TaintAnalysisState
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private List<TaintAnalysisState> predecessors;
   private final List<TaintAnalysisState> successors = new ArrayList<>();
+  private TaintAnalysisState siblingState;
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     this.taintedVariables = new HashMap<>();
@@ -62,6 +63,11 @@ public class TaintAnalysisState
     for (TaintAnalysisState predecessor : pPredecessors) {
       predecessor.addSuccessor(this);
     }
+  }
+
+  @Nullable
+  public TaintAnalysisState getSiblingState() {
+    return siblingState;
   }
 
   public List<TaintAnalysisState> getPredecessors() {
@@ -170,7 +176,13 @@ public class TaintAnalysisState
     // For untainted variables, only keep those that are untainted in both states
     joinedUntaintedVars.keySet().retainAll(pOther.getUntaintedVariables().keySet());
 
-    return new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, List.of(this, pOther));
+    TaintAnalysisState joinedState =
+        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, List.of(this, pOther));
+
+    this.siblingState = pOther;
+    pOther.siblingState = this;
+
+    return joinedState;
   }
 
   @Override

@@ -615,27 +615,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           checkInformationFlowViolation(
               pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
 
-          if (!pState.isTarget()) {
-            newStates.add(generateNewState(pState, killedVars, generatedVars, values));
-
-          } else {
-
-            for (TaintAnalysisState successor : pState.getSuccessors()) {
-              if (successor.getPredecessors().size() == 2) {
-                pState.setViolatesProperty(false);
-                TaintAnalysisState newState =
-                    generateNewState(pState, killedVars, generatedVars, values);
-                return ImmutableList.of(newState);
-              }
-            }
-
-            if (pState.getPredecessors().size() == 2) {
-              TaintAnalysisState newState =
-                  generateNewState(pState, killedVars, generatedVars, values);
-              newState.setViolatesProperty();
-              return ImmutableList.of(newState);
-            }
-          }
+          newStates.add(generateNewState(pState, killedVars, generatedVars, values));
         }
       } else {
         // E.g., calls to any function like f(param1, ..., paramN);, where the parameters
@@ -711,21 +691,44 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       boolean isCurrentlyTainted,
       CExpression firstArg) {
 
-    if (expectedPublicity == 1 && isCurrentlyTainted) {
-      logger.logf(
-          Level.WARNING,
-          "Assertion violation at %s: Array '%s' was expected to be public but is" + " tainted.",
-          pCfaEdge.getFileLocation(),
-          firstArg.toASTString());
-      pState.setViolatesProperty();
+    if (expectedPublicity == 1) {
+      if (isCurrentlyTainted) {
+        logger.logf(
+            Level.WARNING,
+            "Assertion violation at %s: Array '%s' was expected to be public but is" + " tainted.",
+            pCfaEdge.getFileLocation(),
+            firstArg.toASTString());
+        pState.setViolatesProperty();
+      }
     }
-    if (expectedPublicity == 0 && !isCurrentlyTainted) {
-      logger.logf(
-          Level.WARNING,
-          "Assertion violation at %s: Array '%s' was expected to be tainted but is" + " public.",
-          pCfaEdge.getFileLocation(),
-          firstArg.toASTString());
-      pState.setViolatesProperty();
+
+    if (expectedPublicity == 0) {
+      TaintAnalysisState siblingState = pState.getSiblingState();
+
+      if (isCurrentlyTainted) {
+        if (siblingState != null) {
+          if (siblingState.isTarget()) {
+            siblingState.setViolatesProperty(false);
+          }
+        }
+
+      } else {
+        if (siblingState != null) {
+          if (siblingState.isTarget()) {
+            logger.logf(
+                Level.WARNING,
+                "Assertion violation at %s: Array '%s' was expected to be tainted but is" + " public.",
+                pCfaEdge.getFileLocation(),
+                firstArg.toASTString());
+
+            pState.setViolatesProperty();
+          } else {
+            siblingState.setViolatesProperty(false);
+          }
+        } else {
+          pState.setViolatesProperty();
+        }
+      }
     }
   }
 
