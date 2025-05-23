@@ -291,7 +291,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private void runExtractorAlgo(
       final ReachedSet pReached,
       ARGState reachedState,
-      CounterexampleInfo cexInfo) {// not as its own class, changes in the target edges need to be done in TCGA
+      CounterexampleInfo cexInfo) {
+
+    ARGState eStartState = new ARGState(reachedState, null);
+    getExpressions(cexInfo, eStartState);
 
 //    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 //    SingletonPrecision.getInstance());
@@ -301,38 +304,37 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 //      //missing cfa, factory, intitializeReachedSet method
 //  removeAll
 
-
-    getAssignments(reachedState);
 //    pReached.add(reachedState, pReached.getPrecision(reachedState));
 //
-//  status = extractorAlgo.run(eReached);
+
 // todo add try catch finaly block
-//
+//  status = extractorAlgo.run(eReached);
 //    todo call processGoalState() for all elements of eReached that are testTargets
 //    todo optimisation: do not call for the first element of eReached, as that got already covered
 //  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
     processGoalState(reachedState);
   }
 
-  private void getAssignments(ARGState reachedState) {
+  // extracts individual expressions from the counterexample and adds them to the starting state
+  // in descending order relative to the line number of the c program
+  private void getExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
     // extract all variable assignments from reached state
     CFAPathWithAssumptions reachStateAssignments =
-        reachedState.getCounterexampleInformation().orElseThrow().getCFAPathWithAssignments();
-
-    CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(13);
-    ImmutableList<AExpressionStatement> stateExpStmts =  edgeWithAssignment.getExpStmts();
-    writeExpressionToState(stateExpStmts, reachedState);
-    logger.log(
-        Level.FINE,
-        "Extractor: reachedState Assignments"
-            + stateExpStmts);
+        cexInfo.getCFAPathWithAssignments();
+    int counter = reachStateAssignments.size() - 1;
+    while (counter >= 0) {
+      CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(counter);
+      ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
+      writeExpressionToState(stateExpStmts, eStartState);
+      counter--;
+    }
   }
 
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
-  private void writeExpressionToState(ImmutableList<AExpressionStatement> expStmt, ARGState startState){
+  private void writeExpressionToState(ImmutableList<AExpressionStatement> expStmt, ARGState eStartState){
     if (expStmt.isEmpty()) return;
-    assert expStmt.size() == 1; //todo can expStmt contain more than 1 element?
+    assert expStmt.size() == 1; //todo can expStmt contain more than 1 element? replace with precondition?
     //todo check expStmt for being instance of CBinaryExpression
     // todo read from Expression
     expStmt.get(0).getExpression();
