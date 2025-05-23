@@ -46,7 +46,7 @@ public abstract sealed class LeftHandSide permits FieldReference, IDExpression {
    * Returns the name of the function, which holds the scope this left hand side is defined in. If
    * the scope of this left hand side is global, this function may not be called.
    *
-   * @returnthe name of the function, which has the scope this left hand side is defined in.
+   * @return the name of the function, which has the scope this left hand side is defined in.
    */
   public String getFunctionName() {
     assert functionName != null;

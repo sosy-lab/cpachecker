@@ -55,17 +55,17 @@ public abstract class Address {
   public abstract boolean equals(Object obj);
 
   /**
-   * @returns whether the address is unknown.
+   * @return whether the address is unknown.
    */
   public abstract boolean isUnknown();
 
   /**
-   * @returns whether the address is symbolic.
+   * @return whether the address is symbolic.
    */
   public abstract boolean isSymbolic();
 
   /**
-   * @returns whether the address is concrete.
+   * @return whether the address is concrete.
    */
   public abstract boolean isConcrete();
 
