@@ -254,7 +254,7 @@ analysis.algorithm.MPI = false
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
-# use a analysis which proves if the program satisfies a specified property
+# use an analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
 
@@ -442,7 +442,7 @@ analysis.restartAfterUnknown = false
 # Use heuristics to select the analysis
 analysis.selectAnalysisHeuristically = false
 
-# Split program in subprograms which can be analyzed separately afterwards
+# Split program in subprograms which can be analyzed separately afterward
 analysis.split.program = false
 
 # stop after the first error has been found
@@ -4495,7 +4495,7 @@ liveVar.overallLivenessCheckTime = 0ns
 
 # Timelimit for collecting the liveness information with one approach, (p.e.
 # if global analysis is selected and fails in the specified timelimit the
-# function wise approach will have the same time-limit afterwards to compute
+# function wise approach will have the same time-limit afterward to compute
 # the live variables).(use seconds or specify a unit; 0 for infinite)
 liveVar.partwiseLivenessCheckTime = 20s
 

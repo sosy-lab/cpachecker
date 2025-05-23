@@ -54,19 +54,13 @@ public abstract class Address {
   @Override
   public abstract boolean equals(Object obj);
 
-  /**
-   * Returns whether the address is unknown.
-   */
+  /** Returns whether the address is unknown. */
   public abstract boolean isUnknown();
 
-  /**
-   * Returns whether the address is symbolic.
-   */
+  /** Returns whether the address is symbolic. */
   public abstract boolean isSymbolic();
 
-  /**
-   * Returns whether the address is concrete.
-   */
+  /** Returns whether the address is concrete. */
   public abstract boolean isConcrete();
 
   /**
