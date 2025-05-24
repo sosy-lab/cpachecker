@@ -194,7 +194,7 @@ public class BlockPartitioningBuilder {
             && !pNodes.contains(edge.getPredecessor())) {
           // entering edge from "outside" of the given set of nodes.
           // this case also handles blocks from recursive function-calls,
-          // because at least one callee should be outside of the block.
+          // because at least one callee should be outside the block.
           result.add(node);
         }
       }
@@ -228,7 +228,7 @@ public class BlockPartitioningBuilder {
           // leaving edge from inside of the given set of nodes to outside
           // -> this is either a return-node or a function call
           // this case also handles blocks from recursive function-calls,
-          // because at least one callee should be outside of the block.
+          // because at least one callee should be outside the block.
           result.add(node);
         }
       }

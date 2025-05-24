@@ -1680,7 +1680,7 @@ public class SMGState
     // TODO: build visitor that replaces symbolic values in constraints
     // TODO: carry a SymbolicGenerator Object with all found SymbolicValues that can be replaced by
     // it
-    //  Important/Difficulty: make sure the symbolic value relations to occurrences outside of the
+    //  Important/Difficulty: make sure the symbolic value relations to occurrences outside the
     // list are respected somehow
   }
 
@@ -2634,7 +2634,7 @@ public class SMGState
   }
 
   /**
-   * General read outside of memory boundries.
+   * General read outside memory boundries.
    *
    * @param readMemory the memory {@link SMGObject} that was tried to be read.
    * @return A new SMGState with the error info.
@@ -3863,7 +3863,7 @@ public class SMGState
   }
 
   /**
-   * Don't use this method outside of this class or tests! Writes into the given {@link SMGObject}
+   * Don't use this method outside this class or tests! Writes into the given {@link SMGObject}
    * at the specified offset in bits with the size in bits the value given. This method adds the
    * Value <-> SMGValue mapping if none is known, else it uses an existing mapping. This method
    * makes all checks (write to 0, sizes, validity). Only returns multiple states with option
@@ -6240,7 +6240,7 @@ public class SMGState
                 currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
       }
     } else {
-      // Self-pointers are possible in list elements (outside of next and prev)
+      // Self-pointers are possible in list elements (outside next and prev)
       // We expect those to uniformly point to itself, and not to the same target
       // (all to first or something like it). These should end up with ALL ptrs.
       SMG smg = currentState.getMemoryModel().getSmg();

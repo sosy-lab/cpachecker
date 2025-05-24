@@ -455,7 +455,7 @@ public final class LoopStructure {
   }
 
   /**
-   * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
+   * Build loop-structure information for a CFA. Do not call this method outside the frontend,
    * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    *
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
@@ -476,7 +476,7 @@ public final class LoopStructure {
 
   /**
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
-   * with any nodes outside of this set. This method tries to differentiate nested loops.
+   * with any nodes outside this set. This method tries to differentiate nested loops.
    *
    * @param pNodes the set of nodes to look for loops in
    * @param language The source language.

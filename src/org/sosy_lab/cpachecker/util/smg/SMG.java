@@ -1355,7 +1355,7 @@ public class SMG {
   /**
    * This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
    * field [offset; offset + size) is covered by nullObjects. Important: One may not take
-   * SMGHasValueEdges into account which lay outside of the SMGObject! Else it would be possible to
+   * SMGHasValueEdges into account which lay outside the SMGObject! Else it would be possible to
    * read potentially invalid memory!
    *
    * @param object The SMGObject in which a field is to be checked for nullified blocks.

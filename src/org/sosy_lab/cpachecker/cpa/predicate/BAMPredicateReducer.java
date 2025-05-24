@@ -160,7 +160,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
    * the following requirements:
    *
    * <ul>
-   *   <li>contain variables never used outside of the block, also transitively.
+   *   <li>contain variables never used outside the block, also transitively.
    *   <li>do not encode pointers, addresses, return variables.
    * </ul>
    *

@@ -116,7 +116,7 @@ public class ConfigurationFileChecks {
           // always set by this test
           "java.sourcepath",
           "differential.program",
-          // handled by code outside of CPAchecker class
+          // handled by code outside CPAchecker class
           "output.disable",
           "report.export",
           "statistics.print",

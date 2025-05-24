@@ -124,7 +124,7 @@ public class GenericAbstractionCandidateTemplate implements SMGObjectTemplate {
       Set<SMGEdgeHasValue> pSharedFields,
       SMGRegion pRoot) {
 
-    /*It is assumed, that shared pointer connect the abstraction to outside of the abstraction in the smg.
+    /*It is assumed, that shared pointer connect the abstraction to outside the abstraction in the smg.
      *For every shared pointer, generate such an edge. The stop step has no further abstractions connected to it,
      *so the pointers connecting regions within the abstraction are empty.*/
 
