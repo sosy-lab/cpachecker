@@ -21,23 +21,27 @@ public interface EquivalenceCheck {
       int totalChecks,
       int checkedSafe,
       int checkedUnsafe,
-      int checkedUnknown) {
+      int checkedUnknown,
+      int falseOriginal,
+      int falseMutant) {
 
     public String toCsvString() {
       return String.format(
-          "%b\t%d\t%d\t%d\t%d\t%d\t%d",
+          "%b\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d",
           equivalent,
           sizeOriginal,
           sizeMutant,
           totalChecks,
           checkedSafe,
           checkedUnsafe,
-          checkedUnknown);
+          checkedUnknown,
+          falseOriginal,
+          falseMutant);
     }
 
     public static String getCsvHeader() {
       return "equivalent\tsizeOriginal\tsizeMutant\ttotalChecks\tcheckedSafe\tcheckedUnsafe"
-          + "\tcheckedUnknown";
+          + "\tcheckedUnknown\tfalseOriginal\tfalseMutant";
     }
   }
 

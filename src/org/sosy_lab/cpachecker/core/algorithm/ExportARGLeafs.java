@@ -204,7 +204,9 @@ public class ExportARGLeafs implements Algorithm {
           .append('\n');
       ImmutableList<EquivalenceResult> resultsSafe = safeResults.build();
       ImmutableList<EquivalenceResult> resultsUnsafe = unsafeResults.build();
+      int falseCount = 0;
       for (EquivalenceResult result : resultsSafe) {
+        falseCount += result.equivalent().falseOriginal();
         csvBuilder
             .append(
                 String.format(
@@ -213,6 +215,7 @@ public class ExportARGLeafs implements Algorithm {
             .append('\n');
       }
       for (EquivalenceResult result : resultsUnsafe) {
+        falseCount += result.equivalent().falseOriginal();
         csvBuilder
             .append(
                 String.format(
@@ -226,7 +229,11 @@ public class ExportARGLeafs implements Algorithm {
       boolean equivalent =
           resultsSafe.stream().allMatch(e -> e.equivalent().equivalent())
               && resultsUnsafe.stream().allMatch(e -> e.equivalent().equivalent());
-      logger.logf(Level.INFO, "The programs are %s.", equivalent ? "equivalent" : "not equivalent");
+      logger.logf(
+          Level.INFO,
+          "The programs are %s.%s",
+          equivalent ? "equivalent" : "not equivalent",
+          falseCount > 0 ? " However, there were " + falseCount + " false results." : "");
       return status;
     } catch (ParserException e) {
       throw new CPAException("Parsing the program is not possible", e);

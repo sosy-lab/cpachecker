@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
+import com.google.common.collect.FluentIterable;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -29,6 +30,14 @@ public class JoinEquivalenceCheck implements EquivalenceCheck {
     boolean check = solver.implies(bmgr.or(original), bmgr.or(mutant));
     int checkedSafe = check ? 1 : 0;
     int checkedUnsafe = check ? 0 : 1;
+    int falseOrig =
+        FluentIterable.from(original)
+            .filter(solver.getFormulaManager().getBooleanFormulaManager()::isFalse)
+            .size();
+    int falseMutant =
+        FluentIterable.from(mutant)
+            .filter(solver.getFormulaManager().getBooleanFormulaManager()::isFalse)
+            .size();
     return new EquivalenceData(
         solver.implies(bmgr.or(original), bmgr.or(mutant)),
         original.size(),
@@ -36,6 +45,8 @@ public class JoinEquivalenceCheck implements EquivalenceCheck {
         1,
         checkedSafe,
         checkedUnsafe,
-        0);
+        0,
+        falseOrig,
+        falseMutant);
   }
 }

@@ -136,10 +136,14 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
     ValueTransferBasedStrongestPostOperator strongestPostOperator =
         createValueTransferBasedStrongestPostOperator(cfa);
     for (CFAEdge edge : cex) {
-      currentState =
-          strongestPostOperator
-              .getStrongestPost(currentState, SingletonPrecision.getInstance(), edge)
-              .orElseThrow();
+      Optional<ForgettingCompositeState> optional =
+          strongestPostOperator.getStrongestPost(
+              currentState, SingletonPrecision.getInstance(), edge);
+      if (optional.isPresent()) {
+        currentState = optional.orElseThrow();
+      } else {
+        return solver.getFormulaManager().getBooleanFormulaManager().makeFalse();
+      }
     }
     BooleanFormula result =
         solver
