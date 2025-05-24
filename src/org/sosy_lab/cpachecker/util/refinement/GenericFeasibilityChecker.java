@@ -40,7 +40,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
    */
   @Option(
       secure = true,
-      description = "Whether or not one wants to refine MemorySafety errors.",
+      description = "Whether one wants to refine MemorySafety errors.",
       name = "refineMemorySafety",
       toUppercase = true)
   private boolean refineMemorySafety = false;

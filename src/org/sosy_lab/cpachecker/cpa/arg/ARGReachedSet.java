@@ -497,7 +497,7 @@ public class ARGReachedSet {
    * asked to be sound, this method delegates to {@link ARGReachedSet#tryToCover(ARGState)}
    *
    * @param v the state which should be covered if possible
-   * @param beUnsound whether or not the be unsound
+   * @param beUnsound whether the be unsound
    * @return whether the covering was successful
    */
   public boolean tryToCover(ARGState v, boolean beUnsound)

@@ -106,7 +106,7 @@ public class InvariantsCPA
     @Option(
         secure = true,
         description =
-            "determine variables relevant to the decision whether or not a target path assume edge"
+            "determine variables relevant to the decision whether a target path assume edge"
                 + " is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 

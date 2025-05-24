@@ -83,14 +83,14 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
   @Option(
       secure = true,
-      description = "whether or not to do lazy-abstraction",
+      description = "whether to do lazy-abstraction",
       name = "restart",
       toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
       secure = true,
-      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+      description = "whether to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(

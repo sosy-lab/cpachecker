@@ -55,7 +55,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
   @Option(
       secure = true,
-      description = "whether or not to manage the callstack, which is needed for BAM")
+      description = "whether to manage the callstack, which is needed for BAM")
   private boolean manageCallstack = true;
 
   /** the shutdownNotifier in use */
@@ -309,7 +309,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
-   * This method checks, whether or not the (remaining) error path is feasible when starting with
+   * This method checks, whether the (remaining) error path is feasible when starting with
    * the given (pseudo) initial state.
    *
    * @param remainingErrorPath the error path to check feasibility on

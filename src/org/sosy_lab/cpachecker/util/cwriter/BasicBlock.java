@@ -75,7 +75,7 @@ class BasicBlock {
   }
 
   /**
-   * This method checks whether or nor the given declaration is already part of this block.
+   * This method checks whether the given declaration is already part of this block.
    *
    * <p>This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a
    * previously declared variable.

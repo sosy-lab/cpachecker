@@ -107,7 +107,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     /**
-     * This method determines whether or not to abstract at each location.
+     * This method determines whether to abstract at each location.
      *
      * @return true, if an abstraction should be computed at each location, else false
      */
@@ -239,7 +239,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method decides whether or not to perform abstraction computations. These are computed if
+   * This method decides whether to perform abstraction computations. These are computed if
    * the iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *

@@ -229,7 +229,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
    * function pointer.
    *
    * @param edge the edge to inspect
-   * @return whether or not this edge contains a function call or not.
+   * @return whether this edge contains a function call or not.
    */
   private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {

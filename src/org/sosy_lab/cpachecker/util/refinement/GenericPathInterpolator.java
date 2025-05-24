@@ -59,7 +59,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
 
   @Option(
       secure = true,
-      description = "whether or not to perform path slicing before interpolation")
+      description = "whether to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
   @Option(

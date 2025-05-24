@@ -1002,7 +1002,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from adding the given value to this state.
    *
    * @param pValue the value to add to this state.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from adding the given value to this state.
    */
   public CompoundBitVectorInterval add(
@@ -1016,7 +1016,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from adding the given interval to this state.
    *
    * @param pInterval the interval to add to this state.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @param pOverflowEventHandler the handle for overflows
    * @return the state resulting from adding the given interval to this state.
    */
@@ -1033,7 +1033,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from adding the given state to this state.
    *
    * @param pState the state to add to this state.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from adding the given state to this state.
    */
   public CompoundBitVectorInterval add(
@@ -1048,7 +1048,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from multiplying this state with the given value.
    *
    * @param pValue the value to multiply this state with.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from multiplying this state with the given value.
    */
   public CompoundBitVectorInterval multiply(
@@ -1070,7 +1070,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from multiplying this state with the given interval.
    *
    * @param pInterval the interval to multiply this state with.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from multiplying this state with the given interval.
    */
   public CompoundBitVectorInterval multiply(
@@ -1089,7 +1089,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from multiplying this state with the given state.
    *
    * @param pState the state to multiply this state with.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from multiplying this state with the given state.
    */
   public CompoundBitVectorInterval multiply(
@@ -1108,7 +1108,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from dividing this state by the given value.
    *
    * @param pValue the value to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from dividing this state by the given value.
    */
   public CompoundBitVectorInterval divide(
@@ -1124,7 +1124,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from dividing this state by the given interval.
    *
    * @param pInterval the interval to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from dividing this state by the given interval.
    */
   public CompoundBitVectorInterval divide(
@@ -1140,7 +1140,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from dividing this state by the given state.
    *
    * @param pState the state to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from dividing this state by the given state.
    */
   public CompoundBitVectorInterval divide(
@@ -1156,7 +1156,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state representing the remainder of dividing this state by the given value.
    *
    * @param pValue the value to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state representing the remainder of dividing this state by the given value.
    */
   public CompoundBitVectorInterval modulo(
@@ -1172,7 +1172,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state representing the remainder of dividing this state by the given interval.
    *
    * @param pInterval the interval to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state representing the remainder of dividing this state by the given interval.
    */
   public CompoundBitVectorInterval modulo(
@@ -1188,7 +1188,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state representing the remainder of dividing this state by the given state.
    *
    * @param pState the state to divide this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state representing the remainder of dividing this state by the given state.
    */
   public CompoundBitVectorInterval modulo(
@@ -1204,7 +1204,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from left shifting this state by the given value.
    *
    * @param pValue the value to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from left shifting this state by the given value.
    */
   public CompoundBitVectorInterval shiftLeft(
@@ -1220,7 +1220,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from left shifting this state by the given interval.
    *
    * @param pInterval the interval to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from left shifting this state by the given interval.
    */
   public CompoundBitVectorInterval shiftLeft(
@@ -1236,7 +1236,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from left shifting this state by the given state.
    *
    * @param pState the state to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from left shifting this state by the given state.
    */
   public CompoundBitVectorInterval shiftLeft(
@@ -1252,7 +1252,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from right shifting this state by the given value.
    *
    * @param pValue the value to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from right shifting this state by the given value.
    */
   public CompoundBitVectorInterval shiftRight(
@@ -1268,7 +1268,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from right shifting this state by the given interval.
    *
    * @param pInterval the interval to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from right shifting this state by the given interval.
    */
   public CompoundBitVectorInterval shiftRight(
@@ -1284,7 +1284,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Computes the state resulting from right shifting this state by the given state.
    *
    * @param pState the state to shift this state by.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from right shifting this state by the given state.
    */
   public CompoundBitVectorInterval shiftRight(
@@ -1530,7 +1530,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * states' values is returned. Otherwise, top is returned.
    *
    * @param pState the state to bit-wise-and with this state.
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from performing the bitwise and-operation on this state and the
    *     given state. If one of the states is bottom, bottom is returned. If both states represent
    *     single values, a state representing the value obtained by the bit-wise and-operation on the
@@ -1601,7 +1601,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   /**
    * Computes the state resulting from computing the absolute values of this state.
    *
-   * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
+   * @param pAllowSignedWrapAround whether signed wrap-around is allowed.
    * @return the state resulting from computing the absolute values of this state.
    */
   public CompoundBitVectorInterval absolute(

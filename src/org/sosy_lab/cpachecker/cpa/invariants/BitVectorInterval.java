@@ -210,7 +210,7 @@ public class BitVectorInterval implements BitVectorType {
    * Returns the mathematical negation of this interval. The lower bound of the resulting interval
    * is the negated upper bound of this interval and vice versa.
    *
-   * @param pAllowSignedWrapAround whether or not to allow wrap-around for signed bit vectors.
+   * @param pAllowSignedWrapAround whether to allow wrap-around for signed bit vectors.
    * @return the mathematical negation of this interval.
    */
   public BitVectorInterval negate(

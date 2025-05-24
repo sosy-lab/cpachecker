@@ -330,7 +330,7 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method checks whether or not the given Memory Location is contained in this state.
+   * This method checks whether the given Memory Location is contained in this state.
    *
    * @param pMemoryLocation the location in the Memory to check for
    * @return true, if the variable is contained, else false

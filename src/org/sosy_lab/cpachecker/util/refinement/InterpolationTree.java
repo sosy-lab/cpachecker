@@ -181,7 +181,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method decides whether or not there are more paths left for interpolation.
+   * This method decides whether there are more paths left for interpolation.
    *
    * @return true if there are more paths left for interpolation, else false
    */
