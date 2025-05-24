@@ -678,7 +678,7 @@ public final class PredicateAbstractionManager {
    * Extract all relevant predicates (with respect to a given formula) from a given set of
    * predicates.
    *
-   * <p>Currently the check is syntactically, i.e., a predicate is relevant if it refers to at least
+   * <p>Currently, the check is syntactically, i.e., a predicate is relevant if it refers to at least
    * one variable that also occurs in f.
    *
    * <p>A predicate that is just "false" or "true" is also filtered out.
@@ -1246,7 +1246,7 @@ public final class PredicateAbstractionManager {
    *
    * @param f The formula to be converted to a region. Must NOT be instantiated!
    * @param blockFormula A path formula that is not used for the abstraction, but will be used as
-   *     the block formula in the resulting AbstractionFormula instance. Also it's SSAMap will be
+   *     the block formula in the resulting AbstractionFormula instance. Also, it's SSAMap will be
    *     used for instantiating the result.
    * @return An AbstractionFormula instance representing f with blockFormula as the block formula.
    */
@@ -1358,7 +1358,7 @@ public final class PredicateAbstractionManager {
    * be fixed either, because when using symbolic regions we do not know what are the predicates (a
    * predicate does not need to be an SMT atom, it can be larger).
    *
-   * <p>Thus better avoid using this method if possible.
+   * <p>Thus, better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region pRegion) {
     return amgr.extractPredicates(pRegion);

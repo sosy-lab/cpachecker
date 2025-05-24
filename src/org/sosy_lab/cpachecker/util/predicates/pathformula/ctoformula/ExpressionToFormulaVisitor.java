@@ -1443,7 +1443,7 @@ public class ExpressionToFormulaVisitor
           castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
-        // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+        // XXX: Currently, MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
         // which corresponds to the semantics of 'round'.
         // Hence, we represent those semantics by the formula below, until there
         // is a release of MathSAT supporting NEAREST_TIE_AWAY.

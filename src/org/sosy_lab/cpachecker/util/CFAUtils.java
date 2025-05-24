@@ -514,7 +514,7 @@ public class CFAUtils {
    * This method returns true if the set of nodes is connected, i.e., there is a path between every
    * pair of nodes in the set.
    *
-   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   * <p>Currently, this is quite inefficient, so use with caution and only for small sets of nodes.
    *
    * @param pCfaNodes the set of nodes
    * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
@@ -681,7 +681,7 @@ public class CFAUtils {
    */
   public static NavigableSet<String> filterVariablesOfFunction(
       NavigableSet<String> variables, String function) {
-    // TODO: Currently the format of the qualified name is not defined.
+    // TODO: Currently, the format of the qualified name is not defined.
     // In theory, frontends could use different formats.
     // The best would be to eliminate all uses of this method
     // (code should not use Strings, but for example AIdExpressions).

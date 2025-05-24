@@ -308,7 +308,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
               + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
        * several times along a error path and the index would always start from 0 again.
-       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+       * Thus, we ignore LocationInstancePredicates and hope nobody is using them.
        * TODO can we assure this?
        */
 
@@ -581,7 +581,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
         // If MAX(expIndex, rootIndex) is not expIndex,
         // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
         // in this case the index is irrelevant and can be set to expIndex (TODO really?).
-        // Otherwise (the important case, MAX == expIndex)
+        // Otherwise (the important case, MAX == expIndex),
         // we are in the refinement step and build the CEX-path.
         rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
       }

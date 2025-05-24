@@ -196,7 +196,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       // an iteration or if statement
       // To export the branching waypoint, we first find the IfElement or IterationElement
       // containing it. Then we look for the FileLocation of the structure
-      // Currently we only export IfStructures, since there is no nice way to say how often a loop
+      // Currently, we only export IfStructures, since there is no nice way to say how often a loop
       // should be traversed and exporting this information will quickly make the witness
       // difficult to read
       Optional<IfElement> optionalIfElement =
@@ -438,7 +438,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     // Add target
     // In contrast to the semantics of assumptions, targets are evaluated at the next possible
-    // segment point. Therefore instead of creating a location record the way as is for assumptions,
+    // segment point. Therefore, instead of creating a location record the way as is for assumptions,
     // this needs to be done using another function
     CFAEdge lastEdge = edges.get(edges.size() - 1);
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
@@ -450,7 +450,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
   /**
    * Export the given counterexample to a witness file. The format of the witness file is determined
    * by the witness versions given in the configuration. All versions of witnesses will be exported.
-   * Currently only Version 2 exists for Violation Witnesses.
+   * Currently, only Version 2 exists for Violation Witnesses.
    *
    * @param pCex The counterexample to export.
    * @param pOutputFileTemplate The template for the output file. The template will be used to *

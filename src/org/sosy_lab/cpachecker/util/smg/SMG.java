@@ -1139,7 +1139,7 @@ public class SMG {
   public SMGAndHasValueEdges readValue(
       SMGObject object, BigInteger offset, BigInteger sizeInBits, boolean readMultipleEdges) {
     // let v := H(o, of, t)
-    // TODO: Currently getHasValueEdgeByOffsetAndSize returns any edge it finds.
+    // TODO: Currently, getHasValueEdgeByOffsetAndSize returns any edge it finds.
     // Check if multiple edges may exists for the same offset and size! -> There should never be
     // multiple edges for the exact same offset/size
     // TODO: We only check for the exact matches to offset + size, what if one reads
@@ -1217,7 +1217,7 @@ public class SMG {
 
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
-    // let v := 0. Otherwise extend V by a fresh value node v.
+    // let v := 0. Otherwise, we extend V by a fresh value node v.
     Optional<SMGValue> isCoveredBy = isCoveredByNullifiedBlocks(object, offset, sizeInBits);
     if (isCoveredBy.isPresent()) {
       return SMGAndHasValueEdges.of(

@@ -25,7 +25,7 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
  * This visitor is used to translate predicate based invariants from SMT formulae to expressions
  * which are evaluable in C.
  *
- * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid and
+ * <p>If visit returns <code>Boolean.FALSE</code> the computed C code is likely to be invalid, and
  * therefore it is discouraged to use it.
  *
  * <p>Warning: Usage of this class can be exponentially expensive, because formulas are unfolded

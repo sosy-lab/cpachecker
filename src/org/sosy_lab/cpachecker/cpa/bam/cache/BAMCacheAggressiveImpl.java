@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 /**
  * This implementation of BAMCache uses an heuristic to improve the cache-hit-rate. Whenever
  * accessing the cache without a direct hit, we search for an abstract state with a similar
- * precision. This heuristic can lead to repeated counterexamples in the analysis. Thus it must be
+ * precision. This heuristic can lead to repeated counterexamples in the analysis. Thus, it must be
  * considered, e.g., when performing a refinement.
  */
 public class BAMCacheAggressiveImpl extends BAMCacheImpl {

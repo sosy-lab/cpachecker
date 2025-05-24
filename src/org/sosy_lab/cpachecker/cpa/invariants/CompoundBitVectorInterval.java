@@ -1770,7 +1770,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * represents the false state while the other does not contain the false state, a state
    * representing true is returned. If either both of the states represent the false state or
    * neither of them represents false, a state representing false is returned. If one of the states
-   * is bottom, bottom is returned. Otherwise top is returned.
+   * is bottom, bottom is returned. Otherwise, top is returned.
    *
    * @param pState the state to XOR with this state.
    * @return a state representing true if either this state or the given state represents false
@@ -1821,7 +1821,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * the false state while the other does not contain the false state, a state representing true is
    * returned. If either both of the states represent the false state or neither of them represents
    * false, a state representing false is returned. If one of the states is bottom, bottom is
-   * returned. Otherwise top is returned.
+   * returned. Otherwise, top is returned.
    *
    * @param p1 one of the states to apply the exclusive or operation on.
    * @param p2 one of the states to apply the exclusive or operation on.

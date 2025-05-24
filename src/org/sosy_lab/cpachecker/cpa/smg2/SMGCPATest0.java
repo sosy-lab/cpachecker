@@ -99,7 +99,7 @@ public class SMGCPATest0 {
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
     dllSizeValue = new NumericValue(dllSize);
     sllSizeValue = new NumericValue(sllSize);
-    // Per default we expect the nfo after the hfo and the pfo after that
+    // By default, we expect the nfo after the hfo and the pfo after that
     nfo = hfo.add(pointerSizeInBits);
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());

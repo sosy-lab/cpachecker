@@ -101,7 +101,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws CPATransferException, InterruptedException {
     // The Callstack-CPA is not able to handle a recursion of the form f-g-f,
     // because the operation Reduce splits it into f-g and g-f.
-    // Thus we check for recursion here and (if we do not handle recursion here)
+    // Thus, we check for recursion here and (if we do not handle recursion here)
     // set a flag for the Callstack-CPA, such that it knows about the recursion.
     final boolean foundRecursion = isRecursiveCall(node);
     if (foundRecursion) {

@@ -512,7 +512,7 @@ class ReachedSetExecutor {
     }
 
     // check whether we already have a matching RSE.
-    // If an old RSE is available, ignore the newly created one. Otherwise use the new one.
+    // If an old RSE is available, ignore the newly created one. Otherwise, use the new one.
     ReachedSetExecutor subRse =
         reachedSetMapping.computeIfAbsent(
             newRs,

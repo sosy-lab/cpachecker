@@ -522,7 +522,7 @@ public final class LoopStructure {
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
-    // inefficient. Instead we use some arrays.
+    // inefficient. Instead, we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
     // (Note that all removed nodes from initialChain

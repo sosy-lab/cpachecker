@@ -403,7 +403,7 @@ public class CtoFormulaConverter {
       // It is important to store the index in the variable here.
       // If getIndex() was called with a specific name,
       // this means that name@idx will appear in formulas.
-      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
       // will also add indices for this name,
       // which it does exactly if the name is in the SSAMap.
       ssa.setIndex(name, type, idx);
@@ -578,7 +578,7 @@ public class CtoFormulaConverter {
       result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
 
-      // In principle we could add constraints that the addresses of all these string literals
+      // In principle, we could add constraints that the addresses of all these string literals
       // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
       // package. But this is likely rarely useful in practice.
       // But we have seen code that relies on the address being non-null, so encode that.
@@ -781,7 +781,7 @@ public class CtoFormulaConverter {
 
   /**
    * Add constraint for the interval of possible values, This method should only be used for a
-   * previously declared variable, otherwise the SSA-index is invalid. Example: MIN_INT <= X <=
+   * previously declared variable, otherwise, the SSA-index is invalid. Example: MIN_INT <= X <=
    * MAX_INT
    */
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
@@ -993,7 +993,7 @@ public class CtoFormulaConverter {
 
   /**
    * If the given expression is a integer literal, and the given type is a floating-point type,
-   * convert the literal into a floating-point literal. Otherwise return the expression unchanged.
+   * convert the literal into a floating-point literal. Otherwise, return the expression unchanged.
    */
   protected CExpression convertLiteralToFloatIfNecessary(
       final CExpression pExp, final CType targetType) {
@@ -1086,7 +1086,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Ensure parameters of entry function are added to the SSAMap. Otherwise they would be missing
+   * Ensure parameters of entry function are added to the SSAMap. Otherwise, they would be missing
    * and (un)instantiate would not work correctly, leading to a wrong analysis if their value is
    * relevant. TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    *
@@ -1460,7 +1460,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function
     // we don't
-    // need this function. However I'm not sure because there can be implicit casts. Just to be
+    // need this function. However, I'm not sure because there can be implicit casts. Just to be
     // safe.
     CType retType;
     CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();

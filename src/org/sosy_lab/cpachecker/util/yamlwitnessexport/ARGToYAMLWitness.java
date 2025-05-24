@@ -258,7 +258,7 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
                   node.getFunctionName() + "::\\result",
                   null));
     } else {
-      // Currently we do not export witnesses for other programming languages than C, therefore
+      // Currently, we do not export witnesses for other programming languages than C, therefore
       // everything else is currently not supported.
       throw new UnsupportedOperationException();
     }

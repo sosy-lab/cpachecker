@@ -324,7 +324,7 @@ public final class ErrorPathShrinker {
 
   /**
    * This method handles assumptions (a==b, a<=b, true, etc.). Assumptions are not handled as
-   * important edges, if they are part of a switchStatement. Otherwise this method only adds all
+   * important edges, if they are part of a switchStatement. Otherwise, this method only adds all
    * variables in an assumption (expression) to the important variables.
    */
   private void handleAssumption(AExpression assumeExp) {
@@ -335,7 +335,7 @@ public final class ErrorPathShrinker {
   }
 
   /**
-   * This method checks, if the current assumption is part of a switchStatement. Therefore it
+   * This method checks, if the current assumption is part of a switchStatement. Therefore, it
    * compares the current assumption with the expression of the last added CFAEdge. It can also
    * check similar assumptions like "if(x>3) {if(x>4){...}}".
    *

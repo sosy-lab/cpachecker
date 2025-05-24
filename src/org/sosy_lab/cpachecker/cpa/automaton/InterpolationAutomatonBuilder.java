@@ -278,16 +278,15 @@ public class InterpolationAutomatonBuilder {
 
       } else {
 
-        // Otherwise (if in itp-state), the next state is unsat to the current
-        // one. Hence add a transition to the final state.
+        // Otherwise (if in itp-state), the next state is unsat to the current one.
+        // Hence, add a transition to the final state.
         pItpAutomaton.addTransitionToFinalState(pCurrentState, pCurrentInterpolant, pChildState);
         return Optional.empty();
       }
     } else {
 
-      // The postcondition is ambiguous. We cannot tell anything about the child
-      // state, hence a transition to the init state is added (if not already in
-      // that state).
+      // The postcondition is ambiguous. We cannot tell anything about the child state,
+      // hence, a transition to the init state is added (if not already in that state).
 
       if (bFMgrView.isTrue(pCurrentInterpolant)) {
         pItpAutomaton.addQueryToCache(pCurrentState, pChildState, pCurrentInterpolant);

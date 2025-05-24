@@ -1101,7 +1101,7 @@ public final class InterpolationManager {
     }
 
     /**
-     * For optimization we try to share the solver stack between different solver calls. Before
+     * For optimization, we try to share the solver stack between different solver calls. Before
      * pushing a new set of formulas, we need to determine all old formulas that need to be popped
      * from the solver stack.
      *

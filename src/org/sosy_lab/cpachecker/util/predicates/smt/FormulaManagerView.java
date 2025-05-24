@@ -1206,7 +1206,7 @@ public class FormulaManagerView {
   }
 
   /**
-   * Add SSA indices to a single variable name. Typically it is not necessary and not recommended to
+   * Add SSA indices to a single variable name. Typically, it is not necessary and not recommended to
    * use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
    */
   public static String instantiateVariableName(String pVar, SSAMap pSsa) {
@@ -1623,7 +1623,7 @@ public class FormulaManagerView {
 
   // returns a formula with some "static learning" about some bitwise
   // operations, so that they are (a bit) "less uninterpreted"
-  // Currently it add's the following formulas for each number literal n that
+  // Currently, it add's the following formulas for each number literal n that
   // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
   // But only if an bitwise "and" occurs in the formula.
   private BooleanFormula myGetBitwiseAxioms(BooleanFormula f) {
@@ -1832,7 +1832,7 @@ public class FormulaManagerView {
    * and thus is not prone to StackOverflowErrors.
    *
    * <p>Furthermore, this method also guarantees that every equal part of the formula is visited
-   * only once. Thus it can be used to traverse DAG-like formulas efficiently.
+   * only once. Thus, it can be used to traverse DAG-like formulas efficiently.
    */
   public void visitRecursively(Formula f, FormulaVisitor<TraversalProcess> rFormulaVisitor) {
     manager.visitRecursively(unwrap(f), rFormulaVisitor);
@@ -1845,7 +1845,7 @@ public class FormulaManagerView {
    * and thus is not prone to StackOverflowErrors.
    *
    * <p>Furthermore, this method also guarantees that every equal part of the formula is visited
-   * only once. Thus it can be used to traverse DAG-like formulas efficiently.
+   * only once. Thus, it can be used to traverse DAG-like formulas efficiently.
    *
    * @param pFormulaVisitor Transformation described by the user.
    */

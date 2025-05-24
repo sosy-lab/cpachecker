@@ -282,7 +282,7 @@ public class ConfigurationFileChecks {
     // for specific use cases (e.g., SV-COMP).
     // If you add config files for specific use cases (and this is clear from the config's name!),
     // you can whitelist it here.
-    // Otherwise consider changing the default value of the option if the value makes sense in
+    // Otherwise, consider changing the default value of the option if the value makes sense in
     // general, or remove it from the config file.
 
     checkOption(config, "analysis.entryFunction");

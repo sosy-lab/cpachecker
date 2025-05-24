@@ -530,7 +530,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       FileLocation edgeLocation = edge.getFileLocation();
 
       // When there are multiple empty lines between two edges, the line numbers and offsets would
-      // not match. Therefore we need the range comparison instead of a equality comparison.
+      // not match. Therefore, we need the range comparison instead of a equality comparison.
       if (lineNumber >= edgeLocation.getEndingLineInOrigin()
           && CFAUtils.leavingEdges(edge.getSuccessor())
               .transform(CFAEdge::getFileLocation)

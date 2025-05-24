@@ -290,7 +290,7 @@ public final class AbstractionManager {
    * be fixed either, because when using symbolic regions we do not know what are the predicates (a
    * predicate does not need to be an SMT atom, it can be larger).
    *
-   * <p>Thus better avoid using this method if possible.
+   * <p>Thus, better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();

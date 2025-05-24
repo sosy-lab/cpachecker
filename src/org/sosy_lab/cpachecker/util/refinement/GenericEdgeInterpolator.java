@@ -139,7 +139,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     S stateFromOldInterpolant = pInputInterpolant.reconstructState();
 
     // TODO callstack-management depends on a forward-iteration on a single path.
-    // TODO Thus interpolants have to be computed from front to end. Can we assure this?
+    // TODO Thus, interpolants have to be computed from front to end. Can we assure this?
     final Optional<S> maybeSuccessor;
     if (pCurrentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();

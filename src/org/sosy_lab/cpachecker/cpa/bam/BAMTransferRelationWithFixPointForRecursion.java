@@ -45,7 +45,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       secure = true,
       description =
           "if we cannot determine a repeating/covering call-state, we will run into"
-              + " CallStackOverflowException. Thus we bound the stack size (unsound!). This option"
+              + " CallStackOverflowException. Thus, we bound the stack size (unsound!). This option"
               + " only limits non-covered recursion, but not a recursion where we find a coverage"
               + " and re-use the cached block several times. The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
@@ -220,7 +220,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         // previously reached state contains 'less' information, it is a super-state of the
         // currentState.
         // From currentState we could reach the levelState again (with further unrolling).
-        // Thus we would have found an endless recursion (with current information
+        // Thus, we would have found an endless recursion (with current information
         // (precision/state)).
 
         // TODO how to compare precisions? equality would be enough
@@ -464,7 +464,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   /**
-   * Reconstruct the resulting state from root-, entry- and expanded-state. Also cleanup and update
+   * Reconstruct the resulting state from root-, entry- and expanded-state. Also, cleanup and update
    * the ARG with the new build state.
    */
   private AbstractState getRebuildState(

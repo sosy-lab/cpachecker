@@ -2437,7 +2437,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condExp.getPositiveResultExpression() == null) {
       // Converting the logical-condition expression twice may cause problems,
       // for example if it defines labels inside it.
-      // Thus we reuse the condition expression returned by createConditionEdges,
+      // Thus, we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
         createEdgesForTernaryOperatorBranch(

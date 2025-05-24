@@ -429,9 +429,8 @@ class CExpressionVisitorWithPointerAliasing
       BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
       final Variable baseVariable = operand.accept(baseVisitor);
       // Whether the addressed location was previously aliased (tracked with UFs)
-      // If it was, there was no base variable/prefix used to hold its value and we simply return
-      // the
-      // aliased location
+      // If it was, there was no base variable/prefix used to hold its value, and we simply return
+      // the aliased location.
       // Otherwise, we should make it aliased by importing the value into the UF
       // There is an exception, though: arrays in function parameters are tracked as variables
       // (unaliased locations),
@@ -465,7 +464,7 @@ class CExpressionVisitorWithPointerAliasing
 
         if (errorConditions.isEnabled() && operand instanceof CFieldReference field) {
           // for &(s->f) and &((*s).f) do special case because the pointer is
-          // not actually dereferenced and thus we don't want to add error conditions
+          // not actually dereferenced, and thus we don't want to add error conditions
           // for invalid-deref
           CExpression fieldOwner = field.getFieldOwner();
           boolean isDeref = field.isPointerDereference();

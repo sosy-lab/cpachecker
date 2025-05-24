@@ -578,7 +578,7 @@ public class LiveVariables {
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 
     } catch (InvalidConfigurationException | CPAException e) {
-      // this should never happen, but if it does we continue the
+      // this should never happen, but if it does, we continue the
       // analysis without having the live variable analysis
       logger.logUserException(
           Level.WARNING,

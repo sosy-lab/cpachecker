@@ -337,7 +337,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
               break;
             }
 
-            // Throw an exception if the type of the Edge is none of the above but it holds a
+            // Throw an exception if the type of the Edge is none of the above, but it holds a
             // PathFormula
             throw new UnsupportedOperationException(
                 "Found unsupported EdgeType in Newton Refinement: "
@@ -379,7 +379,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand
     // variable
-    // Therefore its previous values can be existentially quantified in the preCondition
+    // Therefore, its previous values can be existentially quantified in the preCondition
     if (!requiredPart.isEmpty()) {
       toExist = bfmgr.and(preCondition, bfmgr.and(requiredPart));
     } else {

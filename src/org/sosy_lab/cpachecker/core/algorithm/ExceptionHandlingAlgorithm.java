@@ -345,7 +345,7 @@ public class ExceptionHandlingAlgorithm
       // The error state has a sibling, so the parent and the sibling
       // should stay in the reached set, but then the error state
       // would get re-discovered.
-      // Similarly for covered states.
+      // Similarly, for covered states.
       // Currently just handle this by removing them anyway,
       // as this probably doesn't occur.
       sound = false;

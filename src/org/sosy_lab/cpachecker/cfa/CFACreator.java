@@ -456,7 +456,7 @@ public class CFACreator {
       case LLVM -> {
         parser = Parsers.getLlvmParser(logger, machineModel);
         language = Language.C;
-        // After parsing we will have a CFA representing C code
+        // After parsing, we will have a CFA representing C code
       }
       default -> throw new AssertionError();
     }

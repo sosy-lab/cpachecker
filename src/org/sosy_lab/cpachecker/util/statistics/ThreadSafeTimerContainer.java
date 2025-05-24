@@ -127,7 +127,7 @@ public final class ThreadSafeTimerContainer extends AbstractStatValue {
     // garbage collected. This is a bug in the component - we should warn about this.
 
     // Do not remove or move the following call, or otherwise make sure to call timer.isRunning().
-    // Otherwise there is no "happens-before" relationship between the actions of the timer-using
+    // Otherwise, there is no "happens-before" relationship between the actions of the timer-using
     // thread and our thread (but the volatile field "running" in Timer's current implementation
     // adds one).
     timer.stopIfRunning();

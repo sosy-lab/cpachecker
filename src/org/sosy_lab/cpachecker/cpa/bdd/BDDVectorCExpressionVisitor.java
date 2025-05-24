@@ -363,7 +363,7 @@ public class BDDVectorCExpressionVisitor
           machineModel.isSigned((CSimpleType) sourceType),
           value);
     }
-    // currently we do not handle floats, doubles or voids, pointers, so lets ignore this case.
+    // currently, we do not handle floats, doubles or voids, pointers, so lets ignore this case.
     return value;
   }
 }

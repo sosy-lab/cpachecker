@@ -451,7 +451,7 @@ public class IntervalAnalysisState
   @Override
   public Comparable<?> getPseudoPartitionKey() {
     // The size alone is not sufficient for pseudo-partitioning, if we want to use object-identity
-    // as hashcode. Thus we need a second measurement: the absolute distance of all intervals.
+    // as hashcode. Thus, we need a second measurement: the absolute distance of all intervals.
     // -> if the distance is "smaller" than the other state, we know nothing and have to compare the
     // states.
     // -> if the distance is "equal", we can compare by "identity".

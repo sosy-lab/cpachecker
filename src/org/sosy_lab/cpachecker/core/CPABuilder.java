@@ -126,7 +126,7 @@ public class CPABuilder {
     if (rootCpaConfig.cpaClass == CompositeCPA.class
         && rootCpaConfig.getAllChildren().isEmpty()
         && allAutomata.isEmpty()) {
-      // By default there is a top-level CompositeCPA, and if it has no children, this means that
+      // By default, there is a top-level CompositeCPA, and if it has no children, this means that
       // the user did not specify any meaningful configuration.
       throw new InvalidConfigurationException(
           "Please specify a configuration with at least one CPA or specification automaton. "

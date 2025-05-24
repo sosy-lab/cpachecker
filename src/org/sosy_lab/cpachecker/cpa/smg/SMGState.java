@@ -1229,7 +1229,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // if some edge points to a large enough chunk of memory, then use its middle part.
     // TODO this code is ugly and might better be placed inside heap.getHVEdges,
     // but there it removes the existing value from the heap for the rest of the region
-    // and that is not wanted. Thus we add this very special case here.
+    // and that is not wanted. Thus, we add this very special case here.
     SMGEdgeHasValueFilter filterOffsetZero =
         new SMGEdgeHasValueFilter()
             .overlapsWith(

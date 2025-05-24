@@ -401,7 +401,7 @@ public class LiveVariablesTransferRelation
       String calledFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
-     * different functions exist, thus this function is mainly unused. However
+     * different functions exist, thus this function is mainly unused. However,
      * for the purpose of having a complete CPA which works on the graph with
      * all functions connected, this method is implemented.
      */
@@ -423,7 +423,7 @@ public class LiveVariablesTransferRelation
       FunctionReturnEdge cfaEdge, AFunctionCall summaryExpr, String callerFunctionName)
       throws CPATransferException {
     /* This analysis is (mostly) used during cfa creation, when no edges between
-     * different functions exist, thus this function is mainly unused. However
+     * different functions exist, thus this function is mainly unused. However,
      * for the purpose of having a complete CPA which works on the graph with
      * all functions connected, this method is implemented.
      */
@@ -570,7 +570,7 @@ public class LiveVariablesTransferRelation
       }
 
       // if the leftHandSide is not life, but there is a pointer dereference
-      // we need to make the leftHandSide life. Thus afterward everything from
+      // we need to make the leftHandSide life. Thus, afterward everything from
       // this statement is life.
     } else {
       assert lhsIsPointerDereference;

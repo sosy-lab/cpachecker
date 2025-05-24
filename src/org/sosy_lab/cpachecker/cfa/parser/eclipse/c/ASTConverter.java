@@ -506,7 +506,7 @@ class ASTConverter {
   /**
    * If the given AST node <code>foo</code> originally occurs inside the unary operator parentheses,
    * return the parent AST node with all the parentheses, e.g., <code>(foo)</code> or <code>((foo))
-   * </code>. Otherwise return <code>foo</code> unchanged.
+   * </code>. Otherwise, return <code>foo</code> unchanged.
    */
   private IASTNode reAddParentheses(IASTNode currentNode) {
     while (currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
@@ -800,7 +800,7 @@ class ASTConverter {
     name += i;
 
     // If there is no initializer, the variable cannot be const.
-    // For others we add it as our temporary variables are single-use.
+    // For others, we add it as our temporary variables are single-use.
     CType type = CTypes.withConstSetTo(pType, initializer != null);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {

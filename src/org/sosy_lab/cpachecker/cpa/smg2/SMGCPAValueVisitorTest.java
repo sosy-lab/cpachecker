@@ -645,7 +645,7 @@ public class SMGCPAValueVisitorTest {
    * Now read int, we read:
    * 0000 0001 0000 0000
    * which is 256 as an int
-   * Currently we read by type exactly and this means that we can only read types
+   * Currently, we read by type exactly and this means that we can only read types
    * with the exact size of the value last written. 0 always works!
    */
   @Test

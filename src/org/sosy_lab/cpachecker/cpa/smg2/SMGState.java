@@ -4790,7 +4790,7 @@ public class SMGState
    * Writes the entered {@link Value} to the region that the addressToMemory points to at the
    * specified offset with the specified size both in bits. It can be used for heap and stack, it
    * just assumes that the {@link SMGObject} exist in the SPC, so make sure beforehand! The Value
-   * will either add or find its {@link SMGValue} counterpart automatically. Also this checks that
+   * will either add or find its {@link SMGValue} counterpart automatically. Also, this checks that
    * the {@link SMGObject} is large enough for the write. If something fails, this throws an
    * exception with an error info inside the state thrown with.
    *

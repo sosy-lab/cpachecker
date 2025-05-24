@@ -56,7 +56,7 @@ with considerably less effort!
 - Never check in with compile errors.
 - Avoid warnings:
   - If there is a way to fix the code, fix it (before committing).
-  - Otherwise use `@SuppressWarnings`.
+  - Otherwise, use `@SuppressWarnings`.
 - After adding/changing an `@Option` configuration,
   run `ant` to update documentation (before committing).
 
@@ -119,7 +119,7 @@ with considerably less effort!
 - Use Guava's immutable data structures as described [below in the separate section](#use-guavas-immutable-data-structures)!
 - Use arrays only with primitive types (`int`, `long`, etc.)
   or when existing APIs require them.
-  Otherwise never use arrays of object types, use lists instead.
+  Otherwise, never use arrays of object types, use lists instead.
   They have a much nicer API, are equally fast,
   and allow you to use `ImmutableList` and `Collections.unmodifiableList()`
   to avoid the need for defensive copying while still guaranteeing immutability.

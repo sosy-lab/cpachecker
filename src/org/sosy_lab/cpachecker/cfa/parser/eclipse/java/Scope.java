@@ -119,19 +119,19 @@ class Scope {
   }
 
   /**
-   * Returns true, iff Scope is not within a Class or method. In all other cases, returns false.
+   * Returns true iff Scope is not within a Class or method. In all other cases, returns false.
    *
-   * @return true, iff Scope is not within method or Class.
+   * @return true iff Scope is not within method or Class.
    */
   public boolean isProgramScope() {
     return varsStack.size() == 1 && classStack.isEmpty();
   }
 
   /**
-   * Returns true, if Scope is in the top-Level class and not within a method. In all other cases
+   * Returns true if Scope is in the top-Level class and not within a method. In all other cases
    * false.
    *
-   * @return true, iff Scope is within top-level class.
+   * @return true iff Scope is within top-level class.
    */
   public boolean isTopClassScope() {
     return varsStack.size() == 1 && classStack.size() == 1;
