@@ -33,8 +33,8 @@ int main() {
         a1++;
     }
 
-    // TODO: Not terminating -> like in simpleWhileLoopSafe_3.c
-    __VERIFIER_is_public(a, 1);
+    // TODO: Not recognizing property violations
+    __VERIFIER_is_public(a, 0);
     __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(a1, 1);
     __VERIFIER_is_public(b1, 0);

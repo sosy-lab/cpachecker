@@ -20,5 +20,5 @@ int main() {
     }
 
     // x is expected to be public
-    __VERIFIER_is_public(x, 1);
+    __VERIFIER_is_public(x, 0);
 }

@@ -51,7 +51,7 @@ int main() {
         a2 = b;
     }
 
-    // TODO: analysis does not terminate
+    // TODO: Nested Loops not working fine.
     __VERIFIER_is_public(a2, 0);
     __VERIFIER_is_public(b2, 0);
     __VERIFIER_is_public(c2, 0);
