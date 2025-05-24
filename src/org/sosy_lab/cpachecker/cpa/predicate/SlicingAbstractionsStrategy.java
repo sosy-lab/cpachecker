@@ -217,7 +217,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
       forkedStateMap.put(s, newState);
 
-      // Now we strengthen the splitted state with negated interpolant:
+      // Now we strengthen the split state with negated interpolant:
       BooleanFormula negatedItp = bfmgr.not(itp);
       impact.strengthenStateWithInterpolant(negatedItp, newState, lastAbstraction);
     }

@@ -92,7 +92,7 @@ public class DistanceCalculationHelper {
   }
 
   /**
-   * Checks if a BooleanFormula can be further splitted through "toConjunctionArgs"
+   * Checks if a BooleanFormula can be further split through "toConjunctionArgs"
    *
    * @param f the BooleanFormula
    * @return True if yes, otherwise False
@@ -103,7 +103,7 @@ public class DistanceCalculationHelper {
   }
 
   /**
-   * Checks if a BooleanFormula can be further splitted through the "toDisjunctionArgs" Method
+   * Checks if a BooleanFormula can be further split through the "toDisjunctionArgs" Method
    *
    * @param f the BooleanFormula
    * @return True, if yes, otherwise False
@@ -116,7 +116,7 @@ public class DistanceCalculationHelper {
   /**
    * Splits a coupled BooleanFormula to a Set of individual BooleanFormulas
    *
-   * @return the same BooleanFormula but splitted in pieces
+   * @return the same BooleanFormula but split in pieces
    */
   public Set<BooleanFormula> splitPredicates(BooleanFormula form) {
     Set<BooleanFormula> result = new HashSet<>();
