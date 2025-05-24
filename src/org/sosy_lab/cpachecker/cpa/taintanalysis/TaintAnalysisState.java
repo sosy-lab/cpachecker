@@ -187,6 +187,9 @@ public class TaintAnalysisState
     this.siblingState = pOther;
     pOther.siblingState = this;
 
+    this.successors.addAll(pOther.successors);
+    pOther.successors.addAll(this.successors);
+
     joinedState.getSuccessors().addAll(this.successors);
     joinedState.getSuccessors().addAll(pOther.getSuccessors());
 
