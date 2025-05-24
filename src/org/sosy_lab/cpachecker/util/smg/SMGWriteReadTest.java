@@ -229,7 +229,7 @@ public class SMGWriteReadTest extends SMGTest0 {
             BigInteger.ZERO,
             testObject2.getSize().asNumericValue().bigIntegerValue());
 
-    // We added the zero edge to object2, and did not change anything, so thats the only edge in it!
+    // We added the zero edge to object2, and did not change anything, so that's the only edge in it!
     assertThat(smg.getEdges(testObject2))
         .containsExactlyElementsIn(ImmutableList.of(expectedZeroEdgeObject2));
 

@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * The class {@link SMGExpressionEvaluator} is meant to evaluate a expression using an arbitrary
- * SMGState. Thats why it does not permit semantic changes of the state it uses. This class
+ * SMGState. That's why it does not permit semantic changes of the state it uses. This class
  * implements additionally the changes that occur while calculating the next smgState in the
  * Transfer Relation. These mainly include changes when evaluating functions. They also contain code
  * that should only be executed during the calculation of the next SMG State, e.g. logging.

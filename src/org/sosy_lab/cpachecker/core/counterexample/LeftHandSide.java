@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 /**
  * This class is used to represent the left hand side of a C assignment. This is used in the
  * concrete state {@link ConcreteState} to assign values to left hand sides without needing to
- * calculate an address for it. Every left hand side has to be distinct, thats why only variables
+ * calculate an address for it. Every left hand side has to be distinct, that's why only variables
  * and field references without pointer references are allowed to be represented by this class.
  */
 public abstract sealed class LeftHandSide permits FieldReference, IDExpression {

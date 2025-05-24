@@ -3490,7 +3490,7 @@ public class SMGCPAValueVisitorTest {
   }
 
   /**
-   * Access an array thats on the stack via subscript. The index used is also a variable on the
+   * Access an array that's on the stack via subscript. The index used is also a variable on the
    * stack. Example: array[index]
    *
    * @param arrayVariableName qualified name of the array on the stack.

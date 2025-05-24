@@ -359,7 +359,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     }
 
     SMGInterpolant other = (SMGInterpolant) obj;
-    // technically this is not correct as we leave out the heap. But thats ok for now.
+    // technically this is not correct as we leave out the heap. But that's ok for now.
     return Objects.equals(nonHeapAssignments, other.nonHeapAssignments)
         && Objects.equals(allowedHeapValues, other.allowedHeapValues);
   }
