@@ -634,7 +634,7 @@ class CExpressionVisitorWithPointerAliasing
         }
       }
 
-      // modf, modff, and modfl raise a side-effect by writing
+      // modf, modff, and modfl raise a side effect by writing
       // the integral part of their first parameter into the
       // pointer-address given as the second parameter,
       // which is handled here

@@ -115,7 +115,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 /** Class containing all the code that converts C code into a formula. */
 public class CtoFormulaConverter {
 
-  // list of functions that are pure (no side-effects from the perspective of this analysis)
+  // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
       ImmutableSet.of(
           "abort",
@@ -1101,7 +1101,7 @@ public class CtoFormulaConverter {
         // the entry function of a single thread.
         continue;
       }
-      // has side-effect of adding to SSAMap!
+      // has side effect of adding to SSAMap!
       final Formula var =
           makeFreshVariable(
               param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);

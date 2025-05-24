@@ -303,7 +303,7 @@ public class AppliedCustomInstructionParser {
             throw new AppliedCustomInstructionParsingFailedException(
                 "Function "
                     + leavingEdge.getSuccessor().getFunctionName()
-                    + " is not side effect free, uses global variables");
+                    + " is not side-effect free, uses global variables");
           }
           nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getReturnNode(), succOutputVars);
         } else {

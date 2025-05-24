@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements an Action with side-effects that has no return value. The Action can be executed
+ * Implements an Action with side effects that has no return value. The Action can be executed
  * multiple times.
  */
 abstract class AutomatonAction {

@@ -352,7 +352,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   private CFANode handleSideassignments(
       CFANode prevNode, String rawSignature, FileLocation fileLocation) {
-    // When Expressions, which are expected to be side effect free, are converted,
+    // When Expressions, which are expected to be side-effect free, are converted,
     // all side effects are transformed to Side Assignments. This Method
     // inserts them before the expression is inserted in the AST:
 

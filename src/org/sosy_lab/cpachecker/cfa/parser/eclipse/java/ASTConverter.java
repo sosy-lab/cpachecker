@@ -578,12 +578,12 @@ class ASTConverter {
   }
 
   /**
-   * Converts a JDT Expression into the AST. This method always gives side effect free Expressions
-   * back. Every Side Effect will be put into a side assignment and can subsequently be fetched with
+   * Converts a JDT Expression into the AST. This method always gives side-effect free Expressions
+   * back. Every side effect will be put into a side assignment and can subsequently be fetched with
    * getNextSideAssignment().
    *
    * @param e expression to be transformed.
-   * @return a side effect free AST representing the given parameter.
+   * @return a side-effect free AST representing the given parameter.
    */
   public JExpression convertExpressionWithoutSideEffects(Expression e) {
 
@@ -2376,7 +2376,7 @@ class ASTConverter {
             fileLoc, leftHandSide, ((JAssignment) rightHandSide).getLeftHandSide());
 
       } else {
-        throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
+        throw new CFAGenerationRuntimeException("Expression is not free of side effects");
       }
 
     } else {

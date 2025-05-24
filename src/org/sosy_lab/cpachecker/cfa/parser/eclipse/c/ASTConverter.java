@@ -890,7 +890,7 @@ class ASTConverter {
           return new CExpressionAssignmentStatement(
               fileLoc, lhs, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
-          throw parseContext.parseError("Expression is not free of side-effects", e);
+          throw parseContext.parseError("Expression is not free of side effects", e);
         }
 
       } else {
@@ -2891,7 +2891,7 @@ class ASTConverter {
 
       } else {
         throw parseContext.parseError(
-            "Initializer is not free of side-effects, it is a "
+            "Initializer is not free of side effects, it is a "
                 + initializer.getClass().getSimpleName(),
             e);
       }

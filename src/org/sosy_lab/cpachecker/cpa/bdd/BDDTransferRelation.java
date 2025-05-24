@@ -240,7 +240,7 @@ public class BDDTransferRelation
   }
 
   /**
-   * This function deletes all vars, that could be modified through a side-effect of the (external)
+   * This function deletes all vars, that could be modified through a side effect of the (external)
    * functionCall.
    */
   private BDDState handleExternalFunctionCall(
@@ -248,7 +248,7 @@ public class BDDTransferRelation
 
     for (final CExpression param : params) {
 
-      /* special case: external functioncall with possible side-effect!
+      /* special case: external functioncall with possible side effect!
        * this is the only statement, where a pointer-operation is allowed
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
