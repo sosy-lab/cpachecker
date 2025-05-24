@@ -51,7 +51,7 @@ int main() {
         a2 = b;
     }
 
-    // TODO: Nested Loops not working fine.
+    // TODO: Fix handling of nested loops
     __VERIFIER_is_public(a2, 0);
     __VERIFIER_is_public(b2, 0);
     __VERIFIER_is_public(c2, 0);

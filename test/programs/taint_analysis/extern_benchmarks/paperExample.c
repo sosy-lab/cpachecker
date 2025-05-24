@@ -11,11 +11,11 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-// TODO: The for-loop does not terminate
+// TODO: Fix handling of nested loops and multi-inter-procedural calls
 
 int main() {
     int x, b1, b2, y;
-    scanf("%d", &x);
+//    scanf("%d", &x);
     b1 = even(x);
     b2 = odd(10);
     y = compute(x);

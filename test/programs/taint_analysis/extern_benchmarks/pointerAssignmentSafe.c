@@ -10,7 +10,7 @@
 
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
-// TODO: In this benchmark there is things to do
+// TODO: In this benchmark there are things to do
 int main() {
     int a, b, c;
     int *p, *q;
