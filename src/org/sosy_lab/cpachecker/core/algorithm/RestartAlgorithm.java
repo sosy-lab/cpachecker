@@ -237,6 +237,10 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     return algorithm;
   }
 
+  public Algorithm getCurrentAlgorithm() {
+    return currentAlgorithm;
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(

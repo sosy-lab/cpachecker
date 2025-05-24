@@ -19,6 +19,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -91,6 +93,12 @@ public class EquivalenceRunner {
   private AlgorithmStatus runFullAnalysis(Algorithm pAlgorithm, ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     AlgorithmStatus status = pAlgorithm.run(reachedSet);
+    if (pAlgorithm instanceof SelectionAlgorithm s) {
+      pAlgorithm = s.getLastAlgorithm();
+    }
+    if (pAlgorithm instanceof RestartAlgorithm r) {
+      pAlgorithm = r.getCurrentAlgorithm();
+    }
     while (reachedSet.hasWaitingState()) {
       for (AbstractState abstractState : reachedSet) {
         if (((ARGState) abstractState).isTarget()) {

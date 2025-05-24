@@ -68,6 +68,12 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 @Options(prefix = "heuristicSelection")
 public class SelectionAlgorithm extends NestingAlgorithm {
 
+  private Algorithm lastAlgorithm;
+
+  public Algorithm getLastAlgorithm() {
+    return lastAlgorithm;
+  }
+
   private static class SelectionAlgorithmCFAVisitor implements CFAVisitor {
 
     private final Set<String> functionNames = new HashSet<>();
@@ -493,6 +499,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     ForwardingReachedSet reached = (ForwardingReachedSet) pReachedSet;
     reached.setDelegate(reachedSetForChosenAnalysis);
 
+    lastAlgorithm = chosenAlgorithm;
     return chosenAlgorithm.run(reachedSetForChosenAnalysis);
   }
 
