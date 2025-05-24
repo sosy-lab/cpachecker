@@ -172,7 +172,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
 
             // create and add infeasible prefix, mind that the ARGPath has not (!)
             // failing assume operations replaced with no-ops, as this is not needed here,
-            // and it would be cumbersome for ABE, so lets skip it
+            // and it would be cumbersome for ABE, so let's skip it
             ARGPath currentPrefixPath = ARGUtils.getOnePathTo(currentState);
 
             // put prefix data into a simple container for now

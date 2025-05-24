@@ -293,7 +293,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     S oldState = pInitialState;
 
-    // we enter a function, so lets add the previous state to the stack
+    // we enter a function, so let's add the previous state to the stack
     if (manageCallstack && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       oldState = postOperator.handleFunctionCall(oldState, pInitialEdge, pCallstack);
     }

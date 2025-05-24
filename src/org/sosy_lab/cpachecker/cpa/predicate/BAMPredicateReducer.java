@@ -483,8 +483,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     PathFormula executedFunction =
         pmgr.makeAnd(functionCallWithSSA, expandedState.getAbstractionFormula().asFormula());
 
-    // after function-execution we have to re-use the previous indices (fromouter scope),
-    // thus lets change the SSAmap.
+    // after function-execution we have to re-use the previous indices (from outer scope),
+    // thus let's change the SSAmap.
     PathFormula executedFunctionWithSSA =
         executedFunction.withContext(newSummSsa, executedFunction.getPointerTargetSet());
 
@@ -532,7 +532,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
   /**
    * rootSSA might not contain correct indices for the local variables of calling function-scope. so
-   * lets build a new SSA from: - local variables from rootSSA, -> update indices (their indices
+   * let's build a new SSA from: - local variables from rootSSA, -> update indices (their indices
    * will have "holes") - local variables from expandedSSA, -> ignore indices (their indices are the
    * "holes") - global variables from expandedSSA, -> update indices (we have to keep them) - the
    * local return variables from expandedState. -> update indices (we have to keep them, there can
