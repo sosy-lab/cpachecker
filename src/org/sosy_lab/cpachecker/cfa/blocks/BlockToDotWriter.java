@@ -95,8 +95,8 @@ public class BlockToDotWriter {
     // 'directly'.
     final Multimap<Block, Block> hierarchy = LinkedHashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
-      // get smallest block and then the smallest outer block, that contains it
-      Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,
+      // get the smallest block and then the smallest outer block, that contains it
+      Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get the smallest block,
       for (Block possibleOuterBlock :
           Lists.reverse(sortedBlocks)) { // order is important, smallest first
         // trick: we know, iff one node is contained in outer block, all nodes must be contained. So
