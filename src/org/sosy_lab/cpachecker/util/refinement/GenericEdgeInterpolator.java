@@ -53,9 +53,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   @Option(secure = true, description = "apply optimizations based on infeasibility of suffix")
   private boolean applyUnsatSuffixOptimization = true;
 
-  @Option(
-      secure = true,
-      description = "whether to manage the callstack, which is needed for BAM")
+  @Option(secure = true, description = "whether to manage the callstack, which is needed for BAM")
   private boolean manageCallstack = true;
 
   /** the shutdownNotifier in use */
@@ -309,8 +307,8 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
-   * This method checks, whether the (remaining) error path is feasible when starting with
-   * the given (pseudo) initial state.
+   * This method checks, whether the (remaining) error path is feasible when starting with the given
+   * (pseudo) initial state.
    *
    * @param remainingErrorPath the error path to check feasibility on
    * @param state the (pseudo) initial state

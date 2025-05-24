@@ -239,8 +239,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * This method decides whether to perform abstraction computations. These are computed if
-   * the iteration threshold is deactivated, or if the level of determinism ever gets below the
+   * This method decides whether to perform abstraction computations. These are computed if the
+   * iteration threshold is deactivated, or if the level of determinism ever gets below the
    * threshold for the level of determinism.
    *
    * @return whether abstractions should be computed

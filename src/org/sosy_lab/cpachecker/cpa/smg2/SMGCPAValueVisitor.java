@@ -970,7 +970,8 @@ public class SMGCPAValueVisitor
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
         // Pointer/Array/Function types should return a Value that internally can be translated into
         // a
-        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with potential
+        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with
+        // potential
         // offsets inside the points to edge). These have to be packaged into an AddressExpression
         // with a 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
@@ -2261,7 +2262,8 @@ public class SMGCPAValueVisitor
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be met.
+   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be
+   * met.
    *
    * @param leftValue left hand side value of the arithmetic operation.
    * @param rightValue right hand side value of the arithmetic operation.

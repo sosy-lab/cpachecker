@@ -1159,8 +1159,8 @@ public class SMGCPABuiltins {
    * @param charValue {@link Value} representing the character to be inserted.
    * @param countValue {@link Value} for the number of chars inserted.
    * @return {@link ValueAndSMGState} with either the address to the buffer (not a {@link
-   *     AddressExpression}) and the written {@link SMGState}, or an unknown value and maybe an error
-   *     state.
+   *     AddressExpression}) and the written {@link SMGState}, or an unknown value and maybe an
+   *     error state.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private ValueAndSMGState evaluateMemset(
@@ -1286,8 +1286,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return A {@link List} of {@link ValueAndSMGState}s with the results of the alloca call on the
-   *     stack of the returned {@link SMGState}s or an error info set in case of errors. The Value is
-   *     either a pointer to the valid stack memory allocated or unknown. The pointer is not a
+   *     stack of the returned {@link SMGState}s or an error info set in case of errors. The Value
+   *     is either a pointer to the valid stack memory allocated or unknown. The pointer is not a
    *     {@link AddressExpression}!
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -1397,8 +1397,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link ValueAndSMGState} with either the targetAddress pointer expression and
-   *     the state in which the copy was successfull, or an unknown value and maybe an error state if
-   *     something went wrong, i.e. invalid/read/write.
+   *     the state in which the copy was successfull, or an unknown value and maybe an error state
+   *     if something went wrong, i.e. invalid/read/write.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateMemcpy(

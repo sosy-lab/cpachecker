@@ -338,9 +338,9 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
   }
 
   /**
-   * The default Predicate Analysis can only handle a flat list of interpolants. Thus, we convert the
-   * tree-structure back into a linear chain of interpolants. The analysis must handle special cases
-   * on its own, i.e. use BAM with function-rebuilding.
+   * The default Predicate Analysis can only handle a flat list of interpolants. Thus, we convert
+   * the tree-structure back into a linear chain of interpolants. The analysis must handle special
+   * cases on its own, i.e. use BAM with function-rebuilding.
    *
    * <p>For function-entries (START-point) we use TRUE, for function-returns (END-point) both
    * function-summary and function-execution (merged into one formula).

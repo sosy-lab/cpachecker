@@ -57,10 +57,10 @@ public abstract class Address {
   /** Returns whether the address is unknown. */
   public abstract boolean isUnknown();
 
-  /** Returns whether the address is symbolic.  */
+  /** Returns whether the address is symbolic. */
   public abstract boolean isSymbolic();
 
-  /** Returns whether the address is concrete.  */
+  /** Returns whether the address is concrete. */
   public abstract boolean isConcrete();
 
   /**
@@ -85,8 +85,8 @@ public abstract class Address {
    *
    * <p>In all other cases a symbolic address will be returned with the given object as symbol.
    *
-   * @param pAddress the representation of the address, either a concrete value like a BigInteger
-   *     or a symbol like a String.
+   * @param pAddress the representation of the address, either a concrete value like a BigInteger or
+   *     a symbol like a String.
    * @return an address for the given address representation
    */
   public static Address valueOf(Object pAddress) {

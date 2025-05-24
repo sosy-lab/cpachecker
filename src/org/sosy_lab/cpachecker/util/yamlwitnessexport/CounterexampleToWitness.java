@@ -438,7 +438,8 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
 
     // Add target
     // In contrast to the semantics of assumptions, targets are evaluated at the next possible
-    // segment point. Therefore, instead of creating a location record the way as is for assumptions,
+    // segment point. Therefore, instead of creating a location record the way as is for
+    // assumptions,
     // this needs to be done using another function
     CFAEdge lastEdge = edges.get(edges.size() - 1);
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));

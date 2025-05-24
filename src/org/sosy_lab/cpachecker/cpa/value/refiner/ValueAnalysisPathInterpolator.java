@@ -54,9 +54,9 @@ public class ValueAnalysisPathInterpolator
   private boolean performEdgeBasedInterpolation = true;
 
   /**
-   * whether to do lazy-abstraction, i.e., when true, the re-starting node for the
-   * re-exploration of the ARG will be the node closest to the root where new information is made
-   * available through the current refinement
+   * whether to do lazy-abstraction, i.e., when true, the re-starting node for the re-exploration of
+   * the ARG will be the node closest to the root where new information is made available through
+   * the current refinement
    */
   @Option(secure = true, description = "whether to do lazy-abstraction")
   private boolean doLazyAbstraction = true;

@@ -13,7 +13,7 @@
  *
  * <p>The classes in this package have an "A" as prefix to show that they are language-independent,
  * in contrast to the language-specific classes with prefixes like "C" and "J". All classes in this
- * package named "Abstract*" are only relevant for implementing the language-specific subclasses
- * and should not be used by other code.
+ * package named "Abstract*" are only relevant for implementing the language-specific subclasses and
+ * should not be used by other code.
  */
 package org.sosy_lab.cpachecker.cfa.ast;

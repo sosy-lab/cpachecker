@@ -287,11 +287,11 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>Set</code> containing a <code>JClassType</code> for each subclass that
-   * directly extends the described class.
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each subclass that directly
+   * extends the described class.
    *
-   * @return a <code>Set</code> containing a <code>JClassType</code> for each subclass that
-   *     directly extends the described class
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each subclass that directly
+   *     extends the described class
    */
   public Set<JClassType> getDirectSubClasses() {
     return ImmutableSet.copyOf(directSubClasses);

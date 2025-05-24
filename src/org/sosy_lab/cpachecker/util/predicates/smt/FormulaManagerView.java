@@ -1206,8 +1206,8 @@ public class FormulaManagerView {
   }
 
   /**
-   * Add SSA indices to a single variable name. Typically, it is not necessary and not recommended to
-   * use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
+   * Add SSA indices to a single variable name. Typically, it is not necessary and not recommended
+   * to use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
    */
   public static String instantiateVariableName(String pVar, SSAMap pSsa) {
     return makeName(pVar, pSsa.getIndex(pVar));

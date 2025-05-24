@@ -678,8 +678,8 @@ public final class PredicateAbstractionManager {
    * Extract all relevant predicates (with respect to a given formula) from a given set of
    * predicates.
    *
-   * <p>Currently, the check is syntactically, i.e., a predicate is relevant if it refers to at least
-   * one variable that also occurs in f.
+   * <p>Currently, the check is syntactically, i.e., a predicate is relevant if it refers to at
+   * least one variable that also occurs in f.
    *
    * <p>A predicate that is just "false" or "true" is also filtered out.
    *

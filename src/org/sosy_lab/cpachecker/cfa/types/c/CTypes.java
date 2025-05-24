@@ -201,8 +201,8 @@ public final class CTypes {
    * Return a copy of a given type that has the "volatile" flag not set. If the given type is
    * already a non-volatile type, it is returned unchanged.
    *
-   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does
-   * not change a non-volatile pointer to a volatile int.
+   * <p>This method only eliminates the outermost volatile flag, if it is present, i.e., it does not
+   * change a non-volatile pointer to a volatile int.
    */
   public static <T extends CType> T withoutVolatile(T type) {
     return withVolatileSetTo(type, false);

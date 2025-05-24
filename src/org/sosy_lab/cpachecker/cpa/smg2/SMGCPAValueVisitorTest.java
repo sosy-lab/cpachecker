@@ -953,7 +953,8 @@ public class SMGCPAValueVisitorTest {
       SMGObject objectForAddressValue =
           currentState.dereferencePointer(addressValueArray).get(0).getSMGObject();
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        // We need a mapping from each value representing an address to an SMGValue that is mapped to
+        // We need a mapping from each value representing an address to an SMGValue that is mapped
+        // to
         // an SMGPointsToEdge (modeling the pointer). We simply use numeric values for this. We
         // remember the pointer values such that the index is the same as the location of the
         // pointer in the array.
@@ -3343,8 +3344,8 @@ public class SMGCPAValueVisitorTest {
 
   /**
    * Creates an SMGObject of the entered size. Then creates a pointer (points to edge) to it at the
-   * offset entered. Then the pointer is mapped to an SMGValue that is mapped to the entered value as
-   * address value. The global state and visitor are updated with the new items.
+   * offset entered. Then the pointer is mapped to an SMGValue that is mapped to the entered value
+   * as address value. The global state and visitor are updated with the new items.
    *
    * @param offset in bits of the pointer. Essentially where the pointer starts in the object.
    * @param size of the object in bits.

@@ -1214,8 +1214,8 @@ public class ARGUtils {
    *       issue is fixed, the prefix "try" should be removed from the function name and the return
    *       type should be changed to {@link CounterexampleInfo}.
    *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
-   *       determining whether the counterexample should be marked as imprecise. Currently,
-   *       this heuristic will simply always mark a counterexample as feasible if and only if the
+   *       determining whether the counterexample should be marked as imprecise. Currently, this
+   *       heuristic will simply always mark a counterexample as feasible if and only if the
    *       analysis used consists of either a ValueAnalysisCPA or an SMGCPA.
    * </ol>
    *

@@ -190,8 +190,8 @@ public class InvariantsState
    * @param pAssumptions additional assumptions about this state.
    * @param pOverflowDetected if an overflow has been detected.
    * @param pIncludeTypeInformation whether to include type information for exports.
-   * @param pOverapproximatesUnsupportedFeature whether an unsupported feature is
-   *     over-approximated by this state.
+   * @param pOverapproximatesUnsupportedFeature whether an unsupported feature is over-approximated
+   *     by this state.
    */
   private InvariantsState(
       VariableSelection<CompoundInterval> pVariableSelection,

@@ -57,9 +57,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
-  @Option(
-      secure = true,
-      description = "whether to perform path slicing before interpolation")
+  @Option(secure = true, description = "whether to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
   @Option(
