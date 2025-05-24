@@ -709,6 +709,42 @@ public class TaintAnalysisTest {
   }
 
   @Test
+  public void testWhileLoopSafe_nested_1() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_1.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopSafe_nested_2() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_2.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopSafe_nested_3() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_3.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_nested_1() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_1.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_nested_2() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_2.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testWhileLoopUnsafe_nested_3() throws Exception {
+    TestResults results = runCPAchecker("whileLoopSafe_nested_3.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
   public void testWhileLoopUnsafe_1() throws Exception {
     TestResults results = runCPAchecker("whileLoopUnsafe_1.c", "");
     results.assertIsUnsafe();
