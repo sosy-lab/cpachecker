@@ -41,7 +41,7 @@ public class TaintAnalysisState
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private Set<TaintAnalysisState> predecessors = new HashSet<>();
   private final Set<TaintAnalysisState> successors = new HashSet<>();
-  private TaintAnalysisState siblingState;
+  private final Set<TaintAnalysisState> siblingStates = new HashSet<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     this.taintedVariables = new HashMap<>();
@@ -64,8 +64,8 @@ public class TaintAnalysisState
   }
 
   @Nullable
-  public TaintAnalysisState getSiblingState() {
-    return siblingState;
+  public Set<TaintAnalysisState> getSiblingStates() {
+    return siblingStates;
   }
 
   public Set<TaintAnalysisState> getPredecessors() {
@@ -183,9 +183,16 @@ public class TaintAnalysisState
             joinedTaintedVars,
             joinedUntaintedVars,
             joinPredecessors);
+        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinPredecessors);
 
-    this.siblingState = pOther;
-    pOther.siblingState = this;
+    this.siblingStates.add(pOther);
+    pOther.siblingStates.add(this);
+
+    joinedState.siblingStates.add(this);
+    this.siblingStates.add(joinedState);
+
+    joinedState.siblingStates.add(pOther);
+    pOther.siblingStates.add(joinedState);
 
     this.successors.addAll(pOther.successors);
     pOther.successors.addAll(this.successors);
