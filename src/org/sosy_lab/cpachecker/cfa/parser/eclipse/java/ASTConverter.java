@@ -1122,11 +1122,11 @@ class ASTConverter {
   }
 
   /**
-   * Returns all sub classes/implementing classes of the given class or interface. This includes the
+   * Returns all subclasses/implementing classes of the given class or interface. This includes the
    * given type itself, if it is a {@link JClassType}.
    *
    * @param pType the type to get all subclasses of
-   * @return all sub classes/implementing classes of the given class or interface.
+   * @return all subclasses/implementing classes of the given class or interface.
    */
   private List<JType> getSubClasses(JType pType) {
 

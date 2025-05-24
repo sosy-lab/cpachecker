@@ -13,7 +13,7 @@ import java.io.Serial;
 /**
  * Super class for all exceptions thrown by CPA operators.
  *
- * <p>TODO This exception should probably be abstract, and specialized sub-classes should be used
+ * <p>TODO This exception should probably be abstract, and specialized subclasses should be used
  * for specific reasons.
  */
 public class CPAException extends Exception {

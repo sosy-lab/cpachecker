@@ -29,7 +29,7 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
   /**
    * TODO write comment
    *
-   * @param pHasToBeLastInSequence used in some sub-class
+   * @param pHasToBeLastInSequence used in some subclass
    */
   public void updateProgress(
       C pPrevCandidate, C pCandidate, SMGJoinStatus pStatus, boolean pHasToBeLastInSequence) {

@@ -287,10 +287,10 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each subclass that
    * directly extends the described class.
    *
-   * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each subclass that
    *     directly extends the described class
    */
   public Set<JClassType> getDirectSubClasses() {
@@ -393,12 +393,12 @@ public final class JClassType extends JClassOrInterfaceType {
   }
 
   /**
-   * Returns a <code>Set</code> containing a <code>JClassType</code> for each sub class that extends
+   * Returns a <code>Set</code> containing a <code>JClassType</code> for each subclass that extends
    * the described class.
    *
-   * <p>This includes direct and indirect sub classes.
+   * <p>This includes direct and indirect subclasses.
    *
-   * @return a <code>Set</code> containing a <code>JClassType</code> for each sub class that extends
+   * @return a <code>Set</code> containing a <code>JClassType</code> for each subclass that extends
    *     the described class
    */
   public Set<JClassType> getAllSubTypesOfClass() {

@@ -385,7 +385,7 @@ class Scope {
       }
     }
 
-    // Sub Classes need to be parsed for dynamic Binding
+    // Subclasses need to be parsed for dynamic Binding
     JClassOrInterfaceType type = typeHierarchy.getType(className);
 
     // TODO Check if there is a way to be more precise

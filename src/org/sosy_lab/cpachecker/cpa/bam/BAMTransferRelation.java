@@ -364,7 +364,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final Collection<AbstractState> reducedResult,
       final Collection<AbstractState> cachedReturnStates)
       throws CPAException, InterruptedException {
-    return reducedResult; // dummy implementation, overridden in sub-class
+    return reducedResult; // dummy implementation, overridden in subclass
   }
 
   /**

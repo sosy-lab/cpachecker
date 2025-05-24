@@ -667,7 +667,7 @@ public class SMGExpressionEvaluator {
 
   /*
    * These Methods are designed to be overwritten to enable
-   * sub classes to, for example, change the smgState while
+   * subclasses to, for example, change the smgState while
    * evaluating expressions.
    *
    */
