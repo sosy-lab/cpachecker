@@ -358,7 +358,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     final BigInteger sizeInBitsOfObject = BigInteger.valueOf(256);
     SMGObject testObject = createRegion(sizeInBitsOfObject);
 
-    // Assert that the smg with the object does not have any values/edges etc.
+    // Assert that the SMG with the object does not have any values/edges etc.
     assertThat(smg.getPTEdges().toList())
         .isEqualTo(ImmutableList.of(nullPointer, nullPointer, nullPointer));
     assertThat(smg.getHVEdges().toList()).isEmpty();
@@ -1325,7 +1325,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     smg =
         checkReadExpectedValue(
             testObject, BigInteger.ZERO, BigInteger.valueOf(2 * 8), newValueInSMG0to16);
-    // Read 0 to 32 again, the smg does not change
+    // Read 0 to 32 again, the SMG does not change
     smg =
         checkReadExpectedValue(
             testObject, BigInteger.ZERO, BigInteger.valueOf(4 * 8), newValueInSMG0to32);

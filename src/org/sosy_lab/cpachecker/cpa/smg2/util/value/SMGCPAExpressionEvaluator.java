@@ -1058,7 +1058,7 @@ public class SMGCPAExpressionEvaluator {
   }
 
   /**
-   * This is the most general read that should be used in the end by all read smg methods that need
+   * This is the most general read that should be used in the end by all read SMG methods that need
    * checks! This method checks that the offset and size of the read are in range and that the used
    * objects are valid. Might materialize a list! Might use an SMT solver if error predicates are
    * tracked and the offset is not numeric.

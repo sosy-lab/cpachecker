@@ -587,7 +587,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  /** Remove all values and every edge from the smg. */
+  /** Remove all values and every edge from the SMG. */
   public void clearValues() {
     clearValuesHvePte();
   }

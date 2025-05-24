@@ -68,7 +68,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       ARGPath pPath, UnmodifiableSMGState pStartingPoint, SMGPrecision pPrecision)
       throws CPAException, InterruptedException {
 
-    // We don't want side effects of smg transfer relation for smg state propagating.
+    // We don't want side effects of SMG transfer relation for SMG state propagating.
     SMGState start = pStartingPoint.copyOf();
     Collection<SMGState> next = new ArrayList<>();
     next.add(start);

@@ -486,7 +486,7 @@ public final class SMGIntersectStates {
   private static SMGObject getConcretestObject(SMGObject pObj1, SMGObject pObj2) {
 
     /*Determine which object results in the least amount of concrete states
-     * if included in an smg state.*/
+     * if included in an SMG state.*/
 
     if (!pObj1.isAbstract()) {
       return pObj1;

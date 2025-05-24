@@ -2212,7 +2212,7 @@ public class SMG {
         continue;
       }
       PersistentMap<SMGValue, Integer> realPointersAndOcc = realTargetAndPointers.getValue();
-      // now check the smg for this obj
+      // now check the SMG for this obj
       Map<SMGValue, Integer> pointersTowardsTarget = new HashMap<>();
       for (PersistentSet<SMGHasValueEdge> hves : hasValueEdges.values()) {
         for (SMGHasValueEdge hve : hves) {

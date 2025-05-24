@@ -1053,7 +1053,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
-    // TODO: both the value and old smg analysis simply return unknown in this case
+    // TODO: both the value and old SMG analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
     logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);

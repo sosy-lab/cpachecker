@@ -79,9 +79,9 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, the smg state to
+   * cfa edge to determine the location of the program we currently handle, the SMG state to
    * determine the values of the variables at the current location, and the expression with the
-   * given type to determine the smg object that represents the array of the given type.
+   * given type to determine the SMG object that represents the array of the given type.
    *
    * @param pEdge The cfa edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
@@ -98,7 +98,7 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, and the smg state to
+   * cfa edge to determine the location of the program we currently handle, and the SMG state to
    * determine the values of the variables at the current location..
    *
    * <p>This method can't calculate variable array type length for arrays that are not declared in
@@ -612,7 +612,7 @@ public class SMGExpressionEvaluator {
   }
 
   /**
-   * Is given a symbolic Value, looks into the smg to determine if the symbolic value represents a
+   * Is given a symbolic Value, looks into the SMG to determine if the symbolic value represents a
    * pointer, and transforms it into a {@link SMGAddressValue} containing the symbolic value that
    * represents the pointer as well as the address the pointer is pointing to.
    *

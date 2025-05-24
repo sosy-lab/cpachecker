@@ -3359,7 +3359,7 @@ public class SMGCPAValueVisitorTest {
         SMGObject.of(0, new NumericValue(BigInteger.valueOf(size)), BigInteger.valueOf(0));
     spc = spc.copyAndAddHeapObject(smgHeapObject);
 
-    // Mapping to the smg points to edge
+    // Mapping to the SMG points to edge
     spc =
         spc.copyAndAddPointerFromAddressToMemory(
             addressValue,
@@ -3399,7 +3399,7 @@ public class SMGCPAValueVisitorTest {
     Preconditions.checkArgument(
         objectAndOffset.getOffsetForObject().asNumericValue().longValue() == 0);
 
-    // Mapping to the smg points to edge
+    // Mapping to the SMG points to edge
     ValueAndSMGState newPointerValueAndState =
         currentState.searchOrCreateAddress(
             objectAndOffset.getSMGObject(), BigInteger.valueOf(offset));

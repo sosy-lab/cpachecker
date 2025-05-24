@@ -1532,7 +1532,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Checks if an smg object is valid in the current context.
+   * Checks if an SMG object is valid in the current context.
    *
    * @param pObject - the object to be checked
    * @return smg.isValid(pObject)
