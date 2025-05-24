@@ -175,11 +175,20 @@ public class TaintAnalysisState
     // For untainted variables, only keep those that are untainted in both states
     joinedUntaintedVars.keySet().retainAll(pOther.getUntaintedVariables().keySet());
 
+    Set<TaintAnalysisState> joinPredecessors = new HashSet<>(this.getPredecessors());
+    joinPredecessors.addAll(pOther.getPredecessors());
+
     TaintAnalysisState joinedState =
-        new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, Set.of(this, pOther));
+        new TaintAnalysisState(
+            joinedTaintedVars,
+            joinedUntaintedVars,
+            joinPredecessors);
 
     this.siblingState = pOther;
     pOther.siblingState = this;
+
+    joinedState.getSuccessors().addAll(this.successors);
+    joinedState.getSuccessors().addAll(pOther.getSuccessors());
 
     return joinedState;
   }
