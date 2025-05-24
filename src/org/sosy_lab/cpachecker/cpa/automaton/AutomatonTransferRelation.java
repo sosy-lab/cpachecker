@@ -171,7 +171,7 @@ public class AutomatonTransferRelation implements TransferRelation {
     boolean nonDetState = state.getInternalState().isNonDetState();
 
     // these transitions cannot be evaluated until last, because they might have sideeffects on
-    // other CPAs (dont want to execute them twice)
+    // other CPAs (don't want to execute them twice)
     // the transitionVariables have to be cached (produced during the match operation)
     // the list holds a Transition and the TransitionVariables generated during its match
     List<Pair<AutomatonTransition, Map<Integer, AAstNode>>> transitionsToBeTaken =

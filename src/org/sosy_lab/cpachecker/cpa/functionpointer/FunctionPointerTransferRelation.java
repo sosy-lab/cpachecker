@@ -263,7 +263,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // functions may be called either as f() or as (*f)(),
-    // so remove the star operator if its there
+    // so remove the star operator if it's there
     if (nameExp instanceof CPointerExpression) {
       nameExp = ((CPointerExpression) nameExp).getOperand();
     }

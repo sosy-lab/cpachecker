@@ -399,7 +399,7 @@ public class UseDefRelation {
 
     /*
         // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-        // until is is reassigned, and not only a single field
+        // until it is reassigned, and not only a single field
         // if assigned variable is resolving a dependency
         if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
           // hack to handle assignments of structs (keeps the whole struct in use all the time)

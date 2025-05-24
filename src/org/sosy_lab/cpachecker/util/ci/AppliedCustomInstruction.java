@@ -58,7 +58,7 @@ public class AppliedCustomInstruction {
    *
    * @param pState AbstractState
    * @return true if pState equals ciStartNode, false if not.
-   * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
+   * @throws CPAException if the given AbstractState pState can't be extracted to a CFANode
    */
   public boolean isStartState(final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
@@ -74,7 +74,7 @@ public class AppliedCustomInstruction {
    *
    * @param pState AbstractState
    * @return true if pState equals ciEndNode, false if not.
-   * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
+   * @throws CPAException if the given AbstractState pState can't be extracted to a CFANode
    */
   public boolean isEndState(final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);

@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
  * <p>It consists of a map that stores the CFAs for each function and a list of declarations of
  * global variables.
  *
- * <p>This class is immutable, but it does not ensure that it's content also is. It is recommended
+ * <p>This class is immutable, but it does not ensure that its content also is. It is recommended
  * to use it only as a "transport" data class, not for permanent storage.
  */
 public record ParseResult(

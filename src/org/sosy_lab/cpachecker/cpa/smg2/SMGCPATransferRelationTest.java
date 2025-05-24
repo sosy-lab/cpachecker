@@ -2212,7 +2212,7 @@ public class SMGCPATransferRelationTest {
   /*
    * Declare a struct with the types entered, the values entered in the order entered on the heap.
    * Then a variable with the address of this array is made with the variableName. This uses the ->
-   * operator. But the SMG2 CPA translates this always to (struct*).field so its the same.
+   * operator. But the SMG2 CPA translates this always to (struct*).field so it's the same.
    * Returns the last state acquired, but also sets the transfer relation with this state, so it can be ignored.
    *
    * This is tested in a dedicated test and therefore save to use in other tests!

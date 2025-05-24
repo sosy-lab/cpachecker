@@ -39,7 +39,7 @@ public class TestTargetMinimizerEssential {
   // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
-    // maps a copied edge to the testTarget that can be removed if its dominated by another
+    // maps a copied edge to the testTarget that can be removed if it's dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
     Set<CFAEdge> testTargets = new HashSet<>(pTestTargets);
@@ -107,7 +107,7 @@ public class TestTargetMinimizerEssential {
                 });
       }
 
-      // create copies of all outgoing edges and the nodes they go into if they dont yet exist
+      // create copies of all outgoing edges and the nodes they go into if they don't yet exist
       for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {

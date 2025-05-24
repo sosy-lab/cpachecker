@@ -1148,7 +1148,7 @@ public class SMGCPABuiltins {
 
   /**
    * Checks the Values such that they are useable, returns a unknown Value with error state (may be
-   * non critical) if its not useable. Else it writes the char entered (int value) into the region
+   * non critical) if it's not useable. Else it writes the char entered (int value) into the region
    * behind the given address count times. Make sure that the bufferValue is already checked and is
    * a valid AddressExpression!
    *

@@ -355,7 +355,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
         preCondition = postCondition;
       }
 
-      // Remove the last predicate as it is should be false
+      // Remove the last predicate as it should be false
       return ImmutableList.copyOf(predicates);
     } finally {
       stats.postConditionTimer.stop();

@@ -6226,7 +6226,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         .isEquivalentAccordingToCompareTo(expectedNfoValue);
 
     // The second is the one with a new concrete segment and another 0+
-    // Check that its a concrete region with a valid pointer to it
+    // Check that it's a concrete region with a valid pointer to it
     ValueAndSMGState secondReadValueAndState = statesAndReadValueZeroPlus.get(1);
     currentState = secondReadValueAndState.getState();
     assertThat(secondReadValueAndState.getValue().isNumericValue()).isFalse();

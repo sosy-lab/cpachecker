@@ -103,7 +103,7 @@ class TypeHierachyConverter {
 
     } else {
 
-      // A Method is also abstract if its a member of an interface
+      // A Method is also abstract if it's a member of an interface
       boolean isAbstract = mb.isAbstract() || md.resolveBinding().getDeclaringClass().isInterface();
 
       JMethodType methodType =

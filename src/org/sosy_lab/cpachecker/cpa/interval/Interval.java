@@ -202,7 +202,7 @@ public final class Interval implements Serializable {
     long newLow;
 
     // New high of the interval can't be higher than the highest value in the divisor.
-    // If the divisible element is positive, it is also bounded by it's highest number,
+    // If the divisible element is positive, it is also bounded by its highest number,
     // or by the absolute value of the lowest number.
     // (-1 % 6 CAN be either -1 or 5 according to the C standard).
     long top;

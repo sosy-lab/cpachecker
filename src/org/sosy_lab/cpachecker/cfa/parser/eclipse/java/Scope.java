@@ -379,7 +379,7 @@ class Scope {
 
     } else {
       // If top Class already added, it is unnecessary to search for subTypes
-      // unless its the main Class
+      // unless it's the main Class
       if (!fullyQualifiedMainClassName.equals(className)) {
         return;
       }
