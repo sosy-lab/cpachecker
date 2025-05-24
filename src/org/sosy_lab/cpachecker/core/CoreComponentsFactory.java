@@ -251,7 +251,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "split.program",
-      description = "Split program in subprograms which can be analyzed separately afterwards")
+      description = "Split program in subprograms which can be analyzed separately afterward")
   private boolean splitProgram = false;
 
   @Option(

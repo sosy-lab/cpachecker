@@ -525,7 +525,7 @@ public class LiveVariablesTransferRelation
     newLiveVars.andNot(assignedVariable);
 
     // check all variables of the right-hand-sides, they should be live
-    // afterwards if the leftHandSide is live
+    // afterward if the leftHandSide is live
     if (assignment instanceof AExpressionAssignmentStatement) {
       handleExpression((AExpression) assignment.getRightHandSide(), newLiveVars);
 
@@ -555,7 +555,7 @@ public class LiveVariablesTransferRelation
 
         // when there is a field reference, an array access or a pointer expression,
         // and the assigned variable was live before, we need to let it also be
-        // live afterwards
+        // live afterward
         // Also, if there is an assignment to one of those, we have to over-approximate it to live
       } else if (lhs instanceof CFieldReference
           || lhs instanceof AArraySubscriptExpression
@@ -570,7 +570,7 @@ public class LiveVariablesTransferRelation
       }
 
       // if the leftHandSide is not life, but there is a pointer dereference
-      // we need to make the leftHandSide life. Thus afterwards everything from
+      // we need to make the leftHandSide life. Thus afterward everything from
       // this statement is life.
     } else {
       assert lhsIsPointerDereference;

@@ -84,7 +84,7 @@ public class PredicateManager {
     if (initPartitions) {
       varsToTmpVar = initVars(pCfa);
     } else {
-      varsToTmpVar = null; // never accessed afterwards
+      varsToTmpVar = null; // never accessed afterward
     }
   }
 

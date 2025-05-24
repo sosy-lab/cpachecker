@@ -59,7 +59,7 @@ public class ProgramDeclarations {
   /**
    * Register a type in the program wide scope. This does not mean that every other file of the
    * program has access to this type, but it does mean that if the same type is declared in another
-   * file these types will be identical afterwards. (This happens in conjunction to the proper
+   * file these types will be identical afterward. (This happens in conjunction to the proper
    * handling of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {

@@ -5824,7 +5824,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
-    // pointers and the nesting level and materialization is correct afterwards
+    // pointers and the nesting level and materialization is correct afterward
     // Deref at position 2, 3, 5, 9 and 10 and check pointers
     // We leave some space to check behaviour for automatic moving on for later pointers!!!
     derefPointersAtAndCheckListMaterialization(
@@ -5848,7 +5848,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
     currentState = absFinder.findAndAbstractLists();
     // Now we have a 10+SLS
     // Deref a pointer not in the beginning or end, check that the list is consistent with the
-    // pointers and the nesting level and materialization is correct afterwards
+    // pointers and the nesting level and materialization is correct afterward
     // Deref at position 2, 3, 5, 9 and 10 and check pointers
     // We leave some space to check behaviour for automatic moving on for later pointers!!!
     derefPointersAtAndCheckListMaterialization(
@@ -5876,7 +5876,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
-      // pointers and the nesting level and materialization is correct afterwards
+      // pointers and the nesting level and materialization is correct afterward
       derefPointersAtAndCheckListMaterialization(
           lengthOfList, pointers, new int[] {lengthOfList - 2, lengthOfList - 1}, false);
       // Now only the 0+ trails, re-merge
@@ -5995,7 +5995,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
       currentState = absFinder.findAndAbstractLists();
       // Now we have a 10+SLS
       // Deref a pointer not in the beginning or end, check that the list is consistent with the
-      // pointers and the nesting level and materialization is correct afterwards
+      // pointers and the nesting level and materialization is correct afterward
       derefPointersAtAndCheckListMaterialization(
           lengthOfList, pointers, new int[] {lengthOfList - 2}, true);
       // Now only the 0+ trails, re-merge

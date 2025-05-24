@@ -378,7 +378,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
               Level.INFO,
               "Target waypoint is not the last waypoint, following waypoints will be ignored!");
         }
-        // Add the state directly, since we are exiting the loop afterwards
+        // Add the state directly, since we are exiting the loop afterward
         automatonStates.add(
             new AutomatonInternalState(
                 currentStateId,

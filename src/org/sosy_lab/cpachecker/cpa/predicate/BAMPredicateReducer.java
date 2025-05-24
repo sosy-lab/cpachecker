@@ -138,7 +138,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
       // check whether ABS=>PRED, because only then we can guarantee that
       // ( ( exists PRED: f(ABS,PRED) ) and PRED ) == f(ABS,PRED),
-      // which is required for a valid (and precise) reduction and expansion afterwards
+      // which is required for a valid (and precise) reduction and expansion afterward
       boolean abstractionImpliesPredicate = false;
       try {
         abstractionImpliesPredicate = rmgr.entails(abstraction, predicate.getAbstractVariable());

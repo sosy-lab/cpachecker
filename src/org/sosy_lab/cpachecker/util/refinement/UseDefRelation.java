@@ -419,7 +419,7 @@ public class UseDefRelation {
       // to the needed one (e.g. a[i] i is additionally) are added as dependency
 
       Set<ASimpleDeclaration> rightHandSideUses;
-      // all variables of the right hand side are "used" afterwards
+      // all variables of the right hand side are "used" afterward
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
       } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {

@@ -122,7 +122,7 @@ class ASTTypeConverter {
             false, false, kind, oldType.getName(), oldType.getOrigName(), oldType);
       }
 
-      // empty linkedList for the Fields of the struct, they are created afterwards
+      // empty linkedList for the Fields of the struct, they are created afterward
       // with the right references in case of pointers to a struct of the same type
       // otherwise they would not point to the correct struct
       // TODO: volatile and const cannot be checked here until no, so both is set

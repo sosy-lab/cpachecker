@@ -826,7 +826,7 @@ public final class LoopStructure {
     }
   }
 
-  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards. */
+  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterward. */
   private static void moveOutgoingEdges(
       final CFANode fromNode, final int from, final int to, final Edge[][] edges) {
     Edge edgeToFrom = edges[to][from];

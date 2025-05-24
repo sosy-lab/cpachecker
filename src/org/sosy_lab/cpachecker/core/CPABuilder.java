@@ -308,7 +308,7 @@ public class CPABuilder {
    * Instantiate CPA(s) according to given config, including any necessary children.
    *
    * @param cpas Additional list of CPAs to inject at first possible place. Will be cleared
-   *     afterwards.
+   *     afterward.
    */
   private ConfigurableProgramAnalysis instantiateCPAandChildren(
       final CPAConfig cpaConfig,

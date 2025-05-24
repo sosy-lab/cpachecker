@@ -273,7 +273,7 @@ public class OctagonTransferRelation
           Collections.singleton(pState);
 
       // for the following cases we first create a temporary variable where
-      // the result of the operation is saved, afterwards, the equality with == 0
+      // the result of the operation is saved, afterward, the equality with == 0
       // is checked
       case MINUS, PLUS, MULTIPLY, DIVIDE -> {
         MemoryLocation tempVarName =
@@ -306,7 +306,7 @@ public class OctagonTransferRelation
       // in the following cases we have to check left and right part of the binary
       // expression, when they are not single variables but contain for example
       // another binary expression we have to create some temporary variables again
-      // which will be compared afterwards
+      // which will be compared afterward
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> {
         CExpression left = binExp.getOperand1();
         CExpression right = binExp.getOperand2();
@@ -1584,7 +1584,7 @@ public class OctagonTransferRelation
 
       Set<Pair<IOctagonCoefficients, OctagonState>> returnValues = new HashSet<>();
 
-      // we negate all coefficients and afterwards return the computed results
+      // we negate all coefficients and afterward return the computed results
       for (Pair<IOctagonCoefficients, OctagonState> pair : operand) {
         returnValues.add(Pair.of(pair.getFirst().mul(OctagonIntValue.NEG_ONE), pair.getSecond()));
       }

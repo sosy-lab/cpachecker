@@ -50,7 +50,7 @@ public class ExternModelLoader {
    * variable in the dimacs file will be associated with a program variable if a corresponding (name
    * equality) variable is known. Otherwise we use internal SMT variable to represent the dimacs
    * variable and do not introduce a program variable. Might lead to problems when the program
-   * variable is introduced afterwards.
+   * variable is introduced afterward.
    *
    * @param pModelFile File with the dimacs model.
    * @return BooleanFormula

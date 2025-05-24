@@ -386,7 +386,7 @@ public final class PredicateAbstractionManager {
 
     // This is the (mutable) set of remaining predicates that still need to be handled.
     // Each step of our abstraction computation may be able to handle some predicates,
-    // and should remove those from this set afterwards.
+    // and should remove those from this set afterward.
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, primaryFormula, instantiator);
 
@@ -1057,7 +1057,7 @@ public final class PredicateAbstractionManager {
    *
    * @param thmProver The solver to use with the input formula on the stack.
    * @param predicates The set of predicates. Each predicate that is handled will be removed from
-   *     the set (and Boolean abstraction handles all predicates so the set is empty afterwards!).
+   *     the set (and Boolean abstraction handles all predicates so the set is empty afterward!).
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
    * @return A over-approximation of f.
    */

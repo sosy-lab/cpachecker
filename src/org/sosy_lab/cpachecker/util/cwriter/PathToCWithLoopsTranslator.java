@@ -258,7 +258,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
 
     } else {
       // only write edges that are not from functions which we have to
-      // write completely, this will be done afterwards
+      // write completely, this will be done afterward
       if (uniqueFunction.matcher(callStack.peek()).matches()) {
         currentFunction.write(
             processSimpleEdge0(edge, currentFunction.getCurrentBlock(), childElement));
@@ -709,7 +709,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
    * This method processes a given edge which may be inside of a loop. The suffix is used to jump to
    * a label if we have found an assume edge. If the suffix is empty this is an assume which leads
    * to program termination if not hold, in order to have only the one path of the program we want
-   * to analyze afterwards.
+   * to analyze afterward.
    *
    * @param edge the edge to be handled
    * @param currentBlock the currentBlock

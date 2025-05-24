@@ -131,7 +131,7 @@ public final class DomTree<T> implements Iterable<T> {
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterwards
+    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterward
 
     while (changed) {
 
