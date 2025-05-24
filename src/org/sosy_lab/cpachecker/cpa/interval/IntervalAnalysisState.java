@@ -102,7 +102,7 @@ public class IntervalAnalysisState
    * This method determines if this element contains an interval for a variable.
    *
    * @param variableName the name of the variable
-   * @return true, if this element contains an interval for the given variable
+   * @return whether this element contains an interval for the given variable
    */
   public boolean contains(String variableName) {
     return intervals.containsKey(variableName);
@@ -214,7 +214,7 @@ public class IntervalAnalysisState
    * imposed by the lattice.
    *
    * @param reachedState the reached state
-   * @return true, if this element is less or equal than the reached state, based on the order
+   * @return whether this element is less or equal than the reached state, based on the order
    *     imposed by the lattice
    */
   @Override

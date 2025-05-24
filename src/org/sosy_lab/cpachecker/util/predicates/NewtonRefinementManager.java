@@ -660,7 +660,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding ARGState
      *
-     * @return true iff there is an ARGState associated to the location
+     * @return whether there is an ARGState associated to the location
      */
     boolean hasCorrespondingARGState() {
       return state.isPresent();
@@ -669,7 +669,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding Abstraction state
      *
-     * @return true iff there is a corresponding state and this state also is an abstraction state
+     * @return whether there is a corresponding state and this state also is an abstraction state
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {

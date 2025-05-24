@@ -242,7 +242,7 @@ public class SMGEdgeInterpolator
    * stack to work properly! (not the values, just the definition to create the stack)
    *
    * @param errorPath the error path to check.
-   * @return true, if the given error path is contradicting in itself, else false
+   * @return whether the given error path is contradicting in itself
    */
   private boolean isSuffixContradicting(ARGPath errorPath, SMGState stateForFrameInfo)
       throws CPAException, InterruptedException {

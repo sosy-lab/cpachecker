@@ -613,7 +613,7 @@ public class SMGState
    * variable anywhere (not only the current stack frame).
    *
    * @param memLoc this method will only extract the qualified name!
-   * @return true if it exists as a variable.
+   * @return whether the memory location exists as a variable.
    */
   public boolean isLocalOrGlobalVariablePresent(MemoryLocation memLoc) {
     String qualifiedName = memLoc.getQualifiedName();
@@ -790,8 +790,7 @@ public class SMGState
    *
    * @param variableAndOffset Variable name and offset to read in bits.
    * @param valueAndSize expected Value and read size in bits.
-   * @return true if the Values match with respect to their numeric interpretation without types.
-   *     False else.
+   * @return whether the values match with respect to their numeric interpretation without types.
    */
   @SuppressWarnings("unused")
   public boolean verifyVariableEqualityWithValueAt(
@@ -996,7 +995,7 @@ public class SMGState
    * Checks if a global variable exists for the name given.
    *
    * @param pVarName Name of the global variable.
-   * @return true if the var exists, false else.
+   * @return whether the var exists.
    */
   public boolean isGlobalVariablePresent(String pVarName) {
     return memoryModel.getGlobalVariableToSmgObjectMap().containsKey(pVarName);
@@ -1006,7 +1005,7 @@ public class SMGState
    * Checks if a local variable exists for the name given. Note: this checks ALL stack frames.
    *
    * @param pVarName Name of the local variable.
-   * @return true if the var exists, false else.
+   * @return whether the var exists.
    */
   private boolean isLocalVariablePresentAnywhere(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
@@ -1023,7 +1022,7 @@ public class SMGState
    * frames.
    *
    * @param pVarName Name of the local variable.
-   * @return true if the var exists, false else.
+   * @return whether the var exists.
    */
   private boolean isLocalVariablePresent(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
@@ -1037,7 +1036,7 @@ public class SMGState
    * functions.....
    *
    * @param pVarName Name of the local variable.
-   * @return true if the var exists, false else.
+   * @return whether the var exists.
    */
   protected boolean isLocalVariablePresentOnPreviousStackFrame(String pVarName) {
     PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
@@ -1133,7 +1132,7 @@ public class SMGState
    *
    * @param pState state to check the memory model for.
    * @param variableName name of the variable.
-   * @return true if the variable exists, false otherwise.
+   * @return whether the variable exists.
    */
   public boolean checkVariableExists(SMGState pState, String variableName) {
     return pState.getMemoryModel().getObjectForVisibleVariable(variableName).isPresent();
@@ -2237,7 +2236,7 @@ public class SMGState
    *
    * @param pValue1 a pointer {@link Value}
    * @param pValue2 a pointer {@link Value}
-   * @return true iff both point to the same memory region.
+   * @return whether both pointers point to the same memory region.
    */
   public boolean pointsToSameMemoryRegion(Value pValue1, Value pValue2) {
     if (!memoryModel.isPointer(pValue1) || !memoryModel.isPointer(pValue2)) {

@@ -178,7 +178,7 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a non-trivial interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a non-trivial interpolant is present, else false
+   * @return whether a non-trivial interpolant is present
    */
   private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
@@ -206,7 +206,7 @@ public class SMGInterpolationTree {
    * This method checks if for the given state a false interpolant is present.
    *
    * @param currentState the state for which to check
-   * @return true, if a false interpolant is present, else false
+   * @return whether a false interpolant is present
    */
   private boolean stateHasFalseInterpolant(final ARGState currentState) {
     return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
@@ -215,7 +215,7 @@ public class SMGInterpolationTree {
   /**
    * This method decides whether there are more paths left for interpolation.
    *
-   * @return true if there are more paths left for interpolation, else false
+   * @return whether there are more paths left for interpolation
    */
   public boolean hasNextPathForInterpolation() {
     return strategy.hasNextPathForInterpolation();

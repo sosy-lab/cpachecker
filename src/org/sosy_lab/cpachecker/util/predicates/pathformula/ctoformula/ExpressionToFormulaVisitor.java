@@ -1334,7 +1334,7 @@ public class ExpressionToFormulaVisitor
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
-   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @return whether the scanf-format-specifier agrees with the type it writes to
    * @throws UnsupportedCodeException if the format specifier is not supported
    */
   private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)

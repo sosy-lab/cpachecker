@@ -121,7 +121,7 @@ class Scope {
   /**
    * Returns true iff Scope is not within a Class or method. In all other cases, returns false.
    *
-   * @return true iff Scope is not within method or Class.
+   * @return whether the Scope is not within a method or Class.
    */
   public boolean isProgramScope() {
     return varsStack.size() == 1 && classStack.isEmpty();
@@ -131,7 +131,7 @@ class Scope {
    * Returns true if Scope is in the top-Level class and not within a method. In all other cases
    * false.
    *
-   * @return true iff Scope is within top-level class.
+   * @return whether the Scope is within top-level class.
    */
   public boolean isTopClassScope() {
     return varsStack.size() == 1 && classStack.size() == 1;
@@ -257,7 +257,7 @@ class Scope {
    * @param name Given name to be checked.
    * @param origName If the name has another Identification, it can also be given with this
    *     parameter.
-   * @return true, if the name is already in use, else false.
+   * @return whether the name is already in use.
    */
   public boolean variableNameInUse(String name, String origName) {
     checkNotNull(name);
@@ -315,7 +315,7 @@ class Scope {
    * Checks if the method declaration with the name given as parameter is already in use.
    *
    * @param name name of the method.
-   * @return true, if found, else false.
+   * @return whether found.
    */
   public boolean isMethodRegistered(String name) {
     return methods.containsKey(checkNotNull(name));

@@ -2956,7 +2956,7 @@ class ASTConverter {
    * Checks if the given Expression returns a Value of boolean Type.
    *
    * @param e Expression to be checked
-   * @return True, iff Type of Expression is boolean, else False.
+   * @return whether the type of expression is boolean.
    */
   public boolean isBooleanExpression(JExpression e) {
     if (e instanceof JBinaryExpression) {

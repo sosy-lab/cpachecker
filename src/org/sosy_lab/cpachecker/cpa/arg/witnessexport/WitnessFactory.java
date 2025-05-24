@@ -487,7 +487,7 @@ class WitnessFactory implements EdgeAppender {
    * Method is used for additional check if TransitionCondition.empty() is applicable.
    *
    * @param pAdditionalInfo is used at {@link ExtendedWitnessFactory}
-   * @return true if TransitionCondition.empty is applicable.
+   * @return whether TransitionCondition.empty is applicable.
    */
   protected boolean isEmptyTransitionPossible(CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     return true;

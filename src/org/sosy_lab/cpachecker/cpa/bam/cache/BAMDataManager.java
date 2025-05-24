@@ -125,7 +125,7 @@ public interface BAMDataManager {
    * If the corresponding block is 'uncached' the recursive analysis will not start
    *
    * @param node Block entry to check
-   * @return true if the block entry was added as 'uncached'
+   * @return whether the block entry was added as 'uncached'
    */
   boolean isUncachedBlockEntry(CFANode node);
 }

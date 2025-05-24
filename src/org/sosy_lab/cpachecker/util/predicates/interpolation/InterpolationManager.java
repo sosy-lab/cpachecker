@@ -1067,7 +1067,7 @@ public final class InterpolationManager {
      * @param formulasWithStatesAndGroupdIds The list where to store the references (in original
      *     order) to the interpolation groups. This is just a list of 'identifiers' for the
      *     formulas.
-     * @return True if the formulas are unsatisfiable.
+     * @return whether the formulas are unsatisfiable.
      */
     private boolean checkInfeasabilityOfTrace(
         final List<BooleanFormula> traceFormulas,

@@ -1567,7 +1567,7 @@ public class SMG {
    * Checks whether a given value is a pointer address.
    *
    * @param pValue to be checked
-   * @return true if pValue is a pointer.
+   * @return whether pValue is a pointer.
    */
   public boolean isPointer(SMGValue pValue) {
     assert pointsToEdges.containsKey(SMGValue.zeroValue())

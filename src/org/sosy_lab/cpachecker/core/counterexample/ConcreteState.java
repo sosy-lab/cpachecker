@@ -202,7 +202,7 @@ public final class ConcreteState {
    * that no concrete value can be calculated for this variable.
    *
    * @param variable Checks, whether this variable has a value assigned directly.
-   * @return true, if a concrete value is directly assigned to this variable, false otherwise.
+   * @return whether a concrete value is directly assigned to this variable.
    */
   public boolean hasValueForLeftHandSide(LeftHandSide variable) {
     return variables.containsKey(variable);
@@ -239,7 +239,7 @@ public final class ConcreteState {
    * address may have a value directly assigned to the variable.
    *
    * @param variable check the concrete address of this variable.
-   * @return true, if the given variable has a concrete address, false otherwise.
+   * @return whether the given variable has a concrete address.
    */
   public boolean hasAddressOfVariable(LeftHandSide variable) {
     return variableAddressMap.containsKey(variable);

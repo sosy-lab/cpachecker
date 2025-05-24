@@ -81,7 +81,7 @@ class BasicBlock {
    * previously declared variable.
    *
    * @param declarationEdge the edge to check
-   * @return true, if the given declaration is already part of this block, else false
+   * @return whether the given declaration is already part of this block
    */
   boolean hasDeclaration(ADeclarationEdge declarationEdge) {
     return declarations.contains(declarationEdge);

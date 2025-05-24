@@ -28,7 +28,7 @@ public interface DssConnection extends Closeable {
    * Since the method is probably used frequently, the calculation should be cheap (preferably in
    * O(1)).
    *
-   * @return true if no pending messages exist, false otherwise
+   * @return whether pending messages exist
    */
   boolean hasPendingMessages();
 

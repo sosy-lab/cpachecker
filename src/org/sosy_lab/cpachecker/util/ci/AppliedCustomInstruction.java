@@ -57,7 +57,7 @@ public class AppliedCustomInstruction {
    * Compares the given AbstractState pState to ciStartNode
    *
    * @param pState AbstractState
-   * @return true if pState equals ciStartNode, false if not.
+   * @return whether pState equals ciStartNode.
    * @throws CPAException if the given AbstractState pState can't be extracted to a CFANode
    */
   public boolean isStartState(final AbstractState pState) throws CPAException {
@@ -73,7 +73,7 @@ public class AppliedCustomInstruction {
    * Compares the given AbstractState pState to ciStartNode
    *
    * @param pState AbstractState
-   * @return true if pState equals ciEndNode, false if not.
+   * @return whether pState equals ciEndNode.
    * @throws CPAException if the given AbstractState pState can't be extracted to a CFANode
    */
   public boolean isEndState(final AbstractState pState) throws CPAException {

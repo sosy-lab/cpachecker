@@ -381,7 +381,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   /**
    * This method checks if refinement selection is enabled.
    *
-   * @return true, if if refinement selection is enabled, else false
+   * @return whether refinement selection is enabled
    */
   protected boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
@@ -395,7 +395,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * the initial program state.
    *
    * @param pErrorPathPrefix the error path prefix to be sliced
-   * @return true, if slicing is possible, else, false
+   * @return whether slicing is possible
    */
   protected boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing

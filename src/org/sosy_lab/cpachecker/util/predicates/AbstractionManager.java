@@ -277,7 +277,7 @@ public final class AbstractionManager {
    *
    * @param f1 an AbstractFormula
    * @param f2 an AbstractFormula
-   * @return true if (f1 => f2), false otherwise
+   * @return whether (f1 => f2)
    */
   public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
     return rmgr.entails(f1, f2);

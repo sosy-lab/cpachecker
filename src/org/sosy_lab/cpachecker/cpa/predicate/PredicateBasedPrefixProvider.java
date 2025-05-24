@@ -234,7 +234,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
    *
    * @param pPath the path to check
    * @param pCfaEdge the current edge
-   * @return true if an unsat call is neccessary, else false
+   * @return whether an unsat call is necessary
    */
   private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
     if (!isSingleBlockEncoded(pPath)) {
@@ -257,7 +257,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
    * in the path are abstraction states.
    *
    * @param pPath the path to check
-   * @return true, if all states in the path are abstraction states, else false
+   * @return whether all states in the path are abstraction states
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
     return from(pPath.asStatesList()).allMatch(PredicateAbstractState::containsAbstractionState);

@@ -95,7 +95,7 @@ public class DistanceCalculationHelper {
    * Checks if a BooleanFormula can be further split through "toConjunctionArgs"
    *
    * @param f the BooleanFormula
-   * @return True if yes, otherwise False
+   * @return whether a formula can be split into a conjunction
    */
   public boolean isConj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toConjunctionArgs(f, true);
@@ -106,7 +106,7 @@ public class DistanceCalculationHelper {
    * Checks if a BooleanFormula can be further split through the "toDisjunctionArgs" Method
    *
    * @param f the BooleanFormula
-   * @return True, if yes, otherwise False
+   * @return whether a formula can be split into a disjunction
    */
   public boolean isDisj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toDisjunctionArgs(f, true);
