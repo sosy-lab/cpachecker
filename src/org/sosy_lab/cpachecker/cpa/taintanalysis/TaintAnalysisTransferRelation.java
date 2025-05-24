@@ -81,6 +81,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
+  private final int MAX_ALLOWED_STATE_SUCCESSORS = 3;
 
   public TaintAnalysisTransferRelation(LogManager pLogger) {
 
@@ -251,14 +252,20 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         conditionHolds = pCfaEdge.getTruthAssumption() == conditionHolds;
 
         if (conditionHolds) {
-          // generate a new state when the condition holds
+          // do not generate new states when the state has more than one successor
+          if (pState.getSuccessors().size() <= MAX_ALLOWED_STATE_SUCCESSORS) {
+            // generate a new state when the condition holds
+            TaintAnalysisState newState =
+                generateNewState(pState, killedVars, generatedVars, values);
+            states.add(newState);
+          }
+        }
+      } else {
+        if (pState.getSuccessors().size() <= MAX_ALLOWED_STATE_SUCCESSORS) {
+          // generate a new state when cannot determine if the condition holds
           TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
           states.add(newState);
         }
-      } else {
-        // generate a new state when cannot determine if the condition holds
-        TaintAnalysisState newState = generateNewState(pState, killedVars, generatedVars, values);
-        states.add(newState);
       }
     } // TODO: more cases for instances of the pExpression might be needed (?)
 
@@ -615,7 +622,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           checkInformationFlowViolation(
               pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
 
-          newStates.add(generateNewState(pState, killedVars, generatedVars, values));
+          if (pState.getSuccessors().size() < MAX_ALLOWED_STATE_SUCCESSORS || pState.isTarget()) {
+            // do not generate new states when the state has more than one successor
+            newStates.add(generateNewState(pState, killedVars, generatedVars, values));
+          }
         }
       } else {
         // E.g., calls to any function like f(param1, ..., paramN);, where the parameters
