@@ -7,10 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
+
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-
 
 public class LocationSetBot implements LocationSet {
 
@@ -76,12 +75,11 @@ public class LocationSetBot implements LocationSet {
 
   @Override
   public boolean equals(Object pObj) {
-    return  pObj instanceof LocationSetBot;
+    return pObj instanceof LocationSetBot;
   }
 
   @Override
   public int hashCode() {
     return 0;
   }
-
 }

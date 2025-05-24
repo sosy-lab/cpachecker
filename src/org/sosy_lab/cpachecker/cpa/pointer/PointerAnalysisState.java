@@ -17,12 +17,11 @@ import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState>  {
+public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {
 
   private final boolean isBottom;
   public static final PointerAnalysisState BOTTOM_STATE = new PointerAnalysisState(true);
   private final PersistentMap<LocationSet, LocationSet> pointsToMap;
-
 
   public PointerAnalysisState(boolean pBottom) {
     isBottom = pBottom;
@@ -45,7 +44,7 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
 
   public LocationSet getPointsToSet(LocationSet pSource) {
     LocationSet pointsToSet = pointsToMap.get(pSource);
-    if (pointsToSet == null){
+    if (pointsToSet == null) {
       return LocationSetTop.INSTANCE;
     }
     if (pointsToSet.isNull()) {
@@ -54,22 +53,18 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     return pointsToSet;
   }
 
-
-
   @Override
   public boolean equals(Object pToCompare) {
     if (this == pToCompare) return true;
-    if (!(pToCompare instanceof PointerAnalysisState pointerAnalysisStateToCompare))
-      return false;
+    if (!(pToCompare instanceof PointerAnalysisState pointerAnalysisStateToCompare)) return false;
 
-    if (isBottom != pointerAnalysisStateToCompare.isBottom)
-      return false;
+    if (isBottom != pointerAnalysisStateToCompare.isBottom) return false;
 
-    if (isBottom)
-      return true;
+    if (isBottom) return true;
 
     return pointsToMap.equals(pointerAnalysisStateToCompare.pointsToMap);
   }
+
   @Override
   public int hashCode() {
     if (isBottom) {
@@ -81,7 +76,6 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     hash = 31 * hash + pointsToMap.hashCode();
     return hash;
   }
-
 
   @Override
   public String toString() {
@@ -97,8 +91,6 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
         + "}}";
   }
 
-
-
   public PointerAnalysisState addPointsToInformation(LocationSet pSource, LocationSet pTargets) {
     if (pTargets.isBot()) {
       return this;
@@ -112,9 +104,8 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     return new PointerAnalysisState(getPointsToMap().putAndCopy(pSource, updatedPointsToSet));
   }
 
-
   public boolean isBottom() {
-        return isBottom;
+    return isBottom;
   }
 
   @Override

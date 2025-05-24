@@ -49,7 +49,8 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
     return new PointerAnalysisState();
   }
 
-  public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     super(DelegateAbstractDomain.getInstance(), new PointerAnalysisTransferRelation(pLogger));
     pConfig.inject(this);
   }

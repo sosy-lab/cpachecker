@@ -25,34 +25,31 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class Test {
 
-    /** The configuration file to use for running CPAchecker. */
-    private static final String CONFIGURATION_FILE = "config/pointer.properties";
+  /** The configuration file to use for running CPAchecker. */
+  private static final String CONFIGURATION_FILE = "config/pointer.properties";
 
+  private static final String SPECIFICATION = "config/specification/default.spc";
 
-    private static final String SPECIFICATION = "config/specification/default.spc";
+  private static final String PROGRAM_C_SIMPLE = "doc/examples/example-simple.c";
+  private static final String JAVA_CLASSPATH = "test/programs/java/Statements/";
 
-    private static final String PROGRAM_C_SIMPLE = "doc/examples/example-simple.c";
-    private static final String JAVA_CLASSPATH = "test/programs/java/Statements/";
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
+  // discard printed statistics; we only care about generation
+  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+  private final PrintStream statisticsStream =
+      new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset());
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+  @org.junit.Test
+  public void testRunForSafeCProgram() throws Exception {
+    Configuration config = getConfig(CONFIGURATION_FILE, Language.C, SPECIFICATION);
 
-    // discard printed statistics; we only care about generation
-    @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-    private final PrintStream statisticsStream =
-        new PrintStream(ByteStreams.nullOutputStream(), true, Charset.defaultCharset());
+    TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
+    result.getCheckerResult().printStatistics(statisticsStream);
+    result.getCheckerResult().writeOutputFiles();
 
-    @org.junit.Test
-    public void testRunForSafeCProgram() throws Exception {
-      Configuration config = getConfig(CONFIGURATION_FILE, Language.C, SPECIFICATION);
-
-      TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
-      result.getCheckerResult().printStatistics(statisticsStream);
-      result.getCheckerResult().writeOutputFiles();
-
-      result.assertIsSafe();
-    }
+    result.assertIsSafe();
+  }
 
   private Configuration getConfig(
       String configurationFile, Language inputLanguage, String specificationFile)
@@ -75,6 +72,4 @@ public class Test {
         .addConverter(FileOption.class, fileTypeConverter);
     return configBuilder.build();
   }
-
-
 }

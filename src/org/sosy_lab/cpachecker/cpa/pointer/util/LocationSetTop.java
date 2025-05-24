@@ -11,8 +11,6 @@ package org.sosy_lab.cpachecker.cpa.pointer.util;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
-
 public class LocationSetTop implements LocationSet {
 
   public static final LocationSetTop INSTANCE = new LocationSetTop();
@@ -57,7 +55,6 @@ public class LocationSetTop implements LocationSet {
     return true;
   }
 
-
   @Override
   public boolean containsAll(LocationSet pElements) {
     return true;
@@ -86,5 +83,4 @@ public class LocationSetTop implements LocationSet {
   public int hashCode() {
     return Integer.MAX_VALUE;
   }
-
 }
