@@ -593,7 +593,7 @@ public class CBinaryExpressionBuilder {
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 

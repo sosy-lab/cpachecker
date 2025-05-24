@@ -42,7 +42,7 @@ import org.sosy_lab.common.time.Timer;
  * documented as not thread-safe, but still used here).
  *
  * <p>However, creation of new timers is safe, and the behavior of this class should also be correct
- * if all of the above problems are avoided by the code using this class. This means the following
+ * if all the above problems are avoided by the code using this class. This means the following
  * sequence of actions probably SHOULD be safe:
  *
  * <ol>

@@ -724,7 +724,7 @@ class CExpressionVisitorWithPointerAliasing
               memoryFunctionHandler.handleMemoryAssignmentFunction(functionName, e);
           // Result value creation
 
-          // all of the functions just return destination
+          // all the functions just return destination
           // we convert the destination to a formula, and return it as a value
           AliasedLocation destinationAsAliasedLocation =
               dereference(resultExpression, resultExpression.accept(this));
