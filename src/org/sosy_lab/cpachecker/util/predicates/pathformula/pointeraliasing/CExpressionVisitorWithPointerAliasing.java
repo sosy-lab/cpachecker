@@ -826,7 +826,7 @@ class CExpressionVisitorWithPointerAliasing
     // ...)". Furthermore, additional clauses at each recursive step check for the string end
     // (in case of strcmp/strncmp) or "cut off" the chain if the bound is reached (in case of
     // strncmp/memcmp).
-    // Creating these constraints is done starting with the inner-most term (with highest index).
+    // Creating these constraints is done starting with the innermost term (with highest index).
     // We also need a base case for the recursive constraints, and this needs to make our bounded
     // approximation sound: if the strings are longer than our approximation bound and equal up to
     // the approximation bound, we need to make both constraints have nondeterministic value.

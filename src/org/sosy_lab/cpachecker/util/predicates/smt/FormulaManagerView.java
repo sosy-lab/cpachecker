@@ -1407,7 +1407,7 @@ public class FormulaManagerView {
    * Return the negated part of a formula, if the top-level operator is a negation. I.e., for {@code
    * not f} return {@code f}.
    *
-   * <p>For removing the outer-most negation of a formula if it is present or otherwise keeping the
+   * <p>For removing the outermost negation of a formula if it is present or otherwise keeping the
    * original formula, use {@code f = stripNegation(f).or(f);}.
    *
    * @param f The formula, possibly negated.

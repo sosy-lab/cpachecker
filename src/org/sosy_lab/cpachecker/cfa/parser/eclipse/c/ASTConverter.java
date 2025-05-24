@@ -2162,9 +2162,9 @@ class ASTConverter {
       // For example, array modifiers and pointer operators are declared in the
       // "wrong" way:
       // "int (*drives[4])[6]" is "array 4 of pointer to array 6 of int"
-      // (The inner most modifiers are the highest-level ones.)
+      // (The innermost modifiers are the highest-level ones.)
       // So we don't do this recursively, but instead collect all modifiers
-      // and apply them after we have reached the inner-most declarator.
+      // and apply them after we have reached the innermost declarator.
 
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = new ArrayList<>(1);
