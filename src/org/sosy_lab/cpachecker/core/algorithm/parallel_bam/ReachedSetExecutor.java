@@ -96,7 +96,7 @@ class ReachedSetExecutor {
 
   /**
    * This variable is shared across all threads and counts the number of currently scheduled, but
-   * not yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs
+   * not yet running jobs. It is used to automatically shut down the thread pool as soon as all jobs
    * are done.
    */
   private final AtomicInteger scheduledJobs;
@@ -579,7 +579,7 @@ class ReachedSetExecutor {
     @Override
     public Void apply(Throwable e) {
       // if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-      // pool will shutdown on forced termination after timeout and throw lots of them.
+      // pool will shut down on forced termination after timeout and throw lots of them.
       // we could ignore those exceptions.
       // }
 

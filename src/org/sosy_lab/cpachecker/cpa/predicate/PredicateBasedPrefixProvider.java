@@ -135,7 +135,7 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
 
     PathIterator iterator = pPath.pathIterator();
     while (iterator.hasNext()) {
-      // if we should shutdown we do just break out of this while loop
+      // if we should shut down we do just break out of this while loop
       if (shutdownNotifier.shouldShutdown()) {
         break;
       }

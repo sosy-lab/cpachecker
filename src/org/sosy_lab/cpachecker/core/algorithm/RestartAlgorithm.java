@@ -399,7 +399,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         unregisterReachedSetUpdateListeners();
         singleShutdownManager.getNotifier().unregister(logShutdownListener);
         singleShutdownManager.requestShutdown(
-            "Analysis terminated"); // shutdown any remaining components
+            "Analysis terminated"); // shut down any remaining components
         stats.totalTime.stop();
       }
 

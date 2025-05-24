@@ -503,7 +503,7 @@ public class InvariantsCPA
     int prevSize = -1;
     while (pRelevantVariables.size() > prevSize && !reachesLimit(pRelevantVariables, pLimit)) {
       // we cannot throw an interrupted exception during #getInitialState, but the analysis
-      // will be shutdown afterward by another notifier so we can safely end computation here
+      // will be shut down afterward by another notifier so we can safely end computation here
       shutdownNotifier.shutdownIfNecessary();
       prevSize = pRelevantVariables.size();
       expandOnce(pRelevantVariables, pRelevantLocation, pLimit);
