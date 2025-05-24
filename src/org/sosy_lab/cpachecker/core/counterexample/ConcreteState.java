@@ -54,7 +54,7 @@ public final class ConcreteState {
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(
@@ -78,7 +78,7 @@ public final class ConcreteState {
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(
@@ -112,7 +112,7 @@ public final class ConcreteState {
    *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path a unique address.
-   * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
+   * @param pMemoryName a class that, given a CFA expression {@link CRightHandSide}, calculate the
    *     memory that contains the value.
    */
   public ConcreteState(

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * Contains assumptions {@link AExpressionStatement} for a given statement, which is represented as
- * cfa edge {@link CFAEdge}, in the error path.
+ * CFA edge {@link CFAEdge}, in the error path.
  */
 public class CFAEdgeWithAssumptions {
 

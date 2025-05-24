@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** This Writer can dump a cfa with blocks into a file. */
+/** This Writer can dump a CFA with blocks into a file. */
 public class BlockToDotWriter {
 
   private final BlockPartitioning blockPartitioning;
@@ -44,7 +44,7 @@ public class BlockToDotWriter {
     this.blockPartitioning = blockPartitioning;
   }
 
-  /** dump the cfa with blocks and colourful nodes. */
+  /** dump the CFA with blocks and colourful nodes. */
   public void dump(final Path filename, final LogManager logger) {
     try (Writer w = IO.openOutputFile(filename, Charset.defaultCharset())) {
       dump(w);
@@ -54,7 +54,7 @@ public class BlockToDotWriter {
     }
   }
 
-  /** dump the cfa with blocks and colourful nodes. */
+  /** dump the CFA with blocks and colourful nodes. */
   private void dump(final Appendable app) throws IOException {
 
     // get hierarchy, Multimap of <outer block, inner blocks>

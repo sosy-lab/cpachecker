@@ -44,7 +44,7 @@ public class TestTargetMinimizerEssential {
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
     Set<CFAEdge> testTargets = new HashSet<>(pTestTargets);
 
-    // create a copy of the cfa graph that can be minimized using the essential Branch rules
+    // create a copy of the CFA graph that can be minimized using the essential Branch rules
     Pair<CFANode, CFANode> copiedFunctionEntryExit;
     if (fullCFACopy) {
       copiedFunctionEntryExit =

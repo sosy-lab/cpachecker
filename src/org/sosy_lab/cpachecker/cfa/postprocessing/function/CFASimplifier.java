@@ -35,11 +35,11 @@ public final class CFASimplifier {
   private CFASimplifier() {}
 
   /**
-   * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not
+   * This method takes a CFA as input and simplifies it, in the way, that Assume Edges which are not
    * needed (p.e. because there are no edges besides BlankEdges in the subtree of an AssumeEdge) are
    * deleted and replaced by a single BlankEdge.
    *
-   * @param cfa The cfa which should be simplified
+   * @param cfa The CFA which should be simplified
    */
   public static void simplifyCFA(MutableCFA cfa) {
     for (CFANode root : cfa.entryNodes()) {
@@ -52,7 +52,7 @@ public final class CFASimplifier {
    * where the search for possible simplifications starts.
    *
    * @param root start node for simplification
-   * @param cfa The cfa where the simplifications should be applied
+   * @param cfa The CFA where the simplifications should be applied
    */
   private static void simplifyFunction(final CFANode root, final MutableCFA cfa) {
     // We want to eliminate branching with two empty branches (only blank edges).
@@ -175,7 +175,7 @@ public final class CFASimplifier {
    * Simplify one branching in the CFA at the given node (if possible).
    *
    * @param branchingPoint The root of the branching (needs to have 2 outgoing AssumeEdges).
-   * @param cfa the cfa which should be simplified
+   * @param cfa the CFA which should be simplified
    */
   private static void simplifyBranching(final CFANode branchingPoint, final MutableCFA cfa) {
     CFANode leftEndpoint = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());

@@ -701,7 +701,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
   /**
    * This Method checks, if Statement is start of an else Condition Block or Statement, changes the
-   * cfa accordingly.
+   * CFA accordingly.
    *
    * @param statement Given statement to be checked.
    */

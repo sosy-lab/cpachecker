@@ -151,7 +151,7 @@ public class OctagonTransferRelation
     Set<OctagonState> cleanedUpStates = new HashSet<>();
     // TODO overapproximation here, we should not need to remove those vars
     // instead it would be much better if we could omit creating them, p.e. through
-    // creating the temporary vars in the cfa, before analyzing the program
+    // creating the temporary vars in the CFA, before analyzing the program
     for (OctagonState st : successors) {
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
     }
@@ -266,7 +266,7 @@ public class OctagonTransferRelation
       throws CPATransferException {
 
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
-    // condition, (this simplification is added in the cfa creation phase)
+    // condition, (this simplification is added in the CFA creation phase)
     return switch (binExp.getOperator()) {
       case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
           // TODO check which cases can be handled

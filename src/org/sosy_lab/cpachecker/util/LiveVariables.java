@@ -125,7 +125,7 @@ public class LiveVariables {
             "By changing this option one can adjust the way how"
                 + " live variables are created. Function-wise means that each"
                 + " function is handled separately, global means that the whole"
-                + " cfa is used for the computation.",
+                + " CFA is used for the computation.",
         secure = true)
     private EvaluationStrategy evaluationStrategy = EvaluationStrategy.FUNCTION_WISE;
 

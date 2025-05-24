@@ -55,7 +55,7 @@ public class Parsers {
     @Option(
         secure = true,
         description =
-            "simplify pointer expressions like s->f to (*s).f with this option the cfa is"
+            "simplify pointer expressions like s->f to (*s).f with this option the CFA is"
                 + " simplified until at maximum one pointer is allowed for left- and rightHandSide")
     private boolean simplifyPointerExpressions = false;
 

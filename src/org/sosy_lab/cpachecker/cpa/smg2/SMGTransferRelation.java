@@ -1070,7 +1070,7 @@ public class SMGTransferRelation
       try {
         return evaluator.handleVariableDeclaration(currentState, cVarDecl, edge);
       } catch (UnsupportedOperationException e) {
-        // Since we lose the cfa edge (and the CExpression for other cases) we can not throw this in
+        // Since we lose the CFA edge (and the CExpression for other cases) we can not throw this in
         // the method directly
         throw new UnsupportedCodeException(e.getMessage(), edge);
       }

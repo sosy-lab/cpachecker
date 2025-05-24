@@ -79,11 +79,11 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, the SMG state to
+   * CFA edge to determine the location of the program we currently handle, the SMG state to
    * determine the values of the variables at the current location, and the expression with the
    * given type to determine the SMG object that represents the array of the given type.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @param pExpression The expression, which evaluates to the value with the given type.
@@ -98,13 +98,13 @@ public class SMGExpressionEvaluator {
    * Get the size of the given type in bits.
    *
    * <p>When handling variable array type length, additionally to the type itself, we also need the
-   * cfa edge to determine the location of the program we currently handle, and the SMG state to
+   * CFA edge to determine the location of the program we currently handle, and the SMG state to
    * determine the values of the variables at the current location..
    *
    * <p>This method can't calculate variable array type length for arrays that are not declared in
-   * the cfa edge.
+   * the CFA edge.
    *
-   * @param pEdge The cfa edge that determines the location in the program.
+   * @param pEdge The CFA edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.

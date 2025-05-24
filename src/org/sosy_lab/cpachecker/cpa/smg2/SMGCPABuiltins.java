@@ -2443,7 +2443,7 @@ public class SMGCPABuiltins {
    *
    * @param pState current {@link SMGState}
    * @param pSizeValue size in byte
-   * @param pCfaEdge current cfa edge
+   * @param pCfaEdge current CFA edge
    * @return list of points to new memory and its states
    */
   private Collection<ValueAndSMGState> evaluateReallocWParameters(

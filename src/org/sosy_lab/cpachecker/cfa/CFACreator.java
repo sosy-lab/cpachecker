@@ -310,7 +310,7 @@ public class CFACreator {
       name = "cfa.findLiveVariables",
       description =
           "By enabling this option the variables that are live are"
-              + " computed for each edge of the cfa. Live means that their value"
+              + " computed for each edge of the CFA. Live means that their value"
               + " is read later on.")
   private boolean findLiveVariables = false;
 
@@ -654,7 +654,7 @@ public class CFACreator {
     // (currently no such post-processings exist)
 
     // SIXTH, get information about the CFA,
-    // the cfa should not be modified after this line.
+    // the CFA should not be modified after this line.
 
     // Get information about variables, needed for some analysis.
     if (language == Language.C) {

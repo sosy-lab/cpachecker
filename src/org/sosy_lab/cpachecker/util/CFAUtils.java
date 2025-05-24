@@ -645,7 +645,7 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing CFA with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }

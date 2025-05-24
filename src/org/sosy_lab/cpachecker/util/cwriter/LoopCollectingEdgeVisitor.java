@@ -89,7 +89,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
 
     // now backwards traverse the list
     while (cfaIterator.hasPrevious()) {
-      // fetch current arg path element (only cfa necessary, therefore only this
+      // fetch current arg path element (only CFA necessary, therefore only this
       // one is here)
       Pair<CFAEdge, ARGState> tmp = cfaIterator.previous();
       edge = tmp.getFirst();

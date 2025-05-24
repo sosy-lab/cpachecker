@@ -23,8 +23,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *   [Javadoc] { ExtendedModifier } Type Identifier { [] } [ = Expression ]
  * </pre>
  *
- * The simple name contains the Identifier and can be ambiguous in the cfa. The name also contains
- * the type as qualifier and is unique in the cfa.
+ * The simple name contains the Identifier and can be ambiguous in the CFA . The name also contains
+ * the type as qualifier and is unique in the CFA.
  *
  * <p>{@link JInitializerExpression} contains the initializer expression.
  */
