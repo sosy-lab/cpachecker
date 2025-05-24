@@ -263,7 +263,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
   }
 
   /**
-   * Calculates the StrongestPostCondition at all states on a error-trace.
+   * Calculates the StrongestPostCondition at all states on an error-trace.
    *
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
@@ -660,7 +660,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding ARGState
      *
-     * @return true iff there is a ARGState associated to the location
+     * @return true iff there is an ARGState associated to the location
      */
     boolean hasCorrespondingARGState() {
       return state.isPresent();
@@ -669,7 +669,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     /**
      * Check if the location has a corresponding Abstraction state
      *
-     * @return true iff there is an corresponding state and this state also is an abstraction state
+     * @return true iff there is a corresponding state and this state also is an abstraction state
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {

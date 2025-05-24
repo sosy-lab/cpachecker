@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class represents simple convex ranges of BigIntegers. It has an lower bound and an upper
+ * This class represents simple convex ranges of BigIntegers. It has a lower bound and an upper
  * bound, both of which may either be a concrete value or infinity. In case of a concrete value, the
  * bound is assumed to be included in the range.
  *

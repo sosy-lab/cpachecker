@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.SerializationInfoStorage;
 
 /**
- * This class combines a AutomatonInternal State with a variable Configuration. Instances of this
+ * This class combines an AutomatonInternal State with a variable Configuration. Instances of this
  * class are passed to the CPAchecker as AbstractState.
  */
 public class AutomatonState

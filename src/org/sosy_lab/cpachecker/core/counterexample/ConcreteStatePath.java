@@ -32,7 +32,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
   private final List<ConcreteStatePathNode> list;
 
   /**
-   * A object of this class can be constructed, when a list of pairs of concrete states {@link
+   * An object of this class can be constructed, when a list of pairs of concrete states {@link
    * ConcreteState} and cfa edges {@link CFAEdge} are given.
    *
    * @param pList a list of pairs of concrete States {@link ConcreteState} and cfa edges {@link

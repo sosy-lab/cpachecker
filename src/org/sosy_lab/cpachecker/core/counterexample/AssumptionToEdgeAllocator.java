@@ -467,7 +467,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide, pConcreteState);
       ValueLiterals valueLiterals = cType.accept(v);
 
-      // resolve field references that lack a address
+      // resolve field references that lack an address
       if (isStructOrUnionType(cType) && leftHandSide instanceof CIdExpression) {
         v.resolveStruct(cType, valueLiterals, (CIdExpression) leftHandSide, functionName);
       }

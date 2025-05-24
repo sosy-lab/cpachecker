@@ -400,7 +400,7 @@ public class SMGTransferRelation
         exp = new CIdExpression(exp.getFileLocation(), cParamType, name, decl);
       }
 
-      // If parameter is a array, convert to pointer
+      // If parameter is an array, convert to pointer
       final long size;
       if (cParamType instanceof CArrayType) {
         size = machineModel.getSizeofPtrInBits();

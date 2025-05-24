@@ -73,7 +73,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path

@@ -685,7 +685,7 @@ public class SMGTransferRelation
     if ((valueType instanceof CArrayType || valueType instanceof CPointerType)
         && cParamType instanceof CArrayType) {
       if (paramValue instanceof AddressExpression addrParam) {
-        // For pointer -> array we get a addressExpr that wraps the pointer
+        // For pointer -> array we get an addressExpr that wraps the pointer
 
         // We don't support symbolic pointer arithmetics yet
         if (!addrParam.getOffset().asNumericValue().bigIntegerValue().equals(BigInteger.ZERO)) {
@@ -1234,7 +1234,7 @@ public class SMGTransferRelation
         continue;
       }
 
-      // The right hand side either returns Values representing values or a AddressExpression. In
+      // The right hand side either returns Values representing values or an AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
       SMGCPAValueVisitor vv =

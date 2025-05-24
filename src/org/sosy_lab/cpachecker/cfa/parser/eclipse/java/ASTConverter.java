@@ -365,7 +365,7 @@ class ASTConverter {
   }
 
   /**
-   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
+   * Takes an ASTNode, and tries to get Information of its Placement in the Source Code. If it
    * doesn't find such information, returns an empty FileLocation Object.
    *
    * @param l A Code piece wrapped in an ASTNode
@@ -2920,7 +2920,7 @@ class ASTConverter {
   }
 
   /**
-   * Converts a Expression into the intern AST which is required to give a boolean Type back.
+   * Converts an Expression into the intern AST which is required to give a boolean Type back.
    *
    * @param e an expression with a boolean type
    * @return intern AST representing JDT expression

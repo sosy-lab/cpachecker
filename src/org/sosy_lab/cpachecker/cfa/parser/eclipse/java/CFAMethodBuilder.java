@@ -700,7 +700,7 @@ class CFAMethodBuilder extends ASTVisitor {
   }
 
   /**
-   * This Method checks, if Statement is start of a else Condition Block or Statement, changes the
+   * This Method checks, if Statement is start of an else Condition Block or Statement, changes the
    * cfa accordingly.
    *
    * @param statement Given statement to be checked.
@@ -911,7 +911,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
       // Look for Instance Creation Assignment and Variable Assignment.
       // Stop if there is a function Call and the Variable is a FieldDeclaration
-      // or there is an Assignment Function Call which isn't a Instance Creation Assignment
+      // or there is an Assignment Function Call which isn't an Instance Creation Assignment
 
       if (currentEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
 
@@ -1657,7 +1657,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(LabeledStatement labelStatement) {
 
-    // If parent is a else Condition without block
+    // If parent is an else Condition without block
     handleElseCondition(labelStatement);
 
     String labelName = labelStatement.getLabel().getIdentifier();

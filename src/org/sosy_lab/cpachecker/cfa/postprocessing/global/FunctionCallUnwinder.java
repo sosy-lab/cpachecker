@@ -208,7 +208,7 @@ public class FunctionCallUnwinder {
   }
 
   /**
-   * checks, iff there is an call-stack from father to child. In the graph this would be a way from
+   * checks, iff there is a call-stack from father to child. In the graph this would be a way from
    * father to child. It should be more efficient to search backwards, because children have only
    * one father in most cases.
    */

@@ -204,7 +204,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     END // node with several children, end of a subtree
   }
 
-  /** returns the current position in a interpolation tree. */
+  /** returns the current position in an interpolation tree. */
   private static <T> TreePosition getTreePosition(
       final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds, final int position) {
     final AbstractState abstractionState =

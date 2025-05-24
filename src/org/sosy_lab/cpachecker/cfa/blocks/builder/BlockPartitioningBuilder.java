@@ -226,7 +226,7 @@ public class BlockPartitioningBuilder {
         if (edge.getEdgeType() != CFAEdgeType.FunctionCallEdge
             && !pNodes.contains(edge.getSuccessor())) {
           // leaving edge from inside of the given set of nodes to outside
-          // -> this is a either return-node or a function call
+          // -> this is either a return-node or a function call
           // this case also handles blocks from recursive function-calls,
           // because at least one callee should be outside of the block.
           result.add(node);

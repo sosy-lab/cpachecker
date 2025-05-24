@@ -992,7 +992,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * If the given expression is a integer literal, and the given type is a floating-point type,
+   * If the given expression is an integer literal, and the given type is a floating-point type,
    * convert the literal into a floating-point literal. Otherwise, return the expression unchanged.
    */
   protected CExpression convertLiteralToFloatIfNecessary(
@@ -1200,7 +1200,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * This helper method creates a formula for an CFA edge, given the current function, SSA map and
+   * This helper method creates a formula for a CFA edge, given the current function, SSA map and
    * constraints.
    *
    * @param edge the edge for which to create the formula

@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /**
  * This class represents the method invocation statement AST node type.
  *
- * <p>This kind of node is used to convert an method invocation into a statement by wrapping it.
+ * <p>This kind of node is used to convert a method invocation into a statement by wrapping it.
  * Note that expressions {@link JExpression} in this AST are all side effect free. That is the
  * reason we don't use {@link JExpressionStatement} for method invocations.
  */

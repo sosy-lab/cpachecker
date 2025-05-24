@@ -65,7 +65,7 @@ abstract class SpecialOperation {
    * @return If it's possible to fully evaluate the specified expression, {@code Optional.of(value)}
    *     is returned, where {@code value} is the value the expression evaluates to. Otherwise, if
    *     it's not possible to fully evaluate the expression, {@code Optional.empty()} is returned.
-   * @throws NullPointerException if an parameter is {@code null}
+   * @throws NullPointerException if a parameter is {@code null}
    */
   public static Optional<BigInteger> eval(
       CExpression pExpression,

@@ -367,7 +367,7 @@ public enum MachineModel {
   }
 
   /**
-   * This method returns the <code>ssize_t</code> type. This is an signed integer type capable of
+   * This method returns the <code>ssize_t</code> type. This is a signed integer type capable of
    * representing allocation sizes and -1.
    */
   public CSimpleType getSignedSizeType() {

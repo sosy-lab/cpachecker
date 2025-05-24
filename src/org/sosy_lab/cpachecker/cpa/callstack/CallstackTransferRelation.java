@@ -204,7 +204,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // Not a function call node -> wildcard state
-    // Info: a backward-analysis causes an callstack-state with a non-function-call-node,
+    // Info: a backward-analysis causes a callstack-state with a non-function-call-node,
     // build from the target state on getInitialState.
     return direction == AnalysisDirection.FORWARD;
   }

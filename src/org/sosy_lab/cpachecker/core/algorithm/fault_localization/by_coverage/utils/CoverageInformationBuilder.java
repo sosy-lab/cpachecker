@@ -43,7 +43,7 @@ public class CoverageInformationBuilder {
           coverageInfo.put(cfaEdge, new FailedAndPassedExecutionCount(0, 0));
         }
         caseStatus = coverageInfo.get(cfaEdge);
-        // Check whether the path is a error path
+        // Check whether the path is an error path
         if (path.getLastState().isTarget()) {
           caseStatus =
               new FailedAndPassedExecutionCount(

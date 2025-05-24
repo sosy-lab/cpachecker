@@ -538,7 +538,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
   /**
    * Checks if there is a lower bound to this compound state.
    *
-   * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code>
+   * @return <code>true</code> if there is a lower bound to this compound state, <code>false</code>
    *     otherwise.
    */
   @Override

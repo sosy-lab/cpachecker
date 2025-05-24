@@ -113,7 +113,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   /**
-   * Add a object to the heap.
+   * Add an object to the heap.
    *
    * <p>Keeps consistency: no
    *
@@ -136,7 +136,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * <p>Keeps consistency: no
    *
    * <p>With checks: throws {@link IllegalArgumentException} when asked to add an object already
-   * present, or an global object with a label identifying different object
+   * present, or a global object with a label identifying different object
    *
    * @param pObject Object to add
    */
@@ -231,7 +231,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
      * TODO: Refactor into generic methods for obtaining reachable/unreachable
      * subSMGs
      *
-     * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
+     * TODO: Perhaps introduce a SubSMG class which would be an SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects().asSet(), seen));

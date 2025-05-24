@@ -346,7 +346,7 @@ class ReachedSetExecutor {
       // thus we can clean up and avoid a (small) memory-leak
       reachedSetMapping.remove(rs);
       stats.executionCounter.insertValue(execCounter);
-      // no need to wait for this#waitingTask, we assume a error-free exit after this point.
+      // no need to wait for this#waitingTask, we assume an error-free exit after this point.
 
       if (scheduledJobs.get() == 0 && reachedSetMapping.isEmpty()) {
         logger.logf(level, "%s :: all RSEs finished, shutdown threadpool", this);

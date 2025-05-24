@@ -340,7 +340,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Return if interpolant is inductive on position i.
    *
-   * @param interpolant A interpolant
+   * @param interpolant An interpolant
    * @param slicePosition where to slice the trace formula
    * @return true if interpolant is inductive at i, false else
    */

@@ -58,7 +58,7 @@ public interface BAMDataManager {
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
   /**
-   * Returns the non-expanded abstract state for a expanded abstract state, recursively if needed,
+   * Returns the non-expanded abstract state for an expanded abstract state, recursively if needed,
    * or the given state itself, if the state was never an expanded result.
    */
   AbstractState getInnermostState(AbstractState state);

@@ -201,7 +201,7 @@ public class AppliedCustomInstructionParser {
   }
 
   /**
-   * Creates a ImmutableSet out of the given String[].
+   * Creates an ImmutableSet out of the given String[].
    *
    * @param pNodes String[]
    * @return Immutable Set of CFANodes out of the String[]

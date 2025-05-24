@@ -888,7 +888,7 @@ public final class PredicateAbstractionManager {
    * @param pPredicates The set of predicates. Each predicate that is handled will be removed from
    *     the set.
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
-   * @return A over-approximation of f.
+   * @return An over-approximation of f.
    */
   private Region computeCartesianAbstraction(
       final BooleanFormula f,
@@ -1059,7 +1059,7 @@ public final class PredicateAbstractionManager {
    * @param predicates The set of predicates. Each predicate that is handled will be removed from
    *     the set (and Boolean abstraction handles all predicates so the set is empty afterward!).
    * @param instantiator A function that will be applied to instantiate each abstraction predicate.
-   * @return A over-approximation of f.
+   * @return An over-approximation of f.
    */
   private Region computeBooleanAbstraction(
       final ProverEnvironment thmProver,

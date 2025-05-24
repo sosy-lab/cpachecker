@@ -83,7 +83,7 @@ public class ARGState extends AbstractSerializableSingleWrapperState
   /**
    * Get the parent elements of this state.
    *
-   * @return A unmodifiable collection of ARGStates without duplicates.
+   * @return An unmodifiable collection of ARGStates without duplicates.
    */
   public Collection<ARGState> getParents() {
     return Collections.unmodifiableCollection(parents);

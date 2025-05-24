@@ -805,7 +805,7 @@ public final class InterpolationManager {
    *
    * @param formulas The list of formulas on the path.
    * @param pProver The solver.
-   * @param pImprecisePath A optional (potentially infeasible) path to the target state. If given,
+   * @param pImprecisePath An optional (potentially infeasible) path to the target state. If given,
    *     the model of the prover environment is used to determine a feasible path through the ARG to
    *     the same target state.
    * @return Information about the error path, including a satisfying assignment.

@@ -164,7 +164,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       throws CPAException, InterruptedException {
 
     // Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-    // do an CPA analysis to get the complete reachset
+    // do a CPA analysis to get the complete reachset
     // if lastElement is error State
     // -> return lastElement and break at precision adjustment
     // else

@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * The Class ErrorPathShrinker gets an targetPath and creates a new Path, with only the important
+ * The Class ErrorPathShrinker gets a targetPath and creates a new Path, with only the important
  * edges of the Path. The idea behind this Class is, that not every action (CFAEdge) before an error
  * occurs is important for the error, only a few actions (CFAEdges) are important.
  */
@@ -86,7 +86,7 @@ public final class ErrorPathShrinker {
   public ErrorPathShrinker() {}
 
   /**
-   * The function shrinkErrorPath gets an targetPath and creates a new Path, with only the important
+   * The function shrinkErrorPath gets a targetPath and creates a new Path, with only the important
    * edges of the Path.
    *
    * @param pTargetPath the "long" targetPath

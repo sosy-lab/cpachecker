@@ -135,7 +135,7 @@ class ASTTypeConverter {
       // In order to prevent a recursive reference from compType to itself,
       // we cheat and put a CElaboratedType instance in the map.
       // This means that wherever the ICompositeType instance appears, it will be
-      // replaced by an CElaboratedType.
+      // replaced by a CElaboratedType.
       CElaboratedType elaborateType =
           new CElaboratedType(false, false, kind, name, compType.getOrigName(), compType);
       parseContext.rememberCType(t, elaborateType, filePrefix);

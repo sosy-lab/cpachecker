@@ -436,7 +436,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Returns a address leading from a value. If the target is an abstract heap segment, materialize
+   * Returns an address leading from a value. If the target is an abstract heap segment, materialize
    * heap segment.
    *
    * <p>Constant.
@@ -1292,7 +1292,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGValue value;
 
     // If the value is not yet known by the SMG
-    // create a unconstrained new symbolic value
+    // create an unconstrained new symbolic value
     if (pValue.isUnknown()) {
       value = SMGKnownSymValue.of();
     } else {

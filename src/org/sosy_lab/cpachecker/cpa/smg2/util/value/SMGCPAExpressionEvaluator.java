@@ -124,7 +124,7 @@ public class SMGCPAExpressionEvaluator {
 
   /**
    * Transforms the entered {@link AddressExpression} into a non {@link AddressExpression} that is
-   * either a UNKNOWN {@link Value} or a valid pointer with the offset of the {@link
+   * either an UNKNOWN {@link Value} or a valid pointer with the offset of the {@link
    * AddressExpression}.
    *
    * @param addressExpression {@link AddressExpression} to be transformed.
@@ -206,7 +206,7 @@ public class SMGCPAExpressionEvaluator {
 
   /**
    * Unpacks the {@link Value} iff it is a {@link AddressExpression}. Else returns the original. If
-   * the value is a AddressExpression with offset, a new pointer is created and mapped to a new
+   * the value is an AddressExpression with offset, a new pointer is created and mapped to a new
    * value that is returned.
    *
    * @param value a {@link Value} that may be a {@link AddressExpression}.
@@ -661,7 +661,7 @@ public class SMGCPAExpressionEvaluator {
     if (maybeAddressValue.isPresent()) {
       Optional<Value> valueForSMGValue =
           pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-      // Reuse pointer; there should never be a SMGValue without counterpart!
+      // Reuse pointer; there should never be an SMGValue without counterpart!
       // TODO: this might actually be expensive, check once this runs!
       return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
     }
@@ -2160,7 +2160,7 @@ public class SMGCPAExpressionEvaluator {
    */
   public List<SMGState> handleVariableDeclaration(
       SMGState pState, CVariableDeclaration pVarDecl, CFAEdge pEdge) throws CPATransferException {
-    // Don't check for existing variables or else an edge that declares a existing variable is not
+    // Don't check for existing variables or else an edge that declares an existing variable is not
     // changed!
     String varName = pVarDecl.getQualifiedName();
     CType cType = SMGCPAExpressionEvaluator.getCanonicalType(pVarDecl);

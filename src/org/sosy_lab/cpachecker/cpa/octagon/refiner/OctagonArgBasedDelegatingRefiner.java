@@ -147,7 +147,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
   }
 
   /**
-   * This method performs an value-analysis refinement.
+   * This method performs a value-analysis refinement.
    *
    * @param reached the current reached set
    * @param errorPath the current error path

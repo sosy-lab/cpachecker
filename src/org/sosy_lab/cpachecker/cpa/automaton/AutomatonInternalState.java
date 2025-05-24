@@ -121,7 +121,7 @@ public class AutomatonInternalState {
     return name;
   }
 
-  /** Returns a integer representation of this state. */
+  /** Returns an integer representation of this state. */
   public int getStateId() {
     return stateId;
   }

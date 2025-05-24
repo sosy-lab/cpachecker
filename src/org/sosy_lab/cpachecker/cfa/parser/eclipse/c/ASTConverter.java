@@ -1153,7 +1153,7 @@ class ASTConverter {
             }
             isFirstVisit = false;
 
-            // only first field access may be an pointer dereference so we do not have to check
+            // only first field access may be a pointer dereference so we do not have to check
             // anything
             // in this clause, just put a field reference to the next field on the actual owner
           } else {
@@ -2324,7 +2324,7 @@ class ASTConverter {
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-      // Arrays with unknown length but an string initializer
+      // Arrays with unknown length but a string initializer
       // have their length calculated from the initializer.
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";

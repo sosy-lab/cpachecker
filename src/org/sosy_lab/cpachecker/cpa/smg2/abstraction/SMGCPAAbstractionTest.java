@@ -5739,7 +5739,7 @@ public class SMGCPAAbstractionTest extends SMGCPATest0 {
         // Make sure we got a 0+
         // assertThat(checked0Plus).isTrue();
       } else {
-        // last concrete segment with a read at nfo that results in a split of an 0+
+        // last concrete segment with a read at nfo that results in a split of a 0+
         if (topListSegmentAndState == null) {
           // This can never happen, but our CI complains....
           throw new RuntimeException();

@@ -537,7 +537,7 @@ public class SMGCPATransferRelationTest {
         List<ValueAndSMGState> readValueAndState =
             state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits, null);
         Preconditions.checkArgument(readValueAndState.size() == 1);
-        // There is a overflow happening here! a char is filled with a too large value
+        // There is an overflow happening here! a char is filled with a too large value
         // TODO: error check
         assertThat(readValueAndState.get(0).getValue().isNumericValue()).isTrue();
 
@@ -757,7 +757,7 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
       assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue()).isEqualTo(expectedSize);
-      // further, in the memory there must be a SMGValue that maps to the Value entered
+      // further, in the memory there must be an SMGValue that maps to the Value entered
       List<ValueAndSMGState> readValueAndState =
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);
       Preconditions.checkArgument(readValueAndState.size() == 1);
@@ -913,7 +913,7 @@ public class SMGCPATransferRelationTest {
         BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
         assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue())
             .isEqualTo(expectedSize);
-        // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+        // further, in the memory there must be an SMGValue that is a pointer (points to edge)
         // leading to the larger memory field with the size of malloc
         List<ValueAndSMGState> readValueAndState =
             stateAfterMallocAssignSuccess.readValue(
@@ -1112,7 +1112,7 @@ public class SMGCPATransferRelationTest {
           BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
           assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue())
               .isEqualTo(expectedSize);
-          // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+          // further, in the memory there must be an SMGValue that is a pointer (points to edge)
           // leading to the larger memory field with the size of malloc
           List<ValueAndSMGState> readValueAndState =
               stateAfterMallocAssignSuccess.readValue(
@@ -1159,7 +1159,7 @@ public class SMGCPATransferRelationTest {
     // SMG sizes are in bits!
     BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
     assertThat(memoryObject.getSize().asNumericValue().bigIntegerValue()).isEqualTo(expectedSize);
-    // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+    // further, in the memory there must be an SMGValue that is a pointer (points to edge)
     // leading to the larger memory field with the size of malloc
     List<ValueAndSMGState> readValueAndState =
         stateAfterMallocAssignFailure.readValue(memoryObject, BigInteger.ZERO, expectedSize, null);

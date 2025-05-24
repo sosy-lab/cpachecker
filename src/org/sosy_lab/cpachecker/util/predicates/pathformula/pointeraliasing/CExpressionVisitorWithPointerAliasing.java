@@ -387,7 +387,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the expression of a identification expression.
+   * Evaluates the expression of an identification expression.
    *
    * @param e The C id expression.
    * @return The expression.
@@ -415,7 +415,7 @@ class CExpressionVisitorWithPointerAliasing
   }
 
   /**
-   * Evaluates the value of an unary expression in C.
+   * Evaluates the value of a unary expression in C.
    *
    * @param e The C expression.
    * @return The value of the expression.

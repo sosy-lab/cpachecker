@@ -617,7 +617,7 @@ public class SMGExpressionEvaluator {
    * represents the pointer as well as the address the pointer is pointing to.
    *
    * <p>Because all values in C represent an address, and can e cast to a pointer, the method
-   * returns a instance of {@link SMGUnknownValue} if the symbolic value does not represent a
+   * returns an instance of {@link SMGUnknownValue} if the symbolic value does not represent a
    * pointer in the smg.
    *
    * @param pAddressValueAndState This contains the SMG.

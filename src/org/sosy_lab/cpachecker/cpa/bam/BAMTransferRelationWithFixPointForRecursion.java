@@ -143,9 +143,9 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       logger.log(Level.FINEST, "Finished recursive analysis of main-block");
 
-      // EITHER: result is an target-state, return it 'as is' and let CEGAR-algorithm perform a
+      // EITHER: result is a target-state, return it 'as is' and let CEGAR-algorithm perform a
       // refinement, if needed.
-      // OR:     we have completely analyzed the main-block and have not found an target-state.
+      // OR:     we have completely analyzed the main-block and have not found a target-state.
       //         now we check, if we need to unwind recursive calls further until a fixpoint is
       // reached.
 
@@ -308,7 +308,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     }
 
     if (recursionSeen) {
-      // we are returning from an recursive call.
+      // we are returning from a recursive call.
       // if we would need to do further analysis for recursion later (fixpoint-analysis!),
       // we need to know, where to update the reachedset --> store initialState for later usage
       potentialRecursionUpdateStates.add(initialState);

@@ -628,7 +628,7 @@ public class SMGCPATest0 {
    * Checks that all pointers given have data that is located in the beginning of the list as 32bit
    * integers with the first being 0, then +1 for each after that in the same list.
    *
-   * @param pointers a array of pointers pointing to a list with the default data scheme.
+   * @param pointers an array of pointers pointing to a list with the default data scheme.
    */
   protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();

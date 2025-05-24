@@ -91,7 +91,7 @@ public class CPAs {
   }
 
   /**
-   * Call {@link AutoCloseable#close()} on an supplied object if it implements {@link
+   * Call {@link AutoCloseable#close()} on a supplied object if it implements {@link
    * AutoCloseable}. Checked exceptions are logged but not re-thrown.
    *
    * @param obj An object.

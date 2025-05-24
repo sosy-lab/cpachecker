@@ -29,7 +29,7 @@ public class AppliedCustomInstruction {
   private final SSAMap indicesForReturnVars;
 
   /**
-   * Constructor of AppliedCustomInstruction. Creates a AppliedCustomInstruction with a start node
+   * Constructor of AppliedCustomInstruction. Creates an AppliedCustomInstruction with a start node
    * and a set of endNodes
    *
    * @param pCiStartNode CFANode

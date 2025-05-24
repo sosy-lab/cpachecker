@@ -426,7 +426,7 @@ public class IntervalAnalysisState
           return pMgr.getBooleanFormulaManager().makeFalse();
         }
 
-        // we assume that everything is an SIGNED INTEGER
+        // we assume that everything is a SIGNED INTEGER
         // and build "LOW <= X" and "X <= HIGH"
         NumeralFormula var =
             nfmgr.makeVariable(

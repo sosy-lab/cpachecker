@@ -122,7 +122,7 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
-   * unique values. Such that a SMGValue with id 1 is always equal only with a SMGValue with id 1.
+   * unique values. Such that an SMGValue with id 1 is always equal only with an SMGValue with id 1.
    * The only exception are addresses, hence why they are separate) . Important: You NEED to map the
    * SMGValue using the mapping of the SPC!
    */
@@ -541,7 +541,7 @@ public class SymbolicProgramConfiguration {
    * @param pFunctionDefinition - The {@link CFunctionDeclaration} that the {@link StackFrame} will
    *     be based upon.
    * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
-   * @param variableArguments null for no variable arguments, else a ImmutableList (that may be
+   * @param variableArguments null for no variable arguments, else an ImmutableList (that may be
    *     EMPTY!) of the Values in order.
    * @return The SPC copy with the new {@link StackFrame}.
    */
@@ -661,7 +661,7 @@ public class SymbolicProgramConfiguration {
         readBlacklist);
   }
 
-  // Only to be used by materialization to copy a SMGObject
+  // Only to be used by materialization to copy an SMGObject
   public SymbolicProgramConfiguration copyAllValuesFromObjToObj(
       SMGObject source, SMGObject target) {
     return copyHVEdgesFromTo(source, target);
@@ -1110,7 +1110,7 @@ public class SymbolicProgramConfiguration {
     ConstantSymbolicExpressionLocator symIdentVisitor =
         ConstantSymbolicExpressionLocator.getInstance();
     ImmutableMap.Builder<SymbolicIdentifier, CType> identsBuilder = ImmutableMap.builder();
-    // Get all symbolic values in sizes (they might not have a SMGValue mapping anymore below!)
+    // Get all symbolic values in sizes (they might not have an SMGValue mapping anymore below!)
     if (value instanceof SymbolicValue symValue) {
       for (ConstantSymbolicExpression constSym : symValue.accept(symIdentVisitor)) {
         if (constSym.getValue() instanceof SymbolicIdentifier symIdent) {
@@ -1206,7 +1206,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Changes the validity of a external object to valid.
+   * Changes the validity of an external object to valid.
    *
    * @param pObject the {@link SMGObject} that is externally allocated to be set to valid.
    * @return A copy of this SPC with the validity of the external object changed.
@@ -1379,7 +1379,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Adds a SMGObject to the list of known SMGObjects, but nothing else.
+   * Adds an SMGObject to the list of known SMGObjects, but nothing else.
    *
    * @param newObject the new {@link SMGObject}.
    * @return a copy of the SPC + the object added.
@@ -1532,7 +1532,7 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Checks if a smg object is valid in the current context.
+   * Checks if an smg object is valid in the current context.
    *
    * @param pObject - the object to be checked
    * @return smg.isValid(pObject)
@@ -1761,7 +1761,7 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Returns true if the value entered is a pointer in the current SPC. This checks for the
-   * existence of a known mapping from Value to SMGValue to a SMGPointsToEdge.
+   * existence of a known mapping from Value to SMGValue to an SMGPointsToEdge.
    *
    * @param maybePointer {@link Value} that you want to check.
    * @return true is the entered {@link Value} is an address that points to a memory location. False

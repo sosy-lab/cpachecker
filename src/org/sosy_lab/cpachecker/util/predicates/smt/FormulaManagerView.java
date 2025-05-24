@@ -1310,7 +1310,7 @@ public class FormulaManagerView {
             // of the function were already processed.
             if (allArgumentsTransformed) {
 
-              // Create an processed version of the
+              // Create a processed version of the
               // function application.
               toProcess.pop();
               Formula out;
@@ -1625,7 +1625,7 @@ public class FormulaManagerView {
   // operations, so that they are (a bit) "less uninterpreted"
   // Currently, it add's the following formulas for each number literal n that
   // appears in the formula: "(n & 0 == 0) and (0 & n == 0)"
-  // But only if an bitwise "and" occurs in the formula.
+  // But only if a bitwise "and" occurs in the formula.
   private BooleanFormula myGetBitwiseAxioms(BooleanFormula f) {
     final Set<Formula> allLiterals = new HashSet<>();
     final AtomicBoolean andFound = new AtomicBoolean(false);
@@ -1661,7 +1661,7 @@ public class FormulaManagerView {
     if (andFound.get()) {
       final BitvectorFormulaManagerView bvmgr = getBitvectorFormulaManager();
       // Note: We can assume that we have no real bitvectors here, so size should be not important
-      // If it ever should be we can just add an method to the unsafe-manager to read the size.
+      // If it ever should be we can just add a method to the unsafe-manager to read the size.
       BitvectorFormula z = bvmgr.makeBitvector(1, 0);
       FormulaType<BitvectorFormula> type = FormulaType.getBitvectorTypeWithSize(1);
       // Term z = env.numeral("0");

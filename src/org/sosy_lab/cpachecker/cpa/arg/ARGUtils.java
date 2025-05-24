@@ -1216,7 +1216,7 @@ public class ARGUtils {
    *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
    *       determining whether the counterexample should be marked as imprecise. Currently,
    *       this heuristic will simply always mark a counterexample as feasible if and only if the
-   *       analysis used consists of either a ValueAnalysisCPA or a SMGCPA.
+   *       analysis used consists of either a ValueAnalysisCPA or an SMGCPA.
    * </ol>
    *
    * @param pTargetState the target state to get the counterexample for.

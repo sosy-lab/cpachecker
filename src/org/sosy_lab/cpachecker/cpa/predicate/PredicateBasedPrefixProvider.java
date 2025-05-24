@@ -228,13 +228,13 @@ public final class PredicateBasedPrefixProvider implements PrefixProvider {
   }
 
   /**
-   * This method checks if a unsat call is necessary. It the path is not single-block encoded, then
+   * This method checks if an unsat call is necessary. It the path is not single-block encoded, then
    * unsatisfiability has to be checked always. In case it is single-block encoded, then it suffices
    * to check unsatisfiability at assume edges.
    *
    * @param pPath the path to check
    * @param pCfaEdge the current edge
-   * @return true if a unsat call is neccessary, else false
+   * @return true if an unsat call is neccessary, else false
    */
   private boolean checkUnsat(final ARGPath pPath, final CFAEdge pCfaEdge) {
     if (!isSingleBlockEncoded(pPath)) {

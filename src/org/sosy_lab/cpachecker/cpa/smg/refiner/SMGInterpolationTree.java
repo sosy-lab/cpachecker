@@ -344,7 +344,7 @@ public class SMGInterpolationTree {
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * The given state is not a valid interpolation root if it is associated with an interpolant
      * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {

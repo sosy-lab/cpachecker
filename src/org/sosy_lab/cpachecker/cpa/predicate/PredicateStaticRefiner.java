@@ -96,7 +96,7 @@ final class PredicateStaticRefiner extends StaticRefiner
               + " precision.")
   private boolean applyScoped = true;
 
-  @Option(secure = true, description = "Add all assumptions along a error trace to the precision.")
+  @Option(secure = true, description = "Add all assumptions along an error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
   @Option(

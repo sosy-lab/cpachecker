@@ -67,7 +67,7 @@ public class ExceptionHandlingAlgorithm
         secure = true,
         name = "counterexample.continueAfterInfeasibleError",
         description =
-            "continue analysis after an counterexample was found that was denied by the second"
+            "continue analysis after a counterexample was found that was denied by the second"
                 + " check")
     private boolean continueAfterInfeasibleError = true;
 
@@ -82,7 +82,7 @@ public class ExceptionHandlingAlgorithm
     @Option(
         secure = true,
         name = "analysis.continueAfterUnsupportedCode",
-        description = "continue analysis after a unsupported code was found on one path")
+        description = "continue analysis after an unsupported code was found on one path")
     private boolean continueAfterUnsupportedCode = false;
 
     private ExceptionHandlingOptions(Configuration pConfig) throws InvalidConfigurationException {

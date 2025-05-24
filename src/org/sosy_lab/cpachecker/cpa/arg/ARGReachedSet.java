@@ -69,7 +69,7 @@ public class ARGReachedSet {
   }
 
   /**
-   * This constructor may be used only during an refinement which should be added to the refinement
+   * This constructor may be used only during a refinement which should be added to the refinement
    * graph .dot file.
    */
   public ARGReachedSet(

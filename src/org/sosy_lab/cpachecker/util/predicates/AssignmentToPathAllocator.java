@@ -537,7 +537,7 @@ public class AssignmentToPathAllocator {
   }
 
   /*
-   * Allocate the assignable terms with a SSAIndex in the given model
+   * Allocate the assignable terms with an SSAIndex in the given model
    * to the position in the path they were first used. The result of this
    * allocation is used to determine the model at each edge of the path.
    *

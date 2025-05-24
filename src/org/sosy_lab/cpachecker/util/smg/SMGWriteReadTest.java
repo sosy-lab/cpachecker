@@ -75,7 +75,7 @@ public class SMGWriteReadTest extends SMGTest0 {
                 .addAndCopy(SMGValue.zeroFloatValue()));
     assertThat(smg.getObjects()).isEqualTo(PersistentSet.of(SMGObject.nullInstance()));
 
-    // Add a SMGObject and assert again
+    // Add an SMGObject and assert again
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
 
@@ -351,7 +351,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   }
 
   /*
-   * Test adding a SMGObject to an empty SMG and then write the entire region of the object to 0.
+   * Test adding an SMGObject to an empty SMG and then write the entire region of the object to 0.
    */
   @Test
   public void writeZeroValueForEntireObjectTest() {
@@ -1386,7 +1386,7 @@ public class SMGWriteReadTest extends SMGTest0 {
   /**
    * Write everything to 0 in Byte blocks but leave out every 4th block (starting with block #4).
    * Read the blocks in different combinations. TODO: we should talk about undefined fields! The C99
-   * standard states that as long as a array is uninizialized, it reads whatever is in its memory.
+   * standard states that as long as an array is uninizialized, it reads whatever is in its memory.
    * We essentially do that currently by returning some value.
    */
   @Test
