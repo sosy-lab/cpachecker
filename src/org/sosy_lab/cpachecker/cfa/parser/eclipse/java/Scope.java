@@ -257,7 +257,7 @@ class Scope {
    * @param name Given name to be checked.
    * @param origName If the name has another Identification, it can also be given with this
    *     parameter.
-   * @return Returns true, if the name is already in use, else false.
+   * @return true, if the name is already in use, else false.
    */
   public boolean variableNameInUse(String name, String origName) {
     checkNotNull(name);

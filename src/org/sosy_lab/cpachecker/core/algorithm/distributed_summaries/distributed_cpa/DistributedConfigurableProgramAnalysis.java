@@ -76,7 +76,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * Check whether this distributed CPA can work with {@code pClass}.
    *
    * @param pClass Decide whether this DCPA can work with this class.
-   * @return Returns whether this DCPA accepts {@code pClass}
+   * @return whether this DCPA accepts {@code pClass}
    */
   default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
     return getAbstractStateClass().isAssignableFrom(pClass);

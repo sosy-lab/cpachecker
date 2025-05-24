@@ -66,7 +66,7 @@ public abstract class Address {
   /**
    * Returns the concrete value of the address. May only be called on concrete addresses.
    *
-   * @return Returns the concrete value of the address.
+   * @return the concrete value of the address.
    */
   public abstract BigInteger getAddressValue();
 
@@ -87,7 +87,7 @@ public abstract class Address {
    *
    * @param pAddress the representation of the address, either a concrete value like a BigInteger
    *     or a symbol like a String.
-   * @return Returns an address for the given address representation
+   * @return an address for the given address representation
    */
   public static Address valueOf(Object pAddress) {
 
@@ -145,7 +145,7 @@ public abstract class Address {
   /**
    * Returns an instance that represents an unknown address.
    *
-   * @return Returns an instance that represents an unknown address.
+   * @return an instance that represents an unknown address.
    */
   public static Address getUnknownAddress() {
     return UnknownAddress.getInstance();
