@@ -410,7 +410,7 @@ public class SMGExpressionEvaluator {
         || (expressionType instanceof CFunctionType
             && rValue instanceof CUnaryExpression
             && ((CUnaryExpression) rValue).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
-      // Cfa treats &foo as CFunctionType
+      // CFA treats &foo as CFunctionType
 
       PointerVisitor visitor = getPointerVisitor(cfaEdge, pState);
       return getAddressFromSymbolicValues(rValue.accept(visitor));

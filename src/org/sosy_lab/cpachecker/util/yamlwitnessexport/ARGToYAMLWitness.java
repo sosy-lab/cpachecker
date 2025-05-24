@@ -271,10 +271,10 @@ class ARGToYAMLWitness extends AbstractYAMLWitnessExporter {
   }
 
   /**
-   * Provides an overapproximation of the abstractions encoded by the arg states at the location of
+   * Provides an overapproximation of the abstractions encoded by the ARG states at the location of
    * the node.
    *
-   * @param pArgStates the arg states encoding abstractions of the state
+   * @param pArgStates the ARG states encoding abstractions of the state
    * @return an over approximation of the abstraction at the state
    * @throws InterruptedException if the call to this function is interrupted
    */

@@ -1108,7 +1108,7 @@ public class ARGUtils {
               || !AbstractStates.extractLocation(outOfLoopState).equals(edgeSuccessor)) {
             sb.append("STOP;\n");
 
-            // here we go out of the loop back to the arg path
+            // here we go out of the loop back to the ARG path
           } else {
             handleGotoArg(sb, outOfLoopState);
           }

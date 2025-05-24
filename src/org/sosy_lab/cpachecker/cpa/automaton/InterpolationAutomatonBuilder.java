@@ -90,7 +90,7 @@ public class InterpolationAutomatonBuilder {
 
     logger.logf(
         Level.INFO,
-        "Refining the arg with automaton using the interpolants: %s",
+        "Refining the ARG with automaton using the interpolants: %s",
         distinctInterpolants);
 
     String automatonName = ITP_AUTOMATON_NAME + pAutomatonIndex;
