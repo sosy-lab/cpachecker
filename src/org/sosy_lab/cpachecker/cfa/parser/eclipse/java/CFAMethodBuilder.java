@@ -1008,7 +1008,7 @@ class CFAMethodBuilder extends ASTVisitor {
       parentExp = parentExp.getParent();
     }
 
-    // evaluates to true if the ternary expressions return value is not used (i. e. var==0 ? 0 : 1;)
+    // evaluates to true if the ternary expressions return value is not used (i.e. var==0 ? 0 : 1;)
     if (parentExp.getNodeType() != ASTNode.VARIABLE_DECLARATION_STATEMENT
         && parentExp.getNodeType() != ASTNode.ASSIGNMENT) {
       handleTernaryStatement(condExp, prevNode, lastNode);

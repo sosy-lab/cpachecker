@@ -184,7 +184,7 @@ class ASTConverter {
    * Create a new AST Converter, which can be used to convert JDT AST Statements to CFA AST
    * Statements.
    *
-   * @param pScope The symbolic table to solve e. g. names of variable to Declarations .
+   * @param pScope The symbolic table to solve e.g. names of variable to Declarations .
    * @param pLogger Logmanager to log Statusmessages or Errors
    */
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -2369,7 +2369,7 @@ class ASTConverter {
       } else if (rightHandSide instanceof JAssignment) {
 
         // TODO We need the assignments to be evaluated from left to right
-        // e. g x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
+        // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(

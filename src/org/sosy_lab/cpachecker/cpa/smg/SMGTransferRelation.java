@@ -546,8 +546,8 @@ public class SMGTransferRelation
             || (!truthValue && value.equals(SMGZeroValue.INSTANCE))) {
           result.add(state);
         } else {
-          // This signals that there are no new States reachable from this State i. e. the
-          // Assumption does not hold.
+          // This signals that there are no new States reachable from this State,
+          // i.e., the Assumption does not hold.
         }
       } else {
         result.addAll(
@@ -643,7 +643,7 @@ public class SMGTransferRelation
           || (!truthValue && explicitValue.equals(SMGZeroValue.INSTANCE))) {
         result.add(explicitSmgState);
       } else {
-        // This signals that there are no new States reachable from this State i. e. the
+        // This signals that there are no new States reachable from this State i.e. the
         // Assumption does not hold.
       }
     }

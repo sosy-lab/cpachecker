@@ -782,7 +782,7 @@ public class AssumptionToEdgeAllocator {
     private @Nullable Object lookupReference(CFieldReference pIastFieldReference) {
 
       /* Fieldreferences are sometimes represented as variables,
-      e.g a.b.c in main is main::a$b$c */
+      e.g. a.b.c in main is main::a$b$c */
       FieldReference fieldReference = getFieldReference(pIastFieldReference, functionName);
 
       if (fieldReference != null && concreteState.hasValueForLeftHandSide(fieldReference)) {
@@ -980,7 +980,7 @@ public class AssumptionToEdgeAllocator {
 
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
-        e.g a.b.c in main is main::a$b$c */
+        e.g. a.b.c in main is main::a$b$c */
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
