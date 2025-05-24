@@ -115,7 +115,7 @@ public class TestTargetMinimizerEssential {
           // create the new edge
           copiedSuccessorNode = origCFANodeToCopyMap.get(currentEdge.getSuccessor());
         } else {
-          // node the edge goes to hasnt been added yet so we add the a new copied node
+          // node the edge goes to hasn't been added yet so we add the a new copied node
           copiedSuccessorNode = CFANode.newDummyCFANode("");
           origCFANodeToCopyMap.put(currentEdge.getSuccessor(), copiedSuccessorNode);
           waitlist.add(currentEdge.getSuccessor());
@@ -373,7 +373,7 @@ public class TestTargetMinimizerEssential {
 
         waitlist.remove(currentNode);
       }
-      // add nodes to the queue that havent been added yet
+      // add nodes to the queue that haven't been added yet
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
         if (vistedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());
