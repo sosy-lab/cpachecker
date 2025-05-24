@@ -161,7 +161,7 @@ public final class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    *
    * @param pObject Object to add
    *     <p>TODO: [SCOPES] Scope visibility vs. stack frame issues: handle cases where a variable is
-   *     visible but is is allowed to override (inner blocks) TODO: Consistency check (allow):
+   *     visible but it is allowed to override (inner blocks) TODO: Consistency check (allow):
    *     different objects with same label inside a frame, but in different block TODO: Test for
    *     this consistency check
    *     <p>TODO: Shall we need an extension for putting objects to upper frames?

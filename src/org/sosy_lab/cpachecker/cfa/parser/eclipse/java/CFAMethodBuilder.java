@@ -2012,7 +2012,7 @@ class CFAMethodBuilder extends ASTVisitor {
     Expression iterable = forStatement.getExpression();
 
     // loopStartNodes is the Node before the loop itself,
-    // it is the the one after the iterator
+    // it is the one after the iterator
     final CFANode loopStart = createIteratorEdgeForEnhancedForLoop(iterable, fileloc, loopInit);
     loopStart.setLoopStart();
 
@@ -2115,7 +2115,7 @@ class CFAMethodBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", fileloc, prevNode, loopInit, "for"));
 
     // loopStartNodes is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     @SuppressWarnings("unchecked")
     List<Expression> iniBlock = forStatement.initializers();
 

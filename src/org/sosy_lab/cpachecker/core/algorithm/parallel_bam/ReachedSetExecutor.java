@@ -110,7 +110,7 @@ class ReachedSetExecutor {
    * This set contains all sub-reached-sets that have to be finished before the current one. The
    * state is unique and belongs to the current reached-set (but not its watlist). We removed the
    * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterward to be
-   * analyzed again, such the the computed block abstraction can be applied.
+   * analyzed again, such the computed block abstraction can be applied.
    *
    * <p>Synchronized access guaranteed by only instance-local access in the current {@link
    * ReachedSetExecutor}!

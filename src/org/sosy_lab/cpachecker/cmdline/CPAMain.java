@@ -372,7 +372,7 @@ public class CPAMain {
 
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
-    // add it to our Configuration object and to the the map of default converters.
+    // add it to our Configuration object and to the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
     FileTypeConverter fileTypeConverter =

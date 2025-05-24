@@ -430,7 +430,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   }
 
   /**
-   * Advance the given iterator by skipping over analyses where the usage condition does not match,
+   * Advance the given iterator by skipping analyses where the usage condition does not match,
    * such that the next entry in the iterator is the next analysis that should be used or the
    * iterator is empty.
    */

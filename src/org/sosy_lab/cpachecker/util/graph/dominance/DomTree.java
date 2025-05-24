@@ -169,7 +169,7 @@ public final class DomTree<T> implements Iterable<T> {
 
   /**
    * Computes the intersection of doms(pFst) and doms(pSnd) (doms(N) == all nodes that dominate N).
-   * Cooper et al. describe it as "[walking] up the the dominator tree from two different nodes
+   * Cooper et al. describe it as "[walking] up the dominator tree from two different nodes
    * until a common parent is reached".
    */
   private static int intersect(final int[] pDoms, final int pFst, final int pSnd) {

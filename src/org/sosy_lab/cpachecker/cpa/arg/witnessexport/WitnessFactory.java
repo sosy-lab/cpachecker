@@ -1562,7 +1562,7 @@ class WitnessFactory implements EdgeAppender {
     Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(enteringEdges.get(nodeToRemove));
     // Create the replacement edges,
     // Add them as entering edges to the source node,
-    // Add add them as leaving edges to their source nodes
+    // Add them as leaving edges to their source nodes
     for (Edge enteringEdge : enteringEdgesToMove) {
       if (!pEdge.equals(enteringEdge)) {
         TransitionCondition label =

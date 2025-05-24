@@ -1091,7 +1091,7 @@ class ASTConverter {
    * @param pLeftOperand the left operand of the <code>instanceof</code> statement
    * @param pRightOperand the right operand of the <code>instanceof</code> statement. The resulting
    *     expression will be evaluated to <code>true
-   *     </code> if the the left operand's type is equal to this type or a subtype of this type
+   *     </code> if the left operand's type is equal to this type or a subtype of this type
    * @param pLocation the file location of the expression
    * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
    *     parameters

@@ -92,7 +92,7 @@ public class IntervalAnalysisState
    * This method returns the reference count for a given variable.
    *
    * @param variableName of the variable to query the reference count on
-   * @return the reference count of the variable, or 0 if the the variable is not yet referenced
+   * @return the reference count of the variable, or 0 if the variable is not yet referenced
    */
   private Integer getReferenceCount(String variableName) {
     return referenceCounts.getOrDefault(variableName, 0);

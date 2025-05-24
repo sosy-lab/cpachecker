@@ -256,7 +256,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   void finish() {
 
     // cleanup unnecessary nodes and edges, that were created before.
-    // cfaNodes were collected with with a FORWARD-search,
+    // cfaNodes were collected with a FORWARD-search,
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
@@ -1660,7 +1660,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", onlyFirstLine(fileLocation), prevNode, loopInit, "for"));
 
     // loopStart is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     final CFANode loopStart =
         createInitEdgeForForLoop(forStatement.getInitializerStatement(), fileLocation, loopInit);
     loopStart.setLoopStart();

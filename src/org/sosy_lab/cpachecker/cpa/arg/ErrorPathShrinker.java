@@ -122,7 +122,7 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
 
-    /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
+    /* if the ErrorNode is inside a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
      * so update the sets of variables and call the PathHandler again until
      * the longPath is completely handled.*/
