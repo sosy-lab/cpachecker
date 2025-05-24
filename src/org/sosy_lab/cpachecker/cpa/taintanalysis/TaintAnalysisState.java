@@ -116,8 +116,18 @@ public class TaintAnalysisState
                         && Objects.equals(
                             other.getUntaintedVariables().get(entry.getKey()), entry.getValue()));
 
-    return otherContainsThisTainted && otherContainsThisUntainted
-    ;
+    boolean otherContainsThisPredecessors = other.getPredecessors().containsAll(this.predecessors);
+    boolean otherContainsThisSuccessors = other.getSuccessors().containsAll(this.successors);
+
+    assert other.getSiblingStates() != null;
+    boolean otherContainsThisSiblingStates =
+        other.getSiblingStates().containsAll(this.siblingStates);
+
+    return otherContainsThisTainted
+        && otherContainsThisUntainted
+        && otherContainsThisPredecessors
+        && otherContainsThisSuccessors
+        && otherContainsThisSiblingStates;
   }
 
   @Override
@@ -179,10 +189,6 @@ public class TaintAnalysisState
     joinPredecessors.addAll(pOther.getPredecessors());
 
     TaintAnalysisState joinedState =
-        new TaintAnalysisState(
-            joinedTaintedVars,
-            joinedUntaintedVars,
-            joinPredecessors);
         new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinPredecessors);
 
     this.siblingStates.add(pOther);
