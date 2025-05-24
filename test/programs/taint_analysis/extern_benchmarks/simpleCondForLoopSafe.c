@@ -12,12 +12,12 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a = 0;
+    int a = 1;
     int x = __VERIFIER_nondet_int();
 
     for (int i = 0; i < x; ++ i) {
-        a++;
+        a = a * x;
     }
 
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
 }

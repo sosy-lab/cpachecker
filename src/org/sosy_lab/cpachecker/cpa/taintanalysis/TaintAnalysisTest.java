@@ -785,7 +785,7 @@ public class TaintAnalysisTest {
   @Test
   public void testSimpleCondForLoopUnsafe() throws Exception {
     TestResults results = runCPAchecker("simpleCondForLoopUnsafe.c", "extern_benchmarks");
-    results.assertIsSafe();
+    results.assertIsUnsafe();
   }
 
   @Ignore
