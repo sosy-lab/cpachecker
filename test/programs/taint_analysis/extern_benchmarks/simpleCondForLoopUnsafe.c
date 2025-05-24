@@ -19,5 +19,5 @@ int main() {
         a++;
     }
 
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
 }
