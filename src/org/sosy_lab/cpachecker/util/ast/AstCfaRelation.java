@@ -293,7 +293,7 @@ public final class AstCfaRelation {
       StartingLocation key =
           new StartingLocation(
               element.getCompleteElement().location().getStartColumnInLine(),
-              element.getCompleteElement().location().getStartingLineNumber());
+              element.getCompleteElement().location().getStartingLineInOrigin());
       builder.put(key, element.getCompleteElement());
     }
     startingLocationToTightestStatement = builder.buildOrThrow();
