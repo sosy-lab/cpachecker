@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.truth.Truth;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -161,7 +162,7 @@ public class TranslatorTest {
 
     IntervalAnalysisState iStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), ImmutableSet.of()); // TODO
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -246,7 +247,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("var1", new Interval(0L, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest =
         new IntervalAnalysisState(
-            intervals, referenceMap, PathCopyingPersistentTreeMap.of()); // TODO
+            intervals, referenceMap, PathCopyingPersistentTreeMap.of(), ImmutableSet.of()); // TODO
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();
