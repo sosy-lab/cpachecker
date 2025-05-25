@@ -11,18 +11,17 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-// TODO: Fix handling of nested loops and multi-inter-procedural calls
-
 int main() {
     int x, b1, b2, y;
 //    scanf("%d", &x);
-    b1 = even(x);
-    b2 = odd(10);
-    y = compute(x);
-    return 0;
 
+    b1 = even(10);
     __VERIFIER_nondet_int(b1, 1);
+
+    b2 = odd(x);
     __VERIFIER_nondet_int(b2, 1);
+
+    y = compute(x);
     __VERIFIER_nondet_int(y, 0);
 }
 

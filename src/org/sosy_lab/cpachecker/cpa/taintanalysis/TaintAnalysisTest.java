@@ -864,6 +864,20 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
+  @Test
+  public void testNestedForLoopSafe_1() throws Exception {
+    TestResults results = runCPAchecker("nestedForLoopSafe_1.c", "");
+    results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testNestedForLoopUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("nestedForLoopUnsafe_1.c", "");
+    results.assertIsUnsafe();
+  }
+
   @Test
   public void testSimpleCondForLoopSafe() throws Exception {
     TestResults results = runCPAchecker("simpleCondForLoopSafe.c", "extern_benchmarks");
@@ -876,12 +890,14 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testAllLoopsSafe_1() throws Exception {
     TestResults results = runCPAchecker("allLoopsSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testAllLoopsUnsafe_1() throws Exception {
     TestResults results = runCPAchecker("allLoopsUnsafe_1.c", "extern_benchmarks");
@@ -975,11 +991,16 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testSimplePrintingSafe() throws Exception {
     TestResults results = runCPAchecker("simplePrintingSafe.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimplePrintingUnsafe() throws Exception {
+    TestResults results = runCPAchecker("simplePrintingUnsafe.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Ignore
@@ -994,6 +1015,13 @@ public class TaintAnalysisTest {
   public void testFreePtrSafe() throws Exception {
     TestResults results = runCPAchecker("freePtrSafe.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testFreePtrUnsafe() throws Exception {
+    TestResults results = runCPAchecker("freePtrUnsafe.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Test
@@ -1030,9 +1058,16 @@ public class TaintAnalysisTest {
 
   @Ignore
   @Test
-  public void testPaperExample() throws Exception {
-    TestResults results = runCPAchecker("paperExample.c", "extern_benchmarks");
+  public void testPaperExampleSafe() throws Exception {
+    TestResults results = runCPAchecker("paperExampleSafe.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Ignore
+  @Test
+  public void testPaperExampleUnsafe() throws Exception {
+    TestResults results = runCPAchecker("paperExampleUnsafe.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Ignore

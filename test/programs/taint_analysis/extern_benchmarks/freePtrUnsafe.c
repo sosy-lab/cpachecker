@@ -11,18 +11,15 @@
 extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
-int main() {
-    int b = 200;
-    int a = __VERIFIER_nondet_int();
+typedef struct {
+    int a;
+    int b;
+} t1;
 
-    if (b) {
-        if (a) {
-            a = b = 10;
-            a *= b;
-        } else {
-            a = 500;
-        }
-    }
+int main()
+{
+    t1* p;
+    free((void*)p);
 
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(p, 0);
 }
