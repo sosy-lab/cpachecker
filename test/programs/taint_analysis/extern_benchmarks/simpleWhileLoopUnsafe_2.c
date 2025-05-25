@@ -12,19 +12,13 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a, b, c;
-    a = c = 2;
-    b = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
+    int x = 2;
+    int y = __VERIFIER_nondet_int();
 
-    while (a < 10) {
-        while (c < x) {
-            c = 1;
-        }
-        a = b;
+    while (x < 10) {
+        x = x + y;
     }
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 1);
+    // x is expected to be tainted
+    __VERIFIER_is_public(x, )1;
 }

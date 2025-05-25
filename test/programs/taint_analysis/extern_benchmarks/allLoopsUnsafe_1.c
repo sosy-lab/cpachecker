@@ -28,10 +28,10 @@ int main() {
         b+=tainted; // t(b) = t(tainted) = T
     }
 
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 0);
-    __VERIFIER_is_public(d, 1);
+    __VERIFIER_is_public(a, 0);
+    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(c, 1);
+    __VERIFIER_is_public(d, 0);
 
     a1 = b1 = c1 = d1 = 0;
     for (int i1 = 0; i1 < argc; ++i1) {
@@ -44,8 +44,8 @@ int main() {
         b1+=2;
     }
 
-    __VERIFIER_is_public(a1, 1);
-    __VERIFIER_is_public(b1, 1);
-    __VERIFIER_is_public(c1, 1);
-    __VERIFIER_is_public(d1, 1);
+    __VERIFIER_is_public(a1, 0);
+    __VERIFIER_is_public(b1, 0);
+    __VERIFIER_is_public(c1, 0);
+    __VERIFIER_is_public(d1, 0);
 }

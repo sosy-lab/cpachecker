@@ -12,19 +12,12 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a, b, c;
-    a = c = 2;
-    b = __VERIFIER_nondet_int();
-    int x = __VERIFIER_nondet_int();
+    int y = 2;
 
-    while (a < 10) {
-        while (c < x) {
-            c = 1;
-        }
-        a = b;
+    while (y < 10) {
+        y++;
     }
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 1);
+    // y is expected to be public
+    __VERIFIER_is_public(y, 0);
 }

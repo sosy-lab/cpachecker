@@ -31,7 +31,7 @@ int main() {
         a++;
     }
 
-    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(a, 0);
     __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 1);
 
@@ -45,7 +45,7 @@ int main() {
         a1++;
     }
 
-    __VERIFIER_is_public(a1, 1);
+    __VERIFIER_is_public(a1, 0);
     __VERIFIER_is_public(b1, 1);
     __VERIFIER_is_public(c1, 1);
 
@@ -61,5 +61,5 @@ int main() {
 
     __VERIFIER_is_public(a2, 1);
     __VERIFIER_is_public(b2, 0);
-    __VERIFIER_is_public(c2, 1);
+    __VERIFIER_is_public(c2, 0);
 }

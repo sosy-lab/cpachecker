@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2024 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,19 +12,18 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a, b, c;
-    a = c = 2;
-    b = __VERIFIER_nondet_int();
+
+    int a = __VERIFIER_nondet_int();
+    int b = __VERIFIER_nondet_int();
+    int c = __VERIFIER_nondet_int();
     int x = __VERIFIER_nondet_int();
 
-    while (a < 10) {
-        while (c < x) {
-            c = 1;
-        }
-        a = b;
+    if (x) {
+        c = 3; // t(c) = U
+    } else {
+        c = x; // t(c) = T
     }
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
+    // c is expected to be tainted
     __VERIFIER_is_public(c, 1);
 }
