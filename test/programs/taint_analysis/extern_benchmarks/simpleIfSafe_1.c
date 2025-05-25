@@ -32,7 +32,4 @@ int main() {
 
     // a + b is expected to be tainted by a
     __VERIFIER_is_public(a + b, 0);
-
-// TODO: What to do when main returns tainted objects? -> Property violation?
-//    return a + b;
 }
