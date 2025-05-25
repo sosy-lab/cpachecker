@@ -623,7 +623,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               pState, pCfaEdge, expectedPublicity, expressionIsTainted, exprToCheck);
 
           if (pState.getSuccessors().size() < MAX_ALLOWED_STATE_SUCCESSORS || pState.isTarget()) {
-            // do not generate new states when the state has more than one successor
             newStates.add(generateNewState(pState, killedVars, generatedVars, values));
           }
         }
@@ -717,16 +716,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       Set<TaintAnalysisState> siblingStates = pState.getSiblingStates();
 
-      if (isCurrentlyTainted) {
-        if (siblingStates != null && !siblingStates.isEmpty()) {
-          for (TaintAnalysisState siblingState : siblingStates) {
-            if (siblingState.isTarget()) {
-              // invalidate property violation when at least one branch tainted the variable
-              siblingState.setViolatesProperty(false);
-            }
-          }
-        }
-      } else {
+      if (!isCurrentlyTainted) {
         if (siblingStates != null && !siblingStates.isEmpty()) {
           for (TaintAnalysisState siblingState : siblingStates) {
             if (siblingState.isTarget()) {
@@ -738,6 +728,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
                   firstArg.toASTString());
 
               pState.setViolatesProperty();
+              break;
             }
           }
         } else {
