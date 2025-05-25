@@ -1088,4 +1088,16 @@ public class TaintAnalysisTest {
     TestResults results = runCPAchecker("returnTaintMainUnsafe_1.c", "");
     results.assertIsUnsafe();
   }
+
+  @Test
+  public void testSimpleTaintByPointerSafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleTaintByPointerSafe_1.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleTaintByPointerUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("simpleTaintByPointerUnsafe_1.c", "");
+    results.assertIsUnsafe();
+  }
 }
