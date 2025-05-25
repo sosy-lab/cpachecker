@@ -28,7 +28,7 @@
             type: "assumption"
             action: "follow"
             constraint:
-              value: "\\valid(x)"
+              value: "valid(x)"
               type: "acsl_expression"
             location:
               file_name: "test/programs/witnessValidation/simple-valid.c"
@@ -117,13 +117,14 @@
             type: "assumption"
             action: "follow"
             constraint:
-              value: "!\\valid(x)"
-              type: "acsl_expression"
+              value: "!valid(x)"
+              format: "acsl_expression"
             location:
               file_name: "test/programs/witnessValidation/simple-valid.c"
               line: 21
               column: 3
               function: "main"
+    - segment:
         - waypoint:
             type: "target"
             action: "follow"
