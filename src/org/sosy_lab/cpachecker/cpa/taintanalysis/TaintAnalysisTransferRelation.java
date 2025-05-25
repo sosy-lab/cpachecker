@@ -99,13 +99,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     Map<CIdExpression, CExpression> newUntaintedVars =
         new HashMap<>(pState.getUntaintedVariables());
 
-    Map<CIdExpression, CLiteralExpression> evaluatedValues = new HashMap<>();
+    Map<CIdExpression, CExpression> evaluatedValues = new HashMap<>();
 
     for (Entry<CIdExpression, CExpression> entry : pValues.entrySet()) {
       CIdExpression var = entry.getKey();
       CExpression expr = entry.getValue();
 
-      CLiteralExpression evaluatedExpr =
+      CExpression evaluatedExpr =
           TaintAnalysisUtils.evaluateExpression(
               expr, pState.getTaintedVariables(), pState.getUntaintedVariables());
 
@@ -117,6 +117,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression value = evaluatedValues.getOrDefault(killedVar, null);
       newUntaintedVars.put(killedVar, value);
+
+      // If there is a pointer to the new untainted variable, untaint the pointer as well
+      for (Map.Entry<CIdExpression, CExpression> entry : pState.getTaintedVariables().entrySet()) {
+        CIdExpression taintedPointer = entry.getKey();
+        CExpression mappedValue = entry.getValue();
+
+        if (mappedValue instanceof CIdExpression idExpr && idExpr.equals(killedVar)) {
+          newTaintedVars.remove(taintedPointer);
+          newUntaintedVars.put(taintedPointer, mappedValue);
+        }
+      }
     }
 
     for (CIdExpression generatedVar : pGeneratedVars) {
@@ -124,6 +135,17 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       CExpression value = evaluatedValues.getOrDefault(generatedVar, null);
       newTaintedVars.put(generatedVar, value);
+
+      // If there is a pointer to the new tainted variable, taint the pointer as well
+      for (Map.Entry<CIdExpression, CExpression> entry : pState.getUntaintedVariables().entrySet()) {
+        CIdExpression taintedPointer = entry.getKey();
+        CExpression mappedValue = entry.getValue();
+
+        if (mappedValue instanceof CIdExpression idExpr && idExpr.equals(generatedVar)) {
+          newUntaintedVars.remove(taintedPointer);
+          newTaintedVars.put(taintedPointer, mappedValue);
+        }
+      }
     }
 
     return new TaintAnalysisState(newTaintedVars, newUntaintedVars, Set.of(pState));

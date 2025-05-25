@@ -70,7 +70,7 @@ public class TaintAnalysisUtils {
   }
 
   @Nullable
-  public static CLiteralExpression evaluateExpression(
+  public static CExpression evaluateExpression(
       CExpression expression,
       Map<CIdExpression, CExpression> taintedVariables,
       Map<CIdExpression, CExpression> untaintedVariables) {
@@ -83,28 +83,27 @@ public class TaintAnalysisUtils {
 
     } else if (expression instanceof CIdExpression idExpression) {
 
-      // Look up the value of the variable in the tainted and untainted maps
-      CExpression lastSavedValue =
-          taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression));
-
-      // If a value is found, return it
-      return (CLiteralExpression) lastSavedValue;
+      // Look up the value of the variable in the tainted and untainted maps.
+      return taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression));
 
     } else if (expression instanceof CBinaryExpression binaryExpression) {
 
       // Evaluate recursively
       CLiteralExpression operand1 =
-          evaluateExpression(binaryExpression.getOperand1(), taintedVariables, untaintedVariables);
+          (CLiteralExpression)
+              evaluateExpression(
+                  binaryExpression.getOperand1(), taintedVariables, untaintedVariables);
+
       CLiteralExpression operand2 =
-          evaluateExpression(binaryExpression.getOperand2(), taintedVariables, untaintedVariables);
+          (CLiteralExpression)
+              evaluateExpression(
+                  binaryExpression.getOperand2(), taintedVariables, untaintedVariables);
 
       return computeBinaryOperation(operand1, operand2, binaryExpression.getOperator());
 
     } else if (expression instanceof CUnaryExpression unaryExpression) {
-      CLiteralExpression operand =
-          evaluateExpression(unaryExpression.getOperand(), taintedVariables, untaintedVariables);
 
-      return computeUnaryOperation(operand, unaryExpression.getOperator());
+      return computeUnaryOperation(unaryExpression);
 
     } else if (expression instanceof CCastExpression castExpression) {
       // For cast expressions, evaluate the inner expression
@@ -229,42 +228,36 @@ public class TaintAnalysisUtils {
     return BigInteger.valueOf(0);
   }
 
-  private static CLiteralExpression computeUnaryOperation(
-      CLiteralExpression operand, UnaryOperator operator) {
+  private static CExpression computeUnaryOperation(CUnaryExpression unaryExpression) {
 
-    BigInteger result = null;
-    if (operand instanceof CIntegerLiteralExpression intExpr) {
-      if (intExpr.getValue() != null) {
+    CExpression operand = unaryExpression.getOperand();
+    UnaryOperator operator = unaryExpression.getOperator();
 
-        BigInteger value = ((CIntegerLiteralExpression) operand).getValue();
+    if (Objects.requireNonNull(operator) == UnaryOperator.MINUS) {
 
-        // TODO: more unary operator cases (?)
-        if (Objects.requireNonNull(operator) == UnaryOperator.MINUS) {
-          result = value.negate();
-        }
+      if (operand instanceof CIntegerLiteralExpression intExpr) {
+        BigInteger result = intExpr.getValue().negate();
+        return new CIntegerLiteralExpression(
+            operand.getFileLocation(), operand.getExpressionType(), result);
 
-        if (Objects.requireNonNull(operator) == UnaryOperator.AMPER) {
-          result = value.and(BigInteger.valueOf(0xffffffffL));
-        }
-
-        if (Objects.requireNonNull(operator) == UnaryOperator.TILDE) {
-          result = value.not();
-        }
-
-        if (Objects.requireNonNull(operator) == UnaryOperator.SIZEOF) {
-          result = BigInteger.valueOf(((CIntegerLiteralExpression) operand).getValue().bitLength());
-        }
-
-        if (Objects.requireNonNull(operator) == UnaryOperator.ALIGNOF) {
-          result = BigInteger.valueOf(((CIntegerLiteralExpression) operand).getValue().bitLength());
-        }
-
-        if (result == null) {
-          throw new UnsupportedOperationException("Unsupported operator: " + operator);
-        }
+      } else if (operand instanceof CFloatLiteralExpression floatExpr) {
+        BigDecimal result = BigDecimal.valueOf(floatExpr.getValue().doubleValue()).negate();
+        return new CFloatLiteralExpression(
+            operand.getFileLocation(), operand.getExpressionType(), result);
       }
-      return new CIntegerLiteralExpression(
-          operand.getFileLocation(), operand.getExpressionType(), result);
+
+    } else if (Objects.requireNonNull(operator) == UnaryOperator.AMPER) {
+
+      if (operand instanceof CIdExpression) {
+        return operand;
+      }
+
+    } else if (Objects.requireNonNull(operator) == UnaryOperator.TILDE) {
+      // TODO
+    } else if (Objects.requireNonNull(operator) == UnaryOperator.SIZEOF) {
+      // TODO
+    } else if (Objects.requireNonNull(operator) == UnaryOperator.ALIGNOF) {
+      // TODO
     }
 
     return null;
