@@ -508,10 +508,10 @@ public record FunArray(List<Bound> bounds, List<Interval> values, List<Boolean> 
     return unifyOperation(Interval::intersect, other, unknown, unknown);
   }
 
-  //  public FunArray widen(FunArray other, Interval unreachable) {
-  //    return unifyOperation(Interval::widen, other, unreachable, unreachable);
-  //  }
-  // TODO
+    public FunArray widen(FunArray other) {
+      Interval unreachable = Interval.EMPTY;
+      return unifyOperation(Interval::widen, other, unreachable, unreachable);
+    }
 
   //  public FunArray narrow(FunArray other, Interval unknown) {
   //    return unifyOperation(Interval::narrow, other, unknown, unknown);

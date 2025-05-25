@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -622,6 +623,27 @@ public class IntervalAnalysisState
         intervals,
         referenceCounts,
         modifiedArrays
+    );
+  }
+
+  public IntervalAnalysisState widen(IntervalAnalysisState other) {
+
+    var modifiedFunArrays = arrays.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            e -> e.getValue().widen(other.arrays.get(e.getKey()))
+        ));
+
+    var modifiedVariables = intervals.entrySet().stream()
+        .collect(Collectors.toMap(
+            Map.Entry::getKey,
+            e -> e.getValue().widen(other.intervals.get(e.getKey()))
+        ));
+
+    return new IntervalAnalysisState(
+        PathCopyingPersistentTreeMap.copyOf(modifiedVariables),
+        PathCopyingPersistentTreeMap.of(), //TODO: Hier das noch überlegen
+        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays)
     );
   }
 

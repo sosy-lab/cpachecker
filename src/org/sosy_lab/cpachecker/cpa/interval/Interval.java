@@ -584,4 +584,28 @@ public final class Interval implements Serializable {
     }
     return ImmutableSet.copyOf(result);
   }
+
+  /**
+   * The abstract widening operator. See: Cousot, P., Cousot, R. (1992). Comparing the Galois
+   * connection and widening/narrowing approaches to abstract interpretation. In: Bruynooghe, M.,
+   * Wirsing, M. (eds) Programming Language Implementation and Logic Programming. PLILP 1992.
+   * Lecture Notes in Computer Science, vol 631. Springer, Berlin, Heidelberg. <a
+   * href="https://doi.org/10.1007/3-540-55844-6_142">https://doi.org/10.1007/3-540-55844-6_142</a>.
+   *
+   * @param other the interval to widen this with.
+   * @return the widened interval.
+   */
+  public Interval widen(Interval other) {
+    Long lower = this.low;
+    Long upper = this.high;
+
+    if (other.getLow() < this.low) {
+      lower = Long.MIN_VALUE;
+    }
+
+    if (other.getHigh() > this.high) {
+      upper = Long.MAX_VALUE;
+    }
+    return new Interval(lower, upper);
+  }
 }
