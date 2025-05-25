@@ -14,7 +14,7 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
     int a, b, c, tainted, i;
     int a1, b1, c1, i1;
-    a = b = d = 0;
+    a = b = 0;
     c = tainted = __VERIFIER_nondet_int();
     int argc = __VERIFIER_nondet_int();
 
