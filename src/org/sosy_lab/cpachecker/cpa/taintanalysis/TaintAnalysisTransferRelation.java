@@ -313,16 +313,12 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               TaintAnalysisUtils.getAllVarsAsCExpr(assignmentRHS).stream()
                   .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
 
-          CLiteralExpression evaluatedValue =
-              TaintAnalysisUtils.evaluateExpression(
-                  assignmentRHS, pState.getTaintedVariables(), pState.getUntaintedVariables());
-
           if (rhsIsTainted) {
             generatedVars.add(assignmentLHS);
-            values.put(assignmentLHS, evaluatedValue);
+            values.put(assignmentLHS, assignmentRHS);
           } else {
             killedVars.add(assignmentLHS);
-            values.put(assignmentLHS, evaluatedValue);
+            values.put(assignmentLHS, assignmentRHS);
           }
         }
       }
