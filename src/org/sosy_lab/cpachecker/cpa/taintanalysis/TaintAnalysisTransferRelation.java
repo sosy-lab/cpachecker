@@ -267,7 +267,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           states.add(newState);
         }
       }
-    } // TODO: more cases for instances of the pExpression might be needed (?)
+    }
 
     return states;
   }
@@ -430,8 +430,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
         CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-        pState.getTaintedVariables().remove(functionParameter);
-        pState.getUntaintedVariables().remove(functionParameter);
+        killedVars.add(functionParameter);
+        // we don't pass explicit values here so that the last one saved is used
       }
     }
 
