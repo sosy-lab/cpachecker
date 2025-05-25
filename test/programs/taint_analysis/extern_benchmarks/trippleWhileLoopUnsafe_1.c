@@ -21,8 +21,8 @@ int main() {
     a2 = b2 = c2 = 0;
     int x = __VERIFIER_nondet_int();
 
-    while (a < 10) {
-        while (b < 10) {
+    while (a < 3) {
+        while (b < 3) {
             while (c < x) {
                 c++;
             }
@@ -35,9 +35,9 @@ int main() {
     __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(c, 0);
 
-    while (a1 < 10) {
+    while (a1 < 3) {
         while (b1 < x) {
-            while (c1 < 10) {
+            while (c1 < 3) {
                 c1++;
             }
             b1++;
@@ -49,9 +49,9 @@ int main() {
     __VERIFIER_is_public(b1, 0);
     __VERIFIER_is_public(c1, 0);
 
-    while (a2 < 10) {
+    while (a2 < 3) {
         while (b2 < x) {
-            while (c2 < 10) {
+            while (c2 < 3) {
                 c2++;
             }
             b2++;

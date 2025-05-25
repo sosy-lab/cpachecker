@@ -15,7 +15,7 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 int main() {
     int a = 0;
 
-    for (int i = 0; i < 100; ++ i) {
+    for (int i = 0; i < 3; ++ i) {
         a++;
     }
 

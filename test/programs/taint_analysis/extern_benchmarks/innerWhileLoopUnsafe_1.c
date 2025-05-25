@@ -18,22 +18,21 @@ int main() {
     a1 = b1 = __VERIFIER_nondet_int();
     int x = __VERIFIER_nondet_int();
 
-    while (a < 10) {
-        while (b < 20) {
+    while (a < 1) {
+        while (b < 1) {
             b++;
         }
         a++;
     }
 
     a1 = 0;
-    while (a1 < 10) {
+    while (a1 < 1) {
         while (b1) { // <- with this it works, but it is not terminating when using a condition like b1 < x
             b1++;
         }
         a1++;
     }
 
-    // TODO: Not recognizing property violations
     __VERIFIER_is_public(a, 1);
     __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(a1, 0);

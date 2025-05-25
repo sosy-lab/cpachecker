@@ -31,6 +31,7 @@ int main() {
 
     // t(c) = U + U + T = T
 
-    // c is expected to be tainted
+    // b and c is expected to be tainted
+    __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(c, 1);
 }

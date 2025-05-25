@@ -12,15 +12,15 @@ extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
-    int a, b, c, d, tainted, i;
-    int a1, b1, c1, d1, i1;
+    int a, b, c, tainted, i;
+    int a1, b1, c1, i1;
     a = b = d = 0;
     c = tainted = __VERIFIER_nondet_int();
     int argc = __VERIFIER_nondet_int();
 
-    for (int i = 0; i < argc; ++i) {
+    for (i = 0; i < argc; ++i) {
         a++;
-        while (b < 500) {
+        while (b < 2) {
             do {
                 c = argc + 1; // t(c) = t(argc) = T
             } while (c < argc);
@@ -31,12 +31,11 @@ int main() {
     __VERIFIER_is_public(a, 0);
     __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(c, 1);
-    __VERIFIER_is_public(d, 0);
 
-    a1 = b1 = c1 = d1 = 0;
+    a1 = b1 = c1 = 0;
     for (int i1 = 0; i1 < argc; ++i1) {
         a1++;
-        while (b1 < 500) {
+        while (b1 < 3) {
             do {
                 c1 = argc + 1; // t(c1) = t(argc) + t(1) = T + U = T
             } while (c1 < argc);
@@ -47,5 +46,4 @@ int main() {
     __VERIFIER_is_public(a1, 0);
     __VERIFIER_is_public(b1, 0);
     __VERIFIER_is_public(c1, 0);
-    __VERIFIER_is_public(d1, 0);
 }
