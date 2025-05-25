@@ -153,6 +153,21 @@ public class CFAUtilsTest {
     fullExpressionAtCorrectPosition(cfa, "[p < 2]", 87, 44, 87, 71);
     fullExpressionAtCorrectPosition(cfa, "f + g", 91, 34, 91, 71);
     fullExpressionAtCorrectPosition(cfa, "{a(h, k)}", 94, 30, 94, 43);
+    fullExpressionAtCorrectPosition(cfa, "f + 1", 97, 15, 97, 20);
+    fullExpressionAtCorrectPosition(cfa, "g = 1", 98, 7, 98, 24);
+    fullExpressionAtCorrectPosition(cfa, "g < 3", 98, 19, 98, 24);
+    fullExpressionAtCorrectPosition(cfa, "l = 4", 99, 5, 99, 17);
+    fullExpressionAtCorrectPosition(cfa, "l = 2", 99, 5,99,17);
+    fullExpressionAtCorrectPosition(cfa, "i = 4", 101, 18, 101, 19);
+    fullExpressionAtCorrectPosition(cfa, "j = 5", 101, 18, 101, 19);
+    fullExpressionAtCorrectPosition(cfa, "i > 1", 101, 29, 101, 41);
+    fullExpressionAtCorrectPosition(cfa, "j > 1", 101, 36, 101, 41);
+    fullExpressionAtCorrectPosition(cfa, "i + 3",102, 13, 102, 25);
+    fullExpressionAtCorrectPosition(cfa, "j + 1", 102, 20, 102, 25);
+    fullExpressionAtCorrectPosition(cfa, "f >= 0", 105, 11, 105, 25);
+    fullExpressionAtCorrectPosition(cfa, "g >= 0", 105, 19, 105, 25);
+    fullExpressionAtCorrectPosition(cfa, "f < 5", 105, 31, 105, 43);
+    fullExpressionAtCorrectPosition(cfa, "g < 5", 105, 38, 105, 43);
   }
 
   @Test

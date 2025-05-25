@@ -93,3 +93,16 @@ int c/* testing for comments */ ()  {
 
 int d(int h, int k) { return (a(h, k) > 0); }
 
+int e(int f, int g) {
+  int l = (f, f + 1);
+  if (g = 1, g++, g < 3) {
+    l = 4, l = 2;
+  } else {
+    for (int i = 4, j = 5; (i > 1, j > 1); i--, j--) {
+      l += (i + 3, j + 1);
+    }
+  }
+  return (f >= 0, g >= 0) && (f < 5, g < 5);
+}
+
+
