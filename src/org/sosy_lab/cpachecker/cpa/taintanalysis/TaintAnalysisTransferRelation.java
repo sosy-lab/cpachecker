@@ -531,9 +531,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
     if (pStatement instanceof CExpressionStatement) {
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
-    }
 
-    if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
+    } else if (pStatement instanceof CExpressionAssignmentStatement exprAssignStmt) {
       // E.g.: z = x * x + y;
       CLeftHandSide lhs = exprAssignStmt.getLeftHandSide();
       CExpression rhs = exprAssignStmt.getRightHandSide();
@@ -572,9 +571,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             Level.INFO, "lhs is not an instance of CIdExpression or CArraySubscriptExpression");
       }
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
-    }
 
-    if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
+    } else if (pStatement instanceof CFunctionCallStatement functionCallStmt) {
       CFunctionCallExpression callExpr = functionCallStmt.getFunctionCallExpression();
       String functionName = callExpr.getFunctionNameExpression().toString();
 
@@ -655,9 +653,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
         newStates.add(generateNewState(pState, killedVars, generatedVars, values));
       }
-    }
 
-    if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignStmt) {
+    } else if (pStatement instanceof CFunctionCallAssignmentStatement functionCallAssignStmt) {
       // e.g., x = __VERIFIER_nondet_int();
       CLeftHandSide lhs = functionCallAssignStmt.getLeftHandSide();
 
@@ -687,6 +684,9 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           killedVars.add(variableLHS);
         }
       }
+      newStates.add(generateNewState(pState, killedVars, generatedVars, values));
+
+    } else {
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
     }
 
