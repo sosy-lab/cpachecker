@@ -33,7 +33,6 @@ int main() {
         a1++;
     }
 
-    // TODO: Not recognizing property violations
     __VERIFIER_is_public(a, 0);
     __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(a1, 1);

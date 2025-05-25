@@ -32,8 +32,8 @@ int main() {
     }
 
     __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
-    __VERIFIER_is_public(c, 1);
+    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(c, 0);
 
     while (a1 < 10) {
         while (b1 < x) {
@@ -46,8 +46,8 @@ int main() {
     }
 
     __VERIFIER_is_public(a1, 0);
-    __VERIFIER_is_public(b1, 1);
-    __VERIFIER_is_public(c1, 1);
+    __VERIFIER_is_public(b1, 0);
+    __VERIFIER_is_public(c1, 0);
 
     while (a2 < 10) {
         while (b2 < x) {
@@ -59,7 +59,7 @@ int main() {
         a2 = b;
     }
 
-    __VERIFIER_is_public(a2, 1);
-    __VERIFIER_is_public(b2, 0);
+    __VERIFIER_is_public(a2, 0);
+    __VERIFIER_is_public(b2, 1);
     __VERIFIER_is_public(c2, 0);
 }

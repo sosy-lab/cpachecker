@@ -10,7 +10,6 @@
 
 // More of a basic benchmark for testing termination
 
-extern int __VERIFIER_nondet_int();
 extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {

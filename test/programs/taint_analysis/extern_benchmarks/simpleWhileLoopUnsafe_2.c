@@ -20,5 +20,5 @@ int main() {
     }
 
     // x is expected to be tainted
-    __VERIFIER_is_public(x, )1;
+    __VERIFIER_is_public(x, 1);
 }
