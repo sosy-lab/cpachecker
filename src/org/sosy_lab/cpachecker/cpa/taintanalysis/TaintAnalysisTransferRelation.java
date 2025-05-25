@@ -411,6 +411,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
               .anyMatch(var -> pState.getTaintedVariables().containsKey(var));
 
       if (returnExpressionIsTainted) {
+        if (pCfaEdge.getSuccessor().getFunction().getName().equals("main")) {
+          logger.log(Level.FINE, "Main is returning a tainted value");
+          pState.setViolatesProperty();
+        }
         generatedVars.add(lhs);
         values.put(lhs, returnExpression);
       } else {
@@ -426,9 +430,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
       if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
         CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-        //        killedVars.add(functionParameter);
-        //        values.put(functionParameter, null);
-        // TODO: must be checked if this line is only reachable from a return statement
         pState.getTaintedVariables().remove(functionParameter);
         pState.getUntaintedVariables().remove(functionParameter);
       }
