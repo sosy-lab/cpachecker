@@ -957,11 +957,40 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testPointersAsParamSimpleSafe_1() throws Exception {
     TestResults results = runCPAchecker("pointersAsParamSimpleSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_1_1() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_1_1.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_1_2() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_1_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_1_3() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_1_3.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_1_4() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_1_4.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_1_5() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_1_5.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Ignore
