@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -47,14 +46,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -321,7 +319,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (!pArguments.isEmpty()) {
-      // Before entering the called function, we associate the function arguments with the passed parameters
+      // Before entering the called function, we associate the function arguments with the passed
+      // parameters
       for (int i = 0; i < pArguments.size(); i++) {
         CIdExpression assignmentLHS;
         CExpression assignmentRHS = pArguments.get(i);
@@ -646,7 +645,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       } else {
         logger.log(
             Level.INFO,
-            "lhs is not an instance of CIdExpression or CArraySubscriptExpression or CPointerExpression");
+            "lhs is not an instance of CIdExpression or CArraySubscriptExpression or"
+                + " CPointerExpression");
       }
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
