@@ -8,84 +8,68 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents.computeIntegratedInvariantFormula;
+import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents.createComponentsFromSSAMap;
+
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelation;
+import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.StemAndLoop;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-public class RankingRelationInvariantGenerator extends AbstractInvariantGenerator
-    implements ReachedSetNotEqual {
+public class RankingRelationInvariantGenerator extends AbstractInvariantGenerator {
 
   private ReachedSet reachedSet;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final CFA cfa;
-  private  StemAndLoop stemAndLoop;
-
-  private LassoAnalysisResult synthesizeTerminationArgument;
   private CounterexampleInfo counterexampleInfo;
-  private LassoBuilder lassoBuilder;
 
-  public RankingRelationInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
+  public RankingRelationInvariantGenerator(
+      AggregatedReachedSets pAggregatedReachedSets,
+      CFA pCFA) {
     this.aggregatedReachedSets = pAggregatedReachedSets;
     this.cfa = pCFA;
   }
 
-  @Override
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
-  }
-
-  protected Iterable<AbstractState> getReachedStates() {
-    if (reachedSet == null) {
-
-      return ImmutableList.of();
-    } else {
-
-      return reachedSet.asCollection();
-    }
-  }
-
-
-  public void setStemAndLoop(StemAndLoop pStemAndLoop) {
-    this.stemAndLoop = pStemAndLoop;
-  }
-  public void setSynthesizeTerminationArgument(LassoAnalysisResult pSynthesizeTerminationArgument) {
-    this.synthesizeTerminationArgument = pSynthesizeTerminationArgument;
-  }
-
-  public void setLassoBuilder(LassoBuilder pLassoBuilder) {
-    this.lassoBuilder = pLassoBuilder;
   }
 
   public void setCounterexampleInfo(CounterexampleInfo pCounterexampleInfo) {
     this.counterexampleInfo = pCounterexampleInfo;
   }
 
+  protected Iterable<AbstractState> getReachedStates() {
+    if (reachedSet == null) {
+      return ImmutableList.of();
+    } else {
+      return reachedSet.asCollection();
+    }
+  }
 
   @Override
   protected void startImpl(CFANode pInitialLocation) {}
@@ -111,23 +95,42 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
           PathFormula pContext)
           throws InterruptedException {
 
-        ARGPath argPath = counterexampleInfo.getTargetPath();
+        BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+        BooleanFormula reachedSetInvariant = bfmgr.makeTrue();
+        BooleanFormula rankingRelationInvariant = bfmgr.makeTrue();
 
+        Iterable<AbstractState> nodeStates = AbstractStates.filterLocation(getReachedStates(), node);
 
+        for (AbstractState state : nodeStates) {
 
-        BooleanFormula loopFormula = stemAndLoop.getLoop();
+          PredicateAbstractState pas = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          if (pas == null) {
+            continue;
+          }
 
+          BooleanFormula extractedState = AbstractStates.extractReportedFormulas(fmgr, state);
+          reachedSetInvariant = bfmgr.and(reachedSetInvariant, extractedState);
 
-        SSAMap loopInVars = stemAndLoop.getLoopInVars();
+          PathFormula currentPf = pas.getPathFormula();
+          SSAMap ssaMap = currentPf.getSsa();
 
-        RankingRelation rankingRelation = synthesizeTerminationArgument.getTerminationArgument();
-        BooleanFormula loopInvariant = rankingRelation.asFormula();
+          if (ssaMap != null) {
+            IntegerFormulaManagerView intgerFormulaManager = fmgr.getIntegerFormulaManager();
+            IntegerFormula zero2 = intgerFormulaManager.makeNumber(0L);
 
-        BooleanFormula rankingRelationInvariant;
-        rankingRelationInvariant = fmgr.getBooleanFormulaManager().and(loopInvariant);
-        return rankingRelationInvariant;
+            RankingRelationComponents componentsFromState = createComponentsFromSSAMap(ssaMap, fmgr, zero2);
+            BooleanFormula computedInvariant = computeIntegratedInvariantFormula(componentsFromState, fmgr, zero2);
+
+            rankingRelationInvariant = bfmgr.and(rankingRelationInvariant, computedInvariant);
+          } else {
+            rankingRelationInvariant = bfmgr.makeTrue();
+          }
+        }
+
+        BooleanFormula finalInvariant = bfmgr.and(reachedSetInvariant, rankingRelationInvariant);
+
+        return finalInvariant;
       }
-
     };
   }
 
@@ -136,6 +139,4 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
       throws CPAException, InterruptedException {
     return new ExpressionTreeInvariantSupplier(aggregatedReachedSets, cfa);
   }
-
-
 }

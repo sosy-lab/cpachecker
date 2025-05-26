@@ -32,7 +32,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
-    implements ReachedSetNotEqual {
+ {
 
   private ReachedSet reachedSet;
 
@@ -44,7 +44,6 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
     this.cfa = pCFA;
   }
 
-  @Override
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
   }
