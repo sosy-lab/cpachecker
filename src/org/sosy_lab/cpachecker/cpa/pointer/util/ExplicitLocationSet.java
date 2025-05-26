@@ -184,10 +184,12 @@ public class ExplicitLocationSet implements LocationSet {
 
   @Override
   public int compareTo(LocationSet pSetToCompare) {
+    // This compareTo implementation combines special-case ordering of BOT and TOP
+    // with ComparisonChain for internal field comparison of ExplicitLocationSets.
+    // This structure is necessary due to lattice semantics of LocationSet.
     if (this.equals(pSetToCompare)) {
       return 0;
     }
-
     if (pSetToCompare instanceof LocationSetBot) {
       return 1;
     } else if (pSetToCompare instanceof LocationSetTop) {
