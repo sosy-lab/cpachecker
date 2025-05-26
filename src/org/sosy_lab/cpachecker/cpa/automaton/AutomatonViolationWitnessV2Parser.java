@@ -471,8 +471,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
           new AutomatonInternalState(
               currentStateId,
               ImmutableList.of(
-                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName)
-                          .build()),
+                  new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName).build()),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
               /* pIsCycleStart= */ false));

@@ -181,7 +181,8 @@ class AutomatonWitnessV2ParserCommon {
     }
   }
 
-  private void checkTargetIsAtEnd(WaypointRecord latest, int numCycleWaypoints, int numTargetWaypoints)
+  private void checkTargetIsAtEnd(
+      WaypointRecord latest, int numCycleWaypoints, int numTargetWaypoints)
       throws InvalidYAMLWitnessException {
     if (numCycleWaypoints > 0) {
       return;
