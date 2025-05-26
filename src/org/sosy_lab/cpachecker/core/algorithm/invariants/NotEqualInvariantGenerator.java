@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
- {
+public class NotEqualInvariantGenerator extends AbstractInvariantGenerator {
 
   private ReachedSet reachedSet;
 
@@ -50,10 +49,8 @@ public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
 
   protected Iterable<AbstractState> getReachedStates() {
     if (reachedSet == null) {
-
       return ImmutableList.of();
     } else {
-
       return reachedSet.asCollection();
     }
   }
