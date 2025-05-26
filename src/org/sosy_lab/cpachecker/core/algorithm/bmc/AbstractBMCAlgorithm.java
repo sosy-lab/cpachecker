@@ -59,7 +59,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -80,8 +79,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.NotEqualInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.RankingRelationInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder.StemAndLoop;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -230,12 +227,6 @@ abstract class AbstractBMCAlgorithm
   private final AssignmentToPathAllocator assignmentToPathAllocator;
   private final Specification specification;
 
-
-  private LassoBuilder lassoBuilder;
-  private CounterexampleInfo counterexampleInfo;
-
-
-
   protected final ShutdownNotifier shutdownNotifier;
 
   private final TargetLocationProvider targetLocationProvider;
@@ -309,14 +300,12 @@ abstract class AbstractBMCAlgorithm
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
       invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
-      // invariantGenerationStrategy2 = InvariantGeneratorFactory.DO_NOTHING;
       invariantGeneratorHeadStartStrategy = InvariantGeneratorHeadStartFactories.NONE;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
     boolean addInvariantsByInduction =
         invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
-    // invariantGenerationStrategy2 == InvariantGeneratorFactory.INDUCTION;
     if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
@@ -328,7 +317,6 @@ abstract class AbstractBMCAlgorithm
 
     if (pIsInvariantGenerator && addInvariantsByInduction) {
       invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
-      // invariantGenerationStrategy2 = InvariantGeneratorFactory.NOT_EQUAL;
     }
     Configuration invGenConfig = pConfig;
     if (invariantGeneratorConfig != null) {
@@ -412,15 +400,8 @@ abstract class AbstractBMCAlgorithm
 
     if (invariantGenerator instanceof NotEqualInvariantGenerator) {
       ((NotEqualInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
-    }else if(invariantGenerator instanceof RankingRelationInvariantGenerator){
- //     ((RankingRelationInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
-        RankingRelationInvariantGenerator rankingGenerator = (RankingRelationInvariantGenerator) invariantGenerator;
-        rankingGenerator.setReachedSet(reachedSet);
-//        rankingGenerator.setCounterexampleInfo();
-//        rankingGenerator.setStemAndLoop();
-
-
-
+    } else if (invariantGenerator instanceof RankingRelationInvariantGenerator) {
+      ((RankingRelationInvariantGenerator) invariantGenerator).setReachedSet(reachedSet);
     }
 
     invariantGenerator.start(initialLocation);
@@ -472,7 +453,6 @@ abstract class AbstractBMCAlgorithm
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-
         // Perform a bounded model check on each candidate invariant
         Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
         while (candidateInvariantIterator.hasNext()) {
@@ -887,7 +867,6 @@ abstract class AbstractBMCAlgorithm
     // get (precise) error path
     logger.log(Level.INFO, "Error found, creating error path");
     ARGPath targetPath;
-
     stats.errorPathCreation.start();
     try {
       Set<ARGState> targetStates =
@@ -963,7 +942,6 @@ abstract class AbstractBMCAlgorithm
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(ImmutableList.of(cexFormula), targetPath);
       return Optional.of(pathChecker.handleFeasibleCounterexample(cexInfo, targetPath));
-
     } finally {
       stats.errorPathProcessing.stop();
     }
@@ -1115,22 +1093,22 @@ abstract class AbstractBMCAlgorithm
       }
     },
 
-//    NOT_EQUAL {
-//      @Override
-//      InvariantGenerator createInvariantGenerator(
-//          Configuration pConfig,
-//          LogManager pLogger,
-//          ReachedSetFactory pReachedSetFactory,
-//          ShutdownManager pShutdownManager,
-//          CFA pCFA,
-//          Specification pSpecification,
-//          AggregatedReachedSets pAggregatedReachedSets,
-//          TargetLocationProvider pTargetLocationProvider) {
-//        return new NotEqualInvariantGenerator(pAggregatedReachedSets, pCFA);
-//      }
-//    },
+    NOT_EQUAL {
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider) {
+        return new NotEqualInvariantGenerator(pAggregatedReachedSets, pCFA);
+      }
+    },
 
-    RANKING_RELATION{
+    RANKING_RELATION {
       @Override
       InvariantGenerator createInvariantGenerator(
           Configuration pConfig,
@@ -1142,7 +1120,6 @@ abstract class AbstractBMCAlgorithm
           AggregatedReachedSets pAggregatedReachedSets,
           TargetLocationProvider pTargetLocationProvider) {
         return new RankingRelationInvariantGenerator(pAggregatedReachedSets, pCFA);
-
       }
     },
 
