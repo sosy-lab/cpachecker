@@ -1127,11 +1127,16 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testSimpleBufferExampleSafe() throws Exception {
     TestResults results = runCPAchecker("simpleBufferExampleSafe.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testSimpleBufferExampleUnsafe() throws Exception {
+    TestResults results = runCPAchecker("simpleBufferExampleUnsafe.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Test
