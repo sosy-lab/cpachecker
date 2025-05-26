@@ -100,6 +100,7 @@ import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.Value;
+import org.sosy_lab.llvm_j.Value.IntPredicate;
 import org.sosy_lab.llvm_j.Value.OpCode;
 
 /** CFA builder for LLVM IR. Metadata stored in the LLVM IR file is ignored. */
@@ -954,44 +955,37 @@ public class CFABuilder {
   private CExpression createFromOpCode(
       final Value pItem, final Path pFileName, final OpCode pOpCode) throws LLVMException {
 
-    switch (pOpCode) {
-      // Arithmetic operations
-      case Add:
-      case FAdd:
-      case Sub:
-      case FSub:
-      case Mul:
-      case FMul:
-      case UDiv:
-      case SDiv:
-      case FDiv:
-      case URem:
-      case SRem:
-      case FRem:
-      case Shl:
-      case LShr:
-      case AShr:
-      case And:
-      case Or:
-      case Xor:
-        return createFromArithmeticOp(pItem, pOpCode, pFileName);
-
-      case GetElementPtr:
-        return createGetElementPtrExp(pItem, pFileName);
-      case BitCast:
-        return createBitcast(pItem, pFileName);
-
-      case PtrToInt:
-      case IntToPtr:
-        return new CCastExpression(
-            getLocation(pItem, pFileName),
-            typeConverter.getCType(pItem),
-            getExpression(
-                pItem.getOperand(0), typeConverter.getCType(pItem.getOperand(0)), pFileName));
-
-      default:
-        throw new UnsupportedOperationException(pOpCode.toString());
-    }
+    return switch (pOpCode) {
+      case Add,
+          FAdd,
+          Sub,
+          FSub,
+          Mul,
+          FMul,
+          UDiv,
+          SDiv,
+          FDiv,
+          URem,
+          SRem,
+          FRem,
+          Shl,
+          LShr,
+          AShr,
+          And,
+          Or,
+          Xor ->
+          // Arithmetic operations
+          createFromArithmeticOp(pItem, pOpCode, pFileName);
+      case GetElementPtr -> createGetElementPtrExp(pItem, pFileName);
+      case BitCast -> createBitcast(pItem, pFileName);
+      case PtrToInt, IntToPtr ->
+          new CCastExpression(
+              getLocation(pItem, pFileName),
+              typeConverter.getCType(pItem),
+              getExpression(
+                  pItem.getOperand(0), typeConverter.getCType(pItem.getOperand(0)), pFileName));
+      default -> throw new UnsupportedOperationException(pOpCode.toString());
+    };
   }
 
   private CExpression createBitcast(Value pItem, Path pFileName) throws LLVMException {
@@ -1024,80 +1018,57 @@ public class CFABuilder {
     logger.log(Level.FINE, "Getting id expression for operand 2");
     CExpression operand2Exp = getExpression(operand2, op2type, pFileName);
 
-    CBinaryExpression.BinaryOperator operation;
-    switch (pOpCode) {
-      case Add:
-      case FAdd:
-        operation = BinaryOperator.PLUS;
-        break;
-      case Sub:
-      case FSub:
-        operation = BinaryOperator.MINUS;
-        break;
-      case Mul:
-      case FMul:
-        operation = BinaryOperator.MULTIPLY;
-        break;
-      case UDiv:
-      case SDiv:
-      case FDiv:
-        // TODO: Respect unsigned and signed divide
-        operation = BinaryOperator.DIVIDE;
-        break;
-      case URem:
-      case SRem:
-      case FRem:
-        // TODO: Respect unsigned and signed modulo
-        operation = BinaryOperator.MODULO;
-        break;
-      case Shl: // Shift left
-        operation = BinaryOperator.SHIFT_LEFT;
-        break;
-      case LShr: // Logical shift right
-        // GNU C performs a logical shift for unsigned types
-        op1type =
-            typeConverter.getCType(
-                operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
-        operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
-      // $FALL-THROUGH$
-      case AShr: // Arithmetic shift right
-        if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
-          throw new UnsupportedOperationException(
-              "Right shifts are only supported for integer types, but operands were "
-                  + op1type
-                  + " and "
-                  + op2type);
-        }
-        if (operand2.isConstantInt()) {
-          long op2value = operand2.constIntGetSExtValue();
-          int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
-          if (op2value < 0 || op2value >= bitwidthOp1) {
-            throw new LLVMException("Shift count is negative or >= width of type");
+    CBinaryExpression.BinaryOperator operation =
+        switch (pOpCode) {
+          case Add, FAdd -> BinaryOperator.PLUS;
+          case Sub, FSub -> BinaryOperator.MINUS;
+          case Mul, FMul -> BinaryOperator.MULTIPLY;
+          case UDiv, SDiv, FDiv ->
+              BinaryOperator.DIVIDE; // TODO: Respect unsigned and signed divide
+          case URem, SRem, FRem ->
+              BinaryOperator.MODULO; // TODO: Respect unsigned and signed modulo
+          case Shl -> BinaryOperator.SHIFT_LEFT;
+          case LShr, AShr -> {
+            // Logical shift right
+            // Arithmetic shift right
+            if (!(isIntegerType(op1type) && isIntegerType(op2type))) {
+              throw new UnsupportedOperationException(
+                  "Right shifts are only supported for integer types, but operands were "
+                      + op1type
+                      + " and "
+                      + op2type);
+            }
+            if (operand2.isConstantInt()) {
+              long op2value = operand2.constIntGetSExtValue();
+              int bitwidthOp1 = operand1.typeOf().getIntTypeWidth();
+              if (op2value < 0 || op2value >= bitwidthOp1) {
+                throw new LLVMException("Shift count is negative or >= width of type");
+              }
+            }
+
+            if (pOpCode == OpCode.LShr) {
+              // GNU C performs a logical shift for unsigned types
+              op1type =
+                  typeConverter.getCType(
+                      operand1.typeOf(), /* isUnsigned= */ true, operand1.isConstant());
+              operand1Exp = castToExpectedType(operand1Exp, op1type, getLocation(pItem, pFileName));
+            }
+
+            // operand2 should always be treated as an unsigned value
+            op2type =
+                typeConverter.getCType(
+                    operand2.typeOf(), /* isUnsigned= */ true, operand2.isConstant());
+            operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
+
+            // calculate the shift with the signedness of op1type
+            internalExpressionType = machineModel.applyIntegerPromotion(op1type);
+            yield BinaryOperator.SHIFT_RIGHT;
           }
-        }
-
-        // operand2 should always be treated as an unsigned value
-        op2type =
-            typeConverter.getCType(
-                operand2.typeOf(), /* isUnsigned= */ true, operand2.isConstant());
-        operand2Exp = castToExpectedType(operand2Exp, op2type, getLocation(pItem, pFileName));
-
-        // calculate the shift with the signedness of op1type
-        internalExpressionType = machineModel.applyIntegerPromotion(op1type);
-        operation = BinaryOperator.SHIFT_RIGHT;
-        break;
-      case And:
-        operation = BinaryOperator.BINARY_AND;
-        break;
-      case Or:
-        operation = BinaryOperator.BINARY_OR;
-        break;
-      case Xor:
-        operation = BinaryOperator.BINARY_XOR;
-        break;
-      default:
-        throw new AssertionError("Unhandled operation " + pOpCode);
-    }
+          case And -> BinaryOperator.BINARY_AND;
+          case Or -> BinaryOperator.BINARY_OR;
+          case Xor -> BinaryOperator.BINARY_XOR;
+          default -> throw new AssertionError("Unhandled operation " + pOpCode);
+        };
 
     CBinaryExpression expression =
         new CBinaryExpression(
@@ -1763,43 +1734,22 @@ public class CFABuilder {
       throws LLVMException {
     // the only one supported now
     assert pItem.isICmpInst() : "Unsupported cmp instruction: " + pItem;
-    boolean isUnsignedCmp = false;
+    IntPredicate cmpPredicate = pItem.getICmpPredicate();
 
-    BinaryOperator operator;
-    switch (pItem.getICmpPredicate()) {
-      case IntEQ:
-        operator = BinaryOperator.EQUALS;
-        break;
-      case IntNE:
-        operator = BinaryOperator.NOT_EQUALS;
-        break;
-      case IntUGT:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
-      case IntSGT:
-        operator = BinaryOperator.GREATER_THAN;
-        break;
-      case IntULT:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
-      case IntSLT:
-        operator = BinaryOperator.LESS_THAN;
-        break;
-      case IntULE:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
-      case IntSLE:
-        operator = BinaryOperator.LESS_EQUAL;
-        break;
-      case IntUGE:
-        isUnsignedCmp = true;
-      // $FALL-THROUGH$
-      case IntSGE:
-        operator = BinaryOperator.GREATER_EQUAL;
-        break;
-      default:
-        throw new UnsupportedOperationException("Unsupported predicate");
-    }
+    BinaryOperator operator =
+        switch (cmpPredicate) {
+          case IntEQ -> BinaryOperator.EQUALS;
+          case IntNE -> BinaryOperator.NOT_EQUALS;
+          case IntUGT, IntSGT -> BinaryOperator.GREATER_THAN;
+          case IntULT, IntSLT -> BinaryOperator.LESS_THAN;
+          case IntULE, IntSLE -> BinaryOperator.LESS_EQUAL;
+          case IntUGE, IntSGE -> BinaryOperator.GREATER_EQUAL;
+        };
+    final boolean isUnsignedCmp =
+        switch (cmpPredicate) {
+          case IntUGT, IntULT, IntULE, IntUGE -> true;
+          default -> false;
+        };
 
     assert operator != null;
     Value operand1 = pItem.getOperand(0);

@@ -95,15 +95,9 @@ public class FaultReportWriter {
     // Sorted insert
     for (FaultInfo info : infos) {
       switch (info.getType()) {
-        case FIX:
-          faultFix.add((PotentialFix) info);
-          break;
-        case REASON:
-          faultReasons.add((FaultReason) info);
-          break;
-        case RANK_INFO:
-          faultInfo.add((RankInfo) info);
-          break;
+        case FIX -> faultFix.add((PotentialFix) info);
+        case REASON -> faultReasons.add((FaultReason) info);
+        case RANK_INFO -> faultInfo.add((RankInfo) info);
       }
     }
 

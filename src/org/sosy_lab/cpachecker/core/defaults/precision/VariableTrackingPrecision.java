@@ -81,7 +81,6 @@ public abstract class VariableTrackingPrecision implements Precision {
     return switch (options.sharing) {
       case LOCATION -> new LocalizedRefinablePrecision(pBaseline);
       case SCOPE -> new ScopedRefinablePrecision(pBaseline);
-      default -> throw new AssertionError("Unhandled case in switch statement");
     };
   }
 

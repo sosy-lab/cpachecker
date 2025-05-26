@@ -312,6 +312,6 @@ record SliceExpression(
 
   /** Returns whether there are any resolved modifiers, i.e. slice formula index modifiers. */
   boolean containsResolvedModifiers() {
-    return modifiers.stream().anyMatch(modifier -> modifier instanceof SliceFormulaIndexModifier);
+    return modifiers.stream().anyMatch(SliceFormulaIndexModifier.class::isInstance);
   }
 }

@@ -537,7 +537,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     "No more candidates available: The safety property has already been"
                         + " confirmed.");
               }
-              return candidate = iterator.next();
+              candidate = iterator.next();
+              return candidate;
             }
 
             @Override

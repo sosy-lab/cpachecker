@@ -175,67 +175,46 @@ public class ReachingDefTransferRelation implements TransferRelation {
       return Collections.singleton(pState);
     }
 
-    ReachingDefState result;
-
-    switch (pCfaEdge.getEdgeType()) {
-      case StatementEdge:
-        {
-          result = handleStatementEdge((ReachingDefState) pState, (CStatementEdge) pCfaEdge);
-          break;
-        }
-      case DeclarationEdge:
-        {
-          result = handleDeclarationEdge((ReachingDefState) pState, (CDeclarationEdge) pCfaEdge);
-          break;
-        }
-      case FunctionCallEdge:
-        {
-          result = handleCallEdge((ReachingDefState) pState, (CFunctionCallEdge) pCfaEdge);
-          break;
-        }
-      case FunctionReturnEdge:
-        {
-          result = handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
-          break;
-        }
-      case ReturnStatementEdge:
-        result = handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
-        break;
-
-      case AssumeEdge:
-        result = handleAssumption((ReachingDefState) pState, (CAssumeEdge) pCfaEdge);
-        break;
-
-      case BlankEdge:
-        // TODO still correct?
-        // special case entering the main method for the first time (no local variables known)
-        logger.log(
-            Level.FINE,
-            "Start of main function. ",
-            "Add undefined position for local variables of main function. ",
-            "Add definition of parameters of main function.");
-        if (Objects.equals(pCfaEdge.getPredecessor(), main)
-            && ((ReachingDefState) pState).getLocalReachingDefinitions().size() == 0) {
-          result =
-              ((ReachingDefState) pState)
+    ReachingDefState result =
+        switch (pCfaEdge.getEdgeType()) {
+          case StatementEdge ->
+              handleStatementEdge((ReachingDefState) pState, (CStatementEdge) pCfaEdge);
+          case DeclarationEdge ->
+              handleDeclarationEdge((ReachingDefState) pState, (CDeclarationEdge) pCfaEdge);
+          case FunctionCallEdge ->
+              handleCallEdge((ReachingDefState) pState, (CFunctionCallEdge) pCfaEdge);
+          case FunctionReturnEdge ->
+              handleReturnEdge((ReachingDefState) pState, (CFunctionReturnEdge) pCfaEdge);
+          case ReturnStatementEdge ->
+              handleReturnStatement((CReturnStatementEdge) pCfaEdge, (ReachingDefState) pState);
+          case AssumeEdge -> handleAssumption((ReachingDefState) pState, (CAssumeEdge) pCfaEdge);
+          case BlankEdge -> {
+            // TODO still correct?
+            // special case entering the main method for the first time (no local variables known)
+            logger.log(
+                Level.FINE,
+                "Start of main function. ",
+                "Add undefined position for local variables of main function. ",
+                "Add definition of parameters of main function.");
+            if (Objects.equals(pCfaEdge.getPredecessor(), main)
+                && ((ReachingDefState) pState).getLocalReachingDefinitions().size() == 0) {
+              yield ((ReachingDefState) pState)
                   .initVariables(
                       localVariablesPerFunction.get(pCfaEdge.getPredecessor()),
                       getParameters((CFunctionEntryNode) pCfaEdge.getPredecessor()),
                       pCfaEdge.getPredecessor(),
                       pCfaEdge.getSuccessor());
-          break;
-        }
-      // $FALL-THROUGH$
-      case CallToReturnEdge:
-        logger.log(
-            Level.FINE,
-            "Reaching definition not affected by edge. ",
-            "Keep reaching definition unchanged.");
-        result = (ReachingDefState) pState;
-        break;
-      default:
-        throw new CPATransferException("Unknown CFA edge type.");
-    }
+            }
+            yield (ReachingDefState) pState;
+          }
+          case CallToReturnEdge -> {
+            logger.log(
+                Level.FINE,
+                "Reaching definition not affected by edge. ",
+                "Keep reaching definition unchanged.");
+            yield (ReachingDefState) pState;
+          }
+        };
 
     return Collections.singleton(result);
   }

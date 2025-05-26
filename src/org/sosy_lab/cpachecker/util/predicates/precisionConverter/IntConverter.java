@@ -231,7 +231,7 @@ public class IntConverter extends Converter {
           format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
           new Type<>(type));
 
-    } else if (binBooleanOps.contains(op.getFirst())) {
+    } else if (BIN_BOOLEAN_OPS.contains(op.getFirst())) {
       return Pair.of(
           format(
               "(%s %s)",

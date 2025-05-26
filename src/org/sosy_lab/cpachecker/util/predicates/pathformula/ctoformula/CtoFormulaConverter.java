@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -306,9 +305,10 @@ public class CtoFormulaConverter {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
-        case FLOAT:
+        case FLOAT -> {
           return FormulaType.getSinglePrecisionFloatingPointType();
-        case DOUBLE:
+        }
+        case DOUBLE -> {
           if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
@@ -328,10 +328,11 @@ public class CtoFormulaConverter {
             }
           }
           return FormulaType.getDoublePrecisionFloatingPointType();
-        case FLOAT128:
+        }
+        case FLOAT128 -> {
           return FormulaType.getFloatingPointType(15, 112);
-        default:
-          break;
+        }
+        default -> {}
       }
     }
 
@@ -1029,7 +1030,7 @@ public class CtoFormulaConverter {
 
   //  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     String function =
         (edge.getPredecessor() != null) ? edge.getPredecessor().getFunctionName() : null;
@@ -1215,64 +1216,54 @@ public class CtoFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
-    switch (edge.getEdgeType()) {
-      case StatementEdge:
-        return makeStatement(
-            (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
+      throws UnrecognizedCodeException, InterruptedException {
+    return switch (edge.getEdgeType()) {
+      case StatementEdge ->
+          makeStatement((CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case ReturnStatementEdge:
-        {
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-          return makeReturn(
-              returnEdge.asAssignment(),
-              returnEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-        }
+      case ReturnStatementEdge -> {
+        CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
+        yield makeReturn(
+            returnEdge.asAssignment(),
+            returnEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions);
+      }
+      case DeclarationEdge ->
+          makeDeclaration(
+              (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case DeclarationEdge:
-        return makeDeclaration(
-            (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
+      case AssumeEdge -> {
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        yield makePredicate(
+            assumeEdge.getExpression(),
+            assumeEdge.getTruthAssumption(),
+            assumeEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions);
+      }
+      case BlankEdge -> bfmgr.makeTrue();
 
-      case AssumeEdge:
-        {
-          CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-          return makePredicate(
-              assumeEdge.getExpression(),
-              assumeEdge.getTruthAssumption(),
-              assumeEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-        }
+      case FunctionCallEdge ->
+          makeFunctionCall(
+              (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case BlankEdge:
-        return bfmgr.makeTrue();
-
-      case FunctionCallEdge:
-        return makeFunctionCall(
-            (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
-
-      case FunctionReturnEdge:
-        {
-          // get the expression from the summary edge
-          CFunctionSummaryEdge ce = ((CFunctionReturnEdge) edge).getSummaryEdge();
-          return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
-        }
-
-      case CallToReturnEdge:
+      case FunctionReturnEdge -> {
+        // get the expression from the summary edge
+        CFunctionSummaryEdge ce = ((CFunctionReturnEdge) edge).getSummaryEdge();
+        yield makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
+      }
+      case CallToReturnEdge -> {
         CFunctionSummaryEdge ce = (CFunctionSummaryEdge) edge;
-        return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
-
-      default:
-        throw new UnrecognizedCFAEdgeException(edge);
-    }
+        yield makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
+      }
+    };
   }
 
   private BooleanFormula makeStatement(

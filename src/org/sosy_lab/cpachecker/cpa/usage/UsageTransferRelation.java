@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -210,41 +209,18 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private void handleEdge(CFAEdge pCfaEdge) throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        {
-          CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          handleDeclaration(declEdge);
-          break;
-        }
-
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge:
-        {
-          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(statementEdge.getStatement());
-          break;
-        }
-
-      case AssumeEdge:
-        {
-          visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
-          break;
-        }
-
-      case FunctionCallEdge:
-        {
-          handleFunctionCall((CFunctionCallEdge) pCfaEdge);
-          break;
-        }
-
-      case FunctionReturnEdge:
-      case ReturnStatementEdge:
-      case BlankEdge:
-      case CallToReturnEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(pCfaEdge);
+      case DeclarationEdge -> {
+        CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
+        handleDeclaration(declEdge);
+        // if edge is a statement edge, e.g. a = b + c
+      }
+      case StatementEdge -> {
+        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+        handleStatement(statementEdge.getStatement());
+      }
+      case AssumeEdge -> visitStatement(((CAssumeEdge) pCfaEdge).getExpression(), Access.READ);
+      case FunctionCallEdge -> handleFunctionCall((CFunctionCallEdge) pCfaEdge);
+      case FunctionReturnEdge, ReturnStatementEdge, BlankEdge, CallToReturnEdge -> {}
     }
   }
 

@@ -188,15 +188,14 @@ class AutomatonWitnessV2ParserCommon {
       return;
     }
     switch (numTargetWaypoints) {
-      case 0:
-        throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
-      case 1:
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1 -> {
         if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
           throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
         }
-        break;
-      default:
-        throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
     }
   }
 

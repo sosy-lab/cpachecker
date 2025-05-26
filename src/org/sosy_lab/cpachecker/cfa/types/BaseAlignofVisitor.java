@@ -40,21 +40,20 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
   @Override
   public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
-    switch (pCompositeType.getKind()) {
-      case STRUCT:
-      case UNION:
+    return switch (pCompositeType.getKind()) {
+      case STRUCT, UNION -> {
         int alignof = 1;
         // TODO: Take possible padding into account
         for (CCompositeTypeMemberDeclaration decl : pCompositeType.getMembers()) {
           int alignOfType = decl.getType().accept(this);
           alignof = Math.max(alignof, alignOfType);
         }
-        return alignof;
-
-      case ENUM: // There is no such kind of Composite Type.
-      default:
-        throw new AssertionError();
-    }
+        yield alignof;
+      }
+      case ENUM ->
+          // There is no such kind of Composite Type.
+          throw new AssertionError();
+    };
   }
 
   @Override
@@ -96,37 +95,36 @@ class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentExcepti
 
   @Override
   public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-    switch (pSimpleType.getType()) {
-      case BOOL:
-        return model.getAlignofBool();
-      case CHAR:
-        return model.getAlignofChar();
-      case FLOAT:
-        return model.getAlignofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
+    return switch (pSimpleType.getType()) {
+      case BOOL -> model.getAlignofBool();
+
+      case CHAR -> model.getAlignofChar();
+
+      case FLOAT -> model.getAlignofFloat();
+
+      case UNSPECIFIED, INT -> {
+        // unspecified is the same as int
         if (pSimpleType.hasLongLongSpecifier()) {
-          return model.getAlignofLongLongInt();
+          yield model.getAlignofLongLongInt();
         } else if (pSimpleType.hasLongSpecifier()) {
-          return model.getAlignofLongInt();
+          yield model.getAlignofLongInt();
         } else if (pSimpleType.hasShortSpecifier()) {
-          return model.getAlignofShortInt();
+          yield model.getAlignofShortInt();
         } else {
-          return model.getAlignofInt();
+          yield model.getAlignofInt();
         }
-      case INT128:
-        return model.getAlignofInt128();
-      case DOUBLE:
+      }
+      case INT128 -> model.getAlignofInt128();
+
+      case DOUBLE -> {
         if (pSimpleType.hasLongSpecifier()) {
-          return model.getAlignofLongDouble();
+          yield model.getAlignofLongDouble();
         } else {
-          return model.getAlignofDouble();
+          yield model.getAlignofDouble();
         }
-      case FLOAT128:
-        return model.getAlignofFloat128();
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
-    }
+      }
+      case FLOAT128 -> model.getAlignofFloat128();
+    };
   }
 
   @Override

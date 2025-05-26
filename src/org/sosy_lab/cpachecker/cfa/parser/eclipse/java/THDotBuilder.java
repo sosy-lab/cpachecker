@@ -303,7 +303,6 @@ class THDotBuilder {
       case PROTECTED -> "#";
       case NONE -> "";
       case PRIVATE -> "-";
-      default -> throw new AssertionError();
     };
   }
 

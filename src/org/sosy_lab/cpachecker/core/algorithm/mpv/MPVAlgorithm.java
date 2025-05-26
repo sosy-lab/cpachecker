@@ -429,12 +429,11 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
     }
     TimeSpan adjustedTimeLimit = cpuTimePerProperty;
     switch (limitsAdjustmentStrategy) {
-      case DISTRIBUTE_REMAINING:
-        adjustedTimeLimit =
-            TimeSpan.difference(overallCpuTimeLimit, overallSpentCpuTime)
-                .divide(overallPartitions - currentPartitionNumber);
-        break;
-      case DISTRIBUTE_BY_PROPERTY:
+      case DISTRIBUTE_REMAINING ->
+          adjustedTimeLimit =
+              TimeSpan.difference(overallCpuTimeLimit, overallSpentCpuTime)
+                  .divide(overallPartitions - currentPartitionNumber);
+      case DISTRIBUTE_BY_PROPERTY -> {
         if (partition.getNumberOfProperties() == 1) {
           AbstractSingleProperty currentProperty = partition.getProperties().getProperties().get(0);
           if (propertyDistribution.containsKey(currentProperty)) {
@@ -444,9 +443,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
                         propertyDistribution.get(currentProperty) * adjustedTimeLimit.asMillis()));
           }
         }
-        break;
-      default:
-        break;
+      }
+      default -> {}
     }
     if (currentPartitionNumber == 0) {
       adjustedTimeLimit =

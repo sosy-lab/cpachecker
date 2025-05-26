@@ -31,10 +31,12 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(
       secure = true,
       description =
-          "Bound for the number of complete loop unrollings\n"
-              + "of the program (0 is used for no bound).\n"
-              + "Works only if assumption storage CPA is enabled, because otherwise it would\n"
-              + "be unsound.")
+          """
+          Bound for the number of complete loop unrollings
+          of the program (0 is used for no bound).
+          Works only if assumption storage CPA is enabled, because otherwise it would
+          be unsound.\
+          """)
   private int maxLoopIterations = 0;
 
   @Option(

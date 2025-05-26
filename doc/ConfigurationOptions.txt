@@ -206,6 +206,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -887,10 +888,6 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
-# produce C programs more similar to the input program
-# (only possible for a single input file)
-cfa.exportToC.stayCloserToInput = false
-
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 
@@ -915,6 +912,12 @@ cfa.moveDeclarationsToFunctionStart = false
 
 # Which functions should be interpreted as never returning to their call site
 cfa.nonReturningFunctions = {"abort", "exit"}
+
+# the path to export a json mapping which for each location contains the
+# variables in scope and their type. Please be aware that this is **not** a
+# stable interface and the output format of the file may change in future
+# versions.
+cfa.pathForExportingVariablesInScopeWithTheirType = no default value
 
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
@@ -2581,6 +2584,13 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # deprecated name for cpa.predicate.invariants.kInductionTries
 cpa.predicate.kInductionTries = 3
 
+# Apply AND- LBE transformation to loop transition relation.
+cpa.predicate.loopTransition.applyLBETransformation = true
+
+# Time for loop generation before aborting.
+# (Use seconds or specify a unit; 0 for infinite)
+cpa.predicate.loopTransition.timeForLoopGeneration = 0s
+
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
@@ -3047,7 +3057,7 @@ cpa.sign.stop = "SEP"
 # max length of a chain of states, -1 for infinity
 cpa.singleSuccessorCompactor.maxChainLength = -1
 
-# Apply AND- LBE transformation to loop transition relation.
+# deprecated name for cpa.predicate.loopTransition.applyLBETransformation
 cpa.slicing.applyLBETransformation = true
 
 # Check target states reachability
@@ -3103,8 +3113,7 @@ cpa.slicing.refinement.takeEagerSlice = false
 cpa.slicing.removalSelectionStrategy = ALL
   enum:     [ALL, FIRST, RANDOM, LEAST_REMOVALS]
 
-# Time for loop generation before aborting.
-# (Use seconds or specify a unit; 0 for infinite)
+# deprecated name for cpa.predicate.loopTransition.timeForLoopGeneration
 cpa.slicing.timeForLoopGeneration = 0s
 
 # Inductive weakening strategy
@@ -3373,10 +3382,11 @@ cpa.smg2.exportSMG.file = "smg/smg-%s.dot"
 cpa.smg2.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
-# Functions which indicate on external allocated memory
+# Functions which return externally allocated memory with bit size defined by
+# option externalAllocationSize
 cpa.smg2.externalAllocationFunction = {"ext_allocation"}
 
-# Default size of externally allocated memory
+# Default bit size of externally allocated memory
 cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
 
 # If this Option is enabled, all symbolic offsets used when writing to memory
@@ -3404,7 +3414,17 @@ cpa.smg2.handleNonFreedMemoryInMainAsMemLeak = true
 # predicate, depends on trackPredicates
 cpa.smg2.handleUnknownDereferenceAsSafe = false
 
-# Sets how unknown functions are handled.
+# Sets how unknown functions are handled. Strict: Unknown functions cause a
+# stop in the analysis except for known and handled functions or functions
+# defined in option safeUnknownFunctions, which are handled as SAFE.
+# ASSUME_SAFE: unknown functions are assumed to be safe. No input into the
+# function is checked for validity and the result is a UNKNOWN value (which
+# may itself violate memorysafety etc.). ASSUME_EXTERNAL_ALLOCATED: Input
+# into the function is checked for validity and may cause memory based
+# errors. Returned values are unknown, but in a valid new memory section that
+# can be freed normally. Functions allocating external memory and returning
+# their address can be defined with option externalAllocationFunction.
+# externalAllocationSize.
 cpa.smg2.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
@@ -4219,10 +4239,10 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
-distributedSummaries.worker.logDirectory = "block_summary/logfiles"
+distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
 
 # output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/block_analysis"
+dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

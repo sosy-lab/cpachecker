@@ -261,22 +261,19 @@ public class AssumptionToEdgeAllocator {
 
     // Get all Assumptions of this edge
     switch (pCFAEdge.getEdgeType()) {
-      case DeclarationEdge:
-        result.addAll(
-            handleDeclaration(
-                ((ADeclarationEdge) pCFAEdge).getDeclaration(),
-                pCFAEdge.getPredecessor().getFunctionName(),
-                pConcreteState));
-        break;
-      case StatementEdge:
-        result.addAll(
-            handleStatement(pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState));
-        break;
-      case AssumeEdge:
-        result.addAll(handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState));
-        break;
-      default:
-        break;
+      case DeclarationEdge ->
+          result.addAll(
+              handleDeclaration(
+                  ((ADeclarationEdge) pCFAEdge).getDeclaration(),
+                  pCFAEdge.getPredecessor().getFunctionName(),
+                  pConcreteState));
+      case StatementEdge ->
+          result.addAll(
+              handleStatement(
+                  pCFAEdge, ((AStatementEdge) pCFAEdge).getStatement(), pConcreteState));
+      case AssumeEdge ->
+          result.addAll(handleAssumeStatement((AssumeEdge) pCFAEdge, pConcreteState));
+      default -> {}
     }
 
     if (pCFAEdge.getEdgeType() == CFAEdgeType.BlankEdge
@@ -1089,34 +1086,31 @@ public class AssumptionToEdgeAllocator {
           addressType = rVarInBinaryExpType;
         } else {
           if (assumeLinearArithmetics) {
-            switch (binaryExp.getOperator()) {
-              case MULTIPLY:
+            return switch (binaryExp.getOperator()) {
+              case MULTIPLY -> {
                 // Multiplication with constants is sometimes supported
                 if (allowMultiplicationWithConstants
                     && (lVarInBinaryExp instanceof ALiteralExpression
                         || rVarInBinaryExp instanceof ALiteralExpression)) {
-                  return super.visit(binaryExp);
+                  yield super.visit(binaryExp);
                 }
-                return Value.UnknownValue.getInstance();
-              case DIVIDE:
-              case MODULO:
+                yield Value.UnknownValue.getInstance();
+              }
+              case DIVIDE, MODULO -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
-                  break;
+                  yield super.visit(binaryExp);
                 }
-              // $FALL-THROUGH$
-              case BINARY_AND:
-              case BINARY_OR:
-              case BINARY_XOR:
-              case SHIFT_LEFT:
-              case SHIFT_RIGHT:
-                return Value.UnknownValue.getInstance();
-              default:
-                break;
-            }
+                yield Value.UnknownValue.getInstance();
+              }
+              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+                  Value.UnknownValue.getInstance();
+              default -> super.visit(binaryExp);
+            };
+          } else {
+            return super.visit(binaryExp);
           }
-          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
@@ -1126,50 +1120,45 @@ public class AssumptionToEdgeAllocator {
                 ? ((CPointerType) addressType).getType().getCanonicalType()
                 : ((CArrayType) addressType).getType().getCanonicalType();
 
-        switch (binaryOperator) {
-          case PLUS:
-          case MINUS:
-            {
-              Value addressValueV = address.accept(this);
+        return switch (binaryOperator) {
+          case PLUS, MINUS -> {
+            Value addressValueV = address.accept(this);
 
-              Value offsetValueV = pointerOffset.accept(this);
+            Value offsetValueV = pointerOffset.accept(this);
 
-              if (addressValueV.isUnknown()
-                  || offsetValueV.isUnknown()
-                  || !addressValueV.isNumericValue()
-                  || !offsetValueV.isNumericValue()) {
-                return Value.UnknownValue.getInstance();
-              }
-
-              Number addressValueNumber = addressValueV.asNumericValue().getNumber();
-              BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
-              // Because address and offset value may be interchanged, use BigDecimal for both
-              Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
-              BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
-              BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
-              BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
-
-              switch (binaryOperator) {
-                case PLUS:
-                  return new NumericValue(addressValue.add(pointerOffsetValue));
-                case MINUS:
-                  if (lVarIsAddress) {
-                    return new NumericValue(addressValue.subtract(pointerOffsetValue));
-                  } else {
-                    throw new UnrecognizedCodeException(
-                        "Expected pointer arithmetic "
-                            + " with + or - but found "
-                            + binaryExp.toASTString(),
-                        binaryExp);
-                  }
-                default:
-                  throw new AssertionError();
-              }
+            if (addressValueV.isUnknown()
+                || offsetValueV.isUnknown()
+                || !addressValueV.isNumericValue()
+                || !offsetValueV.isNumericValue()) {
+              yield Value.UnknownValue.getInstance();
             }
 
-          default:
-            return Value.UnknownValue.getInstance();
-        }
+            Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+            BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
+            // Because address and offset value may be interchanged, use BigDecimal for both
+            Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+            BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
+            BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
+            BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
+
+            yield switch (binaryOperator) {
+              case PLUS -> new NumericValue(addressValue.add(pointerOffsetValue));
+              case MINUS -> {
+                if (lVarIsAddress) {
+                  yield new NumericValue(addressValue.subtract(pointerOffsetValue));
+                } else {
+                  throw new UnrecognizedCodeException(
+                      "Expected pointer arithmetic "
+                          + " with + or - but found "
+                          + binaryExp.toASTString(),
+                      binaryExp);
+                }
+              }
+              default -> throw new AssertionError();
+            };
+          }
+          default -> Value.UnknownValue.getInstance();
+        };
       }
 
       @Override
@@ -1387,18 +1376,16 @@ public class AssumptionToEdgeAllocator {
       CBasicType basicType = simpleType.getType();
 
       switch (basicType) {
-        case BOOL:
-        case CHAR:
-        case INT:
+        case BOOL, CHAR, INT -> {
           return handleIntegerNumbers(pValue, simpleType);
-        case FLOAT:
-        case DOUBLE:
+        }
+        case FLOAT, DOUBLE -> {
           if (assumeLinearArithmetics) {
             break;
           }
           return handleFloatingPointNumbers(pValue, simpleType);
-        default:
-          break;
+        }
+        default -> {}
       }
 
       return UnknownValueLiteral.getInstance();
@@ -1586,24 +1573,22 @@ public class AssumptionToEdgeAllocator {
             pType.hasImaginarySpecifier(),
             pType.hasLongLongSpecifier());
       } else {
-        switch (pType.getType()) {
-          case INT:
-            if (pType.hasShortSpecifier()) {
-              return CNumericTypes.SIGNED_INT;
-            } else if (pType.hasLongSpecifier()) {
-              return CNumericTypes.SIGNED_LONG_LONG_INT;
-            } else if (pType.hasLongLongSpecifier()) {
-              // fall through, this is already the largest type
-            } else {
-              // if it had neither specifier it is a plain (unsigned) int
-              return CNumericTypes.SIGNED_LONG_INT;
-            }
-          // $FALL-THROUGH$
-          default:
-            // just log and do not throw an exception in order to not break things
-            logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
-            return pType;
+        if (pType.getType() == CBasicType.INT) {
+          if (pType.hasShortSpecifier()) {
+            return CNumericTypes.SIGNED_INT;
+          } else if (pType.hasLongSpecifier()) {
+            return CNumericTypes.SIGNED_LONG_LONG_INT;
+          } else if (pType.hasLongLongSpecifier()) {
+            // fall through, this is already the largest type
+          } else {
+            // if it had neither specifier it is a plain (unsigned) int
+            return CNumericTypes.SIGNED_LONG_INT;
+          }
         }
+
+        // just log and do not throw an exception in order to not break things
+        logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
+        return pType;
       }
     }
 
