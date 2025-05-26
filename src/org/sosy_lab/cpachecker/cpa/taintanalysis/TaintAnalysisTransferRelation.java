@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.taintanalysis;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -147,7 +148,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    return new TaintAnalysisState(newTaintedVars, newUntaintedVars, Set.of(pState));
+    return new TaintAnalysisState(newTaintedVars, newUntaintedVars, ImmutableSet.of(pState));
   }
 
   /**
