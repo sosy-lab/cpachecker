@@ -993,11 +993,16 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
-  public void testPointersAsParamSimpleSafe() throws Exception {
+  public void testPointersAsParamSimpleSafe_2() throws Exception {
     TestResults results = runCPAchecker("pointersAsParamSimpleSafe_2.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testPointersAsParamSimpleUnsafe_2() throws Exception {
+    TestResults results = runCPAchecker("pointersAsParamSimpleUnsafe_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Test
