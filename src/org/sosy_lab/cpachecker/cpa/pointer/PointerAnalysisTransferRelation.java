@@ -16,7 +16,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetBot;
@@ -104,12 +102,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     if (!resultState.isBottom()) {
       String string = resultState.toString();
-      System.out.println(string);
       logger.log(Level.INFO, string);
-      logger.flush();
     } else {
       logger.log(Level.INFO, "Impossible path detected, returning null state");
-      System.out.println("Impossible path detected, returning null state");
     }
 
     return resultState;
@@ -446,20 +441,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             }
           }
 
-          private LocationSet visit(MemoryLocation pLocation) {
-            LocationSet pointsToSet = toLocationSet(pLocation);
-            for (int deref = pDerefCounter; deref > 0; --deref) {
-              pointsToSet = pState.getPointsToSet(pointsToSet);
-              if (pointsToSet.isTop() || pointsToSet.isBot()) {
-                return pointsToSet;
-              }
-              if (!(pointsToSet instanceof ExplicitLocationSet)) {
-                return LocationSetTop.INSTANCE;
-              }
-            }
-            return pointsToSet;
-          }
-
           @Override
           public LocationSet visit(CFieldReference pFieldReference) {
             return LocationSetBot.INSTANCE;
@@ -468,7 +449,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
           @Override
           public LocationSet visit(CCastExpression pCastExpression) {
             if (isNullPointer(pCastExpression)) {
-              return ExplicitLocationSet.fromNull(true);
+              return ExplicitLocationSet.fromNull();
             }
             return LocationSetTop.INSTANCE;
           }
@@ -525,28 +506,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         });
   }
 
-  private MemoryLocation toLocation(AbstractSimpleDeclaration pDeclaration) {
-    Type type = pDeclaration.getType();
-    if (type instanceof CType cType) {
-      type = CTypes.copyDequalified(cType.getCanonicalType());
-    }
-    // TODO find a way to handle struct and unions
-
-    return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getQualifiedName());
-  }
-
   private static LocationSet toLocationSet(MemoryLocation pLocation) {
     return toLocationSet(Collections.singleton(pLocation));
-  }
-
-  private MemoryLocation toLocation(Type pType, String name) {
-    Type type = pType;
-    if (type instanceof CType cType) {
-      type = CTypes.copyDequalified(cType.getCanonicalType());
-    }
-    // TODO find a way to handle struct and unions
-
-    return MemoryLocation.parseExtendedQualifiedName(name);
   }
 
   private static LocationSet toLocationSet(Set<MemoryLocation> pLocations) {
