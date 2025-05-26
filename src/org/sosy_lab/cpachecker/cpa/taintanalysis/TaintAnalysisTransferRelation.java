@@ -321,16 +321,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (!pArguments.isEmpty()) {
+      // Before entering the called function, we associate the function arguments with the passed parameters
       for (int i = 0; i < pArguments.size(); i++) {
         CIdExpression assignmentLHS;
         CExpression assignmentRHS = pArguments.get(i);
 
         if (pFunctionParameters.get(i) instanceof CParameterDeclaration parmDec) {
           assignmentLHS = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-
-          CExpressionAssignmentStatement exprAsmtStmt =
-              new CExpressionAssignmentStatement(
-                  pCfaEdge.getFileLocation(), assignmentLHS, assignmentRHS);
 
           boolean rhsIsTainted =
               TaintAnalysisUtils.getAllVarsAsCExpr(assignmentRHS).stream()
