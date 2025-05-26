@@ -379,13 +379,50 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           pState.getTaintedVariables().containsKey(returnVariableAsCIdExpr);
 
       if (pExpression instanceof CFunctionCallAssignmentStatement assignStmt) {
-        if (assignStmt.getLeftHandSide() instanceof CIdExpression lhs) {
+
+        CExpression assignStmtLHS = assignStmt.getLeftHandSide();
+
+        if (assignStmtLHS instanceof CIdExpression lhs) {
           if (returnVariableIsTainted) {
             generatedVars.add(lhs);
             values.put(lhs, returnValue);
           } else {
             killedVars.add(lhs);
             values.put(lhs, returnValue);
+          }
+        } else if (assignStmtLHS instanceof CPointerExpression pointerLHS) {
+          CExpression pointer = pointerLHS.getOperand();
+
+          if (pointer instanceof CIdExpression idPointerExpr) {
+            if (returnVariableIsTainted) {
+              for (Map.Entry<CIdExpression, CExpression> entry :
+                  pState.getUntaintedVariables().entrySet()) {
+                CIdExpression savedPointer = entry.getKey();
+                CExpression mappedValue = entry.getValue();
+
+                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                  if (savedPointer.equals(idPointerExpr)) {
+                    generatedVars.add(mappedValueAsIdExpr);
+                    values.put(mappedValueAsIdExpr, returnValue);
+                    break;
+                  }
+                }
+              }
+            } else {
+              for (Map.Entry<CIdExpression, CExpression> entry :
+                  pState.getTaintedVariables().entrySet()) {
+                CIdExpression savedPointer = entry.getKey();
+                CExpression mappedValue = entry.getValue();
+
+                if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                  if (savedPointer.equals(idPointerExpr)) {
+                    killedVars.add(mappedValueAsIdExpr);
+                    values.put(mappedValueAsIdExpr, returnValue);
+                    break;
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -689,6 +726,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         for (CIdExpression cIdExpression : allVarsAsCExpr) {
           if (taintedVariables.contains(cIdExpression)) {
             generatedVars.addAll(allVarsAsCExpr);
+            // TODO: check what happens with the values-map here
             break;
           }
         }
@@ -723,6 +761,39 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           generatedVars.add(variableLHS);
         } else {
           killedVars.add(variableLHS);
+        }
+      } else if (lhs instanceof CPointerExpression pointerLHS) {
+
+        CExpression pointer = pointerLHS.getOperand();
+
+        if (pointer instanceof CIdExpression idPointerExpr) {
+          if (isSource(functionCallAssignStmt) || rhsIsTainted) {
+            for (Map.Entry<CIdExpression, CExpression> entry :
+                pState.getUntaintedVariables().entrySet()) {
+              CIdExpression savedPointer = entry.getKey();
+              CExpression mappedValue = entry.getValue();
+
+              if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                if (savedPointer.equals(idPointerExpr)) {
+                  generatedVars.add(mappedValueAsIdExpr);
+                  break;
+                }
+              }
+            }
+          } else {
+            for (Map.Entry<CIdExpression, CExpression> entry :
+                pState.getTaintedVariables().entrySet()) {
+              CIdExpression savedPointer = entry.getKey();
+              CExpression mappedValue = entry.getValue();
+
+              if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                if (savedPointer.equals(idPointerExpr)) {
+                  killedVars.add(mappedValueAsIdExpr);
+                  break;
+                }
+              }
+            }
+          }
         }
       }
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
