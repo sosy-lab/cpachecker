@@ -75,6 +75,7 @@ public class TerminationToReachPrecisionAdjustment implements PrecisionAdjustmen
     PredicateAbstractState predicateState =
         AbstractStates.extractStateByType(fullState, PredicateAbstractState.class);
 
+    System.out.println(predicateState.getPathFormula());
     SSAMap ssaMap = predicateState.getPathFormula().getSsa();
     PrecisionAdjustmentResult result =
         new PrecisionAdjustmentResult(state, precision, Action.CONTINUE);
