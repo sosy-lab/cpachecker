@@ -387,6 +387,18 @@ public final class PredicateAbstractionManager {
     BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
+    // Select the lemmas for the abstraction formula
+    LemmaSelectionVisitor lemmaSelectionVisitor = new LemmaSelectionVisitor(pLemmas, fmgr);
+    ImmutableList.Builder<AbstractionLemma> abstractionLemmas = ImmutableList.builder();
+    abstractionLemmas.addAll(fmgr.visit(absFormula, lemmaSelectionVisitor));
+    BooleanFormula lemmaFormulas = bfmgr.makeTrue();
+
+    for (AbstractionLemma lemma : abstractionLemmas.build()) {
+      BooleanFormula formula = bfmgr.and(lemma.getFormulas());
+      lemmaFormulas = bfmgr.and(lemmaFormulas, formula);
+    }
+    primaryFormula = bfmgr.and(primaryFormula, lemmaFormulas);
+
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
       // TODO we do not yet support multiple CFA nodes per abstraction here
@@ -415,17 +427,11 @@ public final class PredicateAbstractionManager {
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, primaryFormula, instantiator);
 
-    // TODO: get relevant lemmas based on relevant predicates replace the variable
-    // then append them to the primary formula
-    LemmaSelectionVisitor lemmaSelectionVisitor = new LemmaSelectionVisitor(pLemmas, fmgr);
-    ImmutableList.Builder<AbstractionLemma> relevantLemmas = ImmutableList.builder();
-
+    // Select lemmas for the predicates
+    ImmutableList.Builder<AbstractionLemma> predicateLemmas = ImmutableList.builder();
     for (AbstractionPredicate predicate : remainingPredicates) {
-      relevantLemmas.addAll(fmgr.visit(predicate.getSymbolicAtom(), lemmaSelectionVisitor));
+      predicateLemmas.addAll(fmgr.visit(predicate.getSymbolicAtom(), lemmaSelectionVisitor));
     }
-
-    // BooleanFormula lemmaFormula = bfmgr.and(relevantLemmas.build());
-    // primaryFormula = bfmgr.and(primaryFormula, lemmaFormula);
 
     if (fmgr.useBitwiseAxioms()) {
       for (AbstractionPredicate predicate : remainingPredicates) {
@@ -530,7 +536,7 @@ public final class PredicateAbstractionManager {
       abs =
           rmgr.makeAnd(
               abs,
-              computeAbstraction(f, remainingPredicates, relevantLemmas.build(), instantiator));
+              computeAbstraction(f, remainingPredicates, predicateLemmas.build(), instantiator));
     }
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
