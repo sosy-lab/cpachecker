@@ -118,14 +118,14 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CExpression value = evaluatedValues.getOrDefault(killedVar, null);
       newUntaintedVars.put(killedVar, value);
 
-      // If there is a pointer to the new untainted variable, untaint the pointer as well
+      // If there are pointers to the new untainted variable, untaint them as well
       for (Map.Entry<CIdExpression, CExpression> entry : pState.getTaintedVariables().entrySet()) {
-        CIdExpression taintedPointer = entry.getKey();
+        CIdExpression pointer = entry.getKey();
         CExpression mappedValue = entry.getValue();
 
         if (mappedValue instanceof CIdExpression idExpr && idExpr.equals(killedVar)) {
-          newTaintedVars.remove(taintedPointer);
-          newUntaintedVars.put(taintedPointer, mappedValue);
+          newTaintedVars.remove(pointer);
+          newUntaintedVars.put(pointer, mappedValue);
         }
       }
     }
@@ -136,14 +136,15 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       CExpression value = evaluatedValues.getOrDefault(generatedVar, null);
       newTaintedVars.put(generatedVar, value);
 
-      // If there is a pointer to the new tainted variable, taint the pointer as well
-      for (Map.Entry<CIdExpression, CExpression> entry : pState.getUntaintedVariables().entrySet()) {
-        CIdExpression taintedPointer = entry.getKey();
+      // If there are pointers to the new tainted variable, taint them as well
+      for (Map.Entry<CIdExpression, CExpression> entry :
+          pState.getUntaintedVariables().entrySet()) {
+        CIdExpression pointer = entry.getKey();
         CExpression mappedValue = entry.getValue();
 
         if (mappedValue instanceof CIdExpression idExpr && idExpr.equals(generatedVar)) {
-          newUntaintedVars.remove(taintedPointer);
-          newTaintedVars.put(taintedPointer, mappedValue);
+          newUntaintedVars.remove(pointer);
+          newTaintedVars.put(pointer, mappedValue);
         }
       }
     }
@@ -585,9 +586,45 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
           // TODO: Sanitize array when all contained elements are untainted?
         }
 
+      } else if (lhs instanceof CPointerExpression pointerLHS) {
+
+        CExpression pointer = pointerLHS.getOperand();
+
+        if (pointer instanceof CIdExpression idPointerExpr) {
+          if (taintedVarsRHS) {
+            for (Map.Entry<CIdExpression, CExpression> entry :
+                pState.getUntaintedVariables().entrySet()) {
+              CIdExpression savedPointer = entry.getKey();
+              CExpression mappedValue = entry.getValue();
+
+              if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                if (savedPointer.equals(idPointerExpr)) {
+                  generatedVars.add(mappedValueAsIdExpr);
+                  values.put(mappedValueAsIdExpr, rhs);
+                  break;
+                }
+              }
+            }
+          } else {
+            for (Map.Entry<CIdExpression, CExpression> entry :
+                pState.getTaintedVariables().entrySet()) {
+              CIdExpression savedPointer = entry.getKey();
+              CExpression mappedValue = entry.getValue();
+
+              if (mappedValue instanceof CIdExpression mappedValueAsIdExpr) {
+                if (savedPointer.equals(idPointerExpr)) {
+                  killedVars.add(mappedValueAsIdExpr);
+                  values.put(mappedValueAsIdExpr, rhs);
+                  break;
+                }
+              }
+            }
+          }
+        }
       } else {
         logger.log(
-            Level.INFO, "lhs is not an instance of CIdExpression or CArraySubscriptExpression");
+            Level.INFO,
+            "lhs is not an instance of CIdExpression or CArraySubscriptExpression or CPointerExpression");
       }
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
