@@ -8,17 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
+import com.google.common.collect.Ordering;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import java.util.List;
+
+import java.util.*;
 
 public class ExplicitLocationSet implements LocationSet {
 
-  private final Set<MemoryLocation> explicitSet;
+  private final SortedSet<MemoryLocation> explicitSet;
   private final boolean containsNull;
 
   private ExplicitLocationSet(Set<MemoryLocation> pLocations) {
@@ -34,7 +34,7 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   private ExplicitLocationSet(boolean pContainsNull) {
-    explicitSet = ImmutableSet.of();
+    explicitSet = ImmutableSortedSet.of();
     containsNull = pContainsNull;
   }
 
@@ -95,11 +95,8 @@ public class ExplicitLocationSet implements LocationSet {
     return new ExplicitLocationSet(pLocations, pContainsNull);
   }
 
-  public static LocationSet fromNull(boolean pContainsNull) {
-    if (!pContainsNull) {
-      return LocationSetBot.INSTANCE;
-    }
-    return new ExplicitLocationSet(pContainsNull);
+  public static LocationSet fromNull() {
+    return new ExplicitLocationSet(true);
   }
 
   @Override
@@ -133,11 +130,6 @@ public class ExplicitLocationSet implements LocationSet {
       return containsAllElements && containsRequiredNull;
     }
     return pElements.containsAll(this);
-  }
-
-  // @Override
-  public String toStringOld() {
-    return (containsNull ? "NULL, " : "") + explicitSet.toString();
   }
 
   @Override
@@ -194,25 +186,21 @@ public class ExplicitLocationSet implements LocationSet {
   public int compareTo(LocationSet pSetToCompare) {
     if (this.equals(pSetToCompare)) {
       return 0;
-    } else if (pSetToCompare instanceof LocationSetBot) {
+    }
+
+    if (pSetToCompare instanceof LocationSetBot) {
       return 1;
     } else if (pSetToCompare instanceof LocationSetTop) {
       return -1;
     } else if (pSetToCompare instanceof ExplicitLocationSet explicitSetToCompare) {
-      if (containsNull != explicitSetToCompare.containsNull) {
-        return containsNull ? 1 : -1;
-      }
-      Iterator<MemoryLocation> i1 = explicitSet.iterator();
-      Iterator<MemoryLocation> i2 = explicitSetToCompare.explicitSet.iterator();
-      while (i1.hasNext() && i2.hasNext()) {
-        int compare = i1.next().compareTo(i2.next());
-        if (compare != 0) {
-          return compare;
-        }
-      }
-      return i1.hasNext() ? 1 : i2.hasNext() ? -1 : 0;
+      return ComparisonChain.start()
+          .compare(Boolean.compare(containsNull, explicitSetToCompare.containsNull), 0)
+          .compare(
+              explicitSet, explicitSetToCompare.explicitSet, Ordering.natural().lexicographical())
+          .result();
     } else {
-      throw new AssertionError();
+      throw new AssertionError(
+          "Unexpected implementation of LocationSet: " + pSetToCompare.getClass());
     }
   }
 }

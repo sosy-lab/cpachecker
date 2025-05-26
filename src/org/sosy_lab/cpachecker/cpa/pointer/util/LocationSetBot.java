@@ -66,11 +66,10 @@ public class LocationSetBot implements LocationSet {
   }
 
   @Override
-  public int compareTo(LocationSet pObj) {
-    if (this.equals(pObj)) {
-      return 0;
-    }
-    return -1;
+  public int compareTo(LocationSet pOther) {
+    // Special-case compareTo implementation for pointer analysis lattice.
+    // BOT is defined as less than all other LocationSets.
+    return (this.equals(pOther)) ? 0 : -1;
   }
 
   @Override
