@@ -439,18 +439,6 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    // clean up the variable values that have only scope inside the called function
-    CFANode predecessor = pCfaEdge.getPredecessor();
-    AFunctionDeclaration functionDeclaration = predecessor.getFunction();
-
-    for (AParameterDeclaration parameterDeclaration : functionDeclaration.getParameters()) {
-      if (parameterDeclaration instanceof CParameterDeclaration parmDec) {
-        CIdExpression functionParameter = TaintAnalysisUtils.getCidExpressionForCParDec(parmDec);
-        killedVars.add(functionParameter);
-        // we don't pass explicit values here so that the last one saved is used
-      }
-    }
-
     return generateNewState(pState, killedVars, generatedVars, values);
   }
 
