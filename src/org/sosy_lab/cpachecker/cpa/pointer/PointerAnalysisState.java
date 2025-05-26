@@ -48,21 +48,19 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       return LocationSetTop.INSTANCE;
     }
     if (pointsToSet.isNull()) {
-      return ExplicitLocationSet.fromNull(true);
+      return ExplicitLocationSet.fromNull();
     }
     return pointsToSet;
   }
 
   @Override
-  public boolean equals(Object pToCompare) {
-    if (this == pToCompare) return true;
-    if (!(pToCompare instanceof PointerAnalysisState pointerAnalysisStateToCompare)) return false;
-
-    if (isBottom != pointerAnalysisStateToCompare.isBottom) return false;
-
-    if (isBottom) return true;
-
-    return pointsToMap.equals(pointerAnalysisStateToCompare.pointsToMap);
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    return pOther instanceof PointerAnalysisState other
+        && isBottom == other.isBottom
+        && (isBottom || pointsToMap.equals(other.pointsToMap));
   }
 
   @Override
