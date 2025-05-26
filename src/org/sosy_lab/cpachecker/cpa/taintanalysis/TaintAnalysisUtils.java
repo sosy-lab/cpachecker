@@ -84,7 +84,10 @@ public class TaintAnalysisUtils {
     } else if (expression instanceof CIdExpression idExpression) {
 
       // Look up the value of the variable in the tainted and untainted maps.
-      return taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression));
+      return evaluateExpression(
+          taintedVariables.getOrDefault(idExpression, untaintedVariables.get(idExpression)),
+          taintedVariables,
+          untaintedVariables);
 
     } else if (expression instanceof CBinaryExpression binaryExpression) {
 
