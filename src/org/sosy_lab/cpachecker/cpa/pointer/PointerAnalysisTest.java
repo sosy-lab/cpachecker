@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.converters.FileTypeConverter;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
+import org.sosy_lab.common.log.LogManager;
 
 public class PointerAnalysisTest {
   private static final String CONFIGURATION_FILE = "config/pointer.properties";
@@ -39,14 +40,15 @@ public class PointerAnalysisTest {
   @org.junit.Test
   public void testRunForSafeCProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE, Language.C, SPECIFICATION);
+    LogManager logManager = LogManager.createTestLogManager();
+
+    config.enableLogging(logManager);
 
     TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
 
     result.assertIsSafe();
-
-    System.out.printf("Test logs: %s", result.getLog());
   }
 
   private Configuration getConfig(
@@ -65,6 +67,7 @@ public class PointerAnalysisTest {
         .setOption("language", inputLanguage.name())
         .setOption("specification", specificationFile)
         .setOption("java.classpath", JAVA_CLASSPATH)
+        .setOption("parser.usePreprocessor", "true")
         .addConverter(FileOption.class, fileTypeConverter);
     return configBuilder.build();
   }

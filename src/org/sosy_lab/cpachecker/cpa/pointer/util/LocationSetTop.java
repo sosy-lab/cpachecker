@@ -69,7 +69,7 @@ public class LocationSetTop implements LocationSet {
   public int compareTo(LocationSet pOther) {
     // Special-case compareTo implementation for pointer analysis lattice.
     // TOP is defined as greater than all other LocationSets.
-    return (this.equals(pOther)) ? 0 : 1;
+    return this.equals(pOther) ? 0 : 1;
   }
 
   @Override
