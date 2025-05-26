@@ -360,18 +360,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-      WaypointRecord follow = entry.follow();
-      WaypointRecord cycle = entry.cycle();
+      // We call flow waypoint either cycle or follow waypoint as they ensure flow in the execution
+      WaypointRecord flowWaypoint = entry.follow() != null ? entry.follow() : entry.cycle();
       List<WaypointRecord> avoids = entry.avoids();
       if (!avoids.isEmpty()) {
         logger.log(
             Level.WARNING, "Avoid waypoints in violation witnesses V2 are currently ignored!");
       }
       String nextStateId = getStateName(stateCounter++);
-      int followLine = follow.getLocation().getLine();
-      int followColumn = follow.getLocation().getColumn();
+      int followLine = flowWaypoint.getLocation().getLine();
+      int followColumn = flowWaypoint.getLocation().getColumn();
 
-      if (follow.getType().equals(WaypointType.TARGET)) {
+      if (flowWaypoint.getType().equals(WaypointType.TARGET)) {
         nextStateId = "X";
         transitions.add(handleTarget(nextStateId, followLine, followColumn, distance));
         if (stateCounter != segments.size() + 1) {
@@ -389,7 +389,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 /* pIsCycleStart= */ false));
         currentStateId = nextStateId;
         break;
-      } else if (follow.getType().equals(WaypointType.ASSUMPTION)) {
+      } else if (flowWaypoint.getType().equals(WaypointType.ASSUMPTION)) {
         ASTElement element =
             cfa.getAstCfaRelation().getTightestStatementForStarting(followLine, followColumn);
         transitions.add(
@@ -397,10 +397,10 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 nextStateId,
                 element,
                 followLine,
-                follow.getLocation().getFunction(),
+                flowWaypoint.getLocation().getFunction(),
                 distance,
-                follow.getConstraint().getValue()));
-      } else if (follow.getType().equals(WaypointType.BRANCHING)) {
+                flowWaypoint.getConstraint().getValue()));
+      } else if (flowWaypoint.getType().equals(WaypointType.BRANCHING)) {
         AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
         Verify.verifyNotNull(astCFARelation);
 
@@ -411,7 +411,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
                 followColumn,
                 followLine,
                 distance,
-                Boolean.parseBoolean(follow.getConstraint().getValue()));
+                Boolean.parseBoolean(flowWaypoint.getConstraint().getValue()));
 
         if (ifStatementTransitions.isEmpty()) {
           logger.log(Level.INFO, "Could not handle branching waypoint, skipping it");
@@ -419,18 +419,18 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         }
 
         transitions.addAll(ifStatementTransitions.orElseThrow());
-      } else if (follow.getType().equals(WaypointType.FUNCTION_RETURN)) {
+      } else if (flowWaypoint.getType().equals(WaypointType.FUNCTION_RETURN)) {
         transitions.add(
             handleFunctionReturn(
                 nextStateId,
                 followLine,
                 followColumn,
                 distance,
-                follow.getConstraint().getValue(),
+                flowWaypoint.getConstraint().getValue(),
                 startLineToCFAEdge));
 
       } else {
-        logger.log(Level.WARNING, "Unknown waypoint type: " + follow.getType());
+        logger.log(Level.WARNING, "Unknown waypoint type: " + flowWaypoint.getType());
         continue;
       }
 

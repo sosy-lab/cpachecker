@@ -139,7 +139,7 @@ class AutomatonWitnessV2ParserCommon {
       }
     }
     checkCycleIsUninterruptedAtEnd(numCycleWaypoints, numTargetWaypoints);
-    checkTargetIsAtEnd(latest, numTargetWaypoints);
+    checkTargetIsAtEnd(latest, numCycleWaypoints, numTargetWaypoints);
     return segments.build();
   }
 
@@ -181,8 +181,11 @@ class AutomatonWitnessV2ParserCommon {
     }
   }
 
-  private void checkTargetIsAtEnd(WaypointRecord latest, int numTargetWaypoints)
+  private void checkTargetIsAtEnd(WaypointRecord latest, int numCycleWaypoints, int numTargetWaypoints)
       throws InvalidYAMLWitnessException {
+    if (numCycleWaypoints > 0) {
+      return;
+    }
     switch (numTargetWaypoints) {
       case 0:
         throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
