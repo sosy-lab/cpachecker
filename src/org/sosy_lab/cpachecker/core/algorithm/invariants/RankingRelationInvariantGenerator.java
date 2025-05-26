@@ -106,11 +106,11 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
             IntegerFormula zero2 = intgerFormulaManager.makeNumber(0L);
 
             RankingRelationComponents componentsFromState =
-                createComponentsFromSSAMap(ssaMap, fmgr, zero2);
+                createComponentsFromSSAMap(ssaMap, fmgr);
             BooleanFormula computedInvariant =
                 computeIntegratedInvariantFormula(componentsFromState, fmgr, zero2);
 
-            rankingRelationInvariant = bfmgr.and(rankingRelationInvariant, computedInvariant);
+       rankingRelationInvariant = bfmgr.and(rankingRelationInvariant, computedInvariant);
           } else {
             rankingRelationInvariant = bfmgr.makeTrue();
           }

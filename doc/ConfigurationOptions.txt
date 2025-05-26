@@ -760,7 +760,7 @@ bmc.induction = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
-  enum:     [INDUCTION, NOT_EQUAL, REACHED_SET, DO_NOTHING]
+  enum:     [INDUCTION, NOT_EQUAL, RANKING_RELATION, REACHED_SET, DO_NOTHING]
 
 # k-induction configuration to be used as an invariant generator for
 # k-induction (ki-ki(-ai)).
@@ -5085,7 +5085,7 @@ termination.considerRecursion = false
 termination.lassoAnalysis.eigenvectors = 3
 
 # Shell command used to call the external SMT solver.
-termination.lassoAnalysis.externalSolverCommand = NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMPLIANT=true "
+termination.lassoAnalysis.externalSolverCommand = NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMP"
 
 # Analysis type used for synthesis of linear termination arguments.
 termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES

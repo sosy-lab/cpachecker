@@ -8,11 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
-
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -23,7 +20,7 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-//RankingRelationBuilder
+
 public class RankingRelationComponents {
 
   private final Optional<CExpression> unprimedExpression;
@@ -73,21 +70,15 @@ public class RankingRelationComponents {
   }
 
   public List<IntegerFormula> getUnprimedSummands() {
-    return unprimedFormulaSummands.stream()
-        .map(f -> (IntegerFormula) f)
-        .toList();
+    return unprimedFormulaSummands.stream().map(f -> (IntegerFormula) f).toList();
   }
 
   public List<IntegerFormula> getPrimedSummands() {
-    return primedFormulaSummands.stream()
-        .map(f -> (IntegerFormula) f)
-        .toList();
+    return primedFormulaSummands.stream().map(f -> (IntegerFormula) f).toList();
   }
 
   public static BooleanFormula computeIntegratedInvariantFormula(
-      RankingRelationComponents components,
-      FormulaManagerView fmgr,
-      IntegerFormula zero) {
+      RankingRelationComponents components, FormulaManagerView fmgr, IntegerFormula zero) {
 
     IntegerFormulaManager ifmgr = fmgr.getIntegerFormulaManager();
     BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
@@ -102,9 +93,7 @@ public class RankingRelationComponents {
   }
 
   public static RankingRelationComponents createComponentsFromSSAMap(
-      SSAMap ssaMap,
-      FormulaManagerView fmgr,
-      IntegerFormula zero) {
+      SSAMap ssaMap, FormulaManagerView fmgr) {
 
     IntegerFormulaManager ifmgr = fmgr.getIntegerFormulaManager();
 
@@ -121,18 +110,20 @@ public class RankingRelationComponents {
       NumeralFormula primed = ifmgr.makeVariable(renamePrimed);
       unprimedSummands.add(unprimed);
       primedSummands.add(primed);
-
     }
 
     Optional<CExpression> unprimedExpression = Optional.empty();
     Optional<CExpression> primedExpression = Optional.empty();
 
-    return new RankingRelationComponents(unprimedExpression, primedExpression, unprimedSummands, primedSummands,
+    return new RankingRelationComponents(
+        unprimedExpression,
+        primedExpression,
+        unprimedSummands,
+        primedSummands,
         fmgr.getIntegerFormulaManager());
   }
 
   private static String renameIndex(String var, int index) {
     return var.replace("@", "_") + "_" + index;
   }
-
 }
