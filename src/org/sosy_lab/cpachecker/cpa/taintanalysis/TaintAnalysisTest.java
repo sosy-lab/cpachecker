@@ -923,11 +923,34 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testPointerAssignmentSafe() throws Exception {
     TestResults results = runCPAchecker("pointerAssignmentSafe.c", "extern_benchmarks");
     results.assertIsSafe();
+  }
+
+  @Test
+  public void testPointerAssignmentUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("pointerAssignmentUnsafe_1.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointerAssignmentUnsafe_2() throws Exception {
+    TestResults results = runCPAchecker("pointerAssignmentUnsafe_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointerAssignmentUnsafe_3() throws Exception {
+    TestResults results = runCPAchecker("pointerAssignmentUnsafe_3.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testPointerAssignmentUnsafe_4() throws Exception {
+    TestResults results = runCPAchecker("pointerAssignmentUnsafe_4.c", "extern_benchmarks");
+    results.assertIsUnsafe();
   }
 
   @Test
