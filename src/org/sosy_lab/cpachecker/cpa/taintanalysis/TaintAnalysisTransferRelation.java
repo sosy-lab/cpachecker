@@ -796,6 +796,13 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
+      } else if (lhs instanceof CArraySubscriptExpression arraySubscriptLHS) {
+        CExpression arrayExpr = arraySubscriptLHS.getArrayExpression();
+        if (isSource(functionCallAssignStmt) || rhsIsTainted) {
+          generatedVars.add((CIdExpression) arrayExpr);
+        } else {
+          killedVars.add((CIdExpression) arrayExpr);
+        }
       }
       newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
