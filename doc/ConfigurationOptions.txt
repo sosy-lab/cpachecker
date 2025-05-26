@@ -3610,9 +3610,6 @@ cpa.statistics.statisticsCPAFile = no default value
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
 cpa.termination.refiner = no default value
 
-# Determines whether to check a witness or just verify the program.
-cpa.terminationToReach.checkNonTerminationWitness = false
-
 # Simple thread analysis from theory paper
 cpa.thread.simpleMode = false
 

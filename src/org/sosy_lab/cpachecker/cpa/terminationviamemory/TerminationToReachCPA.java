@@ -14,7 +14,6 @@ import java.util.HashSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * store an already seen state. Transition relation allows to non-deterministically store an already
  * visiting state.
  */
-@Options(prefix = "cpa.terminationToReach")
 public class TerminationToReachCPA extends AbstractCPA implements StatisticsProvider {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
