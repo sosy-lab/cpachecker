@@ -360,7 +360,6 @@ public class RankingRelationBuilder {
         pRelevantVariables.stream()
             .filter(v -> v.getQualifiedName().equals(variableName))
             .findAny();
-
     if (variableDecl.isPresent()) {
       CVariableDeclaration primedVariableDecl = createPrimedVariable(variableDecl.orElseThrow());
       CIdExpression primedVariable = new CIdExpression(DUMMY, primedVariableDecl);

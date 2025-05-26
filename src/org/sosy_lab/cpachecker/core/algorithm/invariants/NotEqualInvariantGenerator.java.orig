@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents.computeIntegratedInvariantFormula;
-import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents.createComponentsFromSSAMap;
-
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -28,30 +27,33 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-public class RankingRelationInvariantGenerator extends AbstractInvariantGenerator {
+public class NotEqualInvariantGenerator extends AbstractInvariantGenerator
+    implements ReachedSetNotEqual {
 
   private ReachedSet reachedSet;
+
   private final AggregatedReachedSets aggregatedReachedSets;
   private final CFA cfa;
 
-  public RankingRelationInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
+  public NotEqualInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
     this.aggregatedReachedSets = pAggregatedReachedSets;
     this.cfa = pCFA;
   }
 
+  @Override
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
   }
 
   protected Iterable<AbstractState> getReachedStates() {
     if (reachedSet == null) {
-      return ImmutableList.of();
+
+      return java.util.Collections.emptyList();
     } else {
+
       return reachedSet.asCollection();
     }
   }
@@ -81,44 +83,47 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
           throws InterruptedException {
 
         BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-        BooleanFormula reachedSetInvariant = bfmgr.makeTrue();
-        BooleanFormula rankingRelationInvariant = bfmgr.makeTrue();
+        Map<String, Integer> lastIndices = new HashMap<>();
+        List<BooleanFormula> inequalityConstraints = new ArrayList<>();
 
-        Iterable<AbstractState> nodeStates =
-            AbstractStates.filterLocation(getReachedStates(), node);
+        Iterable<AbstractState> nodeState = AbstractStates.filterLocation(getReachedStates(), node);
 
-        for (AbstractState state : nodeStates) {
-
+        for (AbstractState state : nodeState) {
           PredicateAbstractState pas =
               AbstractStates.extractStateByType(state, PredicateAbstractState.class);
           if (pas == null) {
             continue;
           }
-
-          BooleanFormula extractedState = AbstractStates.extractReportedFormulas(fmgr, state);
-          reachedSetInvariant = bfmgr.and(reachedSetInvariant, extractedState);
-
           PathFormula currentPf = pas.getPathFormula();
-          SSAMap ssaMap = currentPf.getSsa();
+          SSAMap currentSSAMap = currentPf.getSsa();
 
-          if (ssaMap != null) {
-            IntegerFormulaManagerView intgerFormulaManager = fmgr.getIntegerFormulaManager();
-            IntegerFormula zero2 = intgerFormulaManager.makeNumber(0L);
+          for (String var : currentSSAMap.allVariables()) {
+            int currentIndex = currentSSAMap.getIndex(var);
 
-            RankingRelationComponents componentsFromState =
-                createComponentsFromSSAMap(ssaMap, fmgr);
-            BooleanFormula computedInvariant =
-                computeIntegratedInvariantFormula(componentsFromState, fmgr, zero2);
+            if (lastIndices.containsKey(var)) {
+              int prevIndex = lastIndices.get(var);
 
-            rankingRelationInvariant = bfmgr.and(rankingRelationInvariant, computedInvariant);
-          } else {
-            rankingRelationInvariant = bfmgr.makeTrue();
+              if (prevIndex != currentIndex) {
+
+                String oldVarName = var + "____" + prevIndex;
+                String curVarName = var + "____" + currentIndex;
+
+                BooleanFormula oldVarFormula = bfmgr.makeVariable(oldVarName);
+                BooleanFormula curVarFormula = bfmgr.makeVariable(curVarName);
+
+                BooleanFormula inequality =
+                    fmgr.makeNot(fmgr.makeEqual(oldVarFormula, curVarFormula));
+                inequalityConstraints.add(inequality);
+              }
+            }
+
+            lastIndices.put(var, currentIndex);
           }
         }
 
-        BooleanFormula finalInvariant = bfmgr.and(reachedSetInvariant, rankingRelationInvariant);
-
-        return finalInvariant;
+        BooleanFormula notEaulInvariant =
+            inequalityConstraints.isEmpty() ? bfmgr.makeTrue() : bfmgr.and(inequalityConstraints);
+        return notEaulInvariant;
       }
     };
   }

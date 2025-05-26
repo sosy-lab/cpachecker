@@ -146,7 +146,7 @@ public class LassoAnalysis {
 
   @Option(description = "Shell command used to call the external SMT solver.")
   private String externalSolverCommand =
-      NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMPLIANT=true ";
+      NativeLibraries.getNativeLibraryPath().resolve("z3") + " -smt2 -in SMTLIB2_COMP";
 
   @Option(
       secure = true,
@@ -492,7 +492,7 @@ public class LassoAnalysis {
     try {
       for (RankingTemplate rankingTemplate : rankingTemplates) {
         shutdownNotifier.shutdownIfNecessary();
-
+        ///  ////////////////////////////////////////////////////////////////////
         try (TerminationArgumentSynthesizer terminationArgumentSynthesizer =
             createTerminationArgumentSynthesizer(lasso, rankingTemplate)) {
           LBool result = null;
@@ -510,6 +510,7 @@ public class LassoAnalysis {
             TerminationArgument terminationArgument = terminationArgumentSynthesizer.getArgument();
             logger.logf(Level.FINE, "Found termination argument: %s", terminationArgument);
 
+            ////////////////////////////////////////////////////////
             try (ProverEnvironment proverEnv = solverContext.newProverEnvironment()) {
               RankingRelation rankingRelation =
                   rankingRelationBuilder.fromTerminationArgument(

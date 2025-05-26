@@ -20,7 +20,6 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
-
 public class RankingRelationComponents {
 
   private final Optional<CExpression> unprimedExpression;
