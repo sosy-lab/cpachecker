@@ -40,14 +40,11 @@ public class StatementWriter implements StatementVisitor<IOException>, Closeable
       sb.append("#include <assert.h>\n");
     }
     switch (pConfig.getTargetStrategy()) {
-      case VERIFIERERROR:
-        sb.append("extern void reach_error();\n");
-        break;
-      case REACHASMEMSAFETY:
-        sb.append("#include <stdlib.h>\n");
-        break;
-      default:
+      case VERIFIERERROR -> sb.append("extern void reach_error();\n");
+      case REACHASMEMSAFETY -> sb.append("#include <stdlib.h>\n");
+      default -> {
         // no action needed
+      }
     }
     sb.append("extern void __VERIFIER_assume();\n");
     sb.append("extern _Bool __VERIFIER_nondet_bool();\n");

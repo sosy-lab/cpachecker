@@ -54,100 +54,67 @@ class ASTOperatorConverter {
     final BinaryOperator operator;
 
     switch (e.getOperator()) {
-      case IASTBinaryExpression.op_multiply:
-        operator = BinaryOperator.MULTIPLY;
-        break;
-      case IASTBinaryExpression.op_divide:
-        operator = BinaryOperator.DIVIDE;
-        break;
-      case IASTBinaryExpression.op_modulo:
-        operator = BinaryOperator.MODULO;
-        break;
-      case IASTBinaryExpression.op_plus:
-        operator = BinaryOperator.PLUS;
-        break;
-      case IASTBinaryExpression.op_minus:
-        operator = BinaryOperator.MINUS;
-        break;
-      case IASTBinaryExpression.op_shiftLeft:
-        operator = BinaryOperator.SHIFT_LEFT;
-        break;
-      case IASTBinaryExpression.op_shiftRight:
-        operator = BinaryOperator.SHIFT_RIGHT;
-        break;
-      case IASTBinaryExpression.op_lessThan:
-        operator = BinaryOperator.LESS_THAN;
-        break;
-      case IASTBinaryExpression.op_greaterThan:
-        operator = BinaryOperator.GREATER_THAN;
-        break;
-      case IASTBinaryExpression.op_lessEqual:
-        operator = BinaryOperator.LESS_EQUAL;
-        break;
-      case IASTBinaryExpression.op_greaterEqual:
-        operator = BinaryOperator.GREATER_EQUAL;
-        break;
-      case IASTBinaryExpression.op_binaryAnd:
-        operator = BinaryOperator.BINARY_AND;
-        break;
-      case IASTBinaryExpression.op_binaryXor:
-        operator = BinaryOperator.BINARY_XOR;
-        break;
-      case IASTBinaryExpression.op_binaryOr:
-        operator = BinaryOperator.BINARY_OR;
-        break;
-      case IASTBinaryExpression.op_assign:
+      case IASTBinaryExpression.op_multiply -> operator = BinaryOperator.MULTIPLY;
+      case IASTBinaryExpression.op_divide -> operator = BinaryOperator.DIVIDE;
+      case IASTBinaryExpression.op_modulo -> operator = BinaryOperator.MODULO;
+      case IASTBinaryExpression.op_plus -> operator = BinaryOperator.PLUS;
+      case IASTBinaryExpression.op_minus -> operator = BinaryOperator.MINUS;
+      case IASTBinaryExpression.op_shiftLeft -> operator = BinaryOperator.SHIFT_LEFT;
+      case IASTBinaryExpression.op_shiftRight -> operator = BinaryOperator.SHIFT_RIGHT;
+      case IASTBinaryExpression.op_lessThan -> operator = BinaryOperator.LESS_THAN;
+      case IASTBinaryExpression.op_greaterThan -> operator = BinaryOperator.GREATER_THAN;
+      case IASTBinaryExpression.op_lessEqual -> operator = BinaryOperator.LESS_EQUAL;
+      case IASTBinaryExpression.op_greaterEqual -> operator = BinaryOperator.GREATER_EQUAL;
+      case IASTBinaryExpression.op_binaryAnd -> operator = BinaryOperator.BINARY_AND;
+      case IASTBinaryExpression.op_binaryXor -> operator = BinaryOperator.BINARY_XOR;
+      case IASTBinaryExpression.op_binaryOr -> operator = BinaryOperator.BINARY_OR;
+      case IASTBinaryExpression.op_assign -> {
         operator = null;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_multiplyAssign:
+      }
+      case IASTBinaryExpression.op_multiplyAssign -> {
         operator = BinaryOperator.MULTIPLY;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_divideAssign:
+      }
+      case IASTBinaryExpression.op_divideAssign -> {
         operator = BinaryOperator.DIVIDE;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_moduloAssign:
+      }
+      case IASTBinaryExpression.op_moduloAssign -> {
         operator = BinaryOperator.MODULO;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_plusAssign:
+      }
+      case IASTBinaryExpression.op_plusAssign -> {
         operator = BinaryOperator.PLUS;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_minusAssign:
+      }
+      case IASTBinaryExpression.op_minusAssign -> {
         operator = BinaryOperator.MINUS;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_shiftLeftAssign:
+      }
+      case IASTBinaryExpression.op_shiftLeftAssign -> {
         operator = BinaryOperator.SHIFT_LEFT;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_shiftRightAssign:
+      }
+      case IASTBinaryExpression.op_shiftRightAssign -> {
         operator = BinaryOperator.SHIFT_RIGHT;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_binaryAndAssign:
+      }
+      case IASTBinaryExpression.op_binaryAndAssign -> {
         operator = BinaryOperator.BINARY_AND;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_binaryXorAssign:
+      }
+      case IASTBinaryExpression.op_binaryXorAssign -> {
         operator = BinaryOperator.BINARY_XOR;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_binaryOrAssign:
+      }
+      case IASTBinaryExpression.op_binaryOrAssign -> {
         operator = BinaryOperator.BINARY_OR;
         isAssign = true;
-        break;
-      case IASTBinaryExpression.op_equals:
-        operator = BinaryOperator.EQUALS;
-        break;
-      case IASTBinaryExpression.op_notequals:
-        operator = BinaryOperator.NOT_EQUALS;
-        break;
-      default:
-        throw parseContext.parseError("Unknown binary operator", e);
+      }
+      case IASTBinaryExpression.op_equals -> operator = BinaryOperator.EQUALS;
+      case IASTBinaryExpression.op_notequals -> operator = BinaryOperator.NOT_EQUALS;
+      default -> throw parseContext.parseError("Unknown binary operator", e);
     }
 
     return Pair.of(operator, isAssign);

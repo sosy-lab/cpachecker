@@ -167,23 +167,22 @@ public class TestDataTools {
     String fileContent;
     String program;
     switch (pLanguage) {
-      case C:
+      case C -> {
         tempFile = getTempFile(pTempFolder, "program.i");
         fileContent = getProgram();
         program = tempFile.toString();
-        break;
-      case JAVA:
+      }
+      case JAVA -> {
         tempFile = getTempFile(pTempFolder, "Main.java");
         fileContent = "public class Main { public static void main(String... args) {} }";
         program = "Main";
-        break;
-      case LLVM:
+      }
+      case LLVM -> {
         tempFile = getTempFile(pTempFolder, "program.ll");
         fileContent = "define i32 @main() { entry:  ret i32 0}";
         program = tempFile.toString();
-        break;
-      default:
-        throw new AssertionError("Unhandled language: " + pLanguage);
+      }
+      default -> throw new AssertionError("Unhandled language: " + pLanguage);
     }
     if (tempFile.createNewFile()) {
       // if the file didn't exist yet, write its content

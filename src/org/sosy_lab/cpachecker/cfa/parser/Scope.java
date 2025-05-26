@@ -9,11 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.parser;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
  * Provides a symbol table that maps variable and functions to their declaration. Is needed if
@@ -43,7 +42,7 @@ public interface Scope {
    * @return returns the declaration for the variable with the given name, or null, if the variable
    *     is not visible.
    */
-  @Nullable CSimpleDeclaration lookupVariable(String name);
+  @Nullable ASimpleDeclaration lookupVariable(String name);
 
   /**
    * Returns the declaration of the function with the given name.
@@ -52,18 +51,18 @@ public interface Scope {
    * @return returns the declaration for the function with the given name, or null, if the
    *     declaration can't be found.
    */
-  @Nullable CFunctionDeclaration lookupFunction(String name);
+  @Nullable AFunctionDeclaration lookupFunction(String name);
 
   /**
-   * Look up {@link CComplexType}s by their name.
+   * Look up {@link Type}s by their name.
    *
    * @param name The fully qualified name (e.g., "struct s").
-   * @return The CComplexType instance or null.
+   * @return The Type instance or null.
    */
-  @Nullable CComplexType lookupType(String name);
+  @Nullable Type lookupType(String name);
 
   /**
-   * Look up {@link CType}s by the names of their typedefs. This is basically needed to correctly
+   * Look up {@link Type}s by the names of their typedefs. This is basically needed to correctly
    * search for anonymous complex types e.g.
    *
    * <pre>
@@ -75,14 +74,14 @@ public interface Scope {
    * @param name typedef type name e.g. s_type
    * @return the type declared in typedef e.g. struct __anon_type_0
    */
-  CType lookupTypedef(String name);
+  Type lookupTypedef(String name);
 
   /**
    * Adds the given declaration to the scope.
    *
    * @param declaration Adds this declaration to the scope.
    */
-  void registerDeclaration(CSimpleDeclaration declaration);
+  void registerDeclaration(ASimpleDeclaration declaration);
 
   /**
    * Register a type, e.g., a new struct type.
@@ -90,7 +89,7 @@ public interface Scope {
    * @return True if the type actually needs to be declared, False if the declaration can be omitted
    *     because the type is already known.
    */
-  boolean registerTypeDeclaration(CComplexTypeDeclaration declaration);
+  boolean registerTypeDeclaration(AbstractDeclaration declaration);
 
   /**
    * Take a name and return a name qualified with the current function (if we are in a function).

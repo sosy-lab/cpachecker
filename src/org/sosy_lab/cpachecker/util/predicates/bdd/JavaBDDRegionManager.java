@@ -184,14 +184,9 @@ class JavaBDDRegionManager implements RegionManager {
   private void gcCallback(Integer pre, BDDFactory.GCStats stats) {
     if (logger.wouldBeLogged(LOG_LEVEL)) {
       switch (pre) {
-        case 1:
-          logger.log(LOG_LEVEL, "Starting BDD Garbage Collection");
-          break;
-        case 0:
-          logger.log(LOG_LEVEL, "Finished BDD", stats);
-          break;
-        default:
-          logger.log(LOG_LEVEL, stats);
+        case 1 -> logger.log(LOG_LEVEL, "Starting BDD Garbage Collection");
+        case 0 -> logger.log(LOG_LEVEL, "Finished BDD", stats);
+        default -> logger.log(LOG_LEVEL, stats);
       }
     }
   }
@@ -205,14 +200,9 @@ class JavaBDDRegionManager implements RegionManager {
   private void reorderCallback(Integer pre, BDDFactory.ReorderStats stats) {
     if (logger.wouldBeLogged(LOG_LEVEL)) {
       switch (pre) {
-        case 1:
-          logger.log(LOG_LEVEL, "Starting BDD Reordering");
-          break;
-        case 0:
-          logger.log(LOG_LEVEL, "Finished BDD Reordering:", stats);
-          break;
-        default:
-          logger.log(LOG_LEVEL, stats);
+        case 1 -> logger.log(LOG_LEVEL, "Starting BDD Reordering");
+        case 0 -> logger.log(LOG_LEVEL, "Finished BDD Reordering:", stats);
+        default -> logger.log(LOG_LEVEL, stats);
       }
     }
   }
@@ -478,29 +468,16 @@ class JavaBDDRegionManager implements RegionManager {
   @Override
   public void reorder(VariableOrderingStrategy strategy) {
     switch (strategy) {
-      case RANDOM:
-        factory.reorder(BDDFactory.REORDER_RANDOM);
-        break;
-      case SIFT:
-        factory.reorder(BDDFactory.REORDER_SIFT);
-        break;
-      case SIFTITE:
-        factory.reorder(BDDFactory.REORDER_SIFTITE);
-        break;
-      case WIN2:
-        factory.reorder(BDDFactory.REORDER_WIN2);
-        break;
-      case WIN2ITE:
-        factory.reorder(BDDFactory.REORDER_WIN2ITE);
-        break;
-      case WIN3:
-        factory.reorder(BDDFactory.REORDER_WIN3);
-        break;
-      case WIN3ITE:
-        factory.reorder(BDDFactory.REORDER_WIN3ITE);
-        break;
-      default:
-        throw new UnsupportedOperationException("Reorder strategy " + strategy + " not supported");
+      case RANDOM -> factory.reorder(BDDFactory.REORDER_RANDOM);
+      case SIFT -> factory.reorder(BDDFactory.REORDER_SIFT);
+      case SIFTITE -> factory.reorder(BDDFactory.REORDER_SIFTITE);
+      case WIN2 -> factory.reorder(BDDFactory.REORDER_WIN2);
+      case WIN2ITE -> factory.reorder(BDDFactory.REORDER_WIN2ITE);
+      case WIN3 -> factory.reorder(BDDFactory.REORDER_WIN3);
+      case WIN3ITE -> factory.reorder(BDDFactory.REORDER_WIN3ITE);
+      default ->
+          throw new UnsupportedOperationException(
+              "Reorder strategy " + strategy + " not supported");
     }
   }
 

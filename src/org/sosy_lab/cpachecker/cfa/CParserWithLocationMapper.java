@@ -76,6 +76,7 @@ public class CParserWithLocationMapper implements CParser {
     return processCode(pFilename, code, sourceOriginMapping);
   }
 
+  @SuppressWarnings("AssignmentExpression")
   private String processCode(
       final Path fileName, String pCode, CSourceOriginMapping sourceOriginMapping)
       throws CParserException {

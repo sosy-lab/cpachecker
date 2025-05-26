@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          UnusedMethods: Most CPAs have private constructors that are called only via reflection
          DuplicateBranches: TODO https://github.com/google/error-prone/issues/4734
+         PatternMatchingInstanceof: TODO https://github.com/google/error-prone/issues/4921, https://github.com/google/error-prone/issues/4922, https://github.com/google/error-prone/issues/4923, https://github.com/google/error-prone/issues/4925
          -->
     <property name="errorprone.options" value="
         -Xep:DuplicateBranches:OFF
@@ -46,6 +47,7 @@ SPDX-License-Identifier: Apache-2.0
         -Xep:ReferenceEquality:OFF
         -Xep:BanSerializableRead:OFF
         -Xep:UnusedMethod:OFF
+        -Xep:PatternMatchingInstanceof:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -93,7 +95,8 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
-        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/parser/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
@@ -145,8 +148,9 @@ SPDX-License-Identifier: Apache-2.0
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
             <echo message="Generate antlr4 parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/parser/AntlrParser.xml" inheritAll="false"/>
             <echo message="Generate ACSL parser if necessary" level="info"/>
-            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" inheritAll="false"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acslDeprecated/ACSLParserBuild.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>

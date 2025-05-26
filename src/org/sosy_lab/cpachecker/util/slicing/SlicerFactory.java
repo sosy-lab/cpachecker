@@ -125,7 +125,7 @@ public class SlicerFactory implements StatisticsProvider {
 
     final SlicingType slicingType = options.getSlicingType();
     switch (slicingType) {
-      case STATIC:
+      case STATIC -> {
         CSystemDependenceGraph dependenceGraph =
             createDependenceGraph(pLogger, pShutdownNotifier, pConfig, pCfa);
         return new StaticSlicer(
@@ -135,10 +135,11 @@ public class SlicerFactory implements StatisticsProvider {
             pConfig,
             dependenceGraph,
             options.partiallyRelevantEdges);
-      case IDENTITY:
+      }
+      case IDENTITY -> {
         return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
-      default:
-        throw new AssertionError("Unhandled slicing type " + slicingType);
+      }
+      default -> throw new AssertionError("Unhandled slicing type " + slicingType);
     }
   }
 

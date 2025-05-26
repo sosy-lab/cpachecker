@@ -462,7 +462,7 @@ public final class SMGIntersectStates {
     if (pObj1.getKind() != pObj2.getKind()) {
 
       switch (pObj1.getKind()) {
-        case OPTIONAL:
+        case OPTIONAL -> {
           switch (pObj2.getKind()) {
             case REG:
             case DLL:
@@ -471,12 +471,13 @@ public final class SMGIntersectStates {
             default:
               return false;
           }
-        case REG:
-        case DLL:
-        case SLL:
+        }
+        case REG, DLL, SLL -> {
           return pObj2.getKind() == SMGObjectKind.OPTIONAL;
-        default:
+        }
+        default -> {
           return false;
+        }
       }
     }
 
@@ -515,20 +516,19 @@ public final class SMGIntersectStates {
 
     if (kind1 == kind2) {
       switch (kind1) {
-        case DLL:
-          {
-            int length1 = ((SMGDoublyLinkedList) pObj1).getMinimumLength();
-            int length2 = ((SMGDoublyLinkedList) pObj2).getMinimumLength();
-            return length1 < length2 ? pObj2 : pObj1;
-          }
-        case SLL:
-          {
-            int length1 = ((SMGSingleLinkedList) pObj1).getMinimumLength();
-            int length2 = ((SMGSingleLinkedList) pObj2).getMinimumLength();
-            return length1 < length2 ? pObj2 : pObj1;
-          }
-        default:
+        case DLL -> {
+          int length1 = ((SMGDoublyLinkedList) pObj1).getMinimumLength();
+          int length2 = ((SMGDoublyLinkedList) pObj2).getMinimumLength();
+          return length1 < length2 ? pObj2 : pObj1;
+        }
+        case SLL -> {
+          int length1 = ((SMGSingleLinkedList) pObj1).getMinimumLength();
+          int length2 = ((SMGSingleLinkedList) pObj2).getMinimumLength();
+          return length1 < length2 ? pObj2 : pObj1;
+        }
+        default -> {
           return pObj1;
+        }
       }
     }
 

@@ -48,20 +48,13 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
       List<String> parts = Splitter.on(":").limit(3).splitToList(s);
       assert parts.size() >= 2;
       switch (parts.get(0)) {
-        case "I":
-          builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
-          break;
-        case "0":
-          builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
-          break;
-        case "U":
-          builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
-          break;
-        case "N":
-          builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
-          break;
-        default:
-          throw new AssertionError("Unknown FunctionPointerState");
+        case "I" ->
+            builder.setTarget(parts.get(1), FunctionPointerState.InvalidTarget.getInstance());
+        case "0" -> builder.setTarget(parts.get(1), FunctionPointerState.NullTarget.getInstance());
+        case "U" ->
+            builder.setTarget(parts.get(1), FunctionPointerState.UnknownTarget.getInstance());
+        case "N" -> builder.setTarget(parts.get(1), new NamedFunctionTarget(parts.get(2)));
+        default -> throw new AssertionError("Unknown FunctionPointerState");
       }
     }
     return builder.build();

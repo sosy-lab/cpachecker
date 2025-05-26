@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -61,12 +62,12 @@ public class DummyScope implements Scope {
   }
 
   @Override
-  public void registerDeclaration(CSimpleDeclaration pDeclaration) {
+  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public boolean registerTypeDeclaration(CComplexTypeDeclaration pDeclaration) {
+  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
     throw new UnsupportedOperationException();
   }
 

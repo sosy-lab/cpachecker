@@ -163,30 +163,24 @@ public final class ArrayValue implements Value {
 
     } else if (elementType instanceof JSimpleType concreteType) {
       switch (concreteType) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
+        case BYTE, CHAR, SHORT, INT, LONG -> {
           // check that, if Value is of NumericValue, it contains an integer
           if (!(pValue instanceof NumericValue)
               || (((NumericValue) pValue).doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case FLOAT:
-        case DOUBLE:
+        }
+        case FLOAT, DOUBLE -> {
           if (!(pValue instanceof NumericValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case BOOLEAN:
+        }
+        case BOOLEAN -> {
           if (!(pValue instanceof BooleanValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        default:
-          throw new IllegalArgumentException(errorMessage);
+        }
+        default -> throw new IllegalArgumentException(errorMessage);
       }
     }
   }

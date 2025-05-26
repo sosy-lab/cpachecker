@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
@@ -60,7 +61,14 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<@Nullable Void, NoExc
   public @Nullable Void visit(CElaboratedType pElaboratedType) {
     if (pElaboratedType.getRealType() == null) {
 
-      @Nullable CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
+      Type lookupType = scope.lookupType(pElaboratedType.getQualifiedName());
+      assert lookupType instanceof CComplexType
+          : "Elaborated type "
+              + pElaboratedType
+              + " should be bound to a complex type, but got "
+              + lookupType;
+
+      @Nullable CComplexType realType = (CComplexType) lookupType;
       while (realType instanceof CElaboratedType) {
         realType = ((CElaboratedType) realType).getRealType();
       }

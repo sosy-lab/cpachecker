@@ -742,15 +742,16 @@ public class ARGToAutomatonConverter {
     Preconditions.checkArgument(!pLeaf.isCovered());
 
     switch (dataStrategy) {
-      case LOCATION:
+      case LOCATION -> {
         Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
         Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
         Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
         return getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
-      case CALLSTACK:
+      }
+      case CALLSTACK -> {
         return getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
-      default:
-        throw new AssertionError("unhandled case");
+      }
+      default -> throw new AssertionError("unhandled case");
     }
   }
 

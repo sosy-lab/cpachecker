@@ -255,15 +255,14 @@ final class SMGJoinTargetObjects {
     Set<Long> restricted = new HashSet<>();
 
     switch (targetObject.getKind()) {
-      case DLL:
+      case DLL -> {
         restricted.add(((SMGDoublyLinkedList) targetObject).getNfo());
         restricted.add(((SMGDoublyLinkedList) targetObject).getPfo());
-        break;
-      case SLL:
-        restricted.add(((SMGSingleLinkedList) targetObject).getNfo());
-        break;
-      default:
+      }
+      case SLL -> restricted.add(((SMGSingleLinkedList) targetObject).getNfo());
+      default -> {
         return;
+      }
     }
 
     for (SMGEdgeHasValue hve : hves) {

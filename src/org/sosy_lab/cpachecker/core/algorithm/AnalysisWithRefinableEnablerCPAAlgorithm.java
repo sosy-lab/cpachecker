@@ -427,7 +427,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       throws CPATransferException, InterruptedException {
 
     switch (enablerCPA) {
-      case PREDICATE:
+      case PREDICATE -> {
         PathFormulaManager pfm = predCPA.getPathFormulaManager();
         PredicateAbstractionManager pam = predCPA.getPredicateManager();
         PredicateAbstractState predFakeState = (PredicateAbstractState) pFakeEnablerState;
@@ -458,10 +458,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
               PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(pf, predFakeState);
         }
         return predFakeState;
-      case APRON:
-      case INTERVAL:
-      case OCTAGON:
-      case VALUE:
+      }
+      case APRON, INTERVAL, OCTAGON, VALUE -> {
         Collection<? extends AbstractState> nextFakeStateResult =
             enablerTransfer.getAbstractSuccessorsForEdge(
                 pFakeEnablerState, SingletonPrecision.getInstance(), pAssumeEdge);
@@ -474,8 +472,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
         }
         // use first element as one possible reason for failure path
         return nextFakeStateResult.iterator().next();
-      default:
-        throw new AssertionError("case should never happen");
+      }
+      default -> throw new AssertionError("case should never happen");
     }
   }
 

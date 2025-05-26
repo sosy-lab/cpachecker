@@ -68,28 +68,24 @@ public class LlvmTypeConverter {
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
     switch (typeKind) {
-      case Void:
+      case Void -> {
         return CVoidType.VOID;
-
-      case Half:
-      case Float:
-      case Double:
-      case X86_FP80:
-      case FP128:
-      case PPC_FP128:
+      }
+      case Half, Float, Double, X86_FP80, FP128, PPC_FP128 -> {
         return getFloatType(typeKind, isUnsigned);
-      case Integer:
+      }
+      case Integer -> {
         int integerWidth = pLlvmType.getIntTypeWidth();
         return getIntegerType(integerWidth, isUnsigned, isConst);
-
-      case Function:
+      }
+      case Function -> {
         assert !isConst : "We don't support function types that are const";
         return getFunctionType(pLlvmType);
-
-      case Struct:
+      }
+      case Struct -> {
         return createStructType(pLlvmType, isConst);
-
-      case Array:
+      }
+      case Array -> {
         CIntegerLiteralExpression arrayLength =
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY,
@@ -101,15 +97,15 @@ public class LlvmTypeConverter {
             isVolatile,
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             arrayLength);
-
-      case Pointer:
+      }
+      case Pointer -> {
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
         return new CPointerType(
             isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned, isConst));
-
-      case Vector:
+      }
+      case Vector -> {
         CIntegerLiteralExpression vectorLength =
             new CIntegerLiteralExpression(
                 FileLocation.DUMMY,
@@ -121,15 +117,12 @@ public class LlvmTypeConverter {
             isVolatile,
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
             vectorLength);
-      case Label:
-      case Metadata:
-      case X86_MMX:
-      case Token:
+      }
+      case Label, Metadata, X86_MMX, Token -> {
         logger.log(Level.FINE, "Ignoring type kind", typeKind);
         return null;
-
-      default:
-        throw new AssertionError("Unhandled type kind " + typeKind);
+      }
+      default -> throw new AssertionError("Unhandled type kind " + typeKind);
     }
   }
 
@@ -261,15 +254,15 @@ public class LlvmTypeConverter {
   private CType getFloatType(final TypeKind pType, final boolean isUnsigned) {
 
     switch (pType) {
-      case Half:
+      case Half -> {
         // FIXME: This is actually wrong, but at the time of this writing
         // we have no way of defining a float of 16bit width
         return getSimplestCType(CBasicType.FLOAT, isUnsigned);
-
-      case Float:
+      }
+      case Float -> {
         return getSimplestCType(CBasicType.FLOAT, isUnsigned);
-
-      case Double:
+      }
+      case Double -> {
         if (machineModel.getSizeofDouble() * 8 == 64) {
           return getSimplestCType(CBasicType.DOUBLE, isUnsigned);
         } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
@@ -279,17 +272,15 @@ public class LlvmTypeConverter {
           throw new AssertionError(
               "Machine model " + machineModel.name() + " can't handle 64bit float");
         }
-
-      case FP128:
-      case PPC_FP128:
+      }
+      case FP128, PPC_FP128 -> {
         checkState(machineModel.getSizeofFloat128() * 8 == 128);
         return getSimplestCType(CBasicType.FLOAT128, isUnsigned);
-
-      case X86_FP80:
-        throw new AssertionError(
-            "Machine model " + machineModel.name() + " can't handle 80bit float");
-      default:
-        throw new AssertionError("Unhandled float type " + pType);
+      }
+      case X86_FP80 ->
+          throw new AssertionError(
+              "Machine model " + machineModel.name() + " can't handle 80bit float");
+      default -> throw new AssertionError("Unhandled float type " + pType);
     }
   }
 

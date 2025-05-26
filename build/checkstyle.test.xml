@@ -85,10 +85,6 @@ SPDX-License-Identifier: Apache-2.0
     <module name="LeftCurly">
       <property name="tokens" value="ANNOTATION_DEF,CLASS_DEF,CTOR_DEF,ENUM_CONSTANT_DEF,ENUM_DEF,INTERFACE_DEF,LAMBDA,LITERAL_CATCH,LITERAL_DO,LITERAL_ELSE,LITERAL_FINALLY,LITERAL_FOR,LITERAL_IF,LITERAL_SWITCH,LITERAL_SYNCHRONIZED,LITERAL_TRY,LITERAL_WHILE,METHOD_DEF,OBJBLOCK,STATIC_INIT"/>
     </module>
-    <module name="LeftCurly">
-      <property name="option" value="nl"/>
-      <property name="tokens" value="LITERAL_CASE,LITERAL_DEFAULT"/>
-    </module>
     <module name="NeedBraces"/>
     <module name="RightCurly"/>
     <module name="EmptyBlock">

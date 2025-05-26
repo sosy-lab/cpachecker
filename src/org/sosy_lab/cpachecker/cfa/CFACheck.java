@@ -149,11 +149,9 @@ public class CFACheck {
     // check leaving edges
     if (!(pNode instanceof FunctionExitNode)) {
       switch (pNode.getNumLeavingEdges()) {
-        case 0:
-          verify(pNode instanceof CFATerminationNode, "Dead end at node %s", debugFormat(pNode));
-          break;
-
-        case 1:
+        case 0 ->
+            verify(pNode instanceof CFATerminationNode, "Dead end at node %s", debugFormat(pNode));
+        case 1 -> {
           CFAEdge edge = pNode.getLeavingEdge(0);
           verify(
               !(edge instanceof AssumeEdge),
@@ -163,9 +161,8 @@ public class CFACheck {
               !(edge instanceof CFunctionSummaryStatementEdge),
               "CFunctionSummaryStatementEdge is not paired with CFunctionCallEdge at node %s",
               debugFormat(pNode));
-          break;
-
-        case 2:
+        }
+        case 2 -> {
           CFAEdge edge1 = pNode.getLeavingEdge(0);
           CFAEdge edge2 = pNode.getLeavingEdge(1);
           // relax this assumption for summary edges
@@ -192,10 +189,8 @@ public class CFACheck {
                 "Inconsistent branching at node %s",
                 debugFormat(pNode));
           }
-          break;
-
-        default:
-          throw new VerifyException("Too much branching at node " + debugFormat(pNode));
+        }
+        default -> throw new VerifyException("Too much branching at node " + debugFormat(pNode));
       }
     }
   }
@@ -255,12 +250,12 @@ public class CFACheck {
   // simple check for valid contents of an edge
   private static void checkEdge(CFAEdge edge, MachineModel machineModel) {
     switch (edge.getEdgeType()) {
-      case AssumeEdge:
+      case AssumeEdge -> {
         if (edge instanceof CAssumeEdge) {
           checkTypes(((CAssumeEdge) edge).getExpression(), machineModel);
         }
-        break;
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         ADeclaration decl = ((ADeclarationEdge) edge).getDeclaration();
         if (decl instanceof CVariableDeclaration) {
           CInitializer init = ((CVariableDeclaration) decl).getInitializer();
@@ -268,16 +263,17 @@ public class CFACheck {
             checkTypes(((CInitializerExpression) init).getExpression(), machineModel);
           }
         }
-        break;
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         AStatement stat = ((AStatementEdge) edge).getStatement();
         if (stat instanceof CExpressionStatement) {
           checkTypes(((CExpressionStatement) stat).getExpression(), machineModel);
         }
-        break;
-      default:
+      }
+      default -> {
         // TODO add more checks
         // ignore
+      }
     }
   }
 

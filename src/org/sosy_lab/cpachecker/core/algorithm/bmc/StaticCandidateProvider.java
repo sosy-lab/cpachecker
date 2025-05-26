@@ -113,7 +113,8 @@ public class StaticCandidateProvider implements CandidateGenerator {
 
       @Override
       public CandidateInvariant next() {
-        return candidate = iterator.next();
+        candidate = iterator.next();
+        return candidate;
       }
 
       @Override

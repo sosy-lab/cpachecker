@@ -12,7 +12,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acslDeprecated.ACSLAnnotation;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.graph.ForwardingCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;

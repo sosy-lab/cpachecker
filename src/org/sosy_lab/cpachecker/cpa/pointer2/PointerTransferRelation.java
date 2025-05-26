@@ -116,30 +116,19 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
 
     PointerState resultState = pState;
     switch (pCfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
-        break;
-      case BlankEdge:
-        break;
-      case CallToReturnEdge:
-        break;
-      case DeclarationEdge:
-        resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
-        break;
-      case FunctionCallEdge:
-        resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
-        break;
-      case FunctionReturnEdge:
-        resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
-        break;
-      case ReturnStatementEdge:
-        resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
-        break;
-      case StatementEdge:
-        resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
-        break;
-      default:
-        throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
+      case AssumeEdge -> resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
+      case BlankEdge -> {}
+      case CallToReturnEdge -> {}
+      case DeclarationEdge ->
+          resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
+      case FunctionCallEdge ->
+          resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
+      case FunctionReturnEdge ->
+          resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
+      case ReturnStatementEdge ->
+          resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
+      case StatementEdge -> resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
+      default -> throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
   }

@@ -287,6 +287,7 @@ class CodeAppender implements Appendable {
     throw new AssertionError("Unsupported function type: " + functionType.getClass());
   }
 
+  @SuppressWarnings("AssignmentExpression")
   private static List<AParameterDeclaration> enforceParameterNames(
       List<? extends AParameterDeclaration> pParameters) {
     Set<String> usedNames = Sets.newHashSetWithExpectedSize(pParameters.size());

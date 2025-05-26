@@ -722,21 +722,13 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       throws InterruptedException {
 
     switch (resetReachedSetStrategy) {
-      case REMOVE_TARGET_STATE:
+      case REMOVE_TARGET_STATE -> {
         pTargetState.getParents().forEach(pReachedSet::reAddToWaitlist);
         removeTargetState(pReachedSet, pTargetState);
-        break;
-
-      case REMOVE_LOOP:
-        removeLoop(pReachedSet, pTargetState);
-        break;
-
-      case RESET:
-        resetReachedSet(pReachedSet, pInitialLocation);
-        break;
-
-      default:
-        throw new AssertionError(resetReachedSetStrategy);
+      }
+      case REMOVE_LOOP -> removeLoop(pReachedSet, pTargetState);
+      case RESET -> resetReachedSet(pReachedSet, pInitialLocation);
+      default -> throw new AssertionError(resetReachedSetStrategy);
     }
   }
 

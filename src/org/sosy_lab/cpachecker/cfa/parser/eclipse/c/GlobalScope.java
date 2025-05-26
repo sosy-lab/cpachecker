@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -25,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -98,7 +102,11 @@ class GlobalScope extends AbstractScope {
   public CSimpleDeclaration lookupVariable(String name) {
     CSimpleDeclaration result = globalVars.get(checkNotNull(name));
     if (result == null) {
-      result = fallbackScope.lookupVariable(name);
+      ASimpleDeclaration type = fallbackScope.lookupVariable(name);
+      assert type instanceof CSimpleDeclaration
+          : "Typedefs should be of type CSimpleDeclaration, but was " + type;
+
+      result = (CSimpleDeclaration) type;
     }
     return result;
   }
@@ -107,7 +115,11 @@ class GlobalScope extends AbstractScope {
   public @Nullable CFunctionDeclaration lookupFunction(String name) {
     CFunctionDeclaration result = functions.get(checkNotNull(name));
     if (result == null) {
-      result = fallbackScope.lookupFunction(name);
+      AFunctionDeclaration type = fallbackScope.lookupFunction(name);
+      assert type instanceof CFunctionDeclaration
+          : "Typedefs should be of type CFunctionDeclaration, but was " + type;
+
+      result = (CFunctionDeclaration) type;
     }
     return result;
   }
@@ -140,7 +152,16 @@ class GlobalScope extends AbstractScope {
       }
     }
 
-    return fallbackScope.lookupType(name);
+    Type type = fallbackScope.lookupType(name);
+    // For some reason, the type is sometimes null
+    if (type == null) {
+      return null;
+    }
+
+    assert type instanceof CComplexType
+        : "Typedefs should be of type CComplexType, but was " + type;
+
+    return (CComplexType) type;
   }
 
   @Override
@@ -157,7 +178,15 @@ class GlobalScope extends AbstractScope {
       }
     }
 
-    return fallbackScope.lookupTypedef(name);
+    Type type = fallbackScope.lookupTypedef(name);
+    // For some reason, the type is sometimes null
+    if (type == null) {
+      return null;
+    }
+
+    assert type instanceof CType : "Typedefs should be of type CType, but was " + type;
+
+    return (CType) type;
   }
 
   public @Nullable CTypeDefDeclaration lookupTypedefForTypename(final String name) {
@@ -198,7 +227,11 @@ class GlobalScope extends AbstractScope {
   }
 
   @Override
-  public void registerDeclaration(CSimpleDeclaration declaration) {
+  public void registerDeclaration(ASimpleDeclaration pDeclaration) {
+    assert pDeclaration instanceof CSimpleDeclaration
+        : "Only C declarations are allowed in the global scope: " + pDeclaration;
+
+    CSimpleDeclaration declaration = (CSimpleDeclaration) pDeclaration;
     assert declaration instanceof CVariableDeclaration || declaration instanceof CEnumerator
         : "Tried to register a declaration which does not define a name in the standard namespace: "
             + declaration;
@@ -227,7 +260,11 @@ class GlobalScope extends AbstractScope {
    *     because the type is already known.
    */
   @Override
-  public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
+  public boolean registerTypeDeclaration(AbstractDeclaration pDeclaration) {
+    assert pDeclaration instanceof CComplexTypeDeclaration
+        : "Only CComplexTypeDeclaration is allowed in the global scope: " + pDeclaration;
+    CComplexTypeDeclaration declaration = (CComplexTypeDeclaration) pDeclaration;
+
     CComplexType type = declaration.getType();
     String name = type.getQualifiedName();
     boolean isOnlyElaboratedType = type.getCanonicalType() instanceof CElaboratedType;
