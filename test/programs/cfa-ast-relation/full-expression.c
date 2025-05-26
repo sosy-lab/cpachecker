@@ -56,6 +56,15 @@ int main() {
   int u = g(a(3, 2), a(2, 3)) * a(4, 1);
 
   arr[1] = a(1, 4);
+
+  int v = a(
+  5,
+  6
+  );
+
+  arr[2]
+  =
+  0;
   }
 
 int rec(int x) {
@@ -65,6 +74,11 @@ int rec(int x) {
    int n = rec(a(5, 4));
    int q = rec(rec(3));
    q = rec(rec(4));
+   int o = rec(
+   rec(
+   2
+   )
+   );
    return rec(x - 2);
 }
 
@@ -105,4 +119,39 @@ int e(int f, int g) {
   return (f >= 0, g >= 0) && (f < 5, g < 5);
 }
 
-
+int h() {
+  int
+  p
+  =
+  10;
+  for (
+  int q
+  =
+  1;
+  q
+  <
+  p;
+  q++
+  )
+  {
+    p
+    =
+    p
+    -
+    q;
+  }
+    if (
+    p
+    >
+    0
+    )
+    {
+        p
+        =
+        5;
+        }
+  return
+  p
+  +
+  3;
+}
