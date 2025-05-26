@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
@@ -357,6 +358,7 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
     String currentStateId = initState;
 
     int distance = segments.size() - 1;
+    String cycleHeadName = "";
 
     for (PartitionedWaypoints entry : segments) {
       ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
@@ -434,29 +436,47 @@ class AutomatonViolationWitnessV2Parser extends AutomatonWitnessV2ParserCommon {
         continue;
       }
 
+      if (flowWaypoint.getAction().equals(WaypointAction.CYCLE) && cycleHeadName.isEmpty()) {
+        cycleHeadName = currentStateId;
+      }
+
       automatonStates.add(
           new AutomatonInternalState(
               currentStateId,
               transitions.build(),
               /* pIsTarget= */ false,
               /* pAllTransitions= */ false,
-              /* pIsCycleStart= */ false));
+              /* pIsCycleStart= */ currentStateId.equals(cycleHeadName)));
 
       distance--;
       currentStateId = nextStateId;
     }
 
-    // add last state and stutter in it:
-    automatonStates.add(
-        new AutomatonInternalState(
-            currentStateId,
-            ImmutableList.of(
-                new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
-                    new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
-                        .withAssertion(createViolationAssertion()))),
-            /* pIsTarget= */ false,
-            /* pAllTransitions= */ false,
-            /* pIsCycleStart= */ false));
+    // If there is no cycle in the witness, it is a reachability witness
+    if (cycleHeadName.isEmpty()) {
+      // add last state and stutter in it:
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                  new AutomatonGraphmlParser.TargetInformationCopyingAutomatonTransition(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, currentStateId)
+                          .withAssertion(createViolationAssertion()))),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    } else {
+      // add last state and a transition to enclose the cycle
+      automatonStates.add(
+          new AutomatonInternalState(
+              currentStateId,
+              ImmutableList.of(
+                      new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, cycleHeadName)
+                          .build()),
+              /* pIsTarget= */ false,
+              /* pAllTransitions= */ false,
+              /* pIsCycleStart= */ false));
+    }
 
     ImmutableMap<String, AutomatonVariable> automatonVariables =
         ImmutableMap.of(
