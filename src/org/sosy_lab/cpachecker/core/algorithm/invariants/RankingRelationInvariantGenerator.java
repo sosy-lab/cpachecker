@@ -12,17 +12,10 @@ import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.
 import static org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents.createComponentsFromSSAMap;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankingRelationComponents;
-import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction.LassoBuilder;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -46,21 +39,14 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
   private ReachedSet reachedSet;
   private final AggregatedReachedSets aggregatedReachedSets;
   private final CFA cfa;
-  private CounterexampleInfo counterexampleInfo;
 
-  public RankingRelationInvariantGenerator(
-      AggregatedReachedSets pAggregatedReachedSets,
-      CFA pCFA) {
+  public RankingRelationInvariantGenerator(AggregatedReachedSets pAggregatedReachedSets, CFA pCFA) {
     this.aggregatedReachedSets = pAggregatedReachedSets;
     this.cfa = pCFA;
   }
 
   public void setReachedSet(ReachedSet pReachedSet) {
     this.reachedSet = pReachedSet;
-  }
-
-  public void setCounterexampleInfo(CounterexampleInfo pCounterexampleInfo) {
-    this.counterexampleInfo = pCounterexampleInfo;
   }
 
   protected Iterable<AbstractState> getReachedStates() {
@@ -99,11 +85,13 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
         BooleanFormula reachedSetInvariant = bfmgr.makeTrue();
         BooleanFormula rankingRelationInvariant = bfmgr.makeTrue();
 
-        Iterable<AbstractState> nodeStates = AbstractStates.filterLocation(getReachedStates(), node);
+        Iterable<AbstractState> nodeStates =
+            AbstractStates.filterLocation(getReachedStates(), node);
 
         for (AbstractState state : nodeStates) {
 
-          PredicateAbstractState pas = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+          PredicateAbstractState pas =
+              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
           if (pas == null) {
             continue;
           }
@@ -118,8 +106,10 @@ public class RankingRelationInvariantGenerator extends AbstractInvariantGenerato
             IntegerFormulaManagerView intgerFormulaManager = fmgr.getIntegerFormulaManager();
             IntegerFormula zero2 = intgerFormulaManager.makeNumber(0L);
 
-            RankingRelationComponents componentsFromState = createComponentsFromSSAMap(ssaMap, fmgr, zero2);
-            BooleanFormula computedInvariant = computeIntegratedInvariantFormula(componentsFromState, fmgr, zero2);
+            RankingRelationComponents componentsFromState =
+                createComponentsFromSSAMap(ssaMap, fmgr, zero2);
+            BooleanFormula computedInvariant =
+                computeIntegratedInvariantFormula(componentsFromState, fmgr, zero2);
 
             rankingRelationInvariant = bfmgr.and(rankingRelationInvariant, computedInvariant);
           } else {
