@@ -78,7 +78,7 @@ public class AutomatonWitnessV2ParserUtils {
     Scope result = pScope;
     if (result instanceof CProgramScope r) {
       result = r.withLocationDescriptor(pLocationDescriptor);
-      if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
+      if (pExplicitScope.isPresent() || (pFunctionStack != null && !pFunctionStack.isEmpty())) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
           functionName = pExplicitScope.orElseThrow();
