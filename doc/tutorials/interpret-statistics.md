@@ -52,7 +52,7 @@ The scatter plot also nicely illustrate this observation:
 
 Similarly, the model enumeration (one of the main parts of the algorithm to compute the boolean predicate abstraction)
 takes usually less then 10 % of the time for abstraction, while for the rest it also goes up to 100 %.
-Thus, there are extreme cases in which the model enumeration consumes almost all the overall verification time.
+Thus, there are extreme cases in which the model enumeration consumes almost all of the overall verification time.
 [Scatter Plot](https://buildbot.sosy-lab.org/cpachecker/results/nightly-predicate/00171.-r_integration-nightly-predicate.2020-09-20_22-00-18.results.html#/scatter?toolY=0&columnY=7&toolX=0&columnX=4)
 
 ## Results of Individual Verification Runs

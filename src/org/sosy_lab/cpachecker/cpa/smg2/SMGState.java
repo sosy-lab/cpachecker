@@ -5834,7 +5834,7 @@ public class SMGState
    * Takes the {@link Value}s that should be retained in the Heap and removes all other explicit
    * Values from the heap.
    *
-   * @param valuesToRetain the (concrete) {@link Value}s to retain in all the heap.
+   * @param valuesToRetain the (concrete) {@link Value}s to retain in all of the heap.
    * @return the new {@link SMGState} with the removed heap values.
    */
   public SMGState enforceHeapValuePrecision(Set<Value> valuesToRetain) {

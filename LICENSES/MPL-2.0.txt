@@ -188,7 +188,7 @@ any jurisdiction.
    4. Inability to Comply Due to Statute or Regulation
 
 If it is impossible for You to comply with any of the terms of this License
-with respect to some or all the Covered Software due to statute, judicial
+with respect to some or all of the Covered Software due to statute, judicial
 order, or regulation then You must: (a) comply with the terms of this License
 to the maximum extent possible; and (b) describe the limitations and the code
 they affect. Such description must be placed in a text file included with
