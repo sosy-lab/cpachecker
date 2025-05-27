@@ -34,4 +34,8 @@ public class InstrumentationOperation {
     }
     return resultingOperation;
   }
+
+  public String getOperation() {
+    return operation;
+  }
 }

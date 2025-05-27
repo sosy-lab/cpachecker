@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.io.FileWriter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -54,12 +55,15 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import java.io.File;
+import java.io.IOException;
 
 public class LoopInfoUtils {
 
-  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
-      CFA pCfa, CProgramScope pCProgramScope) {
-    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
+  // here the live variables are detected so this method returns every single array spot as a variable -LE
+  @SuppressWarnings("DefaultCharset")
+  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(CFA pCfa, CProgramScope pCProgramScope) {
+    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>(); // copy of this is returned at the end -LE
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
     Map<String, ImmutableMap<String, String>> decomposedStructs = new HashMap<>();
@@ -69,6 +73,7 @@ public class LoopInfoUtils {
       // loop heads, e.g., goto loop.
       List<Integer> loopLocations = new ArrayList<>();
       for (CFANode cfaNode : loop.getLoopHeads()) {
+        // finds all loopheads and adds their position in code to loopLocations -LE
         loopLocations.add(
             CFAUtils.allEnteringEdges(cfaNode)
                 .first()
@@ -84,13 +89,29 @@ public class LoopInfoUtils {
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
+          // get all variables that are declared inside of the loop -LE
           if (aAstNode instanceof CSimpleDeclaration) {
+            // CSimpleDeclaration is a Interface that describes declarations. This way you can get all variables declared in loop -LE
             variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
+            // finds all variables outside of the loop that are used -LE
             liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
         }
       }
+
+      try{
+        FileWriter writer = new FileWriter("/run/media/lenrow/Data/Code-Projects/Bachelor-Arbeit/transver/test_output/personal_log.txt");
+        writer.write(liveVariables.toString());
+        writer.close();
+      }
+      catch (IOException e) {
+        System.out.println("An error occurred.");
+        e.printStackTrace();
+        throw new java.lang.Error("Bad.");
+      }
+
+      // remove variables that are only in the loop or are other exceptions (not sure what that means) -LE
       liveVariables.removeAll(variablesDeclaredInsideLoop);
       liveVariables.removeIf(
           e ->
@@ -119,11 +140,12 @@ public class LoopInfoUtils {
 
       // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
+        // this for loop adds the arrays to liveVariablesAndTypes -LE
         Entry<String, String> preprocessedVariableAndType =
+            // preprocess formats and processes variable name and type (not 100% sure) -LE
             preprocess(variable, pCProgramScope.lookupVariable(variable).getType().toString());
         String preprocessedVariable = preprocessedVariableAndType.getKey();
         String preprocessedType = preprocessedVariableAndType.getValue();
-
         if (preprocessedType.startsWith("struct ")
             && !decomposedStructs.containsKey(preprocessedType)) {
           decomposedStructs.put(
@@ -248,10 +270,11 @@ public class LoopInfoUtils {
     }
     return ImmutableSet.copyOf(updatedLoopInfo);
   }
-
+  // this is a part where I have to implement the arrays -LE
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
     Set<String> variables = new HashSet<>();
 
+    // CExpression is an expression like x + y without func calls etc. so you can just get all vars -LE
     if (pAAstNode instanceof CExpression) {
       CFAUtils.getVariableNamesOfExpression(((CExpression) pAAstNode))
           .forEach(e -> variables.add(e));
@@ -261,6 +284,7 @@ public class LoopInfoUtils {
       CFAUtils.getVariableNamesOfExpression(cExpression).forEach(e -> variables.add(e));
 
     } else if (pAAstNode instanceof CExpressionAssignmentStatement) {
+      // CExpressionAssignmentStatement is var = CExpression
       CLeftHandSide cLeftHandSide = ((CExpressionAssignmentStatement) pAAstNode).getLeftHandSide();
       CFAUtils.getVariableNamesOfExpression(cLeftHandSide).forEach(e -> variables.add(e));
 
@@ -286,7 +310,6 @@ public class LoopInfoUtils {
           .getParameterExpressions()
           .forEach(e -> CFAUtils.getVariableNamesOfExpression(e).forEach(n -> variables.add(n)));
     }
-
     return ImmutableSet.copyOf(variables);
   }
 
@@ -296,16 +319,16 @@ public class LoopInfoUtils {
     if (!pType.contains("*") && !pType.contains("]")) {
       return new SimpleEntry<>(
           pVariable.contains("::")
-              ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-              : pVariable,
+          ? Iterables.get(Splitter.on("::").split(pVariable), 1) // ? -LE
+          : pVariable,
           pType);
     }
 
     StringBuilder reversedVariableSb =
         new StringBuilder(
-                pVariable.contains("::")
-                    ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-                    : pVariable)
+            pVariable.contains("::")
+            ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+            : pVariable)
             .reverse();
     StringBuilder reversedTypeSb = new StringBuilder(pType).reverse();
 
@@ -337,10 +360,11 @@ public class LoopInfoUtils {
         reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
   }
 
+  // this function adds every array spot into variable -LE
   private static ImmutableMap<String, String> decompose(
       String pPreprocessedVariable,
       String pPreprocessedType,
-      ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) {
+      ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) { // add p -LE
     final String EXPRESSION_PLACEHOLDER = "$";
 
     Map<String, String> temp = new LinkedHashMap<>();
@@ -357,6 +381,7 @@ public class LoopInfoUtils {
                       e.getValue()));
     }
 
+    // this expandArrays func turns the array into what it becomes -LE
     return expandArrays(ImmutableMap.copyOf(temp));
   }
 
@@ -375,10 +400,14 @@ public class LoopInfoUtils {
         List<Integer> ranges = new ArrayList<>();
         Pattern pattern = Pattern.compile("\\[(\\d+)\\]");
         Matcher matcher = pattern.matcher(expression);
-
         StringBuffer basePartBuffer = new StringBuffer();
+        // gets the sizes of the current initialization expression. Uses a while loop since the array could go N dimensions deep. -LE
         while (matcher.find()) {
+          // each found match here is one dimension more that is added to ranges. -LE
+          // since each match is essentially the size of a dimension, the ranges var holds the ranges of the initialized array. -LE
+          // the generateCombinations func creates all possible combinations for the array. So all possible ways to access it. -LE
           ranges.add(Integer.parseInt(matcher.group(1)));
+          // this %d in combination with the format below causes the errors cause it inserts the access in the middle before the rest of the name -LE
           matcher.appendReplacement(basePartBuffer, "[%d]");
         }
         matcher.appendTail(basePartBuffer);
@@ -400,6 +429,9 @@ public class LoopInfoUtils {
     return generateCombinationsHf(pRanges, ImmutableList.of(), 0);
   }
 
+  // recursive func that creates all possible access combinations of a list. -LE
+  // A 2d list with size [2][2] would return "[0, 0], [0, 1], [1, 0], [1, 1]" -LE
+  // this works also for 3d, 4d etc. there it would be [0, 0, 0] -LE
   private static ImmutableList<ImmutableList<Integer>> generateCombinationsHf(
       ImmutableList<Integer> pRanges, ImmutableList<Integer> pCurrent, int pDepth) {
     List<ImmutableList<Integer>> result = new ArrayList<>();
@@ -509,12 +541,16 @@ public class LoopInfoUtils {
     Set<String> allGlobalVariables = new HashSet<>();
 
     for (CFAEdge cfaEdge :
+      // edges() is a function defined in the cfa class that returns all edges -LE
         pCfa.edges().stream()
             .filter(e -> !e.toString().startsWith("/"))
             .toList()) { // Exclude the edges from the imported files
+
       if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
         AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
         if (aAstNode instanceof CVariableDeclaration) {
+          // Since CFA edges contain the statement of the edge, this line checks -LE
+          // if a cfa edge declares a new variable to store it -LE
           CVariableDeclaration cVariableDeclaration = (CVariableDeclaration) aAstNode;
           if (cVariableDeclaration.isGlobal()) {
             String globalVariable = cVariableDeclaration.getQualifiedName();
