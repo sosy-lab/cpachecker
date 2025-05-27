@@ -8,21 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer;
 
-import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
+
+import com.google.common.io.ByteStreams;
+
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-import org.sosy_lab.common.log.LogManager;
 
 public class PointerAnalysisTest {
   private static final String CONFIGURATION_FILE = "config/pointer.properties";

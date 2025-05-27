@@ -9,12 +9,16 @@
 package org.sosy_lab.cpachecker.cpa.pointer;
 
 import com.google.common.collect.ImmutableSet;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+
 import org.sosy_lab.common.log.LogManager;
+
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -23,10 +27,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -34,35 +45,27 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.util.ExplicitLocationSet;
-import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetBot;
-import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.pointer.util.ExplicitLocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
+import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetBot;
+import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import java.util.Optional;
 
 public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
