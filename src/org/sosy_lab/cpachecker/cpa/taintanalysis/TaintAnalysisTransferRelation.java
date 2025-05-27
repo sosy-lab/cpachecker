@@ -833,34 +833,14 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (expectedPublicity == 0) {
-
-      Set<TaintAnalysisState> siblingStates = pState.getSiblingStates();
-
       if (!isCurrentlyTainted) {
-        if (siblingStates != null && !siblingStates.isEmpty()) {
-          for (TaintAnalysisState siblingState : siblingStates) {
-            if (siblingState.isTarget()) {
-              logger.logf(
-                  Level.WARNING,
-                  "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
-                      + " public.",
-                  pCfaEdge.getFileLocation(),
-                  firstArg.toASTString());
-
-              pState.setViolatesProperty();
-              break;
-            }
-          }
-        } else {
-          logger.logf(
-              Level.WARNING,
-              "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
-                  + " public.",
-              pCfaEdge.getFileLocation(),
-              firstArg.toASTString());
-
-          pState.setViolatesProperty();
-        }
+        logger.logf(
+            Level.WARNING,
+            "Assertion violation at %s: Variable '%s' was expected to be tainted but is"
+                + " public.",
+            pCfaEdge.getFileLocation(),
+            firstArg.toASTString());
+        pState.setViolatesProperty();
       }
     }
   }
