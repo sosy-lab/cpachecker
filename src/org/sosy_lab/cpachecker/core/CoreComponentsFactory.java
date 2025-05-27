@@ -650,7 +650,7 @@ public class CoreComponentsFactory {
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
             new TestCaseGeneratorAlgorithm(
-                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
+                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification, this);
       }
 
       if (collectAssumptions) {

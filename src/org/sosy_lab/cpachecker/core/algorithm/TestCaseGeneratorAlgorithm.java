@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -99,6 +100,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private final ShutdownNotifier shutdownNotifier;
   private Set<CFAEdge> testTargets;
   private final Property specProp;
+  private final CoreComponentsFactory factory;
   private final TestCaseExporter exporter;
   private double progress = 0;
 
@@ -109,7 +111,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       final ConfigurableProgramAnalysis pCpa,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final Specification pSpec)
+      final Specification pSpec,
+      final CoreComponentsFactory coreFactory)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
@@ -117,6 +120,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     cpa = pCpa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    factory = coreFactory;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
     TestTargetCPA testTargetCpa =
@@ -220,7 +224,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  runExtractorAlgo(pReached, (ARGState) reachedState, cexInfo);
+                  runExtractorAlgo(pReached, (ARGState) reachedState, (ARGState) reachedState, cexInfo);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -290,29 +294,45 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // after the algo is done, the newly reached states are added to this variable
   private void runExtractorAlgo(
       final ReachedSet pReached,
-      ARGState reachedState,
+      AbstractState reachedState,
+      ARGState argState,
       CounterexampleInfo cexInfo) {
 
-    ARGState eStartState = new ARGState(reachedState, null);
-    getExpressions(cexInfo, eStartState);
+    // initialisation of starting state and reachedSet
+    ARGState eStartState = new ARGState(argState.getWrappedState(), null);
+//    getExpressions(cexInfo, eStartState);
 
-//    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 //    SingletonPrecision.getInstance());
-//    ReachedSet eReached = null;
-//    eReached = factory.createReachedSet(cpa);
-//    eReached.add(reachedState, isPrecise())
-//      //missing cfa, factory, intitializeReachedSet method
-//  removeAll
+    ReachedSet eReached = factory.createReachedSet(cpa);
+    eReached.add(eStartState, pReached.getPrecision(reachedState));
+    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 
-//    pReached.add(reachedState, pReached.getPrecision(reachedState));
-//
-
-// todo add try catch finaly block
+    // exploring of additional ARGstates
+// todo add try catch finally block
 //  status = extractorAlgo.run(eReached);
 //    todo call processGoalState() for all elements of eReached that are testTargets
 //    todo optimisation: do not call for the first element of eReached, as that got already covered
+
+    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    try {
+      status = algorithm.run(eReached);
+
+    } catch (CPAException e) {
+      // precaution always set precision to false, thus last target state not handled in case of
+      // exception
+      status = status.withPrecise(false);
+      logger.logUserException(Level.WARNING, e, "Analysis not completed.");
+
+    } catch (InterruptedException e1) {
+      // may be thrown only be counterexample check, if not will be thrown again in finally
+      // block due to respective shutdown notifier call)
+      status = status.withPrecise(false);
+    } finally {
+
+
 //  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
-    processGoalState(reachedState);
+//    processGoalState(eStartState);
+    }
   }
 
   // extracts individual expressions from the counterexample and adds them to the starting state
