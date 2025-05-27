@@ -15,41 +15,39 @@
     - invariant:
         type: loop_invariant
         location:
-          # file_name: maxArray.c
           line: 18
           column: 3
-          function: maxArray
-        value: "m == ACSL(MaxArray(arr,j))"
+          function: minArray
+        value: "m == ACSL(MinArray(arr,j))"
         format: c_expression
     - invariant:
         type: loop_invariant
         location:
-          # file_name: maxArray.c
           line: 18
           column: 3
-          function: maxArray
+          function: minArray
         value: "0 <= j <= l"
         format: c_expression
 - entry_type: lemma_set
   declarations: 
-    - "int MaxArray(int* A, int I)"
+    - "int MinArray(int* A, int I)"
     - "int* A"
     - "int I"
   content:
     - lemma:
         location:
-          file_name: maxArray.c
+          file_name: minArray.c
           line: 18
           column: 3
-          function: maxArray
-        value: "ACSL(MaxArray(A,0)) == A[0]"
+          function: minArray
+        value: "ACSL(MinArray(A,0)) == A[0]"
         format: c_expression
     - lemma:
         location:
-          file_name: maxArray.c
+          file_name: minArray.c
           line: 18
           column: 3
-          function: maxArray
-          # ACSL(MaxArray(A,I)) == (A[I] > ACSL(MaxArray(A,I-1)) ? A[I] : ACSL(MaxArray(A,I-1))) 
-        value: "((A[I] > ACSL(MaxArray(A,I))) & ACSL(MaxArray(A,I)) == A[I]) | (A[I] <= ACSL(MaxArray(A,I)) & ACSL(MaxArray(A,I)) == ACSL(MaxArray(A,I-1)))"
+          function: minArray
+          # ACSL(MinArray(A,I)) == (A[I] < ACSL(MinArray(A,I-1)) ? A[I] : ACSL(MinArray(A,I-1))) 
+        value: "((A[I] < ACSL(MinArray(A,I))) & ACSL(MinArray(A,I)) == A[I]) | (A[I] >= ACSL(MinArray(A,I)) & ACSL(MinArray(A,I)) == ACSL(MinArray(A,I-1)))"
         format: c_expression
