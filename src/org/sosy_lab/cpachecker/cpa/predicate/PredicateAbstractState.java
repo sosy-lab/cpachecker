@@ -233,8 +233,7 @@ public abstract sealed class PredicateAbstractState
     }
 
     @Override
-    public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr)
-        throws CPATransferException, InterruptedException {
+    public BooleanFormula toFormula(FormulaManagerView fmgr, PathFormulaManager pfmgr) {
       return getAbstractionFormula().asFormulaFromOtherSolver(fmgr);
     }
   }

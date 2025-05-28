@@ -40,7 +40,7 @@ public class EquivalenceRunner {
       ImmutableList<BooleanFormula> unsafe,
       ImmutableList<Integer> touchedLines) {}
 
-  private record AnalysisComponents(
+  public record AnalysisComponents(
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, CFA cfa, ReachedSet reached) {}
 
   private final Specification specification;
@@ -113,7 +113,13 @@ public class EquivalenceRunner {
   public SafeAndUnsafeConstraints runStrategy(CFA program, LeafStrategy strategy)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     AnalysisComponents analysis = createAnalysis(program);
-    AlgorithmStatus status = runFullAnalysis(analysis.algorithm(), analysis.reached());
-    return strategy.export(analysis.reached(), analysis.cfa(), status);
+    AlgorithmStatus status;
+    try {
+      status = runFullAnalysis(analysis.algorithm(), analysis.reached());
+    } catch (IllegalStateException e) {
+      logger.logException(Level.INFO, e, "Caught IllegalStateException");
+      status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    }
+    return strategy.export(analysis.reached(), analysis, status);
   }
 }

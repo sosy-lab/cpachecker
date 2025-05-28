@@ -14,9 +14,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.SafeAndUnsafeConstraints;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -44,7 +44,8 @@ public class ARGLeafStrategy implements LeafStrategy {
   }
 
   @Override
-  public SafeAndUnsafeConstraints export(ReachedSet pReachedSet, CFA pCfa, AlgorithmStatus pStatus)
+  public SafeAndUnsafeConstraints export(
+      ReachedSet pReachedSet, AnalysisComponents pComponents, AlgorithmStatus pStatus)
       throws CPATransferException, InterruptedException, InvalidConfigurationException {
     PathFormulaManagerImpl pathFormulaManager =
         new PathFormulaManagerImpl(
@@ -52,7 +53,7 @@ public class ARGLeafStrategy implements LeafStrategy {
             config,
             logger,
             shutdownNotifier,
-            pCfa,
+            pComponents.cfa(),
             AnalysisDirection.FORWARD);
     FluentIterable<ARGState> statesWithoutChildren =
         LeafStrategy.filterStatesWithNoChildren(pReachedSet);

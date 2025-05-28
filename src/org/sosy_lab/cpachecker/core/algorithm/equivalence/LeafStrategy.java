@@ -13,10 +13,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.SafeAndUnsafeConstraints;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -48,6 +48,7 @@ public interface LeafStrategy {
     return ImmutableList.sortedCopyOf(touchedLines.build());
   }
 
-  SafeAndUnsafeConstraints export(ReachedSet pReachedSet, CFA pCfa, AlgorithmStatus pStatus)
+  SafeAndUnsafeConstraints export(
+      ReachedSet pReachedSet, AnalysisComponents pComponents, AlgorithmStatus pStatus)
       throws CPAException, InterruptedException, InvalidConfigurationException;
 }

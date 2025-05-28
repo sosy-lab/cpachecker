@@ -8,10 +8,15 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.equivalence;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -22,12 +27,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
+import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.AnalysisComponents;
 import org.sosy_lab.cpachecker.core.algorithm.equivalence.EquivalenceRunner.SafeAndUnsafeConstraints;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsSolver;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
@@ -75,30 +79,65 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
     return new ValueTransferBasedStrongestPostOperator(constraintsSolver, logger, config, pCfa);
   }
 
+  record CFAPaths(List<CFAEdge> edges, boolean unsafe) {}
+
+  private List<CFAPaths> pathsInARG(ARGState root) {
+    logger.log(Level.INFO, "Extracting paths from ARG");
+    record ARGStateWithEdges(ARGState state, Set<ARGState> seen, List<CFAEdge> edges) {}
+    List<ARGStateWithEdges> allPaths = new ArrayList<>();
+    for (ARGState child : root.getChildren()) {
+      for (CFAEdge cfaEdge : root.getEdgesToChild(child)) {
+        List<CFAEdge> edges = new ArrayList<>();
+        edges.add(cfaEdge);
+        Set<ARGState> seen = new HashSet<>();
+        seen.add(root);
+        allPaths.add(new ARGStateWithEdges(child, seen, edges));
+      }
+    }
+    List<CFAPaths> done = new ArrayList<>();
+    while (!allPaths.isEmpty()) {
+      ARGStateWithEdges current = allPaths.remove(0);
+      ARGState currentState = current.state();
+      if (currentState.getChildren().isEmpty()) {
+        // Leaf node, we can stop here
+        done.add(new CFAPaths(current.edges(), currentState.isTarget()));
+        continue;
+      }
+      for (ARGState child : currentState.getChildren()) {
+        List<CFAEdge> upcoming = currentState.getEdgesToChild(child);
+        if (!Sets.intersection(ImmutableSet.copyOf(current.edges()), ImmutableSet.copyOf(upcoming))
+                .isEmpty()
+            && current.seen().contains(child)) {
+          continue;
+        }
+        List<CFAEdge> copy = new ArrayList<>(current.edges());
+        copy.addAll(upcoming);
+        Set<ARGState> seen = new HashSet<>(current.seen());
+        seen.add(child);
+        allPaths.add(new ARGStateWithEdges(child, seen, copy));
+      }
+    }
+    logger.log(Level.INFO, "Extracted", done.size(), "paths from ARG");
+    return done;
+  }
+
   @Override
-  public SafeAndUnsafeConstraints export(ReachedSet pReachedSet, CFA pCfa, AlgorithmStatus pStatus)
+  public SafeAndUnsafeConstraints export(
+      ReachedSet pReachedSet, AnalysisComponents pComponents, AlgorithmStatus pStatus)
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    FormulaManagerView fmgr = solver.getFormulaManager();
     PathFormulaManagerImpl pathFormulaManager =
         new PathFormulaManagerImpl(
-            solver.getFormulaManager(),
-            config,
-            logger,
-            shutdownNotifier,
-            pCfa,
-            AnalysisDirection.FORWARD);
-    FluentIterable<ARGState> statesWithoutChildren =
-        LeafStrategy.filterStatesWithNoChildren(pReachedSet);
+            fmgr, config, logger, shutdownNotifier, pComponents.cfa(), AnalysisDirection.FORWARD);
     ImmutableList.Builder<BooleanFormula> safe = ImmutableList.builder();
     ImmutableList.Builder<BooleanFormula> unsafe = ImmutableList.builder();
-    for (ARGState state : statesWithoutChildren) {
-      for (ARGPath path : ARGUtils.getAllPaths(pReachedSet, state)) {
-        BooleanFormula formula =
-            runSymbolicExecutionOnCex(path.getFullPath(), pCfa, pathFormulaManager);
-        if (state.isTarget()) {
-          unsafe.add(formula);
-        } else {
-          safe.add(formula);
-        }
+    for (CFAPaths path : pathsInARG((ARGState) pReachedSet.getFirstState())) {
+      BooleanFormula formula =
+          runSymbolicExecutionOnCex(path.edges(), pComponents.cfa(), pathFormulaManager);
+      if (path.unsafe()) {
+        unsafe.add(formula);
+      } else {
+        safe.add(formula);
       }
     }
     return new SafeAndUnsafeConstraints(
