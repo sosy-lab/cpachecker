@@ -37,7 +37,7 @@ class THTypeConverter extends TypeConverter {
 
     String typeName = convertClassOrInterfaceToFullName(t);
 
-    // check if type is was already converted.
+    // check if type was already converted.
     if (typeTable.containsType(typeName) || typeTable.containsType("java.lang." + typeName)) {
       JClassOrInterfaceType type =
           typeTable.getType(typeName) != null
@@ -140,7 +140,7 @@ class THTypeConverter extends TypeConverter {
 
     String typeName = convertClassOrInterfaceToFullName(t);
 
-    // check if type is was already converted.
+    // check if type was already converted.
     if (typeTable.containsType(typeName)) {
       JClassOrInterfaceType type = typeTable.getType(typeName);
 

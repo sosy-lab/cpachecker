@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Implementation of {@link Scope} for the global scope (i.e., outside of functions). Allows to
+ * Implementation of {@link Scope} for the global scope (i.e., outside functions). Allows to
  * register functions, types and global variables.
  */
 class GlobalScope extends AbstractScope {

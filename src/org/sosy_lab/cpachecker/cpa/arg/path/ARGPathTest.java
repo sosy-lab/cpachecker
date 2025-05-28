@@ -59,7 +59,7 @@ public class ARGPathTest {
 
     // setup for the full path and path iterator tests
 
-    // Build a cfa-path, this is simply a chain of 10 edges
+    // Build a CFA-path, this is simply a chain of 10 edges
     edges = new ArrayList<>();
     CFANode firstNode = newDummyCFANode("test");
 

@@ -108,7 +108,7 @@ public class MemoryStatistics implements Runnable {
   private static final String MEMORY_SIZE = "CommittedVirtualMemorySize";
 
   /**
-   * Instantiate this thread. You need to call {@link Thread#start()} afterwards to start measuring.
+   * Instantiate this thread. You need to call {@link Thread#start()} afterward to start measuring.
    */
   public MemoryStatistics(LogManager pLogger) {
     //    super("CPAchecker memory statistics collector");

@@ -135,7 +135,7 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Checks whether an CFA edge represents an untracked operation.
+   * Checks whether a CFA edge represents an untracked operation.
    *
    * @param pEdge the edge to be checked
    * @return the analysis result

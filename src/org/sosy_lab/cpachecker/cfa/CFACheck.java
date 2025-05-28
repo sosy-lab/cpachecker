@@ -64,7 +64,7 @@ public class CFACheck {
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    * @param machineModel model to get the size of types
-   * @return true if all checks succeed
+   * @return whether all checks succeed
    * @throws VerifyException if not all checks succeed
    */
   public static boolean check(

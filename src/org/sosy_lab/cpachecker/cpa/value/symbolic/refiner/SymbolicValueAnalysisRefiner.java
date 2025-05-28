@@ -111,7 +111,7 @@ public class SymbolicValueAnalysisRefiner
 
   @Option(
       secure = true,
-      description = "whether or not to do lazy-abstraction",
+      description = "whether to do lazy-abstraction",
       name = "restart",
       toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;

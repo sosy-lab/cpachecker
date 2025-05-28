@@ -184,7 +184,7 @@ public class SMGCPABuiltins {
 
   /**
    * Routes to the correct function call. Only handles built in functions. If no such function is
-   * found this returns a unknown value.
+   * found this returns an unknown value.
    *
    * @param pFunctionCall {@link CFunctionCallExpression} that has been checked for all other known
    *     functions (math functions etc.) and only unknown and builtin functions for isABuiltIn() ==
@@ -837,8 +837,8 @@ public class SMGCPABuiltins {
    * @return {@link List} of {@link ValueAndSMGState}s holding valid and invalid returns (if
    *     enabled) for the called allocation functions. The {@link Value} will not be a {@link
    *     AddressExpression}, but may be numeric 0 (leading to the 0 SMGObject). Valid {@link Value}s
-   *     pointers have always offset 0. Invalid calls may have a unknown {@link Value} as a return
-   *     type in case of errors a error state is set.
+   *     pointers have always offset 0. Invalid calls may have an unknown {@link Value} as a return
+   *     type in case of errors an error state is set.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   List<ValueAndSMGState> evaluateConfigurableAllocationFunction(
@@ -1109,7 +1109,7 @@ public class SMGCPABuiltins {
       Value bufferValue = bufferAddressAndState.getValue();
       SMGState currentState = bufferAddressAndState.getState();
       // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
       if (!(bufferValue instanceof AddressExpression)
           || ((AddressExpression) bufferValue).getMemoryAddress().isUnknown()
@@ -1147,8 +1147,8 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Checks the Values such that they are useable, returns a unknown Value with error state (may be
-   * non critical) if its not useable. Else it writes the char entered (int value) into the region
+   * Checks the Values such that they are useable, returns an unknown Value with error state (may be
+   * non critical) if it's not useable. Else it writes the char entered (int value) into the region
    * behind the given address count times. Make sure that the bufferValue is already checked and is
    * a valid AddressExpression!
    *
@@ -1159,8 +1159,8 @@ public class SMGCPABuiltins {
    * @param charValue {@link Value} representing the character to be inserted.
    * @param countValue {@link Value} for the number of chars inserted.
    * @return {@link ValueAndSMGState} with either the address to the buffer (not a {@link
-   *     AddressExpression}) and the written {@link SMGState}, or a unknown value and maybe a error
-   *     state.
+   *     AddressExpression}) and the written {@link SMGState}, or an unknown value and maybe an
+   *     error state.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private ValueAndSMGState evaluateMemset(
@@ -1286,8 +1286,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return A {@link List} of {@link ValueAndSMGState}s with the results of the alloca call on the
-   *     stack of the returned {@link SMGState}s or a error info set in case of errors. The Value is
-   *     either a pointer to the valid stack memory allocated or unknown. The pointer is not a
+   *     stack of the returned {@link SMGState}s or an error info set in case of errors. The Value
+   *     is either a pointer to the valid stack memory allocated or unknown. The pointer is not a
    *     {@link AddressExpression}!
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
@@ -1339,7 +1339,7 @@ public class SMGCPABuiltins {
    * @param cfaEdge for logging/debugging.
    * @return a {@link List} of {@link ValueAndSMGState}s with the address {@link Value} (NO {@link
    *     AddressExpression}!) to the new memory on the stack. May be unknown in case of a problem
-   *     and may have a error state with the error.
+   *     and may have an error state with the error.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
@@ -1356,9 +1356,9 @@ public class SMGCPABuiltins {
   }
 
   /**
-   * Evaluate the use of the C Free() method. Should recieve 1 argument that should be a address to
-   * memory not yet freed (still valid). If the Value is no address, a already freed address or any
-   * other form of invalid address (i.e. = 0) the return state will have a error info attached.
+   * Evaluate the use of the C Free() method. Should recieve 1 argument that should be an address to
+   * memory not yet freed (still valid). If the Value is no address, an already freed address or any
+   * other form of invalid address (i.e. = 0) the return state will have an error info attached.
    *
    * @param pFunctionCall the {@link CFunctionCallExpression} that lead to this function call.
    * @param pState current {@link SMGState}.
@@ -1397,8 +1397,8 @@ public class SMGCPABuiltins {
    * @param pState current {@link SMGState}.
    * @param cfaEdge for logging/debugging.
    * @return a list of {@link ValueAndSMGState} with either the targetAddress pointer expression and
-   *     the state in which the copy was successfull, or a unknown value and maybe a error state if
-   *     something went wrong, i.e. invalid/read/write.
+   *     the state in which the copy was successfull, or an unknown value and maybe an error state
+   *     if something went wrong, i.e. invalid/read/write.
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateMemcpy(
@@ -2315,7 +2315,7 @@ public class SMGCPABuiltins {
 
       Value firstAddress = firstValueAndSMGState.getValue();
       // If the Value is no AddressExpression we can't work with it
-      // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+      // The buffer is type * and has to be an AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
       if (!(firstAddress instanceof AddressExpression)) {
         // The value can be unknown
@@ -2342,7 +2342,7 @@ public class SMGCPABuiltins {
               STRCMP_SECOND_PARAMETER, pFunctionCall, firstValueAndSMGState.getState(), pCfaEdge)) {
         Value secondAddress = secondValueAndSMGState.getValue();
         // If the Value is no AddressExpression we can't work with it
-        // The buffer is type * and has to be a AddressExpression with a not unknown value and a
+        // The buffer is type * and has to be an AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
         if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
@@ -2443,7 +2443,7 @@ public class SMGCPABuiltins {
    *
    * @param pState current {@link SMGState}
    * @param pSizeValue size in byte
-   * @param pCfaEdge current cfa edge
+   * @param pCfaEdge current CFA edge
    * @return list of points to new memory and its states
    */
   private Collection<ValueAndSMGState> evaluateReallocWParameters(

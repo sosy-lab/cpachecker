@@ -213,7 +213,7 @@ public class ARGToAutomatonConverter {
       for (ARGState child : s.getChildren()) {
         child = uncover(child);
         if (ignoreState.apply(child)) {
-          // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
+          // ignore those states here, BOTTOM-state will be inserted afterward automatically.
           // Note: if sibling with same location is not ignored, ignorance might be useless.
           continue;
         }

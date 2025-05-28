@@ -1313,7 +1313,7 @@ window.init = () => {
   // Display modal window containing current rendering state
   $("#renderStateModal").modal("show");
 
-  // Setup section widths accordingly
+  // Set up section widths accordingly
   if (errorPath === undefined) {
     d3.select("#errorpath_section").style("display", "none");
     $("#toggle_button_error_path").hide();

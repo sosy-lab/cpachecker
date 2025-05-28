@@ -27,5 +27,5 @@ The license and copyright of each Python library must be declared
 in a `.license` file next to it.
 Typically, this information can be extracted from the metadata
 in the library archive.
-Afterwards, run `reuse download --all` and add any new files under `LICENSES`
+Afterward, run `reuse download --all` and add any new files under `LICENSES`
 such that all license texts are checked in.

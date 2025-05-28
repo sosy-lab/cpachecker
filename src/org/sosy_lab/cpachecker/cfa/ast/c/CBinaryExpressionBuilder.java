@@ -333,7 +333,7 @@ public class CBinaryExpressionBuilder {
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
     if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
-      // TODO we need an recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
+      // TODO we need a recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
 
       final CType commonType =
           getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
@@ -435,7 +435,7 @@ public class CBinaryExpressionBuilder {
       final CExpression op2)
       throws UnrecognizedCodeException {
 
-    // if one type is an pointer, return the pointer.
+    // if one type is a pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
@@ -593,7 +593,7 @@ public class CBinaryExpressionBuilder {
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 

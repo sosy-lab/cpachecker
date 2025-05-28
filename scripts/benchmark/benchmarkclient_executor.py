@@ -282,7 +282,7 @@ def getToolDataForCloud(benchmark):
                 f"cannot run benchmark within cloud."
             )
         if os.path.isdir(file) and not os.listdir(file):
-            # VCloud can not handle empty directories, lets ignore them
+            # VCloud can not handle empty directories, let's ignore them
             logging.warning(
                 "Empty directory '%s', ignoring directory for cloud execution.",
                 os.path.normpath(file),

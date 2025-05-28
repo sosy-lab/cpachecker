@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/** This class moves the declarations inside of each function to the beginning of them. */
+/** This class moves the declarations inside each function to the beginning of them. */
 public class CFADeclarationMover {
 
   LogManager logger;
