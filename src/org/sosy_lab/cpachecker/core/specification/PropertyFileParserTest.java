@@ -83,10 +83,9 @@ public class PropertyFileParserTest {
           .put(
               "COVER( init(main()), FQL(COVER EDGES(@CALL(some_arbitrary_function))) )",
               new CoverFunctionCallProperty("some_arbitrary_function"))
-          .put("CHECK( init(main()), LTL( F G (x = 1) ) )", new OtherLtlProperty(" F G (x = 1) "))
           .put(
-              "CHECK( init(main()), LTL(G deterministic-execution) )",
-              CommonVerificationProperty.NO_UNSEQUENCED_EXECUTION) // TODO should trim
+              "CHECK( init(main()), LTL( F G (x = 1) ) )",
+              new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
           .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
