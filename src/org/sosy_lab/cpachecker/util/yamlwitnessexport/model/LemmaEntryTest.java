@@ -22,7 +22,7 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 
 public class LemmaEntryTest {
-  public static final String TEST_DIR_PATH = "test/lemma";
+  public static final String TEST_DIR_PATH = "test/lemma/maxArray";
 
   @Test
   public void testParsingLemmaEntry() throws IOException {
@@ -31,7 +31,7 @@ public class LemmaEntryTest {
       if (e instanceof LemmaSetEntry) {
         List<LemmaEntry> lemmaEntries = ((LemmaSetEntry) e).getContent();
         assertThat(lemmaEntries).hasSize(2);
-        assertThat(lemmaEntries.get(0).value()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
+        assertThat(lemmaEntries.get(0).value()).isEqualTo("ACSL(_L_MAX(A,0)) == A[0]");
         assertThat(lemmaEntries.get(0).format().toString()).isEqualTo("c_expression");
       }
     }
@@ -44,7 +44,7 @@ public class LemmaEntryTest {
     ImmutableSet<LemmaEntry> lemmaSet =
         AutomatonWitnessV2ParserUtils.parseLemmasFromFile(lemmaSetEntries);
     assertThat(lemmaSet).hasSize(2);
-    assertThat(lemmaSet.asList().get(0).value()).isEqualTo("ACSL(MaxArray(A,0)) == A[0]");
+    assertThat(lemmaSet.asList().get(0).value()).isEqualTo("ACSL(_L_MAX(A,0)) == A[0]");
     assertThat(lemmaSet.asList().get(0).format().toString()).isEqualTo("c_expression");
   }
 
@@ -55,7 +55,7 @@ public class LemmaEntryTest {
     ImmutableSet<String> declarations =
         AutomatonWitnessV2ParserUtils.parseDeclarationsFromFile(lemmaSetEntries);
     assertThat(declarations).hasSize(3);
-    assertThat(declarations.asList().get(0)).isEqualTo("int MaxArray(int* A, int I)");
+    assertThat(declarations.asList().get(0)).isEqualTo("int _L_MAX(int* A, int I)");
     assertThat(declarations.asList().get(1)).isEqualTo("int* A");
   }
 

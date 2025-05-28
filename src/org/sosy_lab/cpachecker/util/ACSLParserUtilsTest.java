@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.Inval
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LemmaSetEntry;
 
 public class ACSLParserUtilsTest {
-  public static final String TEST_DIR_PATH = "test/lemma";
+  public static final String TEST_DIR_PATH = "test/lemma/maxArray";
 
   @Test
   public void testParseDeclarations() throws IOException, InvalidYAMLWitnessException {
@@ -49,7 +49,7 @@ public class ACSLParserUtilsTest {
     List<CParameterDeclaration> parameters = Arrays.asList(firstParameter, secondParameter);
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
-            FileLocation.DUMMY, functionType, "MaxArray", parameters, ImmutableSet.of());
+            FileLocation.DUMMY, functionType, "_L_MAX", parameters, ImmutableSet.of());
 
     CVariableDeclaration variableDeclaration =
         new CVariableDeclaration(
