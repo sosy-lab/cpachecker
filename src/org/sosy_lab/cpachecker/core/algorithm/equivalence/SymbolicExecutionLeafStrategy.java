@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -34,11 +35,13 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ValueTransferBasedStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -127,6 +130,19 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
         AnalysisDirection.FORWARD);
   }
 
+  private BooleanFormula stateToFormula(
+      ForgettingCompositeState currentState, PathFormulaManagerImpl pathFormulaManager)
+      throws CPATransferException, InterruptedException {
+    return solver
+        .getFormulaManager()
+        .getBooleanFormulaManager()
+        .and(
+            currentState
+                .getConstraintsState()
+                .toFormula(solver.getFormulaManager(), pathFormulaManager),
+            currentState.getValueState().toFormula(solver.getFormulaManager(), pathFormulaManager));
+  }
+
   BooleanFormula runSymbolicExecutionOnCex(
       List<CFAEdge> cex, CFA cfa, PathFormulaManagerImpl pathFormulaManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
@@ -135,28 +151,24 @@ public class SymbolicExecutionLeafStrategy implements LeafStrategy {
             new ValueAnalysisState(cfa.getMachineModel()), new ConstraintsState());
     ValueTransferBasedStrongestPostOperator strongestPostOperator =
         createValueTransferBasedStrongestPostOperator(cfa);
+    BooleanFormulaManagerView bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    BooleanFormula formula = bmgr.makeTrue();
     for (CFAEdge edge : cex) {
+      if (edge instanceof CReturnStatementEdge
+          && edge.getPredecessor().getFunctionName().equals("main")) {
+        formula = bmgr.and(formula, stateToFormula(currentState, pathFormulaManager));
+      }
       Optional<ForgettingCompositeState> optional =
           strongestPostOperator.getStrongestPost(
               currentState, SingletonPrecision.getInstance(), edge);
       if (optional.isPresent()) {
         currentState = optional.orElseThrow();
       } else {
-        return solver.getFormulaManager().getBooleanFormulaManager().makeFalse();
+        return bmgr.makeFalse();
       }
     }
-    BooleanFormula result =
-        solver
-            .getFormulaManager()
-            .getBooleanFormulaManager()
-            .and(
-                currentState
-                    .getConstraintsState()
-                    .toFormula(solver.getFormulaManager(), pathFormulaManager),
-                currentState
-                    .getValueState()
-                    .toFormula(solver.getFormulaManager(), pathFormulaManager));
-    String formulaRepr = solver.getFormulaManager().dumpArbitraryFormula(result);
+    formula = bmgr.and(formula, stateToFormula(currentState, pathFormulaManager));
+    String formulaRepr = solver.getFormulaManager().dumpArbitraryFormula(formula);
     return solver.getFormulaManager().parse(formulaRepr.replaceAll("#\\d+", ""));
   }
 }

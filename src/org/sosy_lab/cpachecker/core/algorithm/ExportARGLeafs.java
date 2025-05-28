@@ -224,7 +224,11 @@ public class ExportARGLeafs implements Algorithm {
             .append('\n');
       }
       Files.writeString(
-          csvOut, csvBuilder.toString(), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
+          csvOut,
+          csvBuilder.toString(),
+          StandardOpenOption.WRITE,
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING);
       logger.logf(Level.INFO, "Exported results to %s", csvOut);
       boolean equivalent =
           resultsSafe.stream().allMatch(e -> e.equivalent().equivalent())
