@@ -14,7 +14,6 @@ import static org.sosy_lab.cpachecker.cpa.interval.ExpressionUtility.normalizeEx
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableSet;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigInteger;
@@ -31,7 +30,6 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -66,8 +64,6 @@ public class IntervalAnalysisState
   /** the reference counts of the element */
   private final PersistentMap<String, Integer> referenceCounts;
 
-  private final ImmutableSet<CFANode> visitedLoopHeads;
-
   /**
    * This method acts as the default constructor, which initializes the intervals and reference
    * counts to empty maps and the previous element to null.
@@ -76,7 +72,6 @@ public class IntervalAnalysisState
     intervals = PathCopyingPersistentTreeMap.of();
     referenceCounts = PathCopyingPersistentTreeMap.of();
     arrays = PathCopyingPersistentTreeMap.of();
-    visitedLoopHeads = ImmutableSet.of();
   }
 
   /**
@@ -90,12 +85,10 @@ public class IntervalAnalysisState
   public IntervalAnalysisState(
       PersistentMap<String, Interval> pIntervals,
       PersistentMap<String, Integer> referencesMap,
-      PersistentMap<String, FunArray> pArrays,
-      ImmutableSet<CFANode> pVisitedLoopHeads) {
+      PersistentMap<String, FunArray> pArrays) {
     this.intervals = pIntervals;
     referenceCounts = referencesMap;
     this.arrays = pArrays;
-    this.visitedLoopHeads = pVisitedLoopHeads;
   }
 
   /**
@@ -160,7 +153,7 @@ public class IntervalAnalysisState
         return new IntervalAnalysisState(
             intervals.putAndCopy(variableName, interval),
             referenceCounts.putAndCopy(variableName, referenceCount + 1),
-            arrays, visitedLoopHeads);
+            arrays);
       } else {
         return removeInterval(variableName);
       }
@@ -170,7 +163,7 @@ public class IntervalAnalysisState
 
   public IntervalAnalysisState addArray(String variableName, FunArray funArray) {
     return new IntervalAnalysisState(
-        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray), visitedLoopHeads);
+        intervals, referenceCounts, arrays.putAndCopy(variableName, funArray));
   }
 
   public IntervalAnalysisState assignArrayElement(
@@ -179,8 +172,7 @@ public class IntervalAnalysisState
       return new IntervalAnalysisState(
           intervals,
           referenceCounts,
-          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)),
-          visitedLoopHeads);
+          arrays.putAndCopy(arrayName, arrays.get(arrayName).insert(index, interval, visitor)));
     }
     return this;
   }
@@ -195,7 +187,7 @@ public class IntervalAnalysisState
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
       return new IntervalAnalysisState(
-          intervals.removeAndCopy(variableName), referenceCounts, arrays, visitedLoopHeads);
+          intervals.removeAndCopy(variableName), referenceCounts, arrays);
     }
 
     return this;
@@ -254,7 +246,7 @@ public class IntervalAnalysisState
     }
 
     if (changed) {
-      return new IntervalAnalysisState(newIntervals, newReferences, arrays, visitedLoopHeads);
+      return new IntervalAnalysisState(newIntervals, newReferences, arrays);
     } else {
       return reachedState;
     }
@@ -584,8 +576,7 @@ public class IntervalAnalysisState
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        adaptedArrays,
-        visitedLoopHeads
+        adaptedArrays
     );
   }
 
@@ -595,6 +586,11 @@ public class IntervalAnalysisState
 
     for (NormalFormExpression lesser : lesserSet) {
       for (NormalFormExpression greater : greaterSet) {
+
+        if (lesser.equals(greater)) {
+          System.out.println("äsdf");
+        }
+
         modifiedState = modifiedState.forAllArrays(e -> e.satisfyStrictLessThan(lesser, greater));
       }
     }
@@ -626,8 +622,7 @@ public class IntervalAnalysisState
     return new IntervalAnalysisState(
         intervals,
         referenceCounts,
-        modifiedArrays,
-        visitedLoopHeads
+        modifiedArrays
     );
   }
 
@@ -648,17 +643,8 @@ public class IntervalAnalysisState
     return new IntervalAnalysisState(
         PathCopyingPersistentTreeMap.copyOf(modifiedVariables),
         PathCopyingPersistentTreeMap.of(), //TODO: Hier das noch überlegen
-        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays),
-        other.visitedLoopHeads // TODO
+        PathCopyingPersistentTreeMap.copyOf(modifiedFunArrays)
     );
   }
 
-  public IntervalAnalysisState addNodeVisit(CFANode pNode) {
-    return new IntervalAnalysisState(
-        this.intervals,
-        this.referenceCounts,
-        this.arrays,
-        ImmutableSet.<CFANode>builder().add(pNode).addAll(visitedLoopHeads).build()
-    );
-  }
 }

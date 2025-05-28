@@ -72,14 +72,6 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> postProcessing(
       Collection<IntervalAnalysisState> successors, CFAEdge edge) {
-
-    if (edge.getSuccessor().isLoopStart()) {
-      Collection<IntervalAnalysisState> modifiedSuccessors = successors.stream()
-          .map(e -> e.addNodeVisit(edge.getSuccessor()))
-          .toList();
-
-      return new HashSet<>(modifiedSuccessors);
-    }
     return new HashSet<>(successors);
   }
 
