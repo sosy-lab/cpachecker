@@ -48,10 +48,12 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -300,7 +302,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     // initialisation of starting state and reachedSet
     ARGState eStartState = new ARGState(argState.getWrappedState(), null);
-//    getExpressions(cexInfo, eStartState);
+    getExpressions(cexInfo, eStartState);
 
 //    SingletonPrecision.getInstance());
     ReachedSet eReached = factory.createReachedSet(cpa);
@@ -352,16 +354,26 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
-  private void writeExpressionToState(ImmutableList<AExpressionStatement> expStmt, ARGState eStartState){
+  private void writeExpressionToState(
+      ImmutableList<AExpressionStatement> expStmt,
+      ARGState eStartState) {
     if (expStmt.isEmpty()) return;
-    assert expStmt.size() == 1; //todo can expStmt contain more than 1 element? replace with precondition?
+    assert expStmt.size()
+        == 1; //todo can expStmt contain more than 1 element? replace with precondition?
     //todo check expStmt for being instance of CBinaryExpression
     // todo read from Expression
+
     expStmt.get(0).getExpression();
+    // Value visit(CBinaryExpression pE) from AssigningValueVisitior class
 //    getOperand1()
 //        getOperand2()
 //    getOperator()
     // todo write to ARGState
+//    CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
+//
+//    ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
+//    if (valueAnalysisState == null) return;
+//    valueAnalysisState.assignConstant("x", 1);
   }
 
   // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
