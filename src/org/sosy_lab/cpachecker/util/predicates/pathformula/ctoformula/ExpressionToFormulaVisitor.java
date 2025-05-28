@@ -1344,7 +1344,7 @@ public class ExpressionToFormulaVisitor
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
-   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @return whether the scanf-format-specifier agrees with the type it writes to
    * @throws UnsupportedCodeException if the format specifier is not supported
    */
   private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
@@ -1453,7 +1453,7 @@ public class ExpressionToFormulaVisitor
           castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
-        // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+        // XXX: Currently, MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
         // which corresponds to the semantics of 'round'.
         // Hence, we represent those semantics by the formula below, until there
         // is a release of MathSAT supporting NEAREST_TIE_AWAY.

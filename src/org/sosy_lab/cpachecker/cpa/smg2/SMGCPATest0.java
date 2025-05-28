@@ -22,8 +22,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -79,8 +80,13 @@ public class SMGCPATest0 {
   // Some tasks define their own list length, as e.g. nested lists get quite expensive fast
   protected static final int TEST_LIST_LENGTH = 50;
 
-  protected CFAEdge dummyCDAEdge =
-      new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode());
+  protected CFAEdge dummyCFAEdge =
+      new BlankEdge(
+          "dummy edge",
+          FileLocation.DUMMY,
+          CFANode.newDummyCFANode(),
+          CFANode.newDummyCFANode(),
+          "dummy for tests");
 
   // The visitor should always use the currentState!
   @Before
@@ -93,7 +99,7 @@ public class SMGCPATest0 {
     dllSize = pointerSizeInBits.multiply(BigInteger.valueOf(3));
     dllSizeValue = new NumericValue(dllSize);
     sllSizeValue = new NumericValue(sllSize);
-    // Per default we expect the nfo after the hfo and the pfo after that
+    // By default, we expect the nfo after the hfo and the pfo after that
     nfo = hfo.add(pointerSizeInBits);
     pfo = nfo.add(pointerSizeInBits);
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
@@ -213,7 +219,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             null,
-            dummyCDAEdge);
+            dummyCFAEdge);
 
     // Pointer to the next list segment
     currentState =
@@ -223,7 +229,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             listPtrs[0],
             null,
-            dummyCDAEdge);
+            dummyCFAEdge);
     if (dll) {
       currentState =
           currentState.writeValueWithChecks(
@@ -232,7 +238,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               new NumericValue(0),
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
       List<SMGStateAndOptionalSMGObjectAndOffset> derefedFirstAbstrListElem =
           currentState.dereferencePointer(listPtrs[0]);
       ValueAndSMGState ptrToFirstNotAbstrAndState =
@@ -246,7 +252,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               ptrToFirstNotAbstr,
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     SMGObject listSegmentBack = SMGObject.of(0, segmentSize, BigInteger.ZERO);
@@ -258,7 +264,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             null,
-            dummyCDAEdge);
+            dummyCFAEdge);
     currentState =
         currentState.writeValueWithChecks(
             listSegmentBack,
@@ -266,7 +272,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             new NumericValue(0),
             null,
-            dummyCDAEdge);
+            dummyCFAEdge);
     if (dll) {
       currentState =
           currentState.writeValueWithChecks(
@@ -275,7 +281,7 @@ public class SMGCPATest0 {
               numericPointerSizeInBits,
               listPtrs[listLength - 3],
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     // Pointer from the last to be abstracted list to the last
@@ -293,7 +299,7 @@ public class SMGCPATest0 {
             numericPointerSizeInBits,
             ptrToLastAndState.getValue(),
             null,
-            dummyCDAEdge);
+            dummyCFAEdge);
 
     return ImmutableList.<Value>builder()
         .add(ptrToFrontAndState.getValue())
@@ -326,7 +332,7 @@ public class SMGCPATest0 {
                 new NumericValue(pointerSizeInBits),
                 new NumericValue(j),
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       // Pointer to the next list segment (from the prev to this, except for the last)
@@ -339,7 +345,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 nextPointer,
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
@@ -352,7 +358,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       if (dll) {
@@ -373,7 +379,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 prevPointer,
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (i == 0 || i == listLength - 1) {
         // Pointer to the list segment
@@ -396,7 +402,7 @@ public class SMGCPATest0 {
                   new NumericValue(pointerSizeInBits),
                   pointerAndState.getValue(),
                   null,
-                  dummyCDAEdge);
+                  dummyCFAEdge);
         } catch (CPATransferException e) {
           if (e instanceof SMGException) {
             throw (SMGException) e;
@@ -423,7 +429,7 @@ public class SMGCPATest0 {
                   numericPointerSizeInBits,
                   pointerAndState.getValue(),
                   null,
-                  dummyCDAEdge);
+                  dummyCFAEdge);
         } catch (CPATransferException e) {
           if (e instanceof SMGException) {
             throw (SMGException) e;
@@ -511,7 +517,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 new NumericValue(valueStart + j),
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       // Pointer to the next list segment (from the prev to this, except for the last)
@@ -524,7 +530,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 nextPointer,
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       if (prevObject != null) {
         ValueAndSMGState pointerAndState =
@@ -537,7 +543,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointerAndState.getValue(),
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
 
       if (dll) {
@@ -558,7 +564,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 prevPointer,
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
       // Pointer to the list segment
       ValueAndSMGState pointerAndState =
@@ -582,7 +588,7 @@ public class SMGCPATest0 {
                 numericPointerSizeInBits,
                 pointer,
                 null,
-                dummyCDAEdge);
+                dummyCFAEdge);
       }
     }
     if (valueStart == 0) {
@@ -623,7 +629,7 @@ public class SMGCPATest0 {
    * Checks that all pointers given have data that is located in the beginning of the list as 32bit
    * integers with the first being 0, then +1 for each after that in the same list.
    *
-   * @param pointers a array of pointers pointing to a list with the default data scheme.
+   * @param pointers an array of pointers pointing to a list with the default data scheme.
    */
   protected void checkListDataIntegrity(Value[] pointers, boolean dll) throws SMGException {
     int toCheckData = sllSize.divide(pointerSizeInBits).subtract(BigInteger.ONE).intValue();
@@ -675,7 +681,7 @@ public class SMGCPATest0 {
               new NumericValue(BigInteger.valueOf(sizeOfElements)),
               valuesInOrder[i],
               null,
-              dummyCDAEdge);
+              dummyCFAEdge);
     }
 
     return array;

@@ -250,7 +250,7 @@ public class ValueAnalysisTransferRelation
   private boolean missingAssumeInformation;
 
   /**
-   * This class assigns symbolic values, if they are enabled. Otherwise it forgets the memory
+   * This class assigns symbolic values, if they are enabled. Otherwise, it forgets the memory
    * location.
    */
   private MemoryLocationValueHandler unknownValueHandler;
@@ -1714,11 +1714,10 @@ public class ValueAnalysisTransferRelation
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              options.getFunctionValuesForRandom()));
+          "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+          options.getFunctionValuesForRandom());
     }
   }
 

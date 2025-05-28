@@ -253,7 +253,7 @@ public class CustomInstruction {
    * @return the resulting AppliedCustomInstruction
    * @throws InterruptedException due to the shutdownNotifier
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci
-   *     and aci is not clear, or their structure dosen't fit.
+   *     and aci is not clear, or their structure doesn't fit.
    */
   public AppliedCustomInstruction inspectAppliedCustomInstruction(final CFANode aciStartNode)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {

@@ -82,7 +82,7 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   @Serial
   private Object writeReplace() {
-    // Cannot serialize parameter names, but typically this is not necessary anyway.
+    // Cannot serialize parameter names, but this is not necessary anyway.
     return new CFunctionType(getReturnType(), getParameters(), takesVarArgs());
   }
 }

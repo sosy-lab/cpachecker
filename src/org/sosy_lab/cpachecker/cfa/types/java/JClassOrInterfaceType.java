@@ -198,12 +198,12 @@ public abstract sealed class JClassOrInterfaceType implements JReferenceType
   }
 
   /**
-   * Returns a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
+   * Returns a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each subtype
    * that extends the described class or interface.
    *
-   * <p>This includes direct and indirect sub types.
+   * <p>This includes direct and indirect subtypes.
    *
-   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each sub type
+   * @return a <code>Set</code> containing a <code>JClassOrInterfaceType</code> for each subtype
    *     that extends the described class
    */
   public Set<? extends JClassOrInterfaceType> getAllSubTypesOfType() {

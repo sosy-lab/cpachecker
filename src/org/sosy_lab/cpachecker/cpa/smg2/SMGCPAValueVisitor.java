@@ -300,7 +300,7 @@ public class SMGCPAValueVisitor
         resultBuilder.add(
             ValueAndSMGState.ofUnknownValue(
                 currentState,
-                "Returned unknown value due to a invalid address or offset in subscript expression"
+                "Returned unknown value due to an invalid address or offset in subscript expression"
                     + " in ",
                 cfaEdge));
         continue;
@@ -400,7 +400,7 @@ public class SMGCPAValueVisitor
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
-                    "Returned unknown value due to a invalid address or offset in read expression"
+                    "Returned unknown value due to an invalid address or offset in read expression"
                         + " with dereference in ",
                     cfaEdge));
           } else {
@@ -459,7 +459,7 @@ public class SMGCPAValueVisitor
             returnBuilder.add(
                 ValueAndSMGState.ofUnknownValue(
                     newState,
-                    "Returned unknown value due to a invalid address or offset in read with"
+                    "Returned unknown value due to an invalid address or offset in read with"
                         + " dereference expression in ",
                     cfaEdge));
           } else {
@@ -581,7 +581,7 @@ public class SMGCPAValueVisitor
         && !(leftValue.isNumericValue() && rightValue.isNumericValue())) {
 
       // It is possible that addresses get cast to int or smth like it
-      // Then the SymbolicIdentifier is returned not in a AddressExpression
+      // Then the SymbolicIdentifier is returned not in an AddressExpression
       // They might be wrapped in a ConstantSymbolicExpression
       // We don't remove this wrapping for the rest of the analysis as they might actually get
       // treated as ints or something
@@ -873,7 +873,7 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : ownerExpression.accept(this)) {
       SMGState currentState = valueAndState.getState();
-      // This value is either a AddressValue for pointers i.e. (*struct).field or a general
+      // This value is either an AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = valueAndState.getValue();
       if (structValue.isUnknown()) {
@@ -922,7 +922,7 @@ public class SMGCPAValueVisitor
     // Either CEnumerator, CVariableDeclaration, CParameterDeclaration
     // Could also be a type/function declaration, one of which is malloc().
     // We either read the stack/global variable for non pointer and non struct/unions, or package it
-    // in a AddressExpression for pointers
+    // in an AddressExpression for pointers
     // or SymbolicValue with a memory location and the name of the variable inside.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
@@ -975,9 +975,10 @@ public class SMGCPAValueVisitor
       } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
         // Pointer/Array/Function types should return a Value that internally can be translated into
         // a
-        // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
-        // offsets inside the points to edge). These have to be packaged into a AddressExpression
-        // with an 0 offset. Modifications of the offset of the address can be done by subsequent
+        // SMGValue that leads to an SMGPointsToEdge that leads to the correct object (with
+        // potential
+        // offsets inside the points to edge). These have to be packaged into an AddressExpression
+        // with a 0 offset. Modifications of the offset of the address can be done by subsequent
         // methods. (The check is fine because we already filtered out structs/unions)
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
@@ -1058,7 +1059,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CStringLiteralExpression e) throws CPATransferException {
-    // TODO: both the value and old smg analysis simply return unknown in this case
+    // TODO: both the value and old SMG analysis simply return unknown in this case
     // String string = e.getContentString();
     // ImmutableList.Builder<ValueAndSMGState> builder = ImmutableList.builder();
     logger.log(Level.WARNING, "Analysis approximated string literal expression in " + cfaEdge);
@@ -1165,7 +1166,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
-    // This should subevaluate to a AddressExpression in the visit call in the beginning as we
+    // This should subevaluate to an AddressExpression in the visit call in the beginning as we
     // always evaluate to the address, but only
     // dereference and read it if it's not a struct/union as those will be dereferenced
     // by the field expression
@@ -1175,7 +1176,7 @@ public class SMGCPAValueVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and an offset. If this fails this returns a UnknownValue.
+    // the target and an offset. If this fails this returns an UnknownValue.
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : expr.accept(this)) {
       SMGState currentState = valueAndState.getState();
@@ -1291,7 +1292,7 @@ public class SMGCPAValueVisitor
     // && expression
     // This is not in the C standard, just gcc
     // https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
-    // Returns a address to a function
+    // Returns an address to a function
     // TODO:
 
     return visitDefault(e);
@@ -1628,7 +1629,7 @@ public class SMGCPAValueVisitor
         // TODO: split this mess into functions
         if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           /*
-           * Problem: this method needs a AbstractExpressionValueVisitor as input (this)
+           * Problem: this method needs an AbstractExpressionValueVisitor as input (this)
            * but this class is not correctly abstracted such that we can inherit it here
            * (because it essentially is the same except for 1 method that would need to be
            * abstract)
@@ -1954,7 +1955,8 @@ public class SMGCPAValueVisitor
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be a AddressExpression, no other preconditions have to be met.
+   * One of the 2 entered values must be an AddressExpression, no other preconditions have to be
+   * met.
    *
    * @param leftValue left hand side value of the arithmetic operation.
    * @param rightValue right hand side value of the arithmetic operation.

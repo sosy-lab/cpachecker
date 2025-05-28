@@ -39,12 +39,12 @@ public class TestTargetMinimizerEssential {
   // only works correctly if DummyInputCFAEdge, DummyCFAEdge uses Object equals
   public Set<CFAEdge> reduceTargets(
       final Set<CFAEdge> pTestTargets, final CFA pCfa, final boolean fullCFACopy) {
-    // maps a copied edge to the testTarget that can be removed if its dominated by another
+    // maps a copied edge to the testTarget that can be removed if it's dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
     Set<CFAEdge> testTargets = new HashSet<>(pTestTargets);
 
-    // create a copy of the cfa graph that can be minimized using the essential Branch rules
+    // create a copy of the CFA graph that can be minimized using the essential Branch rules
     Pair<CFANode, CFANode> copiedFunctionEntryExit;
     if (fullCFACopy) {
       copiedFunctionEntryExit =
@@ -107,7 +107,7 @@ public class TestTargetMinimizerEssential {
                 });
       }
 
-      // create copies of all outgoing edges and the nodes they go into if they dont yet exist
+      // create copies of all outgoing edges and the nodes they go into if they don't yet exist
       for (CFAEdge currentEdge : CFAUtils.leavingEdges(currentNode)) {
         CFANode copiedSuccessorNode;
         if (origNodesCopied.contains(currentEdge.getSuccessor())) {
@@ -115,7 +115,7 @@ public class TestTargetMinimizerEssential {
           // create the new edge
           copiedSuccessorNode = origCFANodeToCopyMap.get(currentEdge.getSuccessor());
         } else {
-          // node the edge goes to hasnt been added yet so we add the a new copied node
+          // node the edge goes to hasn't been added yet so we add the a new copied node
           copiedSuccessorNode = CFANode.newDummyCFANode("");
           origCFANodeToCopyMap.put(currentEdge.getSuccessor(), copiedSuccessorNode);
           waitlist.add(currentEdge.getSuccessor());
@@ -373,7 +373,7 @@ public class TestTargetMinimizerEssential {
 
         waitlist.remove(currentNode);
       }
-      // add nodes to the queue that havent been added yet
+      // add nodes to the queue that haven't been added yet
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
         if (vistedNodes.add(leavingEdge.getSuccessor())) {
           waitlist.add(leavingEdge.getSuccessor());

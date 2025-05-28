@@ -376,7 +376,7 @@ class ExpressionValueVisitor
               type = ((CPointerType) lVarType).getType();
             } else if (lVarType instanceof CSimpleType) {
               // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
-              // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+              // Let's assume, that invalid combinations like "int" for 64bit do not appear.
               type = lVarType;
             } else {
               throw new AssertionError(

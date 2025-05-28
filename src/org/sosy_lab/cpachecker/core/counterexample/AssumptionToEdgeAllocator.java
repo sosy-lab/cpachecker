@@ -468,7 +468,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide, pConcreteState);
       ValueLiterals valueLiterals = cType.accept(v);
 
-      // resolve field references that lack a address
+      // resolve field references that lack an address
       if (isStructOrUnionType(cType) && leftHandSide instanceof CIdExpression) {
         v.resolveStruct(cType, valueLiterals, (CIdExpression) leftHandSide, functionName);
       }
@@ -783,7 +783,7 @@ public class AssumptionToEdgeAllocator {
     private @Nullable Object lookupReference(CFieldReference pIastFieldReference) {
 
       /* Fieldreferences are sometimes represented as variables,
-      e.g a.b.c in main is main::a$b$c */
+      e.g. a.b.c in main is main::a$b$c */
       FieldReference fieldReference = getFieldReference(pIastFieldReference, functionName);
 
       if (fieldReference != null && concreteState.hasValueForLeftHandSide(fieldReference)) {
@@ -981,7 +981,7 @@ public class AssumptionToEdgeAllocator {
 
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
-        e.g a.b.c in main is main::a$b$c */
+        e.g. a.b.c in main is main::a$b$c */
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {

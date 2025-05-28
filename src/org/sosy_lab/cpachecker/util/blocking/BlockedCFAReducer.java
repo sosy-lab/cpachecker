@@ -70,7 +70,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Option(
       secure = true,
       name = "reducedCfaFile",
-      description = "write the reduced cfa to the specified file.")
+      description = "write the reduced CFA to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 

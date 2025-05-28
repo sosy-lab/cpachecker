@@ -107,7 +107,7 @@ public class BDDPartitionOrderer {
     }
   }
 
-  /** returns a ordered list of partitions, so that the BDD stays small. */
+  /** returns an ordered list of partitions, so that the BDD stays small. */
   public List<Partition> getOrderedPartitions() {
 
     // TODO use some "Minimum Linear Arrangement Algorithm"?

@@ -151,7 +151,7 @@ public class OctagonTransferRelation
     Set<OctagonState> cleanedUpStates = new HashSet<>();
     // TODO overapproximation here, we should not need to remove those vars
     // instead it would be much better if we could omit creating them, p.e. through
-    // creating the temporary vars in the cfa, before analyzing the program
+    // creating the temporary vars in the CFA, before analyzing the program
     for (OctagonState st : successors) {
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
     }
@@ -266,14 +266,14 @@ public class OctagonTransferRelation
       throws CPATransferException {
 
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
-    // condition, (this simplification is added in the cfa creation phase)
+    // condition, (this simplification is added in the CFA creation phase)
     return switch (binExp.getOperator()) {
       case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
           // TODO check which cases can be handled
           Collections.singleton(pState);
 
       // for the following cases we first create a temporary variable where
-      // the result of the operation is saved, afterwards, the equality with == 0
+      // the result of the operation is saved, afterward, the equality with == 0
       // is checked
       case MINUS, PLUS, MULTIPLY, DIVIDE -> {
         MemoryLocation tempVarName =
@@ -306,7 +306,7 @@ public class OctagonTransferRelation
       // in the following cases we have to check left and right part of the binary
       // expression, when they are not single variables but contain for example
       // another binary expression we have to create some temporary variables again
-      // which will be compared afterwards
+      // which will be compared afterward
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> {
         CExpression left = binExp.getOperand1();
         CExpression right = binExp.getOperand2();
@@ -1584,7 +1584,7 @@ public class OctagonTransferRelation
 
       Set<Pair<IOctagonCoefficients, OctagonState>> returnValues = new HashSet<>();
 
-      // we negate all coefficients and afterwards return the computed results
+      // we negate all coefficients and afterward return the computed results
       for (Pair<IOctagonCoefficients, OctagonState> pair : operand) {
         returnValues.add(Pair.of(pair.getFirst().mul(OctagonIntValue.NEG_ONE), pair.getSecond()));
       }
