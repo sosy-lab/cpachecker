@@ -271,8 +271,10 @@ public final class PredicatePrecisionBootstrapper {
     InvariantExchangeFormatTransformer transformer =
         new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
 
+    LemmaParsingVisitor identifier = new LemmaParsingVisitor(formulaManagerView);
+
     for (LemmaSetEntry lemmaSet : lemmaSetEntries) {
-      ImmutableList.Builder<BooleanFormula> formulas = ImmutableList.builder();
+      ImmutableSet.Builder<BooleanFormula> formulas = ImmutableSet.builder();
       for (LemmaEntry entry : lemmaSet.getContent()) {
         BooleanFormula formula = formulaManagerView.getBooleanFormulaManager().makeTrue();
         try {
@@ -282,7 +284,9 @@ public final class PredicatePrecisionBootstrapper {
         }
         formulas.add(formula);
       }
-      abstractionLemmas.add(new AbstractionLemma("MaxArray", formulas.build()));
+      ImmutableSet<BooleanFormula> formulaSet = formulas.build();
+      String lemmaId = formulaManagerView.visit(formulaSet.stream().toList().get(0), identifier);
+      abstractionLemmas.add(new AbstractionLemma(lemmaId, formulaSet));
     }
 
     return abstractionLemmas.build();
