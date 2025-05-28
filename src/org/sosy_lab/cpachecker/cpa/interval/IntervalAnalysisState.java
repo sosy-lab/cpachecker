@@ -44,7 +44,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
-public class IntervalAnalysisState
+public record IntervalAnalysisState(
+    PersistentMap<String, Interval> intervals,
+    PersistentMap<String, Integer> referenceCounts,
+    PersistentMap<String, FunArray> arrays
+)
     implements Serializable,
         LatticeAbstractState<IntervalAnalysisState>,
         AbstractQueryableState,
@@ -56,39 +60,17 @@ public class IntervalAnalysisState
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  /** the intervals of the element */
-  private final PersistentMap<String, Interval> intervals;
-
-  private final PersistentMap<String, FunArray> arrays;
-
-  /** the reference counts of the element */
-  private final PersistentMap<String, Integer> referenceCounts;
 
   /**
    * This method acts as the default constructor, which initializes the intervals and reference
    * counts to empty maps and the previous element to null.
    */
   public IntervalAnalysisState() {
-    intervals = PathCopyingPersistentTreeMap.of();
-    referenceCounts = PathCopyingPersistentTreeMap.of();
-    arrays = PathCopyingPersistentTreeMap.of();
-  }
-
-  /**
-   * This method acts as constructor, which initializes the intervals, the reference counts and the
-   * previous element to the respective objects.
-   *
-   * @param pIntervals the intervals
-   * @param pArrays the arrays
-   * @param referencesMap the reference counts
-   */
-  public IntervalAnalysisState(
-      PersistentMap<String, Interval> pIntervals,
-      PersistentMap<String, Integer> referencesMap,
-      PersistentMap<String, FunArray> pArrays) {
-    this.intervals = pIntervals;
-    referenceCounts = referencesMap;
-    this.arrays = pArrays;
+    this(
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of()
+    );
   }
 
   /**
