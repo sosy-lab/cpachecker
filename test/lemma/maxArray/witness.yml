@@ -19,7 +19,7 @@
           line: 18
           column: 3
           function: maxArray
-        value: "m == ACSL(MaxArray(arr,j))"
+        value: "m == ACSL(_L_MAX(arr,j))"
         format: c_expression
     - invariant:
         type: loop_invariant
@@ -32,7 +32,7 @@
         format: c_expression
 - entry_type: lemma_set
   declarations: 
-    - "int MaxArray(int* A, int I)"
+    - "int _L_MAX(int* A, int I)"
     - "int* A"
     - "int I"
   content:
@@ -42,7 +42,7 @@
           line: 18
           column: 3
           function: maxArray
-        value: "ACSL(MaxArray(A,0)) == A[0]"
+        value: "ACSL(_L_MAX(A,0)) == A[0]"
         format: c_expression
     - lemma:
         location:
@@ -50,6 +50,6 @@
           line: 18
           column: 3
           function: maxArray
-          # ACSL(MaxArray(A,I)) == (A[I] > ACSL(MaxArray(A,I-1)) ? A[I] : ACSL(MaxArray(A,I-1))) 
-        value: "((A[I] > ACSL(MaxArray(A,I))) & ACSL(MaxArray(A,I)) == A[I]) | (A[I] <= ACSL(MaxArray(A,I)) & ACSL(MaxArray(A,I)) == ACSL(MaxArray(A,I-1)))"
+          # ACSL(_L_MAX(A,I)) == (A[I] > ACSL(_L_MAX(A,I-1)) ? A[I] : ACSL(_L_MAX(A,I-1))) 
+        value: "((A[I] > ACSL(_L_MAX(A,I))) & ACSL(_L_MAX(A,I)) == A[I]) | (A[I] <= ACSL(_L_MAX(A,I)) & ACSL(_L_MAX(A,I)) == ACSL(_L_MAX(A,I-1)))"
         format: c_expression

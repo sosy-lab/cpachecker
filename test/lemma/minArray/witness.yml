@@ -18,7 +18,7 @@
           line: 18
           column: 3
           function: minArray
-        value: "m == ACSL(MinArray(arr,j))"
+        value: "m == ACSL(_L_Min(arr,j))"
         format: c_expression
     - invariant:
         type: loop_invariant
@@ -30,7 +30,7 @@
         format: c_expression
 - entry_type: lemma_set
   declarations: 
-    - "int MinArray(int* A, int I)"
+    - "int _L_Min(int* A, int I)"
     - "int* A"
     - "int I"
   content:
@@ -40,7 +40,7 @@
           line: 18
           column: 3
           function: minArray
-        value: "ACSL(MinArray(A,0)) == A[0]"
+        value: "ACSL(_L_Min(A,0)) == A[0]"
         format: c_expression
     - lemma:
         location:
@@ -48,6 +48,6 @@
           line: 18
           column: 3
           function: minArray
-          # ACSL(MinArray(A,I)) == (A[I] < ACSL(MinArray(A,I-1)) ? A[I] : ACSL(MinArray(A,I-1))) 
-        value: "((A[I] < ACSL(MinArray(A,I))) & ACSL(MinArray(A,I)) == A[I]) | (A[I] >= ACSL(MinArray(A,I)) & ACSL(MinArray(A,I)) == ACSL(MinArray(A,I-1)))"
+          # ACSL(_L_Min(A,I)) == (A[I] < ACSL(_L_Min(A,I-1)) ? A[I] : ACSL(_L_Min(A,I-1))) 
+        value: "((A[I] < ACSL(_L_Min(A,I))) & ACSL(_L_Min(A,I)) == A[I]) | (A[I] >= ACSL(_L_Min(A,I)) & ACSL(_L_Min(A,I)) == ACSL(_L_Min(A,I-1)))"
         format: c_expression
