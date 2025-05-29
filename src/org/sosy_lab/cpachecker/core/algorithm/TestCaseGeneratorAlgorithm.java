@@ -333,8 +333,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
-    // todo check assert
-    assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 
 //    extractorRunCPAA(eReached);
 
