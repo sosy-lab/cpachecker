@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -226,7 +227,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  runExtractorAlgo(pReached, (ARGState) reachedState, (ARGState) reachedState, cexInfo);
+                  runExtractorAlgo(pReached, reachedState, cexInfo);
 
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
@@ -297,49 +298,27 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private void runExtractorAlgo(
       final ReachedSet pReached,
       AbstractState reachedState,
-      ARGState argState,
       CounterexampleInfo cexInfo) {
 
+    ARGState argState = (ARGState) reachedState;
     // initialisation of starting state and reachedSet
     ARGState eStartState = new ARGState(argState.getWrappedState(), null);
-    getExpressions(cexInfo, eStartState);
+    processExpressions(cexInfo, eStartState);
 
-//    SingletonPrecision.getInstance());
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
+    // todo check assert
     assert from(eReached).filter(AbstractStates::isTargetState).isEmpty();
 
-    // exploring of additional ARGstates
-// todo add try catch finally block
-//  status = extractorAlgo.run(eReached);
-//    todo call processGoalState() for all elements of eReached that are testTargets
-//    todo optimisation: do not call for the first element of eReached, as that got already covered
+//    extractorRunCPAA(eReached);
 
-    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-    try {
-      status = algorithm.run(eReached);
-
-    } catch (CPAException e) {
-      // precaution always set precision to false, thus last target state not handled in case of
-      // exception
-      status = status.withPrecise(false);
-      logger.logUserException(Level.WARNING, e, "Analysis not completed.");
-
-    } catch (InterruptedException e1) {
-      // may be thrown only be counterexample check, if not will be thrown again in finally
-      // block due to respective shutdown notifier call)
-      status = status.withPrecise(false);
-    } finally {
-
-
-//  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
-//    processGoalState(eStartState);
-    }
+    evaluateExtractorResult(eReached);
   }
 
-  // extracts individual expressions from the counterexample and adds them to the starting state
+  // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
+  // of the starting state
   // in descending order relative to the line number of the c program
-  private void getExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
+  private void processExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
     // extract all variable assignments from reached state
     CFAPathWithAssumptions reachStateAssignments =
         cexInfo.getCFAPathWithAssignments();
@@ -369,16 +348,45 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 //        getOperand2()
 //    getOperator()
     // todo write to ARGState
-//    CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
-//
-//    ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
-//    if (valueAnalysisState == null) return;
-//    valueAnalysisState.assignConstant("x", 1);
+    CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
+
+    ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
+    //      clone state before initialisation
+    ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
+    if (valueAnalysisState == null) return;
+//    handleAssignmentToVariable
+  }
+
+  // exploring the successors of eStartState for additional ARGstates
+  private void extractorRunCPAA(ReachedSet eReached) {
+    AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+    try {
+      status = algorithm.run(eReached);
+
+    } catch (CPAException e) {
+      // precaution always set precision to false, thus last target state not handled in case of
+      // exception
+      status = status.withPrecise(false);
+      logger.logUserException(Level.WARNING, e, "Analysis not completed.");
+
+    } catch (InterruptedException e1) {
+      // may be thrown only be counterexample check, if not will be thrown again in finally
+      // block due to respective shutdown notifier call)
+      status = status.withPrecise(false);
+    } finally {
+    }
+  }
+
+  private void evaluateExtractorResult(ReachedSet eReached) {
+    //    todo call processGoalState() for all elements of eReached that are testTargets
+//    todo optimisation: do not call for the first element of eReached, as that got already covered
+//  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
+//    evaluateGoalState(eStartState);
   }
 
   // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
   // if so, the goal is marked as covered
-  private void processGoalState(ARGState nextGoalState) {
+  private void evaluateGoalState(ARGState nextGoalState) {
     if (nextGoalState == null) {
       return;
     }
