@@ -43,14 +43,10 @@ public class PointerAnalysisTest {
   @org.junit.Test
   public void testRunForSafeCProgram() throws Exception {
     Configuration config = getConfig(CONFIGURATION_FILE, Language.C, SPECIFICATION);
-    LogManager logManager = LogManager.createTestLogManager();
-
-    config.enableLogging(logManager);
-
     TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
-
+    System.out.println(result.getLog());
     result.assertIsSafe();
   }
 

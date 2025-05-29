@@ -104,12 +104,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     }
 
     if (!resultState.isBottom()) {
-      String string = resultState.toString();
-      logger.log(Level.INFO, string);
-    } else {
-      logger.log(Level.INFO, "Impossible path detected, returning null state");
+      String currentState = resultState.toString();
+      logger.log(Level.INFO, currentState);
     }
-
     return resultState;
   }
 
@@ -242,9 +239,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     if (returnVariable.isPresent()) {
       MemoryLocation returnLocation = MemoryLocation.forDeclaration(returnVariable.get());
-      LocationSet returnLocationSet = toLocationSet(returnLocation);
       // TODO replace with new state
-      return pState.addPointsToInformation(returnLocationSet, returnLocations);
+      return pState.addPointsToInformation(returnLocation, returnLocations);
     }
 
     return pState;
@@ -267,6 +263,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       PointerAnalysisState pState, CExpression pLhs, CRightHandSide pRhs)
       throws UnrecognizedCodeException {
 
+    if (hasInvalidPointerDepth(pLhs, pRhs)) return pState;
+
     int lhsDerefCounter = determineDerefCounter(pLhs, true);
     int rhsDerefCounter = determineDerefCounter(pRhs, false);
 
@@ -277,13 +275,49 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
+        MemoryLocation lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
         return new PointerAnalysisState(
-            pState.getPointsToMap().putAndCopy(lhsLocations, rhsTargets));
+            pState.getPointsToMap().putAndCopy(lhsLocation, rhsTargets));
       } else {
         return addElementsToAmbiguousLocations(pState, explicitLhsLocations, rhsTargets);
       }
     }
     return pState;
+  }
+
+  private boolean hasInvalidPointerDepth(CExpression pLhs, CRightHandSide pRhs) {
+    CType lhsType = pLhs.getExpressionType().getCanonicalType();
+    CType rhsType = null;
+    String lhsName = pLhs.toString();
+    String rhsName = null;
+
+    if (pRhs instanceof CExpression rhsExpr) {
+      if (rhsExpr instanceof CUnaryExpression unaryExpr
+          && unaryExpr.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
+        rhsType = unaryExpr.getOperand().getExpressionType().getCanonicalType();
+        rhsName = unaryExpr.getOperand().toString();
+      } else {
+        rhsType = rhsExpr.getExpressionType().getCanonicalType();
+        rhsName = rhsExpr.toString();
+      }
+    }
+
+    if (rhsType != null) {
+      int lhsDepth = getPointerDepth(lhsType);
+      int rhsDepth = getPointerDepth(rhsType);
+
+      if (lhsDepth != rhsDepth + 1) {
+        logger.logf(
+            Level.INFO,
+            "Skipping assignment due to invalid pointer depth: lhs=%s (depth=%d), rhs=%s (depth=%d)",
+            lhsName,
+            lhsDepth,
+            rhsName,
+            rhsDepth);
+        return true;
+      }
+    }
+    return false;
   }
 
   private PointerAnalysisState addElementsToAmbiguousLocations(
@@ -292,12 +326,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     PointerAnalysisState updatedState = pState;
 
     for (MemoryLocation loc : locations) {
-      LocationSet targetSet = ExplicitLocationSet.from(loc);
-      LocationSet existingSet = updatedState.getPointsToSet(targetSet);
+      LocationSet existingSet = updatedState.getPointsToSet(loc);
       LocationSet mergedSet = existingSet.addElements(pRhsTargets);
-
       updatedState =
-          new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(targetSet, mergedSet));
+          new PointerAnalysisState(updatedState.getPointsToMap().putAndCopy(loc, mergedSet));
     }
     return updatedState;
   }
@@ -341,13 +373,8 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
                   }
                 });
         MemoryLocation pointerLocation = MemoryLocation.forDeclaration(declaration);
-        LocationSet pointerLocationSet = toLocationSet(pointerLocation);
         return new PointerAnalysisState(
-            pState
-                .getPointsToMap()
-                .putAndCopy(
-                    pointerLocationSet,
-                    pointsToSet)); // handleAssignment(pState, pointerLocationSet, pointsToSet);
+            pState.getPointsToMap().putAndCopy(pointerLocation, pointsToSet));
       }
       return pState;
     }
@@ -370,25 +397,39 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
             } else {
               location = MemoryLocation.forIdentifier(pIdExpression.getName());
             }
-            return applyDereferences(toLocationSet(location), pDerefCounter);
+            return applyDereferences(location, pDerefCounter);
           }
 
-          private LocationSet applyDereferences(LocationSet pLocationSet, int pDerefCount) {
-            if (pDerefCount <= 0 || pLocationSet.isTop() || pLocationSet.isBot()) {
-              return pLocationSet;
-            }
-            LocationSet result = pLocationSet;
+          private LocationSet applyDereferences(MemoryLocation pLocation, int pDerefCount) {
+            LocationSet current = toLocationSet(pLocation);
+
             for (int i = 0; i < pDerefCount; i++) {
-              // TODO check the correctness of dereferencing
-              result = pState.getPointsToSet(result);
-              if (result.isTop() || result.isBot() || result.isNull()) {
-                return result;
+              if (current.isTop() || current.isBot() || current.isNull()) {
+                return current;
               }
-              if (!(result instanceof ExplicitLocationSet)) {
+
+              if (!(current instanceof ExplicitLocationSet explicitCurrentSet)) {
                 return LocationSetTop.INSTANCE;
               }
+
+              LocationSet next = LocationSetBot.INSTANCE;
+
+              for (MemoryLocation loc : explicitCurrentSet.getExplicitLocations()) {
+                LocationSet target = pState.getPointsToSet(loc);
+                if (target.isTop() || target.isBot() || target.isNull()) {
+                  return target;
+                }
+
+                if (!(target instanceof ExplicitLocationSet)) {
+                  return LocationSetTop.INSTANCE;
+                }
+                next = next.addElements(target);
+              }
+
+              current = next;
             }
-            return result;
+
+            return current;
           }
 
           @Override
@@ -428,8 +469,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
               Set<MemoryLocation> pointsToLocations = new HashSet<>();
               boolean containsNull = false;
               for (MemoryLocation location : elementLocations) {
-                LocationSet targetLocation =
-                    applyDereferences(toLocationSet(location), pDerefCounter);
+                LocationSet targetLocation = applyDereferences(location, pDerefCounter);
                 if (targetLocation instanceof ExplicitLocationSet explicitTargetLocation) {
                   pointsToLocations.addAll(explicitTargetLocation.getExplicitLocations());
                   containsNull = containsNull || explicitTargetLocation.containsNull();
@@ -517,7 +557,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     if (pLocations == null) {
       return LocationSetTop.INSTANCE;
     }
-    if (!pLocations.iterator().hasNext()) {
+    if (pLocations.isEmpty()) { // !pLocations.iterator().hasNext()) {
       return LocationSetBot.INSTANCE;
     }
     return ExplicitLocationSet.from(pLocations);
@@ -596,5 +636,14 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     } else {
       return pCounter;
     }
+  }
+
+  private int getPointerDepth(CType type) {
+    int depth = 0;
+    while (type instanceof CPointerType pointerType) {
+      type = pointerType.getType().getCanonicalType();
+      depth++;
+    }
+    return depth;
   }
 }
