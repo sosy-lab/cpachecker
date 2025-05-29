@@ -40,7 +40,7 @@ public class DssBlockAnalysisFactory {
       Algorithm algorithm, ConfigurableProgramAnalysis cpa, ReachedSet reached) {}
 
   public static AnalysisComponents createAlgorithm(
-      final LogManager logger,
+     final LogManager logger,
       final Specification specification,
       final CFA cfa,
       final Configuration globalConfig,
