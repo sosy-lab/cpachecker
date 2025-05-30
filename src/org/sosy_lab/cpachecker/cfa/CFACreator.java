@@ -13,8 +13,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -22,6 +26,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.google.errorprone.annotations.Immutable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -50,6 +55,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFACreator.AVariableDeclarationExchange.AVariableDeclarationExchangeSerializer;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -89,7 +95,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransform
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -1165,13 +1170,35 @@ public class CFACreator {
    * A helper class to have some information about the type of a variable at a certain point in the
    * scope
    */
-  private record AVariableDeclarationExchange(
+  @Immutable
+  @JsonSerialize(using = AVariableDeclarationExchangeSerializer.class)
+  record AVariableDeclarationExchange(
       @JsonProperty("name") @NonNull String name,
-      @JsonProperty("simpleType") @NonNull CBasicType simpleType) {
+      @JsonProperty("type") @NonNull CSimpleType simpleType) {
 
     public AVariableDeclarationExchange {
       checkNotNull(name);
       checkNotNull(simpleType);
+    }
+
+    public static class AVariableDeclarationExchangeSerializer
+        extends JsonSerializer<AVariableDeclarationExchange> {
+
+      @Override
+      public void serialize(
+          AVariableDeclarationExchange value, JsonGenerator gen, SerializerProvider serializers)
+          throws IOException {
+        // start the actual InvariantEntry object
+        gen.writeStartObject();
+        gen.writeFieldName("name");
+        serializers.defaultSerializeValue(value.name, gen);
+
+        gen.writeFieldName("type");
+        serializers.defaultSerializeValue(value.simpleType.toString(), gen);
+
+        // End the whole thing
+        gen.writeEndObject();
+      }
     }
   }
 
@@ -1211,7 +1238,7 @@ public class CFACreator {
                   declaration ->
                       declaration.getType() instanceof CSimpleType pCSimpleType
                           ? new AVariableDeclarationExchange(
-                              declaration.getOrigName(), pCSimpleType.getType())
+                              declaration.getOrigName(), pCSimpleType)
                           : null)
               .toSet();
 
