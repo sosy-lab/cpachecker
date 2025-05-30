@@ -1240,6 +1240,7 @@ public class CFACreator {
                           ? new AVariableDeclarationExchange(
                               declaration.getOrigName(), pCSimpleType)
                           : null)
+              .filter(Predicates.notNull())
               .toSet();
 
       // create a new map if it does not exist
