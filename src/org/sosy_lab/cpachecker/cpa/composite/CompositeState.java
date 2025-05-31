@@ -49,7 +49,7 @@ public class CompositeState
     states = ImmutableList.copyOf(elements);
   }
 
-  int getNumberOfStates() {
+  public int getNumberOfStates() {
     return states.size();
   }
 
