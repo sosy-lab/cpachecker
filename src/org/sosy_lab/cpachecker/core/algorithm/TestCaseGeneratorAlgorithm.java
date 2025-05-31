@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -302,7 +305,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     ARGState argState = (ARGState) reachedState;
     // initialisation of starting state and reachedSet
-    ARGState eStartState = new ARGState(argState.getWrappedState(), null);
+
+    ARGState eStartState = createStartState(argState);
     processExpressions(cexInfo, eStartState);
 
     ReachedSet eReached = factory.createReachedSet(cpa);
@@ -312,6 +316,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     evaluateExtractorResult(eReached);
   }
+//todo modify wrapped state here?
+  private ARGState createStartState(ARGState argState) {
+    CompositeState wrappedState = (CompositeState) argState.getWrappedState();
+    List<AbstractState> elements =
+        IntStream.range(0, wrappedState.getNumberOfStates()).
+            mapToObj(i -> wrappedState.get(i)).collect(Collectors.toList());
+    return new ARGState(new CompositeState(elements), null);
+  }
+
 
   // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
   // of the starting state
@@ -335,8 +348,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       ImmutableList<AExpressionStatement> expStmt,
       ARGState eStartState) {
     if (expStmt.isEmpty()) return;
-    assert expStmt.size()
-        == 1; //todo can expStmt contain more than 1 element? replace with precondition?
+    //todo can expStmt contain more than 1 element? replace with precondition?
+    assert expStmt.size() == 1;
+
     //todo check expStmt for being instance of CBinaryExpression
     // todo read from Expression
 
@@ -347,7 +361,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 //    getOperator()
     // todo write to ARGState
     CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
-
+// todo extract valueanalysis state from composit state (vergleich mit klasse)
     ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
     //      clone state before initialisation
     ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
