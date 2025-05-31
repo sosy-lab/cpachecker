@@ -138,6 +138,7 @@ public class LoopInfoUtils {
         }
       }
 
+
       // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
         // this for loop adds the arrays to liveVariablesAndTypes -LE
@@ -355,7 +356,6 @@ public class LoopInfoUtils {
         reversedTypeSb.delete(0, indexOfFirstLeftBracket + 2);
       }
     }
-
     return new SimpleEntry<>(
         reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
   }
@@ -364,7 +364,7 @@ public class LoopInfoUtils {
   private static ImmutableMap<String, String> decompose(
       String pPreprocessedVariable,
       String pPreprocessedType,
-      ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) { // add p -LE
+      ImmutableMap<String, ImmutableMap<String, String>> decomposedStructs) {
     final String EXPRESSION_PLACEHOLDER = "$";
 
     Map<String, String> temp = new LinkedHashMap<>();
@@ -381,11 +381,10 @@ public class LoopInfoUtils {
                       e.getValue()));
     }
 
-    // this expandArrays func turns the array into what it becomes -LE
-    return expandArrays(ImmutableMap.copyOf(temp));
+    return ImmutableMap.copyOf(temp);
   }
 
-  private static ImmutableMap<String, String> expandArrays(
+  public static ImmutableMap<String, String> expandArrays(
       ImmutableMap<String, String> pExpressionsAndTypes) {
     Map<String, String> result = new LinkedHashMap<>();
 

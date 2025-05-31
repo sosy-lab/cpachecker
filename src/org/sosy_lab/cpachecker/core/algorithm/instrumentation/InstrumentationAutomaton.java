@@ -277,8 +277,8 @@ public class InstrumentationAutomaton {
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
+    ImmutableMap<String, String> modifiedLiveVariables = modifyVariablesForArrays(ImmutableMap.copyOf(liveVariablesAndTypes));
 
-    System.out.println(liveVariablesAndTypes + " -beforeOP");
     InstrumentationTransition t1 =
         new InstrumentationTransition(
             q1,
@@ -312,7 +312,7 @@ public class InstrumentationAutomaton {
                     + " == 0) { saved_"
                     + pIndex
                     + " =1; "
-                    + liveVariablesAndTypes.entrySet().stream()
+                    + modifiedLiveVariables.entrySet().stream()
                         .map(
                             (entry) ->
                                 getDereferencesForPointer(entry.getValue())
@@ -321,12 +321,12 @@ public class InstrumentationAutomaton {
                                     + getDereferencesForPointer(entry.getValue())
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
-                    + (!liveVariablesAndTypes.isEmpty() ? "; " : "")
+                    + (!modifiedLiveVariables.isEmpty() ? "; " : "")
                     + "} else { __VERIFIER_assert((saved_"
                     + pIndex
                     + " == 0)"
-                    + (!liveVariablesAndTypes.isEmpty() ? " || " : "")
-                    + liveVariablesAndTypes.entrySet().stream()
+                    + (!modifiedLiveVariables.isEmpty() ? " || " : "")
+                    + modifiedLiveVariables.entrySet().stream()
                         .map(
                             (entry) ->
                                 "("
@@ -501,9 +501,9 @@ public class InstrumentationAutomaton {
     return insertedKey;
   }
 
-  private ImmutableMap<String, String> modifyLiveVariablesAndTypesForArrays() {
-
-    return liveVariablesAndTypes;
+  private ImmutableMap<String, String> modifyVariablesForArrays(ImmutableMap<String, String> pLiveVariables) {
+    ImmutableMap<String, String> newVars = ImmutableMap.copyOf(LoopInfoUtils.expandArrays(pLiveVariables));
+    return newVars;
   }
 
 }
