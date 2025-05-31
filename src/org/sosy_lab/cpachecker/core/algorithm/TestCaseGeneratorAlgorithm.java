@@ -31,7 +31,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -57,7 +63,10 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -344,6 +353,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
+  //todo maybe do not give eStartState as argument, but only ValueAnalysisState
   private void writeExpressionToState(
       ImmutableList<AExpressionStatement> expStmt,
       ARGState eStartState) {
@@ -351,22 +361,28 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     //todo can expStmt contain more than 1 element? replace with precondition?
     assert expStmt.size() == 1;
 
-    //todo check expStmt for being instance of CBinaryExpression
-    // todo read from Expression
+    CBinaryExpression cBinaryExpression = (CBinaryExpression) expStmt.get(0).getExpression();
+// todo add guards and asserts
+// only read expression if it is a valid assignment// check debugger what get thrown in!
+//    CExpression op1 = (CExpression) cBinaryExpression.getOperand1();
+//    if (op1 instanceof CIdExpression) return;
+//    CExpression op2 = (CExpression) cBinaryExpression.getOperand2();
+//    if (op2 instanceof CIntegerLiteralExpression) return;
+//    if (op2.getExpressionType() != CType.CIntegerLiteralExpression) return;
 
-    expStmt.get(0).getExpression();
-    // Value visit(CBinaryExpression pE) from AssigningValueVisitior class
-//    getOperand1()
-//        getOperand2()
-//    getOperator()
+    CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
+    CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
+    String variableName = op1.getName();
+    Value variableValue = new NumericValue(op2.getValue());
+
     // todo write to ARGState
     CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
 // todo extract valueanalysis state from composit state (vergleich mit klasse)
     ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
     //      clone state before initialisation
-    ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
-    if (valueAnalysisState == null) return;
-//    handleAssignmentToVariable
+//    ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
+//    if (valueAnalysisState == null) return;
+    valueAnalysisState.assignConstant(variableName, variableValue);
   }
 
   // exploring the successors of eStartState for additional ARGstates
