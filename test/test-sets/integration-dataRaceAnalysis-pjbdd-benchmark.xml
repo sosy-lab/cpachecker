@@ -36,6 +36,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="--option">bdd.pjbdd.tableType=CASArray</option>
     <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
   </rundefinition>
+  <rundefinition name="PJBDD-TBDD-dataRaceAnalysis">
+    <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=TBDD</option>
+  </rundefinition>
 
   <tasks>
     <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
