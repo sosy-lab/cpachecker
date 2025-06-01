@@ -78,10 +78,7 @@ public class ExpressionBehaviorVisitor
       MemoryLocation loc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
       if (!loc.isOnFunctionStack()) {
         result.addSideEffect(new SideEffectInfo(loc, accessType, cfaEdge));
-        logger.log(
-            Level.INFO,
-            String.format(
-                "[GlobalAccess] %s on %s at %s", accessType, loc, cfaEdge.getFileLocation()));
+        logger.logf(Level.INFO, "[GlobalAccess] %s on %s at %s", accessType, loc, cfaEdge.getFileLocation());
       }
     }
 
@@ -136,11 +133,7 @@ public class ExpressionBehaviorVisitor
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
       result.addUnsequencedBinaryExpr(binaryExpr);
 
-      logger.log(
-          Level.INFO,
-          String.format(
-              "Detected unsequenced binary expression '%s' at %s",
-              UnseqUtils.replaceTmpInExpression(binaryExpr, state), binaryExpr.getFileLocation()));
+      logger.logf(Level.INFO, "Detected unsequenced binary expression '%s' at %s", UnseqUtils.replaceTmpInExpression(binaryExpr, state), binaryExpr.getFileLocation());
     }
 
     return result;
