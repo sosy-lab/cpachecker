@@ -110,8 +110,6 @@ public interface Property {
     TERMINATION("F end"),
 
     ASSERT("G assert"),
-
-    NO_UNSEQUENCED_EXECUTION("G deterministic-execution"),
     ;
 
     private final String representation;
