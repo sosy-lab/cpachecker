@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer;
 
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -61,21 +62,27 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     }
     return pOther instanceof PointerAnalysisState other
         && isBottom == other.isBottom
-        && (isBottom || pointsToMap.equals(other.pointsToMap));
+        && pointsToMap.entrySet().equals(other.pointsToMap.entrySet());
   }
 
   @Override
   public int hashCode() {
-    if (isBottom) {
-      return 0;
-    }
-
-    int hash = 31;
-    hash = 31 * hash + Boolean.hashCode(isBottom);
-    hash = 31 * hash + pointsToMap.hashCode();
-    return hash;
+    return Objects.hash(isBottom, pointsToMap.entrySet());
   }
 
+  /*
+    @Override
+    public int hashCode() {
+      if (isBottom) {
+        return 0;
+      }
+
+      int hash = 31;
+      hash = 31 * hash + Boolean.hashCode(isBottom);
+      hash = 31 * hash + pointsToMap.hashCode();
+      return hash;
+    }
+  */
   @Override
   public String toString() {
     String mapString =

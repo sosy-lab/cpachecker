@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -20,6 +22,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -31,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
@@ -39,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -49,7 +55,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -65,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetBot;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation {
@@ -97,8 +107,10 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       case CallToReturnEdge -> {}
       case AssumeEdge -> resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
       case BlankEdge -> {}
-      case FunctionCallEdge -> {}
-      case FunctionReturnEdge -> {}
+      case FunctionCallEdge ->
+          resultState = handleFunctionCallEdge(pState, (CFunctionCallEdge) pCfaEdge);
+      case FunctionReturnEdge ->
+          resultState = handleFunctionReturnEdge(pState, (CFunctionReturnEdge) pCfaEdge);
       case ReturnStatementEdge ->
           resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
     }
@@ -217,32 +229,109 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     return false;
   }
 
+  private PointerAnalysisState handleFunctionCallEdge(
+      PointerAnalysisState pState, CFunctionCallEdge pCFunctionCallEdge)
+      throws UnrecognizedCodeException {
+
+    PointerAnalysisState newState = pState;
+
+    List<CParameterDeclaration> formalParams =
+        pCFunctionCallEdge.getSuccessor().getFunctionParameters();
+    List<CExpression> actualParams = pCFunctionCallEdge.getArguments();
+
+    int limit = Math.min(formalParams.size(), actualParams.size());
+    formalParams = FluentIterable.from(formalParams).limit(limit).toList();
+    actualParams = FluentIterable.from(actualParams).limit(limit).toList();
+
+    for (Pair<CParameterDeclaration, CExpression> param :
+        Pair.zipList(formalParams, actualParams)) {
+      CExpression actualParam = param.getSecond();
+      CParameterDeclaration formalParam = param.getFirst();
+
+      MemoryLocation paramLocation = getMemoryLocation(formalParam);
+      int derefCounter = determineDerefCounter(actualParam, false);
+      LocationSet referencedLocations = getReferencedLocations(actualParam, pState, derefCounter);
+
+      if (!referencedLocations.isBot()) {
+        // LocationSet existingTargets = newState.getPointsToSet(paramLocation);
+        // LocationSet updatedTargets = existingTargets.addElements(referencedLocations);
+
+        // if (!updatedTargets.equals(existingTargets)) {
+        newState =
+            new PointerAnalysisState(
+                newState.getPointsToMap().putAndCopy(paramLocation, referencedLocations));
+        // }
+      }
+    }
+
+    for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
+      MemoryLocation paramLocation = getMemoryLocation(formalParam);
+      newState =
+          new PointerAnalysisState(
+              newState.getPointsToMap().putAndCopy(paramLocation, LocationSetBot.INSTANCE));
+    }
+
+    return newState;
+  }
+
+  private MemoryLocation getMemoryLocation(AbstractSimpleDeclaration pDeclaration) {
+    return getMemoryLocation(pDeclaration.getType(), pDeclaration.getQualifiedName());
+  }
+
+  private MemoryLocation getMemoryLocation(Type pType, String name) {
+    return MemoryLocation.parseExtendedQualifiedName(name);
+  }
+
+  private PointerAnalysisState handleFunctionReturnEdge(
+      PointerAnalysisState pState, CFunctionReturnEdge pCfaEdge) throws UnrecognizedCodeException {
+    CFunctionCall callEdge = pCfaEdge.getFunctionCall();
+    if (callEdge instanceof CFunctionCallAssignmentStatement callAssignment) {
+      Optional<MemoryLocation> returnVar = getFunctionReturnVariable(pCfaEdge.getFunctionEntry());
+      if (returnVar.isEmpty()) {
+        logger.log(Level.INFO, "Return edge with assignment, but no return variable: " + pCfaEdge);
+        return pState;
+      }
+      CExpression lhs = callAssignment.getLeftHandSide();
+      if (!(lhs.getExpressionType() instanceof CPointerType)) {
+        return pState;
+      }
+      int lhsDeref = determineDerefCounter(lhs, true);
+      LocationSet rhsTargets = pState.getPointsToSet(returnVar.orElseThrow());
+      LocationSet lhsLocations = getReferencedLocations(lhs, pState, lhsDeref);
+      return handleAssignment(pState, lhsLocations, rhsTargets);
+    }
+    return pState;
+  }
+
+  private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
+    Optional<? extends AVariableDeclaration> returnVariable =
+        pFunctionEntryNode.getReturnVariable();
+    if (!returnVariable.isPresent()) {
+      return Optional.empty();
+    } else {
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.get()));
+    }
+  }
+
   private PointerAnalysisState handleReturnStatementEdge(
       PointerAnalysisState pState, CReturnStatementEdge pCfaEdge) throws UnrecognizedCodeException {
-    var expression = pCfaEdge.getExpression();
+    Optional<CExpression> expression = pCfaEdge.getExpression();
     if (expression.isEmpty()) {
       return pState;
     }
-
     CExpression returnExpression = expression.get();
-
-    int derefCounter = determineDerefCounter(returnExpression, false);
-
-    LocationSet returnLocations = getReferencedLocations(returnExpression, pState, derefCounter);
-
-    if (returnLocations.isBot()) {
+    Type returnType = returnExpression.getExpressionType();
+    if (!(returnType instanceof CPointerType)) {
       return pState;
     }
-
-    Optional<? extends AVariableDeclaration> returnVariable =
-        pCfaEdge.getSuccessor().getEntryNode().getReturnVariable();
-
+    int derefCounter = determineDerefCounter(returnExpression, false);
+    LocationSet returnLocations = getReferencedLocations(returnExpression, pState, derefCounter);
+    Optional<MemoryLocation> returnVariable =
+        getFunctionReturnVariable(pCfaEdge.getSuccessor().getEntryNode());
     if (returnVariable.isPresent()) {
-      MemoryLocation returnLocation = MemoryLocation.forDeclaration(returnVariable.get());
-      // TODO replace with new state
-      return pState.addPointsToInformation(returnLocation, returnLocations);
+      return new PointerAnalysisState(
+          pState.getPointsToMap().putAndCopy(returnVariable.get(), returnLocations));
     }
-
     return pState;
   }
 
@@ -273,6 +362,11 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
 
     // TODO: Handle the case pLhs is CFieldReference
 
+    return handleAssignment(pState, lhsLocations, rhsTargets);
+  }
+
+  private PointerAnalysisState handleAssignment(
+      PointerAnalysisState pState, LocationSet lhsLocations, LocationSet rhsTargets) {
     if (lhsLocations instanceof ExplicitLocationSet explicitLhsLocations) {
       if (explicitLhsLocations.getSize() == 1) {
         MemoryLocation lhsLocation = explicitLhsLocations.getExplicitLocations().iterator().next();
