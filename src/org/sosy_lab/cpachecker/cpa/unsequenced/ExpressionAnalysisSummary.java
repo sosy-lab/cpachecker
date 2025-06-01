@@ -13,13 +13,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
 public class ExpressionAnalysisSummary {
 
   private final Set<SideEffectInfo> sideEffects = new HashSet<>();
   private final Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
-  private String originalExpressionStr = null;
-  private final Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr =
+  private final Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr =
       new HashMap<>(); // tracking side effects per argument
 
   public static ExpressionAnalysisSummary empty() {
@@ -50,35 +50,24 @@ public class ExpressionAnalysisSummary {
     unsequencedBinaryExprs.addAll(exprs);
   }
 
-  public String getOriginalExpressionStr() {
-    return originalExpressionStr;
-  }
-
-  public void setOriginalExpressionStr(String exprStr) {
-    this.originalExpressionStr = exprStr;
-  }
-
-  public Map<String, Set<SideEffectInfo>> getSideEffectsPerSubExpr() {
-    return sideEffectsPerSubExprStr;
+  public Map<CRightHandSide, Set<SideEffectInfo>> getSideEffectsPerSubExpr() {
+    return sideEffectsPerSubExpr;
   }
 
   /** Add side effects for arguments */
-  public void addSideEffectsForSubExprs(Map<String, Set<SideEffectInfo>> pSideEffectsPerSubExpr) {
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : pSideEffectsPerSubExpr.entrySet()) {
-      String subExprStr = entry.getKey();
+  public void addSideEffectsForSubExprs(
+      Map<CRightHandSide, Set<SideEffectInfo>> pEffectsPerSubExpr) {
+    for (Map.Entry<CRightHandSide, Set<SideEffectInfo>> entry : pEffectsPerSubExpr.entrySet()) {
+      CRightHandSide expr = entry.getKey();
       Set<SideEffectInfo> effects = entry.getValue();
       if (!effects.isEmpty()) {
-        sideEffectsPerSubExprStr.computeIfAbsent(subExprStr, k -> new HashSet<>()).addAll(effects);
+        sideEffectsPerSubExpr.computeIfAbsent(expr, k -> new HashSet<>()).addAll(effects);
       }
     }
   }
 
   @Override
   public String toString() {
-    return String.format(
-        "[Effects=%d, UnsequencedExprs=%d, OriginalExpr='%s']",
-        sideEffects.size(),
-        unsequencedBinaryExprs.size(),
-        originalExpressionStr == null ? "null" : originalExpressionStr);
+    return String.format("[Effects=%s, UnsequencedExprs=%s]", sideEffects, unsequencedBinaryExprs);
   }
 }

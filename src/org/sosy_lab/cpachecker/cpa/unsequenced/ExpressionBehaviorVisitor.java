@@ -8,10 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
@@ -24,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -31,11 +30,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ExpressionBehaviorGatherVisitor
+public class ExpressionBehaviorVisitor
     extends DefaultCExpressionVisitor<ExpressionAnalysisSummary, UnrecognizedCodeException>
     implements CRightHandSideVisitor<ExpressionAnalysisSummary, UnrecognizedCodeException> {
 
@@ -44,7 +45,7 @@ public class ExpressionBehaviorGatherVisitor
   private final AccessType accessType;
   private final LogManager logger;
 
-  public ExpressionBehaviorGatherVisitor(
+  public ExpressionBehaviorVisitor(
       UnseqBehaviorAnalysisState pState,
       CFAEdge pEdge,
       AccessType pAccessType,
@@ -58,25 +59,21 @@ public class ExpressionBehaviorGatherVisitor
   @Override
   protected ExpressionAnalysisSummary visitDefault(CExpression exp)
       throws UnrecognizedCodeException {
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
-    result.setOriginalExpressionStr(exp.toQualifiedASTString());
-    return result;
+    return ExpressionAnalysisSummary.empty();
   }
 
   @Override
   public ExpressionAnalysisSummary visit(CIdExpression idExpr) throws UnrecognizedCodeException {
     String varName = idExpr.getDeclaration().getQualifiedName();
+    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
 
     // 1. Check if this is a TMP variable mapped to the original expression
     CRightHandSide originalExpr = state.getFunctionForTmp(varName);
     if (originalExpr != null) {
-      ExpressionAnalysisSummary resolvedSummary = originalExpr.accept(this);
-      return resolvedSummary;
+      return originalExpr.accept(this);
     }
 
     // 2. Handel side effect
-    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
-
     if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
       MemoryLocation loc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
       if (!loc.isOnFunctionStack()) {
@@ -88,7 +85,6 @@ public class ExpressionBehaviorGatherVisitor
       }
     }
 
-    result.setOriginalExpressionStr(idExpr.toQualifiedASTString());
     return result;
   }
 
@@ -97,20 +93,16 @@ public class ExpressionBehaviorGatherVisitor
       throws UnrecognizedCodeException {
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
     Set<SideEffectInfo> sideEffects = new HashSet<>();
-    Map<String, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
-    StringBuilder reconstructedCall = new StringBuilder();
+    Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr = new HashMap<>();
 
     CExpression funcExpr = funCallExpr.getFunctionNameExpression();
 
     // Gather side effects for each function parameter
-    List<String> reconstructedArguments = new ArrayList<>();
-    for (CExpression param : funCallExpr.getParameterExpressions()) {
+    for (CRightHandSide param : funCallExpr.getParameterExpressions()) {
       ExpressionAnalysisSummary paramSummary = param.accept(this);
       Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
 
-      String exprStr = getExpressionStrOrFallback(paramSummary, param);
-      sideEffectsPerSubExpr.put(exprStr, paramEffects);
-      reconstructedArguments.add(exprStr);
+      sideEffectsPerSubExpr.put(param, paramEffects);
     }
 
     if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
@@ -120,15 +112,9 @@ public class ExpressionBehaviorGatherVisitor
       if (state.getSideEffectsInFun().containsKey(functionName)) {
         sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
       }
-
-      reconstructedCall.append(functionName);
-      reconstructedCall.append("(");
-      reconstructedCall.append(String.join(", ", reconstructedArguments));
-      reconstructedCall.append(")");
     }
 
     result.addSideEffects(sideEffects);
-    result.setOriginalExpressionStr(reconstructedCall.toString());
     result.addSideEffectsForSubExprs(sideEffectsPerSubExpr);
     return result;
   }
@@ -146,9 +132,6 @@ public class ExpressionBehaviorGatherVisitor
     result.addUnsequencedBinaryExprs(leftSummary.getUnsequencedBinaryExprs());
     result.addUnsequencedBinaryExprs(rightSummary.getUnsequencedBinaryExprs());
 
-    String newExpr = reconstructBinaryExpr(binaryExpr, leftSummary, rightSummary);
-    result.setOriginalExpressionStr(newExpr);
-
     // Check if current binary operator itself is unsequenced
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
       result.addUnsequencedBinaryExpr(binaryExpr);
@@ -157,7 +140,7 @@ public class ExpressionBehaviorGatherVisitor
           Level.INFO,
           String.format(
               "Detected unsequenced binary expression '%s' at %s",
-              result.getOriginalExpressionStr(), binaryExpr.getFileLocation()));
+              UnseqUtils.replaceTmpInExpression(binaryExpr, state), binaryExpr.getFileLocation()));
     }
 
     return result;
@@ -167,9 +150,22 @@ public class ExpressionBehaviorGatherVisitor
   public ExpressionAnalysisSummary visit(CUnaryExpression unaryExpr)
       throws UnrecognizedCodeException {
     return switch (unaryExpr.getOperator()) {
-      case SIZEOF, ALIGNOF -> ExpressionAnalysisSummary.empty();
+      // C11: 6.5.3.4
+      // If the type of the operand is a variable length array type, the operand is evaluated;
+      // otherwise, the operand is not evaluated and the result is an integer constant.
+      case SIZEOF -> {
+        CExpression operand = unaryExpr.getOperand();
+        CType type = operand.getExpressionType();
+        if (isVariableLengthArray(type)) {
+          yield operand.accept(this);
+        } else {
+          yield ExpressionAnalysisSummary.empty();
+        }
+      }
+      // C11: 6.5.3.4
+      // The alignof operator yields the alignment requirement of its operand type.
+      case ALIGNOF -> ExpressionAnalysisSummary.empty();
       case MINUS, TILDE, AMPER -> unaryExpr.getOperand().accept(this);
-      default -> throw new UnrecognizedCodeException("Unknown unary operator", cfaEdge, unaryExpr);
     };
   }
 
@@ -185,7 +181,6 @@ public class ExpressionBehaviorGatherVisitor
     sideEffects.addAll(indexSummary.getSideEffects());
 
     result.addSideEffects(sideEffects);
-    result.setOriginalExpressionStr(arrayExpr.toQualifiedASTString());
 
     return result;
   }
@@ -217,12 +212,15 @@ public class ExpressionBehaviorGatherVisitor
     ExpressionAnalysisSummary operandSummary = operand.accept(this);
 
     result.addSideEffects(operandSummary.getSideEffects());
-    result.setOriginalExpressionStr("*" + getExpressionStrOrFallback(operandSummary, operand));
 
     return result;
   }
 
   private boolean isUnsequencedBinaryOperator(CBinaryExpression.BinaryOperator op) {
+    // C11: J.1
+    // The order in which subexpressions are evaluated and the order in which side effects take
+    // place,
+    // except as specified for the function-call (), &&, ||, ?:, and comma operators (6.5).
     return switch (op) {
       case BINARY_AND, BINARY_OR -> false;
       case MULTIPLY,
@@ -240,26 +238,14 @@ public class ExpressionBehaviorGatherVisitor
           EQUALS,
           NOT_EQUALS ->
           true;
-      default ->
-          throw new AssertionError("Unhandled operator in isUnsequencedBinaryOperator: " + op);
     };
   }
 
-  private String reconstructBinaryExpr(
-      CBinaryExpression binExpr,
-      ExpressionAnalysisSummary leftSummary,
-      ExpressionAnalysisSummary rightSummary) {
-
-    String leftStr = getExpressionStrOrFallback(leftSummary, binExpr.getOperand1());
-    String rightStr = getExpressionStrOrFallback(rightSummary, binExpr.getOperand2());
-    return "(" + leftStr + binExpr.getOperator().getOperator() + rightStr + ")";
-  }
-
-  private String getExpressionStrOrFallback(
-      ExpressionAnalysisSummary summary, CExpression fallbackExpr) {
-    if (summary.getOriginalExpressionStr() != null) {
-      return summary.getOriginalExpressionStr();
+  private boolean isVariableLengthArray(CType type) {
+    if (type instanceof CArrayType arrayType) {
+      CExpression lengthExpr = arrayType.getLength();
+      return lengthExpr != null && !(lengthExpr instanceof CIntegerLiteralExpression);
     }
-    return fallbackExpr.toQualifiedASTString();
+    return false;
   }
 }

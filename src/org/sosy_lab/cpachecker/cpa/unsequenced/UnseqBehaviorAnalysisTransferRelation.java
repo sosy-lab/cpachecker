@@ -60,8 +60,6 @@ public class UnseqBehaviorAnalysisTransferRelation
       CStatementEdge statementEdge, CStatement stat) throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = state;
 
-    logger.log(Level.INFO, String.format("[HandleStatement] Processing: %s", stat.toASTString()));
-
     if (stat instanceof CExpressionAssignmentStatement exprAssign) {
       CExpression lhsExpr = exprAssign.getLeftHandSide();
       CExpression rhsExpr = exprAssign.getRightHandSide();
@@ -107,8 +105,6 @@ public class UnseqBehaviorAnalysisTransferRelation
   @Override
   protected UnseqBehaviorAnalysisState handleDeclarationEdge(
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
-    logger.log(
-        Level.INFO, String.format("[HandleDeclaration] Processing: %s", declaration.toASTString()));
     UnseqBehaviorAnalysisState newState = state;
 
     if (declaration instanceof CVariableDeclaration varDecl) {
@@ -154,17 +150,11 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleFunctionReturnEdge(
       CFunctionReturnEdge funReturnEdge, CFunctionCall summaryExpr, String callerFunctionName)
       throws UnrecognizedCodeException {
-    logger.log(
-        Level.INFO,
-        String.format(
-            "[HandleSFunctionReturn] Processing: %s",
-            funReturnEdge.getSummaryEdge().getExpression()));
-
     UnseqBehaviorAnalysisState newState = state;
     newState.popCalledFunction();
 
-    ExpressionBehaviorGatherVisitor visitor =
-        new ExpressionBehaviorGatherVisitor(newState, funReturnEdge, AccessType.READ, logger);
+    ExpressionBehaviorVisitor visitor =
+        new ExpressionBehaviorVisitor(newState, funReturnEdge, AccessType.READ, logger);
 
     if (summaryExpr instanceof CFunctionCallAssignmentStatement assignStmt) {
       CExpression lhs = assignStmt.getLeftHandSide();
@@ -224,7 +214,6 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleAssumption(
       CAssumeEdge assumeEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
-    logger.log(Level.INFO, String.format("[HandleAssumption] Processing: %s", expression));
     UnseqBehaviorAnalysisState newState = state;
 
     recordSideEffectsIfInFunctionCall(expression, assumeEdge, AccessType.READ, newState);
@@ -249,8 +238,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     if (pState.isInsideFunctionCall()) {
-      ExpressionBehaviorGatherVisitor visitor =
-          new ExpressionBehaviorGatherVisitor(pState, edge, accessType, logger);
+      ExpressionBehaviorVisitor visitor =
+          new ExpressionBehaviorVisitor(pState, edge, accessType, logger);
       ExpressionAnalysisSummary summary = expr.accept(visitor);
       Set<SideEffectInfo> effects = summary.getSideEffects();
       if (!effects.isEmpty()) {
@@ -262,7 +251,7 @@ public class UnseqBehaviorAnalysisTransferRelation
             Level.INFO,
             String.format(
                 "[CollectSideEffect] Function='%s', Expr='%s', Effects=%s",
-                currentFunction, expr.toQualifiedASTString(), effects));
+                currentFunction, UnseqUtils.replaceTmpInExpression(expr, pState), effects));
       }
     }
   }
@@ -272,8 +261,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression expr, CFAEdge edge, UnseqBehaviorAnalysisState pState)
       throws UnrecognizedCodeException {
 
-    ExpressionBehaviorGatherVisitor visitor =
-        new ExpressionBehaviorGatherVisitor(pState, edge, AccessType.READ, logger);
+    ExpressionBehaviorVisitor visitor =
+        new ExpressionBehaviorVisitor(pState, edge, AccessType.READ, logger);
     ExpressionAnalysisSummary summary = expr.accept(visitor);
 
     for (CBinaryExpression unseqExpr : summary.getUnsequencedBinaryExprs()) {
@@ -286,17 +275,17 @@ public class UnseqBehaviorAnalysisTransferRelation
       Set<SideEffectInfo> leftEffects = leftSummary.getSideEffects();
       Set<SideEffectInfo> rightEffects = rightSummary.getSideEffects();
 
-      String leftExprStr = leftSummary.getOriginalExpressionStr();
-      String rightExprStr = rightSummary.getOriginalExpressionStr();
-
       logger.log(
           Level.INFO,
           String.format(
               "[UnseqExpr] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
-              leftExprStr, rightExprStr, leftEffects, rightEffects));
+              UnseqUtils.replaceTmpInExpression(left, pState),
+              UnseqUtils.replaceTmpInExpression(right, pState),
+              leftEffects,
+              rightEffects));
 
       Set<ConflictPair> conflicts =
-          getUnsequencedConflicts(leftEffects, rightEffects, edge, leftExprStr, rightExprStr);
+          getUnsequencedConflicts(leftEffects, rightEffects, edge, left, right, pState);
       if (!conflicts.isEmpty()) {
         pState.addConflicts(conflicts);
       }
@@ -307,27 +296,28 @@ public class UnseqBehaviorAnalysisTransferRelation
   private Set<ConflictPair> getUnsequencedConflicts(
       Set<SideEffectInfo> op1Effects,
       Set<SideEffectInfo> op2Effects,
-      CFAEdge location,
-      String op1ExprStr,
-      String op2ExprStr) {
+      CFAEdge edge,
+      CRightHandSide op1Expr,
+      CRightHandSide op2Expr,
+      UnseqBehaviorAnalysisState pState) {
 
     Set<ConflictPair> result = new HashSet<>();
     for (SideEffectInfo s1 : op1Effects) {
       for (SideEffectInfo s2 : op2Effects) {
         if (conflictOnSameLocation(s1, s2)) {
-          result.add(new ConflictPair(s1, s2, location, op1ExprStr, op2ExprStr));
+          result.add(new ConflictPair(s1, s2, edge, op1Expr, op2Expr));
 
           logger.log(
               Level.INFO,
               String.format(
                   "[Conflict] Unsequenced conflict detected at %s: '%s' vs '%s' on location '%s'"
                       + " (access: %s / %s)",
-                  location.getFileLocation(),
-                  op1ExprStr,
-                  op2ExprStr,
-                  s1.getMemoryLocation(),
-                  s1.getAccessType(),
-                  s2.getAccessType()));
+                  edge.getFileLocation(),
+                  UnseqUtils.replaceTmpInExpression(op1Expr, pState),
+                  UnseqUtils.replaceTmpInExpression(op2Expr, pState),
+                  s1.memoryLocation(),
+                  s1.accessType(),
+                  s2.accessType()));
         }
       }
     }
@@ -336,36 +326,37 @@ public class UnseqBehaviorAnalysisTransferRelation
 
   private boolean conflictOnSameLocation(
       SideEffectInfo sideEffectInfo1, SideEffectInfo sideEffectInfo2) {
-    return sideEffectInfo1.getMemoryLocation().equals(sideEffectInfo2.getMemoryLocation())
+    return sideEffectInfo1.memoryLocation().equals(sideEffectInfo2.memoryLocation())
         && (sideEffectInfo1.isWrite() || sideEffectInfo2.isWrite());
   }
 
   private void detectCrossArgumentConflicts(
-      Map<String, Set<SideEffectInfo>> sideEffectsPerSubExprStr,
+      Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr,
       CFAEdge edge,
       UnseqBehaviorAnalysisState pState) {
 
-    List<String> exprStrs = new ArrayList<>(sideEffectsPerSubExprStr.keySet());
+    List<CRightHandSide> exprs = new ArrayList<>(sideEffectsPerSubExpr.keySet());
 
-    for (int i = 0; i < exprStrs.size(); i++) {
-      for (int j = i + 1; j < exprStrs.size(); j++) {
-        String expr1 = exprStrs.get(i);
-        String expr2 = exprStrs.get(j);
+    for (int i = 0; i < exprs.size(); i++) {
+      for (int j = i + 1; j < exprs.size(); j++) {
+        CRightHandSide expr1 = exprs.get(i);
+        CRightHandSide expr2 = exprs.get(j);
 
-        Set<SideEffectInfo> effects1 =
-            sideEffectsPerSubExprStr.getOrDefault(expr1, ImmutableSet.of());
-        Set<SideEffectInfo> effects2 =
-            sideEffectsPerSubExprStr.getOrDefault(expr2, ImmutableSet.of());
+        Set<SideEffectInfo> effects1 = sideEffectsPerSubExpr.getOrDefault(expr1, ImmutableSet.of());
+        Set<SideEffectInfo> effects2 = sideEffectsPerSubExpr.getOrDefault(expr2, ImmutableSet.of());
 
         logger.log(
             Level.INFO,
             String.format(
                 "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s) → Argument"
                     + " 1 Side Effects: %s → Argument 2 Side Effects: %s",
-                expr1, expr2, effects1, effects2));
+                UnseqUtils.replaceTmpInExpression(expr1, pState),
+                UnseqUtils.replaceTmpInExpression(expr2, pState),
+                effects1,
+                effects2));
 
         Set<ConflictPair> conflicts =
-            getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2);
+            getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2, pState);
         if (!conflicts.isEmpty()) {
           pState.addConflicts(conflicts);
         }
@@ -377,8 +368,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression lhsExpr, CRightHandSide rhsExpr, CFAEdge edge, UnseqBehaviorAnalysisState pState)
       throws UnrecognizedCodeException {
 
-    ExpressionBehaviorGatherVisitor visitor =
-        new ExpressionBehaviorGatherVisitor(pState, edge, AccessType.READ, logger);
+    ExpressionBehaviorVisitor visitor =
+        new ExpressionBehaviorVisitor(pState, edge, AccessType.READ, logger);
     ExpressionAnalysisSummary lhsSummary = lhsExpr.accept(visitor);
     ExpressionAnalysisSummary rhsSummary = rhsExpr.accept(visitor);
 
@@ -387,8 +378,8 @@ public class UnseqBehaviorAnalysisTransferRelation
         String.format(
             "[AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s) → LHS Side Effects: %s → RHS Side"
                 + " Effects: %s",
-            lhsSummary.getOriginalExpressionStr(),
-            rhsSummary.getOriginalExpressionStr(),
+            UnseqUtils.replaceTmpInExpression(lhsExpr, pState),
+            UnseqUtils.replaceTmpInExpression(rhsExpr, pState),
             lhsSummary.getSideEffects(),
             rhsSummary.getSideEffects()));
 
@@ -397,8 +388,9 @@ public class UnseqBehaviorAnalysisTransferRelation
             lhsSummary.getSideEffects(),
             rhsSummary.getSideEffects(),
             edge,
-            lhsSummary.getOriginalExpressionStr(),
-            rhsSummary.getOriginalExpressionStr());
+            lhsExpr,
+            rhsExpr,
+            pState);
 
     if (!conflicts.isEmpty()) {
       pState.addConflicts(conflicts);

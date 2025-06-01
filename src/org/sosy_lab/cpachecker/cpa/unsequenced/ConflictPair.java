@@ -7,88 +7,27 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-public class ConflictPair {
-  private final SideEffectInfo accessA;
-  private final SideEffectInfo accessB;
-  private final CFAEdge location;
-  private final String exprA;
-  private final String exprB;
+public record ConflictPair(
+    SideEffectInfo accessA,
+    SideEffectInfo accessB,
+    CFAEdge location,
+    CRightHandSide exprA,
+    CRightHandSide exprB) {
 
-  // (a, b) == (b, a)
-  public ConflictPair(
-      SideEffectInfo pAccessA,
-      SideEffectInfo pAccessB,
-      CFAEdge pLocation,
-      String pExprA,
-      String pExprB) {
-
-    if (pAccessA.toString().compareTo(pAccessB.toString()) <= 0) {
-      this.accessA = pAccessA;
-      this.accessB = pAccessB;
-      this.exprA = pExprA;
-      this.exprB = pExprB;
+  // Static factory method to ensure (a, b) == (b, a)
+  public static ConflictPair of(
+      SideEffectInfo accessA,
+      SideEffectInfo accessB,
+      CFAEdge location,
+      CRightHandSide exprA,
+      CRightHandSide exprB) {
+    if (accessA.toString().compareTo(accessB.toString()) > 0) {
+      return new ConflictPair(accessB, accessA, location, exprB, exprA);
     } else {
-      this.accessA = pAccessB;
-      this.accessB = pAccessA;
-      this.exprA = pExprB;
-      this.exprB = pExprA;
+      return new ConflictPair(accessA, accessB, location, exprA, exprB);
     }
-
-    this.location = pLocation;
-  }
-
-  public SideEffectInfo getAccessA() {
-    return accessA;
-  }
-
-  public SideEffectInfo getAccessB() {
-    return accessB;
-  }
-
-  public CFAEdge getLocation() {
-    return location;
-  }
-
-  public String getExprA() {
-    return exprA;
-  }
-
-  public String getExprB() {
-    return exprB;
-  }
-
-  @Override
-  public boolean equals(@Nullable Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    // Intentionally using instanceof instead of getClass() to comply with ErrorProne
-    if (!(pOther instanceof ConflictPair other)) {
-      return false;
-    }
-    return Objects.equals(location, other.location)
-        && Objects.equals(accessA, other.accessA)
-        && Objects.equals(accessB, other.accessB);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(location, accessA, accessB);
-  }
-
-  @Override
-  public String toString() {
-    return String.format(
-        "Conflict at %s (line %d): %s (%s) <=> %s (%s)",
-        location.getRawStatement(),
-        location.getFileLocation().getStartingLineInOrigin(),
-        exprA,
-        accessA.toStringSimple(),
-        exprB,
-        accessB.toStringSimple());
   }
 }

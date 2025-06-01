@@ -15,7 +15,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -33,23 +35,27 @@ public class UnseqBehaviorAnalysisState
   private final Deque<String> calledFunctionStack;
   private final Set<ConflictPair> detectedConflicts;
   private final Map<String, CRightHandSide> tmpToOriginalExprMap;
+  private final LogManager logger;
 
   public UnseqBehaviorAnalysisState(
       Map<String, Set<SideEffectInfo>> pSideEffectsInFun,
       Deque<String> pCalledFunctionStack,
       Set<ConflictPair> pDetectedConflicts,
-      Map<String, CRightHandSide> pTmpToOriginalExprMap) {
+      Map<String, CRightHandSide> pTmpToOriginalExprMap,
+      LogManager pLogger) {
     sideEffectsInFun = pSideEffectsInFun;
     calledFunctionStack = pCalledFunctionStack;
     detectedConflicts = pDetectedConflicts;
     tmpToOriginalExprMap = pTmpToOriginalExprMap;
+    logger = pLogger;
   }
 
-  public UnseqBehaviorAnalysisState() {
+  public UnseqBehaviorAnalysisState(LogManager pLogger) {
     sideEffectsInFun = new HashMap<>();
     calledFunctionStack = new ArrayDeque<>();
     detectedConflicts = new HashSet<>();
     tmpToOriginalExprMap = new HashMap<>();
+    logger = pLogger;
   }
 
   // === Side effect management ===
@@ -128,21 +134,37 @@ public class UnseqBehaviorAnalysisState
         sideEffectsInFun, calledFunctionStack, detectedConflicts, tmpToOriginalExprMap);
   }
 
-  public String printConflict() {
-    if (detectedConflicts.isEmpty()) {
-      return "conflicts[]";
-    }
+  public String formatConflictsInline() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(detectedConflicts.size()).append(" conflicts [");
 
-    StringBuilder sb = new StringBuilder(detectedConflicts.size() + " conflicts[");
-
-    boolean first = true;
+    int index = 1;
     for (ConflictPair conflict : detectedConflicts) {
-      if (!first) {
+      String location = conflict.location().getFileLocation().toString();
+
+      String exprA = UnseqUtils.replaceTmpInExpression(conflict.exprA(), this);
+      String exprB = UnseqUtils.replaceTmpInExpression(conflict.exprB(), this);
+
+      String varName = conflict.accessA().memoryLocation().toString();
+      sb.append(index)
+          .append(". ")
+          .append(location)
+          .append(": (")
+          .append(exprA)
+          .append(") ⊕ (")
+          .append(exprB)
+          .append(") on '")
+          .append(varName)
+          .append("' (access: ")
+          .append(conflict.accessA())
+          .append(" / ")
+          .append(conflict.accessB())
+          .append(")");
+
+      if (index < detectedConflicts.size()) {
         sb.append(", ");
-      } else {
-        first = false;
       }
-      sb.append(conflict);
+      index++;
     }
 
     sb.append("]");
@@ -151,7 +173,7 @@ public class UnseqBehaviorAnalysisState
 
   @Override
   public String toDOTLabel() {
-    return printConflict();
+    return formatConflictsInline();
   }
 
   @Override
@@ -169,7 +191,7 @@ public class UnseqBehaviorAnalysisState
       throw new CPAException("Cannot join states with different function call stacks.");
     }
 
-    UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState();
+    UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState(logger);
 
     for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
       newState.getSideEffectsInFun().put(entry.getKey(), new HashSet<>(entry.getValue()));
@@ -246,7 +268,6 @@ public class UnseqBehaviorAnalysisState
     return true;
   }
 
-  // TODO: implement me or change me in checkProperty()
   private boolean isUnsequenced() {
     return !this.getDetectedConflicts().isEmpty();
   }
@@ -262,8 +283,7 @@ public class UnseqBehaviorAnalysisState
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(UNSEQUENCED) && isUnsequenced()) {
       // Unsequenced/Unspecified behavior found according to C11 standard annex J.
-      // TODO: give more information
-      // logger.log(Level.FINE, "Found possible unsequenced execution order ...");
+      logger.log(Level.INFO, "Found possible unant spotbugs checkstyleant spotbugs checkstyle");
       return true;
     }
     return false;
