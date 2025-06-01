@@ -171,7 +171,12 @@ public class UnseqBehaviorAnalysisTransferRelation
         if (simpleName.startsWith("__CPAchecker_TMP_")) {
           newState.mapTmpToFunction(tmpName, rhs);
 
-          logger.logf(Level.INFO, "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')", tmpName, rhs.toQualifiedASTString(), callerFunctionName);
+          logger.logf(
+              Level.INFO,
+              "[TmpMapping] Map tmp variable '%s' to function call '%s' (Caller='%s')",
+              tmpName,
+              rhs.toQualifiedASTString(),
+              callerFunctionName);
         }
       } else if (lhs
           instanceof
@@ -243,7 +248,12 @@ public class UnseqBehaviorAnalysisTransferRelation
         pState.addSideEffectsToFunction(currentFunction, effects);
         propagateToCallersOnly(pState, effects);
 
-        logger.logf(Level.INFO, "[CollectSideEffect] Function='%s', Expr='%s', Effects=%s", currentFunction, UnseqUtils.replaceTmpInExpression(expr, pState), effects);
+        logger.logf(
+            Level.INFO,
+            "[CollectSideEffect] Function='%s', Expr='%s', Effects=%s",
+            currentFunction,
+            UnseqUtils.replaceTmpInExpression(expr, pState),
+            effects);
       }
     }
   }
@@ -267,7 +277,13 @@ public class UnseqBehaviorAnalysisTransferRelation
       Set<SideEffectInfo> leftEffects = leftSummary.getSideEffects();
       Set<SideEffectInfo> rightEffects = rightSummary.getSideEffects();
 
-      logger.logf(Level.INFO, "[UnseqExpr] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s", UnseqUtils.replaceTmpInExpression(left, pState), UnseqUtils.replaceTmpInExpression(right, pState), leftEffects, rightEffects);
+      logger.logf(
+          Level.INFO,
+          "[UnseqExpr] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
+          UnseqUtils.replaceTmpInExpression(left, pState),
+          UnseqUtils.replaceTmpInExpression(right, pState),
+          leftEffects,
+          rightEffects);
 
       Set<ConflictPair> conflicts =
           getUnsequencedConflicts(leftEffects, rightEffects, edge, left, right, pState);
@@ -292,8 +308,16 @@ public class UnseqBehaviorAnalysisTransferRelation
         if (conflictOnSameLocation(s1, s2)) {
           result.add(new ConflictPair(s1, s2, edge, op1Expr, op2Expr));
 
-          logger.logf(Level.INFO, "[Conflict] Unsequenced conflict detected at %s: '%s' vs '%s' on location '%s'"
-                      + " (access: %s / %s)", edge.getFileLocation(), UnseqUtils.replaceTmpInExpression(op1Expr, pState), UnseqUtils.replaceTmpInExpression(op2Expr, pState), s1.memoryLocation(), s1.accessType(), s2.accessType());
+          logger.logf(
+              Level.INFO,
+              "[Conflict] Unsequenced conflict detected at %s: '%s' vs '%s' on location '%s'"
+                  + " (access: %s / %s)",
+              edge.getFileLocation(),
+              UnseqUtils.replaceTmpInExpression(op1Expr, pState),
+              UnseqUtils.replaceTmpInExpression(op2Expr, pState),
+              s1.memoryLocation(),
+              s1.accessType(),
+              s2.accessType());
         }
       }
     }
@@ -321,8 +345,14 @@ public class UnseqBehaviorAnalysisTransferRelation
         Set<SideEffectInfo> effects1 = sideEffectsPerSubExpr.getOrDefault(expr1, ImmutableSet.of());
         Set<SideEffectInfo> effects2 = sideEffectsPerSubExpr.getOrDefault(expr2, ImmutableSet.of());
 
-        logger.logf(Level.INFO, "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s) → Argument"
-                    + " 1 Side Effects: %s → Argument 2 Side Effects: %s", UnseqUtils.replaceTmpInExpression(expr1, pState), UnseqUtils.replaceTmpInExpression(expr2, pState), effects1, effects2);
+        logger.logf(
+            Level.INFO,
+            "[CrossArgumentConflicts] Detected: Argument 1: (%s) ⊕ Argument 2: (%s) → Argument"
+                + " 1 Side Effects: %s → Argument 2 Side Effects: %s",
+            UnseqUtils.replaceTmpInExpression(expr1, pState),
+            UnseqUtils.replaceTmpInExpression(expr2, pState),
+            effects1,
+            effects2);
 
         Set<ConflictPair> conflicts =
             getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2, pState);
@@ -342,8 +372,14 @@ public class UnseqBehaviorAnalysisTransferRelation
     ExpressionAnalysisSummary lhsSummary = lhsExpr.accept(visitor);
     ExpressionAnalysisSummary rhsSummary = rhsExpr.accept(visitor);
 
-    logger.logf(Level.INFO, "[AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s) → LHS Side Effects: %s → RHS Side"
-                + " Effects: %s", UnseqUtils.replaceTmpInExpression(lhsExpr, pState), UnseqUtils.replaceTmpInExpression(rhsExpr, pState), lhsSummary.getSideEffects(), rhsSummary.getSideEffects());
+    logger.logf(
+        Level.INFO,
+        "[AssignmentConflict] Detected: LHS: (%s) ⊕ RHS: (%s) → LHS Side Effects: %s → RHS Side"
+            + " Effects: %s",
+        UnseqUtils.replaceTmpInExpression(lhsExpr, pState),
+        UnseqUtils.replaceTmpInExpression(rhsExpr, pState),
+        lhsSummary.getSideEffects(),
+        rhsSummary.getSideEffects());
 
     Set<ConflictPair> conflicts =
         getUnsequencedConflicts(
