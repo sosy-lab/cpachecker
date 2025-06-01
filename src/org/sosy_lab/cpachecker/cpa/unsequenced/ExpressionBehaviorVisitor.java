@@ -152,17 +152,24 @@ public class ExpressionBehaviorVisitor
   public ExpressionAnalysisSummary visit(CUnaryExpression unaryExpr)
       throws UnrecognizedCodeException {
     return switch (unaryExpr.getOperator()) {
+      // According to the C11 standard, there are two relevant definitions regarding the
+      // evaluation of operands within the `sizeof` operator:
       // C11: 6.5.3.4
       // If the type of the operand is a variable length array type, the operand is evaluated;
       // otherwise, the operand is not evaluated and the result is an integer constant.
+      // C11: 6.7.6.2.
+      // Whether or not a size expression is evaluated when it is part of the operand of sizeof
+      // operator
+      // and changing the value of the size expression would not affect the result of the operator
+      // See: CPAchecker issue #1234
+      // In this analysis, we conservatively ignore `sizeof` expressions and log their presence
+      // only.
       case SIZEOF -> {
-        CExpression operand = unaryExpr.getOperand();
-        CType type = operand.getExpressionType();
-        if (isVariableLengthArray(type)) {
-          yield operand.accept(this);
-        } else {
-          yield ExpressionAnalysisSummary.empty();
-        }
+        logger.logf(
+            Level.WARNING,
+            "Encountered `sizeof` expression at %s, ignoring operand for side-effect analysis.",
+            unaryExpr.getFileLocation());
+        yield ExpressionAnalysisSummary.empty();
       }
       // C11: 6.5.3.4
       // The alignof operator yields the alignment requirement of its operand type.
@@ -241,13 +248,5 @@ public class ExpressionBehaviorVisitor
           NOT_EQUALS ->
           true;
     };
-  }
-
-  private boolean isVariableLengthArray(CType type) {
-    if (type instanceof CArrayType arrayType) {
-      CExpression lengthExpr = arrayType.getLength();
-      return lengthExpr != null && !(lengthExpr instanceof CIntegerLiteralExpression);
-    }
-    return false;
   }
 }
