@@ -176,13 +176,13 @@ public class ConstraintsSolver {
    * false and option {@link #incrementalSolverUsage} is true.
    *
    * @param pConstraintToCheck the single constraint to check.
-   * @param pFunctionName the name of this constraints function scope.
+   * @param pFunctionName the name of the function scope of {@code pConstraintToCheck}.
    * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
    *     the method is finished, overwriting option {@link #incrementalSolverUsage}. If false, will
    *     reuse the existing prover, iff option {@link #incrementalSolverUsage} is true, and tries to
-   *     reuse the current solver stack as far as possible. This might also lose cached information
-   *     in the solver (making it slower) if the old constraints are not a subset of the new
-   *     constraints.
+   *     reuse the current solver stack as far as possible. {@code forceFreshDistinctProver}=true
+   *     might also lose cached information in the solver (making it slower) if the old constraints
+   *     are not a subset of the new constraints.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
@@ -201,15 +201,15 @@ public class ConstraintsSolver {
    * false and option {@link #incrementalSolverUsage} is true.
    *
    * @param pConstraintsToCheck the constraints to check.
-   * @param pFunctionName the name of this constraints function scope.
+   * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
-   *     the method is finished, overwriting option {@link #incrementalSolverUsage}. Using this
-   *     might lose cached information in the solver (making it slower) if the old constraints are
-   *     not a subset of the new constraints. If false and option {@link #incrementalSolverUsage} is
-   *     true, will reuse the one permanently existing prover and tries to reuse the current solver
-   *     stack as far as possible. For mixed options with {@link #incrementalSolverUsage}=true and
-   *     {@code forceFreshDistinctProver}=true, we cache the old prover to re-use it later, possibly
-   *     preserving internal solver information.
+   *     the method is finished, overwriting option {@link #incrementalSolverUsage}. Using {@code
+   *     forceFreshDistinctProver}=true might lose cached information in the solver (making it
+   *     slower) if the old constraints are not a subset of the new constraints. If false and option
+   *     {@link #incrementalSolverUsage} is true, will reuse the one permanently existing prover and
+   *     tries to reuse the current solver stack as far as possible. For mixed options with {@link
+   *     #incrementalSolverUsage}=true and {@code forceFreshDistinctProver}=true, we cache the old
+   *     prover to re-use it later, possibly preserving internal solver information.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
