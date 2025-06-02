@@ -18,14 +18,14 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 
 public class BinaryBitVectorExpression implements BitVectorExpression {
 
-  private final int bitLength;
+  private final int binLength;
 
   private final ImmutableSet<Integer> setBits;
 
   public BinaryBitVectorExpression(int pLength, ImmutableSet<Integer> pSetBits) {
     checkArgument(
         pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
-    bitLength = pLength;
+    binLength = pLength;
     setBits = pSetBits;
   }
 
@@ -33,7 +33,9 @@ public class BinaryBitVectorExpression implements BitVectorExpression {
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
     rBitVector.append(SeqToken._0b);
-    for (int i = BitVectorUtil.STARTING_INDEX; i < bitLength + BitVectorUtil.STARTING_INDEX; i++) {
+    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binLength);
+    // build bit vector from left to right
+    for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
       rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     return rBitVector.toString();

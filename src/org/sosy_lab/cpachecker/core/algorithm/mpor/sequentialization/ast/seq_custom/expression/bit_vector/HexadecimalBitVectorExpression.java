@@ -37,7 +37,10 @@ public class HexadecimalBitVectorExpression implements BitVectorExpression {
     rBitVector.append(SeqToken._0x);
     // build the binary vector, then parse to long and convert to hex
     StringBuilder binaryBitVector = new StringBuilder();
-    for (int i = 0; i < BitVectorUtil.convertHexLengthToBinary(hexLength); i++) {
+    int binLength = BitVectorUtil.convertHexLengthToBinary(hexLength);
+    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binLength);
+    // build bit vector from left to right
+    for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
       binaryBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     // use long in case we have 64 length bit vectors

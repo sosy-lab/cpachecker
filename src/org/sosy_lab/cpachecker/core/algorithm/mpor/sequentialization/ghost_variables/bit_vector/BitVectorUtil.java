@@ -38,10 +38,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 public class BitVectorUtil {
 
   /**
-   * We use 1 as the starting index so that decimal bit vectors are not 0 if only the first bit is
-   * set.
+   * 1 is the starting index so that decimal bit vectors are not 0 if only the first bit is set. The
+   * right-most index is 1, with the left-most index being the length of the bit vector.
    */
-  public static final int STARTING_INDEX = 1;
+  public static final int RIGHT_INDEX = 1;
+
+  /**
+   * Returns the left index (i.e. the first index from left to right) of the bit vector based on its
+   * binary length.
+   */
+  public static int getLeftIndexByBinaryLength(int pBinaryLength) {
+    return pBinaryLength + RIGHT_INDEX - 1;
+  }
 
   public static final int MIN_BINARY_LENGTH = BitVectorDataType.__UINT8_T.size;
 

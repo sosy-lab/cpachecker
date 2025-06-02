@@ -64,11 +64,7 @@ public class BitVectorEvaluationBuilder {
               "cannot prune for encoding " + pOptions.bitVectorEncoding);
       case BINARY, HEXADECIMAL ->
           buildPrunedDenseAccessBitVectorEvaluation(
-              pOptions,
-              pActiveThread,
-              pDirectVariables,
-              pBitVectorVariables,
-              pBinaryExpressionBuilder);
+              pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
       case SCALAR -> {
         Optional<SeqExpression> seqExpression =
             buildPrunedScalarAccessBitVectorEvaluation(
@@ -79,7 +75,6 @@ public class BitVectorEvaluationBuilder {
   }
 
   private static Optional<BitVectorEvaluationExpression> buildPrunedDenseAccessBitVectorEvaluation(
-      MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
