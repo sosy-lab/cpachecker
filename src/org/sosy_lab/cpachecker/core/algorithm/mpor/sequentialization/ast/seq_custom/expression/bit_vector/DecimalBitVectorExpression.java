@@ -14,36 +14,26 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class BinaryBitVectorExpression implements BitVectorExpression {
-
-  private final int binaryLength;
+public class DecimalBitVectorExpression implements BitVectorExpression {
 
   private final ImmutableSet<Integer> setBits;
 
-  public BinaryBitVectorExpression(int pBinaryLength, ImmutableSet<Integer> pSetBits) {
+  public DecimalBitVectorExpression(ImmutableSet<Integer> pSetBits) {
     checkArgument(
         pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
-    binaryLength = pBinaryLength;
     setBits = pSetBits;
   }
 
   @Override
   public String toASTString() {
-    StringBuilder rBitVector = new StringBuilder();
-    rBitVector.append(SeqToken._0b);
-    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binaryLength);
-    // build bit vector from left to right
-    for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
-      rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
-    }
-    return rBitVector.toString();
+    int bitSum = setBits.stream().mapToInt(Integer::intValue).sum();
+    return String.valueOf(bitSum);
   }
 
   @Override
   public BitVectorEncoding getEncoding() {
-    return BitVectorEncoding.BINARY;
+    return BitVectorEncoding.DECIMAL;
   }
 
   @Override

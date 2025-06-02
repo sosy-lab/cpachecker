@@ -59,10 +59,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " gotos?")
   private boolean atomicBlockMerge = true;
 
-  @Option(
-      secure = true,
-      description =
-          "the encoding (binary, hex, scalar) of the partial order reduction bit vectors.")
+  @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
   // using optional for @Options is not allowed, unfortunately...
   private BitVectorEncoding bitVectorEncoding = BitVectorEncoding.NONE;
 

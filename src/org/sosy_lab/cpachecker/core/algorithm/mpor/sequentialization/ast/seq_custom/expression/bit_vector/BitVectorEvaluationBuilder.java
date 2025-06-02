@@ -62,7 +62,7 @@ public class BitVectorEvaluationBuilder {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot prune for encoding " + pOptions.bitVectorEncoding);
-      case BINARY, HEXADECIMAL ->
+      case BINARY, DECIMAL, HEXADECIMAL ->
           buildPrunedDenseAccessBitVectorEvaluation(
               pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
       case SCALAR -> {
@@ -139,7 +139,7 @@ public class BitVectorEvaluationBuilder {
 
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY, HEXADECIMAL -> {
+      case BINARY, DECIMAL, HEXADECIMAL -> {
         CExpression directBitVector =
             pBitVectorVariables.getDenseBitVectorByAccessType(
                 BitVectorAccessType.ACCESS, pActiveThread);
@@ -218,7 +218,7 @@ public class BitVectorEvaluationBuilder {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot prune for encoding " + pOptions.bitVectorEncoding);
-      case BINARY, HEXADECIMAL ->
+      case BINARY, DECIMAL, HEXADECIMAL ->
           buildPrunedDenseReadWriteBitVectorEvaluation(
               pActiveThread,
               pDirectReadVariables,
@@ -423,7 +423,7 @@ public class BitVectorEvaluationBuilder {
     }
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY, HEXADECIMAL -> {
+      case BINARY, DECIMAL, HEXADECIMAL -> {
         CExpression readBitVector =
             pBitVectorVariables.getDenseBitVectorByAccessType(
                 BitVectorAccessType.READ, pActiveThread);

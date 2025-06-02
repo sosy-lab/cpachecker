@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BinaryBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.DecimalBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.HexadecimalBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -88,6 +89,7 @@ public class BitVectorUtil {
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> new BinaryBitVectorExpression(length, pSetBits);
+      case DECIMAL -> new DecimalBitVectorExpression(pSetBits);
       case HEXADECIMAL -> new HexadecimalBitVectorExpression(length, pSetBits);
       // TODO this is not so nice ...
       case SCALAR ->
@@ -140,8 +142,9 @@ public class BitVectorUtil {
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> getBinaryLength(pNumGlobalVariables);
+      // the length does not matter for these, but we use the number of global variables
+      case DECIMAL, SCALAR -> pNumGlobalVariables;
       case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pNumGlobalVariables));
-      case SCALAR -> pNumGlobalVariables;
     };
   }
 
@@ -150,13 +153,13 @@ public class BitVectorUtil {
     while (rLength < pMinLength) {
       rLength *= 2;
     }
-    assert isValidLength(rLength) : "binary bit vector length is invalid: " + rLength;
+    assert isValidBinaryLength(rLength) : "binary bit vector length is invalid: " + rLength;
     return rLength;
   }
 
-  public static boolean isValidLength(int pLength) {
+  public static boolean isValidBinaryLength(int pBinaryLength) {
     for (BitVectorDataType type : BitVectorDataType.values()) {
-      if (type.size == pLength) {
+      if (type.size == pBinaryLength) {
         return true;
       }
     }
@@ -225,6 +228,7 @@ public class BitVectorUtil {
   }
 
   public static int convertBinaryLengthToHex(int pBinaryLength) {
+    assert isValidBinaryLength(pBinaryLength) : "pBinaryLength is invalid";
     return pBinaryLength / 4;
   }
 

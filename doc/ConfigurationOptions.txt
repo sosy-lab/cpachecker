@@ -258,10 +258,9 @@ analysis.algorithm.MPOR = false
 # via gotos?
 analysis.algorithm.MPOR.atomicBlockMerge = true
 
-# the encoding (binary, hex, scalar) of the partial order reduction bit
-# vectors.
+# the encoding of the partial order reduction bit vectors.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
-  enum:     [NONE, BINARY, HEXADECIMAL, SCALAR]
+  enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SCALAR]
 
 # prune and simplify bit vector evaluation expressions based on the previous
 # bit vector  assignments? true -> (should) improve verification performance

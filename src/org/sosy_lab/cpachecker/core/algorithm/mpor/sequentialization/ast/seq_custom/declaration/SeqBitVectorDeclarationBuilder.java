@@ -42,7 +42,7 @@ public class SeqBitVectorDeclarationBuilder {
     }
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> ImmutableList.of();
-      case BINARY, HEXADECIMAL ->
+      case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorDeclarationsByReduction(pOptions, pBitVectorVariables.orElseThrow());
       case SCALAR ->
           buildScalarBitVectorDeclarationsByReduction(

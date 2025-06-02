@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 public enum BitVectorEncoding {
   NONE(false),
   BINARY(true),
-  // TODO DECIMAL
+  DECIMAL(true),
   HEXADECIMAL(true),
   SCALAR(false);
 
