@@ -372,7 +372,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
-    String variableName = op1.getName();
+    String variableName = "main::" + op1.getName();
     Value variableValue = new NumericValue(op2.getValue());
 
     // todo write to ARGState
@@ -382,7 +382,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     //      clone state before initialisation
 //    ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
 //    if (valueAnalysisState == null) return;
-    valueAnalysisState.assignConstant(variableName, variableValue);
+    valueAnalysisState.assignConstantSafe(variableName, variableValue);
   }
 
   // exploring the successors of eStartState for additional ARGstates

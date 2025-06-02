@@ -155,8 +155,17 @@ public final class ValueAnalysisState
    * @param variableName name of the variable.
    * @param value value to be assigned.
    */
-  public void assignConstant(String variableName, Value value) {
+  void assignConstant(String variableName, Value value) {
     addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
+  }
+
+  // Same as assignConstant, but if an variable is already present in the VA State, it does not get
+  // overwritten
+  public void assignConstantSafe(String variableName, Value value) {
+    MemoryLocation pMemoryLocation = MemoryLocation.parseExtendedQualifiedName(variableName);
+    if (!this.contains(pMemoryLocation)) {
+      addToConstantsMap(pMemoryLocation, value, null);
+    }
   }
 
   private void addToConstantsMap(
