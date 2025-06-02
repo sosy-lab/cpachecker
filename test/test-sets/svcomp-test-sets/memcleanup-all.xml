@@ -1,0 +1,473 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+
+  <!-- Default for SV-COMP, change if necessary/desired -->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900 s</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
+  <!-- MemCleanup category synced to SV-COMP25 -->
+  <tasks name="MemSafety-MemCleanup">
+    <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+    <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-MemCleanup">
+    <includesfile>../sv-benchmarks/c/SoftwareSystems-uthash.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+
+
+  <!-- Run-definitions / default (SMT solver-MathSAT5) -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-MathSAT5_(default)">
+    <option name="--svcomp25" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="Default_Parallel_Portfolio_(no_time_limit-no_stop_after_infeasible_cex)-MathSAT5_(default)">
+    <option name="--smg-parallel-portfolio" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-MathSAT5_(default)">
+    <option name="--smgSymbolicExecution" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-MathSAT5_(default)">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-MathSAT5_(default)">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-MathSAT5_(default)">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+  <!-- No SMT solvers needed -->
+  <rundefinition name="SV-COMP25_Value-Overapproximate_Concrete_Values_with_CEX">
+    <option name="--smgValueAnalysis-overapproximate-concrete-values" />
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_Value-No_Abstraction_No_Stop_with_CEX">
+    <option name="--smgValueAnalysis-no-abstraction-no-stop" />
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_Value-with_CEX">
+    <option name="--smgValueAnalysis" />
+  </rundefinition>
+
+
+    <!-- Run-definitions / default+removeInfeasibleErrors (SMT solver-MathSAT5) -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--svcomp25" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="Default_Parallel_Portfolio_(no_time_limit-no_stop_after_infeasible_cex)-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--smg-parallel-portfolio" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--smgSymbolicExecution" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-MathSAT5_(default)+removeInfeasibleErrors">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <!-- No SMT solvers needed -->
+  <rundefinition name="SV-COMP25_Value-Overapproximate_Concrete_Values_with_CEX+removeInfeasibleErrors">
+    <option name="--smgValueAnalysis-overapproximate-concrete-values" />
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_Value-No_Abstraction_No_Stop_with_CEX+removeInfeasibleErrors">
+    <option name="--smgValueAnalysis-no-abstraction-no-stop" />
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_Value-with_CEX+removeInfeasibleErrors">
+    <option name="--smgValueAnalysis" />
+    <option name="--option">counterexample.removeInfeasibleErrors=true</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers: Z3 -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-Z3">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Z3">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-Z3">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-Z3">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-Z3">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">solver.solver=z3</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-CVC4 -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-CVC4">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-CVC4">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-CVC4">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-CVC4">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-CVC4">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">solver.solver=cvc4</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-CVC5 -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-CVC5">
+    <option name="--svcomp25" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-CVC5">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-CVC5">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-CVC5">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-CVC5">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">solver.solver=cvc5</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-SMTInterpol -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-SMTInterpol">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-SMTInterpol">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-SMTInterpol">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-SMTInterpol">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-SMTInterpol">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=smtinterpol</option>
+  </rundefinition>
+
+  <!-- Alternative SMT solvers:-Princess -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-Princess">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Princess">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-Princess">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-Princess">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-Princess">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=princess</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-OpenSMT2 -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-OpenSMT2">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-OpenSMT2">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-OpenSMT2">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-OpenSMT2">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-OpenSMT2">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="--option">cpa.predicate.encodeBitvectorAs=INTEGER</option>
+    <option name="--option">solver.solver=opensmt</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-Boolector -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-Boolector">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Boolector">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-Boolector">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-Boolector">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-Boolector">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">counterexample.export.allowImpreciseCounterexamples=true</option>
+    <option name="--option">solver.solver=boolector</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-Bitwuzla -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-Bitwuzla">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Bitwuzla">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-Bitwuzla">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-Bitwuzla">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-Bitwuzla">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
+    <option name="--option">solver.solver=bitwuzla</option>
+  </rundefinition>
+
+
+  <!-- Alternative SMT solvers:-Yices2 -->
+  <!-- To install-Yices2, please edit `lib/ivy.xml` and include the GPL-licenced parts of JavaSMT. -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-Yices2">
+    <option name="--svcomp25" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Yices2">
+    <option name="--smgSymbolicExecution" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Concrete_Memory_Access-Yices2">
+    <option name="--smgSymbolicExecution-concrete-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <rundefinition name="SV-COMP25_SymEx-Overapproximating_with_CEX-Yices2">
+    <option name="--smgSymbolicExecution-overapproximate-memory-access" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+  <!-- Only in MemCleanup portfolio in SV-COMP25 -->
+  <rundefinition name="SV-COMP25_SymEx-Without_List_Abstraction_or_STOP-Yices2">
+    <option name="--smgSymbolicExecution-no-abstraction-no-stop" />
+    <option name="--option">cpa.predicate.encodeFloatAs=RATIONAL</option>
+    <option name="--option">solver.solver=yices2</option>
+  </rundefinition>
+
+
+  <columns>
+    <!-- CFA Edges -> Program complexity. Can be used with time to find minimal programs to debug. -->
+    <column title="# CFA edges">Number of CFA edges (per node)</column>
+    <column title="Total CPAchecker time">Total time for CPAchecker</column>
+    <column title="Reached Size">Size of reached set</column>
+    <column title="Successful analysis">Successful analysis</column>
+    <column title="SMT Total Time">Time for SMT checks</column>
+    <column title="# Distinct Provers">Number of times a new prover was used for a SAT check</column>
+    <column title="# Incremental Provers">Number of times the persistent prover was used for a SAT check</column>
+    <column title="# Pop then Push">Number of times the persistent provers stack removed constraints from the top of the stack and then pushed new constraints (that were not removed in the pop)</column>
+    <column title="# Pop then Repush">Number of times the persistent provers stack removed constraints and re-pushed them to the stack because a constraint below had to be removed</column>
+    <column title="# No Pop but Push">Number of times the persistent provers stack pushed new constraints to the top of the stack without removing any constraints</column>
+  </columns>
+
+</benchmark>
