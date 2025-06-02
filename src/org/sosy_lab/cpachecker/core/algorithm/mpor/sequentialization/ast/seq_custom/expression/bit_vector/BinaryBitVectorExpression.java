@@ -33,7 +33,7 @@ public class BinaryBitVectorExpression implements BitVectorExpression {
   public String toASTString() {
     StringBuilder rBitVector = new StringBuilder();
     rBitVector.append(SeqToken._0b);
-    for (int i = 0; i < bitLength; i++) {
+    for (int i = BitVectorUtil.STARTING_INDEX; i < bitLength + BitVectorUtil.STARTING_INDEX; i++) {
       rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
     }
     return rBitVector.toString();

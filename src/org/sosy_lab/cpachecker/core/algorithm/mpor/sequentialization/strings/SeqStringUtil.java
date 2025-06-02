@@ -239,7 +239,7 @@ public class SeqStringUtil {
     ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
-        // other bit vector statements placed last (more expensive than r < K (cf. threadLoops))
+        // bit vector statements are last (more expensive than r < K (cf. threadLoops))
         leftOver.add(bitVectorStatement);
       } else {
         rOrdered.add(injectedStatement);

@@ -33,6 +33,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
  */
 public class SequentializationTest {
 
+  // TODO these programs assign function pointers (also as initializers), some are not found:
+  // pthread-driver-races/char_pc8736x_gpio_pc8736x_gpio_change_pc8736x_gpio_configure
+
   // TODO this triggers a pthread_create loop error, even though its outside the loop
   // "divinefifo-bug_1w1r"
 
@@ -46,8 +49,6 @@ public class SequentializationTest {
 
   // TODO linkReduction infinite recursion errors for:
   // pthread-complex/elimination_backoff_stack
-  // ldv-races/race-4_1-thread_local_vars
-  // weaver/popl20-send-receive-alt.wvr
 
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {

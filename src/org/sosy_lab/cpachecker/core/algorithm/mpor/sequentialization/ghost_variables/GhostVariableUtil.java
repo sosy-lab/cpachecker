@@ -144,7 +144,7 @@ public class GhostVariableUtil {
       ImmutableList<CVariableDeclaration> pAllGlobalVariables) {
 
     ImmutableMap.Builder<CVariableDeclaration, Integer> rVariables = ImmutableMap.builder();
-    int id = 0;
+    int id = BitVectorUtil.STARTING_INDEX;
     for (CVariableDeclaration variableDeclaration : pAllGlobalVariables) {
       assert variableDeclaration.isGlobal() : "variable declaration must be global";
       rVariables.put(variableDeclaration, id++);

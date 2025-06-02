@@ -20,6 +20,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 
 public class SeqTypes {
 
+  // TODO see CNumericTypes, a lot of this code is redundant
+
   public static class SeqSimpleType {
 
     public static final CSimpleType INT =

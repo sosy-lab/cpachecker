@@ -41,17 +41,17 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEva
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-    // if bit vectors present: evaluate in if statement
-    if (!isOnlyGoto()) {
+    if (isOnlyGoto()) {
+      // add only goto if not evaluation expression present
+      return gotoStatement.toASTString();
+    } else {
+      // otherwise create if (cond) ... bit vector statement
       SeqSingleControlFlowStatement ifStatement =
           new SeqSingleControlFlowStatement(
               evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE
           + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
-    } else {
-      // otherwise add only goto
-      return gotoStatement.toASTString();
     }
   }
 

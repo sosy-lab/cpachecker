@@ -53,15 +53,12 @@ public class BitVectorVariables {
     scalarWriteBitVectors = pScalarWriteBitVectors;
   }
 
-  public CExpression getDenseBitVectorByAccessAndReachType(
-      BitVectorAccessType pAccessType, BitVectorReachType pReachType, MPORThread pThread) {
+  public CExpression getDenseBitVectorByAccessType(
+      BitVectorAccessType pAccessType, MPORThread pThread) {
 
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
       if (variable.thread.equals(pThread)) {
-        return switch (pReachType) {
-          case DIRECT -> variable.directVariable;
-          case REACHABLE -> variable.reachableVariable;
-        };
+        return variable.reachableVariable;
       }
     }
     throw new IllegalArgumentException("could not find pThread");

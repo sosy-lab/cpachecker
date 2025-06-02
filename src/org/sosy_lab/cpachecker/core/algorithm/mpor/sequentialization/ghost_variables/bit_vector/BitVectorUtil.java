@@ -16,8 +16,10 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -35,6 +37,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorUtil {
 
+  /**
+   * We use 1 as the starting index so that decimal bit vectors are not 0 if only the first bit is
+   * set.
+   */
+  public static final int STARTING_INDEX = 1;
+
   public static final int MIN_BINARY_LENGTH = BitVectorDataType.__UINT8_T.size;
 
   public static final int MAX_BINARY_LENGTH = BitVectorDataType.__UINT64_T.size;
@@ -43,24 +51,28 @@ public class BitVectorUtil {
 
   public static BitVectorExpression buildBitVectorExpression(
       MPOROptions pOptions,
-      @NonNull ImmutableMap<CVariableDeclaration, Integer> pAllVariables,
+      @NonNull ImmutableMap<CVariableDeclaration, Integer> pVariableIds,
       @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
 
     checkArgument(pOptions.bitVectorEncoding.isEnabled(), "no bit vector encoding specified");
     checkArgument(
-        pAllVariables.keySet().containsAll(pVariables),
-        "pAllVariables must contain all pVariables as keys.");
+        pVariableIds.keySet().containsAll(pVariables),
+        "pVariableIds must contain all pVariables as keys.");
 
-    // retrieve all variable ids from pAllVariables that are in pVariables
+    // retrieve all variable ids from pVariableIds that are in pVariables
     ImmutableSet<Integer> setBits =
         pVariables.stream()
-            .map(pAllVariables::get)
+            .map(pVariableIds::get)
             .filter(Objects::nonNull)
             .collect(ImmutableSet.toImmutableSet());
     return buildBitVectorExpressionByEncoding(
-        pOptions.bitVectorEncoding, pAllVariables.size(), setBits);
+        pOptions.bitVectorEncoding, pVariableIds.size(), setBits);
   }
 
+  /**
+   * Creates a bit vector expression based on {@code pSetBits} where the left most index is {@code
+   * 0} and the right most index is one smaller than the length of the bit vector.
+   */
   private static BitVectorExpression buildBitVectorExpressionByEncoding(
       BitVectorEncoding pEncoding, int pNumGlobalVariables, ImmutableSet<Integer> pSetBits) {
 
@@ -73,6 +85,29 @@ public class BitVectorUtil {
       case SCALAR ->
           throw new IllegalArgumentException("use constructor directly for scalar bit vectors");
     };
+  }
+
+  public static CIntegerLiteralExpression buildDirectBitVectorExpression(
+      @NonNull ImmutableMap<CVariableDeclaration, Integer> pVariableIds,
+      @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
+
+    checkArgument(
+        pVariableIds.keySet().containsAll(pVariables),
+        "pVariableIds must contain all pVariables as keys.");
+
+    // for decimal, use the sum of variable ids (starting from 1)
+    int variableIdSum =
+        pVariables.stream()
+            .map(pVariableIds::get)
+            .filter(Objects::nonNull)
+            .mapToInt(Integer::intValue)
+            .sum();
+
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY,
+        // TODO use uchar, uint, ulong etc. based on pVariableIds size
+        SeqSimpleType.UNSIGNED_LONG_INT,
+        new BigInteger(String.valueOf(variableIdSum)));
   }
 
   // Vector Length =================================================================================
@@ -165,22 +200,13 @@ public class BitVectorUtil {
    * Returns all bit vectors in {@code pAssignments} that are assigned a {@code 0}. Also considers
    * binary {@code 0b00000000} and hex {@code 0x00}.
    */
-  public static ImmutableSet<CExpression> getZeroesFromBitVectorAssignmentsByReachType(
-      BitVectorReachType pReachType, ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
+  public static ImmutableSet<CExpression> getZeroBitVectorAssignments(
+      ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
 
     return pAssignments.stream()
         .filter(a -> a.value.isZero())
-        .filter(a -> a.reachType.equals(pReachType))
         .map(a -> a.variable)
         .collect(ImmutableSet.toImmutableSet());
-  }
-
-  public static boolean areAllZeroAssignmentsByReachType(
-      BitVectorReachType pReachType, ImmutableList<SeqBitVectorAssignmentStatement> pAssignments) {
-
-    return pAssignments.stream()
-        .filter(a -> a.reachType.equals(pReachType))
-        .allMatch(a -> a.value.isZero());
   }
 
   // Helpers =======================================================================================
