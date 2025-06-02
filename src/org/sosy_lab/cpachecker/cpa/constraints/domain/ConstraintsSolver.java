@@ -173,24 +173,24 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally as far as possible. If parameter {@code
-   * forceFreshDistinctProver} is false and option {@link #incrementalSolverUsage} is true.
+   * freshProverForEachSATCheck} is false and option {@link #incrementalSolverUsage} is true.
    *
    * @param pConstraintToCheck the single constraint to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintToCheck}.
-   * @param forceFreshDistinctProver if true, uses a new {@link ProverEnvironment} for checking the
-   *     constraints, that is closed after the method is finished, overwriting option {@link
+   * @param freshProverForEachSATCheck if true, uses a new {@link ProverEnvironment} for checking
+   *     the constraints, that is closed after the method is finished, overwriting option {@link
    *     #incrementalSolverUsage}. If false, will reuse the existing prover, iff option {@link
    *     #incrementalSolverUsage} is true, and tries to reuse the current solver stack as far as
-   *     possible. {@code forceFreshDistinctProver}=true might also lose cached information in the
+   *     possible. {@code freshProverForEachSATCheck}=true might also lose cached information in the
    *     solver (making it slower) if the old constraints are not a subset of the new constraints.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
   public Satisfiability checkUnsat(
-      Constraint pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
+      Constraint pConstraintToCheck, String pFunctionName, boolean freshProverForEachSATCheck)
       throws UnrecognizedCodeException, InterruptedException, SolverException {
     ConstraintsState s = new ConstraintsState(Collections.singleton(pConstraintToCheck));
-    return checkUnsat(s, pFunctionName, forceFreshDistinctProver).satisfiability();
+    return checkUnsat(s, pFunctionName, freshProverForEachSATCheck).satisfiability();
   }
 
   /**
@@ -198,24 +198,21 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally as far as possible. If parameter {@code
-   * forceFreshDistinctProver} is false and option {@link #incrementalSolverUsage} is true.
+   * freshProverForEachSATCheck} is false and option {@link #incrementalSolverUsage} is true.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
-   * @param forceFreshDistinctProver if true, uses a new {@link ProverEnvironment} to check the
-   *     constraints, that is closed after the method is finished, overwriting option {@link
-   *     #incrementalSolverUsage}. Using {@code forceFreshDistinctProver}=true might lose cached
-   *     information in the solver (making it slower) if the old constraints are not a subset of the
-   *     new constraints. If false and option {@link #incrementalSolverUsage} is true, will reuse
-   *     the one permanently existing prover and tries to reuse the current solver stack as far as
-   *     possible. For mixed options with {@link #incrementalSolverUsage}=true and {@code
-   *     forceFreshDistinctProver}=true, we cache the old prover to re-use it later, possibly
-   *     preserving internal solver information.
+   * @param freshProverForEachSATCheck if true, overrides the option {@see
+   *     #freshProverForEachSATCheck} and forces the use of a fresh and distinct prover that is
+   *     closed after * the method is finished. See {@link #checkUnsat(Constraint, String, boolean)}
+   *     for details.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
   public SolverResult checkUnsat(
-      ConstraintsState pConstraintsToCheck, String pFunctionName, boolean forceFreshDistinctProver)
+      ConstraintsState pConstraintsToCheck,
+      String pFunctionName,
+      boolean freshProverForEachSATCheck)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (pConstraintsToCheck.isEmpty()) {
@@ -251,7 +248,7 @@ public class ConstraintsSolver {
       } else {
         try {
           stats.timeForProverPreparation.start();
-          if (forceFreshDistinctProver || !incrementalSolverUsage) {
+          if (freshProverForEachSATCheck || !incrementalSolverUsage) {
             stats.distinctFreshProversUsed.inc();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             BooleanFormula definitesAndConstraints =
@@ -309,7 +306,7 @@ public class ConstraintsSolver {
 
     } finally {
       stats.timeForSolving.stop();
-      if ((forceFreshDistinctProver || !incrementalSolverUsage) && prover != null) {
+      if ((freshProverForEachSATCheck || !incrementalSolverUsage) && prover != null) {
         checkState(prover != persistentProver);
         prover.close();
       }
