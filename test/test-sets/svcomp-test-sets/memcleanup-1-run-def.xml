@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" displayName="CPAchecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="4">
+
+  <!-- Default for SV-COMP, change if necessary/desired -->
+  <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz" />
+
+  <option name="--heap">10000M</option>
+  <option name="--benchmark"/>
+  <option name="--timelimit">900 s</option>
+  <option name="--option">cpa.smg2.enableMallocFail=false</option>
+
+  <!-- MemCleanup category synced to SV-COMP25 -->
+  <tasks name="MemSafety-MemCleanup">
+    <includesfile>../sv-benchmarks/c/Heap.set</includesfile>
+    <includesfile>../sv-benchmarks/c/Juliet.set</includesfile>
+    <includesfile>../sv-benchmarks/c/LinkedLists.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Loops.set</includesfile>
+    <includesfile>../sv-benchmarks/c/VerifyThis-Recursive.set</includesfile>
+    <propertyfile>../sv-benchmarks/c/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+
+
+  <!-- Run-definitions / default (SMT solver-MathSAT5) -->
+  <rundefinition name="SV-COMP25_Parallel_Portfolio-MathSAT5_(default)">
+    <option name="--svcomp25" />
+    <!-- Default, but easier to read -->
+    <option name="--option">solver.solver=mathsat5</option>
+  </rundefinition>
+
+
+  <columns>
+    <!-- CFA Edges -> Program complexity. Can be used with time to find minimal programs to debug. -->
+    <column title="# CFA edges">Number of CFA edges (per node)</column>
+    <column title="Total CPAchecker time">Total time for CPAchecker</column>
+    <column title="Reached Size">Size of reached set</column>
+    <column title="Successful analysis">Successful analysis</column>
+    <column title="SMT Total Time">Time for SMT checks</column>
+    <column title="# Distinct Provers">Number of times a new prover was used for a SAT check</column>
+    <column title="# Incremental Provers">Number of times the persistent prover was used for a SAT check</column>
+    <column title="# Pop then Push">Number of times the persistent provers stack removed constraints from the top of the stack and then pushed new constraints (that were not removed in the pop)</column>
+    <column title="# Pop then Repush">Number of times the persistent provers stack removed constraints and re-pushed them to the stack because a constraint below had to be removed</column>
+    <column title="# No Pop but Push">Number of times the persistent provers stack pushed new constraints to the top of the stack without removing any constraints</column>
+  </columns>
+
+</benchmark>
