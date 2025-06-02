@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -115,9 +116,17 @@ public class BitVectorUtil {
 
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
-        // TODO use uchar, uint, ulong etc. based on pVariableIds size
-        SeqSimpleType.UNSIGNED_LONG_INT,
+        getTypeByBinaryLength(getBinaryLength(pVariableIds.size())),
         new BigInteger(String.valueOf(variableIdSum)));
+  }
+
+  private static CSimpleType getTypeByBinaryLength(int pBinaryLength) {
+    for (BitVectorDataType dataType : BitVectorDataType.values()) {
+      if (dataType.size == pBinaryLength) {
+        return dataType.simpleType;
+      }
+    }
+    throw new IllegalArgumentException("invalid pBinaryLength");
   }
 
   // Vector Length =================================================================================
