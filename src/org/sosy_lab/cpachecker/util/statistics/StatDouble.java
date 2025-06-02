@@ -19,10 +19,10 @@ import java.util.stream.DoubleStream;
 /** Thread-safe implementation of numerical statistics. */
 public class StatDouble extends AbstractStatValue implements DoubleConsumer {
 
-  private DoubleAccumulator maxValue = new DoubleAccumulator(Math::max, Double.MIN_VALUE);
-  private DoubleAccumulator minValue = new DoubleAccumulator(Math::min, Double.MAX_VALUE);
-  private LongAdder valueCount = new LongAdder();
-  private DoubleAdder valueSum = new DoubleAdder();
+  private final DoubleAccumulator maxValue = new DoubleAccumulator(Math::max, Double.MIN_VALUE);
+  private final DoubleAccumulator minValue = new DoubleAccumulator(Math::min, Double.MAX_VALUE);
+  private final LongAdder valueCount = new LongAdder();
+  private final DoubleAdder valueSum = new DoubleAdder();
 
   public static StatDouble forStream(
       StatKind pMainStatisticKind, String pTitle, DoubleStream pStream) {
