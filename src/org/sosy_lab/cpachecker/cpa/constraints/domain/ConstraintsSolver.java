@@ -169,17 +169,22 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns whether the given constraint is unsatisfiable. A state without constraints (that is, an
-   * empty state), is always satisfiable. Will try to reuse the existing provers stack as far as
-   * possible if useFreshDistinctProver=false.
+   * Returns the given constraints {@link Satisfiability} within a {@link SolverResult}, bundling
+   * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
+   * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
+   * the existing provers stack as far as possible if parameter {@code forceFreshDistinctProver} is
+   * false and option {@link #incrementalSolverUsage} is true.
    *
-   * @param pConstraintToCheck the constraint to check
-   * @param pFunctionName the name of this constraints function scope
+   * @param pConstraintToCheck the single constraint to check.
+   * @param pFunctionName the name of this constraints function scope.
    * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
-   *     the method is finished. If false, will reuse the exising prover and tries to reuse the
-   *     current solver stack as far as possible. This might also lose cached information in the
-   *     solver (making it slower) if the old constraints are not a subset of the new constraints.
-   * @return <code>true</code> if this constraint is unsatisfiable, <code>false</code> otherwise
+   *     the method is finished, overwriting option {@link #incrementalSolverUsage}. If false, will
+   *     reuse the existing prover, iff option {@link #incrementalSolverUsage} is true, and tries to
+   *     reuse the current solver stack as far as possible. This might also lose cached information
+   *     in the solver (making it slower) if the old constraints are not a subset of the new
+   *     constraints.
+   * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
+   *     model is automatically included for {@link Satisfiability#SAT}.
    */
   public Satisfiability checkUnsat(
       Constraint pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
@@ -189,23 +194,30 @@ public class ConstraintsSolver {
   }
 
   /**
-   * Returns whether this state is unsatisfiable. A state without constraints (that is, an empty
-   * state), is always satisfiable. Will try to reuse the existing provers stack as far as possible
-   * if useFreshDistinctProver=false.
+   * Returns the given constraints {@link Satisfiability} within a {@link SolverResult}, bundling
+   * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
+   * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
+   * the existing provers stack as far as possible if parameter {@code forceFreshDistinctProver} is
+   * false and option {@link #incrementalSolverUsage} is true.
    *
-   * @param pConstraintToCheck the constraint to check
-   * @param pFunctionName the name of this constraints function scope
+   * @param pConstraintsToCheck the constraints to check.
+   * @param pFunctionName the name of this constraints function scope.
    * @param forceFreshDistinctProver if true, uses a fresh but distinct prover that is closed after
-   *     the method is finished. If false, will reuse the exising prover and tries to reuse the
-   *     current solver stack as far as possible. This might also lose cached information in the
-   *     solver (making it slower) if the old constraints are not a subset of the new constraints.
-   * @return <code>true</code> if this state is unsatisfiable, <code>false</code> otherwise
+   *     the method is finished, overwriting option {@link #incrementalSolverUsage}. Using this
+   *     might lose cached information in the solver (making it slower) if the old constraints are
+   *     not a subset of the new constraints. If false and option {@link #incrementalSolverUsage} is
+   *     true, will reuse the one permanently existing prover and tries to reuse the current solver
+   *     stack as far as possible. For mixed options with {@link #incrementalSolverUsage}=true and
+   *     {@code forceFreshDistinctProver}=true, we cache the old prover to re-use it later, possibly
+   *     preserving internal solver information.
+   * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
+   *     model is automatically included for {@link Satisfiability#SAT}.
    */
   public SolverResult checkUnsat(
-      ConstraintsState pConstraintToCheck, String pFunctionName, boolean forceFreshDistinctProver)
+      ConstraintsState pConstraintsToCheck, String pFunctionName, boolean forceFreshDistinctProver)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
-    if (pConstraintToCheck.isEmpty()) {
+    if (pConstraintsToCheck.isEmpty()) {
       return new SolverResult(
           ImmutableSet.of(),
           Satisfiability.SAT,
@@ -219,7 +231,7 @@ public class ConstraintsSolver {
       stats.timeForSolving.start();
 
       boolean unsat;
-      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintToCheck);
+      ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintsToCheck);
 
       Collection<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
@@ -242,7 +254,7 @@ public class ConstraintsSolver {
             stats.distinctFreshProversUsed.inc();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             BooleanFormula definitesAndConstraints =
-                combineWithDefinites(constraintsAsFormulas, pConstraintToCheck);
+                combineWithDefinites(constraintsAsFormulas, pConstraintsToCheck);
             prover.push(definitesAndConstraints);
 
           } else {
@@ -270,7 +282,7 @@ public class ConstraintsSolver {
           // requested
           if (resolveDefinites) {
             definiteAssignmentsInModel =
-                resolveDefiniteAssignments(pConstraintToCheck, satisfyingModel, prover);
+                resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
             assert satisfyingModel.containsAll(definiteAssignmentsInModel)
                 : "Model does not imply definites: "
                     + satisfyingModel
