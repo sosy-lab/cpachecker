@@ -400,6 +400,7 @@ public class ConstraintsSolver {
   }
 
   // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!!!!
+  //  Don't use this code unless you know exactly what you are doing!
   /*
   @SuppressWarnings("unchecked")
   private void assertStack() {
