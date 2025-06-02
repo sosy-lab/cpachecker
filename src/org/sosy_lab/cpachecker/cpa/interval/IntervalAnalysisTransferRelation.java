@@ -16,11 +16,11 @@ import static org.sosy_lab.cpachecker.cpa.interval.Interval.ZERO;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -72,7 +72,12 @@ public class IntervalAnalysisTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> postProcessing(
       Collection<IntervalAnalysisState> successors, CFAEdge edge) {
-    return new HashSet<>(successors);
+    if (successors == null) {
+      return Set.of();
+    }
+    return successors.stream()
+        .map(e -> e.withCfaNode(edge.getSuccessor()))
+        .collect(Collectors.toSet());
   }
 
   @Override
