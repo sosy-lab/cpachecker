@@ -1865,10 +1865,11 @@ cpa.constraints.cacheSubsets = false
 # Whether to use superset caching
 cpa.constraints.cacheSupersets = false
 
-# Whether to create a new, fresh prover for each SAT check with an SMT solver
-# or, if false, try to reuse the prover stack as far as possible (may be
-# helpful when formulas are built on top of each other often).
-cpa.constraints.freshProverForEachSATCheck = false
+# Whether to create a new, fresh solver instance for each SAT check with an
+# SMT solver or, if true, try to reuse the solver and its previous results as
+# far as possible (may be helpful/faster when formulas are built on top of
+# each other often).
+cpa.constraints.incrementalSolverUsage = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -1908,8 +1909,7 @@ cpa.constraints.removeOutdated = true
 cpa.constraints.removeTrivial = false
 
 # Resolve definite assignments. Note: Currently not working properly. Might
-# result in inefficient SMT solver usage with freshProverForEachSATCheck =
-# false.
+# result in inefficient SMT solver usage with incrementalSolverUsage = false.
 cpa.constraints.resolveDefinites = false
 
 # When to check the satisfiability of constraints

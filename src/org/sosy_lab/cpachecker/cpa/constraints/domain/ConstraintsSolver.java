@@ -106,18 +106,18 @@ public class ConstraintsSolver {
       secure = true,
       description =
           "Resolve definite assignments. Note: Currently not working properly. Might result in"
-              + " inefficient SMT solver usage with freshProverForEachSATCheck = false.",
+              + " inefficient SMT solver usage with incrementalSolverUsage = false.",
       name = "resolveDefinites")
   private boolean resolveDefinites = false;
 
   @Option(
       secure = true,
       description =
-          "Whether to create a new, fresh prover for each SAT check with an SMT solver or, if"
-              + " false, try to reuse the prover stack as far as possible (may be helpful when"
-              + " formulas are built on top of each other often).",
-      name = "freshProverForEachSATCheck")
-  private boolean freshProverForEachSATCheck = false;
+          "Whether to create a new, fresh solver instance for each SAT check with an SMT solver or,"
+              + " if true, try to reuse the solver and its previous results as far as possible (may"
+              + " be helpful/faster when formulas are built on top of each other often).",
+      name = "incrementalSolverUsage")
+  private boolean incrementalSolverUsage = true;
 
   private ConstraintsCache cache;
   private Solver solver;
@@ -238,7 +238,7 @@ public class ConstraintsSolver {
       } else {
         try {
           stats.timeForProverPreparation.start();
-          if (forceFreshDistinctProver || freshProverForEachSATCheck) {
+          if (forceFreshDistinctProver || !incrementalSolverUsage) {
             stats.distinctFreshProversUsed.inc();
             prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
             BooleanFormula definitesAndConstraints =
