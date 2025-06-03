@@ -257,8 +257,8 @@ public class ConstraintsSolver {
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
-   * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking
-   *     the constraints, that is closed after the method is finished, overwriting option {@link
+   * @param useFreshProver if true, uses a new {@link ProverEnvironment} for checking the
+   *     constraints, that is closed after the method is finished, overwriting option {@link
    *     #incrementalSolverUsage}. If false, will use option {@link #incrementalSolverUsage} to
    *     determine reuse of the existing prover. Incremental solving can improve computation time by
    *     re-using information stored in the solver from previous computations. This effect is
@@ -268,9 +268,7 @@ public class ConstraintsSolver {
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
   private SolverResult checkUnsat(
-      ConstraintsState pConstraintsToCheck,
-      String pFunctionName,
-      boolean useFreshProver)
+      ConstraintsState pConstraintsToCheck, String pFunctionName, boolean useFreshProver)
       throws SolverException, InterruptedException, UnrecognizedCodeException {
 
     if (pConstraintsToCheck.isEmpty()) {
