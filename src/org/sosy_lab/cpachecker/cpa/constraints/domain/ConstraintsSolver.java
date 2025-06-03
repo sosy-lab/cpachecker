@@ -179,10 +179,10 @@ public class ConstraintsSolver {
    * @param pFunctionName the name of the function scope of {@code pConstraintToCheck}.
    * @param freshProverForEachSATCheck if true, uses a new {@link ProverEnvironment} for checking
    *     the constraints, that is closed after the method is finished, overwriting option {@link
-   *     #incrementalSolverUsage}. If false, will reuse the existing prover, iff option {@link
-   *     #incrementalSolverUsage} is true, and tries to reuse the current solver stack as far as
-   *     possible. {@code freshProverForEachSATCheck}=true might also lose cached information in the
-   *     solver (making it slower) if the old constraints are not a subset of the new constraints.
+   *     #incrementalSolverUsage}. If false, will use option {@link #incrementalSolverUsage} to
+   *     determine reuse of the existing prover. {@code freshProverForEachSATCheck}=true might lose
+   *     cached information in the solver (making it slower) if the old constraints are not a subset
+   *     of the new constraints, depending on the solver.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
    */
@@ -204,7 +204,7 @@ public class ConstraintsSolver {
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
    * @param freshProverForEachSATCheck if true, overrides the option {@see
    *     #freshProverForEachSATCheck} and forces the use of a fresh and distinct prover that is
-   *     closed after * the method is finished. See {@link #checkUnsat(Constraint, String, boolean)}
+   *     closed after the method is finished. See {@link #checkUnsat(Constraint, String, boolean)}
    *     for details.
    * @return {@link SolverResult} with the {@link Satisfiability} wrapped inside. The satisfying
    *     model is automatically included for {@link Satisfiability#SAT}.
@@ -223,94 +223,120 @@ public class ConstraintsSolver {
           Optional.of(ImmutableList.of()));
     }
 
-    ProverEnvironment prover = null;
-
     try {
       stats.timeForSolving.start();
 
-      boolean unsat;
       ImmutableSet<Constraint> relevantConstraints = getRelevantConstraints(pConstraintsToCheck);
 
       Collection<BooleanFormula> constraintsAsFormulas =
           getFullFormula(relevantConstraints, pFunctionName);
       CacheResult res = cache.getCachedResult(constraintsAsFormulas);
 
-      ImmutableList<ValueAssignment> satisfyingModel = null;
-      ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
-
       if (res.isUnsat()) {
-        unsat = true;
+        return new SolverResult(
+            relevantConstraints, Satisfiability.UNSAT, Optional.empty(), Optional.empty());
 
       } else if (res.isSat()) {
-        unsat = false;
-        satisfyingModel = res.getModelAssignment();
+        return new SolverResult(
+            relevantConstraints,
+            Satisfiability.SAT,
+            Optional.ofNullable(res.getModelAssignment()),
+            Optional.empty());
 
       } else {
-        try {
-          stats.timeForProverPreparation.start();
-          if (freshProverForEachSATCheck || !incrementalSolverUsage) {
-            stats.distinctFreshProversUsed.inc();
-            prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+
+        stats.timeForProverPreparation.start();
+        if (freshProverForEachSATCheck || !incrementalSolverUsage) {
+          // Non-Incremental
+          stats.distinctFreshProversUsed.inc();
+          try (ProverEnvironment prover =
+              solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
             BooleanFormula definitesAndConstraints =
                 combineWithDefinites(constraintsAsFormulas, pConstraintsToCheck);
             prover.push(definitesAndConstraints);
 
-          } else {
-            stats.persistentProverUsed.inc();
-            prover = persistentProver;
-            // def assignments are automatically applied by the persistentProver
-            preparePersistentProverForCheck(constraintsAsFormulas);
-          }
-        } finally {
-          stats.timeForProverPreparation.stop();
-        }
+            stats.timeForProverPreparation.stop();
 
-        try {
-          stats.timeForSatCheck.start();
-          unsat = prover.isUnsat();
-        } finally {
-          stats.timeForSatCheck.stop();
-        }
-
-        if (!unsat) {
-          satisfyingModel = prover.getModelAssignments();
-          cache.addSat(constraintsAsFormulas, satisfyingModel);
-          // doing this while the complete formula is still on the prover environment stack is
-          // cheaper than performing another complete SAT check when the assignment is really
-          // requested
-          if (resolveDefinites) {
-            definiteAssignmentsInModel =
-                resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
-            assert satisfyingModel.containsAll(definiteAssignmentsInModel)
-                : "Model does not imply definites: "
-                    + satisfyingModel
-                    + " !=> "
-                    + definiteAssignmentsInModel;
+            return handleSolverResult(
+                isUnsat(prover),
+                prover,
+                relevantConstraints,
+                constraintsAsFormulas,
+                pConstraintsToCheck);
           }
 
         } else {
-          cache.addUnsat(constraintsAsFormulas);
+          // Incremental
+          stats.persistentProverUsed.inc();
+          // def assignments are automatically applied by the persistentProver
+          preparePersistentProverForCheck(constraintsAsFormulas);
+          stats.timeForProverPreparation.stop();
+
+          boolean unsat = isUnsat(persistentProver);
+
+          // TODO: investigate if we need this
+          // pop definite assignments. this can only happen after the model produced by the
+          // unsat-check
+          // is not used anymore
+          // prover.pop();
+
+          return handleSolverResult(
+              unsat,
+              persistentProver,
+              relevantConstraints,
+              constraintsAsFormulas,
+              pConstraintsToCheck);
         }
       }
-
-      // TODO:
-      // pop definite assignments. this can only happen after the model produced by the unsat-check
-      // is not used anymore
-      // prover.pop();
-
-      return new SolverResult(
-          relevantConstraints,
-          unsat ? Satisfiability.UNSAT : Satisfiability.SAT,
-          Optional.ofNullable(satisfyingModel),
-          Optional.ofNullable(definiteAssignmentsInModel));
-
     } finally {
       stats.timeForSolving.stop();
-      if ((freshProverForEachSATCheck || !incrementalSolverUsage) && prover != null) {
-        checkState(prover != persistentProver);
-        prover.close();
-      }
+      stats.timeForProverPreparation.stopIfRunning();
     }
+  }
+
+  private boolean isUnsat(ProverEnvironment prover) throws SolverException, InterruptedException {
+    try {
+      stats.timeForSatCheck.start();
+      return prover.isUnsat();
+    } finally {
+      stats.timeForSatCheck.stop();
+    }
+  }
+
+  private SolverResult handleSolverResult(
+      boolean unsat,
+      ProverEnvironment prover,
+      ImmutableSet<Constraint> relevantConstraints,
+      Collection<BooleanFormula> constraintsAsFormulas,
+      ConstraintsState pConstraintsToCheck)
+      throws SolverException, InterruptedException {
+    ImmutableList<ValueAssignment> satisfyingModel = null;
+    ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
+    if (!unsat) {
+      satisfyingModel = prover.getModelAssignments();
+      cache.addSat(constraintsAsFormulas, satisfyingModel);
+      // doing this while the complete formula is still on the prover environment stack is
+      // cheaper than performing another complete SAT check when the assignment is really
+      // requested
+      if (resolveDefinites) {
+        definiteAssignmentsInModel =
+            resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
+        assert satisfyingModel.containsAll(definiteAssignmentsInModel)
+            : "Model does not imply definites: "
+                + satisfyingModel
+                + " !=> "
+                + definiteAssignmentsInModel;
+      }
+
+    } else {
+      cache.addUnsat(constraintsAsFormulas);
+    }
+
+    return new SolverResult(
+        relevantConstraints,
+        unsat ? Satisfiability.UNSAT : Satisfiability.SAT,
+        Optional.ofNullable(satisfyingModel),
+        Optional.ofNullable(definiteAssignmentsInModel));
   }
 
   private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
