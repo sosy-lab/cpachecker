@@ -190,7 +190,12 @@ public class ConstraintsSolver {
    * any satisfying model automatically for {@link Satisfiability#SAT} results. A state without
    * constraints (that is, an empty state), is always {@link Satisfiability#SAT}. Will try to reuse
    * the existing {@link ProverEnvironment} incrementally, as far as possible, if option {@link
-   * #incrementalSolverUsage} is true.
+   * #incrementalSolverUsage} is true. Incremental solving can improve computation time by re-using
+   * information stored in the solver from previous computations. This effect is strongest when the
+   * previously checked constraints are a true subset of the constraints in {@code
+   * pConstraintsToCheck}. More information about incremental usage can be found in the description
+   * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
+   * like {@link #checkUnsatWithFreshSolver}.
    *
    * @param pSingleConstraintToCheck the single constraint to check.
    * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
@@ -228,7 +233,9 @@ public class ConstraintsSolver {
    * #incrementalSolverUsage} is true. Incremental solving can improve computation time by re-using
    * information stored in the solver from previous computations. This effect is strongest when the
    * previously checked constraints are a true subset of the constraints in {@code
-   * pConstraintsToCheck}.
+   * pConstraintsToCheck}. More information about incremental usage can be found in the description
+   * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
+   * like {@link #checkUnsatWithFreshSolver}.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
