@@ -195,7 +195,7 @@ public class ConstraintsSolver {
    * previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
    * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
-   * like {@link #checkUnsatWithFreshSolver}.
+   * like {@link #checkUnsatWithFreshSolver(Constraint, String)}.
    *
    * @param pSingleConstraintToCheck the single constraint to check.
    * @param pFunctionName the name of the function scope of {@code pSingleConstraintToCheck}.
@@ -235,7 +235,7 @@ public class ConstraintsSolver {
    * previously checked constraints are a true subset of the constraints in {@code
    * pConstraintsToCheck}. More information about incremental usage can be found in the description
    * of {@link #checkUnsat}. If option {@link #incrementalSolverUsage} is false, this method behaves
-   * like {@link #checkUnsatWithFreshSolver}.
+   * like {@link #checkUnsatWithFreshSolver(ConstraintsState, String)}.
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
