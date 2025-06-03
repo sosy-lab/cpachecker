@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
@@ -148,7 +149,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
       int followLine,
       String function,
       Integer pDistanceToViolation,
-      String constraint)
+      InformationRecord constraint)
       throws InterruptedException, WitnessParseException {
 
     // The semantics of the witnesses V2 imply that every assumption waypoint should be
@@ -398,7 +399,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
                 followLine,
                 follow.getLocation().getFunction(),
                 distance,
-                follow.getConstraint().getValue()));
+                follow.getConstraint()));
       } else if (follow.getType().equals(WaypointType.BRANCHING)) {
         AstCfaRelation astCFARelation = cfa.getAstCfaRelation();
         Verify.verifyNotNull(astCFARelation);

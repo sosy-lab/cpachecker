@@ -66,7 +66,7 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
-   * Create an {@link ExpressionTree} from a given string.
+   * Create an {@link ExpressionTree} from a given c string.
    *
    * @param resultFunction The function in which the expression is contained
    * @param invariantString The string to parse
@@ -76,7 +76,35 @@ public class InvariantExchangeFormatTransformer {
    * @return The parsed expression
    * @throws InterruptedException If the parsing is interrupted
    */
-  public ExpressionTree<AExpression> createExpressionTreeFromString(
+  public ExpressionTree<AExpression> createExpressionTreeFromCString(
+      Optional<String> resultFunction,
+      String invariantString,
+      Integer pLine,
+      Deque<String> callStack,
+      Scope pScope)
+      throws InterruptedException {
+
+    return CParserUtils.parseStatementsAsExpressionTree(
+        ImmutableSet.of(invariantString),
+        resultFunction,
+        cparser,
+        AutomatonWitnessV2ParserUtils.determineScopeForLine(
+            resultFunction, callStack, pLine, pScope),
+        parserTools);
+  }
+
+  /**
+   * Create an {@link ExpressionTree} from a given acsl string.
+   *
+   * @param resultFunction The function in which the expression is contained
+   * @param invariantString The string to parse
+   * @param pLine The line of the expression in the original code
+   * @param callStack The call stack at the time of the expression
+   * @param pScope The scope in which the expression is contained
+   * @return The parsed expression
+   * @throws InterruptedException If the parsing is interrupted
+   */
+  public ExpressionTree<AExpression> createExpressionTreeFromACSLString(
       Optional<String> resultFunction,
       String invariantString,
       Integer pLine,
@@ -116,7 +144,7 @@ public class InvariantExchangeFormatTransformer {
           default -> DummyScope.getInstance();
         };
 
-    return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+    return createExpressionTreeFromCString(resultFunction, invariantString, line, callStack, scope);
   }
 
   /**

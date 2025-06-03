@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.SegmentRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
@@ -134,7 +135,7 @@ class AutomatonWitnessV2ParserCommon {
   }
 
   void handleConstraint(
-      String constraint,
+      InformationRecord constraint,
       Optional<String> resultFunction,
       int line,
       AutomatonTransition.Builder builder)
@@ -148,10 +149,17 @@ class AutomatonWitnessV2ParserCommon {
       Scope scope =
           AutomatonWitnessV2ParserUtils.determineScopeForLine(
               resultFunction, null, line, defaultScope);
+
       AExpression exp =
-          transformer
-              .createExpressionTreeFromString(resultFunction, constraint, line, null, scope)
-              .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+          switch (constraint.getFormat()) {
+        case C -> transformer
+            .createExpressionTreeFromCString(resultFunction, constraint.getValue(), line, null, scope)
+            .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+        case ACSL -> transformer
+            .createExpressionTreeFromACSLString(resultFunction, constraint.getValue(), line, null, scope)
+            .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+      };
+
       builder.withAssumptions(ImmutableList.of(exp));
     } catch (UnrecognizedCodeException e) {
       throw new WitnessParseException("Could not parse string into valid expression", e);
