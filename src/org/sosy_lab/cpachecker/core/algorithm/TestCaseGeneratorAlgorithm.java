@@ -23,6 +23,7 @@ import java.util.logging.Level;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
+import javax.swing.ViewportLayout;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -330,10 +331,19 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
         IntStream.range(0, wrappedState.getNumberOfStates()).
-            mapToObj(i -> wrappedState.get(i)).collect(Collectors.toList());
+            mapToObj(i -> processElements(wrappedState.get(i))).collect(Collectors.toList());
     return new ARGState(new CompositeState(elements), null);
   }
 
+  //parses argstate and modifies them if necessesary during creation of startState
+  private AbstractState processElements(AbstractState abstractState) {
+    if (abstractState instanceof ValueAnalysisState) {
+    //todo add assert?
+      return (AbstractState) ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
+    } else {
+      return abstractState;
+    }
+  }
 
   // extracts individual expressions from the counterexample and adds them to the ValueAnalysisState
   // of the starting state
@@ -363,13 +373,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     CBinaryExpression cBinaryExpression = (CBinaryExpression) expStmt.get(0).getExpression();
 // todo add guards and asserts
-// only read expression if it is a valid assignment// check debugger what get thrown in!
-//    CExpression op1 = (CExpression) cBinaryExpression.getOperand1();
-//    if (op1 instanceof CIdExpression) return;
-//    CExpression op2 = (CExpression) cBinaryExpression.getOperand2();
-//    if (op2 instanceof CIntegerLiteralExpression) return;
-//    if (op2.getExpressionType() != CType.CIntegerLiteralExpression) return;
-
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     String variableName = "main::" + op1.getName();
@@ -379,10 +382,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
 // todo extract valueanalysis state from composit state (vergleich mit klasse)
     ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
-    //      clone state before initialisation
-//    ValueAnalysisState newValueAnalysisState = ValueAnalysisState.copyOf(valueAnalysisState);
-//    if (valueAnalysisState == null) return;
     valueAnalysisState.assignConstantSafe(variableName, variableValue);
+  }
+
+  private ValueAnalysisState extractVAState(CompositeState wrappedState) {
+    for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
+      AbstractState element = wrappedState.get(i);
+      if (element instanceof ValueAnalysisState) {
+        return (ValueAnalysisState) element;
+      }
+    }//end while
+    logger.log(Level.FINE, "Found no ValueAnalysisState in wrappedState.");
+    return null;
   }
 
   // exploring the successors of eStartState for additional ARGstates
