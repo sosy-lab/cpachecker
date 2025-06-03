@@ -32,6 +32,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,8 +132,8 @@ public final class LoopStructure {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new HashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
+      Set<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      Set<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
         CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
