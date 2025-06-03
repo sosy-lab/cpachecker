@@ -33,7 +33,7 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
       toUppercase = true,
       values = {"JOIN", "SEP"},
       description = "which merge operator to use for PointerAnalysisCPA")
-  private String mergeType = "SEP";
+  private String mergeType = "JOIN";
 
   @Option(
       secure = true,

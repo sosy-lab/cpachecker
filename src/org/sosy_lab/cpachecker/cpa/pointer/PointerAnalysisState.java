@@ -70,19 +70,6 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     return Objects.hash(isBottom, pointsToMap.entrySet());
   }
 
-  /*
-    @Override
-    public int hashCode() {
-      if (isBottom) {
-        return 0;
-      }
-
-      int hash = 31;
-      hash = 31 * hash + Boolean.hashCode(isBottom);
-      hash = 31 * hash + pointsToMap.hashCode();
-      return hash;
-    }
-  */
   @Override
   public String toString() {
     String mapString =
@@ -95,19 +82,6 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
         + mapString
         + (pointsToMap.size() > 10 ? ", ..." : "")
         + "}}";
-  }
-
-  public PointerAnalysisState addPointsToInformation(MemoryLocation pSource, LocationSet pTargets) {
-    if (pTargets.isBot()) {
-      return this;
-    }
-    LocationSet updatedPointsToSet;
-    if (pTargets.isTop()) {
-      updatedPointsToSet = LocationSetTop.INSTANCE;
-    } else {
-      updatedPointsToSet = getPointsToSet(pSource).addElements(pTargets);
-    }
-    return new PointerAnalysisState(getPointsToMap().putAndCopy(pSource, updatedPointsToSet));
   }
 
   public boolean isBottom() {
@@ -146,6 +120,9 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     if (pOtherState.isBottom()) {
       return this;
     }
+    if (this.equals(pOtherState)) {
+      return this;
+    }
 
     PersistentMap<MemoryLocation, LocationSet> joinedMap = pointsToMap;
 
@@ -168,6 +145,12 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
         LocationSet otherTargets = pOtherState.getPointsToSet(source);
         joinedMap = joinedMap.putAndCopy(source, otherTargets);
       }
+    }
+    if (joinedMap.equals(this.pointsToMap)) {
+      return this;
+    }
+    if (joinedMap.equals(pOtherState.pointsToMap)) {
+      return pOtherState;
     }
 
     return new PointerAnalysisState(joinedMap);

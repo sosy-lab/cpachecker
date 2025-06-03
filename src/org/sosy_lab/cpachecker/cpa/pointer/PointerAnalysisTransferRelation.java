@@ -253,14 +253,9 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       LocationSet referencedLocations = getReferencedLocations(actualParam, pState, derefCounter);
 
       if (!referencedLocations.isBot()) {
-        // LocationSet existingTargets = newState.getPointsToSet(paramLocation);
-        // LocationSet updatedTargets = existingTargets.addElements(referencedLocations);
-
-        // if (!updatedTargets.equals(existingTargets)) {
         newState =
             new PointerAnalysisState(
                 newState.getPointsToMap().putAndCopy(paramLocation, referencedLocations));
-        // }
       }
     }
 
