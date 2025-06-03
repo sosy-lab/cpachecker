@@ -29,7 +29,7 @@
             action: "follow"
             constraint:
               value: "\\valid(x)"
-              type: "acsl_expression"
+              format: "acsl_expression"
             location:
               file_name: "test/programs/witnessValidation/simple-valid.c"
               line: 15
