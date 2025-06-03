@@ -202,7 +202,7 @@ public class ConstraintsSolver {
    *
    * @param pConstraintsToCheck the constraints to check.
    * @param pFunctionName the name of the function scope of {@code pConstraintsToCheck}.
-   * @param freshProverForEachSATCheck if true, overrides the option {@see
+   * @param freshProverForEachSATCheck if true, overrides the option {@code
    *     #freshProverForEachSATCheck} and forces the use of a fresh and distinct prover that is
    *     closed after the method is finished. See {@link #checkUnsat(Constraint, String, boolean)}
    *     for details.
