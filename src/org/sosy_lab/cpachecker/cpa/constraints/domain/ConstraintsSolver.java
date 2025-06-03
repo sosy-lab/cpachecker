@@ -586,6 +586,7 @@ public class ConstraintsSolver {
 
   // TODO: use distinct prover? Is more inefficient on this check, but this check might make the
   //  other checks more inefficient for persistent provers.
+  //  https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1350
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm, ProverEnvironment prover)
       throws SolverException, InterruptedException {
 
