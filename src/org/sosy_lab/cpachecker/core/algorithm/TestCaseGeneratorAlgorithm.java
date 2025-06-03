@@ -326,7 +326,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     evaluateExtractorResult(eReached);
   }
-//todo modify wrapped state here?
+
   private ARGState createStartState(ARGState argState) {
     CompositeState wrappedState = (CompositeState) argState.getWrappedState();
     List<AbstractState> elements =
@@ -336,6 +336,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   //parses argstate and modifies them if necessesary during creation of startState
+  // todo modify other elements of wrapped state as well?
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
     //todo add assert?
@@ -350,14 +351,13 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   // in descending order relative to the line number of the c program
   private void processExpressions(CounterexampleInfo cexInfo, ARGState eStartState) {
     // extract all variable assignments from reached state
+    ValueAnalysisState valueAnalysisState = extractVAState((CompositeState) eStartState.getWrappedState());
     CFAPathWithAssumptions reachStateAssignments =
         cexInfo.getCFAPathWithAssignments();
-    int counter = reachStateAssignments.size() - 1;
-    while (counter >= 0) {
-      CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(counter);
+    for (int i = reachStateAssignments.size() - 1; i >= 0; i--) {
+      CFAEdgeWithAssumptions edgeWithAssignment = reachStateAssignments.get(i);
       ImmutableList<AExpressionStatement> stateExpStmts = edgeWithAssignment.getExpStmts();
-      writeExpressionToState(stateExpStmts, eStartState);
-      counter--;
+      writeExpressionToState(stateExpStmts, valueAnalysisState);
     }
   }
 
@@ -366,7 +366,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   //todo maybe do not give eStartState as argument, but only ValueAnalysisState
   private void writeExpressionToState(
       ImmutableList<AExpressionStatement> expStmt,
-      ARGState eStartState) {
+      ValueAnalysisState valueAnalysisState) {
     if (expStmt.isEmpty()) return;
     //todo can expStmt contain more than 1 element? replace with precondition?
     assert expStmt.size() == 1;
@@ -378,14 +378,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     String variableName = "main::" + op1.getName();
     Value variableValue = new NumericValue(op2.getValue());
 
-    // todo write to ARGState
-    CompositeState wrappedState = (CompositeState) eStartState.getWrappedState();
-// todo extract valueanalysis state from composit state (vergleich mit klasse)
-    ValueAnalysisState valueAnalysisState = (ValueAnalysisState) wrappedState.get(3);
     valueAnalysisState.assignConstantSafe(variableName, variableValue);
   }
 
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
+    assert(wrappedState != null);
     for (int i = wrappedState.getNumberOfStates() - 1; i >= 0; i--) {
       AbstractState element = wrappedState.get(i);
       if (element instanceof ValueAnalysisState) {
@@ -393,6 +390,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       }
     }//end while
     logger.log(Level.FINE, "Found no ValueAnalysisState in wrappedState.");
+    //todo error handling
+    assert(false);
     return null;
   }
 
