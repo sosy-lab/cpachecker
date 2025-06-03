@@ -7,21 +7,21 @@
 # SPDX-License-Identifier: Apache-2.0
 format_version: '2.1'
 
-additional_information:
-  task_type: validation
-  verification:
-    - property_file: ../../../config/properties/unreach-call.prp
-      expected verdict: true
+# additional_information:
+#   task_type: validation
+#   verification:
+#     - property_file: ../../../config/properties/unreach-call.prp
+#       expected verdict: true
 
 input_files:
   - 'max-array.c'
-  - 'max-array-witness.yml'
+  # - 'max-array-witness.yml'
 
 properties:
-    - property_file: ../../../config/properties/unreach-call.prp
-      expected verdict: true
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected verdict: true
 
-options:
-  language: C
-  data_model: ILP32
-  witness_input_file: 'max-array-witness.yml'
+# options:
+#   language: C
+#   data_model: ILP32
+#   # witness_input_file: 'max-array-witness.yml'

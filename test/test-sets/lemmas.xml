@@ -11,19 +11,18 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<!--
-  Example file that demonstrates the use of CPAchecker.
-  This file can and should be used as a base for building own benchmark definitions.
--->
-<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="2000 MB" cpuCores="4">
 
-  <rundefinition/>
+  <rundefinition>
+    <option name="--predicateAnalysis"/>
+    <option name="--option">cpa.predicate.abstraction.initialPredicates.applyFunctionWide=true</option>
+  </rundefinition>
   
   <propertyfile>../config/properties/unreach-call.prp</propertyfile>
 
-  <tasks name="max">
+  <tasks>
     <include>../programs/lemma/max-array/max-array.yml</include>
-    <option name="--max-array"/>
+    <option name="--option">cpa.predicate.abstraction.initialPredicates=../programs/lemma/max-array/max-array-witness.yml</option> 
   </tasks>
 
 </benchmark>
