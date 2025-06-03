@@ -274,7 +274,8 @@ public class ConstraintsSolver {
 
           boolean unsat = isUnsat(persistentProver);
 
-          // TODO: investigate if we need this
+          // TODO: investigate if we need this with
+          // https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1352
           // pop definite assignments. this can only happen after the model produced by the
           // unsat-check
           // is not used anymore
