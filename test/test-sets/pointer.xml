@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 2.3//EN"
+        "http://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" memlimit="7 GB">
+    <option name="--config">config/pointer.properties</option>
+    <option name="--preprocess"/>
+
+    <rundefinition name="PointerAnalysis-SmallTest"/>
+
+    <tasks name="Examples">
+        <include>doc/examples/*.c</include>
+    </tasks>
+</benchmark>

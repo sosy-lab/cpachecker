@@ -275,11 +275,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
   }
 
   private MemoryLocation getMemoryLocation(AbstractSimpleDeclaration pDeclaration) {
-    return getMemoryLocation(pDeclaration.getType(), pDeclaration.getQualifiedName());
-  }
-
-  private MemoryLocation getMemoryLocation(Type pType, String name) {
-    return MemoryLocation.parseExtendedQualifiedName(name);
+    return MemoryLocation.parseExtendedQualifiedName(pDeclaration.getQualifiedName());
   }
 
   private PointerAnalysisState handleFunctionReturnEdge(
