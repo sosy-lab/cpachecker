@@ -342,62 +342,13 @@ public class ConstraintsSolver {
 
   private void preparePersistentProverForCheck(Collection<BooleanFormula> constraintsToCheck)
       throws InterruptedException {
-    int totalKept = 0;
-    int totalRemoved = 0;
-    boolean removedToRepush = false;
+    int[] totalKeptRef = new int[] {0};
+    int[] totalRemovedRef = new int[] {0};
 
-    // Descending iterator through current stack:
-    //   If stackFormula is in constraintsToCheck: save in retained, continue.
-    //   eif stackFormula is not in constraintsToCheck and retained empty: remove from top,
-    // continue.
-    //   eif stackFormula is not in constraintsToCheck and retained not empty:
-    //     remove all retained from top of stack, as well as the current stackFormula, continue.
-    // End iterator
-    // At the end, add constraints missing to the stack in order.
+    buildProverStackFor(constraintsToCheck, totalKeptRef, totalRemovedRef);
 
-    Deque<BooleanFormula> formulasToRemove = new ArrayDeque<>();
-    boolean process = true;
-    removeMultipleFromTop:
-    while (process) {
-
-      if (!formulasToRemove.isEmpty()) {
-        // Remove from the top.
-        removedToRepush = true;
-        stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
-        onlyRemoveFromTopOfStack(formulasToRemove);
-      }
-      Deque<BooleanFormula> retainedFormulas = new ArrayDeque<>();
-
-      // This iterator goes from the top of the stack to the bottom
-      Iterator<BooleanFormula> currentStack = currentConstraintsOnProver.descendingIterator();
-      while (currentStack.hasNext()) {
-        BooleanFormula constraintOnStack = currentStack.next();
-
-        if (constraintsToCheck.contains(constraintOnStack)) {
-          // Remember formulas that are needed and already processed, so that we can remove them in
-          // the correct order if a lower formula needs to be removed.
-          totalKept++;
-          retainedFormulas.push(constraintOnStack);
-
-        } else {
-          if (retainedFormulas.isEmpty()) {
-            // Potentially problematic on level 1 for some solvers!
-            persistentProver.pop();
-            totalRemoved++;
-            currentStack.remove();
-
-          } else {
-            // We need to remove levels that we already iterated through, they are found in
-            // retainedFormulas.
-            formulasToRemove.addAll(retainedFormulas);
-            totalRemoved += retainedFormulas.size();
-            // Remove from the top of the stack and restart iterator.
-            continue removeMultipleFromTop;
-          }
-        }
-      }
-      process = false;
-    }
+    int totalKept = totalKeptRef[0];
+    int totalRemoved = totalRemovedRef[0];
 
     if (totalKept + totalRemoved > 0) {
       stats.reuseRatio.setNextValue((double) totalKept / (totalKept + totalRemoved));
@@ -409,7 +360,7 @@ public class ConstraintsSolver {
       stats.persistentProverUsedIncrementallyPushedWithoutPop.inc();
     }
 
-    if (!removedToRepush) {
+    if (totalKept + totalRemoved == constraintsToCheck.size()) {
       stats.persistentProverUsedIncrementallyFormulasPopdAndNotRepushed.inc();
     }
 
@@ -422,6 +373,66 @@ public class ConstraintsSolver {
 
     // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!
     // assertStack();
+  }
+
+  private void buildProverStackFor(
+      Collection<BooleanFormula> constraintsToCheck, int[] totalKept, int[] totalRemoved) {
+    // Descending iterator through current stack:
+    //   If stackFormula is in constraintsToCheck: save in retained, continue.
+    //   eif stackFormula is not in constraintsToCheck and retained empty: remove from top,
+    // continue.
+    //   eif stackFormula is not in constraintsToCheck and retained not empty:
+    //     remove all retained from top of stack, as well as the current stackFormula, continue.
+    // End iterator
+    // At the end, add constraints missing to the stack in order.
+
+    Deque<BooleanFormula> formulasToRemove = new ArrayDeque<>();
+    Deque<BooleanFormula> retainedFormulas = new ArrayDeque<>();
+
+    // This iterator goes from the top of the stack to the bottom
+    Iterator<BooleanFormula> currentStack = currentConstraintsOnProver.descendingIterator();
+    while (currentStack.hasNext()) {
+      BooleanFormula constraintOnStack = currentStack.next();
+
+      if (constraintsToCheck.contains(constraintOnStack)) {
+        // Remember formulas that are needed and already processed, so that we can remove them in
+        // the correct order if a lower formula needs to be removed.
+        totalKept[0]++;
+        retainedFormulas.push(constraintOnStack);
+
+      } else {
+        if (retainedFormulas.isEmpty()) {
+          // Remove current stack top.
+          // Potentially problematic on level 1 for some solvers!
+          persistentProver.pop();
+          totalRemoved[0]++;
+          currentStack.remove();
+
+        } else {
+          // We need to remove levels that we already iterated through, they are found in
+          // retainedFormulas.
+          formulasToRemove.addAll(retainedFormulas);
+          totalRemoved[0] += retainedFormulas.size();
+          // Remove from the top of the stack and restart iterator.
+          removeMultipleFormulasFromTop(
+              formulasToRemove, constraintsToCheck, totalKept, totalRemoved);
+        }
+      }
+    }
+    checkState(formulasToRemove.isEmpty());
+  }
+
+  private void removeMultipleFormulasFromTop(
+      Deque<BooleanFormula> formulasToRemove,
+      Collection<BooleanFormula> constraintsToCheck,
+      int[] totalKept,
+      int[] totalRemoved) {
+    if (!formulasToRemove.isEmpty()) {
+      // Remove from the top.
+      stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
+      onlyRemoveFromTopOfStack(formulasToRemove);
+    }
+    buildProverStackFor(constraintsToCheck, totalKept, totalRemoved);
   }
 
   // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!!!!
