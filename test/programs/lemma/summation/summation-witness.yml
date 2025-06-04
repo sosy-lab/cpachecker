@@ -1,0 +1,46 @@
+
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: invariant_set
+  metadata:
+    format_version: "2.0"
+    producer:
+      name: "Handcrafted"
+  content:
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: summation.c
+          line: 17
+          column: 3
+          function: summation
+        value: "sum == ACSL(_L_SUM(j))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: maxArray.c
+          line: 17
+          column: 3
+          function: maxArray
+        value: "1 <= j <= i"
+        format: c_expression
+- entry_type: lemma_set
+  declarations: 
+    - "int _L_SUM(int N)"
+    - "int N"
+  content:
+    - lemma:
+        location:
+          file_name: summation.c
+          line: 17
+          column: 3
+          function: summation
+        value: "ACSL(_L_SUM(N)) == (N*(N+1))/2"
+        format: c_expression
