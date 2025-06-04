@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
@@ -152,16 +153,15 @@ class AutomatonWitnessV2ParserCommon {
 
       AExpression exp =
           switch (constraint.getFormat()) {
-        case C -> transformer
-            .createExpressionTreeFromCString(resultFunction, constraint.getValue(), line, null, scope)
-            .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
-        case ACSL -> transformer
-            .createExpressionTreeFromACSLString(resultFunction, constraint.getValue(), line, null, scope)
-            .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+            case C -> transformer
+              .createExpressionTreeFromCString(resultFunction, constraint.getValue(), line, null, scope)
+              .accept(new ToCExpressionVisitor(cfa.getMachineModel(), logger));
+            case ACSL -> transformer
+              .createAExpressionFromAcslString(resultFunction, constraint.getValue(), line, null, scope);
       };
 
       builder.withAssumptions(ImmutableList.of(exp));
-    } catch (UnrecognizedCodeException e) {
+    } catch (UnrecognizedCodeException | AcslParseException e) {
       throw new WitnessParseException("Could not parse string into valid expression", e);
     }
   }

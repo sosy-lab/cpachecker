@@ -25,6 +25,10 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslScope;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParser.AcslParseException;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.parser.AcslParserUtils;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
@@ -94,7 +98,7 @@ public class InvariantExchangeFormatTransformer {
   }
 
   /**
-   * Create an {@link ExpressionTree} from a given acsl string.
+   * Create an {@link AExpression} from a given ACSL string.
    *
    * @param resultFunction The function in which the expression is contained
    * @param invariantString The string to parse
@@ -102,23 +106,20 @@ public class InvariantExchangeFormatTransformer {
    * @param callStack The call stack at the time of the expression
    * @param pScope The scope in which the expression is contained
    * @return The parsed expression
-   * @throws InterruptedException If the parsing is interrupted
+   * @throws AcslParseException if parsing fails.
    */
-  public ExpressionTree<AExpression> createExpressionTreeFromACSLString(
+  public AExpression createAExpressionFromAcslString(
       Optional<String> resultFunction,
       String invariantString,
       Integer pLine,
       Deque<String> callStack,
-      Scope pScope)
-      throws InterruptedException {
+      Scope pScope) throws AcslParseException {
 
-    return CParserUtils.parseStatementsAsExpressionTree(
-        ImmutableSet.of(invariantString),
-        resultFunction,
-        cparser,
-        AutomatonWitnessV2ParserUtils.determineScopeForLine(
-            resultFunction, callStack, pLine, pScope),
-        parserTools);
+    AcslScope acslScope = AcslParserUtils.getAcslScope();
+    Scope scopeForLine  = AutomatonWitnessV2ParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope);
+    CProgramScope scope = AcslParserUtils.parseScopeToCProgramScope(scopeForLine);
+
+    return AcslParser.parsePredicate(invariantString, scope, acslScope);
   }
 
   /**
