@@ -32,8 +32,6 @@ public class SeqThreadStatementClause implements SeqStatement {
 
   public final int id;
 
-  public final boolean isGlobal;
-
   public final boolean isLoopStart;
 
   public final int labelNumber;
@@ -48,11 +46,9 @@ public class SeqThreadStatementClause implements SeqStatement {
    */
   public final ImmutableList<SeqThreadStatementBlock> mergedBlocks;
 
-  public SeqThreadStatementClause(
-      boolean pIsGlobal, boolean pIsLoopStart, SeqThreadStatementBlock pBlock) {
+  public SeqThreadStatementClause(boolean pIsLoopStart, SeqThreadStatementBlock pBlock) {
 
     id = getNewId();
-    isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     labelNumber = pBlock.getGotoLabel().labelNumber;
     block = pBlock;
@@ -62,14 +58,12 @@ public class SeqThreadStatementClause implements SeqStatement {
   /** Private constructor, only used during cloning process to keep the same id. */
   private SeqThreadStatementClause(
       int pId,
-      boolean pIsGlobal,
       boolean pIsLoopStart,
       int pLabelNumber,
       SeqThreadStatementBlock pBlock,
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
     id = pId;
-    isGlobal = pIsGlobal;
     isLoopStart = pIsLoopStart;
     labelNumber = pLabelNumber;
     block = pBlock;
@@ -90,20 +84,17 @@ public class SeqThreadStatementClause implements SeqStatement {
   }
 
   public SeqThreadStatementClause cloneWithBlock(SeqThreadStatementBlock pBlock) {
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, labelNumber, pBlock, mergedBlocks);
+    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, pBlock, mergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithMergedBlocks(
       ImmutableList<SeqThreadStatementBlock> pMergedBlocks) {
 
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, labelNumber, block, pMergedBlocks);
+    return new SeqThreadStatementClause(id, isLoopStart, labelNumber, block, pMergedBlocks);
   }
 
   public SeqThreadStatementClause cloneWithLabelNumber(int pLabelNumber) {
-    return new SeqThreadStatementClause(
-        id, isGlobal, isLoopStart, pLabelNumber, block, mergedBlocks);
+    return new SeqThreadStatementClause(id, isLoopStart, pLabelNumber, block, mergedBlocks);
   }
 
   /**

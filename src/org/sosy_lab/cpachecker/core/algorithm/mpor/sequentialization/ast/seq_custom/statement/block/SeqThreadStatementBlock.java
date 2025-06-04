@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -90,6 +91,10 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return getFirstStatement() instanceof SeqAtomicBeginStatement;
   }
 
+  public boolean endsAtomicBlock() {
+    return getFirstStatement() instanceof SeqAtomicEndStatement;
+  }
+
   public boolean startsInAtomicBlock() {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
   }
@@ -102,9 +107,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
       return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
     }
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
-      return Optional.empty();
-    }
-    if (SeqThreadStatementUtil.allHaveBitVectorEvaluationWithOnlyGoto(pStatements)) {
       return Optional.empty();
     }
     return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));

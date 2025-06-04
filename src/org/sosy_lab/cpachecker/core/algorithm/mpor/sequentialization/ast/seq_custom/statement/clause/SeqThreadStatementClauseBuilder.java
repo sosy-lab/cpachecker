@@ -11,16 +11,13 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -44,7 +41,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadNode;
-import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseBuilder {
@@ -230,30 +226,11 @@ public class SeqThreadStatementClauseBuilder {
     SeqBlockGotoLabelStatement gotoLabel = buildBlockLabel(pOptions, pThread.id, labelPc);
     return Optional.of(
         new SeqThreadStatementClause(
-            anyGlobalAccess(leavingEdges),
             pThreadNode.cfaNode.isLoopStart(),
             new SeqThreadStatementBlock(pOptions, gotoLabel, statements.build())));
   }
 
   // Helpers =====================================================================================
-
-  /**
-   * Returns {@code true} if any {@link CFAEdge} of the given {@link ThreadEdge}s read or write a
-   * global variable.
-   */
-  private static boolean anyGlobalAccess(List<ThreadEdge> pThreadEdges) {
-    // TODO refactor global access checker so that CParameterDeclarations that are pointers
-    //  are considered global (or create 3 verdicts TRUE, FALSE, POSSIBLY)
-    GlobalAccessChecker gac = new GlobalAccessChecker();
-    for (ThreadEdge threadEdge : pThreadEdges) {
-      if (!(threadEdge.cfaEdge instanceof CFunctionSummaryEdge)) {
-        if (gac.hasGlobalAccess(threadEdge.cfaEdge)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }
 
   public static SeqBlockGotoLabelStatement buildBlockLabel(
       MPOROptions pOptions, int pThreadId, int pLabelNumber) {

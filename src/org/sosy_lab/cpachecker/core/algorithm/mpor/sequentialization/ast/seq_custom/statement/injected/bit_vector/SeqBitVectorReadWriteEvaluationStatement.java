@@ -21,13 +21,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
-  private final Optional<BitVectorEvaluationExpression> evaluationExpression;
+  private final BitVectorEvaluationExpression evaluationExpression;
 
   private final SeqBlockGotoLabelStatement gotoLabel;
 
   public SeqBitVectorReadWriteEvaluationStatement(
-      Optional<BitVectorEvaluationExpression> pEvaluationExpression,
-      SeqBlockGotoLabelStatement pGotoLabel) {
+      BitVectorEvaluationExpression pEvaluationExpression, SeqBlockGotoLabelStatement pGotoLabel) {
 
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
@@ -41,28 +40,16 @@ public class SeqBitVectorReadWriteEvaluationStatement implements SeqBitVectorEva
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-    if (isOnlyGoto()) {
-      // add only goto if not evaluation expression present
-      return gotoStatement.toASTString();
-    } else {
-      // otherwise create if (cond) ... bit vector statement
-      SeqSingleControlFlowStatement ifStatement =
-          new SeqSingleControlFlowStatement(
-              evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
-      return ifStatement.toASTString()
-          + SeqSyntax.SPACE
-          + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
-    }
+    SeqSingleControlFlowStatement ifStatement =
+        new SeqSingleControlFlowStatement(evaluationExpression, SeqControlFlowStatementType.IF);
+    return ifStatement.toASTString()
+        + SeqSyntax.SPACE
+        + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
   }
 
   @Override
   public SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorReadWriteEvaluationStatement(
         evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
-  }
-
-  @Override
-  public boolean isOnlyGoto() {
-    return evaluationExpression.isEmpty();
   }
 }

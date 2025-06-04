@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqThreadStatementClauseUtil {
@@ -199,10 +198,6 @@ public class SeqThreadStatementClauseUtil {
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    if (SeqThreadStatementUtil.hasBitVectorEvaluationWithOnlyGoto(pCurrentStatement)) {
-      // bit vector evaluation only goto -> no need for thread loop check
-      return pCurrentStatement;
-    }
     if (pCurrentStatement.getTargetPc().isPresent()) {
       // int target is present -> retrieve label by pc from map
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();

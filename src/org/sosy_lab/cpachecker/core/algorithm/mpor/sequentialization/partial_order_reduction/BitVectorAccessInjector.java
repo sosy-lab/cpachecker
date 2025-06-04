@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -145,15 +144,15 @@ class BitVectorAccessInjector {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
+        ImmutableSet<CVariableDeclaration> directVariables =
+            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
         ImmutableSet<CVariableDeclaration> reachableVariables =
             GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
-        ImmutableSet<CVariableDeclaration> directVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-        Optional<BitVectorEvaluationExpression> evaluationExpression =
+        BitVectorEvaluationExpression evaluationExpression =
             BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
                 pOptions,
                 pThread,
@@ -161,15 +160,12 @@ class BitVectorAccessInjector {
                 bitVectorAssignments,
                 pBitVectorVariables,
                 pBinaryExpressionBuilder);
-        if (evaluationExpression.isPresent()) {
-          SeqBitVectorAccessEvaluationStatement evaluationStatement =
-              new SeqBitVectorAccessEvaluationStatement(
-                  Optional.of(new SeqLogicalNotExpression(evaluationExpression.orElseThrow())),
-                  newTarget.block.getGotoLabel());
-          newInjected.add(evaluationStatement);
-          // the assignment is injected after the evaluation, it is only needed when commute fails
-          newInjected.addAll(bitVectorAssignments);
-        }
+        SeqBitVectorAccessEvaluationStatement evaluationStatement =
+            new SeqBitVectorAccessEvaluationStatement(
+                new SeqLogicalNotExpression(evaluationExpression), newTarget.block.getGotoLabel());
+        newInjected.add(evaluationStatement);
+        // the assignment is injected after the evaluation, it is only needed when commute fails
+        newInjected.addAll(bitVectorAssignments);
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
@@ -208,8 +204,8 @@ class BitVectorAccessInjector {
   // Bit Vector Initialization =====================================================================
 
   /**
-   * Injects proper initializations of the threads respective bit vectors based on their first
-   * statement when the respective thread is actually created.
+   * Injects proper initializations of the threads respective bit vectors based on the reachable
+   * statements when the respective thread is created i.e. set active.
    */
   private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
       injectBitVectorInitializations(

@@ -13,9 +13,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -26,8 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -195,8 +191,7 @@ public class SeqStringUtil {
       statements.append(pcWrite.toASTString());
 
       // we inject after the pc write, in case the injections are goto that require updated pc
-      ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
-      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pruned)) {
+      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pInjectedStatements)) {
         statements.append(SeqSyntax.SPACE).append(injectedStatement.toASTString());
       }
 
@@ -205,31 +200,6 @@ public class SeqStringUtil {
       statements.append(gotoStatement.toASTString());
     }
     return statements.toString();
-  }
-
-  /**
-   * Prunes unnecessary injected statements, e.g. when bit vectors are updated but never evaluated
-   * due to the direct {@code goto}. Only the last bit vector update, before an actual evaluation,
-   * is necessary.
-   */
-  private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
-
-    Set<SeqInjectedStatement> pruned = new HashSet<>();
-    for (SeqInjectedStatement outerInjected : pInjectedStatements) {
-      if (outerInjected instanceof SeqBitVectorEvaluationStatement evaluation) {
-        if (evaluation.isOnlyGoto()) {
-          // if the evaluation is only goto, prune all unnecessary bit vector assignments
-          pruned.addAll(
-              pInjectedStatements.stream()
-                  .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
-                  .collect(ImmutableList.toImmutableList()));
-        }
-      }
-    }
-    return pInjectedStatements.stream()
-        .filter(s -> !pruned.contains(s))
-        .collect(ImmutableList.toImmutableList());
   }
 
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(

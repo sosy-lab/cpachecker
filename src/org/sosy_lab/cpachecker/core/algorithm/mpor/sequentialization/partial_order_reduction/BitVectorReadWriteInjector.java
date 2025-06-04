@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -156,7 +155,7 @@ class BitVectorReadWriteInjector {
                 newTarget.block,
                 pLabelClauseMap,
                 pLabelBlockMap);
-        Optional<BitVectorEvaluationExpression> evaluationExpression =
+        BitVectorEvaluationExpression evaluationExpression =
             BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
                 pOptions,
                 pThread,
@@ -165,13 +164,11 @@ class BitVectorReadWriteInjector {
                 directWriteVariables,
                 pBitVectorVariables,
                 pBinaryExpressionBuilder);
-        if (evaluationExpression.isPresent()) {
-          SeqBitVectorReadWriteEvaluationStatement evaluationStatement =
-              new SeqBitVectorReadWriteEvaluationStatement(
-                  evaluationExpression, newTarget.block.getGotoLabel());
-          newInjected.add(evaluationStatement);
-          newInjected.addAll(bitVectorAssignments);
-        }
+        SeqBitVectorReadWriteEvaluationStatement evaluationStatement =
+            new SeqBitVectorReadWriteEvaluationStatement(
+                evaluationExpression, newTarget.block.getGotoLabel());
+        newInjected.add(evaluationStatement);
+        newInjected.addAll(bitVectorAssignments);
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
     }
@@ -250,8 +247,8 @@ class BitVectorReadWriteInjector {
   // Bit Vector Initialization =====================================================================
 
   /**
-   * Injects proper initializations of the threads respective bit vectors based on their first
-   * statement when the respective thread is actually created.
+   * Injects proper initializations of the threads respective bit vectors based on the reachable
+   * statements when the respective thread is created i.e. set active.
    */
   private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>>
       injectBitVectorInitializations(

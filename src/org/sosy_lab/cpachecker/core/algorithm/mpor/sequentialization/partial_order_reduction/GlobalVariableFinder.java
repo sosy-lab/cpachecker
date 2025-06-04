@@ -25,6 +25,19 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 public class GlobalVariableFinder {
 
   /**
+   * Returns {@code true} if any global variable is accessed when executing {@code pBlock} and its
+   * directly linked blocks.
+   */
+  public static boolean hasGlobalAccess(
+      ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      SeqThreadStatementBlock pBlock) {
+
+    return !findDirectGlobalVariablesByAccessType(
+            pLabelBlockMap, pBlock, BitVectorAccessType.ACCESS)
+        .isEmpty();
+  }
+
+  /**
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
    */

@@ -21,13 +21,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
-  private final Optional<SeqLogicalNotExpression> evaluationExpression;
+  private final SeqLogicalNotExpression evaluationExpression;
 
   public final SeqBlockGotoLabelStatement gotoLabel;
 
   public SeqBitVectorAccessEvaluationStatement(
-      Optional<SeqLogicalNotExpression> pEvaluationExpression,
-      SeqBlockGotoLabelStatement pGotoLabel) {
+      SeqLogicalNotExpression pEvaluationExpression, SeqBlockGotoLabelStatement pGotoLabel) {
 
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;
@@ -41,28 +40,16 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-    // if bit vectors present: evaluate in if statement
-    if (!isOnlyGoto()) {
-      SeqSingleControlFlowStatement ifStatement =
-          new SeqSingleControlFlowStatement(
-              evaluationExpression.orElseThrow(), SeqControlFlowStatementType.IF);
-      return ifStatement.toASTString()
-          + SeqSyntax.SPACE
-          + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
-    } else {
-      // otherwise add only goto
-      return gotoStatement.toASTString();
-    }
+    SeqSingleControlFlowStatement ifStatement =
+        new SeqSingleControlFlowStatement(evaluationExpression, SeqControlFlowStatementType.IF);
+    return ifStatement.toASTString()
+        + SeqSyntax.SPACE
+        + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
   }
 
   @Override
   public SeqBitVectorAccessEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorAccessEvaluationStatement(
         evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
-  }
-
-  @Override
-  public boolean isOnlyGoto() {
-    return evaluationExpression.isEmpty();
   }
 }
