@@ -90,7 +90,7 @@ public class StatementLinker {
     if (SeqThreadStatementClauseUtil.isValidTargetPc(pCurrentStatement.getTargetPc())) {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       SeqThreadStatementClause newTarget = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
-      if (validLink(pCurrentStatement, newTarget, pLabelBlockMap)) {
+      if (isValidLink(pCurrentStatement, newTarget, pLabelBlockMap)) {
         pLinkedTargetIds.add(newTarget.id);
         return pCurrentStatement.cloneWithTargetGoto(newTarget.block.getGotoLabel());
       }
@@ -101,7 +101,7 @@ public class StatementLinker {
   // Helpers =======================================================================================
 
   /** Checks if {@code pStatement} and {@code pTarget} can be linked via {@code goto}. */
-  private static boolean validLink(
+  private static boolean isValidLink(
       SeqThreadStatement pStatement,
       SeqThreadStatementClause pTarget,
       final ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap) {
@@ -139,22 +139,17 @@ public class StatementLinker {
     // in reverse, merge not directly reachable blocks to first directly reachable
     for (int i = pClauses.size() - 1; i >= 0; i--) {
       SeqThreadStatementClause clause = pClauses.get(i);
-      if (clause.block.startsAtomicBlock()) {
-        // atomic blocks are merged by AtomicBlockMerger already, add as is
-        rMerged.add(0, clause);
+      // if i == 0, then add clause even if it is not directly reachable, otherwise it is pruned
+      if (i != 0 && pLinkedTargetIds.contains(clause.id)) {
+        temporary.add(0, clause.block);
+        temporary.addAll(0, clause.mergedBlocks);
       } else {
-        // if i == 0, then add clause even if it is not directly reachable, otherwise it is pruned
-        if (i != 0 && pLinkedTargetIds.contains(clause.id)) {
-          temporary.add(0, clause.block);
-          temporary.addAll(0, clause.mergedBlocks);
-        } else {
-          // still need all mergedBlocks here
-          temporary.addAll(0, clause.mergedBlocks);
-          SeqThreadStatementClause mergedClause =
-              clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
-          rMerged.add(0, mergedClause);
-          temporary.clear();
-        }
+        // still need all mergedBlocks here
+        temporary.addAll(0, clause.mergedBlocks);
+        SeqThreadStatementClause mergedClause =
+            clause.cloneWithMergedBlocks(ImmutableList.copyOf(temporary));
+        rMerged.add(0, mergedClause);
+        temporary.clear();
       }
     }
     return ImmutableList.copyOf(rMerged);

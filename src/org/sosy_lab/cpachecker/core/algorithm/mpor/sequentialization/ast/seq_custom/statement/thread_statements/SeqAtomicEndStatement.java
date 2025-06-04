@@ -123,6 +123,7 @@ public class SeqAtomicEndStatement implements SeqThreadStatement {
 
   @Override
   public boolean onlyWritesPc() {
+    // this statement does only write a pc, but we still include it for improved overview
     return false;
   }
 }
