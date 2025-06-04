@@ -1,0 +1,62 @@
+
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2023 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+- entry_type: invariant_set
+  metadata:
+    format_version: "2.0"
+    producer:
+      name: "Handcrafted"
+  content:
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: factorial.c
+          line: 17
+          column: 3
+          function: factorial
+        value: "fac == ACSL(_L_FAC(j))"
+        format: c_expression
+    - invariant:
+        type: loop_invariant
+        location:
+          # file_name: maxArray.c
+          line: 17
+          column: 3
+          function: maxArray
+        value: "1 <= j <= i"
+        format: c_expression
+- entry_type: lemma_set
+  declarations: 
+    - "int _L_FAC(int N)"
+    - "int N"
+  content:
+    - lemma:
+        location:
+          file_name: factorial.c
+          line: 17
+          column: 3
+          function: factorial
+        value: "ACSL(_L_FAC(0)) == 1"
+        format: c_expression
+    - lemma:
+        location:
+          file_name: factorial.c
+          line: 17
+          column: 3
+          function: factorial
+        value: "ACSL(_L_FAC(1)) == 1"
+        format: c_expression
+    - lemma:
+        location:
+          file_name: factorial.c
+          line: 17
+          column: 2
+          function: factorial
+        value: "ACSL(_L_FAC(N)) == ACSL(_L_FAC(N-1)) * N"
+        format: c_expression
