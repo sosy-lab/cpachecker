@@ -55,6 +55,8 @@ import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -668,7 +670,8 @@ public class ValueAnalysisTransferRelation
       return JSimpleType.BOOLEAN;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
-
+    } else if (pExpression instanceof AcslPredicate) {
+      return AcslBuiltinLogicType.BOOLEAN;
     } else {
       throw new AssertionError("Unhandled expression type " + pExpression.getClass());
     }
