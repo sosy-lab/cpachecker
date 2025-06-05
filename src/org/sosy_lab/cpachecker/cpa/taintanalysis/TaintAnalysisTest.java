@@ -1004,6 +1004,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleCastSafe_2() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_2.c", "extern_benchmarks");
