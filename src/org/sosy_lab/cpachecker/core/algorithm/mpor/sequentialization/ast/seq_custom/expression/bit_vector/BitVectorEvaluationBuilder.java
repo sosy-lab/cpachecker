@@ -79,8 +79,9 @@ public class BitVectorEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    assert !pDirectVariables.isEmpty() : "target statements contains no global accesses";
-
+    if (pDirectVariables.isEmpty()) {
+      return new BitVectorEvaluationExpression(Optional.empty(), Optional.empty());
+    }
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.globalVariableIds, pDirectVariables);
@@ -202,8 +203,7 @@ public class BitVectorEvaluationBuilder {
     } else if (rightHandSide.isPresent()) {
       return new BitVectorEvaluationExpression(Optional.empty(), rightHandSide);
     }
-    throw new IllegalArgumentException(
-        "both LHS and RHS of read/write bit vector evaluation expression are empty");
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.empty());
   }
 
   private static Optional<SeqExpression> getPrunedDenseReadWriteBitVectorLeftHandSideEvaluation(

@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqMutexUnlockStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class StatementLinker {
@@ -110,6 +111,8 @@ public class StatementLinker {
         // do not link atomic blocks, this is handled by AtomicBlockMerger, unless atomic_end
         && (!(pTarget.block.startsAtomicBlock() || pTarget.block.startsInAtomicBlock())
             || pStatement instanceof SeqAtomicEndStatement)
+        // thread synchronization statements must be directly reachable (via pc) -> no linking
+        && !SeqThreadStatementUtil.anySynchronizesThreads(pTarget.getAllStatements())
         // only consider global accesses if not ignored
         && !(!canIgnoreGlobal(pTarget)
             && GlobalVariableFinder.hasGlobalAccess(pLabelBlockMap, pTarget.block));

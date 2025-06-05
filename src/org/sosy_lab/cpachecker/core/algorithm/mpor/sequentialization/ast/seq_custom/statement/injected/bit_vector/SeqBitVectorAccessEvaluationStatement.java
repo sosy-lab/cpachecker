@@ -40,16 +40,26 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
-    SeqSingleControlFlowStatement ifStatement =
-        new SeqSingleControlFlowStatement(evaluationExpression, SeqControlFlowStatementType.IF);
-    return ifStatement.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+    if (evaluationExpression.isEmpty()) {
+      // no evaluation due to no global accesses -> just goto
+      return gotoStatement.toASTString();
+    } else {
+      SeqSingleControlFlowStatement ifStatement =
+          new SeqSingleControlFlowStatement(evaluationExpression, SeqControlFlowStatementType.IF);
+      return ifStatement.toASTString()
+          + SeqSyntax.SPACE
+          + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+    }
   }
 
   @Override
   public SeqBitVectorAccessEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber) {
     return new SeqBitVectorAccessEvaluationStatement(
         evaluationExpression, gotoLabel.cloneWithLabelNumber(pLabelNumber));
+  }
+
+  @Override
+  public BitVectorEvaluationExpression getEvaluationExpression() {
+    return evaluationExpression;
   }
 }

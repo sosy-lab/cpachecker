@@ -8,7 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector;
 
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
+
 public interface SeqBitVectorEvaluationStatement extends SeqInjectedBitVectorStatement {
 
   SeqBitVectorEvaluationStatement cloneWithGotoLabelNumber(int pLabelNumber);
+
+  BitVectorEvaluationExpression getEvaluationExpression();
 }

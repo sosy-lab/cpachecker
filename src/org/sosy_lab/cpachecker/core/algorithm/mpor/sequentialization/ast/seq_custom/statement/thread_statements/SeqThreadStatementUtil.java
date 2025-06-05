@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
 
@@ -45,5 +47,29 @@ public class SeqThreadStatementUtil {
       }
     }
     return true;
+  }
+
+  public static boolean anyContainsEmptyBitVectorEvaluationExpression(
+      ImmutableList<SeqThreadStatement> pStatements) {
+
+    for (SeqThreadStatement statement : pStatements) {
+      if (containsEmptyBitVectorEvaluationExpression(statement.getInjectedStatements())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static boolean containsEmptyBitVectorEvaluationExpression(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+      if (injectedStatement instanceof SeqBitVectorEvaluationStatement evaluationStatement) {
+        if (evaluationStatement.getEvaluationExpression().isEmpty()) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

@@ -109,6 +109,9 @@ public class SeqThreadStatementBlock implements SeqStatement {
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
     }
+    if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
+      return Optional.empty();
+    }
     return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
   }
 }

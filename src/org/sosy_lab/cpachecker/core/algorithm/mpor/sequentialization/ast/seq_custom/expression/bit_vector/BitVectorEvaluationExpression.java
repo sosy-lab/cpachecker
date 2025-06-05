@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
@@ -25,9 +23,7 @@ public class BitVectorEvaluationExpression implements SeqExpression {
   public BitVectorEvaluationExpression(
       Optional<CBinaryExpression> pBinaryExpression, Optional<SeqExpression> pLogicalExpression) {
 
-    checkArgument(
-        pBinaryExpression.isPresent() || pLogicalExpression.isPresent(),
-        "either pBinaryExpression or pLogicalExpression must be present");
+    // both the binary and logical expression can be empty due to local thread synchronizations
     binaryExpression = pBinaryExpression;
     logicalExpression = pLogicalExpression;
   }
@@ -40,5 +36,9 @@ public class BitVectorEvaluationExpression implements SeqExpression {
       return logicalExpression.orElseThrow().toASTString();
     }
     return SeqSyntax.EMPTY_STRING;
+  }
+
+  public boolean isEmpty() {
+    return binaryExpression.isEmpty() && logicalExpression.isEmpty();
   }
 }

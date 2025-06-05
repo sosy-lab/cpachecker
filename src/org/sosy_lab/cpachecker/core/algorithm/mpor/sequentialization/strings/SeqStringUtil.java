@@ -13,7 +13,10 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -24,7 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -169,6 +174,7 @@ public class SeqStringUtil {
     return declaration.toString();
   }
 
+  // TODO move this out of this class, maybe into StatementUtil?
   /**
    * This returns either a {@code pc} write of the form {@code pc[i] = n;} including injected
    * statements, if present.
@@ -186,13 +192,33 @@ public class SeqStringUtil {
     StringBuilder statements = new StringBuilder();
 
     if (pTargetPc.isPresent()) {
+      // first create pruned statements
+      ImmutableList<SeqInjectedStatement> pruned = pruneInjectedStatements(pInjectedStatements);
+      // create the pc write
       CExpressionAssignmentStatement pcWrite =
           SeqStatementBuilder.buildPcWrite(pPcLeftHandSide, pTargetPc.orElseThrow());
-      statements.append(pcWrite.toASTString());
-
-      // we inject after the pc write, in case the injections are goto that require updated pc
-      for (SeqInjectedStatement injectedStatement : orderInjectedStatements(pInjectedStatements)) {
-        statements.append(SeqSyntax.SPACE).append(injectedStatement.toASTString());
+      boolean emptyBitVectorEvaluation =
+          SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pruned);
+      // with empty bit vector evaluations, place pc write before injections, otherwise info is lost
+      if (emptyBitVectorEvaluation) {
+        statements.append(pcWrite.toASTString()).append(SeqSyntax.SPACE);
+      }
+      // add all injected statements in the correct order
+      ImmutableList<SeqInjectedStatement> ordered = orderInjectedStatements(pruned);
+      for (int i = 0; i < ordered.size(); i++) {
+        SeqInjectedStatement injectedStatement = ordered.get(i);
+        statements.append(injectedStatement.toASTString());
+        if (i != ordered.size() - 1) {
+          // append space to all statements except last
+          statements.append(SeqSyntax.SPACE);
+        }
+      }
+      // for non-empty bit vector evaluations, place pc write after injections for optimization
+      if (!emptyBitVectorEvaluation) {
+        if (!ordered.isEmpty()) {
+          statements.append(SeqSyntax.SPACE);
+        }
+        statements.append(pcWrite.toASTString());
       }
 
     } else if (pTargetGoto.isPresent()) {
@@ -200,6 +226,22 @@ public class SeqStringUtil {
       statements.append(gotoStatement.toASTString());
     }
     return statements.toString();
+  }
+
+  private static ImmutableList<SeqInjectedStatement> pruneInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+
+    Set<SeqInjectedStatement> pruned = new HashSet<>();
+    if (SeqThreadStatementUtil.containsEmptyBitVectorEvaluationExpression(pInjectedStatements)) {
+      // prune all bit vector assignments if the evaluation expression is empty
+      pruned.addAll(
+          pInjectedStatements.stream()
+              .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
+              .collect(Collectors.toSet()));
+    }
+    return pInjectedStatements.stream()
+        .filter(i -> !pruned.contains(i))
+        .collect(ImmutableList.toImmutableList());
   }
 
   private static ImmutableList<SeqInjectedStatement> orderInjectedStatements(
