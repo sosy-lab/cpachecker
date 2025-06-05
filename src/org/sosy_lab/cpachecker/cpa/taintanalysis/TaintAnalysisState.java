@@ -180,9 +180,6 @@ public class TaintAnalysisState
     TaintAnalysisState joinedState =
         new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinPredecessors);
 
-    this.successors.addAll(pOther.successors);
-    pOther.successors.addAll(this.successors);
-
     joinedState.getSuccessors().addAll(this.successors);
     joinedState.getSuccessors().addAll(pOther.getSuccessors());
 
