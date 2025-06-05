@@ -20,7 +20,6 @@ int main() {
         }
     }
 
-    // TODO: Nested For-Loop not working fine
     // t(a) = T
     __VERIFIER_is_public(a, 0);
 }
