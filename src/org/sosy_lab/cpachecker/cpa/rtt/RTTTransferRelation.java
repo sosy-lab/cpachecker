@@ -92,20 +92,14 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     if (decl.getType() instanceof JSimpleType simpleType) {
       switch (simpleType) {
-        case BOOLEAN:
-        case BYTE:
-        case CHAR:
-        case FLOAT:
-        case DOUBLE:
-        case INT:
-        case LONG:
-        case SHORT:
-        case UNSPECIFIED:
+        case BOOLEAN, BYTE, CHAR, FLOAT, DOUBLE, INT, LONG, SHORT, UNSPECIFIED -> {
           // TODO Change with inclusion of Boxing, Unboxing
           // Unnecessary to track Primitive types.
           return state;
-        default:
+        }
+        default -> {
           // nothing to do here, TODO perhaps throw exceptions in other cases?
+        }
       }
     }
 
@@ -349,7 +343,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     // There are five possibilities when assigning this and the new object Scope.
 
-    // A Object calls its super Constructor
+    // An Object calls its super Constructor
     if (functionCall instanceof JSuperConstructorInvocation) {
 
       newState.assignThisAndNewObjectScope(state.getUniqueObjectFor(RTTState.KEYWORD_THIS));
@@ -385,7 +379,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         // When the object of the variable can't be found
         newState.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
-      //  a unreferenced Method Invocation
+      //  an unreferenced Method Invocation
     } else {
 
       JMethodDeclaration decl = functionCall.getDeclaration();
@@ -624,13 +618,9 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
       boolean result = value1.equals(value2);
 
       switch (operator) {
-        case EQUALS:
-          break;
-        case NOT_EQUALS:
-          result = !result;
-          break;
-        default:
-          throw new UnrecognizedCodeException("unexpected enum comparison", edge);
+        case EQUALS -> {}
+        case NOT_EQUALS -> result = !result;
+        default -> throw new UnrecognizedCodeException("unexpected enum comparison", edge);
       }
 
       return Boolean.toString(result);

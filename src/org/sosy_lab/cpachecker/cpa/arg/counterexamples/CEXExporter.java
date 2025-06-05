@@ -175,7 +175,7 @@ public class CEXExporter {
    * @param targetState state of an ARG, used as fallback, if pCounterexampleInfo contains no
    *     targetPath.
    * @param counterexample contains further information and the (optional) targetPath. If the
-   *     targetPath is available, it will be used for the output. Otherwise we use backwards
+   *     targetPath is available, it will be used for the output. Otherwise, we use backwards
    *     reachable states from pTargetState.
    */
   public void exportCounterexample(
@@ -266,21 +266,18 @@ public class CEXExporter {
 
       if (options.getSourceFile() != null) {
         switch (codeStyle) {
-          case CONCRETE_EXECUTION:
-            logger.log(
-                Level.WARNING,
-                "Cannot export imprecise counterexample to C code for concrete execution.");
-            break;
-          case CBMC:
+          case CONCRETE_EXECUTION ->
+              logger.log(
+                  Level.WARNING,
+                  "Cannot export imprecise counterexample to C code for concrete execution.");
+          case CBMC -> {
             // "translatePaths" does not work if the ARG branches without assume edge
             if (ARGUtils.hasAmbiguousBranching(rootState, pathElements)) {
               pathProgram = PathToCTranslator.translateSinglePath(targetPath);
             } else {
               pathProgram = PathToCTranslator.translatePaths(rootState, pathElements);
             }
-            break;
-          default:
-            throw new AssertionError("Unhandled case statement: " + codeStyle);
+          }
         }
       }
     }

@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
- * This class implements a faster way to test, if one smg is less or equal to another. Simply
- * joining two smg and requesting its status takes too long.
+ * This class implements a faster way to test, if one SMG is less or equal to another. Simply
+ * joining two SMG and requesting its status takes too long.
  */
 @SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 public class SMGIsLessOrEqual {
@@ -146,7 +146,7 @@ public class SMGIsLessOrEqual {
     Iterator<CLangStackFrame> smg1stackIterator = pSMG1.getStackFrames().iterator();
     Iterator<CLangStackFrame> smg2stackIterator = pSMG2.getStackFrames().iterator();
 
-    // Check, whether the stack frames of smg1 are less or equal to smg 2
+    // Check, whether the stack frames of smg1 are less or equal to smg2
     while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();

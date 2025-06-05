@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 /**
  * Special implementation of the reached set that partitions the set by keys that depend on the
  * abstract state. Which key is used for an abstract state can be changed by overriding {@link
- * #getPartitionKey(AbstractState)} in a sub-class. By default, this implementation needs abstract
+ * #getPartitionKey(AbstractState)} in a subclass. By default, this implementation needs abstract
  * states which implement {@link Partitionable} and uses the return value of {@link
  * Partitionable#getPartitionKey()} as the key.
  *

@@ -170,7 +170,7 @@ class BAMReachedSetExporter implements Statistics {
 
   /**
    * This method iterates over all reachable states from rootState and searches for connections to
-   * other reachedSets (a set of all those other reachedSets is returned). As side-effect we collect
+   * other reachedSets (a set of all those other reachedSets is returned). As side effect we collect
    * a Multimap of all connections: - from a state (in current reachedSet) to its reduced state (in
    * other rechedSet) and - from a foreign state (in other reachedSet) to its expanded state(s) (in
    * current reachedSet).

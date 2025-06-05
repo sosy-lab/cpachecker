@@ -35,7 +35,7 @@ public class TestTargetMinimizerBasicEssential {
       CFANode predecessor = currentEdge.getPredecessor();
       // if the predecessor has only a single incoming and outgoing edge we "remove" that incoming
       // edge from the graph by
-      // checking if its part of the testgoals and ignoring it if its not. We then treat that edges
+      // checking if its part of the testgoals and ignoring it if it's not. We then treat that edges
       // predecessor as the new predecessor
       while (predecessor.getNumLeavingEdges() == 1 && predecessor.getNumEnteringEdges() == 1) {
         if (targetsAfterRule1.contains(predecessor.getEnteringEdge(0))

@@ -111,18 +111,13 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
     StringBuilder out =
         new StringBuilder("Error suspected on line(s): " + listDistinctLinesAndJoin() + ".\n");
     for (FaultInfo faultInfo : copy) {
-      switch (faultInfo.getType()) {
-        case RANK_INFO:
-          out.append(" ".repeat(2));
-          break;
-        case REASON:
-          out.append(" ".repeat(5));
-          break;
-        case FIX:
-          out.append(" ".repeat(8));
-          break;
-      }
-      out.append(faultInfo).append("\n");
+      int indent =
+          switch (faultInfo.getType()) {
+            case RANK_INFO -> 2;
+            case REASON -> 5;
+            case FIX -> 8;
+          };
+      out.append(" ".repeat(indent)).append(faultInfo).append("\n");
     }
     return out.toString();
   }
@@ -141,7 +136,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
       result = String.join(" and ", lines);
     } else {
       int lastIndex = lines.size() - 1;
-      result = String.join(", ", lines.subList(0, lastIndex) + " and " + lines.get(lastIndex));
+      result = String.join(", ", lines.subList(0, lastIndex)) + " and " + lines.get(lastIndex);
     }
     return result + " (Score: " + (int) (score * 100) + ")";
   }

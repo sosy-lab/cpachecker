@@ -67,7 +67,7 @@ public final class CPointerType implements CType {
   @Override
   public String toASTString(String pDeclarator) {
     checkNotNull(pDeclarator);
-    // ugly hack but it works:
+    // ugly hack, but it works:
     // We need to insert the "*" and qualifiers between the type and the name (e.g. "int *var").
     StringBuilder inner = new StringBuilder("*");
     if (isConst()) {

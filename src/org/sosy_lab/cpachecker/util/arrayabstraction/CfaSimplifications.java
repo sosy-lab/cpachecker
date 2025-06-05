@@ -250,7 +250,7 @@ final class CfaSimplifications {
               optTargetUpdateOperation.orElseThrow();
           CSimpleDeclaration targetDeclaration = targetUpdateOperation.getDeclaration();
 
-          // the index cannot cannot be eliminated
+          // the index cannot be eliminated
           if (targetDeclaration.equals(loop.getIndex().getVariableDeclaration())) {
             continue;
           }

@@ -55,7 +55,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
-    updateInvariants(); // at initialization we want to update the invariants the first time
+    updateInvariants(); // at initialization, we want to update the invariants the first time
   }
 
   @Override

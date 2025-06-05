@@ -256,7 +256,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   void finish() {
 
     // cleanup unnecessary nodes and edges, that were created before.
-    // cfaNodes were collected with with a FORWARD-search,
+    // cfaNodes were collected with a FORWARD-search,
     // so all unnecessary nodes are only reachable with BACKWARD-search.
     // we only disconnect them from the CFA and let garbage collection do the rest
     for (CFANode node : cfaNodes) {
@@ -1422,18 +1422,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final Condition kind = astCreator.getConditionKind(exp);
     switch (kind) {
-      case ALWAYS_FALSE:
+      case ALWAYS_FALSE -> {
         // no edge connecting rootNode with thenNode,
         // so the "then" branch won't be connected to the rest of the CFA
-
         final BlankEdge falseEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, elseNode, "");
         addToCFA(falseEdge);
 
         // reset side assignments which are not necessary
         return CIntegerLiteralExpression.ZERO;
-
-      case ALWAYS_TRUE:
+      }
+      case ALWAYS_TRUE -> {
         final BlankEdge trueEdge =
             new BlankEdge(rawSignature, onlyFirstLine(fileLocation), rootNode, thenNode, "");
         addToCFA(trueEdge);
@@ -1441,12 +1440,8 @@ class CFAFunctionBuilder extends ASTVisitor {
         // no edge connecting prevNode with elseNode,
         // so the "else" branch won't be connected to the rest of the CFA
         return CIntegerLiteralExpression.ONE;
-
-      case NORMAL:
-        break;
-
-      default:
-        throw new AssertionError();
+      }
+      case NORMAL -> {}
     }
 
     if (furtherThenComputation) {
@@ -1483,7 +1478,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   /**
-   * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
+   * This method adds 2 edges to the CFA: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
    *
    * @category conditions
@@ -1665,7 +1660,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     addToCFA(new BlankEdge("", onlyFirstLine(fileLocation), prevNode, loopInit, "for"));
 
     // loopStart is the Node before the loop itself,
-    // it is the the one after the init edge(s)
+    // it is the one after the init edge(s)
     final CFANode loopStart =
         createInitEdgeForForLoop(forStatement.getInitializerStatement(), fileLocation, loopInit);
     loopStart.setLoopStart();
@@ -2380,16 +2375,13 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // create the four condition edges
     switch (binExp.getOperator()) {
-      case IASTBinaryExpression.op_logicalAnd:
-        createConditionEdges(
-            binExp.getOperand1(), fileLocation, rootNode, intermediateNode, elseNode);
-        break;
-      case IASTBinaryExpression.op_logicalOr:
-        createConditionEdges(
-            binExp.getOperand1(), fileLocation, rootNode, thenNode, intermediateNode);
-        break;
-      default:
-        throw new AssertionError();
+      case IASTBinaryExpression.op_logicalAnd ->
+          createConditionEdges(
+              binExp.getOperand1(), fileLocation, rootNode, intermediateNode, elseNode);
+      case IASTBinaryExpression.op_logicalOr ->
+          createConditionEdges(
+              binExp.getOperand1(), fileLocation, rootNode, thenNode, intermediateNode);
+      default -> throw new AssertionError();
     }
     createConditionEdges(binExp.getOperand2(), fileLocation, intermediateNode, thenNode, elseNode);
 
@@ -2445,7 +2437,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condExp.getPositiveResultExpression() == null) {
       // Converting the logical-condition expression twice may cause problems,
       // for example if it defines labels inside it.
-      // Thus we reuse the condition expression returned by createConditionEdges,
+      // Thus, we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
         createEdgesForTernaryOperatorBranch(

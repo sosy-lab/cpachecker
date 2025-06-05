@@ -57,7 +57,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
    * This method acts as the constructor of the class.
    *
    * @param pLogger the logger to use
-   * @param pCfa the cfa in use
+   * @param pCfa the CFA in use
    */
   public GenericPrefixProvider(
       final StrongestPostOperator<S> pStrongestPost,

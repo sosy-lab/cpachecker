@@ -58,7 +58,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
           .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));
       ImmutableSet<String> globalPredicates =
           transformedImmutableSetCopy(
-              predicatePrecision.getGlobalPredicates(), p -> serializeAbstractionPredicate(p));
+              predicatePrecision.getGlobalPredicates(), this::serializeAbstractionPredicate);
       ImmutableMap<String, Object> serialized =
           ImmutableMap.<String, Object>builder()
               .put("locationInstances", locationInstances.build().asMap())

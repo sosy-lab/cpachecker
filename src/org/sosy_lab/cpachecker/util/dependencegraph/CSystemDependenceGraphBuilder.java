@@ -796,7 +796,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               case FORMAL_OUT -> "Number of formal-out nodes";
               case ACTUAL_IN -> "Number of actual-in nodes";
               case ACTUAL_OUT -> "Number of actual-out nodes";
-              default -> "Number of " + pNodeType + " nodes";
             };
           }
 
@@ -808,7 +807,6 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               case CALL_EDGE -> "Number of call edges";
               case PARAMETER_EDGE -> "Number of parameter edges";
               case SUMMARY_EDGE -> "Number of summary edges";
-              default -> "Number of " + pEdgeType + " edges";
             };
           }
 

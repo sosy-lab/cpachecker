@@ -420,7 +420,7 @@ public final class InterpolationManager {
       // If there is only one block, interpolation is meaningless because the list of expected
       // interpolants is empty. In principle, using the Interpolator below would work fine,
       // but for formulas with floats, MathSAT fails to return a result for UNSAT formulas
-      // because it would not be able to compute interpolants afterwards. So we use a
+      // because it would not be able to compute interpolants afterward. So we use a
       // non-interpolating solver. This could also be slightly more efficient. We miss out on any
       // of the advanced heuristics like environment reuse, but for a single block there wouldn't be
       // anything to reuse anyway.
@@ -805,7 +805,7 @@ public final class InterpolationManager {
    *
    * @param formulas The list of formulas on the path.
    * @param pProver The solver.
-   * @param pImprecisePath A optional (potentially infeasible) path to the target state. If given,
+   * @param pImprecisePath An optional (potentially infeasible) path to the target state. If given,
    *     the model of the prover environment is used to determine a feasible path through the ARG to
    *     the same target state.
    * @return Information about the error path, including a satisfying assignment.
@@ -900,7 +900,7 @@ public final class InterpolationManager {
     /**
      * Builds a new solver environment out of the old environment and replaces the old. Also asserts
      * all formulas currently on the assertion stack and calls isUnsat() once on the new
-     * environment. Deletes old environment afterwards. The currentlyAssertedFormulas are updated as
+     * environment. Deletes old environment afterward. The currentlyAssertedFormulas are updated as
      * well. Should be used after an interpolation failed with an exception.
      *
      * @throws InterruptedException solver specific
@@ -1067,7 +1067,7 @@ public final class InterpolationManager {
      * @param formulasWithStatesAndGroupdIds The list where to store the references (in original
      *     order) to the interpolation groups. This is just a list of 'identifiers' for the
      *     formulas.
-     * @return True if the formulas are unsatisfiable.
+     * @return whether the formulas are unsatisfiable.
      */
     private boolean checkInfeasabilityOfTrace(
         final List<BooleanFormula> traceFormulas,
@@ -1096,17 +1096,17 @@ public final class InterpolationManager {
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible
-      // and formulas get pushed afterwards)
+      // and formulas get pushed afterward)
       return itpProver.isUnsat();
     }
 
     /**
-     * For optimization we try to share the solver stack between different solver calls. Before
+     * For optimization, we try to share the solver stack between different solver calls. Before
      * pushing a new set of formulas, we need to determine all old formulas that need to be popped
      * from the solver stack.
      *
      * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
-     * @param todoIterator iterator producing the indices of formulas to be used, afterwards it is
+     * @param todoIterator iterator producing the indices of formulas to be used, afterward it is
      *     positioned at the new starting point
      */
     private int getIndexOfFirstNonReusableFormula(

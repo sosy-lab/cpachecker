@@ -506,7 +506,7 @@ class ASTConverter {
   /**
    * If the given AST node <code>foo</code> originally occurs inside the unary operator parentheses,
    * return the parent AST node with all the parentheses, e.g., <code>(foo)</code> or <code>((foo))
-   * </code>. Otherwise return <code>foo</code> unchanged.
+   * </code>. Otherwise, return <code>foo</code> unchanged.
    */
   private IASTNode reAddParentheses(IASTNode currentNode) {
     while (currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
@@ -554,13 +554,12 @@ class ASTConverter {
     // check condition kind so we can eventually skip creating an unnecessary branch
     Condition conditionKind = getConditionKind(e.getLogicalConditionExpression());
 
-    switch (conditionKind) {
-      case ALWAYS_TRUE:
-        return convertExpressionWithSideEffects(e.getPositiveResultExpression());
-      case ALWAYS_FALSE:
-        return convertExpressionWithSideEffects(e.getNegativeResultExpression());
-      case NORMAL:
+    return switch (conditionKind) {
+      case ALWAYS_TRUE -> convertExpressionWithSideEffects(e.getPositiveResultExpression());
 
+      case ALWAYS_FALSE -> convertExpressionWithSideEffects(e.getNegativeResultExpression());
+
+      case NORMAL -> {
         // this means the return value (if there could be one) of the conditional
         // expression is not used
         if (convertType(e) instanceof CVoidType) {
@@ -568,16 +567,15 @@ class ASTConverter {
 
           // TODO we should not return a variable here, however null cannot be returned
           // perhaps we need a DummyExpression here
-          return CIntegerLiteralExpression.ZERO;
+          yield CIntegerLiteralExpression.ZERO;
         }
 
         CIdExpression tmp = createTemporaryVariableWithTypeOf(e);
         assert !(tmp.getExpressionType() instanceof CVoidType);
         sideAssignmentStack.addConditionalExpression(e, tmp);
-        return tmp;
-      default:
-        throw new AssertionError("Unhandled case statement: " + conditionKind);
-    }
+        yield tmp;
+      }
+    };
   }
 
   /**
@@ -588,49 +586,38 @@ class ASTConverter {
     if (exp instanceof IASTBinaryExpression binExp
         && (((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalAnd
             || ((IASTBinaryExpression) exp).getOperator() == IASTBinaryExpression.op_logicalOr)) {
-      switch (binExp.getOperator()) {
-        case IASTBinaryExpression.op_logicalAnd:
-          {
-            Condition left = getConditionKind(binExp.getOperand1());
-            switch (left) {
-              case ALWAYS_TRUE:
-                return getConditionKind(binExp.getOperand2());
-              case ALWAYS_FALSE:
-                return left;
-              case NORMAL:
-                if (getConditionKind(binExp.getOperand2()) == Condition.ALWAYS_FALSE) {
-                  return Condition.ALWAYS_FALSE;
-                } else {
-                  return Condition.NORMAL;
-                }
-              default:
-                throw new AssertionError("unhandled case statement");
+      return switch (binExp.getOperator()) {
+        case IASTBinaryExpression.op_logicalAnd -> {
+          Condition left = getConditionKind(binExp.getOperand1());
+          yield switch (left) {
+            case ALWAYS_TRUE -> getConditionKind(binExp.getOperand2());
+            case ALWAYS_FALSE -> left;
+            case NORMAL -> {
+              if (getConditionKind(binExp.getOperand2()) == Condition.ALWAYS_FALSE) {
+                yield Condition.ALWAYS_FALSE;
+              } else {
+                yield Condition.NORMAL;
+              }
             }
-          }
-
-        case IASTBinaryExpression.op_logicalOr:
-          {
-            Condition left = getConditionKind(binExp.getOperand1());
-            switch (left) {
-              case ALWAYS_TRUE:
-                return Condition.ALWAYS_TRUE;
-              case ALWAYS_FALSE:
-                return getConditionKind(binExp.getOperand2());
-              case NORMAL:
-                Condition right = getConditionKind(binExp.getOperand2());
-                if (right == Condition.ALWAYS_FALSE) {
-                  return Condition.NORMAL;
-                } else {
-                  return right;
-                }
-              default:
-                throw new AssertionError("unhandled case statement");
+          };
+        }
+        case IASTBinaryExpression.op_logicalOr -> {
+          Condition left = getConditionKind(binExp.getOperand1());
+          yield switch (left) {
+            case ALWAYS_TRUE -> Condition.ALWAYS_TRUE;
+            case ALWAYS_FALSE -> getConditionKind(binExp.getOperand2());
+            case NORMAL -> {
+              Condition right = getConditionKind(binExp.getOperand2());
+              if (right == Condition.ALWAYS_FALSE) {
+                yield Condition.NORMAL;
+              } else {
+                yield right;
+              }
             }
-          }
-
-        default:
-          throw new AssertionError("unhandled case statement");
-      }
+          };
+        }
+        default -> throw new AssertionError("unhandled case statement");
+      };
 
     } else {
       sideAssignmentStack.enterBlock();
@@ -813,7 +800,7 @@ class ASTConverter {
     name += i;
 
     // If there is no initializer, the variable cannot be const.
-    // For others we add it as our temporary variables are single-use.
+    // For others, we add it as our temporary variables are single-use.
     CType type = CTypes.withConstSetTo(pType, initializer != null);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
@@ -903,7 +890,7 @@ class ASTConverter {
           return new CExpressionAssignmentStatement(
               fileLoc, lhs, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
-          throw parseContext.parseError("Expression is not free of side-effects", e);
+          throw parseContext.parseError("Expression is not free of side effects", e);
         }
 
       } else {
@@ -1166,7 +1153,7 @@ class ASTConverter {
             }
             isFirstVisit = false;
 
-            // only first field access may be an pointer dereference so we do not have to check
+            // only first field access may be a pointer dereference so we do not have to check
             // anything
             // in this clause, just put a field reference to the next field on the actual owner
           } else {
@@ -1536,55 +1523,49 @@ class ASTConverter {
     final CType operandType = operand.getExpressionType();
 
     switch (e.getOperator()) {
-      case IASTUnaryExpression.op_bracketedPrimary:
-        throw new AssertionError("handled above");
-      case IASTUnaryExpression.op_plus:
+      case IASTUnaryExpression.op_bracketedPrimary -> throw new AssertionError("handled above");
+      case IASTUnaryExpression.op_plus -> {
         return operand;
-
-      case IASTUnaryExpression.op_star:
-        {
-
-          // In case of pointers inside field references that refer to inner fields
-          // the CDT type is not as we want it, thus we resolve the type on our own.
-          CType type;
-          if (operandType instanceof CPointerType) {
-            type = ((CPointerType) operandType).getType();
-          } else if (operandType instanceof CArrayType) {
-            type = ((CArrayType) operandType).getType();
-          } else {
-            if (!(operandType instanceof CProblemType)) {
-              logger.logf(
-                  Level.WARNING,
-                  "%s: Dereferencing of non-pointer type %s in expression %s",
-                  fileLoc,
-                  operandType,
-                  e.getRawSignature());
-            }
-            type = typeConverter.convert(e.getExpressionType());
+      }
+      case IASTUnaryExpression.op_star -> {
+        // In case of pointers inside field references that refer to inner fields
+        // the CDT type is not as we want it, thus we resolve the type on our own.
+        CType type;
+        if (operandType instanceof CPointerType) {
+          type = ((CPointerType) operandType).getType();
+        } else if (operandType instanceof CArrayType) {
+          type = ((CArrayType) operandType).getType();
+        } else {
+          if (!(operandType instanceof CProblemType)) {
+            logger.logf(
+                Level.WARNING,
+                "%s: Dereferencing of non-pointer type %s in expression %s",
+                fileLoc,
+                operandType,
+                e.getRawSignature());
           }
-          return simplifyUnaryPointerExpression(operand, fileLoc, type);
+          type = typeConverter.convert(e.getExpressionType());
         }
-      case IASTUnaryExpression.op_amper:
-        {
-
-          // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION
-          // cfa.simplifyPointerExpressions IS SET TO TRUE
-          // in case of *& both can be left out
-          if (options.simplifyPointerExpressions() && operand instanceof CPointerExpression) {
-            return ((CPointerExpression) operand).getOperand();
-          }
-
-          CType type = typeConverter.convert(e.getExpressionType());
-          if (containsProblemType(type)) {
-            type = new CPointerType(true, false, operandType);
-          }
-
-          // if none of the special cases before fits the default unaryExpression is created
-          return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
+        return simplifyUnaryPointerExpression(operand, fileLoc, type);
+      }
+      case IASTUnaryExpression.op_amper -> {
+        // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION
+        // cfa.simplifyPointerExpressions IS SET TO TRUE
+        // in case of *& both can be left out
+        if (options.simplifyPointerExpressions() && operand instanceof CPointerExpression) {
+          return ((CPointerExpression) operand).getOperand();
         }
-      case IASTUnaryExpression.op_labelReference:
+
+        CType type = typeConverter.convert(e.getExpressionType());
+        if (containsProblemType(type)) {
+          type = new CPointerType(true, false, operandType);
+        }
+
+        // if none of the special cases before fits the default unaryExpression is created
+        return new CUnaryExpression(fileLoc, type, operand, UnaryOperator.AMPER);
+      }
+      case IASTUnaryExpression.op_labelReference -> {
         // L: void * addressOfLabel = && L;
-
         if (!(operand instanceof CIdExpression)) {
           throw parseContext.parseError("Invalid operand for address-of-label operator", e);
         }
@@ -1592,11 +1573,9 @@ class ASTConverter {
 
         // type given by CDT is problem type
         return new CAddressOfLabelExpression(fileLoc, CPointerType.POINTER_TO_VOID, labelName);
-
-      case IASTUnaryExpression.op_prefixIncr:
-      case IASTUnaryExpression.op_prefixDecr:
+      }
+      case IASTUnaryExpression.op_prefixIncr, IASTUnaryExpression.op_prefixDecr -> {
         // instead of ++x, create "x = x+1"
-
         BinaryOperator preOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_prefixIncr -> BinaryOperator.PLUS;
@@ -1609,11 +1588,9 @@ class ASTConverter {
         CLeftHandSide lhsPre = (CLeftHandSide) operand;
 
         return new CExpressionAssignmentStatement(fileLoc, lhsPre, preExp);
-
-      case IASTUnaryExpression.op_postFixIncr:
-      case IASTUnaryExpression.op_postFixDecr:
+      }
+      case IASTUnaryExpression.op_postFixIncr, IASTUnaryExpression.op_postFixDecr -> {
         // instead of x++ create "x = x + 1"
-
         BinaryOperator postOp =
             switch (e.getOperator()) {
               case IASTUnaryExpression.op_postFixIncr -> BinaryOperator.PLUS;
@@ -1636,15 +1613,15 @@ class ASTConverter {
         sideAssignmentStack.addPreSideAssignment(result);
 
         return tmp;
-
-      case IASTUnaryExpression.op_not:
+      }
+      case IASTUnaryExpression.op_not -> {
         try {
           return binExprBuilder.negateExpressionAndSimplify(operand);
         } catch (UnrecognizedCodeException ex) {
           throw new CFAGenerationRuntimeException(ex);
         }
-
-      default:
+      }
+      default -> {
         CType type;
         if (e.getOperator() == IASTUnaryExpression.op_alignOf
             || e.getOperator() == IASTUnaryExpression.op_sizeof) {
@@ -1667,6 +1644,7 @@ class ASTConverter {
         }
         return new CUnaryExpression(
             fileLoc, type, operand, operatorConverter.convertUnaryOperator(e));
+      }
     }
   }
 
@@ -2184,9 +2162,9 @@ class ASTConverter {
       // For example, array modifiers and pointer operators are declared in the
       // "wrong" way:
       // "int (*drives[4])[6]" is "array 4 of pointer to array 6 of int"
-      // (The inner most modifiers are the highest-level ones.)
+      // (The innermost modifiers are the highest-level ones.)
       // So we don't do this recursively, but instead collect all modifiers
-      // and apply them after we have reached the inner-most declarator.
+      // and apply them after we have reached the innermost declarator.
 
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = new ArrayList<>(1);
@@ -2346,7 +2324,7 @@ class ASTConverter {
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-      // Arrays with unknown length but an string initializer
+      // Arrays with unknown length but a string initializer
       // have their length calculated from the initializer.
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";
@@ -2444,22 +2422,24 @@ class ASTConverter {
 
     CSimpleType newType;
     switch (mode) {
-      case "word": // assume that pointers have word size, which is the case on our platforms
-        newType = machinemodel.getPointerSizedIntType();
-        break;
-      case "byte":
-      case "QI": // quarter integer
-        newType = CNumericTypes.CHAR;
-        break;
-      case "HI": // half integer
+      case "word" ->
+          // assume that pointers have word size, which is the case on our platforms
+          newType = machinemodel.getPointerSizedIntType();
+      case "byte", "QI" ->
+          // quarter integer
+          newType = CNumericTypes.CHAR;
+      case "HI" -> {
+        // half integer
         assert machinemodel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.SHORT_INT;
-        break;
-      case "SI": // single integer
+      }
+      case "SI" -> {
+        // single integer
         assert machinemodel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.INT;
-        break;
-      case "DI": // double integer
+      }
+      case "DI" -> {
+        // double integer
         if (machinemodel.getSizeofLongInt() == 8) {
           newType = CNumericTypes.LONG_INT;
         } else if (machinemodel.getSizeofLongLongInt() == 8) {
@@ -2468,9 +2448,8 @@ class ASTConverter {
           // could occur, but not on our platforms
           throw new AssertionError("unexpected machine model");
         }
-        break;
-      default:
-        throw parseContext.parseError("Unsupported mode " + mode, context);
+      }
+      default -> throw parseContext.parseError("Unsupported mode " + mode, context);
     }
 
     // Copy const, volatile, and signedness from original type, rest from newType
@@ -2912,7 +2891,7 @@ class ASTConverter {
 
       } else {
         throw parseContext.parseError(
-            "Initializer is not free of side-effects, it is a "
+            "Initializer is not free of side effects, it is a "
                 + initializer.getClass().getSimpleName(),
             e);
       }

@@ -74,7 +74,7 @@ public abstract class EdgeReplacer {
   }
 
   /**
-   * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
+   * This method adds 2 edges to the CFA: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
    */
   private void addConditionEdges(

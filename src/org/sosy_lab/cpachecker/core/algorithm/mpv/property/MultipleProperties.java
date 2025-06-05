@@ -64,7 +64,6 @@ public final class MultipleProperties {
                 new AutomataSingleProperty(propertyName, ImmutableList.of(automaton)));
           }
         }
-        default -> throw new AssertionError();
       }
     }
     properties = propertyBuilder.build();

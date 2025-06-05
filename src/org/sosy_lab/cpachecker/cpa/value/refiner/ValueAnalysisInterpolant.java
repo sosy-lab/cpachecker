@@ -120,7 +120,7 @@ public final class ValueAnalysisInterpolant
   /**
    * The method checks for trueness of the interpolant.
    *
-   * @return true, if the interpolant represents "true", else false
+   * @return whether the interpolant represents "true"
    */
   @Override
   public boolean isTrue() {

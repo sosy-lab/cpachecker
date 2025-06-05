@@ -234,7 +234,7 @@ public class PJBDDRegionManager implements RegionManager {
                 + " cache size).")
     private double cacheRatio = 0.1;
 
-    @Option(secure = true, description = "Use internal a int based bdd representation.")
+    @Option(secure = true, description = "Use internal an int based bdd representation.")
     private boolean useInts = false;
 
     // All usable BDD types in PJBDD. Keep synchronous with possible useBDDType parameters.

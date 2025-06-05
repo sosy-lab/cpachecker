@@ -84,35 +84,30 @@ public class SequentialInterpolation extends ITPStrategy {
     final List<T> formulas =
         Lists.transform(formulasWithStateAndGroupId, InterpolationGroup::groupId);
 
-    switch (sequentialStrategy) {
-      case FWD_FALLBACK:
+    return switch (sequentialStrategy) {
+      case FWD_FALLBACK -> {
         try {
-          return getFwdInterpolants(interpolator, formulas);
+          yield getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
           // Rebuild solver env as it might be tainted after an exception
           interpolator.destroyAndRebuildSolverEnvironment();
         }
-      // $FALL-THROUGH$
-      case BWD:
-        return getBwdInterpolants(interpolator, formulas);
-
-      case BWD_FALLBACK:
+        yield getBwdInterpolants(interpolator, formulas);
+      }
+      case BWD -> getBwdInterpolants(interpolator, formulas);
+      case BWD_FALLBACK -> {
         try {
-          return getBwdInterpolants(interpolator, formulas);
+          yield getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.logDebugException(e, FALLBACK_FWD_MSG);
           // Rebuild solver env as it might be tainted after an exception
           interpolator.destroyAndRebuildSolverEnvironment();
         }
-      // $FALL-THROUGH$
-      case FWD:
-        return getFwdInterpolants(interpolator, formulas);
-
-      case CONJUNCTION:
-      case DISJUNCTION:
-      case WEIGHTED:
-      case RANDOM:
+        yield getFwdInterpolants(interpolator, formulas);
+      }
+      case FWD -> getFwdInterpolants(interpolator, formulas);
+      case CONJUNCTION, DISJUNCTION, WEIGHTED, RANDOM -> {
         List<BooleanFormula> forward = null;
         try {
           forward = getFwdInterpolants(interpolator, formulas);
@@ -120,12 +115,12 @@ public class SequentialInterpolation extends ITPStrategy {
           logger.logDebugException(e, FALLBACK_BWD_MSG);
           // Rebuild solver env as it might be tainted after an exception
           interpolator.destroyAndRebuildSolverEnvironment();
-          return getBwdInterpolants(interpolator, formulas);
+          yield getBwdInterpolants(interpolator, formulas);
         }
 
         try {
           List<BooleanFormula> backward = getBwdInterpolants(interpolator, formulas);
-          return combine(forward, backward);
+          yield combine(forward, backward);
         } catch (SolverException e) {
           if (forward == null) {
             throw e;
@@ -133,13 +128,11 @@ public class SequentialInterpolation extends ITPStrategy {
             logger.logDebugException(e, FALLBACK_FWD_MSG);
             // Rebuild solver env as it might be tainted after an exception
             interpolator.destroyAndRebuildSolverEnvironment();
-            return forward;
+            yield forward;
           }
         }
-
-      default:
-        throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
-    }
+      }
+    };
   }
 
   /**
@@ -194,34 +187,31 @@ public class SequentialInterpolation extends ITPStrategy {
     Preconditions.checkNotNull(backward);
 
     switch (sequentialStrategy) {
-      case CONJUNCTION:
-        {
-          final ImmutableList.Builder<BooleanFormula> interpolants =
-              ImmutableList.builderWithExpectedSize(forward.size());
-          for (int i = 0; i < forward.size(); i++) {
-            interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
-          }
-          return interpolants.build();
+      case CONJUNCTION -> {
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
+        for (int i = 0; i < forward.size(); i++) {
+          interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-      case DISJUNCTION:
-        {
-          final ImmutableList.Builder<BooleanFormula> interpolants =
-              ImmutableList.builderWithExpectedSize(forward.size());
-          for (int i = 0; i < forward.size(); i++) {
-            interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
-          }
-          return interpolants.build();
+        return interpolants.build();
+      }
+      case DISJUNCTION -> {
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
+        for (int i = 0; i < forward.size(); i++) {
+          interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
         }
-      case WEIGHTED:
+        return interpolants.build();
+      }
+      case WEIGHTED -> {
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);
         return weightFwd <= weightBwd ? forward : backward;
-
-      case RANDOM:
+      }
+      case RANDOM -> {
         return rnd.nextBoolean() ? forward : backward;
-
-      default:
-        throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
+      }
+      default -> throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
     }
   }
 

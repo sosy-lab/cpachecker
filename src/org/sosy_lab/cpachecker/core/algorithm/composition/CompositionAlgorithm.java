@@ -193,7 +193,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "initCondition",
       description =
-          "Whether or not to create an initial condition, that excludes no paths, "
+          "Whether to create an initial condition, that excludes no paths, "
               + "before first analysis is run."
               + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;
@@ -479,17 +479,18 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @SuppressForbidden("System.out is correct for statistics")
   private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
     switch (intermediateStatistics) {
-      case PRINT:
-        stats.printIntermediateStatistics(
-            System.out, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      case EXECUTE:
+      case PRINT ->
+          stats.printIntermediateStatistics(
+              System.out, Result.UNKNOWN, currentContext.getReachedSet());
+      case EXECUTE -> {
         @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
         final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
         stats.printIntermediateStatistics(
             dummyStream, Result.UNKNOWN, currentContext.getReachedSet());
-        break;
-      default: // do nothing
+      }
+      default -> {
+        // do nothing
+      }
     }
 
     if (writeIntermediateOutputFiles) {

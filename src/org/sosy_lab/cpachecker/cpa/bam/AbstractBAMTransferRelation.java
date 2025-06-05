@@ -165,7 +165,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   }
 
   /**
-   * We assume that the root of a reached-set is a initial state at block-entry-location. Searching
+   * We assume that the root of a reached-set is an initial state at block-entry-location. Searching
    * backwards from an ARGstate should end in the root-state.
    *
    * <p>This method traverses the reached-set and might be costly. Please call only when needed.

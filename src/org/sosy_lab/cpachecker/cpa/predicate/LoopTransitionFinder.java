@@ -2,12 +2,12 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2007-2025 Dirk Beyer <https://www.sosy-lab.org>
 // SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.formulaslicing;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -20,7 +20,6 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -64,8 +63,8 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
 /** Return a path-formula describing all possible transitions inside the loop. */
-@Options(prefix = "cpa.slicing")
-public class LoopTransitionFinder implements StatisticsProvider {
+@Options(prefix = "cpa.predicate.loopTransition", deprecatedPrefix = "cpa.slicing")
+class LoopTransitionFinder implements StatisticsProvider {
 
   /** Statistics for formula slicing. */
   private static class Stats implements Statistics {
@@ -105,7 +104,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   private final Map<CFANode, Table<CFANode, CFANode, EdgeWrapper>> LBEcache;
 
-  public LoopTransitionFinder(
+  LoopTransitionFinder(
       Configuration config,
       LoopStructure pLoopStructure,
       PathFormulaManager pPathFormulaManager,
@@ -122,7 +121,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     LBEcache = new HashMap<>();
   }
 
-  public PathFormula generateLoopTransition(SSAMap start, PointerTargetSet pts, CFANode loopHead)
+  PathFormula generateLoopTransition(SSAMap start, PointerTargetSet pts, CFANode loopHead)
       throws CPATransferException, InterruptedException {
 
     Preconditions.checkState(loopStructure.getAllLoopHeads().contains(loopHead));
@@ -154,18 +153,18 @@ public class LoopTransitionFinder implements StatisticsProvider {
    * Return all edges in the local {@link Loop} associated with the {@code node}, or an empty set,
    * if {@code node} is not a loop-head.
    */
-  private List<CFAEdge> getEdgesInSCC(CFANode node) {
+  private Set<CFAEdge> getEdgesInSCC(CFANode node) {
     SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();
     SummarizingVisitor backwardsVisitor = new SummarizingVisitorBackwards();
 
     CFATraversal.dfs().traverse(node, forwardVisitor);
     CFATraversal.dfs().backwards().traverse(node, backwardsVisitor);
 
-    Set<CFAEdge> forwardsReachable = ImmutableSet.copyOf(forwardVisitor.getVisitedEdges());
-    Set<CFAEdge> backwardsReachable = ImmutableSet.copyOf(backwardsVisitor.getVisitedEdges());
+    Set<CFAEdge> forwardsReachable = forwardVisitor.getVisitedEdges();
+    Set<CFAEdge> backwardsReachable = backwardsVisitor.getVisitedEdges();
 
     Set<CFAEdge> intersection = Sets.intersection(forwardsReachable, backwardsReachable);
-    return ImmutableList.copyOf(intersection);
+    return ImmutableSet.copyOf(intersection);
   }
 
   /**
@@ -284,21 +283,17 @@ public class LoopTransitionFinder implements StatisticsProvider {
       out = LBEcache.get(loopHead);
     } else {
 
-      // Looping edges: intersection of forwards-reachable
-      // and backwards-reachable.
-      List<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
+      // Looping edges: intersection of forwards-reachable and backwards-reachable.
+      Collection<CFAEdge> edgesInLoop = getEdgesInSCC(loopHead);
       out = convert(edgesInLoop);
 
       // Otherwise it's not a loop.
       Preconditions.checkState(!edgesInLoop.isEmpty());
-      boolean changed;
-      do {
-        shutdownNotifier.shutdownIfNecessary();
-        changed = false;
-        if (applyLBETransformation && applyLargeBlockEncodingTransformationPass(out)) {
-          changed = true;
+      if (applyLBETransformation) {
+        while (applyLargeBlockEncodingTransformationPass(out)) {
+          shutdownNotifier.shutdownIfNecessary();
         }
-      } while (changed);
+      }
 
       LBEcache.put(loopHead, out);
     }
@@ -336,7 +331,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
       // Edges which successor node equal to the predecessor of the currently processed edge.
       Collection<EdgeWrapper> candidates = out.row(predecessor).values();
 
-      if (candidates.size() >= 1) {
+      if (!candidates.isEmpty()) {
         out.remove(e.getSuccessor(), e.getPredecessor());
         logger.log(Level.ALL, "Removing", e);
 
@@ -430,17 +425,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
     AndEdge(List<EdgeWrapper> pEdges) {
       Preconditions.checkState(!pEdges.isEmpty());
-      List<EdgeWrapper> l = new ArrayList<>();
+      ImmutableList.Builder<EdgeWrapper> l = ImmutableList.builder();
       for (EdgeWrapper w : pEdges) {
-        if (w instanceof AndEdge) {
-
-          // Simplification.
+        if (w instanceof AndEdge) { // flatten nested edges
           l.addAll(((AndEdge) w).edges);
         } else {
           l.add(w);
         }
       }
-      edges = ImmutableList.copyOf(l);
+      edges = l.build();
       predecessor = edges.iterator().next().getPredecessor();
       successor = Iterables.getLast(edges).getSuccessor();
     }

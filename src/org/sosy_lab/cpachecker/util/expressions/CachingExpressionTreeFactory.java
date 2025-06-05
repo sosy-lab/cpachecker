@@ -49,13 +49,16 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   @Override
   public ExpressionTree<LeafType> and(Collection<ExpressionTree<LeafType>> pOperands) {
     switch (pOperands.size()) {
-      case 0:
+      case 0 -> {
         return ExpressionTrees.getTrue();
-      case 1:
+      }
+      case 1 -> {
         return Iterables.getOnlyElement(pOperands);
-      default:
+      }
+      default -> {
         final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
         return andCache.computeIfAbsent(key, ignore -> And.of(key));
+      }
     }
   }
 
@@ -67,13 +70,16 @@ public class CachingExpressionTreeFactory<LeafType> implements ExpressionTreeFac
   @Override
   public ExpressionTree<LeafType> or(Collection<ExpressionTree<LeafType>> pOperands) {
     switch (pOperands.size()) {
-      case 0:
+      case 0 -> {
         return ExpressionTrees.getFalse();
-      case 1:
+      }
+      case 1 -> {
         return Iterables.getOnlyElement(pOperands);
-      default:
+      }
+      default -> {
         final ImmutableSet<ExpressionTree<LeafType>> key = ImmutableSet.copyOf(pOperands);
         return orCache.computeIfAbsent(key, ignore -> Or.of(key));
+      }
     }
   }
 }

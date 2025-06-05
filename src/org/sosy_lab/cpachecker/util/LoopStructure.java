@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -32,6 +31,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,8 +131,8 @@ public final class LoopStructure {
         return;
       }
 
-      Set<CFAEdge> newIncomingEdges = new HashSet<>();
-      Set<CFAEdge> newOutgoingEdges = new HashSet<>();
+      Set<CFAEdge> newIncomingEdges = new LinkedHashSet<>();
+      Set<CFAEdge> newOutgoingEdges = new LinkedHashSet<>();
 
       for (CFANode n : nodes) {
         CFAUtils.enteringEdges(n).copyInto(newIncomingEdges);
@@ -295,9 +295,6 @@ public final class LoopStructure {
   private @Nullable ImmutableSet<String> loopExitConditionVariables;
   private @Nullable ImmutableSet<String> loopIncDecVariables;
 
-  // computed lazily on demand per edge
-  private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
-
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
   }
@@ -330,19 +327,6 @@ public final class LoopStructure {
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
-  }
-
-  /** Get all loops containing this edge */
-  public List<Loop> getLoopsForEdge(CFAEdge pEdge) {
-    if (!loopsContainingEdge.containsKey(pEdge)) {
-      loopsContainingEdge.put(
-          pEdge,
-          FluentIterable.from(getAllLoops())
-              .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
-              .toList());
-    }
-
-    return loopsContainingEdge.get(pEdge);
   }
 
   /**
@@ -455,8 +439,8 @@ public final class LoopStructure {
   }
 
   /**
-   * Build loop-structure information for a CFA. Do not call this method outside of the frontend,
-   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
+   * Build loop-structure information for a CFA. Do not call this method outside the frontend, use
+   * {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
    *
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
@@ -476,7 +460,7 @@ public final class LoopStructure {
 
   /**
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
-   * with any nodes outside of this set. This method tries to differentiate nested loops.
+   * with any nodes outside this set. This method tries to differentiate nested loops.
    *
    * @param pNodes the set of nodes to look for loops in
    * @param language The source language.
@@ -522,7 +506,7 @@ public final class LoopStructure {
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
-    // inefficient. Instead we use some arrays.
+    // inefficient. Instead, we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
     // (Note that all removed nodes from initialChain
@@ -634,12 +618,13 @@ public final class LoopStructure {
     // check that the complete graph has collapsed
     if (!nodes.isEmpty()) {
       switch (language) {
-        case C:
-          throw new CParserException("Code structure is too complex, could not detect all loops!");
-        case JAVA:
-          throw new JParserException("Code structure is too complex, could not detect all loops!");
-        default:
-          throw new AssertionError("unknown language");
+        case C ->
+            throw new CParserException(
+                "Code structure is too complex, could not detect all loops!");
+        case JAVA ->
+            throw new JParserException(
+                "Code structure is too complex, could not detect all loops!");
+        default -> throw new AssertionError("unknown language");
       }
     }
 
@@ -825,7 +810,7 @@ public final class LoopStructure {
     }
   }
 
-  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterwards. */
+  /** Copy all outgoing edges of "from" to "to", and delete them from "from" afterward. */
   private static void moveOutgoingEdges(
       final CFANode fromNode, final int from, final int to, final Edge[][] edges) {
     Edge edgeToFrom = edges[to][from];

@@ -488,7 +488,7 @@ public class SMGCPAMaterializer {
     }
 
     // TODO: problem, on 1+ we might have first and last ptrs (and all), but never want to switch
-    // the last and all pointer to an concrete element for the extended list (this case), but
+    // the last and all pointer to a concrete element for the extended list (this case), but
     // switch it to the 0+
     // Create the now smaller abstracted list
     SMGObjectAndSMGState newAbsListSegAndState =

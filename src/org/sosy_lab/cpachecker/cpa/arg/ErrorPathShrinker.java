@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * The Class ErrorPathShrinker gets an targetPath and creates a new Path, with only the important
+ * The Class ErrorPathShrinker gets a targetPath and creates a new Path, with only the important
  * edges of the Path. The idea behind this Class is, that not every action (CFAEdge) before an error
  * occurs is important for the error, only a few actions (CFAEdges) are important.
  */
@@ -86,7 +86,7 @@ public final class ErrorPathShrinker {
   public ErrorPathShrinker() {}
 
   /**
-   * The function shrinkErrorPath gets an targetPath and creates a new Path, with only the important
+   * The function shrinkErrorPath gets a targetPath and creates a new Path, with only the important
    * edges of the Path.
    *
    * @param pTargetPath the "long" targetPath
@@ -122,7 +122,7 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
 
-    /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
+    /* if the ErrorNode is inside a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
      * so update the sets of variables and call the PathHandler again until
      * the longPath is completely handled.*/
@@ -177,24 +177,17 @@ public final class ErrorPathShrinker {
     }
 
     switch (cfaEdge.getEdgeType()) {
-      case AssumeEdge:
-        handleAssumption(((AssumeEdge) cfaEdge).getExpression());
-        break;
-
-      case FunctionCallEdge:
+      case AssumeEdge -> handleAssumption(((AssumeEdge) cfaEdge).getExpression());
+      case FunctionCallEdge -> {
         final FunctionCallEdge fnkCall = (FunctionCallEdge) cfaEdge;
         final FunctionEntryNode succ = fnkCall.getSuccessor();
         handleFunctionCallEdge(fnkCall.getArguments(), succ.getFunctionParameters());
-        break;
-
-      case FunctionReturnEdge:
+      }
+      case FunctionReturnEdge -> {
         final FunctionReturnEdge fnkReturnEdge = (FunctionReturnEdge) cfaEdge;
         handleFunctionReturnEdge(fnkReturnEdge, fnkReturnEdge.getFunctionCall());
-
-        break;
-
-      default:
-        handleSimpleEdge(cfaEdge);
+      }
+      default -> handleSimpleEdge(cfaEdge);
     }
   }
 
@@ -206,32 +199,18 @@ public final class ErrorPathShrinker {
   private void handleSimpleEdge(final CFAEdge cfaEdge) {
 
     switch (cfaEdge.getEdgeType()) {
-      case DeclarationEdge:
-        handleDeclarationEdge(((ADeclarationEdge) cfaEdge).getDeclaration());
-        break;
-
-      case StatementEdge:
-        handleStatementEdge(((AStatementEdge) cfaEdge).getStatement());
-        break;
-
-      case ReturnStatementEdge:
-        // this statement is a function return, e.g. return (a);
-        // note that this is different from return edge,
-        // this is a statement edge, which leads the function to the
-        // last node of its CFA, where return edge is from that last node
-        // to the return site of the caller function
-        handleReturnStatementEdge((AReturnStatementEdge) cfaEdge);
-        break;
-
-      case BlankEdge:
-        handleBlankEdge((BlankEdge) cfaEdge);
-        break;
-
-      case CallToReturnEdge:
-        throw new AssertionError("function summaries not supported");
-
-      default:
-        throw new AssertionError("unknown edge type");
+      case DeclarationEdge -> handleDeclarationEdge(((ADeclarationEdge) cfaEdge).getDeclaration());
+      case StatementEdge -> handleStatementEdge(((AStatementEdge) cfaEdge).getStatement());
+      case ReturnStatementEdge ->
+          // this statement is a function return, e.g. return (a);
+          // note that this is different from return edge,
+          // this is a statement edge, which leads the function to the
+          // last node of its CFA, where return edge is from that last node
+          // to the return site of the caller function
+          handleReturnStatementEdge((AReturnStatementEdge) cfaEdge);
+      case BlankEdge -> handleBlankEdge((BlankEdge) cfaEdge);
+      case CallToReturnEdge -> throw new AssertionError("function summaries not supported");
+      default -> throw new AssertionError("unknown edge type");
     }
   }
 
@@ -345,7 +324,7 @@ public final class ErrorPathShrinker {
 
   /**
    * This method handles assumptions (a==b, a<=b, true, etc.). Assumptions are not handled as
-   * important edges, if they are part of a switchStatement. Otherwise this method only adds all
+   * important edges, if they are part of a switchStatement. Otherwise, this method only adds all
    * variables in an assumption (expression) to the important variables.
    */
   private void handleAssumption(AExpression assumeExp) {
@@ -356,7 +335,7 @@ public final class ErrorPathShrinker {
   }
 
   /**
-   * This method checks, if the current assumption is part of a switchStatement. Therefore it
+   * This method checks, if the current assumption is part of a switchStatement. Therefore, it
    * compares the current assumption with the expression of the last added CFAEdge. It can also
    * check similar assumptions like "if(x>3) {if(x>4){...}}".
    *

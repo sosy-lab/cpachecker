@@ -60,7 +60,7 @@ public interface PointerTargetSetBuilder {
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked
-   * (sub)fields (if its a structure/union) or all its elements (if its an array).
+   * (sub)fields (if it's a structure/union) or all its elements (if it's an array).
    */
   void addBase(String name, CType type);
 
@@ -758,7 +758,8 @@ public interface PointerTargetSetBuilder {
     /** Returns a fresh ID that can be used as identifier for a heap allocation. */
     @Override
     public int getFreshAllocationId() {
-      return allocationCount = Math.incrementExact(allocationCount);
+      allocationCount = Math.incrementExact(allocationCount);
+      return allocationCount;
     }
   }
 

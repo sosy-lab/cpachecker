@@ -36,7 +36,7 @@ public class DssMessageLogger {
       name = "dss.logging.reportFiles",
       description = "output file for visualizing message exchange")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path reportFiles = Path.of("block_analysis/block_analysis");
+  private Path reportFiles = Path.of("block_analysis/messages");
 
   @Option(description = "output file for visualizing the block graph")
   @FileOption(Type.OUTPUT_FILE)

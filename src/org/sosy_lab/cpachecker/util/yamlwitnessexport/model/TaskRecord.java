@@ -58,7 +58,7 @@ public class TaskRecord {
   private static String getSpecificationAsString(Specification pSpecification) throws IOException {
     String defaultReturnSpecification = "";
     if (pSpecification.getFiles().size() != 1) {
-      // Currently there is no semantics for witnesses when multiple properties are checked
+      // Currently, there is no semantics for witnesses when multiple properties are checked
       return defaultReturnSpecification;
     }
 
@@ -70,7 +70,7 @@ public class TaskRecord {
             .toList();
 
     if (simplifiedSpecification.size() != 1) {
-      // Currently witnesses only accept SV-COMP specifications as valid. These are all a single
+      // Currently, witnesses only accept SV-COMP specifications as valid. These are all a single
       // line
       return defaultReturnSpecification;
     }

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -89,7 +88,6 @@ class TypeHierachyCreator extends ASTVisitor {
     fileOfCU = fileName;
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
     Path oldFileOfCU = fileOfCU;
 

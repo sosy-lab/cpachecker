@@ -172,7 +172,6 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       case TARANTULA -> new Tarantula();
       case DSTAR -> new DStar();
       case OCHIAI -> new Ochiai();
-      default -> throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
     };
   }
 

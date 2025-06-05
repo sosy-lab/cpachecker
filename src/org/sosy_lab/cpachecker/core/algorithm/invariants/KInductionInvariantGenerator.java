@@ -369,7 +369,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       // start invariant generation asynchronously
       ExecutorService executor = Executors.newSingleThreadExecutor();
       invariantGenerationFuture = executor.submit(task);
-      executor.shutdown(); // will shutdown after task is finished
+      executor.shutdown(); // will shut down after task is finished
 
     } else {
       // create future for lazy synchronous invariant generation
@@ -537,7 +537,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     "No more candidates available: The safety property has already been"
                         + " confirmed.");
               }
-              return candidate = iterator.next();
+              candidate = iterator.next();
+              return candidate;
             }
 
             @Override

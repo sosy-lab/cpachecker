@@ -64,7 +64,7 @@ final class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   @Option(
       secure = true,
       description =
-          "Instead of updating precision and arg we say that the refinement was not successful"
+          "Instead of updating precision and ARG we say that the refinement was not successful"
               + " after N times of refining. A real error state is not necessary to be found. Use 0"
               + " for unlimited refinements (default).")
   @IntegerOption(min = 0)

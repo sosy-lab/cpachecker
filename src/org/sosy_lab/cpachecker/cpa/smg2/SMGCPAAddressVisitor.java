@@ -85,7 +85,7 @@ public class SMGCPAAddressVisitor
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(
       CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and an offset if it really has a address. If this fails this returns a different
+    // the target and an offset if it really has an address. If this fails this returns a different
     // Value class.
     // TODO handle possible returns
     return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(state));
@@ -97,7 +97,7 @@ public class SMGCPAAddressVisitor
     // Just get a default value and log
     logger.logf(
         Level.INFO,
-        "%s, Default value: CExpression %s could not find a address for %s. Related CFAEdge: %s",
+        "%s, Default value: CExpression %s could not find an address for %s. Related CFAEdge: %s",
         cfaEdge.getFileLocation(),
         pExp,
         state,
@@ -311,7 +311,7 @@ public class SMGCPAAddressVisitor
         } else {
           throw new UnsupportedOperationException(
               "Missing case in SMGCPAAddressVisitor. Report to CPAchecker issue tracker for SMG2"
-                  + " analysis. Missing symbolic handling of a array subscript expression");
+                  + " analysis. Missing symbolic handling of an array subscript expression");
         }
       }
 
@@ -407,7 +407,7 @@ public class SMGCPAAddressVisitor
     for (ValueAndSMGState structValuesAndState :
         ownerExpression.accept(
             new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options))) {
-      // This value is either a AddressValue for pointers i.e. (*struct).field or a general
+      // This value is either an AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = structValuesAndState.getValue();
       SMGState currentState = structValuesAndState.getState();
@@ -487,7 +487,7 @@ public class SMGCPAAddressVisitor
   @Override
   public List<SMGStateAndOptionalSMGObjectAndOffset> visit(CPointerExpression e)
       throws CPATransferException {
-    // This should sub-evaluate to a AddressExpression in the visit call in the beginning as we
+    // This should sub-evaluate to an AddressExpression in the visit call in the beginning as we
     // always evaluate to the address
 
     // Get the type of the target
@@ -495,7 +495,7 @@ public class SMGCPAAddressVisitor
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
-    // the target and an offset. If this fails this returns a UnknownValue.
+    // the target and an offset. If this fails this returns an UnknownValue.
 
     ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> resultBuilder =
         ImmutableList.builder();
