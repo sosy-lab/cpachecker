@@ -21,7 +21,7 @@ int main() {
     // `d` and its elements are expected to be tainted
     __VERIFIER_is_public(d, 0);
     for (int i = 0; i < sizeof(d) / sizeof(d[0]); i++) {
-        __VERIFIER_is_public(d[i], 1);
+        __VERIFIER_is_public(d[i], 0);
     }
 
     // Information-flow violation expected:
