@@ -165,8 +165,14 @@ public class TaintAnalysisState
     // Add all tainted variables from the other state
     joinedTaintedVars.putAll(pOther.getTaintedVariables());
 
-    // For untainted variables, only keep those that are untainted in both states
-    joinedUntaintedVars.keySet().retainAll(pOther.getUntaintedVariables().keySet());
+    // Add the rest of the untainted variables from the other state that are not in the
+    // joinedTaintedVars map or in this untainted variables map.
+    for (CIdExpression untaintedVar : pOther.getUntaintedVariables().keySet()) {
+      if (!joinedTaintedVars.containsKey(untaintedVar)
+          && !this.untaintedVariables.containsKey(untaintedVar)) {
+        joinedUntaintedVars.put(untaintedVar, pOther.getUntaintedVariables().get(untaintedVar));
+      }
+    }
 
     Set<TaintAnalysisState> joinPredecessors = new HashSet<>(this.getPredecessors());
     joinPredecessors.addAll(pOther.getPredecessors());
