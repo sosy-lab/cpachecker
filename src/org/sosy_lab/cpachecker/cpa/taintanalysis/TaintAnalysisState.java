@@ -36,16 +36,14 @@ public class TaintAnalysisState
   @Serial private static final long serialVersionUID = -7715698130795640052L;
 
   private boolean violatesProperty = false;
-  private final Map<CIdExpression, CExpression> taintedVariables;
-  private final Map<CIdExpression, CExpression> untaintedVariables;
+  private final Map<CIdExpression, CExpression> taintedVariables = new HashMap<>();
+  private final Map<CIdExpression, CExpression> untaintedVariables = new HashMap<>();
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private Set<TaintAnalysisState> predecessors = new HashSet<>();
   private final Set<TaintAnalysisState> successors = new HashSet<>();
   private final Set<TaintAnalysisState> siblingStates = new HashSet<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
-    this.taintedVariables = new HashMap<>();
-    this.untaintedVariables = new HashMap<>();
     for (CIdExpression expr : pElements) {
       this.taintedVariables.put(expr, null);
     }
@@ -55,8 +53,8 @@ public class TaintAnalysisState
       Map<CIdExpression, CExpression> pTaintedVariables,
       Map<CIdExpression, CExpression> pUntaintedVariables,
       Set<TaintAnalysisState> pPredecessors) {
-    this.taintedVariables = new HashMap<>(pTaintedVariables);
-    this.untaintedVariables = new HashMap<>(pUntaintedVariables);
+    this.taintedVariables.putAll(pTaintedVariables);
+    this.untaintedVariables.putAll(pUntaintedVariables);
     this.predecessors = pPredecessors;
     for (TaintAnalysisState predecessor : pPredecessors) {
       predecessor.addSuccessor(this);
