@@ -80,7 +80,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
-  private final int MAX_ALLOWED_STATE_SUCCESSORS = 3;
+  private final int MAX_ALLOWED_STATE_SUCCESSORS = 500;
 
   public TaintAnalysisTransferRelation(LogManager pLogger) {
 
@@ -504,6 +504,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
         }
 
         if (initializer instanceof CInitializerList initList) {
+          // initialize arrays pointing to the RegularImmutableList containing its
+          // elements in the taitned/untainted variables map
           List<CInitializer> initializerList = initList.getInitializers();
 
           for (CInitializer init : initializerList) {
@@ -679,7 +681,10 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             } catch (CPATransferException e) {
               throw new CPATransferException("Error processing setPublic call", e);
             }
-          }
+          } else if (exprToCheck instanceof CPointerExpression pointer) {
+            logger.logf(Level.INFO, "exprToCheck is a pointer expression");
+            // TODO:
+          } // TODO: else if (exprToCheck instanceof CArraySubscriptExpression arraySubscript) {}
         }
         newStates.add(generateNewState(pState, killedVars, generatedVars, values));
 
