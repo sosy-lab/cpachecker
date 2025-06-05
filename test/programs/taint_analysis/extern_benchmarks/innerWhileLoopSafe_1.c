@@ -25,6 +25,9 @@ int main() {
         a++;
     }
 
+    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(b, 1);
+
     a1 = 0;
     while (a1 < 10) {
         while (b1) { // <- with this it works, but it is not terminating when using a condition like b1 < x
@@ -33,8 +36,6 @@ int main() {
         a1++;
     }
 
-    __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(a1, 1);
-    __VERIFIER_is_public(b1, 1);
+    __VERIFIER_is_public(b1, 0);
 }

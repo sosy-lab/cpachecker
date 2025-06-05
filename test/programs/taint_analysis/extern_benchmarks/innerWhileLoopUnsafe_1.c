@@ -25,16 +25,19 @@ int main() {
         a++;
     }
 
+    __VERIFIER_is_public(a, 1);
+    __VERIFIER_is_public(b, 1);
+
+    // TODO: separate the unsafe case below
+
     a1 = 0;
     while (a1 < 1) {
-        while (b1) { // <- with this it works, but it is not terminating when using a condition like b1 < x
+        while (b1) {
             b1++;
         }
         a1++;
     }
 
-    __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
     __VERIFIER_is_public(a1, 0);
     __VERIFIER_is_public(b1, 0);
 }
