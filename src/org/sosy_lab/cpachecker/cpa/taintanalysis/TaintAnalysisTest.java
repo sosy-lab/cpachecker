@@ -348,7 +348,7 @@ public class TaintAnalysisTest {
   @Test
   public void testTaintByPointerAndAddressOperatorsSafe() throws Exception {
     TestResults results =
-        runCPAchecker("taintByPointerAndAddressOperatorsSafe.c", "c_pointer_and_access_operators");
+        runCPAchecker("taintByPointerAndAddressOperatorsSafe.c", "c_pointer_and_address_operators");
     results.assertIsSafe();
   }
 
