@@ -15,13 +15,7 @@ int main() {
 
     int tainted = __VERIFIER_nondet_int();
     int a[234];
-
-    // what are these three variables?
     int* b;
-    int* c;
-    int* d;
-
-    b = __VERIFIER_nondet_int();
 
     a[2] = 2;
     __VERIFIER_is_public(a, 1);
@@ -29,7 +23,7 @@ int main() {
     a[tainted] = 354;
     __VERIFIER_is_public(a, 1);
 
-    d[345] = tainted;
-    __VERIFIER_is_public(a, 0);
+    b[345] = tainted;
+    __VERIFIER_is_public(b, 0);
 
 }
