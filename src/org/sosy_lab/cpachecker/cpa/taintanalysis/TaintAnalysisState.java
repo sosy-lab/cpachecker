@@ -110,11 +110,7 @@ public class TaintAnalysisState
 
     boolean otherContainsThisPredecessors = other.getPredecessors().containsAll(this.predecessors);
 
-    return otherContainsThisTainted
-        && otherContainsThisUntainted
-        && otherContainsThisPredecessors
-        && otherContainsThisSuccessors
-        && otherContainsThisSiblingStates;
+    return otherContainsThisTainted && otherContainsThisUntainted && otherContainsThisPredecessors;
   }
 
   @Override
