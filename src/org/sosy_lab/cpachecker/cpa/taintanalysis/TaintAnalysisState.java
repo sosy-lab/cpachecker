@@ -41,7 +41,6 @@ public class TaintAnalysisState
   private static final String PROPERTY_TAINTED = "informationFlowViolation";
   private Set<TaintAnalysisState> predecessors = new HashSet<>();
   private final Set<TaintAnalysisState> successors = new HashSet<>();
-  private final Set<TaintAnalysisState> siblingStates = new HashSet<>();
 
   public TaintAnalysisState(Set<CIdExpression> pElements) {
     for (CIdExpression expr : pElements) {
@@ -59,11 +58,6 @@ public class TaintAnalysisState
     for (TaintAnalysisState predecessor : pPredecessors) {
       predecessor.addSuccessor(this);
     }
-  }
-
-  @Nullable
-  public Set<TaintAnalysisState> getSiblingStates() {
-    return siblingStates;
   }
 
   public Set<TaintAnalysisState> getPredecessors() {
@@ -115,11 +109,6 @@ public class TaintAnalysisState
                             other.getUntaintedVariables().get(entry.getKey()), entry.getValue()));
 
     boolean otherContainsThisPredecessors = other.getPredecessors().containsAll(this.predecessors);
-    boolean otherContainsThisSuccessors = other.getSuccessors().containsAll(this.successors);
-
-    assert other.getSiblingStates() != null;
-    boolean otherContainsThisSiblingStates =
-        other.getSiblingStates().containsAll(this.siblingStates);
 
     return otherContainsThisTainted
         && otherContainsThisUntainted
@@ -188,15 +177,6 @@ public class TaintAnalysisState
 
     TaintAnalysisState joinedState =
         new TaintAnalysisState(joinedTaintedVars, joinedUntaintedVars, joinPredecessors);
-
-    this.siblingStates.add(pOther);
-    pOther.siblingStates.add(this);
-
-    joinedState.siblingStates.add(this);
-    this.siblingStates.add(joinedState);
-
-    joinedState.siblingStates.add(pOther);
-    pOther.siblingStates.add(joinedState);
 
     this.successors.addAll(pOther.successors);
     pOther.successors.addAll(this.successors);
