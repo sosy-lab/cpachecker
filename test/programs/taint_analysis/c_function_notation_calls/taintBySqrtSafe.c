@@ -24,7 +24,7 @@ int main() {
     // No property violation expected
     __VERIFIER_is_public(z, 0);
 
-    // This line is just to show that the publicity check also supports
+    // This line is just to make sure that the publicity check also supports
     // direct extern function calls.
     __VERIFIER_is_public(SQRT(x * y), 0);
 }
