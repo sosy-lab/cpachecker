@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
@@ -21,12 +21,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvaluationStatement {
 
-  private final SeqLogicalNotExpression evaluationExpression;
+  private final BitVectorEvaluationExpression evaluationExpression;
 
   public final SeqBlockGotoLabelStatement gotoLabel;
 
   public SeqBitVectorAccessEvaluationStatement(
-      SeqLogicalNotExpression pEvaluationExpression, SeqBlockGotoLabelStatement pGotoLabel) {
+      BitVectorEvaluationExpression pEvaluationExpression, SeqBlockGotoLabelStatement pGotoLabel) {
 
     evaluationExpression = pEvaluationExpression;
     gotoLabel = pGotoLabel;

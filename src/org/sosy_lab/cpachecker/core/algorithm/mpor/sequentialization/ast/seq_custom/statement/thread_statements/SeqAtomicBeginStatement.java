@@ -125,7 +125,7 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
 
   @Override
   public boolean onlyWritesPc() {
-    // this statement does only write a pc, but we still include it for improved overview
+    // this statement does only write a pc, but it is required to merge atomic blocks
     return false;
   }
 }

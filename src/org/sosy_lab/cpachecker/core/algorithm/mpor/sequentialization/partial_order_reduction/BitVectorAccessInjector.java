@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -162,7 +161,7 @@ class BitVectorAccessInjector {
                 pBinaryExpressionBuilder);
         SeqBitVectorAccessEvaluationStatement evaluationStatement =
             new SeqBitVectorAccessEvaluationStatement(
-                new SeqLogicalNotExpression(evaluationExpression), newTarget.block.getGotoLabel());
+                evaluationExpression, newTarget.block.getGotoLabel());
         newInjected.add(evaluationStatement);
         // the assignment is injected after the evaluation, it is only needed when commute fails
         newInjected.addAll(bitVectorAssignments);

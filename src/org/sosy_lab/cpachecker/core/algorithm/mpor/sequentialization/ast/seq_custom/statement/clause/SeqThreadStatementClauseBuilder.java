@@ -130,7 +130,8 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.get(0);
-      SeqThreadStatementClause nonBlank = SeqPruner.findNonBlankClause(first, labelClauseMap);
+      SeqThreadStatementClause nonBlank =
+          SeqPruner.recursivelyFindNonBlankClause(first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
         rReordered.put(entry); // put case clauses as they were
       } else {

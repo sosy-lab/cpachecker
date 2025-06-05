@@ -90,7 +90,8 @@ public class BitVectorEvaluationBuilder {
             BitVectorAccessType.ACCESS, pActiveThread);
     CBinaryExpression binaryExpression =
         buildAccessBitVectorEvaluation(directBitVector, otherBitVectors, pBinaryExpressionBuilder);
-    return new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty());
+    SeqLogicalNotExpression logicalNot = new SeqLogicalNotExpression(binaryExpression);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
   }
 
   private static Optional<SeqExpression> buildPrunedScalarAccessBitVectorEvaluation(
@@ -125,7 +126,7 @@ public class BitVectorEvaluationBuilder {
     return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
   }
 
-  // TODO
+  // TODO unused
   @SuppressWarnings("unused")
   public static Optional<BitVectorEvaluationExpression> buildBitVectorAccessEvaluationByEncoding(
       MPOROptions pOptions,
