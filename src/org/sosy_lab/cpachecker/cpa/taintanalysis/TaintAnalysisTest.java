@@ -183,8 +183,32 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testTaintByCommaOperatorUnsafe() throws Exception {
-    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe.c", "c_infix_operators");
+  public void testTaintByCommaOperatorUnsafe_1() throws Exception {
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe_1.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByCommaOperatorUnsafe_2() throws Exception {
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe_2.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByCommaOperatorUnsafe_3() throws Exception {
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe_3.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByCommaOperatorUnsafe_4() throws Exception {
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe_4.c", "c_infix_operators");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testTaintByCommaOperatorUnsafe_5() throws Exception {
+    TestResults results = runCPAchecker("taintByCommaOperatorUnsafe_5.c", "c_infix_operators");
     results.assertIsUnsafe();
   }
 

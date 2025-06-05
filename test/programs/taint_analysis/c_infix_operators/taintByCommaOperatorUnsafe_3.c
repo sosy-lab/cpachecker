@@ -1,0 +1,26 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+extern int __VERIFIER_nondet_int();
+extern void __VERIFIER_set_public(int variable, int booleanFlag);
+extern int __VERIFIER_is_public(int variable, int booleanFlag);
+extern void f(int var1, int var2);
+extern int g(int var);
+
+int main() {
+    int x = __VERIFIER_nondet_int();
+    int y = 1;
+    int z = 1;
+
+    // f(x,y) is expected to taint y for safety. The comma operator will return y and therefore
+    // z is expected to be tainted.
+    z = (f(x, y), y);
+
+    // Information flow violation expected
+    __VERIFIER_is_public(z, 1);
+}

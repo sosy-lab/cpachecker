@@ -30,6 +30,7 @@ int main() {
     __VERIFIER_is_public((y, x), 0);
 
     // Since f could be a function that internally makes the taint flow from x to y,
+    // for safety, when we don't know the body of a function
     // the analysis taints all the parameters from `f` when one of its arguments is tainted
     z = (f(x, y), y);
     __VERIFIER_is_public(z, 0);
@@ -48,12 +49,11 @@ int main() {
     __VERIFIER_set_public(y, 1);
     __VERIFIER_set_public(z, 1);
 
-    // Can be better illustrated with pre definitions:
     // taint flows from x to a
     int a = g(x + z);
     __VERIFIER_is_public(a, 0);
 
-    // taint flows from a to y and b
+    // taint flows from `a` to `y` and from `y` to and `b`
     int b = (f(a, y), y);
     __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(y, 0);
