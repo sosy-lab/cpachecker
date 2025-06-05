@@ -20,7 +20,8 @@ int main() {
 
     for (i = 0; i < argc; ++i) {
         a++;
-        while (b < 500) {
+//        while (b < 500) {
+        while (b < 50) {
             b++; // we add this assignment that ensures that the loop terminates, unlike the original benchmark allLoopsSafe_1.c
             do {
                 c = argc + 1; // t(c) = t(argc) = T
@@ -38,7 +39,8 @@ int main() {
     a1 = b1 = c1 = 0;
     for (i1 = 0; i1 < argc; ++i1) {
         a1++;
-        while (b1 < 500) {
+//        while (b1 < 500) {
+        while (b1 < 50) {
             do {
                 c1 = argc + 1; // t(c1) = t(argc) + t(1) = T + U = T
             } while (c1 < argc);

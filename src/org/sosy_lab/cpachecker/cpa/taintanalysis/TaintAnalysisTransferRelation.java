@@ -80,7 +80,7 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
   //  private static final List<String> SINKS = Lists.newArrayList("printf");
 
   private final LogManager logger;
-  private final int MAX_ALLOWED_STATE_SUCCESSORS = 500;
+  private final int MAX_ALLOWED_STATE_SUCCESSORS = 50;
 
   public TaintAnalysisTransferRelation(LogManager pLogger) {
 
