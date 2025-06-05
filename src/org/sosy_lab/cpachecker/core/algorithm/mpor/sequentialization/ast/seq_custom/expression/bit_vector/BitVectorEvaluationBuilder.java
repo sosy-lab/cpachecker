@@ -47,7 +47,7 @@ public class BitVectorEvaluationBuilder {
    * Builds a pruned evaluation expression for the given bit vectors based on the variables assigned
    * to the bit vectors in {@code pBitVectorAssignments}.
    */
-  public static BitVectorEvaluationExpression buildPrunedAccessBitVectorEvaluationByEncoding(
+  public static BitVectorEvaluationExpression buildAccessBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
@@ -57,7 +57,6 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     return switch (pOptions.bitVectorEncoding) {
-      // for access bin/hex, the bit vector evaluation is either full or pruned entirely
       case NONE ->
           throw new IllegalArgumentException(
               "cannot prune for encoding " + pOptions.bitVectorEncoding);
@@ -126,38 +125,6 @@ public class BitVectorEvaluationBuilder {
     return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
   }
 
-  // TODO unused
-  @SuppressWarnings("unused")
-  public static Optional<BitVectorEvaluationExpression> buildBitVectorAccessEvaluationByEncoding(
-      MPOROptions pOptions,
-      MPORThread pActiveThread,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return switch (pOptions.bitVectorEncoding) {
-      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY, DECIMAL, HEXADECIMAL -> {
-        CExpression directBitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.ACCESS, pActiveThread);
-        ImmutableSet<CExpression> otherBitVectors =
-            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-                BitVectorAccessType.ACCESS, pActiveThread);
-        CBinaryExpression binaryExpression =
-            buildAccessBitVectorEvaluation(
-                directBitVector, otherBitVectors, pBinaryExpressionBuilder);
-        yield Optional.of(
-            new BitVectorEvaluationExpression(Optional.of(binaryExpression), Optional.empty()));
-      }
-      case SCALAR -> {
-        Optional<SeqExpression> seqExpression =
-            buildScalarAccessBitVectorEvaluation(pActiveThread, pBitVectorVariables);
-        yield Optional.of(new BitVectorEvaluationExpression(Optional.empty(), seqExpression));
-      }
-    };
-  }
-
   private static CBinaryExpression buildAccessBitVectorEvaluation(
       CExpression pDirectBitVector,
       // TODO make list
@@ -172,27 +139,6 @@ public class BitVectorEvaluationBuilder {
         nestBinaryExpressions(pOtherBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
-  }
-
-  private static Optional<SeqExpression> buildScalarAccessBitVectorEvaluation(
-      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
-
-    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
-      return Optional.empty();
-    }
-    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
-        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : scalarBitVectors.entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-      CIdExpression activeVariable = extractActiveVariable(pActiveThread, accessVariables);
-      // convert from CExpression to SeqExpression
-      ImmutableList<SeqExpression> otherVariables =
-          convertOtherVariablesToSeqExpression(activeVariable, accessVariables);
-      SeqLogicalAndExpression andExpression = distributeConjunction(activeVariable, otherVariables);
-      variableExpressions.add(andExpression);
-    }
-    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
   }
 
   // Read/Write Bit Vector Reduction ===============================================================

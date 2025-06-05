@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause;
 
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
@@ -87,7 +88,8 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables) {
+      ThreadSimulationVariables pThreadSimulationVariables)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rClauses =
         ImmutableMap.builder();
@@ -121,7 +123,8 @@ public class SeqThreadStatementClauseBuilder {
    * function call.
    */
   private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reorderClauses(
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses) {
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rReordered =
         ImmutableMap.builder();
@@ -131,7 +134,7 @@ public class SeqThreadStatementClauseBuilder {
           SeqThreadStatementClauseUtil.mapLabelNumberToClause(clauses);
       SeqThreadStatementClause first = clauses.get(0);
       SeqThreadStatementClause nonBlank =
-          SeqPruner.recursivelyFindNonBlankClause(first, labelClauseMap);
+          SeqPruner.recursivelyFindNonBlankClause(Optional.empty(), first, labelClauseMap);
       if (SeqThreadStatementClauseUtil.isConsecutiveLabelPath(first, nonBlank, labelClauseMap)) {
         rReordered.put(entry); // put case clauses as they were
       } else {

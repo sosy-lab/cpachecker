@@ -156,7 +156,7 @@ public class SeqPruner {
         SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
         if (nextClause.onlyWritesPc() || isEmptyAtomicBlock(nextClause, pLabelClauseMap)) {
           SeqThreadStatementClause nonBlank =
-              recursivelyFindNonBlankClause(pClause, nextClause, pLabelClauseMap);
+              recursivelyFindNonBlankClause(Optional.of(pClause), nextClause, pLabelClauseMap);
           return Optional.of(extractTargetPc(nonBlank));
         } else {
           return Optional.of(extractTargetPc(nextClause));
@@ -201,13 +201,16 @@ public class SeqPruner {
    * Returns the first non-prunable {@link SeqThreadStatementClause} in the {@code case} path,
    * starting in pInitial.
    */
-  private static SeqThreadStatementClause recursivelyFindNonBlankClause(
-      final SeqThreadStatementClause pInitial,
+  public static SeqThreadStatementClause recursivelyFindNonBlankClause(
+      final Optional<SeqThreadStatementClause> pInitial,
       SeqThreadStatementClause pCurrent,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap)
       throws UnrecognizedCodeException {
 
-    checkArgument(!pInitial.onlyWritesPc(), "pInitial must not be prunable");
+    // if pInitial is present, it should only write a pc
+    checkArgument(
+        pInitial.isEmpty() || !pInitial.orElseThrow().onlyWritesPc(),
+        "pInitial must not be prunable");
     if (pCurrent.onlyWritesPc()) {
       SeqThreadStatement singleStatement = pCurrent.block.getFirstStatement();
       Verify.verify(validPrunableClause(pCurrent));
@@ -227,27 +230,6 @@ public class SeqPruner {
       if (nextTargetPc != Sequentialization.EXIT_PC) {
         SeqThreadStatementClause nextNextClause = requireNonNull(pLabelClauseMap.get(nextTargetPc));
         return recursivelyFindNonBlankClause(pInitial, nextNextClause, pLabelClauseMap);
-      }
-    }
-    return pCurrent;
-  }
-
-  // TODO this should not be here, its only used for reordering cases?
-  //  also its the same as the function above, just without pInitial, so make that optional?
-  /**
-   * Returns the first non-prunable {@link SeqThreadStatementClause} in the {@code case} path,
-   * starting in pInitial. Does not make additional prunable assertions.
-   */
-  public static SeqThreadStatementClause recursivelyFindNonBlankClause(
-      SeqThreadStatementClause pCurrent,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
-    if (pCurrent.onlyWritesPc()) {
-      SeqThreadStatement singleStatement = pCurrent.block.getFirstStatement();
-      int targetPc = singleStatement.getTargetPc().orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC) {
-        SeqThreadStatementClause nextClause = requireNonNull(pLabelClauseMap.get(targetPc));
-        return recursivelyFindNonBlankClause(nextClause, pLabelClauseMap);
       }
     }
     return pCurrent;

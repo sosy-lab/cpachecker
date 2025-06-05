@@ -152,7 +152,7 @@ class BitVectorAccessInjector {
         ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
         BitVectorEvaluationExpression evaluationExpression =
-            BitVectorEvaluationBuilder.buildPrunedAccessBitVectorEvaluationByEncoding(
+            BitVectorEvaluationBuilder.buildAccessBitVectorEvaluationByEncoding(
                 pOptions,
                 pThread,
                 directVariables,
