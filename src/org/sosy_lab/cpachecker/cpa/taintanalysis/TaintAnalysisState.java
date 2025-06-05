@@ -163,7 +163,8 @@ public class TaintAnalysisState
 
     // Add the rest of the untainted variables from the other state that are not in the
     // joinedTaintedVars map or in this untainted variables map.
-    for (CIdExpression untaintedVar : pOther.getUntaintedVariables().keySet()) {
+    for (Map.Entry<CIdExpression, CExpression> entry : pOther.getUntaintedVariables().entrySet()) {
+      CIdExpression untaintedVar = entry.getKey();
       if (!joinedTaintedVars.containsKey(untaintedVar)
           && !this.untaintedVariables.containsKey(untaintedVar)) {
         joinedUntaintedVars.put(untaintedVar, pOther.getUntaintedVariables().get(untaintedVar));
