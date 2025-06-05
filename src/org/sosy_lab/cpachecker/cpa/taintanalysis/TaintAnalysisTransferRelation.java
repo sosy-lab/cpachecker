@@ -681,9 +681,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
             } catch (CPATransferException e) {
               throw new CPATransferException("Error processing setPublic call", e);
             }
-          } else if (exprToCheck instanceof CPointerExpression pointer) {
+          } else if (exprToCheck instanceof CPointerExpression) {
             logger.logf(Level.INFO, "exprToCheck is a pointer expression");
-            // TODO:
           } // TODO: else if (exprToCheck instanceof CArraySubscriptExpression arraySubscript) {}
         }
         newStates.add(generateNewState(pState, killedVars, generatedVars, values));
