@@ -36,7 +36,6 @@ int main(int argc1, int argc2) {
 
 
 void foo(int n) {
-// TODO: after this call the analysis must clean up the local n variable
     prod *= n;
 }
 
