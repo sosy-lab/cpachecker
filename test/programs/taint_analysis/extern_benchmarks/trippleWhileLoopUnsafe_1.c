@@ -59,7 +59,7 @@ int main() {
         a2 = b;
     }
 
-    __VERIFIER_is_public(a2, 0);
-    __VERIFIER_is_public(b2, 1);
+    __VERIFIER_is_public(a2, 1);
+    __VERIFIER_is_public(b2, 0);
     __VERIFIER_is_public(c2, 0);
 }
