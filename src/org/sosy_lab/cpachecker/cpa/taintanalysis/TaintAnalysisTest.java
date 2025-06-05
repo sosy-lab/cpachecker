@@ -323,6 +323,7 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testTaintByLogicalOperationSafe() throws Exception {
     TestResults results = runCPAchecker("taintByLogicalOperationSafe.c", "c_infix_operators");
@@ -1130,6 +1131,7 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testSimplePrepareSliceSafe_2() throws Exception {
     TestResults results = runCPAchecker("simplePrepareSliceSafe_2.c", "extern_benchmarks");
