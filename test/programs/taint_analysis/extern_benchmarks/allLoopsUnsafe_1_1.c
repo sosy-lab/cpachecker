@@ -13,7 +13,6 @@ extern int __VERIFIER_is_public(int variable, int booleanFlag);
 
 int main() {
     int a, b, c, tainted, i;
-    int a1, b1, c1, i1;
     a = b = 0;
     c = tainted = __VERIFIER_nondet_int();
     int argc = __VERIFIER_nondet_int();
@@ -22,28 +21,13 @@ int main() {
         a++;
         while (b < 2) {
             do {
-                c = argc + 1; // t(c) = t(argc) = T
+                c = argc + 1;
             } while (c < argc);
         }
-        b+=tainted; // t(b) = t(tainted) = T
+        b+=tainted;
     }
 
     __VERIFIER_is_public(a, 0);
-    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 1);
-
-    a1 = b1 = c1 = 0;
-    for (int i1 = 0; i1 < argc; ++i1) {
-        a1++;
-        while (b1 < 3) {
-            do {
-                c1 = argc + 1; // t(c1) = t(argc) + t(1) = T + U = T
-            } while (c1 < argc);
-        }
-        b1+=2;
-    }
-
-    __VERIFIER_is_public(a1, 0);
-    __VERIFIER_is_public(b1, 0);
-    __VERIFIER_is_public(c1, 0);
 }

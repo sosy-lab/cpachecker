@@ -20,24 +20,19 @@ int main() {
 
     for (i = 0; i < argc; ++i) {
         a++;
-        a = tainted;
         while (b < 500) {
+            b++; // we add this assignment that ensures that the loop terminates, unlike the original benchmark allLoopsSafe_1.c
             do {
-                c = argc + 1;
+                c = argc + 1; // t(c) = t(argc) = T
             } while (c < argc);
         }
-        b+=tainted;
+        b+=tainted; // t(b) = t(tainted) = T
     }
 
-    // The path sensitivity of our analysis makes the expected taint from the original benchmark
-    // different from what we expect in this benchmark, since our analysis will never leave the
-    // while loop when exploring the loop body of the for-loop.
-    // For that reason, the following statements are only reached when not exploring the body
-    // of the for-loop. This gives our analysis a more realistic result about the expected taint,
-    // because the semantic of the code is considered. A non-path sensitive analysis has the advantage
-    // that it analyzes all the paths independently of their reachability, but at the cost of precision.
+    // The expected taint is now different from the original benchmark, because
+    // now the taint flow in the loop body reaches the publicity-check.
     __VERIFIER_is_public(a, 1);
-    __VERIFIER_is_public(b, 1);
+    __VERIFIER_is_public(b, 0);
     __VERIFIER_is_public(c, 0);
 
     a1 = b1 = c1 = 0;
@@ -45,13 +40,13 @@ int main() {
         a1++;
         while (b1 < 500) {
             do {
-                c1 = argc + 1;
+                c1 = argc + 1; // t(c1) = t(argc) + t(1) = T + U = T
             } while (c1 < argc);
+            b1+=2;
         }
-        b1+=2;
     }
 
     __VERIFIER_is_public(a1, 1);
     __VERIFIER_is_public(b1, 1);
-    __VERIFIER_is_public(c1, 1);
+    __VERIFIER_is_public(c1, 0);
 }

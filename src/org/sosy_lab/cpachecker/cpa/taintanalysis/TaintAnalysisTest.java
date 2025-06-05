@@ -895,8 +895,32 @@ public class TaintAnalysisTest {
   }
 
   @Test
-  public void testAllLoopsUnsafe_1() throws Exception {
-    TestResults results = runCPAchecker("allLoopsUnsafe_1.c", "extern_benchmarks");
+  public void testAllLoopsUnsafe_1_1() throws Exception {
+    TestResults results = runCPAchecker("allLoopsUnsafe_1_1.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testAllLoopsUnsafe_1_2() throws Exception {
+    TestResults results = runCPAchecker("allLoopsUnsafe_1_2.c", "extern_benchmarks");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testAllLoopsSafe_2() throws Exception {
+    TestResults results = runCPAchecker("allLoopsSafe_2.c", "");
+    results.assertIsSafe();
+  }
+
+  @Test
+  public void testAllLoopsUnsafe_2_1() throws Exception {
+    TestResults results = runCPAchecker("allLoopsUnsafe_2_1.c", "");
+    results.assertIsUnsafe();
+  }
+
+  @Test
+  public void testAllLoopsUnsafe_2_2() throws Exception {
+    TestResults results = runCPAchecker("allLoopsUnsafe_2_2.c", "");
     results.assertIsUnsafe();
   }
 
