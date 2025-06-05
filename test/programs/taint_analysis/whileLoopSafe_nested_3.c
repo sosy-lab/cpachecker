@@ -24,7 +24,7 @@ int main() {
         // t(tainted) = T + U = T
     }
 
-    // t(a) = t(tainted) = T + U = T
+    // t(a) = U + t(tainted) = U + (T + U) = U + T = T
     // `tainted` could become untainted, but the overall joined status is still tainted
 
     // a is expected to be tainted
