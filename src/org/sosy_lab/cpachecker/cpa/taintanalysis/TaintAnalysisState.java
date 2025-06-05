@@ -84,10 +84,6 @@ public class TaintAnalysisState
     return untaintedVariables;
   }
 
-  public Set<CIdExpression> getTaintedVariablesAsSet() {
-    return taintedVariables.keySet();
-  }
-
   @Override
   public boolean isLessOrEqual(TaintAnalysisState other) {
     // Verify that all tainted variables in "this" exist in "other" with the same values
@@ -210,10 +206,6 @@ public class TaintAnalysisState
   @SuppressWarnings("unused")
   public void setViolatesProperty() {
     violatesProperty = true;
-  }
-
-  public void setViolatesProperty(boolean pViolatesProperty) {
-    violatesProperty = pViolatesProperty;
   }
 
   @Override
