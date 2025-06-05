@@ -864,14 +864,12 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testNestedForLoopSafe_1() throws Exception {
     TestResults results = runCPAchecker("nestedForLoopSafe_1.c", "");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testNestedForLoopUnsafe_1() throws Exception {
     TestResults results = runCPAchecker("nestedForLoopUnsafe_1.c", "");
@@ -890,14 +888,12 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testAllLoopsSafe_1() throws Exception {
     TestResults results = runCPAchecker("allLoopsSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testAllLoopsUnsafe_1() throws Exception {
     TestResults results = runCPAchecker("allLoopsUnsafe_1.c", "extern_benchmarks");
@@ -959,7 +955,6 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testSimpleCastSafe_2() throws Exception {
     TestResults results = runCPAchecker("simpleCastSafe_2.c", "extern_benchmarks");
@@ -1060,7 +1055,6 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
-  @Ignore
   @Test
   public void testTaintArraySafe() throws Exception {
     TestResults results = runCPAchecker("taintArraySafe.c", "extern_benchmarks");
@@ -1081,13 +1075,13 @@ public class TaintAnalysisTest {
     results.assertIsUnsafe();
   }
 
+  @Ignore
   @Test
   public void testSimpleInterProcPrintResultsSafe() throws Exception {
     TestResults results = runCPAchecker("simpleInterProcPrintResultsSafe.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
-  @Ignore
   @Test
   public void testSimplePrepareSliceSafe_2() throws Exception {
     TestResults results = runCPAchecker("simplePrepareSliceSafe_2.c", "extern_benchmarks");
@@ -1101,12 +1095,14 @@ public class TaintAnalysisTest {
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testReadMetricsBasicRecursionSafe_1() throws Exception {
     TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_1.c", "extern_benchmarks");
     results.assertIsSafe();
   }
 
+  @Ignore
   @Test
   public void testReadMetricsBasicRecursionSafe_2() throws Exception {
     TestResults results = runCPAchecker("readMetricsBasicRecursionSafe_2.c", "extern_benchmarks");
