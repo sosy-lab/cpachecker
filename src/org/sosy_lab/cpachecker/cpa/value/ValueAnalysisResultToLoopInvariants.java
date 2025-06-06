@@ -2167,7 +2167,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       CSimpleType formulaType;
 
       if (pExportOpt == EXPORT_OPTION.ONLY_OPT) {
-        return ImmutableList.of();
+        return result;
       }
 
       Formula varF =
