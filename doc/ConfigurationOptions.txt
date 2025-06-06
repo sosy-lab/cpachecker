@@ -3882,8 +3882,9 @@ cpa.value.invExport.exportUnary = true
 # enable if loop invariant export should consider context
 cpa.value.invExport.invariantsContextSensitive = true
 
-# target file to hold the exported loop invariants
-cpa.value.loopInvariantsFile = no default value
+# template for target files, e.g., loopInvPrec%s.txt, to hold the exported
+# loop invariants
+cpa.value.loopInvariantsFiles = no default value
 
 # which merge operator to use for ValueAnalysisCPA
 cpa.value.merge = "SEP"
@@ -3989,6 +3990,10 @@ cpa.value.reuse.precision.predicate.strategy = CONVERT_ONLY
 
 # also consider control dependencies during adaption of predicate precision
 cpa.value.reuse.precision.predicate.useControl = false
+
+# configure whether to export all loop invariants into one file or to split
+# the export into one file per type
+cpa.value.splitLoopInvariantsInExport = false
 
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
