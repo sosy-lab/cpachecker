@@ -261,7 +261,8 @@ public class PredicateCPA
             regionManager,
             abstractionManager,
             predAbsManager,
-            initialPrecision);
+            initialPrecision,
+            specification);
 
     // TODO: Only a temporal hack on how to get information about fmgr to TerminationCPA, needs to
     // be fixed !

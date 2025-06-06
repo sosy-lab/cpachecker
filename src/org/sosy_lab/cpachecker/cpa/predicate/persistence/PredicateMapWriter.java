@@ -12,8 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -27,10 +30,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 
 /**
  * This class writes a set of predicates to a file in the same format that is also used by {@link
@@ -127,5 +134,20 @@ public final class PredicateMapWriter {
       }
       sb.append('\n');
     }
+  }
+
+  public void writePredicateMapAsWitness(
+      SetMultimap<LocationInstance, AbstractionPredicate> pLocationInstance,
+      SetMultimap<CFANode, AbstractionPredicate> pLocation,
+      SetMultimap<String, AbstractionPredicate> pFunction,
+      Set<AbstractionPredicate> pGlobal,
+      Path pPath,
+      MetadataRecord pMetadataRecord)
+      throws IOException {
+    // Build the data structures that contain the predicates
+    ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
+
+    PrecisionExchangeSetEntry precisionExchangeSetEntry =
+        new PrecisionExchangeSetEntry(pMetadataRecord, entriesBuilder.build());
   }
 }

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.LoopInvariantsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsWriter;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
@@ -53,6 +55,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 @Options(prefix = "cpa.predicate")
 final class PredicateCPAStatistics implements Statistics {
@@ -69,6 +75,13 @@ final class PredicateCPAStatistics implements Statistics {
       name = "predmap.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path predmapFile = Path.of("predmap.txt");
+
+  @Option(
+      secure = true,
+      description = "file for exporting final predicate map as a witness file",
+      name = "predmapWitness.file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path predmapWitnessFile = Path.of("witness-predmap.yml");
 
   @Option(secure = true, description = "export final loop invariants", name = "invariants.export")
   private boolean exportInvariants = true;
@@ -128,6 +141,7 @@ final class PredicateCPAStatistics implements Statistics {
   private final PredicateMapWriter precisionWriter;
   private final LoopInvariantsWriter loopInvariantsWriter;
   private final PredicateAbstractionsWriter abstractionsWriter;
+  private Optional<MetadataRecord> metadataRecord = Optional.empty();
 
   PredicateCPAStatistics(
       Configuration pConfig,
@@ -143,7 +157,8 @@ final class PredicateCPAStatistics implements Statistics {
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
       PredicateAbstractionManager pPredAbsMgr,
-      PredicatePrecision pInitialPrecision)
+      PredicatePrecision pInitialPrecision,
+      Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
 
@@ -164,8 +179,21 @@ final class PredicateCPAStatistics implements Statistics {
     loopInvariantsWriter = new LoopInvariantsWriter(pCfa, pLogger, pAbsmgr, fmgr, pRmgr);
     abstractionsWriter = new PredicateAbstractionsWriter(pLogger, fmgr);
 
-    if (exportPredmap && predmapFile != null) {
+    if (exportPredmap && (predmapFile != null || predmapWitnessFile != null)) {
       precisionWriter = new PredicateMapWriter(pConfig, fmgr);
+      try {
+        metadataRecord =
+            Optional.of(
+                MetadataRecord.createMetadataRecord(
+                    ProducerRecord.getProducerRecord(pConfig),
+                    TaskRecord.getTaskDescription(pCfa, pSpecification),
+                    YAMLWitnessVersion.V2d2));
+      } catch (IOException pE) {
+        logger.logUserException(
+            Level.WARNING,
+            pE,
+            "Could not create metadata record for exporting predicate map as a witness");
+      }
     } else {
       precisionWriter = null;
     }
@@ -195,14 +223,20 @@ final class PredicateCPAStatistics implements Statistics {
     }
   }
 
-  private void exportPredmapToFile(Path targetFile, MutablePredicateSets predicates) {
-    Preconditions.checkNotNull(targetFile);
+  private Set<AbstractionPredicate> getAllPredicates(MutablePredicateSets predicates) {
     Preconditions.checkNotNull(predicates);
-
     Set<AbstractionPredicate> allPredicates = new LinkedHashSet<>(predicates.global);
     allPredicates.addAll(predicates.function.values());
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
+    return allPredicates;
+  }
+
+  private void exportPredmapToFile(Path targetFile, MutablePredicateSets predicates) {
+    Preconditions.checkNotNull(targetFile);
+    Preconditions.checkNotNull(predicates);
+
+    Set<AbstractionPredicate> allPredicates = getAllPredicates(predicates);
 
     try (Writer w = IO.openOutputFile(targetFile, Charset.defaultCharset())) {
       precisionWriter.writePredicateMap(
@@ -212,6 +246,24 @@ final class PredicateCPAStatistics implements Statistics {
           predicates.global,
           allPredicates,
           w);
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write predicate map to file");
+    }
+  }
+
+  private void exportPredmapAsWitness(
+      Path targetFile, MutablePredicateSets predicates, MetadataRecord pMetadataRecord) {
+    Preconditions.checkNotNull(targetFile);
+    Preconditions.checkNotNull(predicates);
+
+    try {
+      precisionWriter.writePredicateMapAsWitness(
+          predicates.locationInstance,
+          predicates.location,
+          predicates.function,
+          predicates.global,
+          targetFile,
+          pMetadataRecord);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write predicate map to file");
     }
@@ -240,8 +292,12 @@ final class PredicateCPAStatistics implements Statistics {
       }
 
       // check if/where to dump the predicate map
-      if (exportPredmap && predmapFile != null) {
-        exportPredmapToFile(predmapFile, predicates);
+      if (exportPredmap) {
+        if (predmapFile != null) {
+          exportPredmapToFile(predmapFile, predicates);
+        } else if (predmapWitnessFile != null && metadataRecord.isPresent()) {
+          exportPredmapAsWitness(predmapWitnessFile, predicates, metadataRecord.orElseThrow());
+        }
       }
 
       maxPredsPerLocation = 0;
