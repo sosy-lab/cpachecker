@@ -124,15 +124,15 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     Value leftValue = lVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(leftValue.isExplicitlyKnown()
-        && leftValue.asNumericValue().getNumber() instanceof BigInteger
-        && ((BigInteger) leftValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
+        && leftValue.asNumericValue().getNumber() instanceof BigInteger bigIntNum
+        && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       leftValue = castCValue(leftValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
     Value rightValue = rVarInBinaryExp.accept(nonAssigningValueVisitor);
     if (!(rightValue.isExplicitlyKnown()
-        && rightValue.asNumericValue().getNumber() instanceof BigInteger
-        && ((BigInteger) rightValue.asNumericValue().getNumber()).equals(BigInteger.ONE))) {
+        && rightValue.asNumericValue().getNumber() instanceof BigInteger bigIntNum
+        && (bigIntNum.equals(BigInteger.ONE) || bigIntNum.equals(BigInteger.ZERO)))) {
       rightValue = castCValue(rightValue, pE.getCalculationType(), getMachineModel(), getLogger());
     }
 
