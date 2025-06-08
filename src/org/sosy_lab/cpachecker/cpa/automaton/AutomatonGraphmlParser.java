@@ -820,8 +820,7 @@ public class AutomatonGraphmlParser {
       if (unknown.isEmpty()) {
         filteredAssumptions.add(assumption);
       } else {
-        logger.log(
-            Level.WARNING, String.format(UNKNOWN_VARIABLE_WARNING_MESSAGE, assumption, unknown));
+        logger.logf(Level.WARNING, UNKNOWN_VARIABLE_WARNING_MESSAGE, assumption, unknown);
       }
     }
     return filteredAssumptions;
@@ -843,12 +842,11 @@ public class AutomatonGraphmlParser {
     if (!invalid.isEmpty()) {
       for (Map.Entry<AExpression, Collection<AIdExpression>> invalidExpression :
           invalid.asMap().entrySet()) {
-        logger.log(
+        logger.logf(
             Level.WARNING,
-            String.format(
-                UNKNOWN_VARIABLE_WARNING_MESSAGE,
-                invalidExpression.getKey(),
-                invalidExpression.getValue()));
+            UNKNOWN_VARIABLE_WARNING_MESSAGE,
+            invalidExpression.getKey(),
+            invalidExpression.getValue());
       }
       invariant =
           invariant.accept(
@@ -967,11 +965,11 @@ public class AutomatonGraphmlParser {
           newStack = new ArrayDeque<>(newStack);
           String oldFunction = newStack.pop();
           if (!oldFunction.equals(functionExit.orElseThrow())) {
-            logger.log(
+            logger.logf(
                 Level.WARNING,
-                String.format(
-                    "Trying to return from function %s, but current function on call stack is %s",
-                    functionExit.orElseThrow(), oldFunction));
+                "Trying to return from function %s, but current function on call stack is %s",
+                functionExit.orElseThrow(),
+                oldFunction);
           } else if (newStack.isEmpty()) {
             pGraphMLParserState.releaseFunctions(thread);
           }
@@ -1086,14 +1084,13 @@ public class AutomatonGraphmlParser {
     // Check if entry state is connected to a violation state
     if (state.getWitnessType() == WitnessType.VIOLATION_WITNESS
         && !state.isEntryConnectedToViolation()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "There is no path from the entry state %s"
-                  + " to a state explicitly marked as violation state."
-                  + " Distance-to-violation waitlist order will not work"
-                  + " and witness validation may fail to confirm this witness.",
-              state.getEntryState()));
+          "There is no path from the entry state %s"
+              + " to a state explicitly marked as violation state."
+              + " Distance-to-violation waitlist order will not work"
+              + " and witness validation may fail to confirm this witness.",
+          state.getEntryState());
     }
 
     // Define thread-id variable, if any assignments to it exist
@@ -1496,19 +1493,19 @@ public class AutomatonGraphmlParser {
     }
 
     if (source.isViolationState()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Source %s of transition %s is a violation state. No outgoing edges expected.",
-              sourceStateId, transitionToString(pTransition)));
+          "Source %s of transition %s is a violation state. No outgoing edges expected.",
+          sourceStateId,
+          transitionToString(pTransition));
     }
 
     if (source.isSinkState()) {
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Source %s of transition %s is a sink state. No outgoing edges expected.",
-              sourceStateId, transitionToString(pTransition)));
+          "Source %s of transition %s is a sink state. No outgoing edges expected.",
+          sourceStateId,
+          transitionToString(pTransition));
     }
 
     if (source.isEntryState()) {
@@ -1588,10 +1585,11 @@ public class AutomatonGraphmlParser {
         witnessType = parsedGraphType.orElseThrow();
       } else {
         witnessType = WitnessType.VIOLATION_WITNESS;
-        logger.log(
+        logger.logf(
             Level.WARNING,
-            String.format(
-                "Unknown witness type %s, assuming %s instead.", witnessTypeToParse, witnessType));
+            "Unknown witness type %s, assuming %s instead.",
+            witnessTypeToParse,
+            witnessType);
       }
     }
     return witnessType;
@@ -2133,7 +2131,7 @@ public class AutomatonGraphmlParser {
       saxParser = saxFactory.newSAXParser();
     } catch (ParserConfigurationException | SAXException e) {
       throw new AssertionError(
-          "SAX parser configured incorrectly. Could not determine whether or not the file describes"
+          "SAX parser configured incorrectly. Could not determine whether the file describes"
               + " a witness automaton.",
           e);
     }

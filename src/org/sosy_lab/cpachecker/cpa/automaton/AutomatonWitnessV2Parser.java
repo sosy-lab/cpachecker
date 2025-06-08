@@ -70,8 +70,8 @@ public class AutomatonWitnessV2Parser {
           new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
-      AutomatonViolationWitnessV2Parser parser =
-          new AutomatonViolationWitnessV2Parser(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessViolationV2Parser parser =
+          new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
       return parser.createViolationAutomatonFromEntries(entries);
     }
   }

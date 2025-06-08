@@ -436,7 +436,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Returns a address leading from a value. If the target is an abstract heap segment, materialize
+   * Returns an address leading from a value. If the target is an abstract heap segment, materialize
    * heap segment.
    *
    * <p>Constant.
@@ -470,28 +470,28 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     List<SMGAddressValueAndState> result = new ArrayList<>(2);
     switch (pSmgAbstractObject.getKind()) {
-      case DLL:
+      case DLL -> {
         SMGDoublyLinkedList dllListSeg = (SMGDoublyLinkedList) pSmgAbstractObject;
         if (dllListSeg.getMinimumLength() == 0) {
           result.addAll(copyOf().removeDls(dllListSeg, pointerToAbstractObject));
         }
         result.add(materialiseDls(dllListSeg, pointerToAbstractObject));
-        break;
-      case SLL:
+      }
+      case SLL -> {
         SMGSingleLinkedList sllListSeg = (SMGSingleLinkedList) pSmgAbstractObject;
         if (sllListSeg.getMinimumLength() == 0) {
           result.addAll(copyOf().removeSll(sllListSeg, pointerToAbstractObject));
         }
         result.add(materialiseSll(sllListSeg, pointerToAbstractObject));
-        break;
-      case OPTIONAL:
+      }
+      case OPTIONAL -> {
         SMGOptionalObject optionalObject = (SMGOptionalObject) pSmgAbstractObject;
         result.addAll(copyOf().removeOptionalObject(optionalObject));
         result.add(materialiseOptionalObject(optionalObject, pointerToAbstractObject));
-        break;
-      default:
-        throw new UnsupportedOperationException(
-            "Materilization of abstraction" + pSmgAbstractObject + " not yet implemented.");
+      }
+      default ->
+          throw new UnsupportedOperationException(
+              "Materilization of abstraction" + pSmgAbstractObject + " not yet implemented.");
     }
     return result;
   }
@@ -790,20 +790,20 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long offsetPointingToRegion;
 
     switch (tg) {
-      case FIRST:
+      case FIRST -> {
         offsetPointingToDll = pListSeg.getNfo();
         offsetPointingToRegion = pListSeg.getPfo();
-        break;
-      case LAST:
+      }
+      case LAST -> {
         offsetPointingToDll = pListSeg.getPfo();
         offsetPointingToRegion = pListSeg.getNfo();
-        break;
-      default:
-        throw new SMGInconsistentException(
-            "Target specifier of pointer "
-                + pPointerToAbstractObject.getValue()
-                + "that leads to a dll has unexpected target specifier "
-                + tg);
+      }
+      default ->
+          throw new SMGInconsistentException(
+              "Target specifier of pointer "
+                  + pPointerToAbstractObject.getValue()
+                  + "that leads to a dll has unexpected target specifier "
+                  + tg);
     }
 
     long hfo = pListSeg.getHfo();
@@ -1229,7 +1229,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // if some edge points to a large enough chunk of memory, then use its middle part.
     // TODO this code is ugly and might better be placed inside heap.getHVEdges,
     // but there it removes the existing value from the heap for the rest of the region
-    // and that is not wanted. Thus we add this very special case here.
+    // and that is not wanted. Thus, we add this very special case here.
     SMGEdgeHasValueFilter filterOffsetZero =
         new SMGEdgeHasValueFilter()
             .overlapsWith(
@@ -1292,7 +1292,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGValue value;
 
     // If the value is not yet known by the SMG
-    // create a unconstrained new symbolic value
+    // create an unconstrained new symbolic value
     if (pValue.isUnknown()) {
       value = SMGKnownSymValue.of();
     } else {
@@ -1536,35 +1536,39 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     switch (pProperty) {
-      case HAS_LEAKS:
+      case HAS_LEAKS -> {
         if (errorInfo.hasMemoryLeak()) {
           // TODO: Give more information
           issueMemoryError("Memory leak found", false);
           return true;
         }
         return false;
-      case HAS_INVALID_WRITES:
+      }
+      case HAS_INVALID_WRITES -> {
         if (errorInfo.isInvalidWrite()) {
           // TODO: Give more information
           issueMemoryError("Invalid write found", true);
           return true;
         }
         return false;
-      case HAS_INVALID_READS:
+      }
+      case HAS_INVALID_READS -> {
         if (errorInfo.isInvalidRead()) {
           // TODO: Give more information
           issueMemoryError("Invalid read found", true);
           return true;
         }
         return false;
-      case HAS_INVALID_FREES:
+      }
+      case HAS_INVALID_FREES -> {
         if (errorInfo.isInvalidFree()) {
           // TODO: Give more information
           issueMemoryError("Invalid free found", true);
           return true;
         }
         return false;
-      case HAS_HEAP_OBJECTS:
+      }
+      case HAS_HEAP_OBJECTS -> {
         // Having heap objects is not an error on its own.
         // However, when combined with program exit, we can detect property MemCleanup.
         PersistentSet<SMGObject> heapObs = heap.getHeapObjects();
@@ -1577,9 +1581,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
         }
         return !heapObs.isEmpty();
-
-      default:
-        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+      }
+      default -> throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
     }
   }
 
@@ -2140,7 +2143,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
     /* Treat functions as global objects with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
@@ -2150,7 +2153,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
 
     /* Treat functions as global variable with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;

@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
+
   /** the collection that determines which variables are tracked within a specific scope */
   private final ImmutableSortedSet<MemoryLocation> rawPrecision;
 

@@ -113,7 +113,7 @@ public class LocationState
               + "\" is invalid. Could not split the property string correctly.");
     } else {
       switch (Ascii.toLowerCase(parts.get(0))) {
-        case "line":
+        case "line" -> {
           try {
             int queryLine = Integer.parseInt(parts.get(1));
             for (CFAEdge edge : CFAUtils.enteringEdges(locationNode)) {
@@ -130,13 +130,16 @@ public class LocationState
                     + parts.get(1)
                     + "\"");
           }
-        case "functionname":
+        }
+        case "functionname" -> {
           return locationNode.getFunctionName().equals(parts.get(1));
-        case "label":
+        }
+        case "label" -> {
           return locationNode instanceof CFALabelNode
               ? ((CFALabelNode) locationNode).getLabel().equals(parts.get(1))
               : false;
-        case "nodenumber":
+        }
+        case "nodenumber" -> {
           try {
             int queryNumber = Integer.parseInt(parts.get(1));
             return locationNode.getNodeNumber() == queryNumber;
@@ -148,7 +151,8 @@ public class LocationState
                     + parts.get(1)
                     + "\"");
           }
-        case "mainentry":
+        }
+        case "mainentry" -> {
           if (locationNode.getNumEnteringEdges() == 1
               && locationNode.getFunctionName().equals(parts.get(1))) {
             CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
@@ -159,13 +163,14 @@ public class LocationState
             }
           }
           return false;
-        default:
-          throw new InvalidQueryException(
-              "The Query \""
-                  + pProperty
-                  + "\" is invalid. \""
-                  + parts.get(0)
-                  + "\" is no valid keyword");
+        }
+        default ->
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pProperty
+                    + "\" is invalid. \""
+                    + parts.get(0)
+                    + "\" is no valid keyword");
       }
     }
   }

@@ -27,7 +27,7 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
   /**
    * Create instance.
    *
-   * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
+   * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents a
    *     direct access, a positive number accessed within or after the object and is used for
    *     array-element or struct-member access.
    * @param pObject the target object pointed to.

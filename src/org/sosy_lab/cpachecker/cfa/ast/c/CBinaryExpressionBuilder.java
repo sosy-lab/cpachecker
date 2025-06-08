@@ -333,7 +333,7 @@ public class CBinaryExpressionBuilder {
 
     // both are simple types, we need a common simple type --> USUAL ARITHMETIC CONVERSIONS
     if (pType1 instanceof CSimpleType && pType2 instanceof CSimpleType) {
-      // TODO we need an recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
+      // TODO we need a recursive analysis for wrapped binaryExp, like "((1+2)+3)+4".
 
       final CType commonType =
           getCommonSimpleTypeForBinaryOperation((CSimpleType) pType1, (CSimpleType) pType2);
@@ -435,7 +435,7 @@ public class CBinaryExpressionBuilder {
       final CExpression op2)
       throws UnrecognizedCodeException {
 
-    // if one type is an pointer, return the pointer.
+    // if one type is a pointer, return the pointer.
     if (pType instanceof CPointerType) {
       if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCodeException(
@@ -593,7 +593,7 @@ public class CBinaryExpressionBuilder {
     }
 
     /* Otherwise, if the type of the operand with signed integer type
-     * can represent all of the values of the type of the operand with
+     * can represent all the values of the type of the operand with
      * unsigned integer type, then the operand with unsigned integer type
      * is converted to the type of the operand with signed integer type. */
 
@@ -645,15 +645,15 @@ public class CBinaryExpressionBuilder {
     CBasicType type = t.getType();
 
     switch (type) {
-      case BOOL:
+      case BOOL -> {
         // The rank of _Bool shall be less than the rank of all other standard integer types.
         return 10;
-
-      case CHAR:
+      }
+      case CHAR -> {
         // The rank of char shall equal the rank of signed char and unsigned char.
         return 20;
-
-      case INT:
+      }
+      case INT -> {
         /* The rank of any unsigned integer type shall equal the rank of the
          * corresponding signed integer type, if any.
          * The rank of long long int shall be greater than the rank of long int,
@@ -671,12 +671,11 @@ public class CBinaryExpressionBuilder {
           return 60;
         }
         return 40;
-
-      case INT128:
+      }
+      case INT128 -> {
         return 70;
-
-      default:
-        throw new AssertionError("unhandled CSimpleType: " + t);
+      }
+      default -> throw new AssertionError("unhandled CSimpleType: " + t);
     }
   }
 

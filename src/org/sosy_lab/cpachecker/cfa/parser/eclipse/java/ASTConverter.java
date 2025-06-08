@@ -135,7 +135,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
@@ -168,24 +167,24 @@ class ASTConverter {
   private JIdExpression enhancedForLoopIterator;
 
   /** Map for unboxing of JClassTypes */
-  private static final ImmutableMap<String, JBasicType> unboxingMap =
-      ImmutableMap.<String, JBasicType>builder()
-          .put("java.lang.Boolean", JBasicType.BOOLEAN)
-          .put("java.lang.Byte", JBasicType.BYTE)
-          .put("java.lang.Character", JBasicType.CHAR)
-          .put("java.lang.Float", JBasicType.FLOAT)
-          .put("java.lang.Integer", JBasicType.INT)
-          .put("java.lang.Long", JBasicType.LONG)
-          .put("java.lang.Short", JBasicType.SHORT)
-          .put("java.lang.Double", JBasicType.DOUBLE)
-          .put("java.lang.Void", JBasicType.VOID)
+  private static final ImmutableMap<String, JSimpleType> unboxingMap =
+      ImmutableMap.<String, JSimpleType>builder()
+          .put("java.lang.Boolean", JSimpleType.BOOLEAN)
+          .put("java.lang.Byte", JSimpleType.BYTE)
+          .put("java.lang.Character", JSimpleType.CHAR)
+          .put("java.lang.Float", JSimpleType.FLOAT)
+          .put("java.lang.Integer", JSimpleType.INT)
+          .put("java.lang.Long", JSimpleType.LONG)
+          .put("java.lang.Short", JSimpleType.SHORT)
+          .put("java.lang.Double", JSimpleType.DOUBLE)
+          .put("java.lang.Void", JSimpleType.VOID)
           .buildOrThrow();
 
   /**
    * Create a new AST Converter, which can be used to convert JDT AST Statements to CFA AST
    * Statements.
    *
-   * @param pScope The symbolic table to solve e. g. names of variable to Declarations .
+   * @param pScope The symbolic table to solve e.g. names of variable to Declarations .
    * @param pLogger Logmanager to log Statusmessages or Errors
    */
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -366,8 +365,8 @@ class ASTConverter {
   }
 
   /**
-   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
-   * doesnt't find such information, returns an empty FileLocation Object.
+   * Takes an ASTNode, and tries to get Information of its Placement in the Source Code. If it
+   * doesn't find such information, returns an empty FileLocation Object.
    *
    * @param l A Code piece wrapped in an ASTNode
    * @return FileLocation with Placement Information of the Code Piece, or null if such Information
@@ -579,12 +578,12 @@ class ASTConverter {
   }
 
   /**
-   * Converts a JDT Expression into the AST. This method always gives side effect free Expressions
-   * back. Every Side Effect will be put into a side assignment and can subsequently be fetched with
+   * Converts a JDT Expression into the AST. This method always gives side-effect free Expressions
+   * back. Every side effect will be put into a side assignment and can subsequently be fetched with
    * getNextSideAssignment().
    *
    * @param e expression to be transformed.
-   * @return a side effect free AST representing the given parameter.
+   * @return a side-effect free AST representing the given parameter.
    */
   public JExpression convertExpressionWithoutSideEffects(Expression e) {
 
@@ -844,65 +843,41 @@ class ASTConverter {
       return null;
     }
 
-    switch (e.getNodeType()) {
-      case ASTNode.ASSIGNMENT:
-        return convert((Assignment) e);
-      case ASTNode.INFIX_EXPRESSION:
-        return convert((InfixExpression) e);
-      case ASTNode.NUMBER_LITERAL:
-        return convert((NumberLiteral) e);
-      case ASTNode.CHARACTER_LITERAL:
-        return convert((CharacterLiteral) e);
-      case ASTNode.STRING_LITERAL:
-        return convert((StringLiteral) e);
-      case ASTNode.NULL_LITERAL:
-        return convert((NullLiteral) e);
-      case ASTNode.PREFIX_EXPRESSION:
-        return convert((PrefixExpression) e);
-      case ASTNode.POSTFIX_EXPRESSION:
-        return convert((PostfixExpression) e);
-      case ASTNode.QUALIFIED_NAME:
-        return convert((QualifiedName) e);
-      case ASTNode.BOOLEAN_LITERAL:
-        return convert((BooleanLiteral) e);
-      case ASTNode.FIELD_ACCESS:
-        return convert((FieldAccess) e);
-      case ASTNode.SIMPLE_NAME:
-        return convert((SimpleName) e);
-      case ASTNode.PARENTHESIZED_EXPRESSION:
-        return convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
-      case ASTNode.METHOD_INVOCATION:
-        return convert((MethodInvocation) e);
-      case ASTNode.CLASS_INSTANCE_CREATION:
-        return convert((ClassInstanceCreation) e);
-      case ASTNode.ARRAY_ACCESS:
-        return convert((ArrayAccess) e);
-      case ASTNode.ARRAY_CREATION:
-        return convert((ArrayCreation) e);
-      case ASTNode.ARRAY_INITIALIZER:
-        return convert((ArrayInitializer) e);
-      case ASTNode.CONDITIONAL_EXPRESSION:
-        return convert((ConditionalExpression) e);
-      case ASTNode.THIS_EXPRESSION:
-        return convert((ThisExpression) e);
-      case ASTNode.INSTANCEOF_EXPRESSION:
-        return convert((InstanceofExpression) e);
-      case ASTNode.CAST_EXPRESSION:
-        return convert((CastExpression) e);
-      case ASTNode.VARIABLE_DECLARATION_EXPRESSION:
-        return convert((VariableDeclarationExpression) e);
-      case ASTNode.SUPER_FIELD_ACCESS:
-        return convert(((SuperFieldAccess) e));
-      case ASTNode.TYPE_LITERAL:
-        return convert((TypeLiteral) e);
-      case ASTNode.SUPER_METHOD_INVOCATION:
-        return convert((SuperMethodInvocation) e);
-      default:
+    return switch (e.getNodeType()) {
+      case ASTNode.ASSIGNMENT -> convert((Assignment) e);
+      case ASTNode.INFIX_EXPRESSION -> convert((InfixExpression) e);
+      case ASTNode.NUMBER_LITERAL -> convert((NumberLiteral) e);
+      case ASTNode.CHARACTER_LITERAL -> convert((CharacterLiteral) e);
+      case ASTNode.STRING_LITERAL -> convert((StringLiteral) e);
+      case ASTNode.NULL_LITERAL -> convert((NullLiteral) e);
+      case ASTNode.PREFIX_EXPRESSION -> convert((PrefixExpression) e);
+      case ASTNode.POSTFIX_EXPRESSION -> convert((PostfixExpression) e);
+      case ASTNode.QUALIFIED_NAME -> convert((QualifiedName) e);
+      case ASTNode.BOOLEAN_LITERAL -> convert((BooleanLiteral) e);
+      case ASTNode.FIELD_ACCESS -> convert((FieldAccess) e);
+      case ASTNode.SIMPLE_NAME -> convert((SimpleName) e);
+      case ASTNode.PARENTHESIZED_EXPRESSION ->
+          convertExpressionWithoutSideEffects(((ParenthesizedExpression) e).getExpression());
+      case ASTNode.METHOD_INVOCATION -> convert((MethodInvocation) e);
+      case ASTNode.CLASS_INSTANCE_CREATION -> convert((ClassInstanceCreation) e);
+      case ASTNode.ARRAY_ACCESS -> convert((ArrayAccess) e);
+      case ASTNode.ARRAY_CREATION -> convert((ArrayCreation) e);
+      case ASTNode.ARRAY_INITIALIZER -> convert((ArrayInitializer) e);
+      case ASTNode.CONDITIONAL_EXPRESSION -> convert((ConditionalExpression) e);
+      case ASTNode.THIS_EXPRESSION -> convert((ThisExpression) e);
+      case ASTNode.INSTANCEOF_EXPRESSION -> convert((InstanceofExpression) e);
+      case ASTNode.CAST_EXPRESSION -> convert((CastExpression) e);
+      case ASTNode.VARIABLE_DECLARATION_EXPRESSION -> convert((VariableDeclarationExpression) e);
+      case ASTNode.SUPER_FIELD_ACCESS -> convert(((SuperFieldAccess) e));
+      case ASTNode.TYPE_LITERAL -> convert((TypeLiteral) e);
+      case ASTNode.SUPER_METHOD_INVOCATION -> convert((SuperMethodInvocation) e);
+      default -> {
         logger.log(
             Level.WARNING,
             "Expression of type " + ASTDebug.getTypeName(e.getNodeType()) + " not implemented");
-        return null;
-    }
+        yield null;
+      }
+    };
   }
 
   private JAstNode convert(final SuperMethodInvocation e) {
@@ -1098,8 +1073,8 @@ class ASTConverter {
     JType instanceOfType = convert(e.resolveTypeBinding());
 
     assert instanceOfType instanceof JSimpleType;
-    if (((JSimpleType) instanceOfType).getType() != JBasicType.UNSPECIFIED) {
-      assert ((JSimpleType) instanceOfType).getType() == JBasicType.BOOLEAN
+    if (instanceOfType != JSimpleType.UNSPECIFIED) {
+      assert instanceOfType == JSimpleType.BOOLEAN
           : "InstanceofExpression is not always of type boolean!";
     }
 
@@ -1116,7 +1091,7 @@ class ASTConverter {
    * @param pLeftOperand the left operand of the <code>instanceof</code> statement
    * @param pRightOperand the right operand of the <code>instanceof</code> statement. The resulting
    *     expression will be evaluated to <code>true
-   *     </code> if the the left operand's type is equal to this type or a subtype of this type
+   *     </code> if the left operand's type is equal to this type or a subtype of this type
    * @param pLocation the file location of the expression
    * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
    *     parameters
@@ -1143,15 +1118,15 @@ class ASTConverter {
     }
 
     return createInstanceOfDisjunction(
-        pLeftOperand, allPossibleClasses, JSimpleType.getBoolean(), pLocation, isRightOperandArray);
+        pLeftOperand, allPossibleClasses, JSimpleType.BOOLEAN, pLocation, isRightOperandArray);
   }
 
   /**
-   * Returns all sub classes/implementing classes of the given class or interface. This includes the
+   * Returns all subclasses/implementing classes of the given class or interface. This includes the
    * given type itself, if it is a {@link JClassType}.
    *
    * @param pType the type to get all subclasses of
-   * @return all sub classes/implementing classes of the given class or interface.
+   * @return all subclasses/implementing classes of the given class or interface.
    */
   private List<JType> getSubClasses(JType pType) {
 
@@ -1732,7 +1707,7 @@ class ASTConverter {
   @VisibleForTesting
   static Class<?> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
     Class<?> cls =
-        switch (pJSimpleType.getType()) {
+        switch (pJSimpleType) {
           case BOOLEAN -> boolean.class;
           case CHAR -> char.class;
           case DOUBLE -> double.class;
@@ -2169,7 +2144,7 @@ class ASTConverter {
 
     JIdExpression methodName =
         new JIdExpression(
-            oldMethodCall.getFileLocation(), JSimpleType.getUnspecified(), name, declaration);
+            oldMethodCall.getFileLocation(), JSimpleType.UNSPECIFIED, name, declaration);
 
     if (oldMethodCall instanceof JReferencedMethodInvocationExpression) {
       return new JReferencedMethodInvocationExpression(
@@ -2394,14 +2369,14 @@ class ASTConverter {
       } else if (rightHandSide instanceof JAssignment) {
 
         // TODO We need the assignments to be evaluated from left to right
-        // e. g x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
+        // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(
             fileLoc, leftHandSide, ((JAssignment) rightHandSide).getLeftHandSide());
 
       } else {
-        throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
+        throw new CFAGenerationRuntimeException("Expression is not free of side effects");
       }
 
     } else {
@@ -2422,19 +2397,19 @@ class ASTConverter {
     final String invalidTypeMsg =
         "Invalid type '" + type + "' for assignment with binary operation.";
 
-    JBasicType basicType;
+    JSimpleType simpleType;
 
     if (type instanceof JSimpleType) {
-      basicType = ((JSimpleType) type).getType();
+      simpleType = (JSimpleType) type;
     } else {
-      basicType = null;
+      simpleType = null;
     }
 
     if (op.equals(Assignment.Operator.ASSIGN)) {
       return null;
 
-    } else if (basicType != null) {
-      return switch (basicType) {
+    } else if (simpleType != null) {
+      return switch (simpleType) {
         case BOOLEAN -> convertBooleanOperator(op);
         case BYTE, SHORT, INT, LONG, DOUBLE, FLOAT -> convertNumberOperator(op);
         default -> throw new CFAGenerationRuntimeException(invalidTypeMsg);
@@ -2581,7 +2556,7 @@ class ASTConverter {
     final JType rightHandType = rightHandSide.getExpressionType();
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
-    if (type.equals(JSimpleType.getUnspecified())) {
+    if (type.equals(JSimpleType.UNSPECIFIED)) {
       if (op == BinaryOperator.STRING_CONCATENATION) {
         if (scope.containsClassType("java.lang.String")) {
           type = scope.getClassType("java.lang.String");
@@ -2618,31 +2593,31 @@ class ASTConverter {
   private BinaryOperator convert(InfixExpression.Operator op, JType pOp1Type, JType pOp2Type) {
     final String invalidTypeMsg =
         "Invalid operation '" + pOp1Type + " " + op + " " + pOp2Type + "'";
-    JBasicType basicTypeOp1 = null;
-    JBasicType basicTypeOp2 = null;
+    JSimpleType simpleTypeOp1 = null;
+    JSimpleType simpleTypeOp2 = null;
 
     if (pOp1Type instanceof JSimpleType) {
-      basicTypeOp1 = ((JSimpleType) pOp1Type).getType();
+      simpleTypeOp1 = (JSimpleType) pOp1Type;
     }
 
     if (pOp2Type instanceof JSimpleType) {
-      basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
+      simpleTypeOp2 = (JSimpleType) pOp2Type;
     }
 
-    JBasicType jBasicType;
-    if (pOp1Type instanceof JClassType && basicTypeOp2 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp1Type).orElse(null);
-      if (jBasicType == basicTypeOp2) {
-        basicTypeOp1 = jBasicType;
+    JSimpleType jSimpleType;
+    if (pOp1Type instanceof JClassType && simpleTypeOp2 != null) {
+      jSimpleType = unboxJClassType((JClassType) pOp1Type).orElse(null);
+      if (jSimpleType == simpleTypeOp2) {
+        simpleTypeOp1 = jSimpleType;
       }
-    } else if (pOp2Type instanceof JClassType && basicTypeOp1 != null) {
-      jBasicType = unboxJClassType((JClassType) pOp2Type).orElse(null);
-      if (jBasicType == basicTypeOp1) {
-        basicTypeOp2 = jBasicType;
+    } else if (pOp2Type instanceof JClassType && simpleTypeOp1 != null) {
+      jSimpleType = unboxJClassType((JClassType) pOp2Type).orElse(null);
+      if (jSimpleType == simpleTypeOp1) {
+        simpleTypeOp2 = jSimpleType;
       }
     }
 
-    if (basicTypeOp1 == null || basicTypeOp2 == null) {
+    if (simpleTypeOp1 == null || simpleTypeOp2 == null) {
       if (op.equals(InfixExpression.Operator.EQUALS)) {
         return BinaryOperator.EQUALS;
       } else if (op.equals(InfixExpression.Operator.NOT_EQUALS)) {
@@ -2653,9 +2628,9 @@ class ASTConverter {
       } else {
         throw new CFAGenerationRuntimeException(invalidTypeMsg);
       }
-    } else if (isNumericCompatible(basicTypeOp1) && isNumericCompatible(basicTypeOp2)) {
+    } else if (isNumericCompatible(simpleTypeOp1) && isNumericCompatible(simpleTypeOp2)) {
       return convertNumericOperator(op);
-    } else if (isBooleanCompatible(basicTypeOp1) && isBooleanCompatible(basicTypeOp2)) {
+    } else if (isBooleanCompatible(simpleTypeOp1) && isBooleanCompatible(simpleTypeOp2)) {
       return convertBooleanOperator(op);
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
@@ -2663,19 +2638,19 @@ class ASTConverter {
   }
 
   @VisibleForTesting
-  public static Optional<JBasicType> unboxJClassType(JClassType pJClassType) {
+  public static Optional<JSimpleType> unboxJClassType(JClassType pJClassType) {
     return Optional.ofNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
   }
 
-  private boolean isNumericCompatible(JBasicType pType) {
+  private boolean isNumericCompatible(JSimpleType pType) {
     return pType != null
         && (pType.isIntegerType()
             || pType.isFloatingPointType()
-            || pType == JBasicType.UNSPECIFIED);
+            || pType == JSimpleType.UNSPECIFIED);
   }
 
-  private boolean isBooleanCompatible(JBasicType pType) {
-    return pType == JBasicType.BOOLEAN || pType == JBasicType.UNSPECIFIED;
+  private boolean isBooleanCompatible(JSimpleType pType) {
+    return pType == JSimpleType.BOOLEAN || pType == JSimpleType.UNSPECIFIED;
   }
 
   private boolean isStringType(JType t) {
@@ -2752,16 +2727,19 @@ class ASTConverter {
     JType type = convert(e.resolveTypeBinding());
     String valueStr = e.getToken();
 
-    JBasicType t = ((JSimpleType) type).getType();
+    JSimpleType t = (JSimpleType) type;
 
     switch (t) {
-      case INT:
+      case INT -> {
         return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
-      case FLOAT:
+      }
+      case FLOAT -> {
         return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-      case DOUBLE:
+      }
+      case DOUBLE -> {
         return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-      default:
+      }
+      default -> {
         if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
           valueStr = valueStr.substring(0, valueStr.length() - 1);
         }
@@ -2773,6 +2751,7 @@ class ASTConverter {
           return new JIntegerLiteralExpression(
               getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
         }
+      }
     }
   }
 
@@ -2881,7 +2860,7 @@ class ASTConverter {
 
     FileLocation fileloc = enhancedForLoopIterator.getFileLocation();
 
-    JType type = JSimpleType.getBoolean();
+    JType type = JSimpleType.BOOLEAN;
 
     JExpression name = new JIdExpression(fileloc, type, "hasNext", null);
 
@@ -2941,7 +2920,7 @@ class ASTConverter {
   }
 
   /**
-   * Converts a Expression into the intern AST which is required to give a boolean Type back.
+   * Converts an Expression into the intern AST which is required to give a boolean Type back.
    *
    * @param e an expression with a boolean type
    * @return intern AST representing JDT expression
@@ -2977,7 +2956,7 @@ class ASTConverter {
    * Checks if the given Expression returns a Value of boolean Type.
    *
    * @param e Expression to be checked
-   * @return True, iff Type of Expression is boolean, else False.
+   * @return whether the type of expression is boolean.
    */
   public boolean isBooleanExpression(JExpression e) {
     if (e instanceof JBinaryExpression) {
@@ -2992,7 +2971,7 @@ class ASTConverter {
       //      We also need to check for BOOLEAN class
       JType type = e.getExpressionType();
 
-      return type instanceof JSimpleType && ((JSimpleType) type).getType() == JBasicType.BOOLEAN;
+      return type == JSimpleType.BOOLEAN;
     }
   }
 
@@ -3179,49 +3158,31 @@ class ASTConverter {
           ModifierKeyword modifierEnum = ((Modifier) modifier).getKeyword();
 
           switch (modifierEnum.toFlagValue()) {
-            case Modifier.FINAL:
-              isFinal = true;
-              break;
-            case Modifier.STATIC:
-              isStatic = true;
-              break;
-            case Modifier.VOLATILE:
-              isVolatile = true;
-              break;
-            case Modifier.TRANSIENT:
-              isTransient = true;
-              break;
-            case Modifier.PUBLIC:
+            case Modifier.FINAL -> isFinal = true;
+            case Modifier.STATIC -> isStatic = true;
+            case Modifier.VOLATILE -> isVolatile = true;
+            case Modifier.TRANSIENT -> isTransient = true;
+            case Modifier.PUBLIC -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PUBLIC;
-              break;
-            case Modifier.PROTECTED:
+            }
+            case Modifier.PROTECTED -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PROTECTED;
-              break;
-            case Modifier.NONE:
+            }
+            case Modifier.NONE -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.NONE;
-              break;
-            case Modifier.PRIVATE:
+            }
+            case Modifier.PRIVATE -> {
               assert visibility == null : "Can only declare one Visibility Modifier";
               visibility = VisibilityModifier.PRIVATE;
-              break;
-            case Modifier.NATIVE:
-              isNative = true;
-              break;
-            case Modifier.ABSTRACT:
-              isAbstract = true;
-              break;
-            case Modifier.STRICTFP:
-              isStrictFp = true;
-              break;
-            case Modifier.SYNCHRONIZED:
-              isSynchronized = true;
-              break;
-
-            default:
-              throw new AssertionError("Unkown  Modifier");
+            }
+            case Modifier.NATIVE -> isNative = true;
+            case Modifier.ABSTRACT -> isAbstract = true;
+            case Modifier.STRICTFP -> isStrictFp = true;
+            case Modifier.SYNCHRONIZED -> isSynchronized = true;
+            default -> throw new AssertionError("Unkown  Modifier");
           }
         }
       }

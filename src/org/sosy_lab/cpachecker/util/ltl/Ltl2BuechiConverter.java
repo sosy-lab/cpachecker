@@ -51,8 +51,8 @@ public class Ltl2BuechiConverter {
    * external tool, which in turn transforms it into a buechi-automaton.
    *
    * <p>The output from the external tool is required to be in 'Hanoi-Omega-Automaton' (HOA) format,
-   * as it is parsed as such afterwards. The resulting object will then be transformed into the
-   * final {@link Automaton}.
+   * as it is parsed as such afterward. The resulting object will then be transformed into the final
+   * {@link Automaton}.
    *
    * @param pFormula the ltl-property together with a list of its atomic propositions
    * @param pEntryFunction the name of the entry-function

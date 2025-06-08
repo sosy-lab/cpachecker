@@ -81,7 +81,6 @@ public abstract class VariableTrackingPrecision implements Precision {
     return switch (options.sharing) {
       case LOCATION -> new LocalizedRefinablePrecision(pBaseline);
       case SCOPE -> new ScopedRefinablePrecision(pBaseline);
-      default -> throw new AssertionError("Unhandled case in switch statement");
     };
   }
 
@@ -97,7 +96,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * from some variable class, if it maintains a refinable precision, or if it contains a variable
    * blacklist.
    *
-   * @return true, if this precision allows for abstraction, else false
+   * @return whether this precision allows for abstraction
    */
   public abstract boolean allowsAbstraction();
 
@@ -111,7 +110,7 @@ public abstract class VariableTrackingPrecision implements Precision {
    * @param pType the type of the variable, necessary for checking if the variable should be handled
    *     (necessary for floats / doubles)
    * @param location the location of the variable
-   * @return true, if the variable has to be tracked, else false
+   * @return whether the variable has to be tracked
    */
   public abstract boolean isTracking(MemoryLocation variable, Type pType, CFANode location);
 

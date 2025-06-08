@@ -16,7 +16,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -112,7 +111,7 @@ public final class ArrayValue implements Value {
       return NullValue.getInstance();
 
     } else if (pType instanceof JSimpleType) {
-      return switch (((JSimpleType) pType).getType()) {
+      return switch ((JSimpleType) pType) {
         case BOOLEAN -> BooleanValue.valueOf(false);
         case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(0L);
         default -> throw new AssertionError("Unhandled type " + pType.getClass());
@@ -162,34 +161,26 @@ public final class ArrayValue implements Value {
     } else if (elementType instanceof JClassOrInterfaceType && !isValidComplexValue(pValue)) {
       throw new IllegalArgumentException(errorMessage);
 
-    } else if (elementType instanceof JSimpleType) {
-      JBasicType concreteType = ((JSimpleType) elementType).getType();
-
+    } else if (elementType instanceof JSimpleType concreteType) {
       switch (concreteType) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
+        case BYTE, CHAR, SHORT, INT, LONG -> {
           // check that, if Value is of NumericValue, it contains an integer
           if (!(pValue instanceof NumericValue)
               || (((NumericValue) pValue).doubleValue() % 1) != 0) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case FLOAT:
-        case DOUBLE:
+        }
+        case FLOAT, DOUBLE -> {
           if (!(pValue instanceof NumericValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        case BOOLEAN:
+        }
+        case BOOLEAN -> {
           if (!(pValue instanceof BooleanValue)) {
             throw new IllegalArgumentException(errorMessage);
           }
-          break;
-        default:
-          throw new IllegalArgumentException(errorMessage);
+        }
+        default -> throw new IllegalArgumentException(errorMessage);
       }
     }
   }

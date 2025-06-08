@@ -218,7 +218,7 @@ public class UseDefRelation {
 
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {
     switch (edge.getEdgeType()) {
-      case FunctionReturnEdge:
+      case FunctionReturnEdge -> {
         AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getFunctionCall();
 
         if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
@@ -238,28 +238,22 @@ public class UseDefRelation {
                 ((FunctionReturnEdge) edge).getFunctionEntry().getReturnVariable().get());
           }
         }
-
-        break;
-
-      case DeclarationEdge:
+      }
+      case DeclarationEdge -> {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
 
         // only variable declarations are of interest
         if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
           addUseDef(state, edge, declaration, getVariablesUsedInDeclaration(declaration));
         }
-
-        break;
-
-      case ReturnStatementEdge:
+      }
+      case ReturnStatementEdge -> {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.asAssignment().isPresent()) {
           handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
         }
-
-        break;
-
-      case FunctionCallEdge:
+      }
+      case FunctionCallEdge -> {
         final FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         final FunctionEntryNode functionEntryNode = functionCallEdge.getSuccessor();
 
@@ -274,31 +268,26 @@ public class UseDefRelation {
           }
         }
         addUseDef(state, edge, defs, uses);
-
-        break;
-
-      case AssumeEdge:
+      }
+      case AssumeEdge -> {
         if (hasContradictingAssumeEdgeBeenHandled) {
           handleFeasibleAssumption(state, (CAssumeEdge) edge);
         } else {
           hasContradictingAssumeEdgeBeenHandled = !addAllAssumes;
           addUseDef(state, edge, acceptAll(((CAssumeEdge) edge).getExpression()));
         }
-
-        break;
-
-      case StatementEdge:
+      }
+      case StatementEdge -> {
         CStatement statement = ((CStatementEdge) edge).getStatement();
 
         if (statement instanceof AExpressionAssignmentStatement
             || statement instanceof AFunctionCallAssignmentStatement) {
           handleAssignments((AAssignment) statement, edge, state);
         }
-        break;
-
-      default:
+      }
+      default -> {
         // nothing to do for any other types of edges
-        break;
+      }
     }
   }
 
@@ -410,7 +399,7 @@ public class UseDefRelation {
 
     /*
         // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-        // until is is reassigned, and not only a single field
+        // until it is reassigned, and not only a single field
         // if assigned variable is resolving a dependency
         if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
           // hack to handle assignments of structs (keeps the whole struct in use all the time)
@@ -430,7 +419,7 @@ public class UseDefRelation {
       // to the needed one (e.g. a[i] i is additionally) are added as dependency
 
       Set<ASimpleDeclaration> rightHandSideUses;
-      // all variables of the right hand side are "used" afterwards
+      // all variables of the right hand side are "used" afterward
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
       } else if (assignment instanceof AFunctionCallAssignmentStatement funcStmt) {

@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
  * ARGPaths can be built either from the beginning to the endpoint or in reverse. The builder can
  * still be used after calling {@link #build(ARGState)}. Please note that the state and edge given
  * to the build method will not be added permanently to the builder. If they should be in the
- * builder afterwards you need to use {@link #add(ARGState, CFAEdge)}.
+ * builder afterward you need to use {@link #add(ARGState, CFAEdge)}.
  *
  * <p>In the future we want to remove the edge given to the build method. An outgoing edge of the
  * last state of a path does not make sense.

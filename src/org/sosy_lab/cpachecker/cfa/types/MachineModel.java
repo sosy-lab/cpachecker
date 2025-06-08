@@ -367,7 +367,7 @@ public enum MachineModel {
   }
 
   /**
-   * This method returns the <code>ssize_t</code> type. This is an signed integer type capable of
+   * This method returns the <code>ssize_t</code> type. This is a signed integer type capable of
    * representing allocation sizes and -1.
    */
   public CSimpleType getSignedSizeType() {
@@ -473,37 +473,36 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL:
-        return getSizeofBool();
-      case CHAR:
-        return getSizeofChar();
-      case FLOAT:
-        return getSizeofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
+    return switch (type.getType()) {
+      case BOOL -> getSizeofBool();
+
+      case CHAR -> getSizeofChar();
+
+      case FLOAT -> getSizeofFloat();
+
+      case UNSPECIFIED, INT -> {
+        // unspecified is the same as int
         if (type.hasLongLongSpecifier()) {
-          return getSizeofLongLongInt();
+          yield getSizeofLongLongInt();
         } else if (type.hasLongSpecifier()) {
-          return getSizeofLongInt();
+          yield getSizeofLongInt();
         } else if (type.hasShortSpecifier()) {
-          return getSizeofShortInt();
+          yield getSizeofShortInt();
         } else {
-          return getSizeofInt();
+          yield getSizeofInt();
         }
-      case INT128:
-        return getSizeofInt128();
-      case DOUBLE:
+      }
+      case INT128 -> getSizeofInt128();
+
+      case DOUBLE -> {
         if (type.hasLongSpecifier()) {
-          return getSizeofLongDouble();
+          yield getSizeofLongDouble();
         } else {
-          return getSizeofDouble();
+          yield getSizeofDouble();
         }
-      case FLOAT128:
-        return getSizeofFloat128();
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
+      }
+      case FLOAT128 -> getSizeofFloat128();
+    };
   }
 
   public ByteOrder getEndianness() {
@@ -729,7 +728,7 @@ public enum MachineModel {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
     // remainder of its own alignment unit that is already partially occupied by
-    // 'A'. Otherwise 'B' is pushed into its corresponding next alignment unit.
+    // 'A'. Otherwise, 'B' is pushed into its corresponding next alignment unit.
     //
     // E.g., in 'struct s { char a: 7; int b: 25; };', 'b' is placed directly
     // preceding 'a' and a 'struct s' allocates 4 bytes.

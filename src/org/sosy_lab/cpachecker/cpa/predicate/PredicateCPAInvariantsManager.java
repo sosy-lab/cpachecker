@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -328,7 +327,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -423,7 +422,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
       final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
-        WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
+        WalltimeLimit l = WalltimeLimit.create(timeForInvariantGeneration);
         limits = new ResourceLimitChecker(invariantShutdown, Collections.singletonList(l));
         limits.start();
       } else {
@@ -437,7 +436,7 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
         boolean wasSuccessful = false;
 
         switch (generation) {
-          case PF_CNF_KIND:
+          case PF_CNF_KIND -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -448,9 +447,8 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case PF_INDUCTIVE_WEAKENING:
+          }
+          case PF_INDUCTIVE_WEAKENING -> {
             for (Pair<PathFormula, CFANode> pair : argForPathFormulaBasedGeneration) {
               if (pair.getFirst() != null) {
                 wasSuccessful =
@@ -461,16 +459,11 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
                 addResultToCache(bfmgr.makeTrue(), pair.getSecond());
               }
             }
-            break;
-
-          case RF_INTERPOLANT_KIND:
-            wasSuccessful =
-                findInvariantInterpolants(
-                    allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
-            break;
-
-          default:
-            throw new AssertionError("Unhandled case statement");
+          }
+          case RF_INTERPOLANT_KIND ->
+              wasSuccessful =
+                  findInvariantInterpolants(
+                      allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
         }
 
         if (wasSuccessful) {

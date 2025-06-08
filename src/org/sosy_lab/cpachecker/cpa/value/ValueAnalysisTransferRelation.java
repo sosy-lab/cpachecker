@@ -95,7 +95,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -251,7 +250,7 @@ public class ValueAnalysisTransferRelation
   private boolean missingAssumeInformation;
 
   /**
-   * This class assigns symbolic values, if they are enabled. Otherwise it forgets the memory
+   * This class assigns symbolic values, if they are enabled. Otherwise, it forgets the memory
    * location.
    */
   private MemoryLocationValueHandler unknownValueHandler;
@@ -666,7 +665,7 @@ public class ValueAnalysisTransferRelation
 
   private Type getBooleanType(AExpression pExpression) {
     if (pExpression instanceof JExpression) {
-      return JSimpleType.getBoolean();
+      return JSimpleType.BOOLEAN;
     } else if (pExpression instanceof CExpression) {
       return CNumericTypes.INT;
 
@@ -783,14 +782,12 @@ public class ValueAnalysisTransferRelation
       if (isComplexJavaType(declarationType)) {
         return NullValue.getInstance();
 
-      } else if (declarationType instanceof JSimpleType) {
-        JBasicType basicType = ((JSimpleType) declarationType).getType();
-
-        return switch (basicType) {
+      } else if (declarationType instanceof JSimpleType simpleType) {
+        return switch (simpleType) {
           case BOOLEAN -> BooleanValue.valueOf(defaultBooleanValue);
           case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> new NumericValue(defaultNumericValue);
           case UNSPECIFIED -> UnknownValue.getInstance();
-          default -> throw new AssertionError("Impossible type for declaration: " + basicType);
+          default -> throw new AssertionError("Impossible type for declaration: " + simpleType);
         };
       }
     }
@@ -1212,7 +1209,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       Value unknownValue = UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+      state.assignConstant(memLoc, unknownValue, JSimpleType.UNSPECIFIED);
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression =
@@ -1719,11 +1716,10 @@ public class ValueAnalysisTransferRelation
     } catch (ParserConfigurationException | SAXException | IOException e) {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
-      logger.log(
+      logger.logf(
           Level.WARNING,
-          String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              options.getFunctionValuesForRandom()));
+          "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+          options.getFunctionValuesForRandom());
     }
   }
 

@@ -341,7 +341,7 @@ public final class TestTargetReductionUtils {
 
       if (!isPredefinedFunction(functionDeclaration)
           && !(functionCallExpression.getExpressionType() instanceof CVoidType)
-          && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+          && (functionCallExpression.getExpressionType() != JSimpleType.VOID)) {
         return true;
       }
     }

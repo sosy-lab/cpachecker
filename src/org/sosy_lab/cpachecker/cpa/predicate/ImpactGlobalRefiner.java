@@ -325,7 +325,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * Actually perform refinement on one path. We compute the interpolants and then start with the
    * unreachable state going back up in the ARG until the interpolants are simply "true", calling
    * {@link #performRefinementForState(BooleanFormula, ARGState)} once for each interpolant and its
-   * corresponding state. Afterwards we call {@link #finishRefinementOfPath(ARGState, List,
+   * corresponding state. Afterward, we call {@link #finishRefinementOfPath(ARGState, List,
    * ReachedSet)} once.
    *
    * @param itpStack The list with the interpolation groups.
@@ -394,7 +394,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    *
    * @param interpolant The interpolant (with SSA indices).
    * @param state The state.
-   * @return True if no refinement was necessary (this implies that refinement on all of the state's
+   * @return True if no refinement was necessary (this implies that refinement on all the state's
    *     parents is also not necessary)
    */
   private boolean performRefinementForState(BooleanFormula interpolant, ARGState state)

@@ -57,9 +57,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Interpolant<S, I>>
     implements PathInterpolator<I> {
 
-  @Option(
-      secure = true,
-      description = "whether or not to perform path slicing before interpolation")
+  @Option(secure = true, description = "whether to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
   @Option(
@@ -340,7 +338,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * This method propagates the interpolant "false" to all states that are in the original error
    * path, but are not anymore in the (shorter) prefix.
    *
-   * <p>The property that every state on the path beneath the first state with an false interpolant
+   * <p>The property that every state on the path beneath the first state with a false interpolant
    * is needed by some code in ValueAnalysisInterpolationTree a subclass of {@link
    * InterpolationTree}, i.e., for global refinement. This property could also be enforced there,
    * but interpolant creation should only happen during interpolation, and not in the data structure
@@ -381,7 +379,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   /**
    * This method checks if refinement selection is enabled.
    *
-   * @return true, if if refinement selection is enabled, else false
+   * @return whether refinement selection is enabled
    */
   protected boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);
@@ -395,7 +393,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
    * the initial program state.
    *
    * @param pErrorPathPrefix the error path prefix to be sliced
-   * @return true, if slicing is possible, else, false
+   * @return whether slicing is possible
    */
   protected boolean isPathSlicingPossible(final ARGPath pErrorPathPrefix) {
     return pathSlicing

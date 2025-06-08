@@ -53,7 +53,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
   /*
    * If there is more than one result based on the current
-   * smg State due to abstraction, store the additional smgStates
+   * SMG State due to abstraction, store the additional smgStates
    * that have to be usd to calculate a different result for the current
    * value in this list.
    *

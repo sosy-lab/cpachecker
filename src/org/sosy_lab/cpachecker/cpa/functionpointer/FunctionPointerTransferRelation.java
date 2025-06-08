@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NullTarget;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.UnknownTarget;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @Options(prefix = "cpa.functionpointer")
@@ -191,7 +190,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
             // function pointer call into a series of if-else-if-else edges,
             // where there is a single static function call in each branch.
             // If the user wishes, we skip these function calls by not going entering the branches.
-            // Of course we have to go into the else branches.
+            // Of course, we have to go into the else branches.
 
             if (ignoreInvalidFunctionPointerCalls) {
               if (v1 instanceof InvalidTarget && v2 instanceof NamedFunctionTarget) {
@@ -264,7 +263,7 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // functions may be called either as f() or as (*f)(),
-    // so remove the star operator if its there
+    // so remove the star operator if it's there
     if (nameExp instanceof CPointerExpression) {
       nameExp = ((CPointerExpression) nameExp).getOperand();
     }
@@ -319,55 +318,33 @@ class FunctionPointerTransferRelation extends SingleEdgeTransferRelation {
       throws CPATransferException {
 
     switch (pCfaEdge.getEdgeType()) {
-
-      // declaration of a function pointer.
-      case DeclarationEdge:
-        {
-          CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
-          handleDeclaration(newState, declEdge);
-          break;
-        }
-
-      // if edge is a statement edge, e.g. a = b + c
-      case StatementEdge:
-        {
-          CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-          handleStatement(newState, statementEdge.getStatement(), pCfaEdge);
-          break;
-        }
-
-      case FunctionCallEdge:
-        {
-          CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCfaEdge;
-          handleFunctionCall(newState, functionCallEdge);
-          break;
-        }
-
-      case ReturnStatementEdge:
-        {
-          CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
-          handleReturnStatement(newState, returnStatementEdge.asAssignment(), pCfaEdge);
-          break;
-        }
-
-      case FunctionReturnEdge:
-        {
-          CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) pCfaEdge;
-          handleFunctionReturn(newState, functionReturnEdge);
-          break;
-        }
-
-      // maybe two function pointers are compared.
-      case AssumeEdge:
-        break;
-
-      // nothing to do.
-      case BlankEdge:
-      case CallToReturnEdge:
-        break;
-
-      default:
-        throw new UnrecognizedCFAEdgeException(pCfaEdge);
+      case DeclarationEdge -> {
+        // declaration of a function pointer.
+        CDeclarationEdge declEdge = (CDeclarationEdge) pCfaEdge;
+        handleDeclaration(newState, declEdge);
+        // if edge is a statement edge, e.g. a = b + c
+      }
+      case StatementEdge -> {
+        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+        handleStatement(newState, statementEdge.getStatement(), pCfaEdge);
+      }
+      case FunctionCallEdge -> {
+        CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pCfaEdge;
+        handleFunctionCall(newState, functionCallEdge);
+      }
+      case ReturnStatementEdge -> {
+        CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pCfaEdge;
+        handleReturnStatement(newState, returnStatementEdge.asAssignment(), pCfaEdge);
+      }
+      case FunctionReturnEdge -> {
+        CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) pCfaEdge;
+        handleFunctionReturn(newState, functionReturnEdge);
+        // maybe two function pointers are compared.
+      }
+      case AssumeEdge -> {
+        // nothing to do.
+      }
+      case BlankEdge, CallToReturnEdge -> {}
     }
   }
 

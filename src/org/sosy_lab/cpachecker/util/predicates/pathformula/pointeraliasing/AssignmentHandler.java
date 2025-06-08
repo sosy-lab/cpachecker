@@ -437,7 +437,7 @@ class AssignmentHandler {
       CType lhsType = typeHandler.getSimplifiedType(lhsDummy);
 
       if (assignmentOptions.forcePointerAssignmentOrArrayAttachment()) {
-        // lhsType may be an array but we have to interpret it as a pointer instead
+        // lhsType may be an array, but we have to interpret it as a pointer instead
         lhsType = CTypes.adjustFunctionOrArrayType(lhsType);
       }
 

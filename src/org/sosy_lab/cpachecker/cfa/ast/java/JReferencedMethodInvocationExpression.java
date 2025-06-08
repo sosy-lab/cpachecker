@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *
  * }</pre>
  *
- * Note that the qualification only consist of variables. In the cfa, all method names are
+ * Note that the qualification only consist of variables. In the CFA, all method names are
  * transformed to have unique names.
  */
 public final class JReferencedMethodInvocationExpression extends JMethodInvocationExpression {

@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.util;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.elementAndList;
 import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
@@ -442,10 +439,10 @@ public class CFAUtils {
 
   /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
-    checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
-    return (AssumeEdge)
-        Iterables.getOnlyElement(
-            CFAUtils.leavingEdges(edge.getPredecessor()).filter(not(Predicates.equalTo(edge))));
+    return Iterables.getOnlyElement(
+        CFAUtils.leavingEdges(edge.getPredecessor())
+            .filter(e -> !e.equals(edge))
+            .filter(AssumeEdge.class));
   }
 
   /**
@@ -517,7 +514,7 @@ public class CFAUtils {
    * This method returns true if the set of nodes is connected, i.e., there is a path between every
    * pair of nodes in the set.
    *
-   * <p>Currently this is quite inefficient, so use with caution and only for small sets of nodes.
+   * <p>Currently, this is quite inefficient, so use with caution and only for small sets of nodes.
    *
    * @param pCfaNodes the set of nodes
    * @return true if the set of nodes is connected i.e. there is a path between every pair of nodes
@@ -648,7 +645,7 @@ public class CFAUtils {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+        throw new AssertionError("forgotten case in traversing CFA with more than 2 leaving edges");
       } else {
         return TraversalProcess.CONTINUE;
       }
@@ -684,7 +681,7 @@ public class CFAUtils {
    */
   public static NavigableSet<String> filterVariablesOfFunction(
       NavigableSet<String> variables, String function) {
-    // TODO: Currently the format of the qualified name is not defined.
+    // TODO: Currently, the format of the qualified name is not defined.
     // In theory, frontends could use different formats.
     // The best would be to eliminate all uses of this method
     // (code should not use Strings, but for example AIdExpressions).
@@ -796,11 +793,13 @@ public class CFAUtils {
 
   public static Iterable<AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
     switch (edge.getEdgeType()) {
-      case CallToReturnEdge:
+      case CallToReturnEdge -> {
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
         return ImmutableSet.of(fnSumEdge.getExpression());
-      default:
+      }
+      default -> {
         return Optionals.asSet(edge.getRawAST());
+      }
     }
   }
 

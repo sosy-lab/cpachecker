@@ -39,7 +39,7 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
 
   @Option(
       secure = true,
-      description = "whether or not to use refinement selection to decide which domain to refine")
+      description = "whether to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
 
   @Option(

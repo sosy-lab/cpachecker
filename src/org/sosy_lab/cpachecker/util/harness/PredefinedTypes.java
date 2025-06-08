@@ -224,7 +224,7 @@ public final class PredefinedTypes {
   private static boolean isIntegerType(Type pType) {
     Type type = getCanonicalType(pType);
     if (type instanceof JSimpleType) {
-      return ((JSimpleType) type).getType().isIntegerType();
+      return ((JSimpleType) type).isIntegerType();
     }
     return type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType();
   }

@@ -396,7 +396,7 @@ public abstract class CFloat {
   }
 
   public final CFloatWrapper round(CFloatWrapper pWrapper, long pOverflow) {
-    // TODO: currently only rounding mode NEAREST_TIE_TO_EVEN; implement others
+    // TODO: currently, only rounding mode NEAREST_TIE_TO_EVEN; implement others
     CFloatWrapper rWrapper = pWrapper.copy();
     if (pOverflow != 0) {
       long man = rWrapper.getMantissa();
@@ -478,14 +478,12 @@ public abstract class CFloat {
   public final long getNormalizedMantissaMask() {
     long man = 0L;
     switch (getType()) {
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
+      case CFloatNativeAPI.FP_TYPE_SINGLE, CFloatNativeAPI.FP_TYPE_DOUBLE -> {
         return getMantissaMask();
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
-        man = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
-        break;
-      default:
-        throw new RuntimeException("Unimplemented floating point type: " + getType());
+      }
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ->
+          man = 0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L;
+      default -> throw new RuntimeException("Unimplemented floating point type: " + getType());
     }
 
     return man;

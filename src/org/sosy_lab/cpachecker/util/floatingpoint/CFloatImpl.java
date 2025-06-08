@@ -72,90 +72,87 @@ public class CFloatImpl extends CFloat {
       long man = 0;
 
       switch (Ascii.toLowerCase(pRep)) {
-        case "0.0":
-        case "0":
-          break;
-        case "1":
+        case "0.0", "0" -> {}
+        case "1" -> {
           exp = getBias();
           man = getNormalizationMask() & getNormalizedMantissaMask();
-          break;
-        case "2":
+        }
+        case "2" -> {
           exp = getBias() + 1L;
           man = getNormalizationMask() & getNormalizedMantissaMask();
-          break;
-        case "3":
+        }
+        case "3" -> {
           exp = getBias() + 1L;
           man =
               ((getNormalizationMask() >>> 1) + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "4":
+        }
+        case "4" -> {
           exp = getBias() + 2L;
           man = getNormalizationMask() & getNormalizedMantissaMask();
-          break;
-        case "5":
+        }
+        case "5" -> {
           exp = getBias() + 2L;
           man =
               ((getNormalizationMask() >>> 2) + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "6":
+        }
+        case "6" -> {
           exp = getBias() + 2L;
           man =
               ((getNormalizationMask() >>> 1) + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "7":
+        }
+        case "7" -> {
           exp = getBias() + 2L;
           man =
               ((getNormalizationMask() >>> 2)
                       + (getNormalizationMask() >>> 1)
                       + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "8":
+        }
+        case "8" -> {
           exp = getBias() + 3L;
           man = getNormalizationMask() & getNormalizedMantissaMask();
-          break;
-        case "9":
+        }
+        case "9" -> {
           exp = getBias() + 3L;
           man =
               ((getNormalizationMask() >>> 3) + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "10":
+        }
+        case "10" -> {
           exp = getBias() + 3L;
           man =
               ((getNormalizationMask() >>> 2) + getNormalizationMask())
                   & getNormalizedMantissaMask();
-          break;
-        case "-1":
+        }
+        case "-1" -> {
           exp = getSignBitMask() + getBias();
           man = (pType == CFloatNativeAPI.FP_TYPE_LONG_DOUBLE ? getNormalizationMask() : 0L);
-          break;
-        case "nan":
+        }
+        case "nan" -> {
           exp = 1L;
           man = 0L;
-          break;
-        case "-nan":
+        }
+        case "-nan" -> {
           exp = getSignBitMask() + 1L;
           man = 0L;
-          break;
-        case "inf":
+        }
+        case "inf" -> {
           exp = getExponentMask();
           man = 1L;
-          break;
-        case "-inf":
+        }
+        case "-inf" -> {
           exp = getExponentMask() + getSignBitMask();
           man = 1L;
-          break;
-        case "-0.0":
-        case "-0":
+        }
+        case "-0.0", "-0" -> {
           exp = getSignBitMask();
           man = 0L;
-          break;
-        default:
-          throw new RuntimeException("Default case '" + pRep + "' is not yet implemented!");
+        }
+        default ->
+            throw new RuntimeException("Default case '" + pRep + "' is not yet implemented!");
       }
 
       wrapper.setExponent(exp);
@@ -610,25 +607,24 @@ public class CFloatImpl extends CFloat {
     long rMan = tMan + oMan;
 
     switch (tSummand.getType()) {
-      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE:
+      case CFloatNativeAPI.FP_TYPE_LONG_DOUBLE -> {
         if ((rMan & tSummand.getNormalizationMask()) == 0) {
           rMan >>>= 1;
           rMan |= tSummand.getNormalizationMask() & tSummand.getNormalizedMantissaMask();
           rExp++;
           overflow <<= 1;
         }
-        break;
-      case CFloatNativeAPI.FP_TYPE_DOUBLE:
-      case CFloatNativeAPI.FP_TYPE_SINGLE:
+      }
+      case CFloatNativeAPI.FP_TYPE_DOUBLE, CFloatNativeAPI.FP_TYPE_SINGLE -> {
         if ((rMan & (tSummand.getNormalizationMask() << 1)) != 0) {
           rMan >>>= 1;
           rExp++;
           overflow <<= 1;
         }
-        break;
-      default:
-        throw new IllegalArgumentException(
-            "Unimplemented floating-point-type: " + tSummand.getType());
+      }
+      default ->
+          throw new IllegalArgumentException(
+              "Unimplemented floating-point-type: " + tSummand.getType());
     }
 
     rMan &= tSummand.getNormalizedMantissaMask();

@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -125,6 +126,14 @@ public class BlockOperator {
       description = "abstraction always at explicitly computed abstraction nodes.")
   private boolean alwaysAtExplicitNodes = false;
 
+  @Option(secure = true, description = "abstraction always at function exit nodes.")
+  private boolean alwaysAtFunctionExit = false;
+
+  @Option(
+      secure = true,
+      description = "Abstract at predefined locations given as a list of CFANode ids.")
+  private ImmutableSet<Integer> alwaysAtGivenNodes = ImmutableSet.of();
+
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
@@ -159,6 +168,10 @@ public class BlockOperator {
 
     if (threshold == 1) {
       // check SBE case here to avoid need for loop-structure information
+      return true;
+    }
+
+    if (alwaysAtGivenNodes.contains(loc.getNodeNumber())) {
       return true;
     }
 
@@ -198,6 +211,11 @@ public class BlockOperator {
     }
 
     if (alwaysAtProgramExit && isProgramExit(loc)) {
+      numBlkExit.inc();
+      return true;
+    }
+
+    if (alwaysAtFunctionExit && isFunctionExit(loc)) {
       numBlkExit.inc();
       return true;
     }
@@ -266,7 +284,8 @@ public class BlockOperator {
         && (threshold == 0)
         && !absOnFunction
         && !absOnLoop
-        && !absOnJoin;
+        && !absOnJoin
+        && !alwaysAtFunctionExit;
   }
 
   protected boolean isJoinNode(CFANode pSuccLoc) {
@@ -312,6 +331,10 @@ public class BlockOperator {
 
   protected boolean isProgramExit(CFANode pLoc) {
     return pLoc.getNumLeavingEdges() == 0;
+  }
+
+  protected boolean isFunctionExit(CFANode pLoc) {
+    return pLoc instanceof FunctionExitNode;
   }
 
   private boolean isBeforeFunctionCall(CFANode succLoc) {

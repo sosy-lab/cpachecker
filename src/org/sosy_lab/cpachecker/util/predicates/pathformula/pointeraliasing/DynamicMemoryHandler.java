@@ -483,7 +483,7 @@ class DynamicMemoryHandler {
   }
 
   /**
-   * Returns, whether a expression is a {@code sizeof} expression.
+   * Returns, whether an expression is a {@code sizeof} expression.
    *
    * @param e The C expression.
    * @return True, if the expression is a {@code sizeof} expression, false otherwise.

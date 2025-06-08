@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -116,7 +115,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 /** Class containing all the code that converts C code into a formula. */
 public class CtoFormulaConverter {
 
-  // list of functions that are pure (no side-effects from the perspective of this analysis)
+  // list of functions that are pure (no side effects from the perspective of this analysis)
   static final ImmutableSet<String> PURE_EXTERNAL_FUNCTIONS =
       ImmutableSet.of(
           "abort",
@@ -306,9 +305,10 @@ public class CtoFormulaConverter {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType simpleType) {
       switch (simpleType.getType()) {
-        case FLOAT:
+        case FLOAT -> {
           return FormulaType.getSinglePrecisionFloatingPointType();
-        case DOUBLE:
+        }
+        case DOUBLE -> {
           if (simpleType.hasLongSpecifier()) {
             if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
               // architecture without extended precision format
@@ -328,10 +328,11 @@ public class CtoFormulaConverter {
             }
           }
           return FormulaType.getDoublePrecisionFloatingPointType();
-        case FLOAT128:
+        }
+        case FLOAT128 -> {
           return FormulaType.getFloatingPointType(15, 112);
-        default:
-          break;
+        }
+        default -> {}
       }
     }
 
@@ -402,7 +403,7 @@ public class CtoFormulaConverter {
       // It is important to store the index in the variable here.
       // If getIndex() was called with a specific name,
       // this means that name@idx will appear in formulas.
-      // Thus we need to make sure that calls to FormulaManagerView.instantiate()
+      // Thus, we need to make sure that calls to FormulaManagerView.instantiate()
       // will also add indices for this name,
       // which it does exactly if the name is in the SSAMap.
       ssa.setIndex(name, type, idx);
@@ -577,7 +578,7 @@ public class CtoFormulaConverter {
       result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
 
-      // In principle we could add constraints that the addresses of all these string literals
+      // In principle, we could add constraints that the addresses of all these string literals
       // are unique and do not overlap, like we do with regular allocations in the pointeraliasing
       // package. But this is likely rarely useful in practice.
       // But we have seen code that relies on the address being non-null, so encode that.
@@ -780,7 +781,7 @@ public class CtoFormulaConverter {
 
   /**
    * Add constraint for the interval of possible values, This method should only be used for a
-   * previously declared variable, otherwise the SSA-index is invalid. Example: MIN_INT <= X <=
+   * previously declared variable, otherwise, the SSA-index is invalid. Example: MIN_INT <= X <=
    * MAX_INT
    */
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
@@ -991,8 +992,8 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * If the given expression is a integer literal, and the given type is a floating-point type,
-   * convert the literal into a floating-point literal. Otherwise return the expression unchanged.
+   * If the given expression is an integer literal, and the given type is a floating-point type,
+   * convert the literal into a floating-point literal. Otherwise, return the expression unchanged.
    */
   protected CExpression convertLiteralToFloatIfNecessary(
       final CExpression pExp, final CType targetType) {
@@ -1029,7 +1030,7 @@ public class CtoFormulaConverter {
 
   //  @Override
   public PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge, ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+      throws UnrecognizedCodeException, InterruptedException {
 
     String function =
         (edge.getPredecessor() != null) ? edge.getPredecessor().getFunctionName() : null;
@@ -1085,7 +1086,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Ensure parameters of entry function are added to the SSAMap. Otherwise they would be missing
+   * Ensure parameters of entry function are added to the SSAMap. Otherwise, they would be missing
    * and (un)instantiate would not work correctly, leading to a wrong analysis if their value is
    * relevant. TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    *
@@ -1100,7 +1101,7 @@ public class CtoFormulaConverter {
         // the entry function of a single thread.
         continue;
       }
-      // has side-effect of adding to SSAMap!
+      // has side effect of adding to SSAMap!
       final Formula var =
           makeFreshVariable(
               param.getQualifiedName(), CTypes.adjustFunctionOrArrayType(param.getType()), ssa);
@@ -1199,7 +1200,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * This helper method creates a formula for an CFA edge, given the current function, SSA map and
+   * This helper method creates a formula for a CFA edge, given the current function, SSA map and
    * constraints.
    *
    * @param edge the edge for which to create the formula
@@ -1215,64 +1216,54 @@ public class CtoFormulaConverter {
       final PointerTargetSetBuilder pts,
       final Constraints constraints,
       final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
-    switch (edge.getEdgeType()) {
-      case StatementEdge:
-        return makeStatement(
-            (CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
+      throws UnrecognizedCodeException, InterruptedException {
+    return switch (edge.getEdgeType()) {
+      case StatementEdge ->
+          makeStatement((CStatementEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case ReturnStatementEdge:
-        {
-          CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
-          return makeReturn(
-              returnEdge.asAssignment(),
-              returnEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-        }
+      case ReturnStatementEdge -> {
+        CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
+        yield makeReturn(
+            returnEdge.asAssignment(),
+            returnEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions);
+      }
+      case DeclarationEdge ->
+          makeDeclaration(
+              (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case DeclarationEdge:
-        return makeDeclaration(
-            (CDeclarationEdge) edge, function, ssa, pts, constraints, errorConditions);
+      case AssumeEdge -> {
+        CAssumeEdge assumeEdge = (CAssumeEdge) edge;
+        yield makePredicate(
+            assumeEdge.getExpression(),
+            assumeEdge.getTruthAssumption(),
+            assumeEdge,
+            function,
+            ssa,
+            pts,
+            constraints,
+            errorConditions);
+      }
+      case BlankEdge -> bfmgr.makeTrue();
 
-      case AssumeEdge:
-        {
-          CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-          return makePredicate(
-              assumeEdge.getExpression(),
-              assumeEdge.getTruthAssumption(),
-              assumeEdge,
-              function,
-              ssa,
-              pts,
-              constraints,
-              errorConditions);
-        }
+      case FunctionCallEdge ->
+          makeFunctionCall(
+              (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
 
-      case BlankEdge:
-        return bfmgr.makeTrue();
-
-      case FunctionCallEdge:
-        return makeFunctionCall(
-            (CFunctionCallEdge) edge, function, ssa, pts, constraints, errorConditions);
-
-      case FunctionReturnEdge:
-        {
-          // get the expression from the summary edge
-          CFunctionSummaryEdge ce = ((CFunctionReturnEdge) edge).getSummaryEdge();
-          return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
-        }
-
-      case CallToReturnEdge:
+      case FunctionReturnEdge -> {
+        // get the expression from the summary edge
+        CFunctionSummaryEdge ce = ((CFunctionReturnEdge) edge).getSummaryEdge();
+        yield makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
+      }
+      case CallToReturnEdge -> {
         CFunctionSummaryEdge ce = (CFunctionSummaryEdge) edge;
-        return makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
-
-      default:
-        throw new UnrecognizedCFAEdgeException(edge);
-    }
+        yield makeExitFunction(ce, function, ssa, pts, constraints, errorConditions);
+      }
+    };
   }
 
   private BooleanFormula makeStatement(
@@ -1469,7 +1460,7 @@ public class CtoFormulaConverter {
       throws UnrecognizedCodeException {
     // NOTE: When funCallExp.getExpressionType() does always return the return type of the function
     // we don't
-    // need this function. However I'm not sure because there can be implicit casts. Just to be
+    // need this function. However, I'm not sure because there can be implicit casts. Just to be
     // safe.
     CType retType;
     CFunctionDeclaration funcDecl = funcCallExp.getDeclaration();

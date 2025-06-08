@@ -53,9 +53,6 @@ public class CEGARAlgorithm
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    @SuppressFBWarnings(
-        value = "VO_VOLATILE_INCREMENT",
-        justification = "only one thread writes, others read")
     private volatile int countRefinements = 0;
 
     private int countSuccessfulRefinements = 0;
@@ -285,7 +282,7 @@ public class CEGARAlgorithm
 
     } else {
       // Check only last state, but only if it is different from the last iteration.
-      // Otherwise we would attempt to refine the same state twice if CEGARAlgorithm.run
+      // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
       // is called again but this time the inner algorithm does not find any successor states.
       return !Objects.equals(reached.getLastState(), previousLastState)
           && isTargetState(reached.getLastState());

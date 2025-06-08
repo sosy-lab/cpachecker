@@ -56,7 +56,7 @@ with considerably less effort!
 - Never check in with compile errors.
 - Avoid warnings:
   - If there is a way to fix the code, fix it (before committing).
-  - Otherwise use `@SuppressWarnings`.
+  - Otherwise, use `@SuppressWarnings`.
 - After adding/changing an `@Option` configuration,
   run `ant` to update documentation (before committing).
 
@@ -119,7 +119,7 @@ with considerably less effort!
 - Use Guava's immutable data structures as described [below in the separate section](#use-guavas-immutable-data-structures)!
 - Use arrays only with primitive types (`int`, `long`, etc.)
   or when existing APIs require them.
-  Otherwise never use arrays of object types, use lists instead.
+  Otherwise, never use arrays of object types, use lists instead.
   They have a much nicer API, are equally fast,
   and allow you to use `ImmutableList` and `Collections.unmodifiableList()`
   to avoid the need for defensive copying while still guaranteeing immutability.
@@ -181,15 +181,43 @@ with considerably less effort!
   and only from the smallest possible part of the code.
   In particular, never catch `Exception`, only the specific exception types
   that need to be caught!
-- Always use arrow rules inside `switch` instead of case labels
-  (`case foo ->` instead of `case foo:`).
-- Use `switch` expressions instead of `switch` statements as far as possible,
-  this allows the compiler to check exhaustiveness.
 - Do not write `this.` were not necessary.
 - Be careful with serialization, it has lots of unexpected pitfalls
   (read "Effective Java" before using it).
   If you have serializable classes,
   mark all serialization-related fields and methods with `@Serial`.
+
+#### `switch`
+
+Java 16 brought two new features for the `switch` keyword:
+the possibility to use it as a *switch expression*
+and *arrow labels* for cases, which use `->` instead of `:`.
+These bring several improvements that we want to make use of:
+Switch expressions require the compiler to prove exhaustiveness, so no case can be forgotten.
+Arrow labels prevent fall through and avoid the surprising scoping issues of classic case labels.
+Note that both features are orthogonal,
+just because something uses arrow labels does not mean that it is a switch expression
+or that the compiler would enforce exhaustiveness!
+Unfortunately, there is no way to require an exhaustiveness check from the compiler for a switch statement.
+But at least Eclipse and Google Error Prone check for exhaustiveness of enum switches in CI.
+
+Thus, for `switch` the rules are:
+- Whenever possible prefer switch expressions over switch statements,
+  i.e., write the switch *inside an expression* (typically after `return` or an assignment).
+- Always use *arrow labels* (`->` instead of `:`).
+
+For `default` clauses the following rules apply:
+- Switches over ints and Strings should always have a `default` clause
+  (e.g., with `throw new AssertionError()`).
+- Enum switches that intentionally not list all cases explicitly
+  should always have a `default` clause (potentially empty with an explanatory comment).
+  But often adding all cases explicitly is a better alternative.
+- Enum switches that are exhaustive should *not* have a `default` clause,
+  only where it is required to make the code compile
+  (e.g., because otherwise a variable would remain uninitialized).
+  In this case use `throw new AssertionError()`,
+  but prefer to rewrite the switch statement into a switch expression,
+  such that no default clause is necessary.
 
 ### Use Guava's immutable data structures
 

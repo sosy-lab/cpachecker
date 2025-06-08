@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -192,27 +191,24 @@ public class ConstraintFactory {
       CType canonicalType = ((CType) pType).getCanonicalType();
       if (canonicalType instanceof CSimpleType) {
         switch (((CSimpleType) canonicalType).getType()) {
-          case FLOAT:
-          case INT:
+          case FLOAT, INT -> {
             return true;
-          default:
+          }
+          default -> {
             // DO NOTHING, false is returned below
+          }
         }
       }
 
       return false;
     } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
-        case BYTE:
-        case CHAR:
-        case SHORT:
-        case INT:
-        case LONG:
-        case FLOAT:
-        case DOUBLE:
+      switch ((JSimpleType) pType) {
+        case BYTE, CHAR, SHORT, INT, LONG, FLOAT, DOUBLE -> {
           return true;
-        default:
+        }
+        default -> {
           // DO NOTHING, false is returned below
+        }
       }
 
       return false;
@@ -230,7 +226,7 @@ public class ConstraintFactory {
     }
 
     if (pType instanceof JSimpleType) {
-      return ((JSimpleType) pType).getType() == JBasicType.BOOLEAN;
+      return pType == JSimpleType.BOOLEAN;
     } else {
       throw new AssertionError("Unexpected type " + pType);
     }
@@ -241,7 +237,7 @@ public class ConstraintFactory {
   }
 
   private SymbolicExpression getTrueValueConstant() {
-    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.getBoolean());
+    return expressionFactory.asConstant(BooleanValue.valueOf(true), JSimpleType.BOOLEAN);
   }
 
   private Constraint createNot(Constraint pConstraint) {

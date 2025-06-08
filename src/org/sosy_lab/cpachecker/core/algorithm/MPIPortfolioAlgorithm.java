@@ -525,7 +525,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
-       * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
+       * Hack to set up the desired config options for the child CPAchecker processes. The idea is to
        * keep all (user-)configurations except the ones necessary for running this portfolio
        * analysis.
        *

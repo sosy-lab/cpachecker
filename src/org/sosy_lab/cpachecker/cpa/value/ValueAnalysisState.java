@@ -330,10 +330,10 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method checks whether or not the given Memory Location is contained in this state.
+   * This method checks whether the given Memory Location is contained in this state.
    *
    * @param pMemoryLocation the location in the Memory to check for
-   * @return true, if the variable is contained, else false
+   * @return whether the variable is contained
    */
   public boolean contains(MemoryLocation pMemoryLocation) {
     return constantsMap.containsKey(pMemoryLocation);
@@ -953,6 +953,7 @@ public final class ValueAnalysisState
                     || !varName.equals(pFunctionScope.getReturnVariable().get().getName()))
                 && pAstCfaRelation
                     .getVariablesAndParametersInScope(pLocation)
+                    .orElseThrow()
                     .anyMatch(v -> v.getName().equals(varName))
                 && !varName.contains("__CPAchecker_"),
         varName -> useOldKeywordForVariables ? "\\old(" + varName + ")" : varName);
