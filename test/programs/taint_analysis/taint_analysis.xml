@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
+
+    <option name="--no-output-files"/>
+    <option name="--heap">2000M</option>
+
+    <rundefinition>
+        <option name="--predicateAnalysis--informationFlow"/>
+        <tasks>
+            <includesfile>./taint_analysis.set</includesfile>
+            <propertyfile>../../../config/properties/predicateAnalysis--informationFlow.properties</propertyfile>
+        </tasks>
+    </rundefinition>
+
+    <resultfiles>**.graphml*</resultfiles>
+
+    <columns>
+        <column title="time for safety analysis">Total time for safety analysis</column>
+        <column title="time for lasso construction">Time for lassos construction</column>
+        <column title="time for non-termination analysis">Total time for non-termination analysis</column>
+        <column title="time for termination analysis">Total time for termination analysis</column>
+        <column title="lassos">Number of analysed lassos</column>
+    </columns>
+</benchmark>
