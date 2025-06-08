@@ -481,6 +481,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                           c2Formula,
                           machineModel,
                           pExportOpt))
+              .filter(bf -> !solver.getFormulaManager().getBooleanFormulaManager().isTrue(bf))
               .transform(bf -> absMgr.makePredicate(bf)));
     }
 
