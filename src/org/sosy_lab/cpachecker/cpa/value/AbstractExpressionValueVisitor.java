@@ -27,6 +27,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -124,7 +127,8 @@ public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
         JRightHandSideVisitor<Value, NoException>,
-        JExpressionVisitor<Value, NoException> {
+        JExpressionVisitor<Value, NoException>,
+        AcslPredicateVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
@@ -2375,6 +2379,19 @@ public abstract class AbstractExpressionValueVisitor
         pTargetType,
         logger,
         pExp.getFileLocation());
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type. This method handles
+   * overflows and casts. If necessary warnings for the user are printed.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   */
+  public Value evaluate(final AcslPredicate pExp, final AcslType pTargetType)
+      throws UnrecognizedCodeException {
+    return castAcslValue(pExp.accept(this), pTargetType, machineModel, logger, pExp.getFileLocation());
   }
 
   /**
