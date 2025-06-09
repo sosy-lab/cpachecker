@@ -53,7 +53,6 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
     return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
-  // TODO the tree is not balanced atm, see e.g. mix014 unit test. though the impact should be minor
   /**
    * Recursively builds a binary if-else search tree for {@code pStatements} and stores it in {@code
    * pTree}. Note that the labeling does not have to be consecutive from {@code 0}, e.g. {@code 0,
@@ -85,7 +84,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       int mid = size / 2;
       SeqStatement midStatement = pCurrentStatements.get(mid);
       // if statement is a clause, use its label number for the < check
-      int midIndex = getLabelNumberOrIndex(midStatement, mid);
+      int midIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midStatement));
 
       pTree.add(buildIfSmallerSubtree(pDepth, midIndex, pPc));
       recursivelyBuildTree(
