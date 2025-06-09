@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -75,10 +74,6 @@ public class UnseqBehaviorAnalysisState
 
   public ImmutableList<String> getCalledFunctionStack() {
     return calledFunctionStack;
-  }
-
-  public static ImmutableList<String> toImmutableCalledFunctionStack(Deque<String> mutableStack) {
-    return ImmutableList.copyOf(mutableStack);
   }
 
   // === TMP to expression mapping ===
