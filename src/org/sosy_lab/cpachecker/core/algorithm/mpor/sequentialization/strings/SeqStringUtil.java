@@ -12,11 +12,11 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -237,7 +237,7 @@ public class SeqStringUtil {
       pruned.addAll(
           pInjectedStatements.stream()
               .filter(s -> s instanceof SeqBitVectorAssignmentStatement)
-              .collect(Collectors.toSet()));
+              .collect(ImmutableSet.toImmutableSet()));
     }
     return pInjectedStatements.stream()
         .filter(i -> !pruned.contains(i))

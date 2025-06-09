@@ -27,7 +27,12 @@ public class DecimalBitVectorExpression implements BitVectorExpression {
 
   @Override
   public String toASTString() {
-    int bitSum = setBits.stream().mapToInt(Integer::intValue).sum();
+    // using long, the bits can go up to 64
+    long bitSum = 0;
+    for (int bit : setBits) {
+      // use shift expression, equivalent to 2^bit
+      bitSum += 1L << bit;
+    }
     return String.valueOf(bitSum);
   }
 
