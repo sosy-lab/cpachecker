@@ -2441,6 +2441,41 @@ public abstract class AbstractExpressionValueVisitor
     return castNumeric(numericValue, type, machineModel, size);
   }
 
+  /**
+   * This method returns the input-value, cast to match the type. If the value matches the type,
+   * it is returned unchanged. This method handles overflows and print warnings for the user.
+   * Example: This method is called, when a value of type 'integer' is assigned to a variable of
+   * type 'char'.
+   *
+   * @param value will be cast.
+   * @param targetType value will be casted to targetType.
+   * @param machineModel contains information about types
+   * @param logger for logging
+   * @param fileLocation the location of the corresponding code in the source file
+   * @return the cast Value
+   */
+  public static Value castAcslValue(
+      @NonNull final Value value,
+      final AcslType targetType,
+      final MachineModel machineModel,
+      final LogManagerWithoutDuplicates logger,
+      final FileLocation fileLocation) {
+
+    if (!value.isExplicitlyKnown()) {
+      return castIfSymbolic(value, targetType);
+    }
+
+    // For now can only cast numeric value's
+    if (!value.isNumericValue()) {
+      logger.logf(
+          Level.FINE, "Can not cast Acsl value %s to %s", value.toString(), targetType.toString());
+      return value;
+    }
+    NumericValue numericValue = (NumericValue) value;
+
+    return value;
+  }
+
   private static Value castNumeric(
       @NonNull final NumericValue numericValue,
       final CType type,
