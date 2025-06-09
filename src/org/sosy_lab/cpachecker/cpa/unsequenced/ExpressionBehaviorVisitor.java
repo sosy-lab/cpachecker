@@ -69,7 +69,7 @@ public class ExpressionBehaviorVisitor
     // 1. Check if this is a TMP variable mapped to the original expression
     Optional<CRightHandSide> originalExpr = state.getFunctionForTmp(varName);
     if (originalExpr.isPresent()) {
-      return originalExpr.get().accept(this);
+      return originalExpr.orElseThrow().accept(this);
     }
 
     // 2. Handel side effect

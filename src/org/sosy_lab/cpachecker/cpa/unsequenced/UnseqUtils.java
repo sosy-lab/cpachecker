@@ -44,6 +44,6 @@ public class UnseqUtils {
     for (Map.Entry<String, Set<SideEffectInfo>> entry : mutableMap.entrySet()) {
       builder.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
     }
-    return builder.build();
+    return builder.buildOrThrow();
   }
 }
