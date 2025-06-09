@@ -397,7 +397,7 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       logger.logf(
           Level.INFO,
-          "[UnseqExpr] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
+          "[BinaryExprConflicts] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
           UnseqUtils.replaceTmpInExpression(left, pState),
           UnseqUtils.replaceTmpInExpression(right, pState),
           leftEffects,

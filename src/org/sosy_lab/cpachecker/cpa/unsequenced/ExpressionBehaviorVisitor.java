@@ -104,6 +104,7 @@ public class ExpressionBehaviorVisitor
       Set<SideEffectInfo> paramEffects = paramSummary.getSideEffects();
 
       sideEffectsPerSubExpr.put(param, paramEffects);
+      sideEffects.addAll(paramEffects);
     }
 
     if (funcExpr instanceof CIdExpression idExpr) { // side effects inside function body
