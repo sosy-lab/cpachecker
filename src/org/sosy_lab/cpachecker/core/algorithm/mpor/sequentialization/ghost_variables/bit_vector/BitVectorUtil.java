@@ -39,11 +39,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorUtil {
 
-  /**
-   * 1 is the starting index so that decimal bit vectors are not 0 if only the first bit is set. The
-   * right-most index is 1, with the left-most index being the length of the bit vector.
-   */
-  public static final int RIGHT_INDEX = 1;
+  /** The right-most index is 0, with the left-most index being the length of the bit vector - 1. */
+  public static final int RIGHT_INDEX = 0;
 
   /**
    * Returns the left index (i.e. the first index from left to right) of the bit vector based on its
@@ -107,17 +104,26 @@ public class BitVectorUtil {
         "pVariableIds must contain all pVariables as keys.");
 
     // for decimal, use the sum of variable ids (starting from 1)
-    int variableIdSum =
+    ImmutableSet<Integer> setBits =
         pVariables.stream()
             .map(pVariableIds::get)
             .filter(Objects::nonNull)
-            .mapToInt(Integer::intValue)
-            .sum();
+            .collect(ImmutableSet.toImmutableSet());
 
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
         getTypeByBinaryLength(getBinaryLength(pVariableIds.size())),
-        new BigInteger(String.valueOf(variableIdSum)));
+        new BigInteger(String.valueOf(buildDecimalBitVector(setBits))));
+  }
+
+  public static long buildDecimalBitVector(ImmutableSet<Integer> pSetBits) {
+    // use long to support up to 64 bits
+    long rSum = 0;
+    for (int bit : pSetBits) {
+      // use shift expression, equivalent to 2^bit
+      rSum += 1L << (bit - BitVectorUtil.RIGHT_INDEX);
+    }
+    return rSum;
   }
 
   private static CSimpleType getTypeByBinaryLength(int pBinaryLength) {
