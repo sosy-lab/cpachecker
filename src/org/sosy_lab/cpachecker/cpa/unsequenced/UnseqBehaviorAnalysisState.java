@@ -33,7 +33,8 @@ public class UnseqBehaviorAnalysisState
   // Property
   private static final String UNSEQUENCED = "has-unsequenced-execution";
 
-  private final ImmutableMap<String, ImmutableSet<SideEffectInfo>> sideEffectsInFun; // total side effects
+  private final ImmutableMap<String, ImmutableSet<SideEffectInfo>>
+      sideEffectsInFun; // total side effects
   private final ImmutableList<String> calledFunctionStack;
   private final ImmutableSet<ConflictPair> detectedConflicts;
   private final ImmutableMap<String, CRightHandSide> tmpToOriginalExprMap;
@@ -45,7 +46,7 @@ public class UnseqBehaviorAnalysisState
       ImmutableSet<ConflictPair> pDetectedConflicts,
       ImmutableMap<String, CRightHandSide> pTmpToOriginalExprMap,
       LogManager pLogger) {
-    sideEffectsInFun =  pSideEffectsInFun;
+    sideEffectsInFun = pSideEffectsInFun;
     calledFunctionStack = pCalledFunctionStack;
     detectedConflicts = pDetectedConflicts;
     tmpToOriginalExprMap = pTmpToOriginalExprMap;
@@ -61,10 +62,12 @@ public class UnseqBehaviorAnalysisState
   public ImmutableMap<String, ImmutableSet<SideEffectInfo>> getSideEffectsInFun() {
     return sideEffectsInFun;
   }
+
   // === Conflict tracking ===
   public ImmutableSet<ConflictPair> getDetectedConflicts() {
     return detectedConflicts;
   }
+
   // === Function call tracking ===
   public boolean isInsideFunctionCall() {
     return !calledFunctionStack.isEmpty();
@@ -74,8 +77,7 @@ public class UnseqBehaviorAnalysisState
     return calledFunctionStack;
   }
 
-  public static ImmutableList<String> toImmutableCalledFunctionStack(
-      Deque<String> mutableStack) {
+  public static ImmutableList<String> toImmutableCalledFunctionStack(Deque<String> mutableStack) {
     return ImmutableList.copyOf(mutableStack);
   }
 
@@ -156,7 +158,7 @@ public class UnseqBehaviorAnalysisState
     return false;
   }
 
-   @Override
+  @Override
   public UnseqBehaviorAnalysisState join(UnseqBehaviorAnalysisState other)
       throws CPAException, InterruptedException {
     if (this.equals(other)) {
@@ -170,7 +172,8 @@ public class UnseqBehaviorAnalysisState
     for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : this.sideEffectsInFun.entrySet()) {
       mutableSideEffects.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
-    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : other.sideEffectsInFun.entrySet()) {
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry :
+        other.sideEffectsInFun.entrySet()) {
       mutableSideEffects.merge(
           entry.getKey(),
           new HashSet<>(entry.getValue()),
@@ -186,8 +189,11 @@ public class UnseqBehaviorAnalysisState
     for (Map.Entry<String, CRightHandSide> entry : other.tmpToOriginalExprMap.entrySet()) {
       if (mutableTmpMap.containsKey(entry.getKey())
           && !Objects.equals(mutableTmpMap.get(entry.getKey()), entry.getValue())) {
-        throw new IllegalStateException("Conflicting tmp mappings during join: "
-            + mutableTmpMap.get(entry.getKey()) + " vs " + entry.getValue());
+        throw new IllegalStateException(
+            "Conflicting tmp mappings during join: "
+                + mutableTmpMap.get(entry.getKey())
+                + " vs "
+                + entry.getValue());
       }
       mutableTmpMap.put(entry.getKey(), entry.getValue());
     }
@@ -213,15 +219,17 @@ public class UnseqBehaviorAnalysisState
     for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : this.sideEffectsInFun.entrySet()) {
       String functionName = entry.getKey();
       Set<SideEffectInfo> thisEffects = entry.getValue();
-      Set<SideEffectInfo> reachedStateEffects =
-          reachedState.sideEffectsInFun.get(functionName);
+      Set<SideEffectInfo> reachedStateEffects = reachedState.sideEffectsInFun.get(functionName);
 
       if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
         return false;
       }
     }
 
-    if (!reachedState.tmpToOriginalExprMap.entrySet().containsAll(this.tmpToOriginalExprMap.entrySet())) {
+    if (!reachedState
+        .tmpToOriginalExprMap
+        .entrySet()
+        .containsAll(this.tmpToOriginalExprMap.entrySet())) {
       return false;
     }
 
@@ -231,7 +239,6 @@ public class UnseqBehaviorAnalysisState
 
     return true;
   }
-
 
   private boolean isUnsequenced() {
     return !this.getDetectedConflicts().isEmpty();

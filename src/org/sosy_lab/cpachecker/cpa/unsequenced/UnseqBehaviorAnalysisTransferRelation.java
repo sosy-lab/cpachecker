@@ -66,7 +66,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CStatementEdge statementEdge, CStatement stat) throws UnrecognizedCodeException {
 
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
-    Map<String, Set<SideEffectInfo>> mergedSideEffects = deepCopySideEffects(newState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> mergedSideEffects =
+        deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
 
     if (stat instanceof CExpressionAssignmentStatement exprAssign) {
@@ -75,42 +76,54 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       // if functioncall true, then record side effects inside it
       if (lhsExpr instanceof CIdExpression) {
-        mergeSideEffects(mergedSideEffects,
+        mergeSideEffects(
+            mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState));
-        mergeSideEffects(mergedSideEffects,
+        mergeSideEffects(
+            mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
       } else if (lhsExpr instanceof CPointerExpression pointerExpr) {
-        mergeSideEffects(mergedSideEffects,
+        mergeSideEffects(
+            mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.READ, newState));
-        mergeSideEffects(mergedSideEffects,
+        mergeSideEffects(
+            mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
-
 
         if (pointerExpr.getOperand()
             instanceof
             CBinaryExpression binaryExpr) { // to detect unseq behavior like *(f() + x) = 3;
-          mergeConflicts(mergedConflicts, detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
+          mergeConflicts(
+              mergedConflicts,
+              detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
         }
 
         // to detect unseq behavior like *f() = g() + g(); and return *f() = g() + g();
-        mergeConflicts(mergedConflicts, detectAssignmentStatementConflicts(lhsExpr, rhsExpr, statementEdge, newState));
+        mergeConflicts(
+            mergedConflicts,
+            detectAssignmentStatementConflicts(lhsExpr, rhsExpr, statementEdge, newState));
       }
 
       // check if there exists unsequenced behavior and cause conflict
       // to detect unseq behavior like y = (f() + g()) + x;
       if (rhsExpr instanceof CBinaryExpression binaryExpr) {
-        mergeConflicts(mergedConflicts, detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
+        mergeConflicts(
+            mergedConflicts,
+            detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
       }
 
     } else if (stat
         instanceof CExpressionStatement exStat) { // to detect unseq behavior like (f() + g()) + x;
       CExpression expr = exStat.getExpression();
 
-      mergeSideEffects(mergedSideEffects,
+      mergeSideEffects(
+          mergedSideEffects,
           recordSideEffectsIfInFunctionCall(expr, statementEdge, AccessType.READ, newState));
 
       if (expr instanceof CBinaryExpression binaryExpr) {
-        mergeConflicts(mergedConflicts, detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
+        mergeConflicts(
+            mergedConflicts,
+            detectConflictsInUnsequencedBinaryExprs(binaryExpr, statementEdge, newState));
       }
     }
 
@@ -127,21 +140,25 @@ public class UnseqBehaviorAnalysisTransferRelation
       CDeclarationEdge declarationEdge, CDeclaration declaration) throws UnrecognizedCodeException {
 
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
-    Map<String, Set<SideEffectInfo>> mergedSideEffects = deepCopySideEffects(newState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> mergedSideEffects =
+        deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
 
     if (declaration instanceof CVariableDeclaration varDecl) {
       if (varDecl.getInitializer() instanceof CInitializerExpression init) {
         CExpression initExpr = init.getExpression();
         // if functioncall true, then record side effects rhs
-        mergeSideEffects(mergedSideEffects,
-            recordSideEffectsIfInFunctionCall(initExpr, declarationEdge, AccessType.READ, newState));
+        mergeSideEffects(
+            mergedSideEffects,
+            recordSideEffectsIfInFunctionCall(
+                initExpr, declarationEdge, AccessType.READ, newState));
 
         if (initExpr
             instanceof
             CBinaryExpression
                 binaryExpr) { // to detect unseq behavior like int y = (f() + g()) + x;
-          mergeConflicts(mergedConflicts,
+          mergeConflicts(
+              mergedConflicts,
               detectConflictsInUnsequencedBinaryExprs(binaryExpr, declarationEdge, newState));
         }
       }
@@ -164,17 +181,20 @@ public class UnseqBehaviorAnalysisTransferRelation
       throws UnrecognizedCodeException {
 
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
-    Map<String, Set<SideEffectInfo>> mergedSideEffects = deepCopySideEffects(newState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> mergedSideEffects =
+        deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
     Deque<String> mergedFunctionCallStack = new ArrayDeque<>(state.getCalledFunctionStack());
     mergedFunctionCallStack.push(calledFunctionName);
 
     for (CExpression argument : arguments) {
-      mergeSideEffects(mergedSideEffects,
+      mergeSideEffects(
+          mergedSideEffects,
           recordSideEffectsIfInFunctionCall(argument, callEdge, AccessType.READ, newState));
       // to detect unseq behavior inside single argument
       if (argument instanceof CBinaryExpression binaryExpr) {
-        mergeConflicts(mergedConflicts,
+        mergeConflicts(
+            mergedConflicts,
             detectConflictsInUnsequencedBinaryExprs(binaryExpr, callEdge, newState));
       }
     }
@@ -194,9 +214,9 @@ public class UnseqBehaviorAnalysisTransferRelation
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
     Deque<String> mergedFunctionCallStack = new ArrayDeque<>(newState.getCalledFunctionStack());
-    Map<String, CRightHandSide> mergedTmpToOriginalExprMap = new HashMap<>(newState.getTmpToOriginalExprMap());
+    Map<String, CRightHandSide> mergedTmpToOriginalExprMap =
+        new HashMap<>(newState.getTmpToOriginalExprMap());
     mergedFunctionCallStack.pop();
-
 
     ExpressionBehaviorVisitor visitor =
         new ExpressionBehaviorVisitor(newState, funReturnEdge, AccessType.READ, logger);
@@ -208,8 +228,10 @@ public class UnseqBehaviorAnalysisTransferRelation
       // to detect unseq behavior between arguments,like int c = foo(f1(), f2());
       // and return foo(f1(), f2());
       ExpressionAnalysisSummary summary = rhs.accept(visitor);
-      mergeConflicts(mergedConflicts,
-          detectCrossArgumentConflicts(summary.getSideEffectsPerSubExpr(), funReturnEdge, newState));
+      mergeConflicts(
+          mergedConflicts,
+          detectCrossArgumentConflicts(
+              summary.getSideEffectsPerSubExpr(), funReturnEdge, newState));
 
       if (lhs instanceof CIdExpression tmpVar) { // map tmp name and function name
         String tmpName = tmpVar.getDeclaration().getQualifiedName();
@@ -228,8 +250,10 @@ public class UnseqBehaviorAnalysisTransferRelation
           instanceof
           CPointerExpression
               pointerExpr) { // to detect unseq behavior *f()=g(); and return *f()=g();
-        mergeConflicts(mergedConflicts,
-            detectAssignmentStatementConflicts(pointerExpr, summaryExpr.getFunctionCallExpression(), funReturnEdge, newState));
+        mergeConflicts(
+            mergedConflicts,
+            detectAssignmentStatementConflicts(
+                pointerExpr, summaryExpr.getFunctionCallExpression(), funReturnEdge, newState));
       }
     }
     return new UnseqBehaviorAnalysisState(
@@ -244,21 +268,24 @@ public class UnseqBehaviorAnalysisTransferRelation
   protected UnseqBehaviorAnalysisState handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
-    Map<String, Set<SideEffectInfo>> mergedSideEffects = deepCopySideEffects(newState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> mergedSideEffects =
+        deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
 
     Optional<CExpression> expressionOptional = returnEdge.getExpression();
 
     if (expressionOptional.isPresent()) {
       CExpression returnExpr = expressionOptional.orElseThrow();
-      mergeSideEffects(mergedSideEffects,
+      mergeSideEffects(
+          mergedSideEffects,
           recordSideEffectsIfInFunctionCall(returnExpr, returnEdge, AccessType.READ, newState));
 
       if (returnExpr
           instanceof
           CBinaryExpression
               returnBinExpr) { // to detect unseq behavior like return (f() + g()) + x;
-        mergeConflicts(mergedConflicts,
+        mergeConflicts(
+            mergedConflicts,
             detectConflictsInUnsequencedBinaryExprs(returnBinExpr, returnEdge, newState));
       }
     }
@@ -276,17 +303,19 @@ public class UnseqBehaviorAnalysisTransferRelation
       CAssumeEdge assumeEdge, CExpression expression, boolean truthValue)
       throws UnrecognizedCodeException {
     UnseqBehaviorAnalysisState newState = Objects.requireNonNull(state);
-    Map<String, Set<SideEffectInfo>> mergedSideEffects = deepCopySideEffects(newState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> mergedSideEffects =
+        deepCopySideEffects(newState.getSideEffectsInFun());
     Set<ConflictPair> mergedConflicts = new HashSet<>(newState.getDetectedConflicts());
 
-    mergeSideEffects(mergedSideEffects,
+    mergeSideEffects(
+        mergedSideEffects,
         recordSideEffectsIfInFunctionCall(expression, assumeEdge, AccessType.READ, newState));
 
     if (expression
         instanceof
         CBinaryExpression binExpr) { // to detect unsequenced behavior like if (f()+g() != 0){}
-      mergeConflicts(mergedConflicts,
-          detectConflictsInUnsequencedBinaryExprs(binExpr, assumeEdge, newState));
+      mergeConflicts(
+          mergedConflicts, detectConflictsInUnsequencedBinaryExprs(binExpr, assumeEdge, newState));
     }
 
     return new UnseqBehaviorAnalysisState(
@@ -304,31 +333,32 @@ public class UnseqBehaviorAnalysisTransferRelation
 
   /**
    * Analyzes the given expression for side effects if currently inside a function call.
-   * <p>
-   * If any side effects are detected, they are associated with the current function
-   * and propagated to all callers in the function call stack.
-   * </p>
+   *
+   * <p>If any side effects are detected, they are associated with the current function and
+   * propagated to all callers in the function call stack.
    *
    * @param expr the expression to analyze
    * @param edge the CFA edge where the expression appears
    * @param accessType the type of access (READ or WRITE)
    * @param pState the current abstract state
-   * @return a new {@code Map<String, Set<SideEffectInfo>>} containing updated side-effect information
+   * @return a new {@code Map<String, Set<SideEffectInfo>>} containing updated side-effect
+   *     information
    * @throws UnrecognizedCodeException if the expression contains unsupported constructs
    */
   private Map<String, Set<SideEffectInfo>> recordSideEffectsIfInFunctionCall(
       CExpression expr, CFAEdge edge, AccessType accessType, UnseqBehaviorAnalysisState pState)
       throws UnrecognizedCodeException {
 
-    Map<String, Set<SideEffectInfo>> newSideEffectsInFun = deepCopySideEffects(pState.getSideEffectsInFun());
+    Map<String, Set<SideEffectInfo>> newSideEffectsInFun =
+        deepCopySideEffects(pState.getSideEffectsInFun());
     Deque<String> mergedFunctionCallStack = new ArrayDeque<>(pState.getCalledFunctionStack());
-
 
     if (!pState.isInsideFunctionCall()) {
       return newSideEffectsInFun;
     }
 
-    ExpressionBehaviorVisitor visitor = new ExpressionBehaviorVisitor(pState, edge, accessType, logger);
+    ExpressionBehaviorVisitor visitor =
+        new ExpressionBehaviorVisitor(pState, edge, accessType, logger);
     ExpressionAnalysisSummary summary = expr.accept(visitor);
     Set<SideEffectInfo> effects = summary.getSideEffects();
 
@@ -336,11 +366,10 @@ public class UnseqBehaviorAnalysisTransferRelation
       String currentFunction = mergedFunctionCallStack.peek();
 
       // Add side effects to the entry of the currently called function
-      newSideEffectsInFun
-          .computeIfAbsent(currentFunction, k -> new HashSet<>())
-          .addAll(effects);
+      newSideEffectsInFun.computeIfAbsent(currentFunction, k -> new HashSet<>()).addAll(effects);
 
-      // Propagate side effects upwards to all callers in the call stack (excluding the top, i.e., current function)
+      // Propagate side effects upwards to all callers in the call stack (excluding the top, i.e.,
+      // current function)
       boolean skipTop = true;
       for (String caller : mergedFunctionCallStack) {
         if (skipTop) {
@@ -363,12 +392,13 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   /**
-   * Detects unsequenced side-effect conflicts in nested binary expressions within the given expression.
+   * Detects unsequenced side-effect conflicts in nested binary expressions within the given
+   * expression.
    *
-   * <p>This method visits the input expression and extracts all sub-expressions marked as unsequenced
-   * binary expressions (e.g., those using operators such as {@code +}, {@code *}, etc.). For each such
-   * binary expression, it analyzes the left and right operands for side effects and identifies potential
-   * memory access conflicts.</p>
+   * <p>This method visits the input expression and extracts all sub-expressions marked as
+   * unsequenced binary expressions (e.g., those using operators such as {@code +}, {@code *},
+   * etc.). For each such binary expression, it analyzes the left and right operands for side
+   * effects and identifies potential memory access conflicts.
    *
    * @param expr the compound expression possibly containing unsequenced binary sub-expressions
    * @param edge the CFA edge where the expression occurs
@@ -397,7 +427,8 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       logger.logf(
           Level.INFO,
-          "[BinaryExprConflicts] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side Effects: %s",
+          "[BinaryExprConflicts] Detected: (%s) ⊕ (%s) → Left Side Effects: %s → Right Side"
+              + " Effects: %s",
           UnseqUtils.replaceTmpInExpression(left, pState),
           UnseqUtils.replaceTmpInExpression(right, pState),
           leftEffects,
@@ -414,17 +445,17 @@ public class UnseqBehaviorAnalysisTransferRelation
 
   /**
    * Detects unsequenced side-effect conflicts between pairs of function call arguments.
-   * <p>
-   * For each distinct pair of expressions in {@code sideEffectsPerSubExpr}, this method checks
-   * if their associated side effects are unsequenced and potentially conflicting. If so,
-   * {@link ConflictPair} instances are created and added to the result set.
-   * </p>
    *
-   * @param sideEffectsPerSubExpr a mapping from each argument expression to its associated side effects
+   * <p>For each distinct pair of expressions in {@code sideEffectsPerSubExpr}, this method checks
+   * if their associated side effects are unsequenced and potentially conflicting. If so, {@link
+   * ConflictPair} instances are created and added to the result set.
+   *
+   * @param sideEffectsPerSubExpr a mapping from each argument expression to its associated side
+   *     effects
    * @param edge the CFA edge at which the potential unsequenced conflict occurs
    * @param pState the current analysis state providing access to TMP mappings and logging
-   * @return a new {@link Set} of {@link ConflictPair} instances representing all detected conflicts,
-   *         including those already present in {@code pState}
+   * @return a new {@link Set} of {@link ConflictPair} instances representing all detected
+   *     conflicts, including those already present in {@code pState}
    */
   private Set<ConflictPair> detectCrossArgumentConflicts(
       Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr,
@@ -462,18 +493,18 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   /**
-   * Detects potential unsequenced side-effect conflicts between the left-hand side (LHS)
-   * and right-hand side (RHS) of an assignment statement.
+   * Detects potential unsequenced side-effect conflicts between the left-hand side (LHS) and
+   * right-hand side (RHS) of an assignment statement.
    *
-   * <p>It evaluates both expressions using {@link ExpressionBehaviorVisitor}, collects their
-   * side effects, and analyzes them for conflicting access to the same memory location.</p>
+   * <p>It evaluates both expressions using {@link ExpressionBehaviorVisitor}, collects their side
+   * effects, and analyzes them for conflicting access to the same memory location.
    *
    * @param lhsExpr the left-hand side expression of the assignment
    * @param rhsExpr the right-hand side expression of the assignment
    * @param edge the CFA edge representing the assignment
    * @param pState the current abstract analysis state, used for context and logging
    * @return a {@link Set} of {@link ConflictPair} objects representing detected conflicts,
-   *         including those already present in {@code pState}
+   *     including those already present in {@code pState}
    * @throws UnrecognizedCodeException if the expression contains unrecognized constructs
    */
   private Set<ConflictPair> detectAssignmentStatementConflicts(
@@ -559,17 +590,14 @@ public class UnseqBehaviorAnalysisTransferRelation
     return copy;
   }
 
-
   private void mergeSideEffects(
-      Map<String, Set<SideEffectInfo>> base,
-      Map<String, Set<SideEffectInfo>> addition) {
+      Map<String, Set<SideEffectInfo>> base, Map<String, Set<SideEffectInfo>> addition) {
     for (Map.Entry<String, Set<SideEffectInfo>> entry : addition.entrySet()) {
       base.computeIfAbsent(entry.getKey(), k -> new HashSet<>()).addAll(entry.getValue());
     }
   }
 
-  private void mergeConflicts(
-      Set<ConflictPair> base, Set<ConflictPair> addition) {
+  private void mergeConflicts(Set<ConflictPair> base, Set<ConflictPair> addition) {
     if (addition == null || addition.isEmpty()) {
       return;
     }
