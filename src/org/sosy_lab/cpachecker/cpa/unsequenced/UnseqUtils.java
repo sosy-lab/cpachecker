@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
 public class UnseqUtils {
@@ -32,5 +35,15 @@ public class UnseqUtils {
     }
 
     return replacedExpr;
+  }
+
+  public static ImmutableMap<String, ImmutableSet<SideEffectInfo>> toImmutableSideEffectsMap(
+      Map<String, Set<SideEffectInfo>> mutableMap) {
+
+    ImmutableMap.Builder<String, ImmutableSet<SideEffectInfo>> builder = ImmutableMap.builder();
+    for (Map.Entry<String, Set<SideEffectInfo>> entry : mutableMap.entrySet()) {
+      builder.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
+    }
+    return builder.build();
   }
 }

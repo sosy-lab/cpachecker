@@ -83,7 +83,7 @@ public class UnseqBehaviorAnalysisCPA extends AbstractCPA implements StatisticsP
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new UnseqBehaviorAnalysisState(logger);
+    return UnseqBehaviorAnalysisState.empty(logger);
   }
 
   @Override

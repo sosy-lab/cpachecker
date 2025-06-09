@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -65,9 +67,9 @@ public class ExpressionBehaviorVisitor
     ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
 
     // 1. Check if this is a TMP variable mapped to the original expression
-    CRightHandSide originalExpr = state.getFunctionForTmp(varName);
-    if (originalExpr != null) {
-      return originalExpr.accept(this);
+    Optional<CRightHandSide> originalExpr = state.getFunctionForTmp(varName);
+    if (originalExpr.isPresent()) {
+      return originalExpr.get().accept(this);
     }
 
     // 2. Handel side effect
@@ -109,7 +111,7 @@ public class ExpressionBehaviorVisitor
 
       // Add callee's side effects
       if (state.getSideEffectsInFun().containsKey(functionName)) {
-        sideEffects.addAll(state.getSideEffectsInFun().get(functionName));
+        sideEffects.addAll(Objects.requireNonNull(state.getSideEffectsInFun().get(functionName)));
       }
     }
 

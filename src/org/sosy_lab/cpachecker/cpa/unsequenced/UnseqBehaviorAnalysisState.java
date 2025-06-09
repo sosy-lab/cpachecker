@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-import java.util.ArrayDeque;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -31,90 +33,63 @@ public class UnseqBehaviorAnalysisState
   // Property
   private static final String UNSEQUENCED = "has-unsequenced-execution";
 
-  private final Map<String, Set<SideEffectInfo>> sideEffectsInFun; // total side effects
-  private final Deque<String> calledFunctionStack;
-  private final Set<ConflictPair> detectedConflicts;
-  private final Map<String, CRightHandSide> tmpToOriginalExprMap;
+  private final ImmutableMap<String, ImmutableSet<SideEffectInfo>> sideEffectsInFun; // total side effects
+  private final ImmutableList<String> calledFunctionStack;
+  private final ImmutableSet<ConflictPair> detectedConflicts;
+  private final ImmutableMap<String, CRightHandSide> tmpToOriginalExprMap;
   private final LogManager logger;
 
   public UnseqBehaviorAnalysisState(
-      Map<String, Set<SideEffectInfo>> pSideEffectsInFun,
-      Deque<String> pCalledFunctionStack,
-      Set<ConflictPair> pDetectedConflicts,
-      Map<String, CRightHandSide> pTmpToOriginalExprMap,
+      ImmutableMap<String, ImmutableSet<SideEffectInfo>> pSideEffectsInFun,
+      ImmutableList<String> pCalledFunctionStack,
+      ImmutableSet<ConflictPair> pDetectedConflicts,
+      ImmutableMap<String, CRightHandSide> pTmpToOriginalExprMap,
       LogManager pLogger) {
-    sideEffectsInFun = pSideEffectsInFun;
+    sideEffectsInFun =  pSideEffectsInFun;
     calledFunctionStack = pCalledFunctionStack;
     detectedConflicts = pDetectedConflicts;
     tmpToOriginalExprMap = pTmpToOriginalExprMap;
     logger = pLogger;
   }
 
-  public UnseqBehaviorAnalysisState(LogManager pLogger) {
-    sideEffectsInFun = new HashMap<>();
-    calledFunctionStack = new ArrayDeque<>();
-    detectedConflicts = new HashSet<>();
-    tmpToOriginalExprMap = new HashMap<>();
-    logger = pLogger;
+  public static UnseqBehaviorAnalysisState empty(LogManager pLogger) {
+    return new UnseqBehaviorAnalysisState(
+        ImmutableMap.of(), ImmutableList.of(), ImmutableSet.of(), ImmutableMap.of(), pLogger);
   }
 
   // === Side effect management ===
-  public Map<String, Set<SideEffectInfo>> getSideEffectsInFun() {
+  public ImmutableMap<String, ImmutableSet<SideEffectInfo>> getSideEffectsInFun() {
     return sideEffectsInFun;
   }
-
-  public void addSideEffectsToFunction(String functionName, Set<SideEffectInfo> newEffects) {
-    sideEffectsInFun.computeIfAbsent(functionName, k -> new HashSet<>()).addAll(newEffects);
-  }
-
   // === Conflict tracking ===
-  public void addConflicts(Set<ConflictPair> conflicts) {
-    detectedConflicts.addAll(conflicts);
-  }
-
-  public Set<ConflictPair> getDetectedConflicts() {
+  public ImmutableSet<ConflictPair> getDetectedConflicts() {
     return detectedConflicts;
   }
-
   // === Function call tracking ===
-  public void pushCalledFunction(String functionName) {
-    calledFunctionStack.push(functionName);
-  }
-
-  public void popCalledFunction() {
-    if (!calledFunctionStack.isEmpty()) {
-      calledFunctionStack.pop();
-    }
-  }
-
   public boolean isInsideFunctionCall() {
     return !calledFunctionStack.isEmpty();
   }
 
-  public Deque<String> getCalledFunctionStack() {
+  public ImmutableList<String> getCalledFunctionStack() {
     return calledFunctionStack;
   }
 
-  public void setCalledFunctionStack(Deque<String> newStack) {
-    calledFunctionStack.clear();
-    calledFunctionStack.addAll(newStack);
+  public static ImmutableList<String> toImmutableCalledFunctionStack(
+      Deque<String> mutableStack) {
+    return ImmutableList.copyOf(mutableStack);
   }
 
   // === TMP to expression mapping ===
-  public Map<String, CRightHandSide> getTmpToOriginalExprMap() {
+  public ImmutableMap<String, CRightHandSide> getTmpToOriginalExprMap() {
     return tmpToOriginalExprMap;
   }
 
-  public void mapTmpToFunction(String tmpVar, CRightHandSide function) {
-    tmpToOriginalExprMap.put(tmpVar, function);
-  }
-
-  public CRightHandSide getFunctionForTmp(String tmpVar) {
-    return tmpToOriginalExprMap.get(tmpVar);
+  public Optional<CRightHandSide> getFunctionForTmp(String tmpVar) {
+    return Optional.ofNullable(tmpToOriginalExprMap.get(tmpVar));
   }
 
   @Override
-  public boolean equals(@Nullable Object pOther) {
+  public boolean equals(Object pOther) {
     if (this == pOther) {
       return true;
     }
@@ -181,7 +156,7 @@ public class UnseqBehaviorAnalysisState
     return false;
   }
 
-  @Override
+   @Override
   public UnseqBehaviorAnalysisState join(UnseqBehaviorAnalysisState other)
       throws CPAException, InterruptedException {
     if (this.equals(other)) {
@@ -191,46 +166,41 @@ public class UnseqBehaviorAnalysisState
       throw new CPAException("Cannot join states with different function call stacks.");
     }
 
-    UnseqBehaviorAnalysisState newState = new UnseqBehaviorAnalysisState(logger);
+    Map<String, Set<SideEffectInfo>> mutableSideEffects = new HashMap<>();
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : this.sideEffectsInFun.entrySet()) {
+      mutableSideEffects.put(entry.getKey(), new HashSet<>(entry.getValue()));
+    }
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : other.sideEffectsInFun.entrySet()) {
+      mutableSideEffects.merge(
+          entry.getKey(),
+          new HashSet<>(entry.getValue()),
+          (a, b) -> {
+            a.addAll(b);
+            return a;
+          });
+    }
+    ImmutableMap<String, ImmutableSet<SideEffectInfo>> mergedSideEffects =
+        UnseqUtils.toImmutableSideEffectsMap(mutableSideEffects);
 
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
-      newState.getSideEffectsInFun().put(entry.getKey(), new HashSet<>(entry.getValue()));
-    }
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : other.getSideEffectsInFun().entrySet()) {
-      newState
-          .getSideEffectsInFun()
-          .merge(
-              entry.getKey(),
-              new HashSet<>(entry.getValue()),
-              (oldSet, newSet) -> {
-                oldSet.addAll(newSet);
-                return oldSet;
-              });
-    }
-
-    for (Map.Entry<String, CRightHandSide> entry : this.getTmpToOriginalExprMap().entrySet()) {
-      newState.getTmpToOriginalExprMap().put(entry.getKey(), entry.getValue());
-    }
-    for (Map.Entry<String, CRightHandSide> entry : other.getTmpToOriginalExprMap().entrySet()) {
-      newState
-          .getTmpToOriginalExprMap()
-          .merge(
-              entry.getKey(),
-              entry.getValue(),
-              (v1, v2) -> {
-                if (!v1.equals(v2)) {
-                  throw new IllegalStateException(
-                      "Conflicting tmp mappings during join: " + v1 + " vs " + v2);
-                }
-                return v1;
-              });
+    Map<String, CRightHandSide> mutableTmpMap = new HashMap<>(this.tmpToOriginalExprMap);
+    for (Map.Entry<String, CRightHandSide> entry : other.tmpToOriginalExprMap.entrySet()) {
+      if (mutableTmpMap.containsKey(entry.getKey())
+          && !Objects.equals(mutableTmpMap.get(entry.getKey()), entry.getValue())) {
+        throw new IllegalStateException("Conflicting tmp mappings during join: "
+            + mutableTmpMap.get(entry.getKey()) + " vs " + entry.getValue());
+      }
+      mutableTmpMap.put(entry.getKey(), entry.getValue());
     }
 
-    newState.getDetectedConflicts().addAll(this.getDetectedConflicts());
-    newState.getDetectedConflicts().addAll(other.getDetectedConflicts());
-    newState.setCalledFunctionStack(new ArrayDeque<>(this.calledFunctionStack));
+    Set<ConflictPair> mutableConflicts = new HashSet<>(this.detectedConflicts);
+    mutableConflicts.addAll(other.detectedConflicts);
 
-    return newState;
+    return new UnseqBehaviorAnalysisState(
+        mergedSideEffects,
+        this.calledFunctionStack,
+        ImmutableSet.copyOf(mutableConflicts),
+        ImmutableMap.copyOf(mutableTmpMap),
+        this.logger);
   }
 
   @Override
@@ -240,33 +210,28 @@ public class UnseqBehaviorAnalysisState
       return false;
     }
 
-    // Compare side effects in functions
-    for (Map.Entry<String, Set<SideEffectInfo>> entry : this.getSideEffectsInFun().entrySet()) {
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : this.sideEffectsInFun.entrySet()) {
       String functionName = entry.getKey();
       Set<SideEffectInfo> thisEffects = entry.getValue();
       Set<SideEffectInfo> reachedStateEffects =
-          reachedState.getSideEffectsInFun().get(functionName);
+          reachedState.sideEffectsInFun.get(functionName);
 
       if (reachedStateEffects == null || !reachedStateEffects.containsAll(thisEffects)) {
         return false;
       }
     }
 
-    // Compare TMP → Original Expression mappings
-    if (!reachedState
-        .getTmpToOriginalExprMap()
-        .entrySet()
-        .containsAll(this.getTmpToOriginalExprMap().entrySet())) {
+    if (!reachedState.tmpToOriginalExprMap.entrySet().containsAll(this.tmpToOriginalExprMap.entrySet())) {
       return false;
     }
 
-    // Compare detected conflicts
-    if (!reachedState.getDetectedConflicts().containsAll(this.getDetectedConflicts())) {
+    if (!reachedState.detectedConflicts.containsAll(this.detectedConflicts)) {
       return false;
     }
 
     return true;
   }
+
 
   private boolean isUnsequenced() {
     return !this.getDetectedConflicts().isEmpty();
