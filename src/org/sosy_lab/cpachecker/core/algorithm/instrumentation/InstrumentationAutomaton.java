@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -78,6 +79,9 @@ public class InstrumentationAutomaton {
     return initialState;
   }
 
+  /**
+   * returns all transitions whose source is pState
+   */
   public Set<InstrumentationTransition> getTransitions(InstrumentationState pState) {
     Set<InstrumentationTransition> transitions = new HashSet<>();
     for (InstrumentationTransition transition : instrumentationTransitions) {
@@ -322,21 +326,7 @@ public class InstrumentationAutomaton {
                                     + entry.getKey())
                         .collect(Collectors.joining("; "))
                     + (!modifiedLiveVariables.isEmpty() ? "; " : "")
-                    + "} else { __VERIFIER_assert((saved_"
-                    + pIndex
-                    + " == 0)"
-                    + (!modifiedLiveVariables.isEmpty() ? " || " : "")
-                    + modifiedLiveVariables.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                "("
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey()
-                                    + " != "
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + insertInstrumentationSuffix(entry.getKey(), "_INSTR_" + pIndex)
-                                    + ")")
-                        .collect(Collectors.joining("||"))
+                    + createIndexMemoryAssertion(liveVariablesAndTypes, pIndex)
                     + ");}"),
             InstrumentationOrder.AFTER,
             q3);
@@ -351,11 +341,8 @@ public class InstrumentationAutomaton {
   }
 
   private void constructTerminationWithCountersAutomaton(int pIndex) {
-    // here the saved vars are defined -LE
     InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.FUNCTIONHEAD, this);
-    // here the saved vars are initialized -LE
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
-    // here we define the if-clause -LE
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.LOOPHEAD, this);
     InstrumentationState q4 = new InstrumentationState("q4", StateAnnotation.FALSE, this);
     this.initialState = q1;
@@ -498,7 +485,42 @@ public class InstrumentationAutomaton {
     else {
       insertedKey = pVarKey + pSuffix;
     }
+    System.out.println(insertedKey);
     return insertedKey;
+  }
+
+  private String createIndexMemoryAssertion(ImmutableMap<String, String> liveVariablesAndTypes, int pIndex) {
+    String assertionLine = "} else { __VERIFIER_assert((saved_"
+        + pIndex
+        + " == 0)"
+        //+ (!liveVariablesAndTypes.isEmpty() ? " || " : "")
+      ;
+    for (Entry<String, String> variableEntry : liveVariablesAndTypes.entrySet()) {
+      assertionLine += " || ";
+      if (variableEntry.getKey().contains("[")) {
+        String instrumentationVariableName = insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex);
+        instrumentationVariableName = instrumentationVariableName.substring(0, instrumentationVariableName.indexOf("["));
+        String variableName = variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
+        String indexMemoryName = variableName + "_INDEX_MEMORY_" + pIndex;
+        String memoryCountName = variableName + "_MEMORY_COUNT_" + pIndex;
+        assertionLine += "COMPARE_ARRAYS_AT_INDEX(" + variableName + ", "
+            + instrumentationVariableName + ", "
+            + indexMemoryName + ", "
+            + "&" + memoryCountName
+            + ")";
+      }
+      else {
+        assertionLine += "("
+            + getDereferencesForPointer(variableEntry.getValue())
+            + variableEntry.getKey()
+            + " != "
+            + getDereferencesForPointer(variableEntry.getValue())
+            + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
+            + ")";
+      }
+    }
+
+    return assertionLine;
   }
 
   private ImmutableMap<String, String> modifyVariablesForArrays(ImmutableMap<String, String> pLiveVariables) {

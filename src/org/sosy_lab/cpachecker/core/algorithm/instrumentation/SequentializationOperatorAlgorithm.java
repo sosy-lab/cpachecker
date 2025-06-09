@@ -17,12 +17,14 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -40,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -53,6 +54,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.Writer;
+import scala.Int;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -108,23 +110,53 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
       // NormalLoopInfo counts as a Loop of the program -LE
       // each loop has its own instrumentation automata -LE
-      for (NormalLoopInfo info :
-          // this function checks what variables are used in a loop -LE
-          LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
-                  LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
-              .stream()
-              // sorted according to position of loop in script -LE
-              .sorted((info1, info2) -> Integer.compare(info1.loopLocation(), info2.loopLocation()))
-              .collect(ImmutableSet.toImmutableSet())) {
+      ImmutableSet<NormalLoopInfo> loopInfos = LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
+              LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
+          .stream()
+          // sorted according to position of loop in script -LE
+          .sorted(Comparator.comparingInt(NormalLoopInfo::loopLocation))
+          .collect(ImmutableSet.toImmutableSet());
+      for (NormalLoopInfo info : loopInfos) {
         try {
+          Map<String, Integer> accessedArrays = new HashMap<>();
           for (CFAEdge cfaEdge : info.loop().getInnerLoopEdges()) {
             if (cfaEdge.getRawAST().isPresent()) {
               AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
               if (aAstNode instanceof CAssignment && aAstNode.toASTString().contains("[")) {
+                for (Map.Entry<String, String> variableEntry : info.liveVariablesAndTypes().entrySet()) {
+                  if (!variableEntry.getKey().contains("[")) {
+                    continue;
+                  }
+                  String variableName = variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
+                  String assignmentTarget = ((CAssignment) aAstNode).getLeftHandSide().toASTString();
+                  if (assignmentTarget.contains(variableName)) {
+                    if (accessedArrays.containsKey(variableName)) {
+                      accessedArrays.replace(variableName, accessedArrays.get(variableName) + 1);
+                    }
+                    else {
+                      int arraySize = Integer.parseInt(
+                          variableEntry.getKey().substring(variableEntry.getKey().indexOf("[") + 1, variableEntry.getKey().indexOf("]")));
+                      accessedArrays.put(variableName, arraySize + 1);
+                    }
+                    String saveIndexLine = constructSaveIndexLine(cfaEdge, variableName, assignmentTarget, index);
+                    System.out.println(saveIndexLine);
+                    newEdges.add(saveIndexLine);
+                  }
+                }
                 System.out.println(aAstNode + " -LoopArrayAssignment");
               }
             }
           }
+          String initilizationLine = "";
+          //String numberLoopModifier = (loopInfos.size() > 1) ? info.
+          for (Map.Entry<String, Integer> variableEntry: accessedArrays.entrySet()) {
+            String newVariableLine = "int " + variableEntry.getKey() + "_INDEX_MEMORY_" + index + "[" + variableEntry.getValue() + "];";
+            initilizationLine += newVariableLine;
+            newVariableLine = "int " + variableEntry.getKey() + "_MEMORY_COUNT_" + index + " = 0;";
+            initilizationLine += " " + newVariableLine + " ";
+          }
+          if (!initilizationLine.isEmpty())
+            newEdges.add("1|||" + initilizationLine);
 
           // create automaton and map it to location, since 2 loops can't be created in the same line -LE
           mapAutomataToLocations.put(
@@ -208,7 +240,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                   computeLineNumberBasedOnTransition(transition, edge)
                       + "|||"
                       + transition.getOperation().insertVariablesInsideOperation(matchedVariables);
-              printToFile(newEdge.toString() + "\n\n\n", "/run/media/lenrow/Data/Code-Projects/Bachelor-Arbeit/transver/test_output/log_new_edge.txt", true);
               if (newEdge.contains("__CPAchecker_TMP")) {
                 throw new CPAException("Matching for line with function calls is unsupported.");
               }
@@ -226,6 +257,16 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     //System.out.println(newEdges.toString());
     writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  @Nonnull
+  private static String constructSaveIndexLine(CFAEdge cfaEdge, String variableName, String assignmentTarget, int loopIndex) {
+    String variableMemoryName = variableName + "_INDEX_MEMORY_" + loopIndex;
+    String variableCountName = variableName + "_MEMORY_COUNT_" + loopIndex;
+    String insertIndex = assignmentTarget.substring(assignmentTarget.indexOf("[") + 1, assignmentTarget.indexOf("]"));
+    int lineNumber = cfaEdge.getFileLocation().getStartingLineInOrigin();
+    String saveIndexLine = lineNumber + "|||SAVE_ACCESS_INDEX(" + insertIndex + ", " + variableMemoryName + ", &" + variableCountName +");";
+    return saveIndexLine;
   }
 
   /*
@@ -268,8 +309,10 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
     // Output the collected CFA information into newEdgesInfo
+    Path tempFile = Path.of("/run/media/lenrow/Data/Code-Projects/Bachelor-Arbeit/transver/test_output/log_new_edge.txt");
     try {
       IO.writeFile(newEdgesFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
+      IO.writeFile(tempFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }
@@ -415,6 +458,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return false;
   }
 
+  /**
+   * returns a set of CFANodes that holds all destination nodes from pCFANode
+   */
   private Set<CFANode> getSuccessorsOfANode(CFANode pCFANode) {
     Set<CFANode> successors = new HashSet<>();
     for (int i = 0; i < pCFANode.getNumLeavingEdges(); i++) {
