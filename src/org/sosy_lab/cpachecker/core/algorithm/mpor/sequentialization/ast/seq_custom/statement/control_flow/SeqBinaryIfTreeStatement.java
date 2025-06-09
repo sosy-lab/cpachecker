@@ -84,12 +84,12 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       int mid = size / 2;
       SeqStatement midStatement = pCurrentStatements.get(mid);
       // if statement is a clause, use its label number for the < check
-      int midIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midStatement));
+      int midIndex = getLabelNumberOrIndex(midStatement, pAllStatements.indexOf(midStatement)) - 1;
 
       pTree.add(buildIfSmallerSubtree(pDepth, midIndex, pPc));
       recursivelyBuildTree(
           pAllStatements,
-          pCurrentStatements.subList(0, mid + 1),
+          pCurrentStatements.subList(0, mid),
           pInitialDepth,
           pDepth + 1,
           pPc,
@@ -97,7 +97,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
       pTree.add(buildElseSubtree(pDepth, pCurrentStatements.get(0)));
       recursivelyBuildTree(
           pAllStatements,
-          pCurrentStatements.subList(mid + 1, size),
+          pCurrentStatements.subList(mid, size),
           pInitialDepth,
           pDepth + 1,
           pPc,
