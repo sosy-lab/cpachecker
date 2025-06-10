@@ -16,6 +16,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -34,8 +35,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclarationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
@@ -74,9 +73,9 @@ public class SeqMainFunction extends SeqFunction {
 
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
-  private final SeqFunctionCallExpression nextThreadAssumption;
+  private final ImmutableList<CFunctionCallStatement> nextThreadAssumptions;
 
-  private final Optional<SeqStatement> nextThreadActiveAssumption;
+  private final Optional<CFunctionCallStatement> nextThreadActiveAssumption;
 
   private final PcVariables pcVariables;
 
@@ -118,7 +117,7 @@ public class SeqMainFunction extends SeqFunction {
         SeqDeclarationBuilder.buildPcDeclarations(pcVariables, numThreads, pOptions.scalarPc);
 
     nextThreadAssignment = SeqStatementBuilder.buildNextThreadAssignment(pOptions.signedNondet);
-    nextThreadAssumption =
+    nextThreadAssumptions =
         SeqAssumptionBuilder.buildNextThreadAssumption(
             pOptions.signedNondet, numThreadsVariable, binaryExpressionBuilder);
     nextThreadActiveAssumption =
@@ -145,14 +144,16 @@ public class SeqMainFunction extends SeqFunction {
     if (options.comments) {
       rBody.add(LineOfCode.empty());
     }
-    rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString() + SeqSyntax.SEMICOLON));
+    for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
+      rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString()));
+    }
     // assumptions over next_thread being active (pc != -1)
     if (options.comments) {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
     }
     if (nextThreadActiveAssumption.isPresent()) {
-      SeqStatement assumption = nextThreadActiveAssumption.orElseThrow();
+      CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
       rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, assumption.toASTString()));
     }
     // add all assumptions over thread variables

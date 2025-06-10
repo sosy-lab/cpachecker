@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -36,7 +36,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   private final SeqSingleControlFlowStatement switchExpression;
 
-  private final Optional<SeqFunctionCallStatement> assumptions;
+  private final Optional<CFunctionCallStatement> assumptions;
 
   private final ImmutableList<? extends SeqStatement> statements;
 
@@ -45,7 +45,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   public SeqSwitchStatement(
       MPOROptions pOptions,
       CExpression pExpression,
-      Optional<SeqFunctionCallStatement> pAssumption,
+      Optional<CFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs) {
 
@@ -75,7 +75,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   }
 
   private static String buildAssumptionsString(
-      Optional<SeqFunctionCallStatement> pAssumption, int pTabs) throws UnrecognizedCodeException {
+      Optional<CFunctionCallStatement> pAssumption, int pTabs) throws UnrecognizedCodeException {
 
     if (pAssumption.isEmpty()) {
       return SeqSyntax.EMPTY_STRING;

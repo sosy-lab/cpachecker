@@ -14,13 +14,12 @@ import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -64,7 +63,7 @@ public class SeqMainFunctionBuilder {
         pLogger);
   }
 
-  protected static Optional<SeqFunctionCallStatement> buildThreadActiveAssumption(
+  protected static Optional<CFunctionCallStatement> buildThreadActiveAssumption(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
@@ -79,9 +78,9 @@ public class SeqMainFunctionBuilder {
       CBinaryExpression threadActiveExpression =
           SeqExpressionBuilder.buildPcUnequalExitPc(
               pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
-      SeqFunctionCallExpression assumeCallExpression =
-          SeqAssumptionBuilder.buildAssumeCall(threadActiveExpression);
-      return Optional.of(assumeCallExpression.toFunctionCallStatement());
+      CFunctionCallStatement assumeCall =
+          SeqStatementBuilder.buildAssumeCall(threadActiveExpression);
+      return Optional.of(assumeCall);
     }
     return Optional.empty();
   }

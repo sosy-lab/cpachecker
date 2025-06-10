@@ -10,69 +10,58 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumptionBuilder {
 
-  public static SeqFunctionCallExpression buildAssumeCall(SeqExpression pCondition) {
-    return new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(pCondition));
-  }
-
-  public static SeqFunctionCallExpression buildAssumeCall(CExpression pCondition) {
-    return new SeqFunctionCallExpression(
-        SeqIdExpression.ASSUME, ImmutableList.of(new CToSeqExpression(pCondition)));
-  }
-
-  public static SeqFunctionCallExpression buildNextThreadAssumption(
-      boolean pIsSigned,
-      CIdExpression pNumThreads,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return new SeqFunctionCallExpression(
+  public static CFunctionCallExpression buildAssumeCall(CExpression pCondition) {
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY,
+        SeqVoidType.VOID,
         SeqIdExpression.ASSUME,
-        buildNextThreadAssumptionExpression(pIsSigned, pNumThreads, pBinaryExpressionBuilder));
+        ImmutableList.of(pCondition),
+        SeqFunctionDeclaration.ASSUME);
   }
 
-  /** Returns the expression {@code 0 <= next_thread && next_thread < NUM_THREADS} */
-  private static ImmutableList<SeqExpression> buildNextThreadAssumptionExpression(
+  public static ImmutableList<CFunctionCallStatement> buildNextThreadAssumption(
       boolean pIsSigned,
       CIdExpression pNumThreads,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqExpression> rParameters = ImmutableList.builder();
-    // next_thread < NUM_THREADS is used for both signed and unsigned
+    ImmutableList.Builder<CFunctionCallStatement> rAssumptions = ImmutableList.builder();
+    // split the assumption into 2 calls so that we don't have to use logical and (&&)
+    if (pIsSigned) {
+      CBinaryExpression nextThreadAtLeastZero =
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              SeqIntegerLiteralExpression.INT_0,
+              SeqIdExpression.NEXT_THREAD,
+              BinaryOperator.LESS_EQUAL);
+      rAssumptions.add(SeqStatementBuilder.buildAssumeCall(nextThreadAtLeastZero));
+    }
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.NEXT_THREAD, pNumThreads, BinaryOperator.LESS_THAN);
-    rParameters.add(
-        pIsSigned
-            ? new SeqLogicalAndExpression(
-                pBinaryExpressionBuilder.buildBinaryExpression(
-                    SeqIntegerLiteralExpression.INT_0,
-                    SeqIdExpression.NEXT_THREAD,
-                    BinaryOperator.LESS_EQUAL),
-                nextThreadLessThanNumThreads)
-            : new CToSeqExpression(nextThreadLessThanNumThreads));
-    return rParameters.build();
+    rAssumptions.add(SeqStatementBuilder.buildAssumeCall(nextThreadLessThanNumThreads));
+    return rAssumptions.build();
   }
 
-  public static Optional<SeqStatement> buildNextThreadActiveAssumption(
+  public static Optional<CFunctionCallStatement> buildNextThreadActiveAssumption(
       MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -81,16 +70,12 @@ public class SeqAssumptionBuilder {
       return Optional.empty();
     }
     // pc array: single assume(pc[next_thread] != -1);
-    SeqFunctionCallExpression assumeCall =
-        new SeqFunctionCallExpression(
-            SeqIdExpression.ASSUME,
-            ImmutableList.of(
-                new CToSeqExpression(
-                    pBinaryExpressionBuilder.buildBinaryExpression(
-                        SeqExpressionBuilder.buildPcSubscriptExpression(
-                            SeqIdExpression.NEXT_THREAD),
-                        SeqIntegerLiteralExpression.INT_EXIT_PC,
-                        BinaryOperator.NOT_EQUALS))));
-    return Optional.of(assumeCall.toFunctionCallStatement());
+    CBinaryExpression nextThreadActive =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpression.NEXT_THREAD),
+            SeqIntegerLiteralExpression.INT_EXIT_PC,
+            BinaryOperator.NOT_EQUALS);
+    CFunctionCallStatement assumeCall = SeqStatementBuilder.buildAssumeCall(nextThreadActive);
+    return Optional.of(assumeCall);
   }
 }

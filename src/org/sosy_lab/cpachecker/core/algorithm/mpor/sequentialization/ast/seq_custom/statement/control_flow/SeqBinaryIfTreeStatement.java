@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -30,7 +30,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
 
   private final CLeftHandSide expression;
 
-  private final Optional<SeqFunctionCallStatement> assumption;
+  private final Optional<CFunctionCallStatement> assumption;
 
   private final ImmutableList<? extends SeqStatement> statements;
 
@@ -40,7 +40,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
 
   public SeqBinaryIfTreeStatement(
       CLeftHandSide pExpression,
-      Optional<SeqFunctionCallStatement> pAssumption,
+      Optional<CFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {

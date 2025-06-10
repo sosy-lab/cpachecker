@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -61,7 +62,8 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables) {
+      GhostVariables pGhostVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
 
@@ -88,7 +90,8 @@ public class SeqThreadStatementBuilder {
                   i == numLeavingEdges - 1,
                   threadEdge,
                   substitute,
-                  pGhostVariables);
+                  pGhostVariables,
+                  pBinaryExpressionBuilder);
           rStatements.add(statement);
         }
       }
@@ -146,7 +149,8 @@ public class SeqThreadStatementBuilder {
       boolean pLastEdge,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
-      GhostVariables pGhostVariables) {
+      GhostVariables pGhostVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
@@ -175,7 +179,13 @@ public class SeqThreadStatementBuilder {
 
       } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
         return buildStatementFromPthreadFunction(
-            pThread, pAllThreads, pThreadEdge, pSubstituteEdge, targetPc, pGhostVariables);
+            pThread,
+            pAllThreads,
+            pThreadEdge,
+            pSubstituteEdge,
+            targetPc,
+            pGhostVariables,
+            pBinaryExpressionBuilder);
       }
     }
     // "leftover" edges should be statement edges
@@ -289,7 +299,8 @@ public class SeqThreadStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      GhostVariables pGhostVariables) {
+      GhostVariables pGhostVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
@@ -313,7 +324,12 @@ public class SeqThreadStatementBuilder {
               pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
-              pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
+              pThreadEdge,
+              pSubstituteEdge,
+              pTargetPc,
+              pcLeftHandSide,
+              pGhostVariables.thread,
+              pBinaryExpressionBuilder);
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
@@ -393,14 +409,19 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables) {
+      ThreadSimulationVariables pThreadVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(lockedMutexT);
     CIdExpression mutexLocked =
         Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT)).idExpression;
     return new SeqMutexLockStatement(
-        mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        mutexLocked,
+        pPcLeftHandSide,
+        ImmutableSet.of(pSubstituteEdge),
+        pTargetPc,
+        pBinaryExpressionBuilder);
   }
 
   private static SeqMutexUnlockStatement buildMutexUnlockStatement(

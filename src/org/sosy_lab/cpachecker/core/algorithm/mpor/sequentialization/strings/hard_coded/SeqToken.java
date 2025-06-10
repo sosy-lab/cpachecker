@@ -38,8 +38,6 @@ public class SeqToken {
 
   public static final String assume = "assume";
 
-  public static final String ASSUME = "ASSUME";
-
   public static final String assume_abort_if_not = "assume_abort_if_not";
 
   /** "bit vector access" */
@@ -95,8 +93,6 @@ public class SeqToken {
 
   public static final String _goto = "goto";
 
-  public static final String JOINS = "JOINS";
-
   public static final String K = "K";
 
   public static final String __line = "__line";
@@ -108,8 +104,6 @@ public class SeqToken {
   public static final String LOCAL = "LOCAL";
 
   public static final String LOCKED = "LOCKED";
-
-  public static final String LOCKS = "LOCKS";
 
   public static final String M = "M";
 
