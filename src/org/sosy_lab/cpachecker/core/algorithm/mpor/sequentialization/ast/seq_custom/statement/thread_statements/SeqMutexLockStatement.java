@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -28,13 +26,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /**
  * Represents a statement that simulates calls to {@code pthread_mutex_lock} of the form:
  *
- * <p>{@code m_LOCKED = 1; THREADi_LOCKS_m = 0;}
+ * <p>{@code assume(!m_LOCKED);}
  */
 public class SeqMutexLockStatement implements SeqThreadStatement {
 
   private final CIdExpression mutexLocked;
-
-  public final CIdExpression threadLocksMutex;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -48,13 +44,11 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   SeqMutexLockStatement(
       CIdExpression pMutexLocked,
-      CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
     mutexLocked = pMutexLocked;
-    threadLocksMutex = pThreadLocksMutex;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -64,7 +58,6 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   private SeqMutexLockStatement(
       CIdExpression pMutexLocked,
-      CIdExpression pThreadLocksMutex,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
@@ -72,7 +65,6 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     mutexLocked = pMutexLocked;
-    threadLocksMutex = pThreadLocksMutex;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -82,37 +74,15 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    SeqSingleControlFlowStatement ifLocked =
-        new SeqSingleControlFlowStatement(mutexLocked, SeqControlFlowStatementType.IF);
-    CExpressionAssignmentStatement setLocksTrue =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_1);
+    SeqLogicalNotExpression logicalMutexNotLocked = new SeqLogicalNotExpression(mutexLocked);
+    SeqFunctionCallExpression assumeCall =
+        SeqAssumptionBuilder.buildAssumeCall(logicalMutexNotLocked);
 
-    SeqSingleControlFlowStatement elseNotLocked = new SeqSingleControlFlowStatement();
-    CExpressionAssignmentStatement setLockedTrue =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, mutexLocked, SeqIntegerLiteralExpression.INT_1);
-    CExpressionAssignmentStatement setLocksFalse =
-        new CExpressionAssignmentStatement(
-            FileLocation.DUMMY, threadLocksMutex, SeqIntegerLiteralExpression.INT_0);
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    String elseString =
-        setLockedTrue.toASTString()
-            + SeqSyntax.SPACE
-            + setLocksFalse
-            + SeqSyntax.SPACE
-            + targetStatements;
-
-    return ifLocked.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(setLocksTrue.toASTString())
-        + SeqSyntax.SPACE
-        + elseNotLocked.toASTString()
-        + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(elseString);
+    return assumeCall.toASTString() + SeqSyntax.SEMICOLON + SeqSyntax.SPACE + targetStatements;
   }
 
   @Override
@@ -139,7 +109,6 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(
         mutexLocked,
-        threadLocksMutex,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -151,7 +120,6 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqMutexLockStatement(
         mutexLocked,
-        threadLocksMutex,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -164,13 +132,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(
-        mutexLocked,
-        threadLocksMutex,
-        pcLeftHandSide,
-        substituteEdges,
-        targetPc,
-        targetGoto,
-        pInjectedStatements);
+        mutexLocked, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
   }
 
   @Override

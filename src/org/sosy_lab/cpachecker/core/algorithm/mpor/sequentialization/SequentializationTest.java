@@ -47,9 +47,6 @@ public class SequentializationTest {
   //  Symbiotic) even though its true, but only when linkReduction is enabled
   // weaver/chl-match-symm.wvr.c
 
-  // TODO linkReduction infinite recursion errors for:
-  // pthread-complex/elimination_backoff_stack
-
   @Test
   public void test_13_privatized_04_priv_multi_true() throws Exception {
     // this program contains multiple loops whose condition only contains local variables

@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -243,7 +242,6 @@ public class GhostVariableUtil {
 
     return new ThreadSimulationVariables(
         buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges),
-        buildThreadAwaitsMutexVariables(pOptions, pThreads, pSubstituteEdges),
         buildThreadJoinsThreadVariables(pOptions, pThreads));
   }
 
@@ -273,41 +271,6 @@ public class GhostVariableUtil {
           }
         }
       }
-    }
-    return rVars.buildOrThrow();
-  }
-
-  // TODO rename ThreadRequestsMutex
-  private static ImmutableMap<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>>
-      buildThreadAwaitsMutexVariables(
-          MPOROptions pOptions,
-          ImmutableList<MPORThread> pThreads,
-          ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableMap<CIdExpression, ThreadLocksMutex>> rVars =
-        ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      Map<CIdExpression, ThreadLocksMutex> locksVariables = new HashMap<>();
-      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        if (pSubstituteEdges.containsKey(threadEdge)) {
-          SubstituteEdge substitute = Objects.requireNonNull(pSubstituteEdges.get(threadEdge));
-          if (PthreadUtil.callsPthreadFunction(
-              substitute.cfaEdge, PthreadFunctionType.PTHREAD_MUTEX_LOCK)) {
-            CIdExpression pthreadMutexT = PthreadUtil.extractPthreadMutexT(threadEdge.cfaEdge);
-            // multiple lock calls within one thread to the same mutex are possible -> only need one
-            if (!locksVariables.containsKey(pthreadMutexT)) {
-              String varName =
-                  SeqNameUtil.buildThreadLocksMutexName(
-                      pOptions, thread.id, pthreadMutexT.getName());
-              CIdExpression awaits =
-                  SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-                      varName, SeqInitializer.INT_0);
-              locksVariables.put(pthreadMutexT, new ThreadLocksMutex(awaits));
-            }
-          }
-        }
-      }
-      rVars.put(thread, ImmutableMap.copyOf(locksVariables));
     }
     return rVars.buildOrThrow();
   }

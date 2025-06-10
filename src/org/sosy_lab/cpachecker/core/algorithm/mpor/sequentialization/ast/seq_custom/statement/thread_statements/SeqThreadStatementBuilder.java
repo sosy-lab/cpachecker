@@ -312,12 +312,7 @@ public class SeqThreadStatementBuilder {
           buildThreadJoinStatement(pThread, pSubstituteEdge, pTargetPc, pGhostVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
-              pThread,
-              pThreadEdge,
-              pSubstituteEdge,
-              pTargetPc,
-              pcLeftHandSide,
-              pGhostVariables.thread);
+              pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
@@ -398,7 +393,6 @@ public class SeqThreadStatementBuilder {
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(
-      MPORThread pThread,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
@@ -409,18 +403,8 @@ public class SeqThreadStatementBuilder {
     assert pThreadVariables.locked.containsKey(lockedMutexT);
     CIdExpression mutexLocked =
         Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT)).idExpression;
-    assert pThreadVariables.locks.containsKey(pThread);
-    assert Objects.requireNonNull(pThreadVariables.locks.get(pThread)).containsKey(lockedMutexT);
-    CIdExpression threadLocksMutex =
-        Objects.requireNonNull(
-                Objects.requireNonNull(pThreadVariables.locks.get(pThread)).get(lockedMutexT))
-            .idExpression;
     return new SeqMutexLockStatement(
-        mutexLocked,
-        threadLocksMutex,
-        pPcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc);
+        mutexLocked, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqMutexUnlockStatement buildMutexUnlockStatement(

@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadLocksMutex;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -60,43 +58,9 @@ public class SeqAssumptionBuilder {
 
     // add all assumptions to simulate threads
     rAssumptions.putAll(
-        buildMutexAssumptions(pThreadSimulationVariables, pBinaryExpressionBuilder));
-    rAssumptions.putAll(
         buildJoinAssumptions(pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder));
 
     return rAssumptions.build();
-  }
-
-  /** Assumptions over mutexes: {@code assume(!(m_locked && ti_locks_m) || next_thread != i)} */
-  private static ImmutableListMultimap<MPORThread, SeqAssumption> buildMutexAssumptions(
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableListMultimap.Builder<MPORThread, SeqAssumption> rMutexAssumptions =
-        ImmutableListMultimap.builder();
-
-    for (var lockedEntry : pThreadSimulationVariables.locked.entrySet()) {
-      CIdExpression pthreadMutexT = lockedEntry.getKey();
-      MutexLocked locked = lockedEntry.getValue();
-      // search for the awaits variable corresponding to pthreadMutexT
-      for (var awaitsEntry : pThreadSimulationVariables.locks.entrySet()) {
-        MPORThread thread = awaitsEntry.getKey();
-        for (var awaitsValue : awaitsEntry.getValue().entrySet()) {
-          if (pthreadMutexT.equals(awaitsValue.getKey())) {
-            ThreadLocksMutex awaits = awaitsValue.getValue();
-            SeqLogicalNotExpression antecedent =
-                new SeqLogicalNotExpression(
-                    new SeqLogicalAndExpression(locked.idExpression, awaits.idExpression));
-            CBinaryExpression consequent =
-                SeqExpressionBuilder.buildNextThreadUnequal(thread.id, pBinaryExpressionBuilder);
-            SeqAssumption assumption = new SeqAssumption(antecedent, consequent);
-            rMutexAssumptions.put(thread, assumption);
-          }
-        }
-      }
-    }
-    return rMutexAssumptions.build();
   }
 
   /** Assumptions over joins: {@code assume(!(pc[i] != -1 && tj_joins_ti) || next_thread != j)} */
