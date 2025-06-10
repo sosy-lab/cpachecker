@@ -59,12 +59,7 @@ public class SeqThreadStatementClauseBuilder {
     // initialize clauses from ThreadCFAs
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> initialClauses =
         initClauses(
-            pOptions,
-            pSubstitutions,
-            pSubstituteEdges,
-            pPcVariables,
-            pThreadSimulationVariables,
-            pBinaryExpressionBuilder);
+            pOptions, pSubstitutions, pSubstituteEdges, pPcVariables, pThreadSimulationVariables);
     // if enabled, prune clauses so that no clause has only pc writes
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> prunedClauses =
         pOptions.pruneEmptyStatements ? SeqPruner.pruneClauses(initialClauses) : initialClauses;
@@ -92,8 +87,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORSubstitution> pSubstitutions,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
       PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      ThreadSimulationVariables pThreadSimulationVariables)
       throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<MPORThread, ImmutableList<SeqThreadStatementClause>> rClauses =
@@ -115,8 +109,7 @@ public class SeqThreadStatementClauseBuilder {
               SubstituteUtil.extractThreads(pSubstitutions),
               coveredNodes,
               pSubstituteEdges,
-              ghostVariables,
-              pBinaryExpressionBuilder));
+              ghostVariables));
       rClauses.put(thread, clauses.build());
     }
     // TODO add optional pc validation here
@@ -164,8 +157,7 @@ public class SeqThreadStatementClauseBuilder {
       ImmutableList<MPORThread> pAllThreads,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     ImmutableList.Builder<SeqThreadStatementClause> rClauses = ImmutableList.builder();
 
@@ -179,8 +171,7 @@ public class SeqThreadStatementClauseBuilder {
                 pCoveredNodes,
                 threadNode,
                 pSubstituteEdges,
-                pGhostVariables,
-                pBinaryExpressionBuilder);
+                pGhostVariables);
         if (clause.isPresent()) {
           rClauses.add(clause.orElseThrow());
         }
@@ -201,8 +192,7 @@ public class SeqThreadStatementClauseBuilder {
       Set<ThreadNode> pCoveredNodes,
       ThreadNode pThreadNode,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     pCoveredNodes.add(pThreadNode);
 
@@ -234,8 +224,7 @@ public class SeqThreadStatementClauseBuilder {
               pcLeftHandSide,
               pCoveredNodes,
               pSubstituteEdges,
-              pGhostVariables,
-              pBinaryExpressionBuilder));
+              pGhostVariables));
     }
     SeqBlockGotoLabelStatement gotoLabel = buildBlockLabel(pOptions, pThread.id, labelPc);
     return Optional.of(

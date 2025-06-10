@@ -11,17 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -34,9 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 public class SeqMutexLockStatement implements SeqThreadStatement {
 
-  private final CIdExpression mutexLocked;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final MutexLocked mutexLockedVariable;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -49,14 +44,12 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqMutexLockStatement(
-      CIdExpression pMutexLocked,
+      MutexLocked pMutexLockedVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
-      int pTargetPc,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      int pTargetPc) {
 
-    mutexLocked = pMutexLocked;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    mutexLockedVariable = pMutexLockedVariable;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -65,16 +58,14 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   private SeqMutexLockStatement(
-      CIdExpression pMutexLocked,
+      MutexLocked pMutexLockedVariable,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockGotoLabelStatement> pTargetGoto,
-      ImmutableList<SeqInjectedStatement> pInjectedStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    mutexLocked = pMutexLocked;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
+    mutexLockedVariable = pMutexLockedVariable;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -84,13 +75,11 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    CBinaryExpression mutexNotLocked =
-        binaryExpressionBuilder.buildBinaryExpression(
-            mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
     CExpressionAssignmentStatement setMutexLockedTrue =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            mutexLocked, SeqIntegerLiteralExpression.INT_1);
-    CFunctionCallStatement assumeCall = SeqStatementBuilder.buildAssumeCall(mutexNotLocked);
+            mutexLockedVariable.idExpression, SeqIntegerLiteralExpression.INT_1);
+    CFunctionCallStatement assumeCall =
+        SeqStatementBuilder.buildAssumeCall(mutexLockedVariable.notLockedExpression);
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
@@ -126,25 +115,23 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   @Override
   public SeqMutexLockStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqMutexLockStatement(
-        mutexLocked,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
         Optional.empty(),
-        injectedStatements,
-        binaryExpressionBuilder);
+        injectedStatements);
   }
 
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqMutexLockStatement(
-        mutexLocked,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
         Optional.of(pLabel),
-        injectedStatements,
-        binaryExpressionBuilder);
+        injectedStatements);
   }
 
   @Override
@@ -152,13 +139,12 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqMutexLockStatement(
-        mutexLocked,
+        mutexLockedVariable,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements,
-        binaryExpressionBuilder);
+        pInjectedStatements);
   }
 
   @Override

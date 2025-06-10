@@ -180,7 +180,8 @@ public class Sequentialization {
     Optional<BitVectorVariables> bitVectorVariables =
         GhostVariableUtil.buildBitVectorVariables(options, threads, substituteEdges);
     ThreadSimulationVariables threadSimulationVariables =
-        GhostVariableUtil.buildThreadSimulationVariables(options, threads, substituteEdges);
+        GhostVariableUtil.buildThreadSimulationVariables(
+            options, threads, substituteEdges, binaryExpressionBuilder);
 
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));

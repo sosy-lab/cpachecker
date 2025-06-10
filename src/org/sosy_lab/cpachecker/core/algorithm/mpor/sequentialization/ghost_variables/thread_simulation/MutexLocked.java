@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_vari
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
 /** A simple wrapper for {@link CIdExpression}s of {@code {mutex}_LOCKED} variables. */
@@ -18,8 +18,12 @@ public class MutexLocked {
 
   public final CIdExpression idExpression;
 
-  public MutexLocked(@NonNull CIdExpression pIdExpression) {
+  public final CBinaryExpression notLockedExpression;
+
+  public MutexLocked(CIdExpression pIdExpression, CBinaryExpression pNotLockedExpression) {
     checkNotNull(pIdExpression);
+    checkNotNull(pNotLockedExpression);
     idExpression = pIdExpression;
+    notLockedExpression = pNotLockedExpression;
   }
 }

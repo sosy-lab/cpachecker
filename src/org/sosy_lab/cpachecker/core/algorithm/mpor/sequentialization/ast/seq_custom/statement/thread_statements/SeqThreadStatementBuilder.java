@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
@@ -62,8 +62,7 @@ public class SeqThreadStatementBuilder {
       CLeftHandSide pPcLeftHandSide,
       Set<ThreadNode> pCoveredNodes,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     ImmutableList.Builder<SeqThreadStatement> rStatements = ImmutableList.builder();
 
@@ -90,8 +89,7 @@ public class SeqThreadStatementBuilder {
                   i == numLeavingEdges - 1,
                   threadEdge,
                   substitute,
-                  pGhostVariables,
-                  pBinaryExpressionBuilder);
+                  pGhostVariables);
           rStatements.add(statement);
         }
       }
@@ -149,8 +147,7 @@ public class SeqThreadStatementBuilder {
       boolean pLastEdge,
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
@@ -179,13 +176,7 @@ public class SeqThreadStatementBuilder {
 
       } else if (PthreadUtil.isExplicitlyHandledPthreadFunction(edge)) {
         return buildStatementFromPthreadFunction(
-            pThread,
-            pAllThreads,
-            pThreadEdge,
-            pSubstituteEdge,
-            targetPc,
-            pGhostVariables,
-            pBinaryExpressionBuilder);
+            pThread, pAllThreads, pThreadEdge, pSubstituteEdge, targetPc, pGhostVariables);
       }
     }
     // "leftover" edges should be statement edges
@@ -299,8 +290,7 @@ public class SeqThreadStatementBuilder {
       ThreadEdge pThreadEdge,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
-      GhostVariables pGhostVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      GhostVariables pGhostVariables) {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
@@ -324,12 +314,7 @@ public class SeqThreadStatementBuilder {
               pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
-              pThreadEdge,
-              pSubstituteEdge,
-              pTargetPc,
-              pcLeftHandSide,
-              pGhostVariables.thread,
-              pBinaryExpressionBuilder);
+              pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
       case PTHREAD_MUTEX_UNLOCK ->
           buildMutexUnlockStatement(
               pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
@@ -409,19 +394,14 @@ public class SeqThreadStatementBuilder {
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       CLeftHandSide pPcLeftHandSide,
-      ThreadSimulationVariables pThreadVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ThreadSimulationVariables pThreadVariables) {
 
     CIdExpression lockedMutexT = PthreadUtil.extractPthreadMutexT(pThreadEdge.cfaEdge);
     assert pThreadVariables.locked.containsKey(lockedMutexT);
-    CIdExpression mutexLocked =
-        Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT)).idExpression;
+    MutexLocked mutexLockedVariable =
+        Objects.requireNonNull(pThreadVariables.locked.get(lockedMutexT));
     return new SeqMutexLockStatement(
-        mutexLocked,
-        pPcLeftHandSide,
-        ImmutableSet.of(pSubstituteEdge),
-        pTargetPc,
-        pBinaryExpressionBuilder);
+        mutexLockedVariable, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqMutexUnlockStatement buildMutexUnlockStatement(

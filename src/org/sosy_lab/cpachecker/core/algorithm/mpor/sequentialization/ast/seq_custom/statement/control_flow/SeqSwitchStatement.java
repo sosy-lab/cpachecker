@@ -75,7 +75,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   }
 
   private static String buildAssumptionsString(
-      Optional<CFunctionCallStatement> pAssumption, int pTabs) throws UnrecognizedCodeException {
+      Optional<CFunctionCallStatement> pAssumption, int pTabs) {
 
     if (pAssumption.isEmpty()) {
       return SeqSyntax.EMPTY_STRING;

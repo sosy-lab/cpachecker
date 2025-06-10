@@ -18,7 +18,6 @@ public class ThreadSimulationVariables {
   public final ImmutableMap<CIdExpression, MutexLocked> locked;
 
   public ThreadSimulationVariables(ImmutableMap<CIdExpression, MutexLocked> pLocked) {
-
     locked = pLocked;
   }
 

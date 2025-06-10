@@ -19,6 +19,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -36,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
@@ -55,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class GhostVariableUtil {
 
@@ -234,16 +239,20 @@ public class GhostVariableUtil {
   public static ThreadSimulationVariables buildThreadSimulationVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     return new ThreadSimulationVariables(
-        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges));
+        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges, pBinaryExpressionBuilder));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
-      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
+      ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CIdExpression, MutexLocked> rVars = ImmutableMap.builder();
     Set<CIdExpression> lockedVariables = new HashSet<>();
@@ -262,7 +271,10 @@ public class GhostVariableUtil {
               CIdExpression mutexLocked =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
                       true, SeqSimpleType.UNSIGNED_CHAR, varName, SeqInitializer.INT_0);
-              rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
+              CBinaryExpression notLockedExpression =
+                  pBinaryExpressionBuilder.buildBinaryExpression(
+                      mutexLocked, SeqIntegerLiteralExpression.INT_0, BinaryOperator.EQUALS);
+              rVars.put(pthreadMutexT, new MutexLocked(mutexLocked, notLockedExpression));
             }
           }
         }
