@@ -56,18 +56,13 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
                   tabs + 1, prefix + clauses.get(i).toASTString() + breakSuffix))
           .append(SeqSyntax.NEWLINE);
     }
-    // TODO make lazy
-    String defaultCaseClause =
-        SeqToken._default
-            + SeqSyntax.COLON
-            + SeqSyntax.SPACE
-            + Sequentialization.outputReachErrorDummy;
     return SeqStringUtil.buildTab(tabs)
         + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
         + (options.sequentializationErrors
-            ? SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+            ? SeqStringUtil.prependTabsWithNewline(
+                tabs + 1, Sequentialization.defaultCaseClauseError)
             : SeqSyntax.EMPTY_STRING)
         + SeqStringUtil.buildTab(tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;

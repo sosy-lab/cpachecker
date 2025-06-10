@@ -59,7 +59,8 @@ public class SeqTypes {
 
   public static class SeqArrayType {
 
-    public static final CArrayType INT_ARRAY = new CArrayType(false, false, SeqSimpleType.INT);
+    public static final CArrayType UNSIGNED_INT_ARRAY =
+        new CArrayType(false, false, SeqSimpleType.UNSIGNED_INT);
   }
 
   public static class SeqPointerType {

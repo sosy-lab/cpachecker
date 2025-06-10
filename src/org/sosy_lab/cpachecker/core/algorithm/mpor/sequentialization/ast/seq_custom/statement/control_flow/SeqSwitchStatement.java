@@ -61,19 +61,14 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   public String toASTString() throws UnrecognizedCodeException {
     String assumptionsString = buildAssumptionsString(assumptions, tabs);
     String casesString = buildCasesString(statements, tabs);
-    // TODO make lazy
-    String defaultCaseClause =
-        SeqToken._default
-            + SeqSyntax.COLON
-            + SeqSyntax.SPACE
-            + Sequentialization.outputReachErrorDummy;
     return assumptionsString
         + SeqStringUtil.buildTab(tabs)
         + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
         + (options.sequentializationErrors
-            ? SeqStringUtil.prependTabsWithNewline(tabs + 1, defaultCaseClause)
+            ? SeqStringUtil.prependTabsWithNewline(
+                tabs + 1, Sequentialization.defaultCaseClauseError)
             : SeqSyntax.EMPTY_STRING)
         + SeqStringUtil.buildTab(tabs)
         + SeqSyntax.CURLY_BRACKET_RIGHT;

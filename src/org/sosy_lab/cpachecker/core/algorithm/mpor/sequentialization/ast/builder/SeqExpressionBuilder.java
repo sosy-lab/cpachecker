@@ -47,7 +47,10 @@ public class SeqExpressionBuilder {
 
   public static CArraySubscriptExpression buildPcSubscriptExpression(CExpression pSubscriptExpr) {
     return new CArraySubscriptExpression(
-        FileLocation.DUMMY, SeqArrayType.INT_ARRAY, SeqIdExpression.DUMMY_PC, pSubscriptExpr);
+        FileLocation.DUMMY,
+        SeqArrayType.UNSIGNED_INT_ARRAY,
+        SeqIdExpression.DUMMY_PC,
+        pSubscriptExpr);
   }
 
   static ImmutableList<CArraySubscriptExpression> buildArrayPcExpressions(int pNumThreads) {
@@ -94,17 +97,6 @@ public class SeqExpressionBuilder {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.EQUALS);
-  }
-
-  /** Returns {@code next_thread != pThreadId}. */
-  public static CBinaryExpression buildNextThreadUnequal(
-      int pThreadId, CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        SeqIdExpression.NEXT_THREAD,
-        buildIntegerLiteralExpression(pThreadId),
-        BinaryOperator.NOT_EQUALS);
   }
 
   // CFunctionCallExpression =======================================================================
@@ -165,7 +157,7 @@ public class SeqExpressionBuilder {
 
     CVariableDeclaration variableDeclaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
-            true, SeqSimpleType.UNSIGNED_CHAR, pVariableName, pInitializer);
+            pIsGlobal, pType, pVariableName, pInitializer);
     return new CIdExpression(FileLocation.DUMMY, variableDeclaration);
   }
 

@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Sequentialization {
 
+  // TODO move all this to hardcoded strings?
+
   private static final String license = "Apache-2.0";
 
   private final ImmutableList<LineOfCode> licenseHeader =
@@ -92,6 +94,12 @@ public class Sequentialization {
                   SeqToken.__FILE_NAME_PLACEHOLDER__, -1, SeqToken.__SEQUENTIALIZATION_ERROR__)
               .toASTString()
           + SeqSyntax.SEMICOLON;
+
+  public static final String defaultCaseClauseError =
+      SeqToken._default
+          + SeqSyntax.COLON
+          + SeqSyntax.SPACE
+          + Sequentialization.outputReachErrorDummy;
 
   public static final int INIT_PC = 1;
 

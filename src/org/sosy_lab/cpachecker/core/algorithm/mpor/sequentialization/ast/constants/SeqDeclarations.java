@@ -33,7 +33,7 @@ public class SeqDeclarations {
 
     protected static final CVariableDeclaration DUMMY_PC =
         buildVariableDeclaration(
-            false, SeqArrayType.INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
+            false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(

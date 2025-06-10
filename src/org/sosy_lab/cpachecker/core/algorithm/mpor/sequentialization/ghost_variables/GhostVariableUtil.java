@@ -262,7 +262,7 @@ public class GhostVariableUtil {
               // use unsigned char (8 bit), we only need values 0 and 1
               CIdExpression mutexLocked =
                   SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-                      false, BitVectorDataType.__UINT8_T.simpleType, varName, SeqInitializer.INT_0);
+                      true, BitVectorDataType.__UINT8_T.simpleType, varName, SeqInitializer.INT_0);
               rVars.put(pthreadMutexT, new MutexLocked(mutexLocked));
             }
           }

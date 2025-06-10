@@ -63,7 +63,7 @@ public class SeqDeclarationBuilder {
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
-              false, SeqArrayType.INT_ARRAY, SeqToken.pc, initializerList));
+              false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
   }
