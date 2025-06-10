@@ -25,11 +25,38 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -62,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
@@ -128,7 +156,8 @@ public abstract class AbstractExpressionValueVisitor
     implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
         JRightHandSideVisitor<Value, NoException>,
         JExpressionVisitor<Value, NoException>,
-        AcslPredicateVisitor<Value, NoException> {
+        AcslPredicateVisitor<Value, NoException>,
+        AcslTermVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
@@ -1537,6 +1566,126 @@ public abstract class AbstractExpressionValueVisitor
    */
   protected Value sizeof(CType pType) throws UnrecognizedCodeException {
     return new SizeofVisitor().evaluateSizeof(pType);
+  }
+
+  @Override
+  public Value visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslUnaryPredicate pAcslUnaryPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslForallPredicate pForallPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslRealLiteralTerm pAcslRealLiteralTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslBooleanLiteralTerm pAcslBooleanLiteralTerm) {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslIdTerm pAcslBinaryTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslOldTerm pAcslOldTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslResultTerm pAcslResultTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslAtTerm pAcslAtTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
+    return null;
+  }
+
+  @Override
+  public Value visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
+    return null;
   }
 
   private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
