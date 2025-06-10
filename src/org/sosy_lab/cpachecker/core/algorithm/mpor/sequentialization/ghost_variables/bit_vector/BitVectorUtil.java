@@ -194,7 +194,7 @@ public class BitVectorUtil {
     String name =
         getBitVectorScalarVariableNameByAccessType(
             pOptions, pThread.id, pVariableDeclaration, pAccessType);
-    // TODO initializer? would be best to adjust to 0/1 directly here, if possible
+    // always initialize with 0, the actual bit vectors are set when creating a thread
     CSimpleDeclaration declaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
             true, SeqSimpleType.UNSIGNED_CHAR, name, SeqInitializer.INT_0);

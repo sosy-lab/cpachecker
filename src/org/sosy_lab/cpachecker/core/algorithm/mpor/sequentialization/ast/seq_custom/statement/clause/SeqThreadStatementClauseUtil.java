@@ -127,7 +127,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = 0;
+    int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.block.getGotoLabel().labelNumber, index++);
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
@@ -141,7 +141,7 @@ public class SeqThreadStatementClauseUtil {
       ImmutableList<SeqThreadStatementClause> pClauses) {
 
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
-    int index = 0;
+    int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
       rLabelToIndex.put(clause.labelNumber, index++);
     }

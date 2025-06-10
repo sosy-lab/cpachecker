@@ -237,6 +237,7 @@ public class SeqThreadStatementClauseBuilder {
 
   public static SeqBlockGotoLabelStatement buildBlockLabel(
       MPOROptions pOptions, int pThreadId, int pLabelNumber) {
+
     return new SeqBlockGotoLabelStatement(
         SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId), pLabelNumber);
   }

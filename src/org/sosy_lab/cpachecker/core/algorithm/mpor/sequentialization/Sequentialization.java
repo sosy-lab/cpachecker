@@ -93,10 +93,9 @@ public class Sequentialization {
               .toASTString()
           + SeqSyntax.SEMICOLON;
 
-  // TODO maybe 1 for init, 0 for exit and use unsigned integer?
-  public static final int INIT_PC = 0;
+  public static final int INIT_PC = 1;
 
-  public static final int EXIT_PC = -1;
+  public static final int EXIT_PC = 0;
 
   private static final int FIRST_LINE = 1;
 

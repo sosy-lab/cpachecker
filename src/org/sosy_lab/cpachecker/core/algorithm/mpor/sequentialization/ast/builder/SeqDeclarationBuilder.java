@@ -49,15 +49,15 @@ public class SeqDeclarationBuilder {
         rDeclarations.add(
             SeqDeclarationBuilder.buildVariableDeclaration(
                 false,
-                SeqSimpleType.INT,
+                SeqSimpleType.UNSIGNED_INT,
                 pPcVariables.getPcLeftHandSide(i).toASTString(),
-                i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1));
+                SeqInitializer.getPcInitializer(i == 0)));
       }
     } else {
       // declare int array: pc[] = { 0, -1, ... };
       ImmutableList.Builder<CInitializer> initializers = ImmutableList.builder();
       for (int i = 0; i < pNumThreads; i++) {
-        initializers.add(i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1);
+        initializers.add(SeqInitializer.getPcInitializer(i == 0));
       }
       CInitializerList initializerList =
           new CInitializerList(FileLocation.DUMMY, initializers.build());

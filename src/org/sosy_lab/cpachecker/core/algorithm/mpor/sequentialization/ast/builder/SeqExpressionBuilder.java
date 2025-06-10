@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
@@ -156,16 +157,16 @@ public class SeqExpressionBuilder {
   // CIdExpression =================================================================================
 
   /**
-   * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVarName} =
+   * Returns a {@link CIdExpression} with a declaration of the form {@code int {pVariableName} =
    * {pInitializer};}.
    */
   public static CIdExpression buildIdExpressionWithIntegerInitializer(
-      String pVarName, CInitializer pInitializer) {
+      boolean pIsGlobal, CSimpleType pType, String pVariableName, CInitializer pInitializer) {
 
-    CVariableDeclaration varDec =
+    CVariableDeclaration variableDeclaration =
         SeqDeclarationBuilder.buildVariableDeclaration(
-            true, SeqSimpleType.INT, pVarName, pInitializer);
-    return new CIdExpression(FileLocation.DUMMY, varDec);
+            true, SeqSimpleType.UNSIGNED_CHAR, pVariableName, pInitializer);
+    return new CIdExpression(FileLocation.DUMMY, variableDeclaration);
   }
 
   public static CIdExpression buildIdExpression(CSimpleDeclaration pDeclaration) {
@@ -175,12 +176,12 @@ public class SeqExpressionBuilder {
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
     ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
-      CInitializer initializer = i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1;
+      CInitializer initializer = SeqInitializer.getPcInitializer(i == 0);
       rScalarPc.add(
           new CIdExpression(
               FileLocation.DUMMY,
               SeqDeclarationBuilder.buildVariableDeclaration(
-                  false, SeqSimpleType.INT, SeqToken.pc + i, initializer)));
+                  false, SeqSimpleType.UNSIGNED_INT, SeqToken.pc + i, initializer)));
     }
     return rScalarPc.build();
   }

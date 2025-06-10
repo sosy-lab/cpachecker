@@ -46,10 +46,11 @@ public class SeqExpressions {
 
   public static class SeqIntegerLiteralExpression {
 
+    public static final CIntegerLiteralExpression INT_INIT_PC =
+        buildIntegerLiteralExpression(Sequentialization.INIT_PC);
+
     public static final CIntegerLiteralExpression INT_EXIT_PC =
         buildIntegerLiteralExpression(Sequentialization.EXIT_PC);
-
-    public static final CIntegerLiteralExpression INT_MINUS_1 = buildIntegerLiteralExpression(-1);
 
     public static final CIntegerLiteralExpression INT_0 = buildIntegerLiteralExpression(0);
 

@@ -37,14 +37,14 @@ public class SeqDeclarations {
 
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(
-            false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_MINUS_1);
+            false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration K_SIGNED =
-        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_MINUS_1);
+        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration K_UNSIGNED =
         buildVariableDeclaration(

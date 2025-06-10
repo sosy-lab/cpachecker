@@ -14,17 +14,29 @@ import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 
 public class SeqInitializers {
 
   public static class SeqInitializer {
 
-    public static final CInitializer INT_MINUS_1 =
-        buildInitializerExpression(SeqIntegerLiteralExpression.INT_MINUS_1);
+    private static final CInitializer INT_INIT_PC =
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_INIT_PC);
+
+    private static final CInitializer INT_EXIT_PC =
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_EXIT_PC);
 
     public static final CInitializer INT_0 =
         buildInitializerExpression(SeqIntegerLiteralExpression.INT_0);
+
+    /**
+     * Returns the {@link CInitializer} for {@link Sequentialization#INIT_PC} for the main thread
+     * and {@link Sequentialization#EXIT_PC} for all other threads.
+     */
+    public static CInitializer getPcInitializer(boolean pIsMainThread) {
+      return pIsMainThread ? INT_INIT_PC : INT_EXIT_PC;
+    }
   }
 
   public static class SeqInitializerList {
