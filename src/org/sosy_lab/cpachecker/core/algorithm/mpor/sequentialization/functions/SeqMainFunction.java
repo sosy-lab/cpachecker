@@ -76,7 +76,7 @@ public class SeqMainFunction extends SeqFunction {
 
   private final SeqFunctionCallExpression nextThreadAssumption;
 
-  private final SeqStatement pcNextThreadAssumption;
+  private final Optional<SeqStatement> nextThreadActiveAssumption;
 
   private final PcVariables pcVariables;
 
@@ -121,9 +121,8 @@ public class SeqMainFunction extends SeqFunction {
     nextThreadAssumption =
         SeqAssumptionBuilder.buildNextThreadAssumption(
             pOptions.signedNondet, numThreadsVariable, binaryExpressionBuilder);
-    pcNextThreadAssumption =
-        SeqAssumptionBuilder.buildPcNextThreadAssumption(
-            options, numThreads, pOptions.scalarPc, pcVariables, binaryExpressionBuilder);
+    nextThreadActiveAssumption =
+        SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
   }
 
   @Override
@@ -152,7 +151,10 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
     }
-    rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, pcNextThreadAssumption.toASTString()));
+    if (nextThreadActiveAssumption.isPresent()) {
+      SeqStatement assumption = nextThreadActiveAssumption.orElseThrow();
+      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, assumption.toASTString()));
+    }
     // add all assumptions over thread variables
     if (options.comments) {
       rBody.add(LineOfCode.empty());

@@ -56,6 +56,7 @@ public class SeqScalarPcSwitchStatement implements SeqStatement {
                   tabs + 1, prefix + clauses.get(i).toASTString() + breakSuffix))
           .append(SeqSyntax.NEWLINE);
     }
+    // TODO make lazy
     String defaultCaseClause =
         SeqToken._default
             + SeqSyntax.COLON

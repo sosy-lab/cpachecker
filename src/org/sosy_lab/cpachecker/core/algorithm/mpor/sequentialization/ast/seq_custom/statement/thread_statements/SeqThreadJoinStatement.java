@@ -92,7 +92,6 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
     return assumeCall.toASTString()
-        + SeqSyntax.SPACE
         + (returnValueRead.isPresent()
             ? SeqSyntax.SPACE + returnValueRead.orElseThrow()
             : SeqSyntax.EMPTY_STRING)

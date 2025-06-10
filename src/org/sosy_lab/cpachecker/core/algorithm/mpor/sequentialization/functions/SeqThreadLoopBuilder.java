@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -278,7 +279,8 @@ public class SeqThreadLoopBuilder {
           clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
     SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(pOptions, pcExpression, updatedClauses.build(), pTabs);
+        new SeqSwitchStatement(
+            pOptions, pcExpression, Optional.empty(), updatedClauses.build(), pTabs);
     return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
   }
 }

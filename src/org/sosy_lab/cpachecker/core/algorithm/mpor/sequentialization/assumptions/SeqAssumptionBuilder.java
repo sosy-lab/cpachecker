@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -24,10 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcAssumeStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -77,37 +76,26 @@ public class SeqAssumptionBuilder {
     return rParameters.build();
   }
 
-  public static SeqStatement buildPcNextThreadAssumption(
-      MPOROptions pOptions,
-      int pNumThreads,
-      boolean pScalarPc,
-      PcVariables pPcVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+  public static Optional<SeqStatement> buildNextThreadActiveAssumption(
+      MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pScalarPc) {
-      ImmutableList<SeqScalarPcAssumeStatement> assumeClauses =
-          buildScalarPcAssumeClauses(pNumThreads, pPcVariables, pBinaryExpressionBuilder);
-      return switch (pOptions.controlFlowEncoding) {
-        case SWITCH_CASE ->
-            new SeqScalarPcSwitchStatement(pOptions, SeqIdExpression.NEXT_THREAD, assumeClauses, 0);
-        case BINARY_IF_TREE ->
-            new SeqBinaryIfTreeStatement(
-                SeqIdExpression.NEXT_THREAD, assumeClauses, 0, pBinaryExpressionBuilder);
-      };
-    } else {
-      // pc array: single assume(pc[next_thread] != -1);
-      return new SeqFunctionCallStatement(
-          new SeqFunctionCallExpression(
-              SeqIdExpression.ASSUME,
-              ImmutableList.of(
-                  new CToSeqExpression(
-                      pBinaryExpressionBuilder.buildBinaryExpression(
-                          SeqExpressionBuilder.buildPcSubscriptExpression(
-                              SeqIdExpression.NEXT_THREAD),
-                          SeqIntegerLiteralExpression.INT_EXIT_PC,
-                          BinaryOperator.NOT_EQUALS)))));
+    if (pOptions.scalarPc) {
+      // scalar pc: place assume(pci != -1); directly at respective thread head
+      return Optional.empty();
     }
+    // pc array: single assume(pc[next_thread] != -1);
+    SeqFunctionCallExpression assumeCall =
+        new SeqFunctionCallExpression(
+            SeqIdExpression.ASSUME,
+            ImmutableList.of(
+                new CToSeqExpression(
+                    pBinaryExpressionBuilder.buildBinaryExpression(
+                        SeqExpressionBuilder.buildPcSubscriptExpression(
+                            SeqIdExpression.NEXT_THREAD),
+                        SeqIntegerLiteralExpression.INT_EXIT_PC,
+                        BinaryOperator.NOT_EQUALS))));
+    return Optional.of(assumeCall.toFunctionCallStatement());
   }
 
   private static ImmutableList<SeqScalarPcAssumeStatement> buildScalarPcAssumeClauses(

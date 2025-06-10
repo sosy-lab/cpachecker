@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
 
 import com.google.common.collect.ImmutableList;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -33,6 +36,8 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   private final SeqSingleControlFlowStatement switchExpression;
 
+  private final Optional<SeqFunctionCallStatement> assumptions;
+
   private final ImmutableList<? extends SeqStatement> statements;
 
   private final int tabs;
@@ -40,25 +45,30 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   public SeqSwitchStatement(
       MPOROptions pOptions,
       CExpression pExpression,
+      Optional<SeqFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs) {
 
     options = pOptions;
     switchExpression =
         new SeqSingleControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
+    assumptions = pAssumption;
     statements = pStatements;
     tabs = pTabs;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    String casesString = buildCases(statements, tabs);
+    String assumptionsString = buildAssumptionsString(assumptions, tabs);
+    String casesString = buildCasesString(statements, tabs);
+    // TODO make lazy
     String defaultCaseClause =
         SeqToken._default
             + SeqSyntax.COLON
             + SeqSyntax.SPACE
             + Sequentialization.outputReachErrorDummy;
-    return SeqStringUtil.buildTab(tabs)
+    return assumptionsString
+        + SeqStringUtil.buildTab(tabs)
         + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
@@ -69,7 +79,17 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  private static String buildCases(ImmutableList<? extends SeqStatement> pStatements, int pTabs)
+  private static String buildAssumptionsString(
+      Optional<SeqFunctionCallStatement> pAssumption, int pTabs) throws UnrecognizedCodeException {
+
+    if (pAssumption.isEmpty()) {
+      return SeqSyntax.EMPTY_STRING;
+    }
+    return LineOfCode.of(pTabs, pAssumption.orElseThrow().toASTString()).toString();
+  }
+
+  private static String buildCasesString(
+      ImmutableList<? extends SeqStatement> pStatements, int pTabs)
       throws UnrecognizedCodeException {
 
     StringBuilder casesString = new StringBuilder();
