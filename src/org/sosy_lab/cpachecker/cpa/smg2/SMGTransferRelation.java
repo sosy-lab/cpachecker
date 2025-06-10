@@ -34,6 +34,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -58,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -69,9 +73,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -850,10 +856,10 @@ public class SMGTransferRelation
       stats.incrementAssumptions();
     }
 
-    // We know it has to be a CExpression as this analysis only supports C
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
-    CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
+    AExpression simplifiedExpressionFirst = simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
+
 
     if (expression instanceof CBinaryExpression binEx
         && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
@@ -871,9 +877,12 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
-    for (ValueAndSMGState valueAndState :
-        vv.evaluate(
-            cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
+    final Type booleanType = getBooleanType(expression);
+
+    // get the value of the expression (either true[1L], false[0L], or unknown[null])
+    List<ValueAndSMGState> valueList = getExpressionValue(simplifiedExpressionFirst, booleanType, vv);
+
+    for (ValueAndSMGState valueAndState : valueList) {
       Value value = valueAndState.getValue();
       SMGState currentState = valueAndState.getState();
 
@@ -898,7 +907,7 @@ public class SMGTransferRelation
                 booleanVariables,
                 functionName);
         try {
-          List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
+          List<ValueAndSMGState> maybeFeasiblePaths = ((CExpression) expression).accept(avv);
           if (maybeFeasiblePaths == null) {
             // Infeasible
             return null;
@@ -925,6 +934,27 @@ public class SMGTransferRelation
       }
     }
     return resultStateBuilder.build();
+  }
+
+  private Type getBooleanType(AExpression pExpression) {
+    if (pExpression instanceof CExpression) {
+      return SMGCPAExpressionEvaluator.getCanonicalType((CExpression) pExpression);
+    } else if (pExpression instanceof AcslPredicate) {
+      return AcslBuiltinLogicType.BOOLEAN;
+    } else {
+      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
+    }
+  }
+
+  private List<ValueAndSMGState> getExpressionValue(AExpression pExpression, Type type, SMGCPAValueVisitor pVv)
+      throws CPATransferException {
+    if (pExpression instanceof CRightHandSide) {
+      return pVv.evaluate((CRightHandSide) pExpression, (CType) type);
+    } else if (pExpression instanceof AcslPredicate) {
+      return pVv.evaluate((AcslPredicate) pExpression, (AcslType) type);
+    } else {
+      throw new AssertionError("unhandled righthandside-expression: " + pExpression);
+    }
   }
 
   /*

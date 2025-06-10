@@ -22,6 +22,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -149,6 +151,22 @@ public class SMGCPAValueVisitor
       result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
     }
     return result.build();
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type. This method handles
+   * overflows and casts. If necessary warnings for the user are printed. This method does not touch
+   * {@link AddressExpression}s or {@link SymbolicIdentifier}s with {@link MemoryLocation}s, as they
+   * carry location information for further evaluation.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   * @throws CPATransferException in case of critical visitor or SMG error
+   */
+  public List<ValueAndSMGState> evaluate(final AcslPredicate pExp, final AcslType pTargetType)
+      throws CPATransferException {
+    return null;
   }
 
   /**
