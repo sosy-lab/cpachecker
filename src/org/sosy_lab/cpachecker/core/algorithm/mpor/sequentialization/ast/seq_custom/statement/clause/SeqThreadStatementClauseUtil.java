@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
@@ -194,7 +195,8 @@ public class SeqThreadStatementClauseUtil {
   }
 
   public static SeqThreadStatement tryInjectGotoThreadLoopLabelIntoStatement(
-      CBinaryExpression pIterationSmallerMax,
+      CBinaryExpression pRSmallerMax,
+      CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -203,13 +205,16 @@ public class SeqThreadStatementClauseUtil {
       int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
         return injectGotoThreadLoopLabelIntoStatementByTargetPc(
-            targetPc, pIterationSmallerMax, pCurrentStatement, pLabelClauseMap);
+            targetPc, pRSmallerMax, pRIncrement, pCurrentStatement, pLabelClauseMap);
       }
     }
     if (pCurrentStatement.getTargetGoto().isPresent()) {
       // target goto present -> use goto label for injection
       return injectGotoThreadLoopLabelIntoStatementByTargetGoto(
-          pCurrentStatement.getTargetGoto().orElseThrow(), pIterationSmallerMax, pCurrentStatement);
+          pCurrentStatement.getTargetGoto().orElseThrow(),
+          pRSmallerMax,
+          pRIncrement,
+          pCurrentStatement);
     }
     // no int target pc -> no replacement
     return pCurrentStatement;
@@ -217,7 +222,8 @@ public class SeqThreadStatementClauseUtil {
 
   private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetPc(
       int pTargetPc,
-      CBinaryExpression pIterationSmallerMax,
+      CBinaryExpression pRSmallerMax,
+      CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pCurrentStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
@@ -227,19 +233,20 @@ public class SeqThreadStatementClauseUtil {
     SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
     newInjections.add(
         new SeqThreadLoopGotoStatement(
-            pIterationSmallerMax, Objects.requireNonNull(target).block.getGotoLabel()));
+            pRSmallerMax, pRIncrement, Objects.requireNonNull(target).block.getGotoLabel()));
     return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
   }
 
   private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetGoto(
       SeqBlockGotoLabelStatement pTargetGoto,
-      CBinaryExpression pIterationSmallerMax,
+      CBinaryExpression pRSmallerMax,
+      CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pCurrentStatement) {
 
     ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
     // add previous injections BEFORE (otherwise undefined behavior in seq!)
     newInjections.addAll(pCurrentStatement.getInjectedStatements());
-    newInjections.add(new SeqThreadLoopGotoStatement(pIterationSmallerMax, pTargetGoto));
+    newInjections.add(new SeqThreadLoopGotoStatement(pRSmallerMax, pRIncrement, pTargetGoto));
     return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
   }
 

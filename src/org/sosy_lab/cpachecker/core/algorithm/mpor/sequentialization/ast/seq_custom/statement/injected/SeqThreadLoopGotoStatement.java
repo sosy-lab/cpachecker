@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
@@ -23,10 +24,17 @@ public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
 
   private final CBinaryExpression rSmallerK;
 
+  private final CExpressionAssignmentStatement rIncrement;
+
   private final SeqLabelStatement gotoLabel;
 
-  public SeqThreadLoopGotoStatement(CBinaryExpression pRSmallerK, SeqLabelStatement pGotoLabel) {
+  public SeqThreadLoopGotoStatement(
+      CBinaryExpression pRSmallerK,
+      CExpressionAssignmentStatement pRIncrement,
+      SeqLabelStatement pGotoLabel) {
+
     rSmallerK = pRSmallerK;
+    rIncrement = pRIncrement;
     gotoLabel = pGotoLabel;
   }
 
@@ -40,8 +48,10 @@ public class SeqThreadLoopGotoStatement implements SeqInjectedStatement {
     SeqSingleControlFlowStatement ifStatement =
         new SeqSingleControlFlowStatement(rSmallerK, SeqControlFlowStatementType.IF);
     SeqGotoStatement gotoStatement = new SeqGotoStatement(gotoLabel);
+    String innerStatement =
+        rIncrement.toASTString() + SeqSyntax.SPACE + gotoStatement.toASTString();
     return ifStatement.toASTString()
         + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+        + SeqStringUtil.wrapInCurlyInwards(innerStatement);
   }
 }

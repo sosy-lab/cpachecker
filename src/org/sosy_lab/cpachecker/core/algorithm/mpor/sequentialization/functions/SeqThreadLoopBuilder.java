@@ -63,14 +63,10 @@ public class SeqThreadLoopBuilder {
     CBinaryExpression kGreaterZero =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.K, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+    // r is set to 1, because we increment after the r < K check succeeds
     CExpressionAssignmentStatement rReset =
         SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_0);
-    CExpressionAssignmentStatement rIncrement =
-        SeqStatementBuilder.buildExpressionAssignmentStatement(
-            SeqIdExpression.R,
-            pBinaryExpressionBuilder.buildBinaryExpression(
-                SeqIdExpression.R, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
+            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_1);
 
     rThreadLoops.addAll(
         SeqThreadLoopBuilder.buildThreadLoops(
@@ -80,7 +76,6 @@ public class SeqThreadLoopBuilder {
             kNondet,
             kGreaterZero,
             rReset,
-            rIncrement,
             pBinaryExpressionBuilder));
 
     return rThreadLoops.build();
@@ -93,7 +88,6 @@ public class SeqThreadLoopBuilder {
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
-      CExpressionAssignmentStatement pRIncrement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -105,7 +99,6 @@ public class SeqThreadLoopBuilder {
           pKNondet,
           pKGreaterZero,
           pRReset,
-          pRIncrement,
           pBinaryExpressionBuilder);
     } else {
       return buildThreadLoopsWithoutNextThread(
@@ -115,7 +108,6 @@ public class SeqThreadLoopBuilder {
           pKNondet,
           pKGreaterZero,
           pRReset,
-          pRIncrement,
           pBinaryExpressionBuilder);
     }
   }
@@ -127,7 +119,6 @@ public class SeqThreadLoopBuilder {
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
-      CExpressionAssignmentStatement pRIncrement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -164,8 +155,7 @@ public class SeqThreadLoopBuilder {
 
       ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
       rThreadLoops.addAll(
-          buildThreadLoop(
-              pOptions, pPcVariables, thread, pRIncrement, cases, pBinaryExpressionBuilder));
+          buildThreadLoop(pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
       i++;
     }
     rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
@@ -180,7 +170,6 @@ public class SeqThreadLoopBuilder {
       CFunctionCallAssignmentStatement pKNondet,
       CBinaryExpression pKGreaterZero,
       CExpressionAssignmentStatement pRReset,
-      CExpressionAssignmentStatement pRIncrement,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -206,8 +195,7 @@ public class SeqThreadLoopBuilder {
 
       // add the thread loop statements (assumptions and switch)
       rThreadLoops.addAll(
-          buildThreadLoop(
-              pOptions, pPcVariables, thread, pRIncrement, cases, pBinaryExpressionBuilder));
+          buildThreadLoop(pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
       rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
     return rThreadLoops.build();
@@ -217,20 +205,15 @@ public class SeqThreadLoopBuilder {
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
-      CExpressionAssignmentStatement pRIncrement,
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
-
     // TODO binary tree option
     ImmutableList<LineOfCode> switchStatement =
         buildThreadLoopSwitchStatement(
             pOptions, pPcVariables, pThread, pClauses, 3, pBinaryExpressionBuilder);
-
-    // add all lines of code: iteration increment, switch statement
-    rThreadLoop.add(LineOfCode.of(3, pRIncrement.toASTString()));
     rThreadLoop.addAll(switchStatement);
 
     return rThreadLoop.build();
@@ -248,9 +231,11 @@ public class SeqThreadLoopBuilder {
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
     CExpression pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
-    CBinaryExpression iterationSmallerMax =
+    CBinaryExpression rSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
+    CExpressionAssignmentStatement rIncrement =
+        SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.R, pBinaryExpressionBuilder);
 
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
@@ -259,7 +244,7 @@ public class SeqThreadLoopBuilder {
       for (SeqThreadStatement statement : clause.block.getStatements()) {
         SeqThreadStatement newStatement =
             SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
-                iterationSmallerMax, statement, labelClauseMap);
+                rSmallerMax, rIncrement, statement, labelClauseMap);
         newStatements.add(newStatement);
       }
       SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
@@ -270,7 +255,7 @@ public class SeqThreadLoopBuilder {
         for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
           SeqThreadStatement newMergedStatement =
               SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
-                  iterationSmallerMax, mergedStatement, labelClauseMap);
+                  rSmallerMax, rIncrement, mergedStatement, labelClauseMap);
           newMergedStatements.add(newMergedStatement);
         }
         newMergedBlocks.add(mergedBlock.cloneWithStatements(newMergedStatements.build()));
