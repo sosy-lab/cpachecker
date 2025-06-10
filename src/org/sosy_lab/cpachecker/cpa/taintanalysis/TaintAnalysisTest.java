@@ -1212,22 +1212,19 @@ public class TaintAnalysisTest {
 
   @Test
   public void testTaintMainArgsSafe() throws Exception {
-    TestResults results =
-        runCPAchecker("taintMainArgsSafe.c", "");
+    TestResults results = runCPAchecker("taintMainArgsSafe.c", "");
     results.assertIsSafe();
   }
 
   @Test
   public void testTaintMainArgsUnsafe_1() throws Exception {
-    TestResults results =
-        runCPAchecker("taintMainArgsUnsafe_1.c", "");
+    TestResults results = runCPAchecker("taintMainArgsUnsafe_1.c", "");
     results.assertIsUnsafe();
   }
 
   @Test
   public void testTaintMainArgsUnsafe_2() throws Exception {
-    TestResults results =
-        runCPAchecker("taintMainArgsUnsafe_2.c", "");
+    TestResults results = runCPAchecker("taintMainArgsUnsafe_2.c", "");
     results.assertIsUnsafe();
   }
 }

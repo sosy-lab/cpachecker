@@ -525,7 +525,8 @@ public class TaintAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (pDeclaration instanceof CFunctionDeclaration pCFunctionDeclaration) { // extern function defs land here
+    if (pDeclaration
+        instanceof CFunctionDeclaration pCFunctionDeclaration) { // extern function defs land here
       if (pCFunctionDeclaration.getName().equals("main")) {
         for (CParameterDeclaration paramDec : pCFunctionDeclaration.getParameters()) {
           CIdExpression paramIdExpr = TaintAnalysisUtils.getCidExpressionForCParDec(paramDec);
