@@ -28,9 +28,9 @@ public class SeqStatementBuilder {
       throws UnrecognizedCodeException {
 
     return buildExpressionAssignmentStatement(
-        SeqIdExpression.R,
+        pLeftHandSide,
         pBinaryExpressionBuilder.buildBinaryExpression(
-            SeqIdExpression.R, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
+            pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
   }
 
   /** Returns {@code pLeftHandSide = pRightHandSide;}. */

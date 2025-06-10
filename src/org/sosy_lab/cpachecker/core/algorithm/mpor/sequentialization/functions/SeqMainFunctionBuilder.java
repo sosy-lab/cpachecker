@@ -12,10 +12,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -57,5 +62,27 @@ public class SeqMainFunctionBuilder {
         pPcVariables,
         pBinaryExpressionBuilder,
         pLogger);
+  }
+
+  protected static Optional<SeqFunctionCallStatement> buildThreadActiveAssumption(
+      MPOROptions pOptions,
+      PcVariables pPcVariables,
+      MPORThread pThread,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    if (pOptions.threadLoops && !pOptions.threadLoopsNext) {
+      // without threadLoopsNext, no assumption is required due to if (pc != -1) ... check
+      return Optional.empty();
+    }
+    if (pOptions.scalarPc) {
+      CBinaryExpression threadActiveExpression =
+          SeqExpressionBuilder.buildPcUnequalExitPc(
+              pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
+      SeqFunctionCallExpression assumeCallExpression =
+          SeqAssumptionBuilder.buildAssumeCall(threadActiveExpression);
+      return Optional.of(assumeCallExpression.toFunctionCallStatement());
+    }
+    return Optional.empty();
   }
 }

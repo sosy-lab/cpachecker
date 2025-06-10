@@ -263,9 +263,11 @@ public class SeqThreadLoopBuilder {
       updatedClauses.add(
           clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
+    Optional<SeqFunctionCallStatement> assumption =
+        SeqMainFunctionBuilder.buildThreadActiveAssumption(
+            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
     SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(
-            pOptions, pcExpression, Optional.empty(), updatedClauses.build(), pTabs);
+        new SeqSwitchStatement(pOptions, pcExpression, assumption, updatedClauses.build(), pTabs);
     return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
   }
 }
