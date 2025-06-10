@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -30,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalOperator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
@@ -115,7 +113,7 @@ public class BitVectorEvaluationBuilder {
             convertOtherVariablesToSeqExpression(activeVariable, accessVariables);
         // create logical not -> !(B || C || ...)
         SeqLogicalNotExpression logicalNot =
-            new SeqLogicalNotExpression(disjunction(otherVariables));
+            new SeqLogicalNotExpression(SeqLogicalExpressionBuilder.disjunction(otherVariables));
         variableExpressions.add(logicalNot);
       }
     }
@@ -124,7 +122,7 @@ public class BitVectorEvaluationBuilder {
     }
     // create conjunction of logical nots: !(B || C || ...) && !(B' || C' || ...) ...
     SeqExpression evaluationExpression =
-        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
@@ -139,7 +137,7 @@ public class BitVectorEvaluationBuilder {
     checkArgument(!pOtherBitVectors.contains(pDirectBitVector));
 
     CExpression rightHandSide =
-        nestBinaryExpressions(pOtherBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+        SeqLogicalExpressionBuilder.binaryDisjunction(pOtherBitVectors, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
   }
@@ -336,7 +334,7 @@ public class BitVectorEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     SeqExpression evaluationExpression =
-        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
@@ -456,8 +454,8 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     CExpression otherWrites =
-        nestBinaryExpressions(
-            pOtherWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+        SeqLogicalExpressionBuilder.binaryDisjunction(
+            pOtherWriteBitVectors, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
   }
@@ -472,8 +470,8 @@ public class BitVectorEvaluationBuilder {
     ImmutableSet<CExpression> otherReadAndWriteBitVectors =
         ImmutableSet.<CExpression>builder().addAll(pOtherReads).addAll(pOtherWrites).build();
     CExpression otherReadsAndWrites =
-        nestBinaryExpressions(
-            otherReadAndWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
+        SeqLogicalExpressionBuilder.binaryDisjunction(
+            otherReadAndWriteBitVectors, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
   }
@@ -511,7 +509,7 @@ public class BitVectorEvaluationBuilder {
               activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
     }
     SeqExpression evaluationExpression =
-        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
@@ -522,8 +520,7 @@ public class BitVectorEvaluationBuilder {
     CToSeqExpression activeReadVariable = new CToSeqExpression(pActiveReadVariable);
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
-            activeReadVariable,
-            nestLogicalExpressions(pOtherWriteVariables, SeqLogicalOperator.OR));
+            activeReadVariable, SeqLogicalExpressionBuilder.disjunction(pOtherWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
@@ -532,7 +529,7 @@ public class BitVectorEvaluationBuilder {
           ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     return new SeqLogicalNotExpression(
-        nestLogicalExpressions(pOtherWriteVariables, SeqLogicalOperator.OR));
+        SeqLogicalExpressionBuilder.disjunction(pOtherWriteVariables));
   }
 
   private static SeqLogicalNotExpression
@@ -544,7 +541,7 @@ public class BitVectorEvaluationBuilder {
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
             activeWriteVariable,
-            nestLogicalExpressions(pOtherReadAndWriteVariables, SeqLogicalOperator.OR));
+            SeqLogicalExpressionBuilder.disjunction(pOtherReadAndWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
@@ -559,7 +556,7 @@ public class BitVectorEvaluationBuilder {
             .addAll(pOtherWriteVariables)
             .build();
     return new SeqLogicalNotExpression(
-        nestLogicalExpressions(otherReadAndWriteVariables, SeqLogicalOperator.OR));
+        SeqLogicalExpressionBuilder.disjunction(otherReadAndWriteVariables));
   }
 
   private static SeqLogicalAndExpression buildSingleVariableScalarReadWriteBitVectorEvaluation(
@@ -611,66 +608,5 @@ public class BitVectorEvaluationBuilder {
         .filter(v -> !v.equals(pActiveVariable))
         .map(CToSeqExpression::new)
         .collect(ImmutableList.toImmutableList());
-  }
-
-  private static SeqExpression disjunction(ImmutableList<SeqExpression> pDisjunctionTerms) {
-
-    return nestLogicalExpressions(pDisjunctionTerms, SeqLogicalOperator.OR);
-  }
-
-  /**
-   * Returns a distributive conjunction expression of the form {@code A && (B || C || ...)} where
-   * {@code A} is {@code pSingleTerm} and {@code B, C, ...} given in {@code pDisjunctionTerms}.
-   */
-  private static SeqLogicalAndExpression distributeConjunction(
-      CExpression pSingleTerm, ImmutableList<SeqExpression> pDisjunctionTerms) {
-
-    return distributeConjunction(new CToSeqExpression(pSingleTerm), pDisjunctionTerms);
-  }
-
-  /**
-   * Returns a distributive conjunction expression of the form {@code A && (B || C || ...)} where
-   * {@code A} is {@code pSingleTerm} and {@code B, C, ...} given in {@code pDisjunctionTerms}.
-   */
-  private static SeqLogicalAndExpression distributeConjunction(
-      SeqExpression pSingleTerm, ImmutableList<SeqExpression> pDisjunctionTerms) {
-
-    SeqExpression rightHandSide = nestLogicalExpressions(pDisjunctionTerms, SeqLogicalOperator.OR);
-    return new SeqLogicalAndExpression(pSingleTerm, rightHandSide);
-  }
-
-  private static CExpression nestBinaryExpressions(
-      ImmutableCollection<CExpression> pAllExpressions,
-      BinaryOperator pBinaryOperator,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
-
-    CExpression rNested = pAllExpressions.iterator().next();
-    for (CExpression next : pAllExpressions) {
-      if (!next.equals(rNested)) {
-        rNested = pBinaryExpressionBuilder.buildBinaryExpression(rNested, next, pBinaryOperator);
-      }
-    }
-    return rNested;
-  }
-
-  // TODO should create a LogicalExpressionBuilder for this, separately
-
-  private static SeqExpression nestLogicalExpressions(
-      ImmutableCollection<SeqExpression> pAllExpressions, SeqLogicalOperator pLogicalOperator) {
-
-    checkArgument(!pAllExpressions.isEmpty(), "pAllExpressions must not be empty");
-
-    SeqExpression rNested = pAllExpressions.iterator().next();
-    for (SeqExpression next : pAllExpressions) {
-      if (!next.equals(rNested)) {
-        rNested =
-            SeqLogicalExpressionBuilder.buildBinaryLogicalExpressionByOperator(
-                pLogicalOperator, rNested, next);
-      }
-    }
-    return rNested;
   }
 }
