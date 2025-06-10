@@ -156,7 +156,7 @@ class BitVectorReadWriteInjector {
                 pLabelClauseMap,
                 pLabelBlockMap);
         BitVectorEvaluationExpression evaluationExpression =
-            BitVectorEvaluationBuilder.buildPrunedReadWriteBitVectorEvaluationByEncoding(
+            BitVectorEvaluationBuilder.buildReadWriteBitVectorEvaluationByEncoding(
                 pOptions,
                 pThread,
                 bitVectorAssignments,

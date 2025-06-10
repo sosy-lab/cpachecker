@@ -28,6 +28,10 @@ public class BitVectorEvaluationExpression implements SeqExpression {
     logicalExpression = pLogicalExpression;
   }
 
+  public static BitVectorEvaluationExpression empty() {
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.empty());
+  }
+
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     if (binaryExpression.isPresent()) {

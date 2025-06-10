@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+// TODO split this class into access and read-write builders for better overview
 public class BitVectorEvaluationBuilder {
 
   // Access Bit Vector Reduction ===================================================================
@@ -63,12 +64,9 @@ public class BitVectorEvaluationBuilder {
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildPrunedDenseAccessBitVectorEvaluation(
               pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
-      case SCALAR -> {
-        Optional<SeqExpression> seqExpression =
-            buildPrunedScalarAccessBitVectorEvaluation(
-                pActiveThread, pBitVectorVariables, pBitVectorAssignments);
-        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
-      }
+      case SCALAR ->
+          buildPrunedScalarAccessBitVectorEvaluation(
+              pActiveThread, pBitVectorVariables, pBitVectorAssignments);
     };
   }
 
@@ -80,7 +78,7 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     if (pDirectVariables.isEmpty()) {
-      return new BitVectorEvaluationExpression(Optional.empty(), Optional.empty());
+      return BitVectorEvaluationExpression.empty();
     }
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
@@ -94,13 +92,13 @@ public class BitVectorEvaluationBuilder {
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
   }
 
-  private static Optional<SeqExpression> buildPrunedScalarAccessBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildPrunedScalarAccessBitVectorEvaluation(
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
 
     if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
-      return Optional.empty();
+      return BitVectorEvaluationExpression.empty();
     }
     ImmutableSet<CExpression> zeroes =
         BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
@@ -112,18 +110,22 @@ public class BitVectorEvaluationBuilder {
       CIdExpression activeVariable = extractActiveVariable(pActiveThread, accessVariables);
       // if the LHS (activeVariable) is 0, then the entire && expression is 0 -> prune
       if (!zeroes.contains(activeVariable)) {
-        // convert from CExpression to SeqExpression
+        // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
         ImmutableList<SeqExpression> otherVariables =
             convertOtherVariablesToSeqExpression(activeVariable, accessVariables);
-        SeqLogicalAndExpression andExpression =
-            distributeConjunction(activeVariable, otherVariables);
-        variableExpressions.add(andExpression);
+        // create logical not -> !(B || C || ...)
+        SeqLogicalNotExpression logicalNot =
+            new SeqLogicalNotExpression(disjunction(otherVariables));
+        variableExpressions.add(logicalNot);
       }
     }
     if (variableExpressions.build().isEmpty()) {
-      return Optional.empty();
+      return BitVectorEvaluationExpression.empty();
     }
-    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.OR));
+    // create conjunction of logical nots: !(B || C || ...) && !(B' || C' || ...) ...
+    SeqExpression evaluationExpression =
+        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
   private static CBinaryExpression buildAccessBitVectorEvaluation(
@@ -144,11 +146,41 @@ public class BitVectorEvaluationBuilder {
 
   // Read/Write Bit Vector Reduction ===============================================================
 
+  public static BitVectorEvaluationExpression buildReadWriteBitVectorEvaluationByEncoding(
+      MPOROptions pOptions,
+      MPORThread pActiveThread,
+      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    if (pOptions.bitVectorEvaluationPrune) {
+      return buildPrunedReadWriteBitVectorEvaluationByEncoding(
+          pOptions,
+          pActiveThread,
+          pBitVectorAssignments,
+          pDirectReadVariables,
+          pDirectWriteVariables,
+          pBitVectorVariables,
+          pBinaryExpressionBuilder);
+    } else {
+      return buildFullReadWriteBitVectorEvaluationByEncoding(
+          pOptions,
+          pActiveThread,
+          pDirectReadVariables,
+          pDirectWriteVariables,
+          pBitVectorVariables,
+          pBinaryExpressionBuilder);
+    }
+  }
+
   /**
    * Builds a pruned evaluation expression for the given bit vectors based on the variables assigned
    * to the bit vectors in {@code pBitVectorAssignments}.
    */
-  public static BitVectorEvaluationExpression buildPrunedReadWriteBitVectorEvaluationByEncoding(
+  private static BitVectorEvaluationExpression buildPrunedReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
@@ -169,12 +201,9 @@ public class BitVectorEvaluationBuilder {
               pDirectWriteVariables,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
-      case SCALAR -> {
-        Optional<SeqExpression> seqExpression =
-            buildPrunedScalarReadWriteBitVectorEvaluation(
-                pActiveThread, pBitVectorVariables, pBitVectorAssignments);
-        yield new BitVectorEvaluationExpression(Optional.empty(), seqExpression);
-      }
+      case SCALAR ->
+          buildPrunedScalarReadWriteBitVectorEvaluation(
+              pActiveThread, pBitVectorVariables, pBitVectorAssignments);
     };
   }
 
@@ -222,10 +251,10 @@ public class BitVectorEvaluationBuilder {
       ImmutableSet<CExpression> otherWriteBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pActiveThread);
-      CBinaryExpression rLeftHandSide =
+      CBinaryExpression leftHandSide =
           buildDenseReadWriteBitVectorLeftHandSideEvaluation(
               directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
-      return Optional.of(new SeqLogicalNotExpression(rLeftHandSide));
+      return Optional.of(new SeqLogicalNotExpression(leftHandSide));
     }
   }
 
@@ -258,13 +287,14 @@ public class BitVectorEvaluationBuilder {
     }
   }
 
-  private static Optional<SeqExpression> buildPrunedScalarReadWriteBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildPrunedScalarReadWriteBitVectorEvaluation(
       MPORThread pActiveThread,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
 
     if (pBitVectorVariables.areScalarBitVectorsEmpty()) {
-      return Optional.empty(); // no bit vectors (e.g. no global variables) -> no evaluation
+      // no bit vectors (e.g. no global variables) -> no evaluation
+      return BitVectorEvaluationExpression.empty();
     }
     ImmutableSet<CExpression> zeroAssignments =
         BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
@@ -303,9 +333,11 @@ public class BitVectorEvaluationBuilder {
       }
     }
     if (variableExpressions.build().isEmpty()) {
-      return Optional.empty();
+      return BitVectorEvaluationExpression.empty();
     }
-    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND));
+    SeqExpression evaluationExpression =
+        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
   private static Optional<SeqLogicalExpression>
@@ -348,25 +380,18 @@ public class BitVectorEvaluationBuilder {
    * pActiveThread}. This expression does not factor in which values where just assigned to the bit
    * vectors.
    */
-  public static Optional<BitVectorEvaluationExpression> buildReadWriteBitVectorEvaluationByEncoding(
+  public static BitVectorEvaluationExpression buildFullReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.bitVectorEvaluationPrune) {
-      return Optional.empty();
-    }
     return switch (pOptions.bitVectorEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY, DECIMAL, HEXADECIMAL -> {
-        CExpression readBitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.READ, pActiveThread);
-        CExpression writeBitVector =
-            pBitVectorVariables.getDenseBitVectorByAccessType(
-                BitVectorAccessType.WRITE, pActiveThread);
         ImmutableSet<CExpression> otherReadBitVectors =
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 BitVectorAccessType.READ, pActiveThread);
@@ -374,47 +399,49 @@ public class BitVectorEvaluationBuilder {
             pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
                 BitVectorAccessType.WRITE, pActiveThread);
         SeqLogicalAndExpression evaluationExpression =
-            buildDenseReadWriteBitVectorEvaluation(
-                readBitVector,
-                writeBitVector,
+            buildFullDenseReadWriteBitVectorEvaluation(
+                pDirectReadVariables,
+                pDirectWriteVariables,
                 otherReadBitVectors,
                 otherWriteBitVectors,
+                pBitVectorVariables,
                 pBinaryExpressionBuilder);
-        yield Optional.of(
-            new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression)));
+        yield new BitVectorEvaluationExpression(
+            Optional.empty(), Optional.of(evaluationExpression));
       }
-      case SCALAR -> {
-        Optional<SeqExpression> seqExpression =
-            buildScalarReadWriteBitVectorEvaluation(pActiveThread, pBitVectorVariables);
-        yield Optional.of(new BitVectorEvaluationExpression(Optional.empty(), seqExpression));
-      }
+      case SCALAR -> buildScalarReadWriteBitVectorEvaluation(pActiveThread, pBitVectorVariables);
     };
   }
 
-  private static SeqLogicalAndExpression buildDenseReadWriteBitVectorEvaluation(
-      CExpression pActiveReadBitVector,
-      CExpression pActiveWriteBitVector,
-      // TODO make list
+  private static SeqLogicalAndExpression buildFullDenseReadWriteBitVectorEvaluation(
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       ImmutableSet<CExpression> pOtherReadBitVectors,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
+      BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     checkArgument(!pOtherReadBitVectors.isEmpty() && !pOtherWriteBitVectors.isEmpty());
-    checkArgument(!pOtherReadBitVectors.contains(pActiveReadBitVector));
-    checkArgument(!pOtherWriteBitVectors.contains(pActiveWriteBitVector));
 
     // (R & (W' | W'' | ...))
+    CIntegerLiteralExpression directReadBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.globalVariableIds, pDirectReadVariables);
     CExpression leftHandSide =
         buildDenseReadWriteBitVectorLeftHandSideEvaluation(
-            pActiveReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
+            directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
     // (W & (R' | R'' | ... | W' | W''))
+    CIntegerLiteralExpression directWriteBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
     CExpression rightHandSide =
         buildDenseReadWriteBitVectorRightHandSideEvaluation(
-            pActiveWriteBitVector,
+            directWriteBitVector,
             pOtherReadBitVectors,
             pOtherWriteBitVectors,
             pBinaryExpressionBuilder);
+
     // this can also be a binary and & instead of logical and &&, but CBinaryExpression cannot take
     // our SeqLogicalNotExpression as operands and here they are equivalent since we work with 0/1
     return new SeqLogicalAndExpression(
@@ -423,7 +450,7 @@ public class BitVectorEvaluationBuilder {
   }
 
   private static CBinaryExpression buildDenseReadWriteBitVectorLeftHandSideEvaluation(
-      CExpression pActiveReadBitVector,
+      CIntegerLiteralExpression pDirectReadBitVector,
       ImmutableSet<CExpression> pOtherWriteBitVectors,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -432,11 +459,11 @@ public class BitVectorEvaluationBuilder {
         nestBinaryExpressions(
             pOtherWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pActiveReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
+        pDirectReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
   }
 
   private static CBinaryExpression buildDenseReadWriteBitVectorRightHandSideEvaluation(
-      CExpression pActiveWriteBitVector,
+      CIntegerLiteralExpression pDirectWriteBitVector,
       ImmutableSet<CExpression> pOtherReads,
       ImmutableSet<CExpression> pOtherWrites,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -448,15 +475,15 @@ public class BitVectorEvaluationBuilder {
         nestBinaryExpressions(
             otherReadAndWriteBitVectors, BinaryOperator.BINARY_OR, pBinaryExpressionBuilder);
     return pBinaryExpressionBuilder.buildBinaryExpression(
-        pActiveWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
+        pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
   }
 
-  private static Optional<SeqExpression> buildScalarReadWriteBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildScalarReadWriteBitVectorEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarReadBitVectors.isEmpty()
         && pBitVectorVariables.scalarWriteBitVectors.isEmpty()) {
-      return Optional.empty();
+      return BitVectorEvaluationExpression.empty();
     }
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
@@ -483,7 +510,9 @@ public class BitVectorEvaluationBuilder {
           buildSingleVariableScalarReadWriteBitVectorEvaluation(
               activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
     }
-    return Optional.of(nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND));
+    SeqExpression evaluationExpression =
+        nestLogicalExpressions(variableExpressions.build(), SeqLogicalOperator.AND);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
   private static SeqLogicalNotExpression
@@ -584,6 +613,11 @@ public class BitVectorEvaluationBuilder {
         .collect(ImmutableList.toImmutableList());
   }
 
+  private static SeqExpression disjunction(ImmutableList<SeqExpression> pDisjunctionTerms) {
+
+    return nestLogicalExpressions(pDisjunctionTerms, SeqLogicalOperator.OR);
+  }
+
   /**
    * Returns a distributive conjunction expression of the form {@code A && (B || C || ...)} where
    * {@code A} is {@code pSingleTerm} and {@code B, C, ...} given in {@code pDisjunctionTerms}.
@@ -621,6 +655,8 @@ public class BitVectorEvaluationBuilder {
     }
     return rNested;
   }
+
+  // TODO should create a LogicalExpressionBuilder for this, separately
 
   private static SeqExpression nestLogicalExpressions(
       ImmutableCollection<SeqExpression> pAllExpressions, SeqLogicalOperator pLogicalOperator) {
