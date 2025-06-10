@@ -1570,6 +1570,19 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
+    final AExpression lOp = pBinaryExpression.getOperand1();
+    Value lVal = null;
+    if (lOp instanceof AcslPredicate lPred) {
+      lVal = lPred.accept(this);
+    }
+    if (lVal == null || lVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
+    final AExpression rOp = pBinaryExpression.getOperand2();
+    final Value rVal = ((AcslPredicate)rOp).accept(this);
+    if (rVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
     return null;
   }
 
@@ -1585,6 +1598,16 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
+    final AcslTerm lOp = pAcslBinaryTermPredicate.getOperand1();
+    final Value lVal = lOp.accept(this);
+    if (lVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
+    final AcslTerm rOp = pAcslBinaryTermPredicate.getOperand2();
+    final Value rVal = rOp.accept(this);
+    if (rVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
     return null;
   }
 
@@ -1650,6 +1673,16 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
+    final AcslTerm lOp = pAcslBinaryTerm.getOperand1();
+    final Value lVal = lOp.accept(this);
+    if (lVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
+    final AcslTerm rOp = pAcslBinaryTerm.getOperand2();
+    final Value rVal = rOp.accept(this);
+    if (rVal.isUnknown()) {
+      return Value.UnknownValue.getInstance();
+    }
     return null;
   }
 
