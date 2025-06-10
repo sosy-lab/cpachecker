@@ -56,7 +56,11 @@ public class SeqSingleLoopBuilder {
       case BINARY_IF_TREE -> {
         SeqBinaryIfTreeStatement treeStatement =
             new SeqBinaryIfTreeStatement(
-                SeqIdExpression.NEXT_THREAD, controlFlow.build(), 2, pBinaryExpressionBuilder);
+                SeqIdExpression.NEXT_THREAD,
+                Optional.empty(),
+                controlFlow.build(),
+                2,
+                pBinaryExpressionBuilder);
         yield LineOfCodeUtil.buildLinesOfCode(treeStatement.toASTString());
       }
     };
@@ -73,13 +77,14 @@ public class SeqSingleLoopBuilder {
       throws UnrecognizedCodeException {
 
     CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
-    SeqFunctionCallStatement assumption =
-        buildThreadActiveAssumption(pPcVariables, pThread, pBinaryExpressionBuilder);
+    Optional<SeqFunctionCallStatement> assumption =
+        Optional.of(buildThreadActiveAssumption(pPcVariables, pThread, pBinaryExpressionBuilder));
     return switch (pOptions.controlFlowEncoding) {
       case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pcExpression, Optional.of(assumption), pClauses, pTabs);
+          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
       case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(pcExpression, pClauses, pTabs, pBinaryExpressionBuilder);
+          new SeqBinaryIfTreeStatement(
+              pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);
     };
   }
 
