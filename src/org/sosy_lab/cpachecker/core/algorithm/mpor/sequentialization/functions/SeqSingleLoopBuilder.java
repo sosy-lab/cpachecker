@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
@@ -78,7 +79,7 @@ public class SeqSingleLoopBuilder {
 
     CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
     Optional<SeqFunctionCallStatement> assumption =
-        Optional.of(buildThreadActiveAssumption(pPcVariables, pThread, pBinaryExpressionBuilder));
+        buildThreadActiveAssumption(pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
     return switch (pOptions.controlFlowEncoding) {
       case SWITCH_CASE ->
           new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
@@ -88,15 +89,21 @@ public class SeqSingleLoopBuilder {
     };
   }
 
-  private static SeqFunctionCallStatement buildThreadActiveAssumption(
+  private static Optional<SeqFunctionCallStatement> buildThreadActiveAssumption(
+      MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    CBinaryExpression threadActiveExpression =
-        SeqExpressionBuilder.buildPcUnequalExitPc(
-            pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
-    return SeqAssumptionBuilder.buildAssumeCall(threadActiveExpression).toFunctionCallStatement();
+    if (pOptions.scalarPc) {
+      CBinaryExpression threadActiveExpression =
+          SeqExpressionBuilder.buildPcUnequalExitPc(
+              pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
+      SeqFunctionCallExpression assumeCallExpression =
+          SeqAssumptionBuilder.buildAssumeCall(threadActiveExpression);
+      return Optional.of(assumeCallExpression.toFunctionCallStatement());
+    }
+    return Optional.empty();
   }
 }
