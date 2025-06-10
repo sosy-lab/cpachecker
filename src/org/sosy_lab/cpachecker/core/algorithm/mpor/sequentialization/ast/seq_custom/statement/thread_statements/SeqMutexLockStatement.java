@@ -14,8 +14,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -75,14 +75,14 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     SeqLogicalNotExpression logicalMutexNotLocked = new SeqLogicalNotExpression(mutexLocked);
-    SeqFunctionCallExpression assumeCall =
-        SeqAssumptionBuilder.buildAssumeCall(logicalMutexNotLocked);
+    SeqFunctionCallStatement assumeCall =
+        SeqAssumptionBuilder.buildAssumeCall(logicalMutexNotLocked).toFunctionCallStatement();
 
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
 
-    return assumeCall.toASTString() + SeqSyntax.SEMICOLON + SeqSyntax.SPACE + targetStatements;
+    return assumeCall.toASTString() + SeqSyntax.SPACE + targetStatements;
   }
 
   @Override

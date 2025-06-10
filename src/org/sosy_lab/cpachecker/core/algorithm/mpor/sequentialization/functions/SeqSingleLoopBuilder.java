@@ -63,7 +63,7 @@ public class SeqSingleLoopBuilder {
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    CLeftHandSide pcExpression = pPcVariables.get(pThread.id);
+    CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
     return switch (pOptions.controlFlowEncoding) {
       case SWITCH_CASE -> new SeqSwitchStatement(pOptions, pcExpression, pClauses, pTabs);
       case BINARY_IF_TREE ->

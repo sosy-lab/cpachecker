@@ -13,10 +13,8 @@ import static org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFuncti
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -50,7 +48,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
@@ -58,7 +55,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadUtil;
 
 public class GhostVariableUtil {
 
@@ -241,8 +237,7 @@ public class GhostVariableUtil {
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
     return new ThreadSimulationVariables(
-        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges),
-        buildThreadJoinsThreadVariables(pOptions, pThreads));
+        buildMutexLockedVariables(pOptions, pThreads, pSubstituteEdges));
   }
 
   private static ImmutableMap<CIdExpression, MutexLocked> buildMutexLockedVariables(
@@ -271,33 +266,6 @@ public class GhostVariableUtil {
           }
         }
       }
-    }
-    return rVars.buildOrThrow();
-  }
-
-  private static ImmutableMap<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>>
-      buildThreadJoinsThreadVariables(MPOROptions pOptions, ImmutableList<MPORThread> pThreads) {
-
-    ImmutableMap.Builder<MPORThread, ImmutableMap<MPORThread, ThreadJoinsThread>> rVars =
-        ImmutableMap.builder();
-    for (MPORThread thread : pThreads) {
-      Map<MPORThread, ThreadJoinsThread> targetThreads = new HashMap<>();
-      for (ThreadEdge threadEdge : thread.cfa.threadEdges) {
-        CFAEdge cfaEdge = threadEdge.cfaEdge;
-        if (PthreadUtil.callsPthreadFunction(cfaEdge, PthreadFunctionType.PTHREAD_JOIN)) {
-          MPORThread targetThread = ThreadUtil.extractThread(pThreads, cfaEdge);
-          // multiple join calls within one thread to the same thread are possible -> only need one
-          if (!targetThreads.containsKey(targetThread)) {
-            String varName =
-                SeqNameUtil.buildThreadJoinsThreadName(pOptions, thread.id, targetThread.id);
-            CIdExpression joins =
-                SeqExpressionBuilder.buildIdExpressionWithIntegerInitializer(
-                    varName, SeqInitializer.INT_0);
-            targetThreads.put(targetThread, new ThreadJoinsThread(joins));
-          }
-        }
-      }
-      rVars.put(thread, ImmutableMap.copyOf(targetThreads));
     }
     return rVars.buildOrThrow();
   }

@@ -59,14 +59,14 @@ public class SeqExpressionBuilder {
 
   // CBinaryExpression =============================================================================
 
-  public static ImmutableList<CBinaryExpression> buildThreadActiveExpressions(
+  public static ImmutableList<CBinaryExpression> buildThreadNotActiveExpressions(
       ImmutableList<CLeftHandSide> pPcLeftHandSides,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<CBinaryExpression> rExpressions = ImmutableList.builder();
     for (CLeftHandSide pcLeftHandSide : pPcLeftHandSides) {
-      rExpressions.add(buildPcUnequalExitPc(pcLeftHandSide, pBinaryExpressionBuilder));
+      rExpressions.add(buildPcEqualExitPc(pcLeftHandSide, pBinaryExpressionBuilder));
     }
     return rExpressions.build();
   }
@@ -81,6 +81,18 @@ public class SeqExpressionBuilder {
 
     return pBinaryExpressionBuilder.buildBinaryExpression(
         pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.NOT_EQUALS);
+  }
+
+  /**
+   * Returns {@code pc[pThreadId] == -1} for array and {@code pc{pThreadId} == -1} for scalar {@code
+   * pc}.
+   */
+  public static CBinaryExpression buildPcEqualExitPc(
+      CLeftHandSide pPcLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        pPcLeftHandSide, SeqIntegerLiteralExpression.INT_EXIT_PC, BinaryOperator.EQUALS);
   }
 
   /** Returns {@code next_thread != pThreadId}. */

@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumption
 
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -23,18 +23,12 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqFunctionCallExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcAssumeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqScalarPcSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadJoinsThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumptionBuilder {
@@ -43,54 +37,9 @@ public class SeqAssumptionBuilder {
     return new SeqFunctionCallExpression(SeqIdExpression.ASSUME, ImmutableList.of(pCondition));
   }
 
-  /**
-   * Creates assume function calls to handle total strict orders (TSOs) induced by thread
-   * simulations and pthread methods inside the sequentialization.
-   */
-  public static ImmutableListMultimap<MPORThread, SeqAssumption> createThreadSimulationAssumptions(
-      PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableListMultimap.Builder<MPORThread, SeqAssumption> rAssumptions =
-        ImmutableListMultimap.builder();
-
-    // add all assumptions to simulate threads
-    rAssumptions.putAll(
-        buildJoinAssumptions(pPcVariables, pThreadSimulationVariables, pBinaryExpressionBuilder));
-
-    return rAssumptions.build();
-  }
-
-  /** Assumptions over joins: {@code assume(!(pc[i] != -1 && tj_joins_ti) || next_thread != j)} */
-  private static ImmutableListMultimap<MPORThread, SeqAssumption> buildJoinAssumptions(
-      PcVariables pPcVariables,
-      ThreadSimulationVariables pThreadSimulationVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableListMultimap.Builder<MPORThread, SeqAssumption> rJoinAssumptions =
-        ImmutableListMultimap.builder();
-
-    for (var join : pThreadSimulationVariables.joins.entrySet()) {
-      MPORThread jThread = join.getKey();
-      for (var joinValue : join.getValue().entrySet()) {
-        MPORThread iThread = joinValue.getKey();
-        ThreadJoinsThread joinVar = joinValue.getValue();
-        SeqLogicalNotExpression antecedent =
-            new SeqLogicalNotExpression(
-                new SeqLogicalAndExpression(
-                    SeqExpressionBuilder.buildPcUnequalExitPc(
-                        pPcVariables.get(iThread.id), pBinaryExpressionBuilder),
-                    joinVar.idExpression));
-        CBinaryExpression consequent =
-            SeqExpressionBuilder.buildNextThreadUnequal(jThread.id, pBinaryExpressionBuilder);
-        SeqAssumption assumption = new SeqAssumption(antecedent, consequent);
-        rJoinAssumptions.put(jThread, assumption);
-      }
-    }
-    return rJoinAssumptions.build();
+  public static SeqFunctionCallExpression buildAssumeCall(CExpression pCondition) {
+    return new SeqFunctionCallExpression(
+        SeqIdExpression.ASSUME, ImmutableList.of(new CToSeqExpression(pCondition)));
   }
 
   public static SeqFunctionCallExpression buildNextThreadAssumption(
@@ -102,20 +51,6 @@ public class SeqAssumptionBuilder {
     return new SeqFunctionCallExpression(
         SeqIdExpression.ASSUME,
         buildNextThreadAssumptionExpression(pIsSigned, pNumThreads, pBinaryExpressionBuilder));
-  }
-
-  public static ImmutableList<LineOfCode> buildSingleLoopAssumptions(
-      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions)
-      throws UnrecognizedCodeException {
-
-    ImmutableList.Builder<LineOfCode> rAssumptions = ImmutableList.builder();
-    for (SeqAssumption assumption : pThreadAssumptions.values()) {
-      // for single loops, we use the entire OR expression
-      SeqFunctionCallExpression assumeCall =
-          SeqAssumptionBuilder.buildAssumeCall(assumption.toLogicalOrExpression());
-      rAssumptions.add(LineOfCode.of(2, assumeCall.toASTString() + SeqSyntax.SEMICOLON));
-    }
-    return rAssumptions.build();
   }
 
   /** Returns the expression {@code 0 <= next_thread && next_thread < NUM_THREADS} */
@@ -182,7 +117,7 @@ public class SeqAssumptionBuilder {
     // scalar pc int: switch statement with individual case i: assume(pci != -1);
     ImmutableList.Builder<SeqScalarPcAssumeStatement> rAssumeClauses = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {
-      Verify.verify(pPcVariables.get(i) instanceof CIdExpression);
+      Verify.verify(pPcVariables.getPcLeftHandSide(i) instanceof CIdExpression);
       SeqFunctionCallStatement assumeCall =
           new SeqFunctionCallStatement(
               new SeqFunctionCallExpression(
@@ -190,7 +125,7 @@ public class SeqAssumptionBuilder {
                   ImmutableList.of(
                       new CToSeqExpression(
                           pBinaryExpressionBuilder.buildBinaryExpression(
-                              pPcVariables.get(i),
+                              pPcVariables.getPcLeftHandSide(i),
                               SeqIntegerLiteralExpression.INT_EXIT_PC,
                               BinaryOperator.NOT_EQUALS)))));
       rAssumeClauses.add(new SeqScalarPcAssumeStatement(assumeCall));

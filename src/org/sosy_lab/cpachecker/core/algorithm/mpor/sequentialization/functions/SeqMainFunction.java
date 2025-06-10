@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumption;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -67,8 +65,6 @@ public class SeqMainFunction extends SeqFunction {
 
   private final CIdExpression numThreadsVariable;
 
-  private final ImmutableListMultimap<MPORThread, SeqAssumption> threadAssumptions;
-
   /** The thread-specific clauses in the while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses;
 
@@ -91,7 +87,6 @@ public class SeqMainFunction extends SeqFunction {
   public SeqMainFunction(
       MPOROptions pOptions,
       ImmutableList<MPORSubstitution> pSubstitutions,
-      ImmutableListMultimap<MPORThread, SeqAssumption> pThreadAssumptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       Optional<BitVectorVariables> pBitVectorVariables,
       PcVariables pPcVariables,
@@ -111,7 +106,6 @@ public class SeqMainFunction extends SeqFunction {
                 SeqToken.NUM_THREADS,
                 SeqInitializerBuilder.buildInitializerExpression(
                     SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads))));
-    threadAssumptions = pThreadAssumptions;
     clauses = pClauses;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -164,10 +158,6 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_ASSUMPTIONS));
     }
-    // we only add the global assumptions if thread specific loops (and assumptions) are disabled
-    if (!options.threadLoops) {
-      rBody.addAll(SeqAssumptionBuilder.buildSingleLoopAssumptions(threadAssumptions));
-    }
     // add all thread simulation control flow statements
     if (options.comments) {
       rBody.add(LineOfCode.empty());
@@ -176,7 +166,7 @@ public class SeqMainFunction extends SeqFunction {
     if (options.threadLoops) {
       rBody.addAll(
           SeqThreadLoopBuilder.buildThreadLoopsSwitchStatements(
-              options, pcVariables, threadAssumptions, clauses, binaryExpressionBuilder));
+              options, pcVariables, clauses, binaryExpressionBuilder));
     } else {
       rBody.addAll(
           SeqSingleLoopBuilder.buildSingleLoopThreadSimulationStatements(

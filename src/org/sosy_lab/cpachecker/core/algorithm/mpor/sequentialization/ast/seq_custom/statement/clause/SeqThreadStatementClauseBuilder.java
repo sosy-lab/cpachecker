@@ -199,7 +199,7 @@ public class SeqThreadStatementClauseBuilder {
     int labelPc = pThreadNode.pc;
     ImmutableList.Builder<SeqThreadStatement> statements = ImmutableList.builder();
 
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.getPcLeftHandSide(pThread.id);
 
     ImmutableList<ThreadEdge> leavingEdges = pThreadNode.leavingEdges();
     if (leavingEdges.isEmpty()) {

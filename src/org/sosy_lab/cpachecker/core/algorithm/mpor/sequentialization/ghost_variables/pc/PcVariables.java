@@ -16,20 +16,21 @@ public class PcVariables {
 
   private final ImmutableList<CLeftHandSide> pc;
 
-  private final ImmutableList<CBinaryExpression> threadActiveExpressions;
+  private final ImmutableList<CBinaryExpression> threadNotActiveExpressions;
 
   public PcVariables(
-      ImmutableList<CLeftHandSide> pPc, ImmutableList<CBinaryExpression> pThreadActiveExpressions) {
+      ImmutableList<CLeftHandSide> pPc,
+      ImmutableList<CBinaryExpression> pThreadNotActiveExpressions) {
 
     pc = pPc;
-    threadActiveExpressions = pThreadActiveExpressions;
+    threadNotActiveExpressions = pThreadNotActiveExpressions;
   }
 
-  public CLeftHandSide get(int pThreadId) {
+  public CLeftHandSide getPcLeftHandSide(int pThreadId) {
     return pc.get(pThreadId);
   }
 
-  public CBinaryExpression getThreadActiveExpression(int pThreadId) {
-    return threadActiveExpressions.get(pThreadId);
+  public CBinaryExpression getThreadNotActiveExpression(int pThreadId) {
+    return threadNotActiveExpressions.get(pThreadId);
   }
 }

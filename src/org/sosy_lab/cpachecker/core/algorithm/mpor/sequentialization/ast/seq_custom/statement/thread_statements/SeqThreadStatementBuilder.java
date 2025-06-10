@@ -151,7 +151,7 @@ public class SeqThreadStatementBuilder {
     CFAEdge edge = pThreadEdge.cfaEdge;
     int targetPc = pThreadEdge.getSuccessor().pc;
     CFANode successor = pThreadEdge.getSuccessor().cfaNode;
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.getPcLeftHandSide(pThread.id);
 
     if (yieldsNoStatement(pThread, pSubstituteEdge, successor)) {
       return buildBlankStatement(pcLeftHandSide, targetPc);
@@ -240,7 +240,7 @@ public class SeqThreadStatementBuilder {
       int pTargetPc,
       GhostVariables pGhostVariables) {
 
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThreadId);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.getPcLeftHandSide(pThreadId);
     // function calls -> store parameters in ghost variables
     if (MPORUtil.isReachErrorCall(pThreadEdge.cfaEdge)) {
       // inject non-inlined reach_error
@@ -293,7 +293,7 @@ public class SeqThreadStatementBuilder {
 
     CFAEdge cfaEdge = pSubstituteEdge.cfaEdge;
     PthreadFunctionType pthreadFunctionType = PthreadUtil.getPthreadFunctionType(cfaEdge);
-    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.get(pThread.id);
+    CLeftHandSide pcLeftHandSide = pGhostVariables.pc.getPcLeftHandSide(pThread.id);
 
     return switch (pthreadFunctionType) {
       case PTHREAD_CREATE ->
@@ -309,7 +309,8 @@ public class SeqThreadStatementBuilder {
           buildThreadExitStatement(
               pThreadEdge, pSubstituteEdge, pTargetPc, pGhostVariables.function, pcLeftHandSide);
       case PTHREAD_JOIN ->
-          buildThreadJoinStatement(pThread, pSubstituteEdge, pTargetPc, pGhostVariables);
+          buildThreadJoinStatement(
+              pThread, pAllThreads, pSubstituteEdge, pTargetPc, pGhostVariables);
       case PTHREAD_MUTEX_LOCK ->
           buildMutexLockStatement(
               pThreadEdge, pSubstituteEdge, pTargetPc, pcLeftHandSide, pGhostVariables.thread);
@@ -373,23 +374,18 @@ public class SeqThreadStatementBuilder {
 
   private static SeqThreadJoinStatement buildThreadJoinStatement(
       MPORThread pThread,
+      ImmutableList<MPORThread> pAllThreads,
       SubstituteEdge pSubstituteEdge,
       int pTargetPc,
       GhostVariables pGhostVariables) {
 
-    MPORThread targetThread =
-        ThreadUtil.extractThread(pGhostVariables.thread.joins.keySet(), pSubstituteEdge.cfaEdge);
-    CIdExpression threadJoins =
-        Objects.requireNonNull(
-                Objects.requireNonNull(pGhostVariables.thread.joins.get(pThread)).get(targetThread))
-            .idExpression;
+    MPORThread targetThread = ThreadUtil.extractThread(pAllThreads, pSubstituteEdge.cfaEdge);
     return new SeqThreadJoinStatement(
         targetThread.startRoutineExitVariable,
-        threadJoins,
         ImmutableSet.of(pSubstituteEdge),
         pTargetPc,
-        pGhostVariables.pc.getThreadActiveExpression(targetThread.id),
-        pGhostVariables.pc.get(pThread.id));
+        pGhostVariables.pc.getThreadNotActiveExpression(targetThread.id),
+        pGhostVariables.pc.getPcLeftHandSide(pThread.id));
   }
 
   private static SeqMutexLockStatement buildMutexLockStatement(

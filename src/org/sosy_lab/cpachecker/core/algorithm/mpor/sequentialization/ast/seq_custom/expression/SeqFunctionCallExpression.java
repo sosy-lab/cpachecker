@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.function_call.SeqFunctionCallStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -44,5 +45,9 @@ public class SeqFunctionCallExpression implements SeqExpression {
         + SeqSyntax.BRACKET_LEFT
         + parametersString
         + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  public SeqFunctionCallStatement toFunctionCallStatement() {
+    return new SeqFunctionCallStatement(this);
   }
 }

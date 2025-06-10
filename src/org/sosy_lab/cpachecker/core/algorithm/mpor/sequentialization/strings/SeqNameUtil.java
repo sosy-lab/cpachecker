@@ -39,10 +39,6 @@ public class SeqNameUtil {
     return SeqToken.__MPOR_SEQ__ + pFunctionName;
   }
 
-  public static String buildThreadAssumeLabelName(MPOROptions pOptions, int pThreadId) {
-    return buildThreadPrefix(pOptions, pThreadId) + SeqToken.ASSUME;
-  }
-
   public static String buildSwitchCaseGotoLabelPrefix(MPOROptions pOptions, int pThreadId) {
 
     return buildThreadPrefix(pOptions, pThreadId);
@@ -255,29 +251,6 @@ public class SeqNameUtil {
     return (pOptions.shortVariables ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
         + SeqSyntax.UNDERSCORE
         + SeqToken.LOCKED;
-  }
-
-  // TODO this should be more distinct from LOCKED, maybe T0_REQUESTS_lock?
-  public static String buildThreadLocksMutexName(
-      MPOROptions pOptions, int pThreadId, String pMutexName) {
-
-    return buildThreadPrefix(pOptions, pThreadId)
-        + SeqToken.LOCKS
-        + SeqSyntax.UNDERSCORE
-        + pMutexName;
-  }
-
-  /**
-   * Returns a var name of the form {@code __MPOR_SEQ__THREAD{pWaitingId}_JOINS_TARGET{pTargetId}}
-   */
-  public static String buildThreadJoinsThreadName(
-      MPOROptions pOptions, int pWaitingId, int pTargetId) {
-
-    return buildThreadPrefix(pOptions, pWaitingId)
-        + SeqToken.JOINS
-        + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
-        + pTargetId;
   }
 
   public static String buildQualifiedName(String pVarName) {

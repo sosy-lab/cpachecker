@@ -50,7 +50,7 @@ public class SeqDeclarationBuilder {
             SeqDeclarationBuilder.buildVariableDeclaration(
                 false,
                 SeqSimpleType.INT,
-                pPcVariables.get(i).toASTString(),
+                pPcVariables.getPcLeftHandSide(i).toASTString(),
                 i == 0 ? SeqInitializer.INT_0 : SeqInitializer.INT_MINUS_1));
       }
     } else {

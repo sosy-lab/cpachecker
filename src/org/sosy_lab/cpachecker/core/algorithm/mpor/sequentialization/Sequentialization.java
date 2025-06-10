@@ -135,9 +135,10 @@ public class Sequentialization {
     logger = pLogger;
     ImmutableList<CLeftHandSide> pcLeftHandSides =
         SeqLeftHandSideBuilder.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc);
-    ImmutableList<CBinaryExpression> threadActiveExpressions =
-        SeqExpressionBuilder.buildThreadActiveExpressions(pcLeftHandSides, binaryExpressionBuilder);
-    pcVariables = new PcVariables(pcLeftHandSides, threadActiveExpressions);
+    ImmutableList<CBinaryExpression> threadNotActiveExpressions =
+        SeqExpressionBuilder.buildThreadNotActiveExpressions(
+            pcLeftHandSides, binaryExpressionBuilder);
+    pcVariables = new PcVariables(pcLeftHandSides, threadNotActiveExpressions);
   }
 
   @Override
