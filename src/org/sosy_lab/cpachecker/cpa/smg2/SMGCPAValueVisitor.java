@@ -194,7 +194,14 @@ public class SMGCPAValueVisitor
    */
   public List<ValueAndSMGState> evaluate(final AcslPredicate pExp, final AcslType pTargetType)
       throws CPATransferException {
-    return null;
+    List<ValueAndSMGState> uncastedValuesAndStates = pExp.accept(this);
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
+      Value castedValue =
+          castAcslValue(uncastedValueAndState.getValue(), pTargetType, evaluator.getMachineModel());
+      result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
+    }
+    return result.build();
   }
 
   /**
@@ -3200,6 +3207,19 @@ public class SMGCPAValueVisitor
    */
   protected LogManagerWithoutDuplicates getInitialVisitorLogger() {
     return logger;
+  }
+
+  public Value castAcslValue(
+      @NonNull final Value value, final AcslType targetType, final MachineModel machineModel
+  ) throws CPATransferException {
+    if (!value.isNumericValue()) {
+      logger.logf(
+          Level.FINE, "Can not cast Acsl value %s to %s", value.toString(), targetType.toString());
+      return value;
+    }
+    NumericValue numericValue = (NumericValue) value;
+
+    return convertToBool(numericValue);
   }
 
   @Override
