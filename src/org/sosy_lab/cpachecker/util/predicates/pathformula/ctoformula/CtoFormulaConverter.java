@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -789,10 +790,8 @@ public class CtoFormulaConverter {
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
       final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
-      final Formula lowerBound =
-          fmgr.makeNumber(numberType, machineModel.getMinimalIntegerValue(sType));
-      final Formula upperBound =
-          fmgr.makeNumber(numberType, machineModel.getMaximalIntegerValue(sType));
+      final BigInteger lowerBound = machineModel.getMinimalIntegerValue(sType);
+      final BigInteger upperBound = machineModel.getMaximalIntegerValue(sType);
       constraints.addConstraint(fmgr.makeRangeConstraint(variable, lowerBound, upperBound, signed));
     }
   }
@@ -950,20 +949,11 @@ public class CtoFormulaConverter {
                 .castTo((FloatingPointFormula) pFormula, isSigned.test(pToCType), toType);
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
-        ret =
-            fmgr.getFloatingPointFormulaManager()
-                .castTo(
-                    (FloatingPointFormula) pFormula,
-                    isSigned.test(pToCType),
-                    toType,
-                    FloatingPointRoundingMode.TOWARD_ZERO);
+        ret = fmgr.castFromFloat((FloatingPointFormula) pFormula, isSigned.test(pFromCType), toType);
       }
 
     } else if (toType.isFloatingPointType()) {
-      ret =
-          fmgr.getFloatingPointFormulaManager()
-              .castFrom(
-                  pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
+      ret = fmgr.castToFloat(pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
 
     } else {
       throw new IllegalArgumentException(
