@@ -34,6 +34,16 @@ public class SeqStatementBuilder {
             pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.PLUS));
   }
 
+  public static CExpressionAssignmentStatement buildDecrementStatement(
+      CLeftHandSide pLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return buildExpressionAssignmentStatement(
+        pLeftHandSide,
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.MINUS));
+  }
+
   /** Returns {@code pLeftHandSide = pRightHandSide;}. */
   public static CExpressionAssignmentStatement buildExpressionAssignmentStatement(
       CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {

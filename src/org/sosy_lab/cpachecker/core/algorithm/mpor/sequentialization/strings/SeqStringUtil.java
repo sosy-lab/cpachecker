@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopCountStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -224,6 +225,12 @@ public class SeqStringUtil {
 
     } else if (pTargetGoto.isPresent()) {
       SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.orElseThrow());
+      for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
+        if (injectedStatement instanceof SeqThreadLoopCountStatement) {
+          // count updates are included, even with target gotos
+          statements.append(injectedStatement.toASTString());
+        }
+      }
       statements.append(gotoStatement.toASTString());
     }
     return statements.toString();

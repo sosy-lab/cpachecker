@@ -30,6 +30,9 @@ public class SeqInitializers {
     public static final CInitializer INT_0 =
         buildInitializerExpression(SeqIntegerLiteralExpression.INT_0);
 
+    public static final CInitializer INT_1 =
+        buildInitializerExpression(SeqIntegerLiteralExpression.INT_1);
+
     /**
      * Returns the {@link CInitializer} for {@link Sequentialization#INIT_PC} for the main thread
      * and {@link Sequentialization#EXIT_PC} for all other threads.

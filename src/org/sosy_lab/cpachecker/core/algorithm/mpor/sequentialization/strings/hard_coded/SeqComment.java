@@ -56,8 +56,10 @@ public class SeqComment {
   public static final String NEXT_THREAD_ACTIVE =
       COMMENT_SINGLE + " ensure next_thread is yet / still active";
 
-  public static final String THREAD_SIMULATION_ASSUMPTIONS =
-      COMMENT_SINGLE + " enforce strict orders over execution of program statements such as locks";
+  public static final String ACTIVE_THREAD_COUNT =
+      COMMENT_SINGLE
+          + " counts active threads. incremented for every thread creation, decremented for every"
+          + " thread termination. used to abort if no thread is active anymore";
 
   public static final String THREAD_SIMULATION_CONTROL_FLOW =
       COMMENT_SINGLE

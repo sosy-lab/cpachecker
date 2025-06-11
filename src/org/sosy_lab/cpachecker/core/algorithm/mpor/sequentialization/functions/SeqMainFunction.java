@@ -71,11 +71,15 @@ public class SeqMainFunction extends SeqFunction {
 
   private final ImmutableList<CVariableDeclaration> pcDeclarations;
 
+  // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
 
+  // TODO make Optional (and also shouldn't be a list)
   private final ImmutableList<CFunctionCallStatement> nextThreadAssumptions;
 
   private final Optional<CFunctionCallStatement> nextThreadActiveAssumption;
+
+  private final Optional<CFunctionCallStatement> countAssumption;
 
   private final PcVariables pcVariables;
 
@@ -122,45 +126,59 @@ public class SeqMainFunction extends SeqFunction {
             pOptions.signedNondet, numThreadsVariable, binaryExpressionBuilder);
     nextThreadActiveAssumption =
         SeqAssumptionBuilder.buildNextThreadActiveAssumption(options, binaryExpressionBuilder);
+
+    countAssumption =
+        SeqAssumptionBuilder.buildCountGreaterZeroAssumption(options, binaryExpressionBuilder);
   }
 
   @Override
   public ImmutableList<LineOfCode> buildBody() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> rBody = ImmutableList.builder();
+
     // declare main() local variables NUM_THREADS, pc, next_thread
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
         buildThreadSimulationVariableDeclarations(
             options, numThreadsVariable.getDeclaration(), bitVectorDeclarations, pcDeclarations));
+
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
+
     // --- loop starts here ---
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
-    if (options.comments) {
-      rBody.add(LineOfCode.empty());
-      rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_NONDET));
+
+    // add if next_thread is a non-determinism source
+    if (options.nondeterminismSource.hasNextThread()) {
+      if (options.comments) {
+        rBody.add(LineOfCode.empty());
+        rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_NONDET));
+      }
+      rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
+      if (options.comments) {
+        rBody.add(LineOfCode.empty());
+      }
+      for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
+        rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString()));
+      }
+      // assumptions over next_thread being active (pc != -1)
+      if (nextThreadActiveAssumption.isPresent()) {
+        if (options.comments) {
+          rBody.add(LineOfCode.empty());
+          rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
+        }
+        CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
+        rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, assumption.toASTString()));
+      }
+    } else {
+      if (options.comments) {
+        rBody.add(LineOfCode.empty());
+        rBody.add(LineOfCode.of(2, SeqComment.ACTIVE_THREAD_COUNT));
+      }
+      rBody.add(LineOfCode.of(2, countAssumption.orElseThrow().toASTString()));
+      // TODO add assumption that ensures that at least one thread executes at least one statement:
+      //  assume(K > 0 || K' > 0 || ...); -> also need separate K variables for each thread then
     }
-    rBody.add(LineOfCode.of(2, nextThreadAssignment.toASTString()));
-    if (options.comments) {
-      rBody.add(LineOfCode.empty());
-    }
-    for (CFunctionCallStatement nextThreadAssumption : nextThreadAssumptions) {
-      rBody.add(LineOfCode.of(2, nextThreadAssumption.toASTString()));
-    }
-    // assumptions over next_thread being active (pc != -1)
-    if (options.comments) {
-      rBody.add(LineOfCode.empty());
-      rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_ACTIVE));
-    }
-    if (nextThreadActiveAssumption.isPresent()) {
-      CFunctionCallStatement assumption = nextThreadActiveAssumption.orElseThrow();
-      rBody.addAll(LineOfCodeUtil.buildLinesOfCode(2, assumption.toASTString()));
-    }
-    // add all assumptions over thread variables
-    if (options.comments) {
-      rBody.add(LineOfCode.empty());
-      rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_ASSUMPTIONS));
-    }
+
     // add all thread simulation control flow statements
     if (options.comments) {
       rBody.add(LineOfCode.empty());
@@ -177,6 +195,7 @@ public class SeqMainFunction extends SeqFunction {
     }
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
+
     if (options.sequentializationErrors) {
       // end of main function, only reachable if thread simulation finished incorrectly -> error
       rBody.add(LineOfCode.of(1, Sequentialization.outputReachErrorDummy));
@@ -235,47 +254,53 @@ public class SeqMainFunction extends SeqFunction {
       ImmutableList<CVariableDeclaration> pPcDeclarations)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rVariableDeclarations = ImmutableList.builder();
+    ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
 
     // NUM_THREADS
-    rVariableDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
+    rDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
 
     // next_thread
-    if (pOptions.signedNondet) {
-      rVariableDeclarations.add(
-          LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
-    } else {
-      rVariableDeclarations.add(
-          LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+    if (pOptions.nondeterminismSource.hasNextThread()) {
+      if (pOptions.signedNondet) {
+        rDeclarations.add(
+            LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
+      } else {
+        rDeclarations.add(
+            LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+      }
     }
 
     // pc
     if (pOptions.comments) {
-      rVariableDeclarations.add(LineOfCode.empty());
-      rVariableDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
+      rDeclarations.add(LineOfCode.empty());
+      rDeclarations.add(LineOfCode.of(1, SeqComment.PC_DECLARATION));
     }
     for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
-      rVariableDeclarations.add(LineOfCode.of(1, pcDeclaration.toASTString()));
+      rDeclarations.add(LineOfCode.of(1, pcDeclaration.toASTString()));
     }
 
     // if enabled: bit vectors (for partial order reductions)
     if (pOptions.bitVectorReduction.isEnabled() && pOptions.bitVectorEncoding.isEnabled()) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
-        rVariableDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
+        rDeclarations.add(LineOfCode.of(1, bitVectorDeclaration.toASTString()));
       }
+    }
+
+    // active_thread_count / cnt
+    if (!pOptions.nondeterminismSource.hasNextThread()) {
+      rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.CNT.toASTString()));
     }
 
     // if enabled: K and r (for thread loops iterations)
     if (pOptions.nondeterminismSource.hasThreadLoops()) {
-      rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.R.toASTString()));
+      rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.R.toASTString()));
       if (pOptions.signedNondet) {
-        rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_SIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_SIGNED.toASTString()));
       } else {
-        rVariableDeclarations.add(
-            LineOfCode.of(1, SeqVariableDeclaration.K_UNSIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_UNSIGNED.toASTString()));
       }
     }
 
-    return rVariableDeclarations.build();
+    return rDeclarations.build();
   }
 }

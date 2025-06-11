@@ -13,13 +13,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -192,62 +189,6 @@ public class SeqThreadStatementClauseUtil {
       }
     }
     return rNewInjected.build();
-  }
-
-  public static SeqThreadStatement tryInjectGotoThreadLoopLabelIntoStatement(
-      CBinaryExpression pRSmallerMax,
-      CExpressionAssignmentStatement pRIncrement,
-      SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
-    if (pCurrentStatement.getTargetPc().isPresent()) {
-      // int target is present -> retrieve label by pc from map
-      int targetPc = pCurrentStatement.getTargetPc().orElseThrow();
-      if (targetPc != Sequentialization.EXIT_PC) {
-        return injectGotoThreadLoopLabelIntoStatementByTargetPc(
-            targetPc, pRSmallerMax, pRIncrement, pCurrentStatement, pLabelClauseMap);
-      }
-    }
-    if (pCurrentStatement.getTargetGoto().isPresent()) {
-      // target goto present -> use goto label for injection
-      return injectGotoThreadLoopLabelIntoStatementByTargetGoto(
-          pCurrentStatement.getTargetGoto().orElseThrow(),
-          pRSmallerMax,
-          pRIncrement,
-          pCurrentStatement);
-    }
-    // no int target pc -> no replacement
-    return pCurrentStatement;
-  }
-
-  private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetPc(
-      int pTargetPc,
-      CBinaryExpression pRSmallerMax,
-      CExpressionAssignmentStatement pRIncrement,
-      SeqThreadStatement pCurrentStatement,
-      final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
-
-    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-    // add previous injections BEFORE (otherwise undefined behavior in seq!)
-    newInjections.addAll(pCurrentStatement.getInjectedStatements());
-    SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
-    newInjections.add(
-        new SeqThreadLoopGotoStatement(
-            pRSmallerMax, pRIncrement, Objects.requireNonNull(target).block.getGotoLabel()));
-    return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
-  }
-
-  private static SeqThreadStatement injectGotoThreadLoopLabelIntoStatementByTargetGoto(
-      SeqBlockGotoLabelStatement pTargetGoto,
-      CBinaryExpression pRSmallerMax,
-      CExpressionAssignmentStatement pRIncrement,
-      SeqThreadStatement pCurrentStatement) {
-
-    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-    // add previous injections BEFORE (otherwise undefined behavior in seq!)
-    newInjections.addAll(pCurrentStatement.getInjectedStatements());
-    newInjections.add(new SeqThreadLoopGotoStatement(pRSmallerMax, pRIncrement, pTargetGoto));
-    return pCurrentStatement.cloneWithInjectedStatements(newInjections.build());
   }
 
   public static boolean isValidTargetPc(Optional<Integer> pTargetPc) {

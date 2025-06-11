@@ -78,6 +78,8 @@ public class SeqExpressions {
     public static final CIdExpression NEXT_THREAD =
         buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
 
+    public static final CIdExpression CNT = buildIdExpression(SeqVariableDeclaration.CNT);
+
     public static final CIdExpression K = buildIdExpression(SeqVariableDeclaration.K_SIGNED);
 
     public static final CIdExpression R = buildIdExpression(SeqVariableDeclaration.R);

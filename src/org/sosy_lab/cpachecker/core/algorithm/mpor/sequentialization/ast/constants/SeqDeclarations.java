@@ -43,6 +43,11 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
+    // TODO add long variable name option for all of these?
+    public static final CVariableDeclaration CNT =
+        buildVariableDeclaration(
+            false, SeqSimpleType.UNSIGNED_INT, SeqToken.cnt, SeqInitializer.INT_1);
+
     public static final CVariableDeclaration K_SIGNED =
         buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_0);
 

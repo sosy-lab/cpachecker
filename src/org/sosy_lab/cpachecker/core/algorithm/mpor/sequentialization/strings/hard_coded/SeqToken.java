@@ -32,6 +32,10 @@ public class SeqToken {
 
   public static final String abort = "abort";
 
+  public static final String active_thread_count = "active_thread_count";
+
+  public static final String act = "act";
+
   public static final String __assert_fail = "__assert_fail";
 
   public static final String __assertion = "__assertion";
@@ -62,6 +66,8 @@ public class SeqToken {
   public static final String CALL = "CALL";
 
   public static final String _case = "case";
+
+  public static final String cnt = "cnt";
 
   public static final String cond = "cond";
 

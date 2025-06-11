@@ -9,18 +9,25 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism;
 
 public enum NondeterminismSource {
-  NEXT_THREAD(false),
-  NUM_STATEMENTS(true),
-  NEXT_THREAD_AND_NUM_STATEMENTS(true);
+  NEXT_THREAD(false, true),
+  NUM_STATEMENTS(true, false),
+  NEXT_THREAD_AND_NUM_STATEMENTS(true, true);
 
   // TODO rename everything threadLoops, the name is not fitting anymore
   private final boolean hasThreadLoops;
 
-  NondeterminismSource(boolean pHasThreadLoops) {
+  private final boolean hasNextThread;
+
+  NondeterminismSource(boolean pHasThreadLoops, boolean pHasNextThread) {
     hasThreadLoops = pHasThreadLoops;
+    hasNextThread = pHasNextThread;
   }
 
   public boolean hasThreadLoops() {
-    return this.hasThreadLoops;
+    return hasThreadLoops;
+  }
+
+  public boolean hasNextThread() {
+    return hasNextThread;
   }
 }

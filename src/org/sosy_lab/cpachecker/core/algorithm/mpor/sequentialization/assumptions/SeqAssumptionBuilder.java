@@ -82,4 +82,20 @@ public class SeqAssumptionBuilder {
     CFunctionCallStatement assumeCall = buildAssumption(nextThreadActive);
     return Optional.of(assumeCall);
   }
+
+  public static Optional<CFunctionCallStatement> buildCountGreaterZeroAssumption(
+      MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    if (pOptions.nondeterminismSource.hasNextThread()) {
+      // thread count is only used when next_thread is not used
+      return Optional.empty();
+    }
+    // assume(cnt > 0);
+    CBinaryExpression nextThreadActive =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.CNT, SeqIntegerLiteralExpression.INT_0, BinaryOperator.GREATER_THAN);
+    CFunctionCallStatement assumeCall = buildAssumption(nextThreadActive);
+    return Optional.of(assumeCall);
+  }
 }
