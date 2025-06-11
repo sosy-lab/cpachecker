@@ -18,7 +18,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.ControlFlowEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.MultiControlFlowEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 
@@ -40,7 +40,7 @@ public class MPOROptions {
 
   public final boolean consecutiveLabels;
 
-  public final ControlFlowEncoding controlFlowEncoding;
+  public final MultiControlFlowEncoding controlFlowEncoding;
 
   public final boolean inputFunctionDeclarations;
 
@@ -81,7 +81,7 @@ public class MPOROptions {
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
       boolean pConsecutiveLabels,
-      ControlFlowEncoding pControlFlowEncoding,
+      MultiControlFlowEncoding pControlFlowEncoding,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
@@ -138,7 +138,7 @@ public class MPOROptions {
       boolean pPruneBitVectorEvaluation,
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
-      ControlFlowEncoding pControlFlowEncoding,
+      MultiControlFlowEncoding pControlFlowEncoding,
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pLinkReduction,

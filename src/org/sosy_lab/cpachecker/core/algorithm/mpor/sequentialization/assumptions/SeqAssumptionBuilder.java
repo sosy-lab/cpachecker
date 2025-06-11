@@ -29,7 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqAssumptionBuilder {
 
-  public static CFunctionCallExpression buildAssumeCall(CExpression pCondition) {
+  public static CFunctionCallStatement buildAssumption(CExpression pCondition) {
+    return SeqStatementBuilder.buildFunctionCallStatement(buildAssumptionExpression(pCondition));
+  }
+
+  private static CFunctionCallExpression buildAssumptionExpression(CExpression pCondition) {
     return new CFunctionCallExpression(
         FileLocation.DUMMY,
         SeqVoidType.VOID,
@@ -52,12 +56,12 @@ public class SeqAssumptionBuilder {
               SeqIntegerLiteralExpression.INT_0,
               SeqIdExpression.NEXT_THREAD,
               BinaryOperator.LESS_EQUAL);
-      rAssumptions.add(SeqStatementBuilder.buildAssumeCall(nextThreadAtLeastZero));
+      rAssumptions.add(buildAssumption(nextThreadAtLeastZero));
     }
     CBinaryExpression nextThreadLessThanNumThreads =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.NEXT_THREAD, pNumThreads, BinaryOperator.LESS_THAN);
-    rAssumptions.add(SeqStatementBuilder.buildAssumeCall(nextThreadLessThanNumThreads));
+    rAssumptions.add(buildAssumption(nextThreadLessThanNumThreads));
     return rAssumptions.build();
   }
 
@@ -75,7 +79,7 @@ public class SeqAssumptionBuilder {
             SeqExpressionBuilder.buildPcSubscriptExpression(SeqIdExpression.NEXT_THREAD),
             SeqIntegerLiteralExpression.INT_EXIT_PC,
             BinaryOperator.NOT_EQUALS);
-    CFunctionCallStatement assumeCall = SeqStatementBuilder.buildAssumeCall(nextThreadActive);
+    CFunctionCallStatement assumeCall = buildAssumption(nextThreadActive);
     return Optional.of(assumeCall);
   }
 }

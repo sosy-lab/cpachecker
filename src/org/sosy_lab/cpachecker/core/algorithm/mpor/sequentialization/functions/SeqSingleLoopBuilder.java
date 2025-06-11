@@ -12,8 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
@@ -40,7 +38,7 @@ public class SeqSingleLoopBuilder {
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       controlFlow.add(
-          buildSingleLoopMultiControlFlowStatement(
+          SeqMainFunctionBuilder.buildMultiControlFlowStatement(
               pOptions, pPcVariables, thread, entry.getValue(), 4, pBinaryExpressionBuilder));
     }
     return switch (pOptions.controlFlowEncoding) {
@@ -60,29 +58,6 @@ public class SeqSingleLoopBuilder {
                 pBinaryExpressionBuilder);
         yield LineOfCodeUtil.buildLinesOfCode(treeStatement.toASTString());
       }
-    };
-  }
-
-  /** Creates the {@link SeqMultiControlFlowStatement} for {@code pThread}. */
-  private static SeqMultiControlFlowStatement buildSingleLoopMultiControlFlowStatement(
-      MPOROptions pOptions,
-      PcVariables pPcVariables,
-      MPORThread pThread,
-      ImmutableList<SeqThreadStatementClause> pClauses,
-      int pTabs,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
-    Optional<CFunctionCallStatement> assumption =
-        SeqMainFunctionBuilder.buildThreadActiveAssumption(
-            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    return switch (pOptions.controlFlowEncoding) {
-      case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
-      case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(
-              pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);
     };
   }
 }

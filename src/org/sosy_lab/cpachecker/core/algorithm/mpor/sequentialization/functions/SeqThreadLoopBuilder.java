@@ -10,16 +10,15 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
@@ -28,9 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -122,7 +121,7 @@ public class SeqThreadLoopBuilder {
 
     ImmutableList.Builder<LineOfCode> rThreadLoops = ImmutableList.builder();
 
-    CFunctionCallStatement assumeKGreaterZero = SeqStatementBuilder.buildAssumeCall(pKGreaterZero);
+    CFunctionCallStatement assumeKGreaterZero = SeqAssumptionBuilder.buildAssumption(pKGreaterZero);
 
     rThreadLoops.add(LineOfCode.of(2, pKNondet.toASTString()));
     rThreadLoops.add(LineOfCode.of(2, assumeKGreaterZero.toASTString()));
@@ -206,27 +205,22 @@ public class SeqThreadLoopBuilder {
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
-    // TODO binary tree option
-    ImmutableList<LineOfCode> switchStatement =
-        buildThreadLoopSwitchStatement(
-            pOptions, pPcVariables, pThread, pClauses, 3, pBinaryExpressionBuilder);
-    rThreadLoop.addAll(switchStatement);
-
+    ImmutableList<SeqThreadStatementClause> threadLoopClauses =
+        buildThreadLoopClauses(pClauses, pBinaryExpressionBuilder);
+    SeqMultiControlFlowStatement multiControlFlowStatement =
+        SeqMainFunctionBuilder.buildMultiControlFlowStatement(
+            pOptions, pPcVariables, pThread, threadLoopClauses, 3, pBinaryExpressionBuilder);
+    rThreadLoop.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlFlowStatement.toASTString()));
     return rThreadLoop.build();
   }
 
-  private static ImmutableList<LineOfCode> buildThreadLoopSwitchStatement(
-      MPOROptions pOptions,
-      PcVariables pPcVariables,
-      MPORThread pThread,
+  private static ImmutableList<SeqThreadStatementClause> buildThreadLoopClauses(
       ImmutableList<SeqThreadStatementClause> pClauses,
-      int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    CExpression pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
     CBinaryExpression rSmallerMax =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
@@ -259,11 +253,6 @@ public class SeqThreadLoopBuilder {
       updatedClauses.add(
           clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
-    Optional<CFunctionCallStatement> assumption =
-        SeqMainFunctionBuilder.buildThreadActiveAssumption(
-            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    SeqSwitchStatement switchStatement =
-        new SeqSwitchStatement(pOptions, pcExpression, assumption, updatedClauses.build(), pTabs);
-    return LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
+    return updatedClauses.build();
   }
 }

@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
@@ -40,10 +39,6 @@ public class SeqStatementBuilder {
       CLeftHandSide pLeftHandSide, CExpression pRightHandSide) {
 
     return new CExpressionAssignmentStatement(FileLocation.DUMMY, pLeftHandSide, pRightHandSide);
-  }
-
-  public static CFunctionCallStatement buildAssumeCall(CExpression pCondition) {
-    return buildFunctionCallStatement(SeqAssumptionBuilder.buildAssumeCall(pCondition));
   }
 
   public static CFunctionCallStatement buildFunctionCallStatement(

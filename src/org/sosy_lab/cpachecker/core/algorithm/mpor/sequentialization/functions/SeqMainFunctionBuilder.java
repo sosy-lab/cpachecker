@@ -15,11 +15,15 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -63,7 +67,7 @@ public class SeqMainFunctionBuilder {
         pLogger);
   }
 
-  protected static Optional<CFunctionCallStatement> buildThreadActiveAssumption(
+  static Optional<CFunctionCallStatement> buildThreadActiveAssumption(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
@@ -79,9 +83,32 @@ public class SeqMainFunctionBuilder {
           SeqExpressionBuilder.buildPcUnequalExitPc(
               pPcVariables.getPcLeftHandSide(pThread.id), pBinaryExpressionBuilder);
       CFunctionCallStatement assumeCall =
-          SeqStatementBuilder.buildAssumeCall(threadActiveExpression);
+          SeqAssumptionBuilder.buildAssumption(threadActiveExpression);
       return Optional.of(assumeCall);
     }
     return Optional.empty();
+  }
+
+  /** Creates the {@link SeqMultiControlFlowStatement} for {@code pThread}. */
+  static SeqMultiControlFlowStatement buildMultiControlFlowStatement(
+      MPOROptions pOptions,
+      PcVariables pPcVariables,
+      MPORThread pThread,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      int pTabs,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
+    Optional<CFunctionCallStatement> assumption =
+        SeqMainFunctionBuilder.buildThreadActiveAssumption(
+            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+    return switch (pOptions.controlFlowEncoding) {
+      case SWITCH_CASE ->
+          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
+      case BINARY_IF_TREE ->
+          new SeqBinaryIfTreeStatement(
+              pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);
+    };
   }
 }
