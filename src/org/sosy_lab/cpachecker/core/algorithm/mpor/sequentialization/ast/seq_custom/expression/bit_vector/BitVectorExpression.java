@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 
 public interface BitVectorExpression extends SeqExpression {
+
   BitVectorEncoding getEncoding();
 
   /** Whether this bit vector is 0, e.g. {@code 0b00000000} or {@code 0x00} or {@code 0}. */
