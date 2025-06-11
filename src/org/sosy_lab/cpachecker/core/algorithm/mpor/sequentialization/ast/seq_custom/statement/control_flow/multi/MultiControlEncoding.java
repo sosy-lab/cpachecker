@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
 
-public enum MultiControlFlowEncoding {
+public enum MultiControlEncoding {
   BINARY_IF_TREE,
   IF_ELSE_CHAIN,
   SWITCH_CASE,

@@ -18,7 +18,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlFlowEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 
@@ -40,7 +40,9 @@ public class MPOROptions {
 
   public final boolean consecutiveLabels;
 
-  public final MultiControlFlowEncoding controlFlowEncoding;
+  public final MultiControlEncoding controlEncodingThread;
+
+  public final MultiControlEncoding controlEncodingStatement;
 
   public final boolean inputFunctionDeclarations;
 
@@ -81,7 +83,8 @@ public class MPOROptions {
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
       boolean pConsecutiveLabels,
-      MultiControlFlowEncoding pControlFlowEncoding,
+      MultiControlEncoding pControlEncodingThread,
+      MultiControlEncoding pControlEncodingStatement,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
@@ -113,7 +116,8 @@ public class MPOROptions {
     bitVectorReduction = pBitVectorReduction;
     comments = pComments;
     consecutiveLabels = pConsecutiveLabels;
-    controlFlowEncoding = pControlFlowEncoding;
+    controlEncodingThread = pControlEncodingThread;
+    controlEncodingStatement = pControlEncodingStatement;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
@@ -138,7 +142,8 @@ public class MPOROptions {
       boolean pPruneBitVectorEvaluation,
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
-      MultiControlFlowEncoding pControlFlowEncoding,
+      MultiControlEncoding pControlEncodingThread,
+      MultiControlEncoding pControlEncodingStatement,
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
@@ -158,7 +163,8 @@ public class MPOROptions {
         pComments,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
-        pControlFlowEncoding,
+        pControlEncodingThread,
+        pControlEncodingStatement,
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,

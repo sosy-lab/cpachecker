@@ -105,7 +105,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
     // TODO this can probably be removed entirely now
     // e.g. mutex lock always requires break/continue if mutex is locked
     if (SeqThreadStatementUtil.anySynchronizesThreads(pStatements)) {
-      return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
+      return Optional.of(SeqStringUtil.buildSuffixByControlEncoding(pOptions));
     }
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
@@ -113,6 +113,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(SeqStringUtil.buildControlFlowSuffixByEncoding(pOptions));
+    return Optional.of(SeqStringUtil.buildSuffixByControlEncoding(pOptions));
   }
 }

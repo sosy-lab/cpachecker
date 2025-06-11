@@ -106,7 +106,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlFlowEncoding getEncoding() {
-    return MultiControlFlowEncoding.IF_ELSE_CHAIN;
+  public MultiControlEncoding getEncoding() {
+    return MultiControlEncoding.IF_ELSE_CHAIN;
   }
 }

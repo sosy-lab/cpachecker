@@ -64,8 +64,8 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlFlowEncoding getEncoding() {
-    return MultiControlFlowEncoding.BINARY_IF_TREE;
+  public MultiControlEncoding getEncoding() {
+    return MultiControlEncoding.BINARY_IF_TREE;
   }
 
   /**

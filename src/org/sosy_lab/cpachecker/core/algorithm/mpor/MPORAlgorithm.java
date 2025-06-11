@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlFlowEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -96,10 +96,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "defines the syntax in which decisions are made, e.g. choosing the next thread or"
-              + " statement of a thread simulation. may slow down or improve performance, depending"
-              + " on the verifier.")
-  private MultiControlFlowEncoding controlFlowEncoding = MultiControlFlowEncoding.SWITCH_CASE;
+          "defines the syntax in which the next thread executing a statement is chosen."
+              + " may slow down or improve performance, depending on the verifier.")
+  private MultiControlEncoding controlEncodingThread = MultiControlEncoding.IF_ELSE_CHAIN;
+
+  @Option(
+      secure = true,
+      description =
+          "defines the syntax in which the next statement of a thread simulation is chosen."
+              + " may slow down or improve performance, depending on the verifier.")
+  private MultiControlEncoding controlEncodingStatement = MultiControlEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,
@@ -268,7 +274,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             bitVectorReduction,
             comments,
             consecutiveLabels,
-            controlFlowEncoding,
+            controlEncodingThread,
+            controlEncodingStatement,
             inputFunctionDeclarations,
             inputTypeDeclarations,
             license,

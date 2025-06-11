@@ -105,7 +105,7 @@ public class SeqMainFunctionBuilder {
     Optional<CFunctionCallStatement> assumption =
         SeqMainFunctionBuilder.buildThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    return switch (pOptions.controlFlowEncoding) {
+    return switch (pOptions.controlEncodingStatement) {
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
               pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);

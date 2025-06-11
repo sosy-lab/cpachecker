@@ -281,10 +281,14 @@ analysis.algorithm.MPOR.comments = false
 # unreachable.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
-# defines the syntax in which decisions are made, e.g. choosing the next
-# thread or statement of a thread simulation. may slow down or improve
-# performance, depending on the verifier.
-analysis.algorithm.MPOR.controlFlowEncoding = SWITCH_CASE
+# defines the syntax in which the next statement of a thread simulation is
+# chosen. may slow down or improve performance, depending on the verifier.
+analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
+  enum:     [BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
+
+# defines the syntax in which the next thread executing a statement is
+# chosen. may slow down or improve performance, depending on the verifier.
+analysis.algorithm.MPOR.controlEncodingThread = IF_ELSE_CHAIN
   enum:     [BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
 # include original function declarations from input file? true -> bigger file

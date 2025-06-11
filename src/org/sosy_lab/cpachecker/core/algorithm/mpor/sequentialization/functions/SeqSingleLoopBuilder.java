@@ -43,7 +43,7 @@ public class SeqSingleLoopBuilder {
           SeqMainFunctionBuilder.buildMultiControlFlowStatement(
               pOptions, pPcVariables, thread, entry.getValue(), 4, pBinaryExpressionBuilder));
     }
-    return switch (pOptions.controlFlowEncoding) {
+    return switch (pOptions.controlEncodingThread) {
       case BINARY_IF_TREE -> {
         SeqBinaryIfTreeStatement binaryTree =
             new SeqBinaryIfTreeStatement(

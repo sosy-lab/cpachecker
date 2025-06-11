@@ -76,8 +76,8 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlFlowEncoding getEncoding() {
-    return MultiControlFlowEncoding.SWITCH_CASE;
+  public MultiControlEncoding getEncoding() {
+    return MultiControlEncoding.SWITCH_CASE;
   }
 
   private static String buildAssumptionsString(
