@@ -788,7 +788,6 @@ public class CtoFormulaConverter {
   private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType sType && ((CSimpleType) type).getType().isIntegerType()) {
-      final FormulaType<Formula> numberType = fmgr.getFormulaType(variable);
       final boolean signed = machineModel.isSigned(sType);
       final BigInteger lowerBound = machineModel.getMinimalIntegerValue(sType);
       final BigInteger upperBound = machineModel.getMaximalIntegerValue(sType);
