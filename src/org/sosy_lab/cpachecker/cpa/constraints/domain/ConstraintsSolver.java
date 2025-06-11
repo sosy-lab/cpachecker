@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.lang.reflect.Field;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicIdentifierLocator
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.smt.BasicProverEnvironmentView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -52,6 +54,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.basicimpl.AbstractProver;
 
 @Options(prefix = "cpa.constraints")
 public class ConstraintsSolver {
@@ -428,7 +431,7 @@ public class ConstraintsSolver {
     }
 
     // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!
-    // assertStack();
+    assertStack();
   }
 
   private void buildProverStackFor(
@@ -493,7 +496,6 @@ public class ConstraintsSolver {
 
   // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!!!!
   //  Don't use this code unless you know exactly what you are doing!
-  /*
   @SuppressWarnings("unchecked")
   private void assertStack() {
     try {
@@ -522,13 +524,10 @@ public class ConstraintsSolver {
         Multimap<BooleanFormula, Void> currentLevel = assertedFormulasOnProverIterator.next();
         Preconditions.checkState(currentLevel.containsKey(constraintOnStack));
       }
-    } catch (NoSuchFieldException pE) {
-      throw new RuntimeException(pE);
-    } catch (IllegalAccessException pE) {
+    } catch (NoSuchFieldException | IllegalAccessException pE) {
       throw new RuntimeException(pE);
     }
   }
-   */
 
   private void onlyRemoveFromTopOfStack(Deque<BooleanFormula> formulasToRemove) {
     Iterator<BooleanFormula> currentStack = currentConstraintsOnProver.descendingIterator();
