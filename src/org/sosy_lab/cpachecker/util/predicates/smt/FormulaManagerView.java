@@ -1022,6 +1022,7 @@ public class FormulaManagerView {
     return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
   }
 
+  @SuppressWarnings("unchecked")
   public <T extends Formula> T castFromFloat(FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
     T ret = getFloatingPointFormulaManager()
         .castTo(
@@ -1030,7 +1031,6 @@ public class FormulaManagerView {
             formulaType,
             FloatingPointRoundingMode.TOWARD_ZERO);
     if(wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
-      //noinspection unchecked
       return (T) manager.getBitvectorFormulaManager().toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
     }
     return ret;
