@@ -13,11 +13,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpressionBuilder;
@@ -42,6 +46,17 @@ public class BitVectorEvaluationUtil {
         .filter(v -> !v.equals(pActiveVariable))
         .map(CToSeqExpression::new)
         .collect(ImmutableList.toImmutableList());
+  }
+
+  static SeqExpression buildScalarDirectBitVector(
+      CVariableDeclaration pGlobalVariable,
+      ImmutableSet<CVariableDeclaration> pDirectAccessVariables) {
+
+    CIntegerLiteralExpression integerLiteralExpression =
+        pDirectAccessVariables.contains(pGlobalVariable)
+            ? SeqIntegerLiteralExpression.INT_1
+            : SeqIntegerLiteralExpression.INT_0;
+    return new CToSeqExpression(integerLiteralExpression);
   }
 
   // Conjunction and Disjunction ===================================================================

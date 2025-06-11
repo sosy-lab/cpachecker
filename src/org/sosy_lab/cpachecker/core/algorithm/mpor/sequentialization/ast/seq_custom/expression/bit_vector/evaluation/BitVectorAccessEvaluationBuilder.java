@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
@@ -62,7 +61,7 @@ public class BitVectorAccessEvaluationBuilder {
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedScalarEvaluation(pActiveThread, pDirectVariables, pBitVectorVariables);
         } else {
-          yield buildFullScalarEvaluation(pActiveThread, pBitVectorVariables);
+          yield buildFullScalarEvaluation(pActiveThread, pDirectVariables, pBitVectorVariables);
         }
       }
     };
@@ -146,7 +145,9 @@ public class BitVectorAccessEvaluationBuilder {
   }
 
   private static BitVectorEvaluationExpression buildFullScalarEvaluation(
-      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
+      MPORThread pActiveThread,
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
       // no scalar variables (i.e. no global variables) -> no evaluation
@@ -156,6 +157,7 @@ public class BitVectorAccessEvaluationBuilder {
     ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
         pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
     for (var entry : scalarBitVectors.entrySet()) {
+      CVariableDeclaration globalVariable = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       CIdExpression activeVariable =
           BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, accessVariables);
@@ -165,9 +167,10 @@ public class BitVectorAccessEvaluationBuilder {
       // create logical disjunction -> (B || C || ...)
       SeqExpression disjunction = BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
       // create logical and -> (A && (B || C || ...))
-      // TODO intead of activeVariable, use 0 or 1 depending on access
+      SeqExpression directBitVector =
+          BitVectorEvaluationUtil.buildScalarDirectBitVector(globalVariable, pDirectVariables);
       SeqLogicalAndExpression logicalAnd =
-          new SeqLogicalAndExpression(new CToSeqExpression(activeVariable), disjunction);
+          new SeqLogicalAndExpression(directBitVector, disjunction);
       // create logical not -> !(A && (B || C || ...))
       scalarExpressions.add(new SeqLogicalNotExpression(logicalAnd));
     }

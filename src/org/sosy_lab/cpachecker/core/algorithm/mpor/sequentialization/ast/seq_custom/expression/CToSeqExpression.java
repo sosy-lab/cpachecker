@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 
 /**
  * Wraps a SeqExpression around a CExpression so that it can be used as a parameter in a function
@@ -24,15 +25,20 @@ public class CToSeqExpression implements SeqExpression {
 
   /**
    * Wraps a SeqExpression around a CExpression so that it can be used as a parameter in a function
-   * call.
+   * call and in logical expressions.
    */
   public CToSeqExpression(CExpression pExpression) {
-    checkArgument(isPermittedType(pExpression), "pExpression is not allowed: " + "%s", pExpression);
+    checkArgument(
+        isPermittedType(pExpression),
+        "expression type is not allowed: " + "%s",
+        pExpression.getClass());
     expression = pExpression;
   }
 
   private boolean isPermittedType(CExpression pExpression) {
-    return pExpression instanceof CIdExpression || pExpression instanceof CBinaryExpression;
+    return pExpression instanceof CIdExpression
+        || pExpression instanceof CBinaryExpression
+        || pExpression instanceof CIntegerLiteralExpression;
   }
 
   @Override

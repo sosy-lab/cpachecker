@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.CToSeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpression;
@@ -29,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -69,7 +69,8 @@ public class BitVectorReadWriteEvaluationBuilder {
           yield buildPrunedScalarEvaluation(
               pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
         } else {
-          yield buildFullScalarEvaluation(pActiveThread, pBitVectorVariables);
+          yield buildFullScalarEvaluation(
+              pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
         }
       }
     };
@@ -318,7 +319,10 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Full Scalar Evaluation =======================================================================
 
   private static BitVectorEvaluationExpression buildFullScalarEvaluation(
-      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
+      MPORThread pActiveThread,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarReadBitVectors.isEmpty()
         && pBitVectorVariables.scalarWriteBitVectors.isEmpty()) {
@@ -326,7 +330,7 @@ public class BitVectorReadWriteEvaluationBuilder {
     }
     ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
-      CVariableDeclaration variableDeclaration = entry.getKey();
+      CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables
       ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
@@ -338,10 +342,10 @@ public class BitVectorReadWriteEvaluationBuilder {
               activeReadVariable, readVariables);
 
       // handle write variables
+      ScalarBitVector scalarBitVector =
+          pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(globalVariable);
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
-          Objects.requireNonNull(
-                  pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(variableDeclaration))
-              .variables;
+          Objects.requireNonNull(scalarBitVector).variables;
       CIdExpression activeWriteVariable =
           BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, writeVariables);
       // convert from CExpression to SeqExpression
@@ -351,7 +355,11 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       scalarExpressions.add(
           buildFullScalarSingleVariableEvaluation(
-              activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
+              globalVariable,
+              pDirectReadVariables,
+              pDirectWriteVariables,
+              otherReadVariables,
+              otherWriteVariables));
     }
     return BitVectorEvaluationUtil.buildScalarLogicalConjunction(scalarExpressions.build());
   }
@@ -393,35 +401,42 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Full Scalar Single Variable Evaluation ========================================================
 
   private static SeqLogicalNotExpression buildFullScalarSingleVariableLeftHandSide(
-      CIdExpression pActiveReadVariable, ImmutableList<SeqExpression> pOtherWriteVariables) {
+      CVariableDeclaration pGlobalVariable,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
 
-    CToSeqExpression activeReadVariable = new CToSeqExpression(pActiveReadVariable);
+    SeqExpression activeReadValue =
+        BitVectorEvaluationUtil.buildScalarDirectBitVector(pGlobalVariable, pDirectReadVariables);
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
-            activeReadVariable, BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
+            activeReadValue, BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
   private static SeqLogicalNotExpression buildFullScalarSingleVariableRightHandSide(
-      CIdExpression pActiveWriteVariable,
+      CVariableDeclaration pGlobalVariable,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
 
-    CToSeqExpression activeWriteVariable = new CToSeqExpression(pActiveWriteVariable);
+    SeqExpression activeWriteValue =
+        BitVectorEvaluationUtil.buildScalarDirectBitVector(pGlobalVariable, pDirectWriteVariables);
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
-            activeWriteVariable,
+            activeWriteValue,
             BitVectorEvaluationUtil.logicalDisjunction(pOtherReadAndWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
   private static SeqLogicalAndExpression buildFullScalarSingleVariableEvaluation(
-      CIdExpression pActiveReadVariable,
+      CVariableDeclaration pGlobalVariable,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       ImmutableList<SeqExpression> pOtherReadVariables,
-      CIdExpression pActiveWriteVariable,
       ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     SeqLogicalNotExpression leftHandSide =
-        buildFullScalarSingleVariableLeftHandSide(pActiveReadVariable, pOtherWriteVariables);
+        buildFullScalarSingleVariableLeftHandSide(
+            pGlobalVariable, pDirectReadVariables, pOtherWriteVariables);
     ImmutableList<SeqExpression> otherReadAndWriteVariables =
         ImmutableList.<SeqExpression>builder()
             .addAll(pOtherReadVariables)
@@ -429,7 +444,7 @@ public class BitVectorReadWriteEvaluationBuilder {
             .build();
     SeqLogicalNotExpression rightHandSide =
         buildFullScalarSingleVariableRightHandSide(
-            pActiveWriteVariable, otherReadAndWriteVariables);
+            pGlobalVariable, pDirectWriteVariables, otherReadAndWriteVariables);
     return new SeqLogicalAndExpression(leftHandSide, rightHandSide);
   }
 }
