@@ -122,23 +122,23 @@ public class ConstraintsSolver {
       name = "incrementalSolverUsage")
   private boolean incrementalSolverUsage = true;
 
-  private ConstraintsCache cache;
-  private Solver solver;
-  private ProverEnvironment persistentProver;
-  private FormulaManagerView formulaManager;
-  private BooleanFormulaManagerView booleanFormulaManager;
+  private final ConstraintsCache cache;
+  private final Solver solver;
+  private final ProverEnvironment persistentProver;
+  private final FormulaManagerView formulaManager;
+  private final BooleanFormulaManagerView booleanFormulaManager;
 
-  private CtoFormulaConverter converter;
-  private SymbolicIdentifierLocator locator;
+  private final CtoFormulaConverter converter;
+  private final SymbolicIdentifierLocator locator;
 
   /** Table of id constraints set, id identifier assignment, formula */
-  private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
+  private final Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
-  private BooleanFormula literalForSingleAssignment;
+  private final BooleanFormula literalForSingleAssignment;
 
-  private ConstraintsStatistics stats;
+  private final ConstraintsStatistics stats;
 
-  private Deque<BooleanFormula> currentConstraintsOnProver = new ArrayDeque<>();
+  private final Deque<BooleanFormula> currentConstraintsOnProver = new ArrayDeque<>();
 
   public ConstraintsSolver(
       final Configuration pConfig,
@@ -158,17 +158,19 @@ public class ConstraintsSolver {
     stats = pStats;
     persistentProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
 
+    ConstraintsCache cacheBuild;
     if (doCaching) {
-      cache = new MatchingConstraintsCache();
+      cacheBuild = new MatchingConstraintsCache();
       if (cacheSubsets) {
-        cache = new SubsetConstraintsCache(cache);
+        cacheBuild = new SubsetConstraintsCache(cacheBuild);
       }
       if (cacheSupersets) {
-        cache = new SupersetConstraintsCache(cache);
+        cacheBuild = new SupersetConstraintsCache(cacheBuild);
       }
     } else {
-      cache = new DummyCache();
+      cacheBuild = new DummyCache();
     }
+    cache = cacheBuild;
   }
 
   /**
