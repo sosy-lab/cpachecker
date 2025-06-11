@@ -968,7 +968,7 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
-    if(encodeBitvectorAs == Theory.INTEGER_NLA) {
+    if(wrappingHandler.useIntAsBitvector()) {
       final var bvManager = bitvectorFormulaManager;
       return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
@@ -978,7 +978,7 @@ public class FormulaManagerView {
 
 
   public <T extends Formula> BooleanFormula makeRangeConstraint(T term, boolean signed) {
-    if(getFormulaType(term).isBitvectorType() && encodeBitvectorAs == Theory.INTEGER_NLA) {
+    if (getFormulaType(term).isBitvectorType() && wrappingHandler.useIntAsBitvector()) {
       final var bvManager = bitvectorFormulaManager;
       final var size = ((BitvectorType)getFormulaType(term)).getSize();
       if(signed) {
