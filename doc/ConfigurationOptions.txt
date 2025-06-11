@@ -2466,7 +2466,7 @@ cpa.predicate.enableSharedInformation = false
 # alternatives, but CPAchecker will crash if bitvectors are required by the
 # analysis.
 cpa.predicate.encodeBitvectorAs = BITVECTOR
-  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, INTEGER_NLA, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
 # theory is used to approximate floats. This can be used for solvers that do
@@ -2475,7 +2475,7 @@ cpa.predicate.encodeBitvectorAs = BITVECTOR
 # alternatives, but CPAchecker will crash if floats are required by the
 # analysis.
 cpa.predicate.encodeFloatAs = FLOAT
-  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, INTEGER_NLA, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for integers. If different from INTEGER, the
 # specified theory is used to approximate integers. This can be used for
@@ -2484,7 +2484,7 @@ cpa.predicate.encodeFloatAs = FLOAT
 # alternatives, but CPAchecker will crash if integers are required by the
 # analysis.
 cpa.predicate.encodeIntegerAs = INTEGER
-  enum:     [UNSUPPORTED, INTEGER, RATIONAL, BITVECTOR, FLOAT]
+  enum:     [UNSUPPORTED, INTEGER, INTEGER_NLA, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the
 # normal value or an UF representing the overflow.
@@ -2903,6 +2903,10 @@ cpa.predicate.satCheck = 0
 # Infeasible paths are already excluded by transfer relation and not later by
 # precision adjustment. This property is required in proof checking.
 cpa.predicate.satCheckAtAbstraction = false
+
+# Use signed wraparound (default: false, use unbounded domain for signed
+# values)
+cpa.predicate.signedWraparound = false
 
 # Call 'simplify' on generated formulas.
 cpa.predicate.simplifyGeneratedPathFormulas = false
