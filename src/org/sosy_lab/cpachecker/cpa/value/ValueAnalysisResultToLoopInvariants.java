@@ -563,11 +563,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not supported: set of values,  (allgemein x == a (mod b)
     // not supported bitwise negation ~x
     // not expressible: zweierpotenz
-    numNumericInvariants = 0;
+    numNumericInvariants = Math.max(0, numNumericInvariants);
     if (exportArithmetic) {
-      numEvenOrOdd = 0;
+      numEvenOrOdd = Math.max(0, numEvenOrOdd);
     }
-    numBooleanInvariants = 0;
+    numBooleanInvariants = Math.max(0, numBooleanInvariants);
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
       if (!varAndVals.getKey().isReference()) {
         Value val = varAndVals.getValue().get(0).getValue();
@@ -608,21 +608,21 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
       final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
     if (exportRelational) {
-      numCompRelationalInvariants = 0;
+      numCompRelationalInvariants = Math.max(0, numCompRelationalInvariants);
     }
     if (exportArithmetic) {
-      numArithmeticRelationalInvariants = 0;
+      numArithmeticRelationalInvariants = Math.max(0, numArithmeticRelationalInvariants);
     }
     if (exportBitops) {
-      numBitRelationalInvariants = 0;
+      numBitRelationalInvariants = Math.max(0, numBitRelationalInvariants);
     }
     if (exportShiftops) {
-      numShiftInvariants = 0;
+      numShiftInvariants = Math.max(0, numShiftInvariants);
     }
     if (exportLinear) {
-      numLinearInvariants = 0;
+      numLinearInvariants = Math.max(0, numLinearInvariants);
     }
-    numTwoLinearInvariants = 0;
+    numTwoLinearInvariants = Math.max(0, numTwoLinearInvariants);
 
     // two variables
     // relational
