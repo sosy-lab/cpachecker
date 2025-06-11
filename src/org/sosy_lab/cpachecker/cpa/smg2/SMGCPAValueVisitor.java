@@ -22,8 +22,34 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -98,7 +124,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public class SMGCPAValueVisitor
     extends DefaultCExpressionVisitor<List<ValueAndSMGState>, CPATransferException>
-    implements CRightHandSideVisitor<List<ValueAndSMGState>, CPATransferException> {
+    implements CRightHandSideVisitor<List<ValueAndSMGState>, CPATransferException>,
+               AcslPredicateVisitor<List<ValueAndSMGState>,CPATransferException>,
+               AcslTermVisitor<List<ValueAndSMGState>,CPATransferException> {
 
   /**
    * length of type LONG in Java (in bit). Needed to determine if a C type fits into a Java type.
@@ -3172,5 +3200,142 @@ public class SMGCPAValueVisitor
    */
   protected LogManagerWithoutDuplicates getInitialVisitorLogger() {
     return logger;
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslBinaryPredicate pBinaryExpression)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslUnaryPredicate pAcslUnaryPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslIdPredicate pAcslIdPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslOldPredicate pAcslOldPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslTernaryPredicate pAcslTernaryPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslValidPredicate pAcslValidPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslForallPredicate pForallPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslExistsPredicate pAcslExistsPredicate)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslUnaryTerm pAcslUnaryTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslStringLiteralTerm pAcslStringLiteralTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslRealLiteralTerm pAcslRealLiteralTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslCharLiteralTerm pAcslCharLiteralTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslBooleanLiteralTerm pAcslBooleanLiteralTerm) {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslBinaryTerm pAcslBinaryTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslIdTerm pAcslBinaryTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslOldTerm pAcslOldTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslResultTerm pAcslResultTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslAtTerm pAcslAtTerm) throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslTernaryTerm pAcslTernaryTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslFunctionCallTerm pAcslFunctionCallTerm)
+      throws CPATransferException {
+    return List.of();
+  }
+
+  @Override
+  public List<ValueAndSMGState> visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm)
+      throws CPATransferException {
+    return List.of();
   }
 }
