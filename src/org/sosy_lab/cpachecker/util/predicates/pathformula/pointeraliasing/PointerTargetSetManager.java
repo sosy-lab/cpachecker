@@ -638,6 +638,12 @@ class PointerTargetSetManager {
       for (Formula oldAddress : pHighestAllocatedAddresses) {
         pConstraints.addConstraint(
             formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
+        // this should probably only be given if
+        //  cpa.predicate.addRangeConstraintsForNondet
+        // is 'true'. But this is no-op for most cases anyway.
+        pConstraints.addConstraint(
+            formulaManager.makeRangeConstraint(newBaseFormula, false)
+        );
       }
     }
 
