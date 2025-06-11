@@ -66,6 +66,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -107,6 +108,7 @@ public class FormulaManagerView {
   enum Theory {
     UNSUPPORTED,
     INTEGER,
+    INTEGER_NLA,
     RATIONAL,
     BITVECTOR,
     FLOAT,
@@ -193,7 +195,7 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
 
     // Check unsupported configurations first for good error messages instead of assertions
-    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.BITVECTOR, Theory.INTEGER, Theory.RATIONAL)
+    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.BITVECTOR, Theory.INTEGER, Theory.INTEGER_NLA, Theory.RATIONAL)
         .contains(encodeBitvectorAs)) {
       throw new InvalidConfigurationException(
           "Invalid value "
@@ -298,6 +300,12 @@ public class FormulaManagerView {
                     manager.getIntegerFormulaManager(),
                     manager.getUFManager(),
                     config);
+            case INTEGER_NLA ->
+                new ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getIntegerFormulaManager(),
+                    config);
             case RATIONAL ->
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
@@ -364,7 +372,7 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager());
+    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
@@ -957,6 +965,36 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+
+  public <T extends Formula> BooleanFormula makeRangeConstraint(
+      T term, BigInteger start, BigInteger end, boolean signed) {
+    if(encodeBitvectorAs == Theory.INTEGER_NLA) {
+      final var bvManager = bitvectorFormulaManager;
+      return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+    } else {
+      return makeRangeConstraint(term, (T) makeNumber(getFormulaType(term), start), (T) makeNumber(getFormulaType(term), end), signed);
+    }
+  }
+
+
+  public <T extends Formula> BooleanFormula makeRangeConstraint(T term, boolean signed) {
+    if(getFormulaType(term).isBitvectorType() && encodeBitvectorAs == Theory.INTEGER_NLA) {
+      final var bvManager = bitvectorFormulaManager;
+      final var size = ((BitvectorType)getFormulaType(term)).getSize();
+      if(signed) {
+        final var start = BigInteger.ONE.shiftLeft(size - 1).negate();
+        final var end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
+        return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+      } else {
+        final var start = BigInteger.ZERO;
+        final var end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
+        return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+      }
+    } else {
+      return booleanFormulaManager.makeTrue();
+    }
+  }
+
   /** Create a variable with an SSA index. */
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
@@ -969,6 +1007,32 @@ public class FormulaManagerView {
   public <T extends Formula> T makeVariableWithoutSSAIndex(
       FormulaType<T> formulaType, String name) {
     return makeVariable(formulaType, makeNameNoIndex(name));
+  }
+
+  public <T extends Formula> FloatingPointFormula castToFloat(T pFormula, boolean isSigned, FloatingPointType formulaType) {
+    Formula formula = pFormula;
+    if(encodeBitvectorAs != Theory.BITVECTOR && getFormulaType(formula).isBitvectorType()) {
+      formula = unwrap(formula);
+    }
+    if(getFormulaType(formula).isIntegerType()) {
+      formula = manager.getBitvectorFormulaManager().makeBitvector(128, (IntegerFormula) formula);
+    }
+    return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
+  }
+
+  public <T extends Formula> T castFromFloat(FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
+    final var oldEncodeBitvectorAs = encodeBitvectorAs;
+    T ret = getFloatingPointFormulaManager()
+        .castTo(
+            pFormula,
+            isSigned,
+            formulaType,
+            FloatingPointRoundingMode.TOWARD_ZERO);
+    if((encodeBitvectorAs == Theory.INTEGER || encodeBitvectorAs == Theory.INTEGER_NLA) && formulaType.isBitvectorType()) {
+      encodeBitvectorAs = oldEncodeBitvectorAs;
+      return (T) manager.getBitvectorFormulaManager().toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
+    }
+    return ret;
   }
 
   public IntegerFormulaManagerView getIntegerFormulaManager() throws UnsupportedOperationException {
