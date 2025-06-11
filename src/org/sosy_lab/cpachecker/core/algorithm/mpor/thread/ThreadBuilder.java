@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class ThreadBuilder {
 
-  private static int currentThreadId;
+  private static int currentThreadId = Sequentialization.MAIN_THREAD_ID;
 
   /** Track the currentPc, static so that it is consistent across recursive function calls. */
   private static int currentPc = Sequentialization.INIT_PC;
@@ -61,7 +61,8 @@ public class ThreadBuilder {
    * the calling context of each thread.
    */
   public static ImmutableList<MPORThread> createThreads(MPOROptions pOptions, CFA pCfa) {
-    currentThreadId = 0; // reset thread id (necessary only for unit tests)
+    // reset thread id (necessary only for unit tests)
+    currentThreadId = Sequentialization.MAIN_THREAD_ID;
     ImmutableList.Builder<MPORThread> rThreads = ImmutableList.builder();
     // add the main thread
     FunctionEntryNode mainEntryNode = pCfa.getMainFunction();

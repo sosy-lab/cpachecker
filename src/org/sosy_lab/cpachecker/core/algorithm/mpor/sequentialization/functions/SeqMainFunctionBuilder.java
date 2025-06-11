@@ -17,13 +17,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqBinaryIfTreeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqIfElseChainStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.ThreadSimulationVariables;
@@ -104,11 +106,19 @@ public class SeqMainFunctionBuilder {
         SeqMainFunctionBuilder.buildThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
     return switch (pOptions.controlFlowEncoding) {
-      case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
               pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);
+      case IF_ELSE_CHAIN ->
+          new SeqIfElseChainStatement(
+              pcExpression,
+              Sequentialization.INIT_PC,
+              assumption,
+              pClauses,
+              pTabs,
+              pBinaryExpressionBuilder);
+      case SWITCH_CASE ->
+          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
     };
   }
 }

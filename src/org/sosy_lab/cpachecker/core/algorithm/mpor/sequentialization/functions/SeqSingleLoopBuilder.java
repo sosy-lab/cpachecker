@@ -13,11 +13,13 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqBinaryIfTreeStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqBinaryIfTreeStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqIfElseChainStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqSwitchStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -42,21 +44,32 @@ public class SeqSingleLoopBuilder {
               pOptions, pPcVariables, thread, entry.getValue(), 4, pBinaryExpressionBuilder));
     }
     return switch (pOptions.controlFlowEncoding) {
-      case SWITCH_CASE -> {
-        SeqSwitchStatement switchStatement =
-            new SeqSwitchStatement(
-                pOptions, SeqIdExpression.NEXT_THREAD, Optional.empty(), controlFlow.build(), 2);
-        yield LineOfCodeUtil.buildLinesOfCode(switchStatement.toASTString());
-      }
       case BINARY_IF_TREE -> {
-        SeqBinaryIfTreeStatement treeStatement =
+        SeqBinaryIfTreeStatement binaryTree =
             new SeqBinaryIfTreeStatement(
                 SeqIdExpression.NEXT_THREAD,
                 Optional.empty(),
                 controlFlow.build(),
                 2,
                 pBinaryExpressionBuilder);
-        yield LineOfCodeUtil.buildLinesOfCode(treeStatement.toASTString());
+        yield LineOfCodeUtil.buildLinesOfCode(binaryTree.toASTString());
+      }
+      case IF_ELSE_CHAIN -> {
+        SeqIfElseChainStatement ifElseChain =
+            new SeqIfElseChainStatement(
+                SeqIdExpression.NEXT_THREAD,
+                Sequentialization.MAIN_THREAD_ID,
+                Optional.empty(),
+                controlFlow.build(),
+                2,
+                pBinaryExpressionBuilder);
+        yield LineOfCodeUtil.buildLinesOfCode(ifElseChain.toASTString());
+      }
+      case SWITCH_CASE -> {
+        SeqSwitchStatement switchCase =
+            new SeqSwitchStatement(
+                pOptions, SeqIdExpression.NEXT_THREAD, Optional.empty(), controlFlow.build(), 2);
+        yield LineOfCodeUtil.buildLinesOfCode(switchCase.toASTString());
       }
     };
   }

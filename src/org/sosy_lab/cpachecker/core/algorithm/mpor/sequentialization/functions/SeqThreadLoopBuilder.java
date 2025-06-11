@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqMultiControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -221,7 +221,7 @@ public class SeqThreadLoopBuilder {
 
     ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
         SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
-    CBinaryExpression rSmallerMax =
+    CBinaryExpression rSmallerK =
         pBinaryExpressionBuilder.buildBinaryExpression(
             SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
     CExpressionAssignmentStatement rIncrement =
@@ -230,29 +230,33 @@ public class SeqThreadLoopBuilder {
     ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       // first inject into block
-      ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
-      for (SeqThreadStatement statement : clause.block.getStatements()) {
-        SeqThreadStatement newStatement =
-            SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
-                rSmallerMax, rIncrement, statement, labelClauseMap);
-        newStatements.add(newStatement);
-      }
-      SeqThreadStatementBlock newBlock = clause.block.cloneWithStatements(newStatements.build());
+      SeqThreadStatementBlock newBlock =
+          injectThreadLoopCodeIntoBlock(clause.block, rSmallerK, rIncrement, labelClauseMap);
       // then inject into merged blocks
       ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        ImmutableList.Builder<SeqThreadStatement> newMergedStatements = ImmutableList.builder();
-        for (SeqThreadStatement mergedStatement : mergedBlock.getStatements()) {
-          SeqThreadStatement newMergedStatement =
-              SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
-                  rSmallerMax, rIncrement, mergedStatement, labelClauseMap);
-          newMergedStatements.add(newMergedStatement);
-        }
-        newMergedBlocks.add(mergedBlock.cloneWithStatements(newMergedStatements.build()));
+        newMergedBlocks.add(
+            injectThreadLoopCodeIntoBlock(mergedBlock, rSmallerK, rIncrement, labelClauseMap));
       }
       updatedClauses.add(
           clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
     }
     return updatedClauses.build();
+  }
+
+  private static SeqThreadStatementBlock injectThreadLoopCodeIntoBlock(
+      SeqThreadStatementBlock pBlock,
+      CBinaryExpression pRSmallerK,
+      CExpressionAssignmentStatement pRIncrement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
+      SeqThreadStatement newStatement =
+          SeqThreadStatementClauseUtil.tryInjectGotoThreadLoopLabelIntoStatement(
+              pRSmallerK, pRIncrement, statement, pLabelClauseMap);
+      newStatements.add(newStatement);
+    }
+    return pBlock.cloneWithStatements(newStatements.build());
   }
 }

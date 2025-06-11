@@ -48,9 +48,9 @@ public class SeqStringUtil {
 
   public static String buildControlFlowSuffixByEncoding(MPOROptions pOptions) {
     return switch (pOptions.controlFlowEncoding) {
+      case BINARY_IF_TREE, IF_ELSE_CHAIN -> SeqToken._continue + SeqSyntax.SEMICOLON;
       // tests showed that using break in switch is more efficient than continue, despite the loop
       case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
-      case BINARY_IF_TREE -> SeqToken._continue + SeqSyntax.SEMICOLON;
     };
   }
 

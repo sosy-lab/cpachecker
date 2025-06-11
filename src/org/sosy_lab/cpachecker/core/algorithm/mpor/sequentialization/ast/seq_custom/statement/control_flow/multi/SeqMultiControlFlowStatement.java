@@ -6,8 +6,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
-public interface SeqMultiControlFlowStatement extends SeqStatement {}
+public interface SeqMultiControlFlowStatement extends SeqStatement {
+  MultiControlFlowEncoding getEncoding();
+}

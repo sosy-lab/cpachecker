@@ -105,6 +105,8 @@ public class Sequentialization {
 
   public static final int EXIT_PC = 0;
 
+  public static final int MAIN_THREAD_ID = 0;
+
   private static final int FIRST_LINE = 1;
 
   private final ImmutableList<MPORSubstitution> substitutions;

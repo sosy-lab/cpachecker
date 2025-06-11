@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.MultiControlFlowEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlFlowEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
@@ -59,7 +59,7 @@ public class SequentializationTest {
             true,
             BitVectorReduction.READ_AND_WRITE,
             true,
-            MultiControlFlowEncoding.SWITCH_CASE,
+            MultiControlFlowEncoding.IF_ELSE_CHAIN,
             false,
             true,
             true,
@@ -182,7 +182,7 @@ public class SequentializationTest {
             false,
             BitVectorReduction.NONE,
             false,
-            MultiControlFlowEncoding.BINARY_IF_TREE,
+            MultiControlFlowEncoding.IF_ELSE_CHAIN,
             true,
             false,
             true,
@@ -304,7 +304,7 @@ public class SequentializationTest {
             false,
             BitVectorReduction.ACCESS_ONLY,
             true,
-            MultiControlFlowEncoding.SWITCH_CASE,
+            MultiControlFlowEncoding.IF_ELSE_CHAIN,
             false,
             false,
             true,

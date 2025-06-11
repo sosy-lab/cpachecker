@@ -6,12 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow;
-
-public enum MultiControlFlowEncoding {
-  SWITCH_CASE,
-  BINARY_IF_TREE,
-  // TODO
-  // CONDITIONAL_GOTO
-  // IF_ELSE_IF ...
-}
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single;
