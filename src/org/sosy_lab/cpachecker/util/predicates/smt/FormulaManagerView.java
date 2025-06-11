@@ -972,7 +972,9 @@ public class FormulaManagerView {
       final var bvManager = bitvectorFormulaManager;
       return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
-      return makeRangeConstraint(term, (T) makeNumber(getFormulaType(term), start), (T) makeNumber(getFormulaType(term), end), signed);
+      return makeRangeConstraint(term,
+          makeNumber(getFormulaType(term), start),
+          makeNumber(getFormulaType(term), end), signed);
     }
   }
 
@@ -1021,7 +1023,6 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> T castFromFloat(FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
-    final var oldEncodeBitvectorAs = encodeBitvectorAs;
     T ret = getFloatingPointFormulaManager()
         .castTo(
             pFormula,
@@ -1029,7 +1030,7 @@ public class FormulaManagerView {
             formulaType,
             FloatingPointRoundingMode.TOWARD_ZERO);
     if(wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
-      encodeBitvectorAs = oldEncodeBitvectorAs;
+      //noinspection unchecked
       return (T) manager.getBitvectorFormulaManager().toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
     }
     return ret;
