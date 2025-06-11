@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
@@ -75,7 +76,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "add partial order reduction (bit vectors storing global variable) in the"
               + " sequentialization to reduce the state space? distinguishing between global"
-              + " variable reads and writes, not just accesses, reduces the state space more.")
+              + " variable reads and writes, not just accesses, reduces the state space more but"
+              + " may not be faster due to evaluation overhead.")
   // using optional for @Options is not allowed, unfortunately...
   private BitVectorReduction bitVectorReduction = BitVectorReduction.NONE;
 
@@ -135,6 +137,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "the source(s) of nondeterminism in the sequentialization. may slow down or improve"
+              + " performance, depending on the verifier.")
+  private NondeterminismSource nondeterminismSource = NondeterminismSource.NEXT_THREAD;
+
+  @Option(
+      secure = true,
+      description =
           "add an additional .yml file with metadata such as input file(s) and algorithm options?")
   private boolean outputMetadata = true;
 
@@ -168,8 +177,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " transformation is erroneous?")
   private boolean sequentializationErrors = false;
 
-  @Option(secure = true, description = "use shortened variable names? e.g. THREAD0 -> T0")
-  private boolean shortVariables = true;
+  @Option(secure = true, description = "use shortened variable names, e.g. THREAD0 -> T0")
+  private boolean shortVariableNames = true;
 
   @Option(
       secure = true,
@@ -177,21 +186,6 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "use signed __VERIFIER_nondet_int() instead of unsigned __VERIFIER_nondet_uint()?"
               + " in tests, signed generally slowed down verification performance.")
   private boolean signedNondet = false;
-
-  @Option(
-      secure = true,
-      description =
-          "use thread modular loops to reduce the amount of evaluated assume expressions?"
-              + " may slow down or improve verification"
-              + " depending on the verifier and input program")
-  private boolean threadLoops = false;
-
-  @Option(
-      secure = true,
-      description =
-          "use the next_thread variable when choosing the thread loop to execute? may slow down or"
-              + " improve verification  depending on the verifier")
-  private boolean threadLoopsNext = false;
 
   @Option(
       description =
@@ -280,16 +274,15 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             inputTypeDeclarations,
             license,
             linkReduction,
+            nondeterminismSource,
             outputMetadata,
             outputPath,
             overwriteFiles,
             pruneEmptyStatements,
             scalarPc,
             sequentializationErrors,
-            shortVariables,
+            shortVariableNames,
             signedNondet,
-            threadLoops,
-            threadLoopsNext,
             validateParse,
             validatePc);
     cpa = pCpa;

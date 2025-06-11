@@ -268,7 +268,8 @@ analysis.algorithm.MPOR.bitVectorEvaluationPrune = false
 
 # add partial order reduction (bit vectors storing global variable) in the
 # sequentialization to reduce the state space? distinguishing between global
-# variable reads and writes, not just accesses, reduces the state space more.
+# variable reads and writes, not just accesses, reduces the state space more
+# but may not be faster due to evaluation overhead.
 analysis.algorithm.MPOR.bitVectorReduction = NONE
   enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
@@ -307,6 +308,11 @@ analysis.algorithm.MPOR.license = false
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
 
+# the source(s) of nondeterminism in the sequentialization. may slow down or
+# improve performance, depending on the verifier.
+analysis.algorithm.MPOR.nondeterminismSource = NEXT_THREAD
+  enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
+
 # add an additional .yml file with metadata such as input file(s) and
 # algorithm options?
 analysis.algorithm.MPOR.outputMetadata = true
@@ -330,22 +336,13 @@ analysis.algorithm.MPOR.scalarPc = true
 # reachable when transformation is erroneous?
 analysis.algorithm.MPOR.sequentializationErrors = false
 
-# use shortened variable names? e.g. THREAD0 -> T0
-analysis.algorithm.MPOR.shortVariables = true
+# use shortened variable names, e.g. THREAD0 -> T0
+analysis.algorithm.MPOR.shortVariableNames = true
 
 # use signed __VERIFIER_nondet_int() instead of unsigned
 # __VERIFIER_nondet_uint()? in tests, signed generally slowed down
 # verification performance.
 analysis.algorithm.MPOR.signedNondet = false
-
-# use thread modular loops to reduce the amount of evaluated assume
-# expressions? may slow down or improve verification depending on the
-# verifier and input program
-analysis.algorithm.MPOR.threadLoops = false
-
-# use the next_thread variable when choosing the thread loop to execute? may
-# slow down or improve verification  depending on the verifier
-analysis.algorithm.MPOR.threadLoopsNext = false
 
 # test if CPAchecker can parse sequentialization? true -> less efficient, but
 # more correctness guarantees

@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
@@ -64,12 +65,11 @@ public class SequentializationTest {
             false,
             true,
             true,
+            NondeterminismSource.NUM_STATEMENTS,
             true,
             true,
             false,
-            true,
-            true,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -89,12 +89,11 @@ public class SequentializationTest {
             true,
             true,
             true,
+            NondeterminismSource.NUM_STATEMENTS,
             true,
             false,
             false,
-            true,
-            true,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -116,12 +115,11 @@ public class SequentializationTest {
             false,
             true,
             true,
+            NondeterminismSource.NEXT_THREAD,
             false,
             false,
             false,
-            true,
-            false,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -142,8 +140,7 @@ public class SequentializationTest {
             true,
             true,
             true,
-            true,
-            true,
+            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             true,
             true,
             true,
@@ -166,12 +163,11 @@ public class SequentializationTest {
             false,
             true,
             true,
+            NondeterminismSource.NEXT_THREAD,
             false,
             true,
             true,
-            true,
-            false,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -192,12 +188,11 @@ public class SequentializationTest {
             true,
             false,
             true,
+            NondeterminismSource.NEXT_THREAD,
             false,
             true,
             false,
-            true,
-            false,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -217,12 +212,11 @@ public class SequentializationTest {
             true,
             true,
             false,
+            NondeterminismSource.NEXT_THREAD,
             true,
             true,
             false,
-            true,
-            false,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -244,12 +238,11 @@ public class SequentializationTest {
             true,
             true,
             true,
+            NondeterminismSource.NEXT_THREAD,
             true,
             false,
             false,
-            true,
-            false,
-            false);
+            true);
     testProgram(path, options);
   }
 
@@ -269,12 +262,11 @@ public class SequentializationTest {
             false,
             false,
             true,
+            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             false,
             true,
             false,
-            false,
-            true,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -295,12 +287,11 @@ public class SequentializationTest {
             true,
             false,
             true,
+            NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
             true,
             false,
             true,
-            false,
-            true,
-            true);
+            false);
     testProgram(path, options);
   }
 
@@ -319,11 +310,10 @@ public class SequentializationTest {
             false,
             false,
             true,
+            NondeterminismSource.NEXT_THREAD,
             false,
             true,
             true,
-            true,
-            false,
             true);
     testProgram(path, options);
   }

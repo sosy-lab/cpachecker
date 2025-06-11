@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
@@ -49,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
@@ -166,7 +166,7 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_CONTROL_FLOW));
     }
-    if (options.threadLoops) {
+    if (options.nondeterminismSource.hasThreadLoops()) {
       rBody.addAll(
           SeqThreadLoopBuilder.buildThreadLoopsSwitchStatements(
               options, pcVariables, clauses, binaryExpressionBuilder));
@@ -266,7 +266,7 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // if enabled: K and r (for thread loops iterations)
-    if (pOptions.threadLoops) {
+    if (pOptions.nondeterminismSource.hasThreadLoops()) {
       rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.R.toASTString()));
       if (pOptions.signedNondet) {
         rVariableDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_SIGNED.toASTString()));

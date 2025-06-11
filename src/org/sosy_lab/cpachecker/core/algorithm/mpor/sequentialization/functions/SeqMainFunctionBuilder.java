@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -76,8 +77,8 @@ public class SeqMainFunctionBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.threadLoops && !pOptions.threadLoopsNext) {
-      // without threadLoopsNext, no assumption is required due to if (pc != -1) ... check
+    if (pOptions.nondeterminismSource.equals(NondeterminismSource.NUM_STATEMENTS)) {
+      // without next_thread, no assumption is required due to if (pc != -1) ... check
       return Optional.empty();
     }
     if (pOptions.scalarPc) {

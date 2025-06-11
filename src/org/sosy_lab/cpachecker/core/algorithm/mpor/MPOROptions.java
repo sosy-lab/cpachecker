@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
@@ -52,6 +53,8 @@ public class MPOROptions {
 
   public final boolean linkReduction;
 
+  public final NondeterminismSource nondeterminismSource;
+
   public final boolean outputMetadata;
 
   public final String outputPath;
@@ -64,13 +67,9 @@ public class MPOROptions {
 
   public final boolean sequentializationErrors;
 
-  public final boolean shortVariables;
+  public final boolean shortVariableNames;
 
   public final boolean signedNondet;
-
-  public final boolean threadLoops;
-
-  public final boolean threadLoopsNext;
 
   public final boolean validateParse;
 
@@ -89,16 +88,15 @@ public class MPOROptions {
       boolean pInputTypeDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
+      NondeterminismSource pNondeterminismSource,
       boolean pOutputMetadata,
       String pOutputPath,
       boolean pOverwriteFiles,
       boolean pPruneEmptyStatements,
       boolean pScalarPc,
       boolean pSequentializationErrors,
-      boolean pShortVariables,
+      boolean pShortVariableNames,
       boolean pSignedNondet,
-      boolean pThreadLoops,
-      boolean pThreadLoopsNext,
       boolean pValidateParse,
       boolean pValidatePc) {
 
@@ -122,16 +120,15 @@ public class MPOROptions {
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
     linkReduction = pLinkReduction;
+    nondeterminismSource = pNondeterminismSource;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
     overwriteFiles = pOverwriteFiles;
     pruneEmptyStatements = pPruneEmptyStatements;
     scalarPc = pScalarPc;
     sequentializationErrors = pSequentializationErrors;
-    shortVariables = pShortVariables;
+    shortVariableNames = pShortVariableNames;
     signedNondet = pSignedNondet;
-    threadLoops = pThreadLoops;
-    threadLoopsNext = pThreadLoopsNext;
     validateParse = pValidateParse;
     validatePc = pValidatePc;
   }
@@ -147,12 +144,11 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
+      NondeterminismSource pNondeterminismSource,
       boolean pScalarPc,
       boolean pSequentializationErrors,
       boolean pShortVariables,
-      boolean pSignedNondet,
-      boolean pThreadLoops,
-      boolean pThreadLoopsNext) {
+      boolean pSignedNondet) {
 
     return new MPOROptions(
         // always merge atomic blocks because not doing so may add additional interleavings
@@ -170,6 +166,7 @@ public class MPOROptions {
         true,
         pLicense,
         pLinkReduction,
+        pNondeterminismSource,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
         false,
@@ -179,8 +176,6 @@ public class MPOROptions {
         pSequentializationErrors,
         pShortVariables,
         pSignedNondet,
-        pThreadLoops,
-        pThreadLoopsNext,
         // no parse validation in unit tests -> tests are independent of implementation
         false,
         true);
@@ -207,9 +202,9 @@ public class MPOROptions {
             .map(Field::getName)
             .collect(ImmutableSet.toImmutableSet());
     // check if fields from MPORAlgorithm with @Option have a field with same name in this class
-    for (Field algoField : MPORAlgorithm.class.getDeclaredFields()) {
-      if (algoField.isAnnotationPresent(Option.class)) {
-        if (!optionsFieldNames.contains(algoField.getName())) {
+    for (Field algorithmField : MPORAlgorithm.class.getDeclaredFields()) {
+      if (algorithmField.isAnnotationPresent(Option.class)) {
+        if (!optionsFieldNames.contains(algorithmField.getName())) {
           return false;
         }
       }
@@ -242,12 +237,6 @@ public class MPOROptions {
           Level.WARNING,
           "WARNING: pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
-    }
-    if (!threadLoops && threadLoopsNext) {
-      pLogger.log(
-          Level.WARNING,
-          "WARNING: threadLoopsNext is only considered with threadLoops enabled. Either enable"
-              + " threadLoops or disable threadLoopsNext.");
     }
   }
 }

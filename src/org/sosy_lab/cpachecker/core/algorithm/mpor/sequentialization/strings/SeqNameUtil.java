@@ -29,7 +29,7 @@ public class SeqNameUtil {
   }
 
   private static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
-    return (pOptions.shortVariables ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
+    return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
         + pThreadId
         + SeqSyntax.UNDERSCORE;
   }
@@ -69,19 +69,19 @@ public class SeqNameUtil {
   }
 
   private static String buildGlobalVariablePrefix(MPOROptions pOptions) {
-    return pOptions.shortVariables ? SeqToken.G : SeqToken.GLOBAL;
+    return pOptions.shortVariableNames ? SeqToken.G : SeqToken.GLOBAL;
   }
 
   private static String buildLocalVariablePrefix(
       MPOROptions pOptions, String pFunctionName, int pThreadId, int pCallContext) {
 
-    return (pOptions.shortVariables ? SeqToken.L : SeqToken.LOCAL)
+    return (pOptions.shortVariableNames ? SeqToken.L : SeqToken.LOCAL)
         + SeqSyntax.UNDERSCORE
         + pFunctionName
-        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
         + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.C : SeqToken.CALL)
+        + (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL)
         + pCallContext;
   }
 
@@ -93,14 +93,14 @@ public class SeqNameUtil {
       String pFunctionName,
       int pCallNumber) {
 
-    return (pOptions.shortVariables ? SeqToken.P : SeqToken.PARAMETER)
+    return (pOptions.shortVariableNames ? SeqToken.P : SeqToken.PARAMETER)
         + SeqSyntax.UNDERSCORE
         + pFunctionName
         + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
         + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.C : SeqToken.CALL)
+        + (pOptions.shortVariableNames ? SeqToken.C : SeqToken.CALL)
         + pCallNumber
         + createVariableId()
         + pParameterDeclaration.getName();
@@ -118,7 +118,7 @@ public class SeqNameUtil {
   public static String buildMainFunctionArgName(
       MPOROptions pOptions, CParameterDeclaration pMainFunctionArgDeclaration) {
 
-    return (pOptions.shortVariables ? SeqToken.M : SeqToken.MAIN_FUNCTION_ARG)
+    return (pOptions.shortVariableNames ? SeqToken.M : SeqToken.MAIN_FUNCTION_ARG)
         + createVariableId()
         + pMainFunctionArgDeclaration.getName();
   }
@@ -130,20 +130,20 @@ public class SeqNameUtil {
       int pThreadId,
       String pFunctionName) {
 
-    return (pOptions.shortVariables ? SeqToken.S : SeqToken.START_ROUTINE_ARG)
+    return (pOptions.shortVariableNames ? SeqToken.S : SeqToken.START_ROUTINE_ARG)
         + SeqSyntax.UNDERSCORE
         + pFunctionName
         + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
         + createVariableId()
         + pStartRoutineArgDeclaration.getName();
   }
 
   public static String buildStartRoutineExitVariableName(MPOROptions pOptions, int pThreadId) {
-    return (pOptions.shortVariables ? SeqToken.E : SeqToken.EXIT)
+    return (pOptions.shortVariableNames ? SeqToken.E : SeqToken.EXIT)
         + SeqSyntax.UNDERSCORE
-        + (pOptions.shortVariables ? SeqToken.T : SeqToken.THREAD)
+        + (pOptions.shortVariableNames ? SeqToken.T : SeqToken.THREAD)
         + pThreadId
         + createVariableId()
         + SeqToken.return_value;
@@ -176,7 +176,7 @@ public class SeqNameUtil {
   private static String buildBitVectorAccessName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.ba + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
             + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
@@ -186,7 +186,7 @@ public class SeqNameUtil {
   private static String buildBitVectorReadName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.br + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
             + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
@@ -196,7 +196,7 @@ public class SeqNameUtil {
   private static String buildBitVectorWriteName(
       MPOROptions pOptions, boolean pIsDirect, int pThreadId) {
 
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? (pIsDirect ? SeqToken.d : SeqSyntax.EMPTY_STRING) + SeqToken.bw + pThreadId
         : buildThreadPrefix(pOptions, pThreadId)
             + (pIsDirect ? SeqToken.DIRECT + SeqSyntax.UNDERSCORE : SeqSyntax.EMPTY_STRING)
@@ -210,7 +210,7 @@ public class SeqNameUtil {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? SeqToken.ba + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR_ACCESS
@@ -223,7 +223,7 @@ public class SeqNameUtil {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? SeqToken.br + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR_READ
@@ -236,7 +236,7 @@ public class SeqNameUtil {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     String variableName = pVariableDeclaration.getName();
-    return pOptions.shortVariables
+    return pOptions.shortVariableNames
         ? SeqToken.bw + pThreadId + SeqSyntax.UNDERSCORE + variableName
         : buildThreadPrefix(pOptions, pThreadId)
             + SeqToken.BIT_VECTOR_WRITE
@@ -248,7 +248,7 @@ public class SeqNameUtil {
 
   /** Returns a var name of the form {@code __MPOR_SEQ__{pMutexName}_LOCKED} */
   public static String buildMutexLockedName(MPOROptions pOptions, String pMutexName) {
-    return (pOptions.shortVariables ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
+    return (pOptions.shortVariableNames ? pMutexName : SeqToken.__MPOR_SEQ__ + pMutexName)
         + SeqSyntax.UNDERSCORE
         + SeqToken.LOCKED;
   }

@@ -6,4 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.verifier_nondet;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism;
