@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -161,8 +162,9 @@ public final class ValueAnalysisState
 
   // Same as assignConstant, but if an variable is already present in the VA State, it does not get
   // overwritten
-  public void assignConstantSafe(String variableName, Value value) {
-    MemoryLocation pMemoryLocation = MemoryLocation.parseExtendedQualifiedName(variableName);
+  // todo add assert?
+  public void assignConstantSafe(CSimpleDeclaration cDeclaration, Value value) {
+    MemoryLocation pMemoryLocation = MemoryLocation.forDeclaration(cDeclaration);
     if (!this.contains(pMemoryLocation)) {
       addToConstantsMap(pMemoryLocation, value, null);
     }

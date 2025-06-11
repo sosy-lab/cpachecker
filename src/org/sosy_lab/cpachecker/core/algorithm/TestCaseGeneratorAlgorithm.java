@@ -375,10 +375,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 // todo add guards and asserts
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
-    String variableName = "main::" + op1.getName();
     Value variableValue = new NumericValue(op2.getValue());
-
-    valueAnalysisState.assignConstantSafe(variableName, variableValue);
+    valueAnalysisState.assignConstantSafe(op1.getDeclaration(), variableValue);
   }
 
   private ValueAnalysisState extractVAState(CompositeState wrappedState) {
