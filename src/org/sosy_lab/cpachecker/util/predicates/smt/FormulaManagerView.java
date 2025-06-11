@@ -1028,7 +1028,7 @@ public class FormulaManagerView {
             isSigned,
             formulaType,
             FloatingPointRoundingMode.TOWARD_ZERO);
-    if((encodeBitvectorAs == Theory.INTEGER || encodeBitvectorAs == Theory.INTEGER_NLA) && formulaType.isBitvectorType()) {
+    if(wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
       encodeBitvectorAs = oldEncodeBitvectorAs;
       return (T) manager.getBitvectorFormulaManager().toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
     }
