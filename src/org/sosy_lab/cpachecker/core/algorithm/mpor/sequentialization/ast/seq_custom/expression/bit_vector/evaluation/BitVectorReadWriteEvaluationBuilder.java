@@ -28,20 +28,18 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-// TODO split this class into access and read-write builders for better overview
+// TODO shorten function names, the class name implies that we are working with r/w bitvectors
 public class BitVectorReadWriteEvaluationBuilder {
 
   public static BitVectorEvaluationExpression buildReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -52,7 +50,6 @@ public class BitVectorReadWriteEvaluationBuilder {
       return buildPrunedReadWriteBitVectorEvaluationByEncoding(
           pOptions,
           pActiveThread,
-          pBitVectorAssignments,
           pDirectReadVariables,
           pDirectWriteVariables,
           pBitVectorVariables,
@@ -75,7 +72,6 @@ public class BitVectorReadWriteEvaluationBuilder {
   private static BitVectorEvaluationExpression buildPrunedReadWriteBitVectorEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -95,7 +91,7 @@ public class BitVectorReadWriteEvaluationBuilder {
               pBinaryExpressionBuilder);
       case SCALAR ->
           buildPrunedScalarReadWriteBitVectorEvaluation(
-              pActiveThread, pBitVectorVariables, pBitVectorAssignments);
+              pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
     };
   }
 
@@ -181,22 +177,17 @@ public class BitVectorReadWriteEvaluationBuilder {
 
   private static BitVectorEvaluationExpression buildPrunedScalarReadWriteBitVectorEvaluation(
       MPORThread pActiveThread,
-      BitVectorVariables pBitVectorVariables,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.areScalarBitVectorsEmpty()) {
       // no bit vectors (e.g. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
-    // TODO must use direct variable accesses instead of zero assignments here.
-    //  the zero assignments are not false per se, just less efficient because the direct variable
-    //  accesses are a subset of the 1 assignments
-    ImmutableSet<CExpression> zeroAssignments =
-        BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
-
     ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
-      CVariableDeclaration variableDeclaration = entry.getKey();
+      CVariableDeclaration globalVariable = entry.getKey();
 
       // handle read variables
       ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
@@ -209,7 +200,7 @@ public class BitVectorReadWriteEvaluationBuilder {
       // handle write variables
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
           Objects.requireNonNull(
-                  pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(variableDeclaration))
+                  pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(globalVariable))
               .variables;
       CIdExpression activeWriteVariable =
           BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, writeVariables);
@@ -219,10 +210,10 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       Optional<SeqLogicalExpression> leftHandSide =
           getPrunedScalarReadWriteBitVectorLeftHandSideEvaluation(
-              zeroAssignments, activeReadVariable, otherWriteVariables);
+              pDirectReadVariables, globalVariable, otherWriteVariables);
       Optional<SeqLogicalExpression> rightHandSide =
           getPrunedScalarReadWriteBitVectorRightHandSideEvaluation(
-              zeroAssignments, activeWriteVariable, otherReadVariables, otherWriteVariables);
+              pDirectWriteVariables, globalVariable, otherReadVariables, otherWriteVariables);
 
       // only add expression if it was not pruned entirely (LHS or RHS present)
       if (leftHandSide.isPresent() || rightHandSide.isPresent()) {
@@ -239,14 +230,15 @@ public class BitVectorReadWriteEvaluationBuilder {
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
+  /** Builds the logical LHS i.e. {@code !(R && (W' || W'' || ...)}. */
   private static Optional<SeqLogicalExpression>
       getPrunedScalarReadWriteBitVectorLeftHandSideEvaluation(
-          ImmutableSet<CExpression> pZeroAssignments,
-          CIdExpression pActiveReadVariable,
+          ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+          CVariableDeclaration pGlobalVariable,
           ImmutableList<SeqExpression> pOtherWriteVariables) {
 
-    if (pZeroAssignments.contains(pActiveReadVariable)) {
-      // if the LHS (activeReadVariable) is 0, then the entire && expression is 0 -> prune
+    if (!pDirectReadVariables.contains(pGlobalVariable)) {
+      // if the LHS is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     } else {
       // otherwise the LHS is 1, and we only need the right side of the && expression
@@ -256,14 +248,15 @@ public class BitVectorReadWriteEvaluationBuilder {
     }
   }
 
+  /** Builds the logical RHS i.e. {@code !(W && (R' || R'' || ... || W' || W'' || ...)}. */
   private static Optional<SeqLogicalExpression>
       getPrunedScalarReadWriteBitVectorRightHandSideEvaluation(
-          ImmutableSet<CExpression> pZeroAssignments,
-          CIdExpression pActiveWriteVariable,
+          ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+          CVariableDeclaration pGlobalVariable,
           ImmutableList<SeqExpression> pOtherReadVariables,
           ImmutableList<SeqExpression> pOtherWriteVariables) {
 
-    if (pZeroAssignments.contains(pActiveWriteVariable)) {
+    if (!pDirectWriteVariables.contains(pGlobalVariable)) {
       // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     } else {

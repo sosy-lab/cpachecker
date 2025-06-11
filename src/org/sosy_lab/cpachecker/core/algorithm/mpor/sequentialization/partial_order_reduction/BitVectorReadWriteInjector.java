@@ -159,7 +159,6 @@ class BitVectorReadWriteInjector {
             BitVectorReadWriteEvaluationBuilder.buildReadWriteBitVectorEvaluationByEncoding(
                 pOptions,
                 pThread,
-                bitVectorAssignments,
                 directReadVariables,
                 directWriteVariables,
                 pBitVectorVariables,

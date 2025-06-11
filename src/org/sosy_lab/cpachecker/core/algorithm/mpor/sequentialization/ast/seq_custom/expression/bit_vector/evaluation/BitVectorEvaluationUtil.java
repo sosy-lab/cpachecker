@@ -46,17 +46,17 @@ public class BitVectorEvaluationUtil {
   // Conjunction and Disjunction ===================================================================
 
   /** Creates a conjunction of the given terms i.e. {@code (A && B && C && ...)}. */
-  public static SeqExpression logicalConjunction(ImmutableCollection<SeqExpression> pTerms) {
+  static SeqExpression logicalConjunction(ImmutableCollection<SeqExpression> pTerms) {
     return nestLogicalExpressions(pTerms, SeqLogicalOperator.AND);
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */
-  public static SeqExpression logicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
+  static SeqExpression logicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
     return nestLogicalExpressions(pTerms, SeqLogicalOperator.OR);
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
-  public static CExpression binaryDisjunction(
+  static CExpression binaryDisjunction(
       ImmutableCollection<CExpression> pDisjunctionTerms,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {

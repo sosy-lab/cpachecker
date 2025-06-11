@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+// TODO shorten function names, the class name implies that we are working with access bitvectors
 public class BitVectorAccessEvaluationBuilder {
 
   /**
@@ -63,7 +64,7 @@ public class BitVectorAccessEvaluationBuilder {
       case SCALAR -> {
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedScalarAccessBitVectorEvaluation(
-              pActiveThread, pBitVectorVariables, pBitVectorAssignments);
+              pActiveThread, pDirectVariables, pBitVectorVariables);
         } else {
           yield buildFullScalarAccessBitVectorEvaluation(pActiveThread, pBitVectorVariables);
         }
@@ -114,27 +115,24 @@ public class BitVectorAccessEvaluationBuilder {
 
   private static BitVectorEvaluationExpression buildPrunedScalarAccessBitVectorEvaluation(
       MPORThread pActiveThread,
-      BitVectorVariables pBitVectorVariables,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
       // no scalar variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
-    // TODO must use direct variable accesses instead of zero assignments here.
-    //  the zero assignments are not false per se, just less efficient because the direct variable
-    //  accesses are a subset of the 1 assignments
-    ImmutableSet<CExpression> zeroes =
-        BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
     ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
     ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
         pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
     for (var entry : scalarBitVectors.entrySet()) {
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
+      CVariableDeclaration globalVariable = entry.getKey();
+      ScalarBitVector scalarBitVector = entry.getValue();
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = scalarBitVector.variables;
       CIdExpression activeVariable =
           BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, accessVariables);
-      // if the LHS (activeVariable) is 0, then the entire && expression is 0 -> prune
-      if (!zeroes.contains(activeVariable)) {
+      // if the LHS (current variable) is not accessed, then the entire && expression is 0 -> prune
+      if (pDirectVariables.contains(globalVariable)) {
         // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
         ImmutableList<SeqExpression> otherVariables =
             BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
