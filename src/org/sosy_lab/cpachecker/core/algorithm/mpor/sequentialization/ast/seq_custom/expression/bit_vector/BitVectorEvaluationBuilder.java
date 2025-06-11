@@ -59,14 +59,27 @@ public class BitVectorEvaluationBuilder {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot prune for encoding " + pOptions.bitVectorEncoding);
-      case BINARY, DECIMAL, HEXADECIMAL ->
-          buildPrunedDenseAccessBitVectorEvaluation(
+      case BINARY, DECIMAL, HEXADECIMAL -> {
+        if (pOptions.bitVectorEvaluationPrune) {
+          yield buildPrunedDenseAccessBitVectorEvaluation(
               pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
-      case SCALAR ->
-          buildPrunedScalarAccessBitVectorEvaluation(
+        } else {
+          yield buildFullDenseAccessBitVectorEvaluation(
+              pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+        }
+      }
+      case SCALAR -> {
+        if (pOptions.bitVectorEvaluationPrune) {
+          yield buildPrunedScalarAccessBitVectorEvaluation(
               pActiveThread, pBitVectorVariables, pBitVectorAssignments);
+        } else {
+          yield buildFullScalarAccessBitVectorEvaluation(pActiveThread, pBitVectorVariables);
+        }
+      }
     };
   }
+
+  // Dense Access Bit Vectors ======================================================================
 
   private static BitVectorEvaluationExpression buildPrunedDenseAccessBitVectorEvaluation(
       MPORThread pActiveThread,
@@ -75,20 +88,37 @@ public class BitVectorEvaluationBuilder {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
+    // no direct global variable accesses -> prune (either full or entirely pruned evaluation)
     if (pDirectVariables.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
+    return buildFullDenseAccessBitVectorEvaluation(
+        pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+  }
+
+  private static BitVectorEvaluationExpression buildFullDenseAccessBitVectorEvaluation(
+      MPORThread pActiveThread,
+      ImmutableSet<CVariableDeclaration> pDirectVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
     CIntegerLiteralExpression directBitVector =
         BitVectorUtil.buildDirectBitVectorExpression(
             pBitVectorVariables.globalVariableIds, pDirectVariables);
     ImmutableSet<CExpression> otherBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
             BitVectorAccessType.ACCESS, pActiveThread);
+    CExpression rightHandSide =
+        SeqLogicalExpressionBuilder.binaryDisjunction(otherBitVectors, pBinaryExpressionBuilder);
     CBinaryExpression binaryExpression =
-        buildAccessBitVectorEvaluation(directBitVector, otherBitVectors, pBinaryExpressionBuilder);
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            directBitVector, rightHandSide, BinaryOperator.BINARY_AND);
     SeqLogicalNotExpression logicalNot = new SeqLogicalNotExpression(binaryExpression);
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
   }
+
+  // Scalar Access Bit Vectors =====================================================================
 
   private static BitVectorEvaluationExpression buildPrunedScalarAccessBitVectorEvaluation(
       MPORThread pActiveThread,
@@ -96,11 +126,15 @@ public class BitVectorEvaluationBuilder {
       ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments) {
 
     if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
+      // no scalar variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
+    // TODO must use direct variable accesses instead of zero assignments here.
+    //  the zero assignments are not false per se, just less efficient because the direct variable
+    //  accesses are a subset of the 1 assignments
     ImmutableSet<CExpression> zeroes =
         BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
-    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
+    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
     ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
         pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
     for (var entry : scalarBitVectors.entrySet()) {
@@ -113,33 +147,51 @@ public class BitVectorEvaluationBuilder {
             convertOtherVariablesToSeqExpression(activeVariable, accessVariables);
         // create logical not -> !(B || C || ...)
         SeqLogicalNotExpression logicalNot =
-            new SeqLogicalNotExpression(SeqLogicalExpressionBuilder.disjunction(otherVariables));
-        variableExpressions.add(logicalNot);
+            new SeqLogicalNotExpression(
+                SeqLogicalExpressionBuilder.logicalDisjunction(otherVariables));
+        scalarExpressions.add(logicalNot);
       }
     }
-    if (variableExpressions.build().isEmpty()) {
-      return BitVectorEvaluationExpression.empty();
-    }
-    // create conjunction of logical nots: !(B || C || ...) && !(B' || C' || ...) ...
-    SeqExpression evaluationExpression =
-        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
+    ImmutableList<SeqExpression> expressions = scalarExpressions.build();
+    return expressions.isEmpty()
+        ? BitVectorEvaluationExpression.empty()
+        : buildScalarAccessBitVectorLogicalConjunction(expressions);
   }
 
-  private static CBinaryExpression buildAccessBitVectorEvaluation(
-      CExpression pDirectBitVector,
-      // TODO make list
-      ImmutableSet<CExpression> pOtherBitVectors,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  private static BitVectorEvaluationExpression buildFullScalarAccessBitVectorEvaluation(
+      MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
-    checkArgument(!pOtherBitVectors.isEmpty());
-    checkArgument(!pOtherBitVectors.contains(pDirectBitVector));
+    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
+      // no scalar variables (i.e. no global variables) -> no evaluation
+      return BitVectorEvaluationExpression.empty();
+    }
+    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
+    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
+        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : scalarBitVectors.entrySet()) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
+      CIdExpression activeVariable = extractActiveVariable(pActiveThread, accessVariables);
+      ImmutableList<SeqExpression> otherVariables =
+          convertOtherVariablesToSeqExpression(activeVariable, accessVariables);
+      // create logical disjunction -> (B || C || ...)
+      SeqExpression disjunction = SeqLogicalExpressionBuilder.logicalDisjunction(otherVariables);
+      // create logical and -> (A && (B || C || ...))
+      // TODO intead of activeVariable, use 0 or 1 depending on access
+      SeqLogicalAndExpression logicalAnd =
+          new SeqLogicalAndExpression(new CToSeqExpression(activeVariable), disjunction);
+      // create logical not -> !(A && (B || C || ...))
+      scalarExpressions.add(new SeqLogicalNotExpression(logicalAnd));
+    }
+    return buildScalarAccessBitVectorLogicalConjunction(scalarExpressions.build());
+  }
 
-    CExpression rightHandSide =
-        SeqLogicalExpressionBuilder.binaryDisjunction(pOtherBitVectors, pBinaryExpressionBuilder);
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        pDirectBitVector, rightHandSide, BinaryOperator.BINARY_AND);
+  private static BitVectorEvaluationExpression buildScalarAccessBitVectorLogicalConjunction(
+      ImmutableList<SeqExpression> pScalarExpressions) {
+
+    // create conjunction of logical nots: !(A && (B || C || ...)) && !(A' && (B' || C' || ...)) ...
+    SeqExpression logicalConjunction =
+        SeqLogicalExpressionBuilder.logicalConjunction(pScalarExpressions);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalConjunction));
   }
 
   // Read/Write Bit Vector Reduction ===============================================================
@@ -294,6 +346,9 @@ public class BitVectorEvaluationBuilder {
       // no bit vectors (e.g. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
+    // TODO must use direct variable accesses instead of zero assignments here.
+    //  the zero assignments are not false per se, just less efficient because the direct variable
+    //  accesses are a subset of the 1 assignments
     ImmutableSet<CExpression> zeroAssignments =
         BitVectorUtil.getZeroBitVectorAssignments(pBitVectorAssignments);
 
@@ -334,7 +389,7 @@ public class BitVectorEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     SeqExpression evaluationExpression =
-        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
+        SeqLogicalExpressionBuilder.logicalConjunction(variableExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
@@ -509,7 +564,7 @@ public class BitVectorEvaluationBuilder {
               activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
     }
     SeqExpression evaluationExpression =
-        SeqLogicalExpressionBuilder.conjunction(variableExpressions.build());
+        SeqLogicalExpressionBuilder.logicalConjunction(variableExpressions.build());
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
   }
 
@@ -520,7 +575,8 @@ public class BitVectorEvaluationBuilder {
     CToSeqExpression activeReadVariable = new CToSeqExpression(pActiveReadVariable);
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
-            activeReadVariable, SeqLogicalExpressionBuilder.disjunction(pOtherWriteVariables));
+            activeReadVariable,
+            SeqLogicalExpressionBuilder.logicalDisjunction(pOtherWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
@@ -529,7 +585,7 @@ public class BitVectorEvaluationBuilder {
           ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     return new SeqLogicalNotExpression(
-        SeqLogicalExpressionBuilder.disjunction(pOtherWriteVariables));
+        SeqLogicalExpressionBuilder.logicalDisjunction(pOtherWriteVariables));
   }
 
   private static SeqLogicalNotExpression
@@ -541,7 +597,7 @@ public class BitVectorEvaluationBuilder {
     SeqLogicalAndExpression andExpression =
         new SeqLogicalAndExpression(
             activeWriteVariable,
-            SeqLogicalExpressionBuilder.disjunction(pOtherReadAndWriteVariables));
+            SeqLogicalExpressionBuilder.logicalDisjunction(pOtherReadAndWriteVariables));
     return new SeqLogicalNotExpression(andExpression);
   }
 
@@ -556,7 +612,7 @@ public class BitVectorEvaluationBuilder {
             .addAll(pOtherWriteVariables)
             .build();
     return new SeqLogicalNotExpression(
-        SeqLogicalExpressionBuilder.disjunction(otherReadAndWriteVariables));
+        SeqLogicalExpressionBuilder.logicalDisjunction(otherReadAndWriteVariables));
   }
 
   private static SeqLogicalAndExpression buildSingleVariableScalarReadWriteBitVectorEvaluation(

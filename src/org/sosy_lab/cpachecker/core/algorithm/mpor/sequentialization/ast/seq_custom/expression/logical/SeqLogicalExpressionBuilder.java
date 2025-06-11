@@ -32,13 +32,13 @@ public class SeqLogicalExpressionBuilder {
   // Conjunction and Disjunction ===================================================================
 
   /** Creates a conjunction of the given terms i.e. {@code (A && B && C && ...)}. */
-  public static SeqExpression conjunction(ImmutableCollection<SeqExpression> pConjunctionTerms) {
-    return nestLogicalExpressions(pConjunctionTerms, SeqLogicalOperator.AND);
+  public static SeqExpression logicalConjunction(ImmutableCollection<SeqExpression> pTerms) {
+    return nestLogicalExpressions(pTerms, SeqLogicalOperator.AND);
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A || B || C || ...)}. */
-  public static SeqExpression disjunction(ImmutableCollection<SeqExpression> pDisjunctionTerms) {
-    return nestLogicalExpressions(pDisjunctionTerms, SeqLogicalOperator.OR);
+  public static SeqExpression logicalDisjunction(ImmutableCollection<SeqExpression> pTerms) {
+    return nestLogicalExpressions(pTerms, SeqLogicalOperator.OR);
   }
 
   /** Creates a disjunction of the given terms i.e. {@code (A | B | C | ...)}. */
