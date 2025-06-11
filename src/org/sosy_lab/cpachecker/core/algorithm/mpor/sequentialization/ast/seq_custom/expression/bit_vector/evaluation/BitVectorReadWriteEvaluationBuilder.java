@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,42 +32,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-// TODO shorten function names, the class name implies that we are working with r/w bitvectors
 public class BitVectorReadWriteEvaluationBuilder {
 
-  public static BitVectorEvaluationExpression buildReadWriteBitVectorEvaluationByEncoding(
-      MPOROptions pOptions,
-      MPORThread pActiveThread,
-      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
-      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    if (pOptions.bitVectorEvaluationPrune) {
-      return buildPrunedReadWriteBitVectorEvaluationByEncoding(
-          pOptions,
-          pActiveThread,
-          pDirectReadVariables,
-          pDirectWriteVariables,
-          pBitVectorVariables,
-          pBinaryExpressionBuilder);
-    } else {
-      return buildFullReadWriteBitVectorEvaluationByEncoding(
-          pOptions,
-          pActiveThread,
-          pDirectReadVariables,
-          pDirectWriteVariables,
-          pBitVectorVariables,
-          pBinaryExpressionBuilder);
-    }
-  }
-
-  /**
-   * Builds a pruned evaluation expression for the given bit vectors based on the variables assigned
-   * to the bit vectors in {@code pBitVectorAssignments}.
-   */
-  private static BitVectorEvaluationExpression buildPrunedReadWriteBitVectorEvaluationByEncoding(
+  public static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
@@ -81,21 +46,38 @@ public class BitVectorReadWriteEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot prune for encoding " + pOptions.bitVectorEncoding);
-      case BINARY, DECIMAL, HEXADECIMAL ->
-          buildPrunedDenseReadWriteBitVectorEvaluation(
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
+      case BINARY, DECIMAL, HEXADECIMAL -> {
+        if (pOptions.bitVectorEvaluationPrune) {
+          yield buildPrunedDenseEvaluation(
               pActiveThread,
               pDirectReadVariables,
               pDirectWriteVariables,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
-      case SCALAR ->
-          buildPrunedScalarReadWriteBitVectorEvaluation(
+        } else {
+          yield buildFullDenseEvaluation(
+              pActiveThread,
+              pDirectReadVariables,
+              pDirectWriteVariables,
+              pBitVectorVariables,
+              pBinaryExpressionBuilder);
+        }
+      }
+      case SCALAR -> {
+        if (pOptions.bitVectorEvaluationPrune) {
+          yield buildPrunedScalarEvaluation(
               pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
+        } else {
+          yield buildFullScalarEvaluation(pActiveThread, pBitVectorVariables);
+        }
+      }
     };
   }
 
-  private static BitVectorEvaluationExpression buildPrunedDenseReadWriteBitVectorEvaluation(
+  // Pruned Dense Evaluation =======================================================================
+
+  private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
@@ -104,10 +86,10 @@ public class BitVectorReadWriteEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     Optional<SeqExpression> leftHandSide =
-        getPrunedDenseReadWriteBitVectorLeftHandSideEvaluation(
+        buildPrunedDenseLeftHandSide(
             pActiveThread, pDirectReadVariables, pBitVectorVariables, pBinaryExpressionBuilder);
     Optional<SeqExpression> rightHandSide =
-        getPrunedDenseReadWriteBitVectorRightHandSideEvaluation(
+        buildPrunedDenseRightHandSide(
             pActiveThread, pDirectWriteVariables, pBitVectorVariables, pBinaryExpressionBuilder);
 
     if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
@@ -123,7 +105,7 @@ public class BitVectorReadWriteEvaluationBuilder {
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.empty());
   }
 
-  private static Optional<SeqExpression> getPrunedDenseReadWriteBitVectorLeftHandSideEvaluation(
+  private static Optional<SeqExpression> buildPrunedDenseLeftHandSide(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       BitVectorVariables pBitVectorVariables,
@@ -140,13 +122,13 @@ public class BitVectorReadWriteEvaluationBuilder {
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pActiveThread);
       CBinaryExpression leftHandSide =
-          buildDenseReadWriteBitVectorLeftHandSideEvaluation(
+          buildGeneralDenseLeftHandSide(
               directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
       return Optional.of(new SeqLogicalNotExpression(leftHandSide));
     }
   }
 
-  private static Optional<SeqExpression> getPrunedDenseReadWriteBitVectorRightHandSideEvaluation(
+  private static Optional<SeqExpression> buildPrunedDenseRightHandSide(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -166,7 +148,7 @@ public class BitVectorReadWriteEvaluationBuilder {
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
               BitVectorAccessType.WRITE, pActiveThread);
       CBinaryExpression rRightHandSide =
-          buildDenseReadWriteBitVectorRightHandSideEvaluation(
+          buildGeneralDenseRightHandSide(
               directWriteBitVector,
               otherReadBitVectors,
               otherWriteBitVectors,
@@ -175,7 +157,82 @@ public class BitVectorReadWriteEvaluationBuilder {
     }
   }
 
-  private static BitVectorEvaluationExpression buildPrunedScalarReadWriteBitVectorEvaluation(
+  // Full Dense Evaluation =========================================================================
+
+  private static BitVectorEvaluationExpression buildFullDenseEvaluation(
+      MPORThread pActiveThread,
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      BitVectorVariables pBitVectorVariables,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableSet<CExpression> otherReadBitVectors =
+        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
+            BitVectorAccessType.READ, pActiveThread);
+    ImmutableSet<CExpression> otherWriteBitVectors =
+        pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
+            BitVectorAccessType.WRITE, pActiveThread);
+
+    // (R & (W' | W'' | ...))
+    CIntegerLiteralExpression directReadBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.globalVariableIds, pDirectReadVariables);
+    CExpression leftHandSide =
+        buildGeneralDenseLeftHandSide(
+            directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
+    // (W & (R' | R'' | ... | W' | W''))
+    CIntegerLiteralExpression directWriteBitVector =
+        BitVectorUtil.buildDirectBitVectorExpression(
+            pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
+    CExpression rightHandSide =
+        buildGeneralDenseRightHandSide(
+            directWriteBitVector,
+            otherReadBitVectors,
+            otherWriteBitVectors,
+            pBinaryExpressionBuilder);
+
+    SeqLogicalAndExpression logicalAnd =
+        new SeqLogicalAndExpression(
+            new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalAnd));
+  }
+
+  // General Dense Evaluation ======================================================================
+
+  /** General = used for both pruned and full evaluations. */
+  private static CBinaryExpression buildGeneralDenseLeftHandSide(
+      CIntegerLiteralExpression pDirectReadBitVector,
+      ImmutableSet<CExpression> pOtherWriteBitVectors,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    CExpression otherWrites =
+        BitVectorEvaluationUtil.binaryDisjunction(pOtherWriteBitVectors, pBinaryExpressionBuilder);
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        pDirectReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
+  }
+
+  /** General = used for both pruned and full evaluations. */
+  private static CBinaryExpression buildGeneralDenseRightHandSide(
+      CIntegerLiteralExpression pDirectWriteBitVector,
+      ImmutableSet<CExpression> pOtherReads,
+      ImmutableSet<CExpression> pOtherWrites,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
+        ImmutableSet.<CExpression>builder().addAll(pOtherReads).addAll(pOtherWrites).build();
+    CExpression otherReadsAndWrites =
+        BitVectorEvaluationUtil.binaryDisjunction(
+            otherReadAndWriteBitVectors, pBinaryExpressionBuilder);
+    return pBinaryExpressionBuilder.buildBinaryExpression(
+        pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
+  }
+
+  // Pruned Scalar Evaluation ======================================================================
+
+  private static BitVectorEvaluationExpression buildPrunedScalarEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
@@ -185,7 +242,7 @@ public class BitVectorReadWriteEvaluationBuilder {
       // no bit vectors (e.g. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
-    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
+    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
 
@@ -209,52 +266,44 @@ public class BitVectorReadWriteEvaluationBuilder {
               activeWriteVariable, writeVariables);
 
       Optional<SeqLogicalExpression> leftHandSide =
-          getPrunedScalarReadWriteBitVectorLeftHandSideEvaluation(
-              pDirectReadVariables, globalVariable, otherWriteVariables);
+          buildPrunedScalarLeftHandSide(pDirectReadVariables, globalVariable, otherWriteVariables);
       Optional<SeqLogicalExpression> rightHandSide =
-          getPrunedScalarReadWriteBitVectorRightHandSideEvaluation(
+          buildPrunedScalarRightHandSide(
               pDirectWriteVariables, globalVariable, otherReadVariables, otherWriteVariables);
 
       // only add expression if it was not pruned entirely (LHS or RHS present)
       if (leftHandSide.isPresent() || rightHandSide.isPresent()) {
-        variableExpressions.add(
-            buildPrunedSingleVariableScalarReadWriteBitVectorEvaluation(
-                leftHandSide, rightHandSide));
+        scalarExpressions.add(
+            buildPrunedScalarSingleVariableEvaluation(leftHandSide, rightHandSide));
       }
     }
-    if (variableExpressions.build().isEmpty()) {
+    if (scalarExpressions.build().isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
-    SeqExpression evaluationExpression =
-        BitVectorEvaluationUtil.logicalConjunction(variableExpressions.build());
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
+    return BitVectorEvaluationUtil.buildScalarLogicalConjunction(scalarExpressions.build());
   }
 
   /** Builds the logical LHS i.e. {@code !(R && (W' || W'' || ...)}. */
-  private static Optional<SeqLogicalExpression>
-      getPrunedScalarReadWriteBitVectorLeftHandSideEvaluation(
-          ImmutableSet<CVariableDeclaration> pDirectReadVariables,
-          CVariableDeclaration pGlobalVariable,
-          ImmutableList<SeqExpression> pOtherWriteVariables) {
+  private static Optional<SeqLogicalExpression> buildPrunedScalarLeftHandSide(
+      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
+      CVariableDeclaration pGlobalVariable,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     if (!pDirectReadVariables.contains(pGlobalVariable)) {
       // if the LHS is 0, then the entire && expression is 0 -> prune
       return Optional.empty();
     } else {
       // otherwise the LHS is 1, and we only need the right side of the && expression
-      return Optional.of(
-          buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-              pOtherWriteVariables));
+      return Optional.of(buildPrunedScalarSingleVariableLeftHandSide(pOtherWriteVariables));
     }
   }
 
   /** Builds the logical RHS i.e. {@code !(W && (R' || R'' || ... || W' || W'' || ...)}. */
-  private static Optional<SeqLogicalExpression>
-      getPrunedScalarReadWriteBitVectorRightHandSideEvaluation(
-          ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
-          CVariableDeclaration pGlobalVariable,
-          ImmutableList<SeqExpression> pOtherReadVariables,
-          ImmutableList<SeqExpression> pOtherWriteVariables) {
+  private static Optional<SeqLogicalExpression> buildPrunedScalarRightHandSide(
+      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
+      CVariableDeclaration pGlobalVariable,
+      ImmutableList<SeqExpression> pOtherReadVariables,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     if (!pDirectWriteVariables.contains(pGlobalVariable)) {
       // if the LHS (activeWriteVariable) is 0, then the entire && expression is 0 -> prune
@@ -262,121 +311,20 @@ public class BitVectorReadWriteEvaluationBuilder {
     } else {
       // otherwise the LHS is 1, and we only need the right side of the && expression
       return Optional.of(
-          buildPrunedSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-              pOtherReadVariables, pOtherWriteVariables));
+          buildPrunedScalarSingleVariableRightHandSide(pOtherReadVariables, pOtherWriteVariables));
     }
   }
 
-  /**
-   * Builds a generalized evaluation expression for the given bit vectors, based on {@code
-   * pActiveThread}. This expression does not factor in which values where just assigned to the bit
-   * vectors.
-   */
-  public static BitVectorEvaluationExpression buildFullReadWriteBitVectorEvaluationByEncoding(
-      MPOROptions pOptions,
-      MPORThread pActiveThread,
-      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
-      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  // Full Scalar Evaluation =======================================================================
 
-    return switch (pOptions.bitVectorEncoding) {
-      case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY, DECIMAL, HEXADECIMAL -> {
-        ImmutableSet<CExpression> otherReadBitVectors =
-            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-                BitVectorAccessType.READ, pActiveThread);
-        ImmutableSet<CExpression> otherWriteBitVectors =
-            pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-                BitVectorAccessType.WRITE, pActiveThread);
-        SeqLogicalAndExpression evaluationExpression =
-            buildFullDenseReadWriteBitVectorEvaluation(
-                pDirectReadVariables,
-                pDirectWriteVariables,
-                otherReadBitVectors,
-                otherWriteBitVectors,
-                pBitVectorVariables,
-                pBinaryExpressionBuilder);
-        yield new BitVectorEvaluationExpression(
-            Optional.empty(), Optional.of(evaluationExpression));
-      }
-      case SCALAR -> buildScalarReadWriteBitVectorEvaluation(pActiveThread, pBitVectorVariables);
-    };
-  }
-
-  private static SeqLogicalAndExpression buildFullDenseReadWriteBitVectorEvaluation(
-      ImmutableSet<CVariableDeclaration> pDirectReadVariables,
-      ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
-      ImmutableSet<CExpression> pOtherReadBitVectors,
-      ImmutableSet<CExpression> pOtherWriteBitVectors,
-      BitVectorVariables pBitVectorVariables,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    checkArgument(!pOtherReadBitVectors.isEmpty() && !pOtherWriteBitVectors.isEmpty());
-
-    // (R & (W' | W'' | ...))
-    CIntegerLiteralExpression directReadBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.globalVariableIds, pDirectReadVariables);
-    CExpression leftHandSide =
-        buildDenseReadWriteBitVectorLeftHandSideEvaluation(
-            directReadBitVector, pOtherWriteBitVectors, pBinaryExpressionBuilder);
-    // (W & (R' | R'' | ... | W' | W''))
-    CIntegerLiteralExpression directWriteBitVector =
-        BitVectorUtil.buildDirectBitVectorExpression(
-            pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
-    CExpression rightHandSide =
-        buildDenseReadWriteBitVectorRightHandSideEvaluation(
-            directWriteBitVector,
-            pOtherReadBitVectors,
-            pOtherWriteBitVectors,
-            pBinaryExpressionBuilder);
-
-    // this can also be a binary and & instead of logical and &&, but CBinaryExpression cannot take
-    // our SeqLogicalNotExpression as operands and here they are equivalent since we work with 0/1
-    return new SeqLogicalAndExpression(
-        // we negate with !, not the bit-wise negation ~
-        new SeqLogicalNotExpression(leftHandSide), new SeqLogicalNotExpression(rightHandSide));
-  }
-
-  private static CBinaryExpression buildDenseReadWriteBitVectorLeftHandSideEvaluation(
-      CIntegerLiteralExpression pDirectReadBitVector,
-      ImmutableSet<CExpression> pOtherWriteBitVectors,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    CExpression otherWrites =
-        BitVectorEvaluationUtil.binaryDisjunction(pOtherWriteBitVectors, pBinaryExpressionBuilder);
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        pDirectReadBitVector, otherWrites, BinaryOperator.BINARY_AND);
-  }
-
-  private static CBinaryExpression buildDenseReadWriteBitVectorRightHandSideEvaluation(
-      CIntegerLiteralExpression pDirectWriteBitVector,
-      ImmutableSet<CExpression> pOtherReads,
-      ImmutableSet<CExpression> pOtherWrites,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
-
-    ImmutableSet<CExpression> otherReadAndWriteBitVectors =
-        ImmutableSet.<CExpression>builder().addAll(pOtherReads).addAll(pOtherWrites).build();
-    CExpression otherReadsAndWrites =
-        BitVectorEvaluationUtil.binaryDisjunction(
-            otherReadAndWriteBitVectors, pBinaryExpressionBuilder);
-    return pBinaryExpressionBuilder.buildBinaryExpression(
-        pDirectWriteBitVector, otherReadsAndWrites, BinaryOperator.BINARY_AND);
-  }
-
-  private static BitVectorEvaluationExpression buildScalarReadWriteBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildFullScalarEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarReadBitVectors.isEmpty()
         && pBitVectorVariables.scalarWriteBitVectors.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
-    ImmutableList.Builder<SeqExpression> variableExpressions = ImmutableList.builder();
+    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
     for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
       CVariableDeclaration variableDeclaration = entry.getKey();
 
@@ -401,51 +349,25 @@ public class BitVectorReadWriteEvaluationBuilder {
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
               activeWriteVariable, writeVariables);
 
-      variableExpressions.add(
-          buildSingleVariableScalarReadWriteBitVectorEvaluation(
+      scalarExpressions.add(
+          buildFullScalarSingleVariableEvaluation(
               activeReadVariable, otherReadVariables, activeWriteVariable, otherWriteVariables));
     }
-    SeqExpression evaluationExpression =
-        BitVectorEvaluationUtil.logicalConjunction(variableExpressions.build());
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(evaluationExpression));
+    return BitVectorEvaluationUtil.buildScalarLogicalConjunction(scalarExpressions.build());
   }
 
-  private static SeqLogicalNotExpression
-      buildSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-          CIdExpression pActiveReadVariable, ImmutableList<SeqExpression> pOtherWriteVariables) {
+  // Pruned Scalar Single Variable Evaluation ======================================================
 
-    CToSeqExpression activeReadVariable = new CToSeqExpression(pActiveReadVariable);
-    SeqLogicalAndExpression andExpression =
-        new SeqLogicalAndExpression(
-            activeReadVariable, BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
-    return new SeqLogicalNotExpression(andExpression);
-  }
-
-  private static SeqLogicalNotExpression
-      buildPrunedSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-          ImmutableList<SeqExpression> pOtherWriteVariables) {
+  private static SeqLogicalNotExpression buildPrunedScalarSingleVariableLeftHandSide(
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     return new SeqLogicalNotExpression(
         BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
   }
 
-  private static SeqLogicalNotExpression
-      buildSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-          CIdExpression pActiveWriteVariable,
-          ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
-
-    CToSeqExpression activeWriteVariable = new CToSeqExpression(pActiveWriteVariable);
-    SeqLogicalAndExpression andExpression =
-        new SeqLogicalAndExpression(
-            activeWriteVariable,
-            BitVectorEvaluationUtil.logicalDisjunction(pOtherReadAndWriteVariables));
-    return new SeqLogicalNotExpression(andExpression);
-  }
-
-  private static SeqLogicalNotExpression
-      buildPrunedSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-          ImmutableList<SeqExpression> pOtherReadVariables,
-          ImmutableList<SeqExpression> pOtherWriteVariables) {
+  private static SeqLogicalNotExpression buildPrunedScalarSingleVariableRightHandSide(
+      ImmutableList<SeqExpression> pOtherReadVariables,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
 
     ImmutableList<SeqExpression> otherReadAndWriteVariables =
         ImmutableList.<SeqExpression>builder()
@@ -456,27 +378,7 @@ public class BitVectorReadWriteEvaluationBuilder {
         BitVectorEvaluationUtil.logicalDisjunction(otherReadAndWriteVariables));
   }
 
-  private static SeqLogicalAndExpression buildSingleVariableScalarReadWriteBitVectorEvaluation(
-      CIdExpression pActiveReadVariable,
-      ImmutableList<SeqExpression> pOtherReadVariables,
-      CIdExpression pActiveWriteVariable,
-      ImmutableList<SeqExpression> pOtherWriteVariables) {
-
-    SeqLogicalNotExpression leftHandSide =
-        buildSingleVariableScalarReadWriteBitVectorLeftHandSideEvaluation(
-            pActiveReadVariable, pOtherWriteVariables);
-    ImmutableList<SeqExpression> otherReadAndWriteVariables =
-        ImmutableList.<SeqExpression>builder()
-            .addAll(pOtherReadVariables)
-            .addAll(pOtherWriteVariables)
-            .build();
-    SeqLogicalNotExpression rightHandSide =
-        buildSingleVariableScalarReadWriteBitVectorRightHandSideEvaluation(
-            pActiveWriteVariable, otherReadAndWriteVariables);
-    return new SeqLogicalAndExpression(leftHandSide, rightHandSide);
-  }
-
-  private static SeqLogicalExpression buildPrunedSingleVariableScalarReadWriteBitVectorEvaluation(
+  private static SeqLogicalExpression buildPrunedScalarSingleVariableEvaluation(
       Optional<SeqLogicalExpression> pLeftHandSide, Optional<SeqLogicalExpression> pRightHandSide) {
 
     if (pLeftHandSide.isPresent() && pRightHandSide.isEmpty()) {
@@ -486,5 +388,48 @@ public class BitVectorReadWriteEvaluationBuilder {
       return pRightHandSide.orElseThrow(); // only RHS
     }
     return new SeqLogicalAndExpression(pLeftHandSide.orElseThrow(), pRightHandSide.orElseThrow());
+  }
+
+  // Full Scalar Single Variable Evaluation ========================================================
+
+  private static SeqLogicalNotExpression buildFullScalarSingleVariableLeftHandSide(
+      CIdExpression pActiveReadVariable, ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    CToSeqExpression activeReadVariable = new CToSeqExpression(pActiveReadVariable);
+    SeqLogicalAndExpression andExpression =
+        new SeqLogicalAndExpression(
+            activeReadVariable, BitVectorEvaluationUtil.logicalDisjunction(pOtherWriteVariables));
+    return new SeqLogicalNotExpression(andExpression);
+  }
+
+  private static SeqLogicalNotExpression buildFullScalarSingleVariableRightHandSide(
+      CIdExpression pActiveWriteVariable,
+      ImmutableList<SeqExpression> pOtherReadAndWriteVariables) {
+
+    CToSeqExpression activeWriteVariable = new CToSeqExpression(pActiveWriteVariable);
+    SeqLogicalAndExpression andExpression =
+        new SeqLogicalAndExpression(
+            activeWriteVariable,
+            BitVectorEvaluationUtil.logicalDisjunction(pOtherReadAndWriteVariables));
+    return new SeqLogicalNotExpression(andExpression);
+  }
+
+  private static SeqLogicalAndExpression buildFullScalarSingleVariableEvaluation(
+      CIdExpression pActiveReadVariable,
+      ImmutableList<SeqExpression> pOtherReadVariables,
+      CIdExpression pActiveWriteVariable,
+      ImmutableList<SeqExpression> pOtherWriteVariables) {
+
+    SeqLogicalNotExpression leftHandSide =
+        buildFullScalarSingleVariableLeftHandSide(pActiveReadVariable, pOtherWriteVariables);
+    ImmutableList<SeqExpression> otherReadAndWriteVariables =
+        ImmutableList.<SeqExpression>builder()
+            .addAll(pOtherReadVariables)
+            .addAll(pOtherWriteVariables)
+            .build();
+    SeqLogicalNotExpression rightHandSide =
+        buildFullScalarSingleVariableRightHandSide(
+            pActiveWriteVariable, otherReadAndWriteVariables);
+    return new SeqLogicalAndExpression(leftHandSide, rightHandSide);
   }
 }

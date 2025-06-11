@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -44,6 +45,15 @@ public class BitVectorEvaluationUtil {
   }
 
   // Conjunction and Disjunction ===================================================================
+
+  /** Creates a logical conjunction of the given terms: {@code A && B && C ...}. */
+  static BitVectorEvaluationExpression buildScalarLogicalConjunction(
+      ImmutableList<SeqExpression> pScalarExpressions) {
+
+    SeqExpression logicalConjunction =
+        BitVectorEvaluationUtil.logicalConjunction(pScalarExpressions);
+    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalConjunction));
+  }
 
   /** Creates a conjunction of the given terms i.e. {@code (A && B && C && ...)}. */
   static SeqExpression logicalConjunction(ImmutableCollection<SeqExpression> pTerms) {

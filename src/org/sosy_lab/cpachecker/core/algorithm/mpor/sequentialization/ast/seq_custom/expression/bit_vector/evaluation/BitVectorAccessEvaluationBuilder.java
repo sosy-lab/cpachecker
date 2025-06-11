@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.SeqExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalNotExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
@@ -32,18 +31,16 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-// TODO shorten function names, the class name implies that we are working with access bitvectors
 public class BitVectorAccessEvaluationBuilder {
 
   /**
-   * Builds a pruned evaluation expression for the given bit vectors based on the variables assigned
-   * to the bit vectors in {@code pBitVectorAssignments}.
+   * Builds a pruned evaluation expression for the given bit vectors based on the direct access
+   * variables.
    */
-  public static BitVectorEvaluationExpression buildAccessBitVectorEvaluationByEncoding(
+  public static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
-      ImmutableList<SeqBitVectorAssignmentStatement> pBitVectorAssignments,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -51,22 +48,21 @@ public class BitVectorAccessEvaluationBuilder {
     return switch (pOptions.bitVectorEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
-              "cannot prune for encoding " + pOptions.bitVectorEncoding);
+              "cannot build evaluation for encoding " + pOptions.bitVectorEncoding);
       case BINARY, DECIMAL, HEXADECIMAL -> {
         if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedDenseAccessBitVectorEvaluation(
+          yield buildPrunedDenseEvaluation(
               pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         } else {
-          yield buildFullDenseAccessBitVectorEvaluation(
+          yield buildFullDenseEvaluation(
               pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         }
       }
       case SCALAR -> {
         if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedScalarAccessBitVectorEvaluation(
-              pActiveThread, pDirectVariables, pBitVectorVariables);
+          yield buildPrunedScalarEvaluation(pActiveThread, pDirectVariables, pBitVectorVariables);
         } else {
-          yield buildFullScalarAccessBitVectorEvaluation(pActiveThread, pBitVectorVariables);
+          yield buildFullScalarEvaluation(pActiveThread, pBitVectorVariables);
         }
       }
     };
@@ -74,7 +70,7 @@ public class BitVectorAccessEvaluationBuilder {
 
   // Dense Access Bit Vectors ======================================================================
 
-  private static BitVectorEvaluationExpression buildPrunedDenseAccessBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
@@ -85,11 +81,11 @@ public class BitVectorAccessEvaluationBuilder {
     if (pDirectVariables.isEmpty()) {
       return BitVectorEvaluationExpression.empty();
     }
-    return buildFullDenseAccessBitVectorEvaluation(
+    return buildFullDenseEvaluation(
         pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
   }
 
-  private static BitVectorEvaluationExpression buildFullDenseAccessBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildFullDenseEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
@@ -113,7 +109,7 @@ public class BitVectorAccessEvaluationBuilder {
 
   // Scalar Access Bit Vectors =====================================================================
 
-  private static BitVectorEvaluationExpression buildPrunedScalarAccessBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildPrunedScalarEvaluation(
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
@@ -146,10 +142,10 @@ public class BitVectorAccessEvaluationBuilder {
     ImmutableList<SeqExpression> expressions = scalarExpressions.build();
     return expressions.isEmpty()
         ? BitVectorEvaluationExpression.empty()
-        : buildScalarAccessBitVectorLogicalConjunction(expressions);
+        : BitVectorEvaluationUtil.buildScalarLogicalConjunction(expressions);
   }
 
-  private static BitVectorEvaluationExpression buildFullScalarAccessBitVectorEvaluation(
+  private static BitVectorEvaluationExpression buildFullScalarEvaluation(
       MPORThread pActiveThread, BitVectorVariables pBitVectorVariables) {
 
     if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
@@ -175,15 +171,6 @@ public class BitVectorAccessEvaluationBuilder {
       // create logical not -> !(A && (B || C || ...))
       scalarExpressions.add(new SeqLogicalNotExpression(logicalAnd));
     }
-    return buildScalarAccessBitVectorLogicalConjunction(scalarExpressions.build());
-  }
-
-  private static BitVectorEvaluationExpression buildScalarAccessBitVectorLogicalConjunction(
-      ImmutableList<SeqExpression> pScalarExpressions) {
-
-    // create conjunction of logical nots: !(A && (B || C || ...)) && !(A' && (B' || C' || ...)) ...
-    SeqExpression logicalConjunction =
-        BitVectorEvaluationUtil.logicalConjunction(pScalarExpressions);
-    return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalConjunction));
+    return BitVectorEvaluationUtil.buildScalarLogicalConjunction(scalarExpressions.build());
   }
 }

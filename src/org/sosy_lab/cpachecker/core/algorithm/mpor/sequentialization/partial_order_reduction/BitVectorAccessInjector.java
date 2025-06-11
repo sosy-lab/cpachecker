@@ -149,21 +149,16 @@ class BitVectorAccessInjector {
         ImmutableSet<CVariableDeclaration> reachableVariables =
             GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
                 pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
         BitVectorEvaluationExpression evaluationExpression =
-            BitVectorAccessEvaluationBuilder.buildAccessBitVectorEvaluationByEncoding(
-                pOptions,
-                pThread,
-                directVariables,
-                bitVectorAssignments,
-                pBitVectorVariables,
-                pBinaryExpressionBuilder);
+            BitVectorAccessEvaluationBuilder.buildEvaluationByEncoding(
+                pOptions, pThread, directVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         SeqBitVectorAccessEvaluationStatement evaluationStatement =
             new SeqBitVectorAccessEvaluationStatement(
                 evaluationExpression, newTarget.block.getGotoLabel());
         newInjected.add(evaluationStatement);
         // the assignment is injected after the evaluation, it is only needed when commute fails
+        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
         newInjected.addAll(bitVectorAssignments);
       }
       return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
