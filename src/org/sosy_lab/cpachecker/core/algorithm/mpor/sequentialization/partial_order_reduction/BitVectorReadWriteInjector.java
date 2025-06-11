@@ -20,10 +20,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorReadWriteEvaluationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.ScalarBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -196,7 +196,8 @@ class BitVectorReadWriteInjector {
       for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
         boolean value = pReachableReadVariables.contains(entry.getKey());
-        ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
+        ScalarBitVectorValueExpression scalarBitVectorExpression =
+            new ScalarBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
                 readVariables.get(pThread), scalarBitVectorExpression));
@@ -204,7 +205,8 @@ class BitVectorReadWriteInjector {
       for (var entry : pBitVectorVariables.scalarWriteBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
         boolean value = pReachableWrittenVariables.contains(entry.getKey());
-        ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
+        ScalarBitVectorValueExpression scalarBitVectorExpression =
+            new ScalarBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
                 writeVariables.get(pThread), scalarBitVectorExpression));
@@ -238,7 +240,7 @@ class BitVectorReadWriteInjector {
 
     CExpression bitVectorVariable =
         pBitVectorVariables.getDenseBitVectorByAccessType(pAccessType, pThread);
-    BitVectorExpression bitVectorExpression =
+    BitVectorValueExpression bitVectorExpression =
         BitVectorUtil.buildBitVectorExpression(
             pOptions, pBitVectorVariables.globalVariableIds, pAccessedVariables);
     return new SeqBitVectorAssignmentStatement(bitVectorVariable, bitVectorExpression);

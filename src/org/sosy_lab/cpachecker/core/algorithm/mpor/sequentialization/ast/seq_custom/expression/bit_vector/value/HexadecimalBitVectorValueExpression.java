@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -17,13 +17,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class HexadecimalBitVectorExpression implements BitVectorExpression {
+public class HexadecimalBitVectorValueExpression implements BitVectorValueExpression {
 
   private final int hexLength;
 
   private final ImmutableSet<Integer> setBits;
 
-  public HexadecimalBitVectorExpression(int pHexLength, ImmutableSet<Integer> pSetBits) {
+  public HexadecimalBitVectorValueExpression(int pHexLength, ImmutableSet<Integer> pSetBits) {
     // we still use the max binary length here, because setBits represents the binary positions
     checkArgument(
         pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);

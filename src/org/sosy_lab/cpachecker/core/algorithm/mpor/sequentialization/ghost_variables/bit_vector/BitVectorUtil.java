@@ -28,10 +28,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqInitializers.SeqInitializer;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqTypes.SeqSimpleType;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BinaryBitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.DecimalBitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.HexadecimalBitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BinaryBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.DecimalBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.HexadecimalBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -56,7 +56,7 @@ public class BitVectorUtil {
 
   // Creation ======================================================================================
 
-  public static BitVectorExpression buildBitVectorExpression(
+  public static BitVectorValueExpression buildBitVectorExpression(
       MPOROptions pOptions,
       @NonNull ImmutableMap<CVariableDeclaration, Integer> pVariableIds,
       @NonNull ImmutableSet<CVariableDeclaration> pVariables) {
@@ -80,15 +80,15 @@ public class BitVectorUtil {
    * Creates a bit vector expression based on {@code pSetBits} where the left most index is {@code
    * 0} and the right most index is one smaller than the length of the bit vector.
    */
-  private static BitVectorExpression buildBitVectorExpressionByEncoding(
+  private static BitVectorValueExpression buildBitVectorExpressionByEncoding(
       BitVectorEncoding pEncoding, int pNumGlobalVariables, ImmutableSet<Integer> pSetBits) {
 
     int length = getBitVectorLengthByEncoding(pEncoding, pNumGlobalVariables);
     return switch (pEncoding) {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
-      case BINARY -> new BinaryBitVectorExpression(length, pSetBits);
-      case DECIMAL -> new DecimalBitVectorExpression(pSetBits);
-      case HEXADECIMAL -> new HexadecimalBitVectorExpression(length, pSetBits);
+      case BINARY -> new BinaryBitVectorValueExpression(length, pSetBits);
+      case DECIMAL -> new DecimalBitVectorValueExpression(pSetBits);
+      case HEXADECIMAL -> new HexadecimalBitVectorValueExpression(length, pSetBits);
       // TODO this is not so nice ...
       case SCALAR ->
           throw new IllegalArgumentException("use constructor directly for scalar bit vectors");

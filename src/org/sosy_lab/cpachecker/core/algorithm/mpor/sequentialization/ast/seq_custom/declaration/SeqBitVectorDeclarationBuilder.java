@@ -15,8 +15,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.ScalarBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
@@ -81,7 +81,7 @@ public class SeqBitVectorDeclarationBuilder {
     for (DenseBitVector denseBitVector :
         pBitVectorVariables.getDenseBitVectorsByAccessType(pAccessType)) {
 
-      BitVectorExpression initializer =
+      BitVectorValueExpression initializer =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, ImmutableSet.of());
       SeqBitVectorDeclaration bitVectorDeclaration =
@@ -123,7 +123,7 @@ public class SeqBitVectorDeclarationBuilder {
       for (MPORThread thread : pThreads) {
         assert accessVariables.containsKey(thread) : "thread must have access variable";
         CIdExpression variable = accessVariables.get(thread);
-        ScalarBitVectorExpression initializer = new ScalarBitVectorExpression(false);
+        ScalarBitVectorValueExpression initializer = new ScalarBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, variable, initializer);
         rDeclarations.add(declaration);

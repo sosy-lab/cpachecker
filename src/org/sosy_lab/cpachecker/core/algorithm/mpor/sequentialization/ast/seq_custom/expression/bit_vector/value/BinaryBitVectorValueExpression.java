@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -14,25 +14,36 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class DecimalBitVectorExpression implements BitVectorExpression {
+public class BinaryBitVectorValueExpression implements BitVectorValueExpression {
+
+  private final int binaryLength;
 
   private final ImmutableSet<Integer> setBits;
 
-  public DecimalBitVectorExpression(ImmutableSet<Integer> pSetBits) {
+  public BinaryBitVectorValueExpression(int pBinaryLength, ImmutableSet<Integer> pSetBits) {
     checkArgument(
         pSetBits.isEmpty() || Collections.max(pSetBits) < BitVectorUtil.MAX_BINARY_LENGTH);
+    binaryLength = pBinaryLength;
     setBits = pSetBits;
   }
 
   @Override
   public String toASTString() {
-    return String.valueOf(BitVectorUtil.buildDecimalBitVector(setBits));
+    StringBuilder rBitVector = new StringBuilder();
+    rBitVector.append(SeqToken._0b);
+    int leftIndex = BitVectorUtil.getLeftIndexByBinaryLength(binaryLength);
+    // build bit vector from left to right
+    for (int i = leftIndex; i >= BitVectorUtil.RIGHT_INDEX; i--) {
+      rBitVector.append(setBits.contains(i) ? SeqToken._1 : SeqToken._0);
+    }
+    return rBitVector.toString();
   }
 
   @Override
   public BitVectorEncoding getEncoding() {
-    return BitVectorEncoding.DECIMAL;
+    return BitVectorEncoding.BINARY;
   }
 
   @Override

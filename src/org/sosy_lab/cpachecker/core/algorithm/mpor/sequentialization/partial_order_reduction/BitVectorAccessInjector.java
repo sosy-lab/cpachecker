@@ -20,10 +20,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.ScalarBitVectorExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorAccessEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.ScalarBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -183,7 +183,8 @@ class BitVectorAccessInjector {
       for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pReachableVariables.contains(entry.getKey());
-        ScalarBitVectorExpression scalarBitVectorExpression = new ScalarBitVectorExpression(value);
+        ScalarBitVectorValueExpression scalarBitVectorExpression =
+            new ScalarBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
                 accessVariables.get(pThread), scalarBitVectorExpression));
@@ -191,7 +192,7 @@ class BitVectorAccessInjector {
     } else if (!pReachableVariables.isEmpty()) {
       CExpression reachableBitVector =
           pBitVectorVariables.getDenseBitVectorByAccessType(BitVectorAccessType.ACCESS, pThread);
-      BitVectorExpression reachableBitVectorExpression =
+      BitVectorValueExpression reachableBitVectorExpression =
           BitVectorUtil.buildBitVectorExpression(
               pOptions, pBitVectorVariables.globalVariableIds, pReachableVariables);
       rStatements.add(

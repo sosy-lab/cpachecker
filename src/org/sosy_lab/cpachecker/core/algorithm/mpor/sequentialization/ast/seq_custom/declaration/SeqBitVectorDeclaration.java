@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.BitVectorExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -20,10 +20,10 @@ public class SeqBitVectorDeclaration implements SeqDeclaration {
 
   private final CExpression variable;
 
-  private final BitVectorExpression initializer;
+  private final BitVectorValueExpression initializer;
 
   public SeqBitVectorDeclaration(
-      BitVectorDataType pType, CExpression pVariable, BitVectorExpression pInitializer) {
+      BitVectorDataType pType, CExpression pVariable, BitVectorValueExpression pInitializer) {
 
     type = pType;
     variable = pVariable;
