@@ -170,8 +170,8 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqThreadJoinStatement(
         joinedThreadExitVariable,
@@ -180,7 +180,21 @@ public class SeqThreadJoinStatement implements SeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements);
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqThreadJoinStatement(
+        joinedThreadExitVariable,
+        joinedThreadNotActive,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

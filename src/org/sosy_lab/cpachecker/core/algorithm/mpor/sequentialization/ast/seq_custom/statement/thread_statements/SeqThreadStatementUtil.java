@@ -72,4 +72,16 @@ public class SeqThreadStatementUtil {
     }
     return false;
   }
+
+  // Helper ========================================================================================
+
+  static ImmutableList<SeqInjectedStatement> appendInjectedStatements(
+      SeqThreadStatement pStatement,
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return ImmutableList.<SeqInjectedStatement>builder()
+        .addAll(pStatement.getInjectedStatements())
+        .addAll(pAppendedInjectedStatements)
+        .build();
+  }
 }

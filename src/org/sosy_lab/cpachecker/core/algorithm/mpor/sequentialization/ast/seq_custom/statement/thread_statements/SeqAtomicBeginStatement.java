@@ -105,11 +105,23 @@ public class SeqAtomicBeginStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqAtomicBeginStatement(
-        pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
+        pcLeftHandSide, substituteEdges, targetPc, targetGoto, pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqAtomicBeginStatement(
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

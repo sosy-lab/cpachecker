@@ -131,8 +131,6 @@ class BitVectorAccessInjector {
     // if valid target pc found, inject bit vector write and evaluation statements
     if (pCurrentStatement.getTargetPc().isPresent()) {
       ImmutableList.Builder<SeqInjectedStatement> newInjected = ImmutableList.builder();
-      // inject previous injected statements, e.g. mutex lock
-      newInjected.addAll(pCurrentStatement.getInjectedStatements());
       int intTargetPc = pCurrentStatement.getTargetPc().orElseThrow();
       if (intTargetPc == Sequentialization.EXIT_PC) {
         // for the exit pc, reset the bit vector to just 0s
@@ -161,7 +159,7 @@ class BitVectorAccessInjector {
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
         newInjected.addAll(bitVectorAssignments);
       }
-      return pCurrentStatement.cloneWithInjectedStatements(newInjected.build());
+      return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
     }
     // no valid target pc (e.g. exit pc) -> return statement as is
     return pCurrentStatement;

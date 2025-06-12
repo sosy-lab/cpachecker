@@ -84,11 +84,23 @@ public class SeqBlankStatement implements SeqThreadStatement {
     throw new UnsupportedOperationException(this.getClass().getName() + " do not have target goto");
   }
 
+  // TODO test if blank statements can have injected statements
+  //  if not -> throw exceptions here
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
-    return new SeqBlankStatement(pcLeftHandSide, targetPc, pInjectedStatements);
+    return new SeqBlankStatement(pcLeftHandSide, targetPc, pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqBlankStatement(
+        pcLeftHandSide,
+        targetPc,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

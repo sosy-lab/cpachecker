@@ -46,9 +46,19 @@ public interface SeqThreadStatement extends SeqStatement {
 
   SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel);
 
-  // TODO replace with "addInjectedStatement" (to already existing statements) and then clone
-  SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements);
+  /**
+   * Clones this statement and replaces all existing statements with {@code
+   * pReplacingInjectedStatements}.
+   */
+  SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements);
+
+  /**
+   * Clones this statement and adds the {@code pAppendingInjectedStatements} to the already existing
+   * injected statements as a suffix.
+   */
+  SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendingInjectedStatements);
 
   boolean isLinkable();
 

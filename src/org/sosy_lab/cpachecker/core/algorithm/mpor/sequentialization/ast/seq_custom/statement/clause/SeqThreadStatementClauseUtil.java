@@ -156,12 +156,12 @@ public class SeqThreadStatementClauseUtil {
       int clauseIndex = Objects.requireNonNull(pLabelClauseMap.get(targetPc));
       // for injected statements (e.g. bitvector gotos), use the block label
       int blockIndex = Objects.requireNonNull(pLabelBlockMap.get(targetPc));
-      ImmutableList<SeqInjectedStatement> newInjectedStatements =
+      ImmutableList<SeqInjectedStatement> replacingInjectedStatements =
           SeqThreadStatementClauseUtil.replaceTargetGotoLabel(
               pCurrentStatement.getInjectedStatements(), blockIndex);
       return pCurrentStatement
           .cloneWithTargetPc(clauseIndex)
-          .cloneWithInjectedStatements(newInjectedStatements);
+          .cloneReplacingInjectedStatements(replacingInjectedStatements);
 
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
       SeqBlockGotoLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();

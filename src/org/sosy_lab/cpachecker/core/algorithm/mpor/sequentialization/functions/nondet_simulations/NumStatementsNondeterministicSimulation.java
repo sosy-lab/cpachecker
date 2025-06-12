@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqCountUpdateStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -205,18 +204,14 @@ public class NumStatementsNondeterministicSimulation {
       SeqThreadStatement pStatement) {
 
     if (pStatement instanceof SeqThreadCreationStatement) {
-      ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-      newInjections.addAll(pStatement.getInjectedStatements());
-      newInjections.add(new SeqCountUpdateStatement(pCountIncrement));
-      return pStatement.cloneWithInjectedStatements(newInjections.build());
+      SeqCountUpdateStatement countUpdate = new SeqCountUpdateStatement(pCountIncrement);
+      return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(countUpdate));
 
     } else if (pStatement.getTargetPc().isPresent()) {
       int targetPc = pStatement.getTargetPc().orElseThrow();
       if (targetPc == Sequentialization.EXIT_PC) {
-        ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-        newInjections.addAll(pStatement.getInjectedStatements());
-        newInjections.add(new SeqCountUpdateStatement(pCountDecrement));
-        return pStatement.cloneWithInjectedStatements(newInjections.build());
+        SeqCountUpdateStatement countUpdate = new SeqCountUpdateStatement(pCountDecrement);
+        return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(countUpdate));
       }
     }
     return pStatement;

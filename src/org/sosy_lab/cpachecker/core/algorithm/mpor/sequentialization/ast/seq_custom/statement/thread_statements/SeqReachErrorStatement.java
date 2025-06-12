@@ -102,11 +102,22 @@ public class SeqReachErrorStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqReachErrorStatement(
-        pcLeftHandSide, substituteEdges, targetPc, pInjectedStatements);
+        pcLeftHandSide, substituteEdges, targetPc, pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqReachErrorStatement(
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

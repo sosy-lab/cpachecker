@@ -128,10 +128,29 @@ public class SeqAssumeAbortIfNotStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
+
     return new SeqAssumeAbortIfNotStatement(
-        condAssignment, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
+        condAssignment,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqAssumeAbortIfNotStatement(
+        condAssignment,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

@@ -120,11 +120,29 @@ public class SeqMutexUnlockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqMutexUnlockStatement(
-        lockedFalse, pcLeftHandSide, substituteEdges, targetPc, targetGoto, pInjectedStatements);
+        lockedFalse,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqMutexUnlockStatement(
+        lockedFalse,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

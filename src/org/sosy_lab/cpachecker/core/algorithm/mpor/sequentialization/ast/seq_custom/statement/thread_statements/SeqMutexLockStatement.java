@@ -136,8 +136,8 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqMutexLockStatement(
         mutexLockedVariable,
@@ -145,7 +145,20 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements);
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqMutexLockStatement(
+        mutexLockedVariable,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

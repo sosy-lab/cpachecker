@@ -206,8 +206,8 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqConstCpaCheckerTmpStatement(
         constCpaCheckerTmpDeclaration,
@@ -217,7 +217,22 @@ public class SeqConstCpaCheckerTmpStatement implements SeqThreadStatement {
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements);
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqConstCpaCheckerTmpStatement(
+        constCpaCheckerTmpDeclaration,
+        statementA,
+        statementB,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override

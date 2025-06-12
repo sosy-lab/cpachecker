@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -179,14 +178,11 @@ public class NondeterministicSimulationUtil {
       SeqThreadStatement pStatement,
       final ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
-    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-    // add previous injections BEFORE (otherwise undefined behavior in seq!)
-    newInjections.addAll(pStatement.getInjectedStatements());
     SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
-    newInjections.add(
+    SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(
-            pRSmallerK, pRIncrement, Objects.requireNonNull(target).block.getGotoLabel()));
-    return pStatement.cloneWithInjectedStatements(newInjections.build());
+            pRSmallerK, pRIncrement, Objects.requireNonNull(target).block.getGotoLabel());
+    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
@@ -195,10 +191,8 @@ public class NondeterministicSimulationUtil {
       CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pStatement) {
 
-    ImmutableList.Builder<SeqInjectedStatement> newInjections = ImmutableList.builder();
-    // add previous injections BEFORE (otherwise undefined behavior in seq!)
-    newInjections.addAll(pStatement.getInjectedStatements());
-    newInjections.add(new SeqRoundGotoStatement(pRSmallerK, pRIncrement, pTargetGoto));
-    return pStatement.cloneWithInjectedStatements(newInjections.build());
+    SeqRoundGotoStatement roundGoto =
+        new SeqRoundGotoStatement(pRSmallerK, pRIncrement, pTargetGoto);
+    return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 }

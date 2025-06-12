@@ -134,8 +134,8 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
   }
 
   @Override
-  public SeqThreadStatement cloneWithInjectedStatements(
-      ImmutableList<SeqInjectedStatement> pInjectedStatements) {
+  public SeqThreadStatement cloneReplacingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pReplacingInjectedStatements) {
 
     return new SeqLocalVariableDeclarationWithInitializerStatement(
         variableDeclaration,
@@ -143,7 +143,20 @@ public class SeqLocalVariableDeclarationWithInitializerStatement implements SeqT
         substituteEdges,
         targetPc,
         targetGoto,
-        pInjectedStatements);
+        pReplacingInjectedStatements);
+  }
+
+  @Override
+  public SeqThreadStatement cloneAppendingInjectedStatements(
+      ImmutableList<SeqInjectedStatement> pAppendedInjectedStatements) {
+
+    return new SeqLocalVariableDeclarationWithInitializerStatement(
+        variableDeclaration,
+        pcLeftHandSide,
+        substituteEdges,
+        targetPc,
+        targetGoto,
+        SeqThreadStatementUtil.appendInjectedStatements(this, pAppendedInjectedStatements));
   }
 
   @Override
