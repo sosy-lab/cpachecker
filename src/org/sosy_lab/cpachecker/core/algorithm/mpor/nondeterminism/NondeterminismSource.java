@@ -9,25 +9,32 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism;
 
 public enum NondeterminismSource {
+  /** When the next thread executing a (single) statement is chosen non-deterministically. */
   NEXT_THREAD(false, true),
+  /** When the number of executed statements is chosen non-deterministically. */
   NUM_STATEMENTS(true, false),
+  /**
+   * When both the next thread executing a (single) statement and the number of executed statements
+   * is chosen non-deterministically.
+   */
   NEXT_THREAD_AND_NUM_STATEMENTS(true, true);
 
-  // TODO rename everything threadLoops, the name is not fitting anymore
-  private final boolean hasThreadLoops;
+  private final boolean isNumStatementsNondeterministic;
 
-  private final boolean hasNextThread;
+  private final boolean isNextThreadNondeterministic;
 
-  NondeterminismSource(boolean pHasThreadLoops, boolean pHasNextThread) {
-    hasThreadLoops = pHasThreadLoops;
-    hasNextThread = pHasNextThread;
+  NondeterminismSource(
+      boolean pIsNumStatementsNondeterministic, boolean pIsNextThreadNondeterministic) {
+
+    isNumStatementsNondeterministic = pIsNumStatementsNondeterministic;
+    isNextThreadNondeterministic = pIsNextThreadNondeterministic;
   }
 
-  public boolean hasThreadLoops() {
-    return hasThreadLoops;
+  public boolean isNumStatementsNondeterministic() {
+    return isNumStatementsNondeterministic;
   }
 
-  public boolean hasNextThread() {
-    return hasNextThread;
+  public boolean isNextThreadNondeterministic() {
+    return isNextThreadNondeterministic;
   }
 }

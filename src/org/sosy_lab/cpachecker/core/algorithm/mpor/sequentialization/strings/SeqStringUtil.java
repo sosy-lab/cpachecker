@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqThreadLoopCountStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqInjectedBitVectorStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -226,7 +226,7 @@ public class SeqStringUtil {
     } else if (pTargetGoto.isPresent()) {
       SeqGotoStatement gotoStatement = new SeqGotoStatement(pTargetGoto.orElseThrow());
       for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
-        if (injectedStatement instanceof SeqThreadLoopCountStatement) {
+        if (injectedStatement instanceof SeqCountUpdateStatement) {
           // count updates are included, even with target gotos
           statements.append(injectedStatement.toASTString());
         }
@@ -259,7 +259,7 @@ public class SeqStringUtil {
     ImmutableList.Builder<SeqInjectedStatement> leftOver = ImmutableList.builder();
     for (SeqInjectedStatement injectedStatement : pInjectedStatements) {
       if (injectedStatement instanceof SeqInjectedBitVectorStatement bitVectorStatement) {
-        // bit vector statements are last (more expensive than r < K (cf. threadLoops))
+        // bit vector statements are last (more expensive than r < K)
         leftOver.add(bitVectorStatement);
       } else {
         rOrdered.add(injectedStatement);

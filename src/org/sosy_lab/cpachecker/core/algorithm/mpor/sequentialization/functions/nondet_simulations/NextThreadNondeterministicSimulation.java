@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqSingleLoopBuilder {
+public class NextThreadNondeterministicSimulation {
 
   /** Creates the control flow statements for all threads based on {@code pClauses}. */
-  protected static ImmutableList<LineOfCode> buildSingleLoopThreadSimulationStatements(
+  static ImmutableList<LineOfCode> buildThreadSimulations(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
@@ -40,7 +40,7 @@ public class SeqSingleLoopBuilder {
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       controlFlow.add(
-          SeqMainFunctionBuilder.buildMultiControlFlowStatement(
+          NondeterministicSimulationUtil.buildMultiControlFlowStatement(
               pOptions, pPcVariables, thread, entry.getValue(), 4, pBinaryExpressionBuilder));
     }
     return switch (pOptions.controlEncodingThread) {

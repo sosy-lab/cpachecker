@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
@@ -148,7 +149,7 @@ public class SeqMainFunction extends SeqFunction {
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
 
     // add if next_thread is a non-determinism source
-    if (options.nondeterminismSource.hasNextThread()) {
+    if (options.nondeterminismSource.isNextThreadNondeterministic()) {
       if (options.comments) {
         rBody.add(LineOfCode.empty());
         rBody.add(LineOfCode.of(2, SeqComment.NEXT_THREAD_NONDET));
@@ -184,15 +185,9 @@ public class SeqMainFunction extends SeqFunction {
       rBody.add(LineOfCode.empty());
       rBody.add(LineOfCode.of(2, SeqComment.THREAD_SIMULATION_CONTROL_FLOW));
     }
-    if (options.nondeterminismSource.hasThreadLoops()) {
-      rBody.addAll(
-          SeqThreadLoopBuilder.buildThreadLoopsSwitchStatements(
-              options, pcVariables, clauses, binaryExpressionBuilder));
-    } else {
-      rBody.addAll(
-          SeqSingleLoopBuilder.buildSingleLoopThreadSimulationStatements(
-              options, pcVariables, clauses, binaryExpressionBuilder));
-    }
+    rBody.addAll(
+        NondeterministicSimulationUtil.buildThreadSimulationsByNondeterminismSource(
+            options, pcVariables, clauses, binaryExpressionBuilder));
     rBody.add(LineOfCode.of(1, SeqSyntax.CURLY_BRACKET_RIGHT));
     // --- loop ends here ---
 
@@ -260,7 +255,7 @@ public class SeqMainFunction extends SeqFunction {
     rDeclarations.add(LineOfCode.of(1, pNumThreads.toASTString()));
 
     // next_thread
-    if (pOptions.nondeterminismSource.hasNextThread()) {
+    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
       if (pOptions.signedNondet) {
         rDeclarations.add(
             LineOfCode.of(1, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
@@ -287,12 +282,12 @@ public class SeqMainFunction extends SeqFunction {
     }
 
     // active_thread_count / cnt
-    if (!pOptions.nondeterminismSource.hasNextThread()) {
+    if (!pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
       rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.CNT.toASTString()));
     }
 
     // if enabled: K and r (for thread loops iterations)
-    if (pOptions.nondeterminismSource.hasThreadLoops()) {
+    if (pOptions.nondeterminismSource.isNumStatementsNondeterministic()) {
       rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.R.toASTString()));
       if (pOptions.signedNondet) {
         rDeclarations.add(LineOfCode.of(1, SeqVariableDeclaration.K_SIGNED.toASTString()));

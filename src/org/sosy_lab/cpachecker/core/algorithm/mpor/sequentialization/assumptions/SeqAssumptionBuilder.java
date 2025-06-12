@@ -87,7 +87,7 @@ public class SeqAssumptionBuilder {
       MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    if (pOptions.nondeterminismSource.hasNextThread()) {
+    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
       // thread count is only used when next_thread is not used
       return Optional.empty();
     }

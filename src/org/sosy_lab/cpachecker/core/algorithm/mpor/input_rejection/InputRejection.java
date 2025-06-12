@@ -78,6 +78,8 @@ public class InputRejection {
    * </ul>
    */
   public static void handleRejections(LogManager pLogger, MPOROptions pOptions, CFA pInputCfa) {
+    // TODO add rejection for writing pointers (only when bit vectors are enabled)
+    //  i.e. pointers as left hand sides in assignment statements
     checkOptions(pLogger, pOptions);
     checkLanguageC(pLogger, pInputCfa);
     checkIsParallelProgram(pLogger, pInputCfa);

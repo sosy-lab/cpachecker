@@ -13,11 +13,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqThreadLoopCountStatement implements SeqInjectedStatement {
+public class SeqCountUpdateStatement implements SeqInjectedStatement {
 
   private final CExpressionAssignmentStatement countUpdate;
 
-  public SeqThreadLoopCountStatement(CExpressionAssignmentStatement pCountUpdate) {
+  public SeqCountUpdateStatement(CExpressionAssignmentStatement pCountUpdate) {
     countUpdate = pCountUpdate;
   }
 
