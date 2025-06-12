@@ -291,8 +291,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     shutdownNotifier = pShutdownNotifier;
     inputCfa = pInputCfa;
 
-    InputRejection.handleRejections(logger, options, inputCfa);
+    options.handleOptionRejections(logger);
     options.handleOptionWarnings(logger);
+    InputRejection.handleRejections(logger, options, inputCfa);
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 

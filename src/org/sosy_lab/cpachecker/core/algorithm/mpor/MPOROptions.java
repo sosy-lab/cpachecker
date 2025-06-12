@@ -107,9 +107,6 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
-    checkArgument(
-        !pControlEncodingStatement.equals(MultiControlEncoding.NONE),
-        "controlEncodingStatement cannot be " + MultiControlEncoding.NONE);
 
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
@@ -215,8 +212,14 @@ public class MPOROptions {
     return true;
   }
 
+  void handleOptionRejections(LogManager pLogger) {
+    if (controlEncodingStatement.equals(MultiControlEncoding.NONE)) {
+      pLogger.log(Level.SEVERE, "controlEncodingStatement cannot be %s", MultiControlEncoding.NONE);
+    }
+  }
+
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */
-  protected void handleOptionWarnings(LogManager pLogger) {
+  void handleOptionWarnings(LogManager pLogger) {
     if (!linkReduction && bitVectorReduction.isEnabled()) {
       pLogger.log(
           Level.WARNING,
