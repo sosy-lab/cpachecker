@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -31,11 +31,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  *
  * <p>with the default sequentialization error {@code default: reach_error(...); }
  */
-public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
+public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final MPOROptions options;
 
-  private final SeqSingleControlFlowStatement switchExpression;
+  private final SeqSingleControlStatement switchExpression;
 
   private final Optional<CFunctionCallStatement> assumptions;
 
@@ -43,7 +43,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   private final int tabs;
 
-  public SeqSwitchStatement(
+  SeqSwitchStatement(
       MPOROptions pOptions,
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
@@ -52,7 +52,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
     options = pOptions;
     switchExpression =
-        new SeqSingleControlFlowStatement(pExpression, SeqControlFlowStatementType.SWITCH);
+        new SeqSingleControlStatement(pExpression, SingleControlStatementEncoding.SWITCH);
     assumptions = pAssumption;
     statements = pStatements;
     tabs = pTabs;
@@ -76,8 +76,8 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlEncoding getEncoding() {
-    return MultiControlEncoding.SWITCH_CASE;
+  public MultiControlStatementEncoding getEncoding() {
+    return MultiControlStatementEncoding.SWITCH_CASE;
   }
 
   private static String buildAssumptionsString(

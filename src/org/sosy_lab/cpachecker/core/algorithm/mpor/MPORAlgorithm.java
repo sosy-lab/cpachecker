@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -100,14 +100,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "defines the syntax in which the next thread executing a statement is chosen."
               + " may slow down or improve performance, depending on the verifier.")
-  private MultiControlEncoding controlEncodingThread = MultiControlEncoding.IF_ELSE_CHAIN;
+  private MultiControlStatementEncoding controlEncodingThread =
+      MultiControlStatementEncoding.IF_ELSE_CHAIN;
 
   @Option(
       secure = true,
       description =
           "defines the syntax in which the next statement of a thread simulation is chosen."
               + " may slow down or improve performance, depending on the verifier.")
-  private MultiControlEncoding controlEncodingStatement = MultiControlEncoding.SWITCH_CASE;
+  private MultiControlStatementEncoding controlEncodingStatement =
+      MultiControlStatementEncoding.SWITCH_CASE;
 
   @Option(
       secure = true,

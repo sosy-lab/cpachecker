@@ -47,7 +47,7 @@ public class SeqStringUtil {
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
-  public static String buildSuffixByControlEncoding(MPOROptions pOptions) {
+  public static String buildSuffixByMultiControlStatementEncoding(MPOROptions pOptions) {
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement) {
       case NONE ->

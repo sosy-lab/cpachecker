@@ -10,6 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
-public interface SeqMultiControlFlowStatement extends SeqStatement {
-  MultiControlEncoding getEncoding();
+public interface SeqMultiControlStatement extends SeqStatement {
+  MultiControlStatementEncoding getEncoding();
 }

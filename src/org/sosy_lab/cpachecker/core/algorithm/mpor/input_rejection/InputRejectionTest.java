@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection.InputRejectionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
@@ -57,8 +57,8 @@ public class InputRejectionTest {
             false,
             BitVectorReduction.NONE,
             false,
-            MultiControlEncoding.SWITCH_CASE,
-            MultiControlEncoding.SWITCH_CASE,
+            MultiControlStatementEncoding.SWITCH_CASE,
+            MultiControlStatementEncoding.SWITCH_CASE,
             false,
             false,
             false,

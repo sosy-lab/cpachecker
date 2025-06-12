@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.har
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Represents a binary search tree with {@code if-else} branches. */
-public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
+public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   private final CLeftHandSide expression;
 
@@ -39,7 +39,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public SeqBinaryIfTreeStatement(
+  SeqBinaryIfTreeStatement(
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
@@ -64,8 +64,8 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlEncoding getEncoding() {
-    return MultiControlEncoding.BINARY_IF_TREE;
+  public MultiControlStatementEncoding getEncoding() {
+    return MultiControlStatementEncoding.BINARY_IF_TREE;
   }
 
   /**
@@ -124,13 +124,13 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   private LineOfCode buildIfSmallerSubtree(int pDepth, int pMid, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlFlowStatement ifSubtree =
-        new SeqSingleControlFlowStatement(
+    SeqSingleControlStatement ifSubtree =
+        new SeqSingleControlStatement(
             binaryExpressionBuilder.buildBinaryExpression(
                 pPc,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
                 BinaryOperator.LESS_THAN),
-            SeqControlFlowStatementType.IF);
+            SingleControlStatementEncoding.IF);
     return LineOfCode.of(
         pDepth, ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
   }
@@ -138,7 +138,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
   private LineOfCode buildElseSubtree(int pDepth, SeqStatement pLowStatement)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlFlowStatement elseSubtree = new SeqSingleControlFlowStatement();
+    SeqSingleControlStatement elseSubtree = new SeqSingleControlStatement();
     if (pLowStatement instanceof SeqBinaryIfTreeStatement) {
       // add additional newline prefix, if else subtree is binary tree itself
       return LineOfCode.withNewlinePrefix(
@@ -159,43 +159,43 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlFlowStatement {
     SeqStatement lowStatement = pStatements.get(pLow);
     // if statement is a clause, use its label number as the equals check
     int low = getLabelNumberOrIndex(lowStatement, pLow);
-    SeqSingleControlFlowStatement ifLeaf =
-        new SeqSingleControlFlowStatement(
+    SeqSingleControlStatement ifLeaf =
+        new SeqSingleControlStatement(
             binaryExpressionBuilder.buildBinaryExpression(
                 pPc,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(low),
                 BinaryOperator.EQUALS),
-            SeqControlFlowStatementType.IF);
+            SingleControlStatementEncoding.IF);
     return buildLeaf(ifLeaf, lowStatement, pInitialDepth, pDepth);
   }
 
   private LineOfCode buildElseLeaf(SeqStatement pHighStatement, int pInitialDepth, int pDepth)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlFlowStatement elseLeaf = new SeqSingleControlFlowStatement();
+    SeqSingleControlStatement elseLeaf = new SeqSingleControlStatement();
     return buildLeaf(elseLeaf, pHighStatement, pInitialDepth, pDepth);
   }
 
   private LineOfCode buildLeaf(
-      SeqSingleControlFlowStatement pControlFlowStatement,
+      SeqSingleControlStatement pSingleControlStatement,
       SeqStatement pStatement,
       int pInitialDepth,
       int pDepth)
       throws UnrecognizedCodeException {
 
-    String prefix = pControlFlowStatement.toASTString() + SeqSyntax.SPACE;
+    String prefix = pSingleControlStatement.toASTString() + SeqSyntax.SPACE;
     if (pStatement instanceof SeqBinaryIfTreeStatement) {
       // no newline if the statement itself is a binary tree for formatting
       String code =
           SeqStringUtil.wrapInCurlyInwardsWithNewlines(pStatement.toASTString(), 0, pDepth);
-      if (pControlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
+      if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
         // no additional tabs, when else leaf is binary tree so that "} else {" is compact
         return LineOfCode.withoutNewlineSuffix(0, SeqSyntax.SPACE + prefix + code);
       }
       return LineOfCode.withoutNewlineSuffix(pDepth, prefix + code);
     } else {
       String code = SeqStringUtil.wrapInCurlyInwards(pStatement.toASTString());
-      if (pControlFlowStatement.type.equals(SeqControlFlowStatementType.ELSE)) {
+      if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
         if (pInitialDepth == pDepth) {
           // align if-else leafs
           return LineOfCode.of(pDepth - 1, prefix + code);

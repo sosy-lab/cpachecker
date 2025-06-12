@@ -19,7 +19,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 
@@ -41,9 +41,9 @@ public class MPOROptions {
 
   public final boolean consecutiveLabels;
 
-  public final MultiControlEncoding controlEncodingThread;
+  public final MultiControlStatementEncoding controlEncodingThread;
 
-  public final MultiControlEncoding controlEncodingStatement;
+  public final MultiControlStatementEncoding controlEncodingStatement;
 
   public final boolean inputFunctionDeclarations;
 
@@ -82,8 +82,8 @@ public class MPOROptions {
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
       boolean pConsecutiveLabels,
-      MultiControlEncoding pControlEncodingThread,
-      MultiControlEncoding pControlEncodingStatement,
+      MultiControlStatementEncoding pControlEncodingThread,
+      MultiControlStatementEncoding pControlEncodingStatement,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
@@ -139,8 +139,8 @@ public class MPOROptions {
       boolean pPruneBitVectorEvaluation,
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
-      MultiControlEncoding pControlEncodingThread,
-      MultiControlEncoding pControlEncodingStatement,
+      MultiControlStatementEncoding pControlEncodingThread,
+      MultiControlStatementEncoding pControlEncodingStatement,
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
@@ -213,8 +213,11 @@ public class MPOROptions {
   }
 
   void handleOptionRejections(LogManager pLogger) {
-    if (controlEncodingStatement.equals(MultiControlEncoding.NONE)) {
-      pLogger.log(Level.SEVERE, "controlEncodingStatement cannot be %s", MultiControlEncoding.NONE);
+    if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
+      pLogger.log(
+          Level.SEVERE,
+          "controlEncodingStatement cannot be %s",
+          MultiControlStatementEncoding.NONE);
     }
   }
 
@@ -245,7 +248,7 @@ public class MPOROptions {
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
     }
     if (!nondeterminismSource.isNextThreadNondeterministic()) {
-      if (!controlEncodingThread.equals(MultiControlEncoding.NONE)) {
+      if (!controlEncodingThread.equals(MultiControlStatementEncoding.NONE)) {
         pLogger.log(
             Level.WARNING,
             "WARNING: controlEncodingThread is not NONE, but the next thread is not chosen"

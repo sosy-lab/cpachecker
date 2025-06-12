@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
 
-public enum MultiControlEncoding {
+public enum MultiControlStatementEncoding {
   /** Used when the next thread is chosen deterministically. */
   NONE,
   BINARY_IF_TREE,

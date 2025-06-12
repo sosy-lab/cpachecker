@@ -25,7 +25,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
@@ -75,10 +76,10 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     rLines.add(LineOfCode.of(2, pKGreaterZeroAssumption.toASTString()));
     rLines.add(LineOfCode.of(2, pRReset.toASTString()));
 
-    ImmutableList<SeqMultiControlFlowStatement> innerMultiControlStatements =
+    ImmutableList<SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
             pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
-    SeqMultiControlFlowStatement outerMultiControlStatement =
+    SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
             pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(outerMultiControlStatement.toASTString()));
@@ -86,14 +87,14 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     return rLines.build();
   }
 
-  private static ImmutableList<SeqMultiControlFlowStatement> buildInnerMultiControlStatements(
+  private static ImmutableList<SeqMultiControlStatement> buildInnerMultiControlStatements(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqMultiControlFlowStatement> rStatements = ImmutableList.builder();
+    ImmutableList.Builder<SeqMultiControlStatement> rStatements = ImmutableList.builder();
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
@@ -104,7 +105,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     return rStatements.build();
   }
 
-  private static SeqMultiControlFlowStatement buildSingleThreadMultiControlStatementWithoutCount(
+  private static SeqMultiControlStatement buildSingleThreadMultiControlStatementWithoutCount(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
@@ -118,7 +119,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    return NondeterministicSimulationUtil.buildMultiControlStatementByEncoding(
+    return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
         pOptions.controlEncodingStatement,
         expression,

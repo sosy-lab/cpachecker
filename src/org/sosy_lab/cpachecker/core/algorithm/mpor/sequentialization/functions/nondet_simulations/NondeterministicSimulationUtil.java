@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -27,14 +26,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqBinaryIfTreeStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqIfElseChainStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqSwitchStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqRoundGotoStatement;
@@ -69,47 +64,16 @@ public class NondeterministicSimulationUtil {
 
   // Multi Control Flow Statements =================================================================
 
-  // TODO should have a multi control statement builder, and make the constructors package private
-  /** Creates the {@link SeqMultiControlFlowStatement} for {@code pThread}. */
-  static SeqMultiControlFlowStatement buildMultiControlStatementByEncoding(
-      MPOROptions pOptions,
-      MultiControlEncoding pMultiControlEncoding,
-      CLeftHandSide pExpression,
-      Optional<CFunctionCallStatement> pAssumption,
-      ImmutableList<? extends SeqStatement> pStatements,
-      int pTabs,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
-
-    return switch (pMultiControlEncoding) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot build statements for control encoding " + pMultiControlEncoding);
-      case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(
-              pExpression, pAssumption, pStatements, pTabs, pBinaryExpressionBuilder);
-      case IF_ELSE_CHAIN ->
-          new SeqIfElseChainStatement(
-              pExpression,
-              Sequentialization.INIT_PC,
-              pAssumption,
-              pStatements,
-              pTabs,
-              pBinaryExpressionBuilder);
-      case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pExpression, pAssumption, pStatements, pTabs);
-    };
-  }
-
   /**
-   * Creates the outer {@link SeqMultiControlFlowStatement} used for matching the {@code
-   * next_thread} variable.
+   * Creates the outer {@link SeqMultiControlStatement} used for matching the {@code next_thread}
+   * variable.
    */
-  static SeqMultiControlFlowStatement buildOuterMultiControlStatement(
+  static SeqMultiControlStatement buildOuterMultiControlStatement(
       MPOROptions pOptions,
-      ImmutableList<SeqMultiControlFlowStatement> pInnerMultiControlStatements,
+      ImmutableList<SeqMultiControlStatement> pInnerMultiControlStatements,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    return NondeterministicSimulationUtil.buildMultiControlStatementByEncoding(
+    return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
         pOptions.controlEncodingThread,
         SeqIdExpression.NEXT_THREAD,

@@ -16,9 +16,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqSingleControlFlowStatement implements SeqStatement {
+public class SeqSingleControlStatement implements SeqStatement {
 
-  public enum SeqControlFlowStatementType {
+  // TODO add interface and separate classes here
+  public enum SingleControlStatementEncoding {
     ELSE("else"),
     ELSE_IF("else if"),
     IF("if"),
@@ -27,12 +28,12 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
 
     public final String keyword;
 
-    SeqControlFlowStatementType(String pKeyword) {
+    SingleControlStatementEncoding(String pKeyword) {
       keyword = pKeyword;
     }
   }
 
-  public final SeqControlFlowStatementType type;
+  public final SingleControlStatementEncoding encoding;
 
   private final Optional<CExpression> cExpression;
 
@@ -40,18 +41,20 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
 
   private final Optional<CAssumeEdge> assumeEdge;
 
-  public SeqSingleControlFlowStatement(
-      CExpression pCExpression, SeqControlFlowStatementType pType) {
-    type = pType;
+  public SeqSingleControlStatement(
+      CExpression pCExpression, SingleControlStatementEncoding pEncoding) {
+
+    encoding = pEncoding;
     cExpression = Optional.of(pCExpression);
     seqExpression = Optional.empty();
     assumeEdge = Optional.empty();
   }
 
   /** Use this constructor if the expression is a logical AND, OR, NOT. */
-  public SeqSingleControlFlowStatement(
-      SeqExpression pSeqExpression, SeqControlFlowStatementType pType) {
-    type = pType;
+  public SeqSingleControlStatement(
+      SeqExpression pSeqExpression, SingleControlStatementEncoding pEncoding) {
+
+    encoding = pEncoding;
     cExpression = Optional.empty();
     seqExpression = Optional.of(pSeqExpression);
     assumeEdge = Optional.empty();
@@ -61,8 +64,10 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
    * {@link CAssumeEdge#getExpression()} does not negate the returned {@link CExpression}, forcing
    * us to use {@link CAssumeEdge#getCode()} instead.
    */
-  public SeqSingleControlFlowStatement(CAssumeEdge pAssumeEdge, SeqControlFlowStatementType pType) {
-    type = pType;
+  public SeqSingleControlStatement(
+      CAssumeEdge pAssumeEdge, SingleControlStatementEncoding pEncoding) {
+
+    encoding = pEncoding;
     cExpression = Optional.empty();
     seqExpression = Optional.empty();
     assumeEdge = Optional.of(pAssumeEdge);
@@ -70,8 +75,8 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
 
   // TODO refactor this, empty constructor is not so nice and unclear
   /** Use this constructor when there is no expression, i.e. {@code else { ... }} */
-  public SeqSingleControlFlowStatement() {
-    type = SeqControlFlowStatementType.ELSE;
+  public SeqSingleControlStatement() {
+    encoding = SingleControlStatementEncoding.ELSE;
     cExpression = Optional.empty();
     seqExpression = Optional.empty();
     assumeEdge = Optional.empty();
@@ -88,9 +93,9 @@ public class SeqSingleControlFlowStatement implements SeqStatement {
       expression = assumeEdge.orElseThrow().getCode();
     } else {
       // no expression -> just else
-      return type.keyword;
+      return encoding.keyword;
     }
-    return type.keyword
+    return encoding.keyword
         + SeqSyntax.SPACE
         + SeqSyntax.BRACKET_LEFT
         + expression

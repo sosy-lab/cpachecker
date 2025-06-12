@@ -27,9 +27,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqCountUpdateStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
@@ -85,8 +86,8 @@ public class NumStatementsNondeterministicSimulation {
               pPcVariables.getPcLeftHandSide(thread.id), pBinaryExpressionBuilder);
       SeqLogicalAndExpression loopCondition =
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
-      SeqSingleControlFlowStatement ifStatement =
-          new SeqSingleControlFlowStatement(loopCondition, SeqControlFlowStatementType.IF);
+      SeqSingleControlStatement ifStatement =
+          new SeqSingleControlStatement(loopCondition, SingleControlStatementEncoding.IF);
       rLines.add(LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
 
       // add the thread loop statements (assumptions and switch)
@@ -113,8 +114,8 @@ public class NumStatementsNondeterministicSimulation {
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    SeqMultiControlFlowStatement multiControlFlowStatement =
-        NondeterministicSimulationUtil.buildMultiControlStatementByEncoding(
+    SeqMultiControlStatement multiControlStatement =
+        MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,
             pOptions.controlEncodingStatement,
             expression,
@@ -122,7 +123,7 @@ public class NumStatementsNondeterministicSimulation {
             clauses,
             3,
             pBinaryExpressionBuilder);
-    rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlFlowStatement.toASTString()));
+    rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
     return rLines.build();
   }
 

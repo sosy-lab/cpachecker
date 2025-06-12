@@ -55,7 +55,7 @@ public class SeqThreadStatementBlock implements SeqStatement {
       statementsString.append(SeqSyntax.NEWLINE).append(SeqStringUtil.buildTab(BLOCK_TABS));
       statementsString.append(statements.get(i).toASTString()).append(SeqSyntax.SPACE);
     }
-    Optional<String> suffix = tryBuildControlFlowSuffixByEncoding(options, statements);
+    Optional<String> suffix = tryBuildSuffixByMultiControlStatementEncoding(options, statements);
     return SeqSyntax.NEWLINE
         + SeqStringUtil.buildTab(GOTO_LABEL_TABS)
         + gotoLabel.toASTString()
@@ -99,13 +99,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
     return SeqThreadStatementUtil.startsInAtomicBlock(getFirstStatement());
   }
 
-  private static Optional<String> tryBuildControlFlowSuffixByEncoding(
+  private static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
       MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
 
     // TODO this can probably be removed entirely now
     // e.g. mutex lock always requires break/continue if mutex is locked
     if (SeqThreadStatementUtil.anySynchronizesThreads(pStatements)) {
-      return Optional.of(SeqStringUtil.buildSuffixByControlEncoding(pOptions));
+      return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions));
     }
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
@@ -113,6 +113,6 @@ public class SeqThreadStatementBlock implements SeqStatement {
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(SeqStringUtil.buildSuffixByControlEncoding(pOptions));
+    return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions));
   }
 }

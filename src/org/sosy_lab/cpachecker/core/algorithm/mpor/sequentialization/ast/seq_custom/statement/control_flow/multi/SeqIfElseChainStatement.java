@@ -17,15 +17,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement.SeqControlFlowStatementType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqIfElseChainStatement implements SeqMultiControlFlowStatement {
+public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   private final CLeftHandSide expression;
 
@@ -39,7 +39,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlFlowStatement {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
-  public SeqIfElseChainStatement(
+  SeqIfElseChainStatement(
       CLeftHandSide pExpression,
       int pStartNumber,
       Optional<CFunctionCallStatement> pAssumption,
@@ -81,15 +81,15 @@ public class SeqIfElseChainStatement implements SeqMultiControlFlowStatement {
       boolean isFirst = currentIndex == pStartNumber;
 
       // first statement: use "if", otherwise "else if"
-      SeqControlFlowStatementType controlStatementType =
-          isFirst ? SeqControlFlowStatementType.IF : SeqControlFlowStatementType.ELSE_IF;
+      SingleControlStatementEncoding controlStatementType =
+          isFirst ? SingleControlStatementEncoding.IF : SingleControlStatementEncoding.ELSE_IF;
       CBinaryExpression expressionEquals =
           pBinaryExpressionBuilder.buildBinaryExpression(
               pExpression,
               SeqExpressionBuilder.buildIntegerLiteralExpression(currentIndex),
               BinaryOperator.EQUALS);
-      SeqSingleControlFlowStatement controlStatement =
-          new SeqSingleControlFlowStatement(expressionEquals, controlStatementType);
+      SeqSingleControlStatement controlStatement =
+          new SeqSingleControlStatement(expressionEquals, controlStatementType);
       String controlStatementString = controlStatement.toASTString();
       ifElseChain.add(
           LineOfCode.of(
@@ -106,7 +106,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlFlowStatement {
   }
 
   @Override
-  public MultiControlEncoding getEncoding() {
-    return MultiControlEncoding.IF_ELSE_CHAIN;
+  public MultiControlStatementEncoding getEncoding() {
+    return MultiControlStatementEncoding.IF_ELSE_CHAIN;
   }
 }

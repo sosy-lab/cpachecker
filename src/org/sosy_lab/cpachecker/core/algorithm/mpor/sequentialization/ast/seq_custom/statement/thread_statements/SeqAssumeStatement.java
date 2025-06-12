@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlFlowStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqThreadStatement {
 
-  public final SeqSingleControlFlowStatement controlFlowStatement;
+  public final SeqSingleControlStatement controlStatement;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -36,12 +36,12 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeStatement(
-      SeqSingleControlFlowStatement pControlFlowStatement,
+      SeqSingleControlStatement pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
 
-    controlFlowStatement = pControlFlowStatement;
+    controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = Optional.of(pTargetPc);
@@ -50,14 +50,14 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   private SeqAssumeStatement(
-      SeqSingleControlFlowStatement pControlFlowStatement,
+      SeqSingleControlStatement pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
       Optional<SeqBlockGotoLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
-    controlFlowStatement = pControlFlowStatement;
+    controlStatement = pControlStatement;
     pcLeftHandSide = pPcLeftHandSide;
     substituteEdges = pSubstituteEdges;
     targetPc = pTargetPc;
@@ -70,7 +70,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
     String targetStatements =
         SeqStringUtil.buildTargetStatements(
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
-    return controlFlowStatement.toASTString()
+    return controlStatement.toASTString()
         + SeqSyntax.SPACE
         + SeqStringUtil.wrapInCurlyInwards(targetStatements);
   }
@@ -98,7 +98,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqAssumeStatement cloneWithTargetPc(int pTargetPc) {
     return new SeqAssumeStatement(
-        controlFlowStatement,
+        controlStatement,
         pcLeftHandSide,
         substituteEdges,
         Optional.of(pTargetPc),
@@ -109,7 +109,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   @Override
   public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
     return new SeqAssumeStatement(
-        controlFlowStatement,
+        controlStatement,
         pcLeftHandSide,
         substituteEdges,
         Optional.empty(),
@@ -122,7 +122,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     return new SeqAssumeStatement(
-        controlFlowStatement,
+        controlStatement,
         pcLeftHandSide,
         substituteEdges,
         targetPc,
