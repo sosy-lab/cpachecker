@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
@@ -554,14 +553,15 @@ public final class PredicatePrecisionBootstrapper {
   }
 
   private Collection<ExpressionTree<AExpression>> split(ExpressionTree<AExpression> pExpr) {
-    Builder<ExpressionTree<AExpression>> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<ExpressionTree<AExpression>> builder = ImmutableSet.builder();
     split0(pExpr, builder);
     return builder.build();
   }
 
   /** Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder. */
   private void split0(
-      ExpressionTree<AExpression> pExpr, Builder<ExpressionTree<AExpression>> pSetBuilder) {
+      ExpressionTree<AExpression> pExpr,
+      ImmutableSet.Builder<ExpressionTree<AExpression>> pSetBuilder) {
     if (pExpr instanceof And) {
       ((And<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
     } else if (pExpr instanceof Or) {

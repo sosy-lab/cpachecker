@@ -174,7 +174,7 @@ public final class PredicateMapWriter {
               AbstractionFormula.asExpressionTree(
                       pPredicate.getSymbolicAtom(), pFmgr, x -> true, y -> y)
                   .toString());
-        } catch (TranslationToExpressionTreeFailedException | InterruptedException pE) {
+        } catch (TranslationToExpressionTreeFailedException | InterruptedException e) {
           yield Optional.empty();
         }
       }
