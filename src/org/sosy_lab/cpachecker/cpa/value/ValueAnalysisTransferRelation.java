@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBuiltinLogicType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -1292,7 +1291,8 @@ public class ValueAnalysisTransferRelation
     } else if (expression instanceof CRightHandSide) {
       return evv.evaluate((CRightHandSide) expression, (CType) type);
     } else if (expression instanceof AcslPredicate) {
-      return evv.evaluate((AcslPredicate) expression, (AcslType) type);
+      //TODO implement Acsl handling in ValueAnalysis
+      return BooleanValue.TRUE_VALUE;
     } else {
       throw new AssertionError("unhandled righthandside-expression: " + expression);
     }
