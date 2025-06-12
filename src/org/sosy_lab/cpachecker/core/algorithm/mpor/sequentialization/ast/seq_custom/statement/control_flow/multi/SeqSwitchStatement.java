@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
@@ -45,7 +45,7 @@ public class SeqSwitchStatement implements SeqMultiControlFlowStatement {
 
   public SeqSwitchStatement(
       MPOROptions pOptions,
-      CExpression pExpression,
+      CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs) {

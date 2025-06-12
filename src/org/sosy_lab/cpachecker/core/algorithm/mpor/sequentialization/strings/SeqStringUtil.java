@@ -50,6 +50,9 @@ public class SeqStringUtil {
   public static String buildSuffixByControlEncoding(MPOROptions pOptions) {
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
       case BINARY_IF_TREE, IF_ELSE_CHAIN -> SeqToken._continue + SeqSyntax.SEMICOLON;
       // tests showed that using break in switch is more efficient than continue, despite the loop
       case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;

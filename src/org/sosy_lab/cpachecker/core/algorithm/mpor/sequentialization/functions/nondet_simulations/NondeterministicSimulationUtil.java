@@ -27,8 +27,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqBinaryIfTreeStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqIfElseChainStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.SeqMultiControlFlowStatement;
@@ -67,37 +69,58 @@ public class NondeterministicSimulationUtil {
 
   // Multi Control Flow Statements =================================================================
 
+  // TODO should have a multi control statement builder, and make the constructors package private
   /** Creates the {@link SeqMultiControlFlowStatement} for {@code pThread}. */
-  static SeqMultiControlFlowStatement buildMultiControlFlowStatement(
+  static SeqMultiControlFlowStatement buildMultiControlStatementByEncoding(
       MPOROptions pOptions,
-      PcVariables pPcVariables,
-      MPORThread pThread,
-      ImmutableList<SeqThreadStatementClause> pClauses,
+      MultiControlEncoding pMultiControlEncoding,
+      CLeftHandSide pExpression,
+      Optional<CFunctionCallStatement> pAssumption,
+      ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
-    CLeftHandSide pcExpression = pPcVariables.getPcLeftHandSide(pThread.id);
-    Optional<CFunctionCallStatement> assumption =
-        buildThreadActiveAssumption(pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    return switch (pOptions.controlEncodingStatement) {
+    return switch (pMultiControlEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build statements for control encoding " + pMultiControlEncoding);
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
-              pcExpression, assumption, pClauses, pTabs, pBinaryExpressionBuilder);
+              pExpression, pAssumption, pStatements, pTabs, pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
           new SeqIfElseChainStatement(
-              pcExpression,
+              pExpression,
               Sequentialization.INIT_PC,
-              assumption,
-              pClauses,
+              pAssumption,
+              pStatements,
               pTabs,
               pBinaryExpressionBuilder);
       case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pcExpression, assumption, pClauses, pTabs);
+          new SeqSwitchStatement(pOptions, pExpression, pAssumption, pStatements, pTabs);
     };
   }
 
-  private static Optional<CFunctionCallStatement> buildThreadActiveAssumption(
+  /**
+   * Creates the outer {@link SeqMultiControlFlowStatement} used for matching the {@code
+   * next_thread} variable.
+   */
+  static SeqMultiControlFlowStatement buildOuterMultiControlStatement(
+      MPOROptions pOptions,
+      ImmutableList<SeqMultiControlFlowStatement> pInnerMultiControlStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+
+    return NondeterministicSimulationUtil.buildMultiControlStatementByEncoding(
+        pOptions,
+        pOptions.controlEncodingThread,
+        SeqIdExpression.NEXT_THREAD,
+        // the outer multi control statement never has an assumption
+        Optional.empty(),
+        pInnerMultiControlStatements,
+        2,
+        pBinaryExpressionBuilder);
+  }
+
+  static Optional<CFunctionCallStatement> buildNextThreadActiveAssumption(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,

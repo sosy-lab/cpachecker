@@ -10,11 +10,14 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -70,7 +73,7 @@ public class NumStatementsNondeterministicSimulation {
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
-      ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
+      ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
 
       // choose nondet iterations and reset current iteration before each loop
       rLines.add(LineOfCode.of(2, pKNondet.toASTString()));
@@ -89,7 +92,7 @@ public class NumStatementsNondeterministicSimulation {
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
           buildSingleThreadClausesWithCount(
-              pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
+              pOptions, pPcVariables, thread, clauses, pBinaryExpressionBuilder));
       rLines.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
     return rLines.build();
@@ -106,9 +109,19 @@ public class NumStatementsNondeterministicSimulation {
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
     ImmutableList<SeqThreadStatementClause> clauses =
         buildSingleThreadClausesWithCount(pClauses, pBinaryExpressionBuilder);
+    CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
+    Optional<CFunctionCallStatement> assumption =
+        NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
+            pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
     SeqMultiControlFlowStatement multiControlFlowStatement =
-        NondeterministicSimulationUtil.buildMultiControlFlowStatement(
-            pOptions, pPcVariables, pThread, clauses, 3, pBinaryExpressionBuilder);
+        NondeterministicSimulationUtil.buildMultiControlStatementByEncoding(
+            pOptions,
+            pOptions.controlEncodingStatement,
+            expression,
+            assumption,
+            clauses,
+            3,
+            pBinaryExpressionBuilder);
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlFlowStatement.toASTString()));
     return rLines.build();
   }

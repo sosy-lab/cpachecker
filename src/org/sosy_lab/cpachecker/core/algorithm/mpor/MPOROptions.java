@@ -107,6 +107,9 @@ public class MPOROptions {
     checkArgument(
         equalFieldNames(),
         "all @Option fields in MPORAlgorithm must have a MPOROptions field with the same name");
+    checkArgument(
+        !pControlEncodingStatement.equals(MultiControlEncoding.NONE),
+        "controlEncodingStatement cannot be " + MultiControlEncoding.NONE);
 
     atomicBlockMerge = pAtomicBlockMerge;
     bitVectorEncoding = pBitVectorEncoding;
@@ -237,6 +240,15 @@ public class MPOROptions {
           Level.WARNING,
           "WARNING: pruneBitVectorEvaluation is only considered when bitVectorEncoding is not"
               + " NONE. Either disable pruneBitVectorEvaluation or set bitVectorEncoding.");
+    }
+    if (!nondeterminismSource.isNextThreadNondeterministic()) {
+      if (!controlEncodingThread.equals(MultiControlEncoding.NONE)) {
+        pLogger.log(
+            Level.WARNING,
+            "WARNING: controlEncodingThread is not NONE, but the next thread is not chosen"
+                + " non-deterministically. Either set controlEncodingThread to NONE or choose a"
+                + " nondeterminismSource that makes the next thread non-deterministic.");
+      }
     }
   }
 }
