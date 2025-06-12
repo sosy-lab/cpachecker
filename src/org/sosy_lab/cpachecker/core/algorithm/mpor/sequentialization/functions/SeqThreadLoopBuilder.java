@@ -134,6 +134,7 @@ public class SeqThreadLoopBuilder {
     rThreadLoops.add(LineOfCode.of(2, assumeKGreaterZero.toASTString()));
     rThreadLoops.add(LineOfCode.of(2, pRReset.toASTString()));
 
+    // TODO this code is redundant, use IfElseChain instead?
     int i = 0;
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
@@ -157,7 +158,8 @@ public class SeqThreadLoopBuilder {
 
       ImmutableList<SeqThreadStatementClause> cases = entry.getValue();
       rThreadLoops.addAll(
-          buildThreadLoop(pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
+          buildThreadLoopWithoutCount(
+              pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
       i++;
     }
     rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
@@ -197,13 +199,16 @@ public class SeqThreadLoopBuilder {
 
       // add the thread loop statements (assumptions and switch)
       rThreadLoops.addAll(
-          buildThreadLoop(pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
+          buildThreadLoopWithCount(
+              pOptions, pPcVariables, thread, cases, pBinaryExpressionBuilder));
       rThreadLoops.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
     }
     return rThreadLoops.build();
   }
 
-  private static ImmutableList<LineOfCode> buildThreadLoop(
+  // With Count ====================================================================================
+
+  private static ImmutableList<LineOfCode> buildThreadLoopWithCount(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
@@ -213,7 +218,7 @@ public class SeqThreadLoopBuilder {
 
     ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
     ImmutableList<SeqThreadStatementClause> threadLoopClauses =
-        buildThreadLoopClauses(pClauses, pBinaryExpressionBuilder);
+        buildThreadLoopClausesWithCount(pClauses, pBinaryExpressionBuilder);
     SeqMultiControlFlowStatement multiControlFlowStatement =
         SeqMainFunctionBuilder.buildMultiControlFlowStatement(
             pOptions, pPcVariables, pThread, threadLoopClauses, 3, pBinaryExpressionBuilder);
@@ -221,7 +226,7 @@ public class SeqThreadLoopBuilder {
     return rThreadLoop.build();
   }
 
-  private static ImmutableList<SeqThreadStatementClause> buildThreadLoopClauses(
+  private static ImmutableList<SeqThreadStatementClause> buildThreadLoopClausesWithCount(
       ImmutableList<SeqThreadStatementClause> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -242,13 +247,13 @@ public class SeqThreadLoopBuilder {
     for (SeqThreadStatementClause clause : pClauses) {
       // first inject into block
       SeqThreadStatementBlock newBlock =
-          injectThreadLoopCodeIntoBlock(
+          injectCountAndGotoIntoBlock(
               clause.block, countIncrement, countDecrement, rSmallerK, rIncrement, labelClauseMap);
       // then inject into merged blocks
       ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
         newMergedBlocks.add(
-            injectThreadLoopCodeIntoBlock(
+            injectCountAndGotoIntoBlock(
                 mergedBlock,
                 countIncrement,
                 countDecrement,
@@ -262,9 +267,60 @@ public class SeqThreadLoopBuilder {
     return updatedClauses.build();
   }
 
+  // Without Count
+  // ====================================================================================
+
+  private static ImmutableList<LineOfCode> buildThreadLoopWithoutCount(
+      MPOROptions pOptions,
+      PcVariables pPcVariables,
+      MPORThread pThread,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rThreadLoop = ImmutableList.builder();
+    ImmutableList<SeqThreadStatementClause> threadLoopClauses =
+        buildThreadLoopClausesWithoutCount(pClauses, pBinaryExpressionBuilder);
+    SeqMultiControlFlowStatement multiControlFlowStatement =
+        SeqMainFunctionBuilder.buildMultiControlFlowStatement(
+            pOptions, pPcVariables, pThread, threadLoopClauses, 3, pBinaryExpressionBuilder);
+    rThreadLoop.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlFlowStatement.toASTString()));
+    return rThreadLoop.build();
+  }
+
+  private static ImmutableList<SeqThreadStatementClause> buildThreadLoopClausesWithoutCount(
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    ImmutableMap<Integer, SeqThreadStatementClause> labelClauseMap =
+        SeqThreadStatementClauseUtil.mapLabelNumberToClause(pClauses);
+    CBinaryExpression rSmallerK =
+        pBinaryExpressionBuilder.buildBinaryExpression(
+            SeqIdExpression.R, SeqIdExpression.K, BinaryOperator.LESS_THAN);
+    CExpressionAssignmentStatement rIncrement =
+        SeqStatementBuilder.buildIncrementStatement(SeqIdExpression.R, pBinaryExpressionBuilder);
+
+    ImmutableList.Builder<SeqThreadStatementClause> updatedClauses = ImmutableList.builder();
+    for (SeqThreadStatementClause clause : pClauses) {
+      // first inject into block
+      SeqThreadStatementBlock newBlock =
+          injectThreadLoopGotoIntoBlock(clause.block, rSmallerK, rIncrement, labelClauseMap);
+      // then inject into merged blocks
+      ImmutableList.Builder<SeqThreadStatementBlock> newMergedBlocks = ImmutableList.builder();
+      for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
+        newMergedBlocks.add(
+            injectThreadLoopGotoIntoBlock(mergedBlock, rSmallerK, rIncrement, labelClauseMap));
+      }
+      updatedClauses.add(
+          clause.cloneWithBlock(newBlock).cloneWithMergedBlocks(newMergedBlocks.build()));
+    }
+    return updatedClauses.build();
+  }
+
   // Injection Code ================================================================================
 
-  private static SeqThreadStatementBlock injectThreadLoopCodeIntoBlock(
+  private static SeqThreadStatementBlock injectCountAndGotoIntoBlock(
       SeqThreadStatementBlock pBlock,
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement,
@@ -272,12 +328,38 @@ public class SeqThreadLoopBuilder {
       CExpressionAssignmentStatement pRIncrement,
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
 
+    return injectThreadLoopGotoIntoBlock(
+        injectCountUpdatesIntoBlock(pBlock, pCountIncrement, pCountDecrement),
+        pRSmallerK,
+        pRIncrement,
+        pLabelClauseMap);
+  }
+
+  private static SeqThreadStatementBlock injectCountUpdatesIntoBlock(
+      SeqThreadStatementBlock pBlock,
+      CExpressionAssignmentStatement pCountIncrement,
+      CExpressionAssignmentStatement pCountDecrement) {
+
     ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
     for (SeqThreadStatement statement : pBlock.getStatements()) {
-      SeqThreadStatement withCountUpdate =
-          tryInjectCountUpdates(pCountIncrement, pCountDecrement, statement);
+      SeqThreadStatement withCountUpdates =
+          tryInjectCountUpdatesIntoStatement(pCountIncrement, pCountDecrement, statement);
+      newStatements.add(withCountUpdates);
+    }
+    return pBlock.cloneWithStatements(newStatements.build());
+  }
+
+  private static SeqThreadStatementBlock injectThreadLoopGotoIntoBlock(
+      SeqThreadStatementBlock pBlock,
+      CBinaryExpression pRSmallerK,
+      CExpressionAssignmentStatement pRIncrement,
+      ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap) {
+
+    ImmutableList.Builder<SeqThreadStatement> newStatements = ImmutableList.builder();
+    for (SeqThreadStatement statement : pBlock.getStatements()) {
       SeqThreadStatement withGoto =
-          tryInjectGotoThreadLoopLabel(pRSmallerK, pRIncrement, withCountUpdate, pLabelClauseMap);
+          tryInjectGotoThreadLoopLabelIntoStatement(
+              pRSmallerK, pRIncrement, statement, pLabelClauseMap);
       newStatements.add(withGoto);
     }
     return pBlock.cloneWithStatements(newStatements.build());
@@ -285,7 +367,7 @@ public class SeqThreadLoopBuilder {
 
   // Count In/Decrement ============================================================================
 
-  private static SeqThreadStatement tryInjectCountUpdates(
+  private static SeqThreadStatement tryInjectCountUpdatesIntoStatement(
       CExpressionAssignmentStatement pCountIncrement,
       CExpressionAssignmentStatement pCountDecrement,
       SeqThreadStatement pStatement) {
@@ -310,7 +392,7 @@ public class SeqThreadLoopBuilder {
 
   // Goto Injection ================================================================================
 
-  private static SeqThreadStatement tryInjectGotoThreadLoopLabel(
+  private static SeqThreadStatement tryInjectGotoThreadLoopLabelIntoStatement(
       CBinaryExpression pRSmallerMax,
       CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pStatement,
