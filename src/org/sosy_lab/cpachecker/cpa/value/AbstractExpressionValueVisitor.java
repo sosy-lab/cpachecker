@@ -25,38 +25,8 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslArraySubscriptTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslAtTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -89,7 +59,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
-import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
@@ -155,9 +124,7 @@ public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Value, UnrecognizedCodeException>,
         JRightHandSideVisitor<Value, NoException>,
-        JExpressionVisitor<Value, NoException>,
-        AcslPredicateVisitor<Value, NoException>,
-        AcslTermVisitor<Value, NoException> {
+        JExpressionVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
   private static final int SIZE_OF_JAVA_LONG = 64;
@@ -1568,159 +1535,6 @@ public abstract class AbstractExpressionValueVisitor
     return new SizeofVisitor().evaluateSizeof(pType);
   }
 
-  @Override
-  public Value visit(AcslBinaryPredicate pBinaryExpression) throws NoException {
-    final AExpression lOp = pBinaryExpression.getOperand1();
-    Value lVal = null;
-    if (lOp instanceof AcslPredicate lPred) {
-      lVal = lPred.accept(this);
-    }
-    if (lVal == null || lVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    final AExpression rOp = pBinaryExpression.getOperand2();
-    final Value rVal = ((AcslPredicate)rOp).accept(this);
-    if (rVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslUnaryPredicate pAcslUnaryPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslIdPredicate pAcslIdPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslBinaryTermPredicate pAcslBinaryTermPredicate) throws NoException {
-    final AcslTerm lOp = pAcslBinaryTermPredicate.getOperand1();
-    final Value lVal = lOp.accept(this);
-    if (lVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    final AcslTerm rOp = pAcslBinaryTermPredicate.getOperand2();
-    final Value rVal = rOp.accept(this);
-    if (rVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslOldPredicate pAcslOldPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslBooleanLiteralPredicate pAcslBooleanLiteralPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslTernaryPredicate pAcslTernaryPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslValidPredicate pAcslValidPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslForallPredicate pForallPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslExistsPredicate pAcslExistsPredicate) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslUnaryTerm pAcslUnaryTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslStringLiteralTerm pAcslStringLiteralTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslRealLiteralTerm pAcslRealLiteralTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslCharLiteralTerm pAcslCharLiteralTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslIntegerLiteralTerm pAcslIntegerLiteralTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslBooleanLiteralTerm pAcslBooleanLiteralTerm) {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslBinaryTerm pAcslBinaryTerm) throws NoException {
-    final AcslTerm lOp = pAcslBinaryTerm.getOperand1();
-    final Value lVal = lOp.accept(this);
-    if (lVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    final AcslTerm rOp = pAcslBinaryTerm.getOperand2();
-    final Value rVal = rOp.accept(this);
-    if (rVal.isUnknown()) {
-      return Value.UnknownValue.getInstance();
-    }
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslIdTerm pAcslBinaryTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslOldTerm pAcslOldTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslResultTerm pAcslResultTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslAtTerm pAcslAtTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslTernaryTerm pAcslTernaryTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslFunctionCallTerm pAcslFunctionCallTerm) throws NoException {
-    return null;
-  }
-
-  @Override
-  public Value visit(AcslArraySubscriptTerm pAcslArraySubscriptTerm) throws NoException {
-    return null;
-  }
-
   private final class SizeofVisitor extends BaseSizeofVisitor<UnrecognizedCodeException> {
 
     private boolean sizeKnown = true;
@@ -2564,19 +2378,6 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * This method returns the value of an expression, reduced to match the type. This method handles
-   * overflows and casts. If necessary warnings for the user are printed.
-   *
-   * @param pExp expression to evaluate
-   * @param pTargetType the type of the left side of an assignment
-   * @return if evaluation successful, then value, else null
-   */
-  public Value evaluate(final AcslPredicate pExp, final AcslType pTargetType)
-      throws UnrecognizedCodeException {
-    return castAcslValue(pExp.accept(this), pTargetType, machineModel, logger, pExp.getFileLocation());
-  }
-
-  /**
    * This method returns the input-value, casted to match the type. If the value matches the type,
    * it is returned unchanged. This method handles overflows and print warnings for the user.
    * Example: This method is called, when an value of type 'integer' is assigned to a variable of
@@ -2621,41 +2422,6 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     return castNumeric(numericValue, type, machineModel, size);
-  }
-
-  /**
-   * This method returns the input-value, cast to match the type. If the value matches the type,
-   * it is returned unchanged. This method handles overflows and print warnings for the user.
-   * Example: This method is called, when a value of type 'integer' is assigned to a variable of
-   * type 'char'.
-   *
-   * @param value will be cast.
-   * @param targetType value will be casted to targetType.
-   * @param machineModel contains information about types
-   * @param logger for logging
-   * @param fileLocation the location of the corresponding code in the source file
-   * @return the cast Value
-   */
-  public static Value castAcslValue(
-      @NonNull final Value value,
-      final AcslType targetType,
-      final MachineModel machineModel,
-      final LogManagerWithoutDuplicates logger,
-      final FileLocation fileLocation) {
-
-    if (!value.isExplicitlyKnown()) {
-      return castIfSymbolic(value, targetType);
-    }
-
-    // For now can only cast numeric value's
-    if (!value.isNumericValue()) {
-      logger.logf(
-          Level.FINE, "Can not cast Acsl value %s to %s", value.toString(), targetType.toString());
-      return value;
-    }
-    NumericValue numericValue = (NumericValue) value;
-
-    return value;
   }
 
   private static Value castNumeric(
