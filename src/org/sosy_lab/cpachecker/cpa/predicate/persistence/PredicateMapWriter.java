@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
+import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -26,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -162,7 +164,10 @@ public final class PredicateMapWriter {
   }
 
   private static Optional<String> getPredicateString(
-      AbstractionPredicate pPredicate, PredicateDumpFormat pFormat, FormulaManagerView pFmgr) {
+      AbstractionPredicate pPredicate,
+      PredicateDumpFormat pFormat,
+      Function<String, Boolean> pIncludeVariablesFilter,
+      FormulaManagerView pFmgr) {
     return switch (pFormat) {
       case SMTLIB2 -> {
         Pair<String, List<String>> p = splitFormula(pFmgr, pPredicate.getSymbolicAtom());
@@ -172,7 +177,7 @@ public final class PredicateMapWriter {
         try {
           yield Optional.of(
               AbstractionFormula.asExpressionTree(
-                      pPredicate.getSymbolicAtom(), pFmgr, x -> true, y -> y)
+                      pPredicate.getSymbolicAtom(), pFmgr, pIncludeVariablesFilter, y -> y)
                   .toString());
         } catch (TranslationToExpressionTreeFailedException | InterruptedException e) {
           yield Optional.empty();
@@ -180,6 +185,33 @@ public final class PredicateMapWriter {
       }
       default -> Optional.empty();
     };
+  }
+
+  public static boolean notInternalVariable(String pQualifiedVariableName) {
+    return !pQualifiedVariableName.contains("__CPAchecker_")
+        && !pQualifiedVariableName.contains("__ADDRESS_OF_");
+  }
+
+  public static boolean variableNameInFunction(
+      String pQualifiedVariableName, String pFunctionName) {
+    return !pQualifiedVariableName.contains(FUNCTION_DELIMITER)
+        || pQualifiedVariableName.startsWith(pFunctionName + FUNCTION_DELIMITER);
+  }
+
+  public static boolean variableInOriginalProgram(
+      String pQualifiedVariableName, AstCfaRelation pAstCfaRelation, CFANode pLocation) {
+    return pAstCfaRelation
+        .getVariablesAndParametersInScope(pLocation)
+        .orElseThrow()
+        .anyMatch(
+            var ->
+                // For local variables
+                (pLocation.getFunctionName()
+                            + FUNCTION_DELIMITER
+                            + Objects.requireNonNull(var).getName())
+                        .equals(pQualifiedVariableName)
+                    // For global variables
+                    || var.getName().equals(pQualifiedVariableName));
   }
 
   public void writePredicateMapAsWitness(
@@ -198,10 +230,20 @@ public final class PredicateMapWriter {
             YAMLWitnessExpressionType.C,
             new GlobalPrecisionScope(),
             FluentIterable.from(pGlobal)
-                .transform(pFormula -> getPredicateString(pFormula, witnessPredicateFormat, fmgr))
+                .transform(
+                    pFormula ->
+                        getPredicateString(
+                            pFormula,
+                            witnessPredicateFormat,
+                            name ->
+                                // TODO: The ADDRESS_OF problem should not be solved here, but in
+                                //  the translation back from SMT to C
+                                notInternalVariable(name),
+                            fmgr))
                 .filter(Optional::isPresent)
                 .transform(Optional::orElseThrow)
-                .toList()));
+                .toSet()
+                .asList()));
 
     // Add all function predicates
     entriesBuilder.addAll(
@@ -215,10 +257,17 @@ public final class PredicateMapWriter {
                         FluentIterable.from(pFunction.get(functionName))
                             .transform(
                                 pFormula ->
-                                    getPredicateString(pFormula, witnessPredicateFormat, fmgr))
+                                    getPredicateString(
+                                        pFormula,
+                                        witnessPredicateFormat,
+                                        name ->
+                                            notInternalVariable(name)
+                                                && variableNameInFunction(name, functionName),
+                                        fmgr))
                             .filter(Optional::isPresent)
                             .transform(Optional::orElseThrow)
-                            .toList()))
+                            .toSet()
+                            .asList()))
             .toList());
 
     // Add all local predicates
@@ -242,10 +291,21 @@ public final class PredicateMapWriter {
                         fileLocation.orElseThrow(), cfaNode.getFunctionName())),
                 FluentIterable.from(pLocation.get(cfaNode))
                     .transform(
-                        pFormula -> getPredicateString(pFormula, witnessPredicateFormat, fmgr))
+                        pFormula ->
+                            getPredicateString(
+                                pFormula,
+                                witnessPredicateFormat,
+                                variableName ->
+                                    notInternalVariable(variableName)
+                                        && variableNameInFunction(
+                                            variableName, cfaNode.getFunctionName())
+                                        && variableInOriginalProgram(
+                                            variableName, astCfaRelation, cfaNode),
+                                fmgr))
                     .filter(Optional::isPresent)
                     .transform(Optional::orElseThrow)
-                    .toList()));
+                    .toSet()
+                    .asList()));
       }
     } else {
       // If no CFA is present, we cannot export local predicates

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.cpa.arg.Splitable;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -174,24 +175,12 @@ public abstract sealed class PredicateAbstractState
         CFANode pLocation,
         AstCfaRelation pAstCfaRelation,
         boolean useOldKeywordForVariables)
-        throws InterruptedException,
-            ReportingMethodNotImplementedException,
-            TranslationToExpressionTreeFailedException {
+        throws InterruptedException, TranslationToExpressionTreeFailedException {
       return super.abstractionFormula.asExpressionTree(
           name ->
-              (!name.contains(FUNCTION_DELIMITER)
-                      || name.startsWith(pLocation.getFunctionName() + FUNCTION_DELIMITER))
-                  && pAstCfaRelation
-                      .getVariablesAndParametersInScope(pLocation)
-                      .orElseThrow()
-                      .anyMatch(
-                          var ->
-                              // For local variables
-                              (pLocation.getFunctionName() + FUNCTION_DELIMITER + var.getName())
-                                      .equals(name)
-                                  // For global variables
-                                  || var.getName().equals(name))
-                  && !name.contains("__CPAchecker_"),
+              PredicateMapWriter.variableNameInFunction(name, pLocation.getFunctionName())
+                  && PredicateMapWriter.variableInOriginalProgram(name, pAstCfaRelation, pLocation)
+                  && PredicateMapWriter.notInternalVariable(name),
           name -> useOldKeywordForVariables ? "\\old(" + name + ")" : name);
     }
 
