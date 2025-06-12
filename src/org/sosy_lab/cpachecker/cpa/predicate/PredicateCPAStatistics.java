@@ -188,10 +188,10 @@ final class PredicateCPAStatistics implements Statistics {
                     ProducerRecord.getProducerRecord(pConfig),
                     TaskRecord.getTaskDescription(pCfa, pSpecification),
                     YAMLWitnessVersion.V2d2));
-      } catch (IOException pE) {
+      } catch (IOException e) {
         logger.logUserException(
             Level.WARNING,
-            pE,
+            e,
             "Could not create metadata record for exporting predicate map as a witness");
       }
     } else {
@@ -256,17 +256,8 @@ final class PredicateCPAStatistics implements Statistics {
     Preconditions.checkNotNull(targetFile);
     Preconditions.checkNotNull(predicates);
 
-    try {
-      precisionWriter.writePredicateMapAsWitness(
-          predicates.locationInstance,
-          predicates.location,
-          predicates.function,
-          predicates.global,
-          targetFile,
-          pMetadataRecord);
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write predicate map to file");
-    }
+    precisionWriter.writePredicateMapAsWitness(
+        predicates.location, predicates.function, predicates.global, targetFile, pMetadataRecord);
   }
 
   @Override

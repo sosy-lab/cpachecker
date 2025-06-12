@@ -251,7 +251,7 @@ public final class PredicatePrecisionBootstrapper {
   }
 
   private PredicatePrecision parsePredicateWintess(final Path pWitnessFile)
-      throws IOException, InterruptedException {
+      throws InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
     try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
       List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
@@ -287,8 +287,8 @@ public final class PredicatePrecisionBootstrapper {
                         toFormula(
                             transformer.createExpressionTreeFromStringInGlobalScope(
                                 predicateString))));
-              } catch (CPATransferException pE) {
-                logger.logDebugException(pE);
+              } catch (CPATransferException e) {
+                logger.logDebugException(e);
               }
             }
           } else if (scope instanceof FunctionPrecisionScope pFunctionScope) {
@@ -300,8 +300,8 @@ public final class PredicatePrecisionBootstrapper {
                         toFormula(
                             transformer.createExpressionTreeFromStringInFunctionScope(
                                 predicateString, pFunctionScope.getFunctionName()))));
-              } catch (CPATransferException pE) {
-                logger.logDebugException(pE);
+              } catch (CPATransferException e) {
+                logger.logDebugException(e);
               }
             }
           } else if (scope instanceof LocalPrecisionScope pLocalScope) {
@@ -343,8 +343,8 @@ public final class PredicatePrecisionBootstrapper {
                                 locationRecord.getLine(),
                                 callStack,
                                 programScope))));
-              } catch (CPATransferException pE) {
-                logger.logDebugException(pE);
+              } catch (CPATransferException e) {
+                logger.logDebugException(e);
               }
             }
           } else {
@@ -359,10 +359,10 @@ public final class PredicatePrecisionBootstrapper {
         result = result.addFunctionPredicates(functionPredicatesBuilder.build().entries());
         result = result.addLocalPredicates(localPredicatesBuilder.build().entries());
       }
-    } catch (InvalidConfigurationException | IOException pE) {
+    } catch (InvalidConfigurationException | IOException e) {
       logger.logUserException(
           Level.WARNING,
-          pE,
+          e,
           "Predicate precision from predicate witness could not be (fully) computed");
     }
     return result;
@@ -516,7 +516,7 @@ public final class PredicatePrecisionBootstrapper {
       ExpressionTreeLocationInvariant pInvariant)
       throws CPATransferException, InterruptedException {
     Collection<ExpressionTree<AExpression>> atoms = splitTree(pInvariant);
-    Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
+    ImmutableSet.Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
 
     for (ExpressionTree<AExpression> atom : atoms) {
       predicates.addAll(predicateAbstractionManager.getPredicatesForAtomsOf(toFormula(atom)));

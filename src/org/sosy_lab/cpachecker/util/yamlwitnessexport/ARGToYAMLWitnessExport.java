@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -95,7 +94,8 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
-    Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults = ImmutableMap.builder();
+    ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
+        ImmutableMap.builder();
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       WitnessExportResult witnessExportResult =

@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -66,6 +65,12 @@ public final class PredicateMapWriter {
       name = "predmap.predicateFormat",
       description = "Format for exporting predicates from precisions.")
   private PredicateDumpFormat format = PredicateDumpFormat.SMTLIB2;
+
+  @Option(
+      secure = true,
+      name = "predmap.witnessPredicateFormat",
+      description = "Format for exporting predicates from precisions.")
+  private PredicateDumpFormat witnessPredicateFormat = PredicateDumpFormat.C;
 
   private final FormulaManagerView fmgr;
   private final LogManager logger;
@@ -178,13 +183,11 @@ public final class PredicateMapWriter {
   }
 
   public void writePredicateMapAsWitness(
-      SetMultimap<LocationInstance, AbstractionPredicate> pLocationInstance,
       SetMultimap<CFANode, AbstractionPredicate> pLocation,
       SetMultimap<String, AbstractionPredicate> pFunction,
       Set<AbstractionPredicate> pGlobal,
       Path pPath,
-      MetadataRecord pMetadataRecord)
-      throws IOException {
+      MetadataRecord pMetadataRecord) {
     // Build the data structures that contain the predicates
     ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
 
@@ -195,7 +198,7 @@ public final class PredicateMapWriter {
             YAMLWitnessExpressionType.C,
             new GlobalPrecisionScope(),
             FluentIterable.from(pGlobal)
-                .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                .transform(pFormula -> getPredicateString(pFormula, witnessPredicateFormat, fmgr))
                 .filter(Optional::isPresent)
                 .transform(Optional::orElseThrow)
                 .toList()));
@@ -210,7 +213,9 @@ public final class PredicateMapWriter {
                         YAMLWitnessExpressionType.C,
                         new FunctionPrecisionScope(functionName),
                         FluentIterable.from(pFunction.get(functionName))
-                            .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                            .transform(
+                                pFormula ->
+                                    getPredicateString(pFormula, witnessPredicateFormat, fmgr))
                             .filter(Optional::isPresent)
                             .transform(Optional::orElseThrow)
                             .toList()))
@@ -236,7 +241,8 @@ public final class PredicateMapWriter {
                     LocationRecord.createLocationRecordAtStart(
                         fileLocation.orElseThrow(), cfaNode.getFunctionName())),
                 FluentIterable.from(pLocation.get(cfaNode))
-                    .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                    .transform(
+                        pFormula -> getPredicateString(pFormula, witnessPredicateFormat, fmgr))
                     .filter(Optional::isPresent)
                     .transform(Optional::orElseThrow)
                     .toList()));
