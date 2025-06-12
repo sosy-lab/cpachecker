@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
@@ -18,25 +20,32 @@ import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
@@ -46,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -62,6 +72,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "cpa.predicate")
@@ -73,7 +90,7 @@ public final class PredicatePrecisionBootstrapper {
       description =
           "get an initial map of predicates from a list of files (see source"
               + " doc/examples/predmap.txt for an example)")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
   @Option(
@@ -192,26 +209,30 @@ public final class PredicatePrecisionBootstrapper {
                           parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
               case VIOLATION_WITNESS ->
                   logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
+              case PRECISION_WITNESS ->
+                  logger.log(Level.WARNING, "Witnesses for precision are not valid v1 witnesses.");
             }
           } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(predicatesFile)) {
-            if (!AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(predicatesFile)
-                .orElseThrow()
-                .equals(WitnessType.CORRECTNESS_WITNESS)) {
-              logger.log(
-                  Level.WARNING, "For witnesses V2 invariants only exist in correctness witnesses");
-              continue;
-            }
-            if (options.ignoreLocationInfoInYMLWitness) {
-              if (!(options.applyFunctionWide || options.applyGlobally)) {
-                logger.log(Level.WARNING, "Invariants of witness will be applied function wide.");
+            WitnessType witnessType =
+                AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(predicatesFile).orElseThrow();
+            if (witnessType.equals(WitnessType.CORRECTNESS_WITNESS)) {
+              if (options.ignoreLocationInfoInYMLWitness) {
+                if (!(options.applyFunctionWide || options.applyGlobally)) {
+                  logger.log(Level.WARNING, "Invariants of witness will be applied function wide.");
+                }
+                result =
+                    result.mergeWith(
+                        parseInvariantFromYMLCorrectnessWitnessNonLocally(predicatesFile));
+              } else {
+                result =
+                    result.mergeWith(
+                        parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
               }
-              result =
-                  result.mergeWith(
-                      parseInvariantFromYMLCorrectnessWitnessNonLocally(predicatesFile));
+            } else if (witnessType.equals(WitnessType.PRECISION_WITNESS)) {
+              result.mergeWith(parsePredicateWintess(predicatesFile));
             } else {
-              result =
-                  result.mergeWith(
-                      parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
+              logger.log(
+                  Level.WARNING, "Importing predicates from violation witness is not supported");
             }
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
@@ -226,6 +247,124 @@ public final class PredicatePrecisionBootstrapper {
       }
     }
 
+    return result;
+  }
+
+  private PredicatePrecision parsePredicateWintess(final Path pWitnessFile)
+      throws IOException, InterruptedException {
+    PredicatePrecision result = PredicatePrecision.empty();
+    try (InputStream witness = MoreFiles.asByteSource(pWitnessFile).openStream()) {
+      List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(witness);
+
+      InvariantExchangeFormatTransformer transformer =
+          new InvariantExchangeFormatTransformer(config, logger, shutdownNotifier, cfa);
+
+      for (AbstractEntry entry : entries) {
+        if (!(entry instanceof PrecisionExchangeSetEntry pExchangeSetEntry)) {
+          logger.logf(
+              Level.WARNING,
+              "Witness file %s does not contain a precision exchange set entry, ignoring it.",
+              pWitnessFile);
+          return result;
+        }
+
+        ImmutableList.Builder<AbstractionPredicate> globalPredicatesBuilder =
+            ImmutableList.builder();
+        ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder =
+            ImmutableSetMultimap.builder();
+        ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder =
+            ImmutableSetMultimap.builder();
+
+        AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+
+        for (PrecisionExchangeEntry precisionExchangeEntry : pExchangeSetEntry.getContent()) {
+          PrecisionScope scope = precisionExchangeEntry.scope();
+          if (scope instanceof GlobalPrecisionScope) {
+            for (String predicateString : precisionExchangeEntry.values()) {
+              try {
+                globalPredicatesBuilder.add(
+                    abstractionManager.makePredicate(
+                        toFormula(
+                            transformer.createExpressionTreeFromStringInGlobalScope(
+                                predicateString))));
+              } catch (CPATransferException pE) {
+                logger.logDebugException(pE);
+              }
+            }
+          } else if (scope instanceof FunctionPrecisionScope pFunctionScope) {
+            for (String predicateString : precisionExchangeEntry.values()) {
+              try {
+                functionPredicatesBuilder.put(
+                    pFunctionScope.getFunctionName(),
+                    abstractionManager.makePredicate(
+                        toFormula(
+                            transformer.createExpressionTreeFromStringInFunctionScope(
+                                predicateString, pFunctionScope.getFunctionName()))));
+              } catch (CPATransferException pE) {
+                logger.logDebugException(pE);
+              }
+            }
+          } else if (scope instanceof LocalPrecisionScope pLocalScope) {
+            for (String predicateString : precisionExchangeEntry.values()) {
+              LocationRecord locationRecord = pLocalScope.getLocation();
+
+              Optional<CFANode> location =
+                  astCfaRelation.getNodeForStatementLocation(
+                      locationRecord.getLine(), locationRecord.getColumn());
+
+              if (location.isEmpty()) {
+                logger.logf(
+                    Level.FINE,
+                    "Witness file %s contains a local precision scope for location %s, "
+                        + "but the location is not present in the CFA, ignoring it.",
+                    pWitnessFile,
+                    locationRecord);
+                // TODO: Whenever this happens this is a bug in the AstCfaRelation
+                continue;
+              }
+
+              Deque<String> callStack = new ArrayDeque<>();
+              callStack.push(locationRecord.getFunction());
+
+              Scope programScope =
+                  switch (cfa.getLanguage()) {
+                    case C -> new CProgramScope(cfa, logger);
+                    default -> DummyScope.getInstance();
+                  };
+
+              try {
+                localPredicatesBuilder.put(
+                    location.orElseThrow(),
+                    abstractionManager.makePredicate(
+                        toFormula(
+                            transformer.createExpressionTreeFromString(
+                                Optional.ofNullable(locationRecord.getFunction()),
+                                predicateString,
+                                locationRecord.getLine(),
+                                callStack,
+                                programScope))));
+              } catch (CPATransferException pE) {
+                logger.logDebugException(pE);
+              }
+            }
+          } else {
+            logger.logf(
+                Level.WARNING,
+                "Witness file %s contains an unknown precision scope %s, ignoring it.",
+                pWitnessFile,
+                scope);
+          }
+        }
+        result = result.addGlobalPredicates(globalPredicatesBuilder.build());
+        result = result.addFunctionPredicates(functionPredicatesBuilder.build().entries());
+        result = result.addLocalPredicates(localPredicatesBuilder.build().entries());
+      }
+    } catch (InvalidConfigurationException | IOException pE) {
+      logger.logUserException(
+          Level.WARNING,
+          pE,
+          "Predicate precision from predicate witness could not be (fully) computed");
+    }
     return result;
   }
 
@@ -377,7 +516,7 @@ public final class PredicatePrecisionBootstrapper {
       ExpressionTreeLocationInvariant pInvariant)
       throws CPATransferException, InterruptedException {
     Collection<ExpressionTree<AExpression>> atoms = splitTree(pInvariant);
-    ImmutableSet.Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
+    Builder<AbstractionPredicate> predicates = ImmutableSet.builder();
 
     for (ExpressionTree<AExpression> atom : atoms) {
       predicates.addAll(predicateAbstractionManager.getPredicatesForAtomsOf(toFormula(atom)));
@@ -415,15 +554,14 @@ public final class PredicatePrecisionBootstrapper {
   }
 
   private Collection<ExpressionTree<AExpression>> split(ExpressionTree<AExpression> pExpr) {
-    ImmutableSet.Builder<ExpressionTree<AExpression>> builder = ImmutableSet.builder();
+    Builder<ExpressionTree<AExpression>> builder = ImmutableSet.builder();
     split0(pExpr, builder);
     return builder.build();
   }
 
   /** Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder. */
   private void split0(
-      ExpressionTree<AExpression> pExpr,
-      ImmutableSet.Builder<ExpressionTree<AExpression>> pSetBuilder) {
+      ExpressionTree<AExpression> pExpr, Builder<ExpressionTree<AExpression>> pSetBuilder) {
     if (pExpr instanceof And) {
       ((And<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
     } else if (pExpr instanceof Or) {

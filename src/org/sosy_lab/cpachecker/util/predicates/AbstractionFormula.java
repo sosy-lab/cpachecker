@@ -130,8 +130,18 @@ public class AbstractionFormula implements Serializable {
       Function<String, Boolean> pIncludeVariablesFilter,
       Function<String, String> pVariableNameConverter)
       throws InterruptedException, TranslationToExpressionTreeFailedException {
-    return ExpressionTrees.fromFormula(
+    return AbstractionFormula.asExpressionTree(
         asFormula(), fMgr, pIncludeVariablesFilter, pVariableNameConverter);
+  }
+
+  public static ExpressionTree<Object> asExpressionTree(
+      BooleanFormula pBooleanFormula,
+      FormulaManagerView fMgr,
+      Function<String, Boolean> pIncludeVariablesFilter,
+      Function<String, String> pVariableNameConverter)
+      throws InterruptedException, TranslationToExpressionTreeFailedException {
+    return ExpressionTrees.fromFormula(
+        pBooleanFormula, fMgr, pIncludeVariablesFilter, pVariableNameConverter);
   }
 
   /** Returns the formula representation where all variables DO have SSA indices. */

@@ -445,7 +445,10 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
     segments.add(SegmentRecord.ofOnlyElement(targetWaypoint(lastEdge, astCFARelation)));
 
     exportEntries(
-        new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build()), pPath);
+        ImmutableList.of(
+            new ViolationSequenceEntry(getMetadata(YAMLWitnessVersion.V2), segments.build())),
+        pPath,
+        logger);
   }
 
   /**
@@ -465,7 +468,7 @@ public class CounterexampleToWitness extends AbstractYAMLWitnessExporter {
       Path outputFile = pOutputFileTemplate.getPath(uniqueId, YAMLWitnessVersion.V2.toString());
       switch (witnessVersion) {
         case V2 -> exportWitnessVersion2(pCex, outputFile);
-        case V2d1 ->
+        case V2d1, V2d2 ->
             logger.log(Level.INFO, "There is currently no version 2.1 for Violation Witnesses.");
       }
     }

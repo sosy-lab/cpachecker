@@ -29,7 +29,8 @@ public final class PredicatePersistenceUtils {
 
   enum PredicateDumpFormat {
     PLAIN,
-    SMTLIB2
+    SMTLIB2,
+    C,
   }
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();

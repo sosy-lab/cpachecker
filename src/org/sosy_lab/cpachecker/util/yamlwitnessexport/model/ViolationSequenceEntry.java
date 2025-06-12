@@ -28,10 +28,10 @@ public class ViolationSequenceEntry extends AbstractEntry {
   private final List<SegmentRecord> content;
 
   public ViolationSequenceEntry(
-      @JsonProperty("metadata") MetadataRecord metadata,
+      @JsonProperty("metadata") MetadataRecord pMetadata,
       @JsonProperty("sequence") List<SegmentRecord> sequence) {
     super(VIOLATION_SEQUENCE_ENTRY_IDENTIFIER);
-    this.metadata = metadata;
+    metadata = pMetadata;
     content = sequence;
   }
 

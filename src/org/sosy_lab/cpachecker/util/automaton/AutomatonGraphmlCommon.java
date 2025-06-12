@@ -247,7 +247,9 @@ public final class AutomatonGraphmlCommon {
 
   public enum WitnessType {
     VIOLATION_WITNESS("violation_witness"),
-    CORRECTNESS_WITNESS("correctness_witness");
+    CORRECTNESS_WITNESS("correctness_witness"),
+    PRECISION_WITNESS("precision_witness"),
+    ;
 
     public final String text;
 

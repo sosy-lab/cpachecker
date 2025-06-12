@@ -12,10 +12,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
-import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
@@ -23,18 +23,33 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState.TranslationToExpressionTreeFailedException;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.AbstractYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
@@ -53,11 +68,16 @@ public final class PredicateMapWriter {
   private PredicateDumpFormat format = PredicateDumpFormat.SMTLIB2;
 
   private final FormulaManagerView fmgr;
+  private final LogManager logger;
+  private final Optional<CFA> cfa;
 
-  public PredicateMapWriter(Configuration config, FormulaManagerView pFmgr)
+  public PredicateMapWriter(
+      Configuration config, FormulaManagerView pFmgr, LogManager pLogManager, Optional<CFA> pCFA)
       throws InvalidConfigurationException {
     config.inject(this);
     fmgr = pFmgr;
+    logger = pLogManager;
+    cfa = pCFA;
   }
 
   public void writePredicateMap(
@@ -136,6 +156,27 @@ public final class PredicateMapWriter {
     }
   }
 
+  private static Optional<String> getPredicateString(
+      AbstractionPredicate pPredicate, PredicateDumpFormat pFormat, FormulaManagerView pFmgr) {
+    return switch (pFormat) {
+      case SMTLIB2 -> {
+        Pair<String, List<String>> p = splitFormula(pFmgr, pPredicate.getSymbolicAtom());
+        yield Optional.of(Objects.requireNonNull(p.getFirst()));
+      }
+      case C -> {
+        try {
+          yield Optional.of(
+              AbstractionFormula.asExpressionTree(
+                      pPredicate.getSymbolicAtom(), pFmgr, x -> true, y -> y)
+                  .toString());
+        } catch (TranslationToExpressionTreeFailedException | InterruptedException pE) {
+          yield Optional.empty();
+        }
+      }
+      default -> Optional.empty();
+    };
+  }
+
   public void writePredicateMapAsWitness(
       SetMultimap<LocationInstance, AbstractionPredicate> pLocationInstance,
       SetMultimap<CFANode, AbstractionPredicate> pLocation,
@@ -147,7 +188,70 @@ public final class PredicateMapWriter {
     // Build the data structures that contain the predicates
     ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
 
+    // Add all global predicates
+    entriesBuilder.add(
+        new PrecisionExchangeEntry(
+            // TODO: generalize the type and get it from the predicate type
+            YAMLWitnessExpressionType.C,
+            new GlobalPrecisionScope(),
+            FluentIterable.from(pGlobal)
+                .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                .filter(Optional::isPresent)
+                .transform(Optional::orElseThrow)
+                .toList()));
+
+    // Add all function predicates
+    entriesBuilder.addAll(
+        FluentIterable.from(pFunction.keys())
+            .transform(
+                functionName ->
+                    new PrecisionExchangeEntry(
+                        // TODO: generalize the type and get it from the predicate type
+                        YAMLWitnessExpressionType.C,
+                        new FunctionPrecisionScope(functionName),
+                        FluentIterable.from(pFunction.get(functionName))
+                            .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                            .filter(Optional::isPresent)
+                            .transform(Optional::orElseThrow)
+                            .toList()))
+            .toList());
+
+    // Add all local predicates
+    if (cfa.isPresent()) {
+      AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+
+      for (CFANode cfaNode : pLocation.keySet()) {
+        Optional<FileLocation> fileLocation =
+            astCfaRelation.getStatementFileLocationForNode(cfaNode);
+
+        if (fileLocation.isEmpty()) {
+          // TODO: This should never happen, it is a bug in the AST-CFA relation.
+          continue;
+        }
+
+        entriesBuilder.add(
+            new PrecisionExchangeEntry(
+                YAMLWitnessExpressionType.C,
+                new LocalPrecisionScope(
+                    LocationRecord.createLocationRecordAtStart(
+                        fileLocation.orElseThrow(), cfaNode.getFunctionName())),
+                FluentIterable.from(pLocation.get(cfaNode))
+                    .transform(pFormula -> getPredicateString(pFormula, format, fmgr))
+                    .filter(Optional::isPresent)
+                    .transform(Optional::orElseThrow)
+                    .toList()));
+      }
+    } else {
+      // If no CFA is present, we cannot export local predicates
+      logger.log(
+          Level.INFO,
+          "No CFA present, skipping export of local predicates in precision exchange set.");
+    }
+
     PrecisionExchangeSetEntry precisionExchangeSetEntry =
         new PrecisionExchangeSetEntry(pMetadataRecord, entriesBuilder.build());
+
+    AbstractYAMLWitnessExporter.exportEntries(
+        ImmutableList.of(precisionExchangeSetEntry), pPath, logger);
   }
 }

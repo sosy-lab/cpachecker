@@ -79,6 +79,8 @@ public class InvariantExchangeFormatTransformer {
   public ExpressionTree<AExpression> createExpressionTreeFromString(
       Optional<String> resultFunction,
       String invariantString,
+      // TODO: This is wrong, since the whole program could be on a single line. The offset is
+      // necessary here.
       Integer pLine,
       Deque<String> callStack,
       Scope pScope)
@@ -91,6 +93,48 @@ public class InvariantExchangeFormatTransformer {
         AutomatonWitnessV2ParserUtils.determineScopeForLine(
             resultFunction, callStack, pLine, pScope),
         parserTools);
+  }
+
+  /**
+   * Create an {@link ExpressionTree} from a given string. This method only works for expressions
+   * which only contain global variables.
+   *
+   * @param invariantString The string to parse
+   * @return The parsed expression
+   * @throws InterruptedException If the parsing is interrupted
+   */
+  public ExpressionTree<AExpression> createExpressionTreeFromStringInGlobalScope(
+      String invariantString) throws InterruptedException {
+
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+
+    return CParserUtils.parseStatementsAsExpressionTree(
+        ImmutableSet.of(invariantString), Optional.empty(), cparser, scope, parserTools);
+  }
+
+  /**
+   * Create an {@link ExpressionTree} from a given string. This method only works for expressions
+   * which only contain global variables and variables in the scope of the function.
+   *
+   * @param invariantString The string to parse
+   * @return The parsed expression
+   * @throws InterruptedException If the parsing is interrupted
+   */
+  public ExpressionTree<AExpression> createExpressionTreeFromStringInFunctionScope(
+      String invariantString, String pFunctionName) throws InterruptedException {
+
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger).withFunctionScope(pFunctionName);
+          default -> DummyScope.getInstance();
+        };
+
+    return CParserUtils.parseStatementsAsExpressionTree(
+        ImmutableSet.of(invariantString), Optional.of(pFunctionName), cparser, scope, parserTools);
   }
 
   /**

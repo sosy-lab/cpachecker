@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -243,7 +244,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     formulaMeasuring = new FormulaMeasuring(fmgr);
 
     if (dumpPredicates && dumpPredicatesFile != null) {
-      precisionWriter = new PredicateMapWriter(config, fmgr);
+      precisionWriter = new PredicateMapWriter(config, fmgr, logger, Optional.empty());
     } else {
       precisionWriter = null;
     }

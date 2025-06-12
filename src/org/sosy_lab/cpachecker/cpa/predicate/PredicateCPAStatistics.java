@@ -180,7 +180,7 @@ final class PredicateCPAStatistics implements Statistics {
     abstractionsWriter = new PredicateAbstractionsWriter(pLogger, fmgr);
 
     if (exportPredmap && (predmapFile != null || predmapWitnessFile != null)) {
-      precisionWriter = new PredicateMapWriter(pConfig, fmgr);
+      precisionWriter = new PredicateMapWriter(pConfig, fmgr, logger, Optional.of(pCfa));
       try {
         metadataRecord =
             Optional.of(
@@ -295,7 +295,8 @@ final class PredicateCPAStatistics implements Statistics {
       if (exportPredmap) {
         if (predmapFile != null) {
           exportPredmapToFile(predmapFile, predicates);
-        } else if (predmapWitnessFile != null && metadataRecord.isPresent()) {
+        }
+        if (predmapWitnessFile != null && metadataRecord.isPresent()) {
           exportPredmapAsWitness(predmapWitnessFile, predicates, metadataRecord.orElseThrow());
         }
       }

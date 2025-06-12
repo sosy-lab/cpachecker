@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class AutomatonWitnessV2ParserUtils {
@@ -70,7 +71,7 @@ public class AutomatonWitnessV2ParserUtils {
     return determineScope(pExplicitScope, pFunctionStack, lineMatcher, pScope);
   }
 
-  private static Scope determineScope(
+  public static Scope determineScope(
       Optional<String> pExplicitScope,
       Deque<String> pFunctionStack,
       Predicate<FileLocation> pLocationDescriptor,
@@ -142,7 +143,12 @@ public class AutomatonWitnessV2ParserUtils {
       return Optional.empty();
     } else if (FluentIterable.from(entries).allMatch(ViolationSequenceEntry.class::isInstance)) {
       return Optional.of(WitnessType.VIOLATION_WITNESS);
-    } else if (FluentIterable.from(entries).allMatch(e -> !(e instanceof ViolationSequenceEntry))) {
+    } else if (FluentIterable.from(entries).allMatch(PrecisionExchangeSetEntry.class::isInstance)) {
+      return Optional.of(WitnessType.PRECISION_WITNESS);
+    } else if (FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                !(e instanceof ViolationSequenceEntry || e instanceof PrecisionExchangeSetEntry))) {
       return Optional.of(WitnessType.CORRECTNESS_WITNESS);
     }
     return Optional.empty();

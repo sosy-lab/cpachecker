@@ -188,6 +188,10 @@ public final class AstCfaRelation {
    *     be uniquely determined
    */
   public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+    if (startingLocationToTightestStatement == null) {
+      initializeMapFromStartingLocationToTightestStatement();
+    }
+
     ASTElement statement =
         Objects.requireNonNull(
                 startingLocationToTightestStatement.floorEntry(new StartingLocation(column, line)))

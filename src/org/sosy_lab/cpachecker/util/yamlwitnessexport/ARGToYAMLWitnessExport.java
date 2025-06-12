@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -56,7 +55,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
           Level.INFO,
           commonPrefix
               + "Witnesses exported in versions "
-              + from(pWitnessExportResults.entrySet())
+              + FluentIterable.from(pWitnessExportResults.entrySet())
                   .filter(entry -> !entry.getValue().translationAlwaysSuccessful())
                   .transform(entry -> entry.getKey().toString())
                   .join(Joiner.on(", "))
@@ -96,8 +95,7 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
       ARGState pRootState, UnmodifiableReachedSet pReachedSet, PathTemplate pOutputFileTemplate)
       throws InterruptedException, IOException, ReportingMethodNotImplementedException {
 
-    ImmutableMap.Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults =
-        ImmutableMap.builder();
+    Builder<YAMLWitnessVersion, WitnessExportResult> witnessExportResults = ImmutableMap.builder();
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
       WitnessExportResult witnessExportResult =
@@ -106,6 +104,12 @@ public class ARGToYAMLWitnessExport extends AbstractYAMLWitnessExporter {
             case V2d1 -> {
               logger.log(Level.INFO, "Exporting witnesses in Version 2.1 is currently WIP.");
               yield argToWitnessV2d1.exportWitness(pRootState, outputFile);
+            }
+            case V2d2 -> {
+              logger.log(Level.WARNING, "Witness export in version 2.2 is not yet implemented.");
+              // We do not export anything here, so just print the warning and yield a default
+              // result.
+              yield new WitnessExportResult(true);
             }
           };
       witnessExportResults.put(witnessVersion, witnessExportResult);

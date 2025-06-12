@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ProducerRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.TaskRecord;
 
 @Options(prefix = "witness.yamlexporter")
-abstract class AbstractYAMLWitnessExporter {
+public abstract class AbstractYAMLWitnessExporter {
 
   @Option(secure = true, description = "The version for which to export the witness.")
   protected List<YAMLWitnessVersion> witnessVersions = ImmutableList.of(YAMLWitnessVersion.V2);
@@ -57,7 +57,6 @@ abstract class AbstractYAMLWitnessExporter {
 
   protected final LogManager logger;
   private final Specification specification;
-  protected final ObjectMapper mapper;
   private final ProducerRecord producerRecord;
 
   protected AbstractYAMLWitnessExporter(
@@ -68,12 +67,6 @@ abstract class AbstractYAMLWitnessExporter {
     logger = pLogger;
     cfa = pCfa;
 
-    mapper =
-        new ObjectMapper(
-            YAMLFactory.builder()
-                .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
-                .build());
-    mapper.setSerializationInclusion(Include.NON_NULL);
     producerRecord = ProducerRecord.getProducerRecord(pConfig);
   }
 
@@ -91,19 +84,31 @@ abstract class AbstractYAMLWitnessExporter {
     return Verify.verifyNotNull(astCFARelation);
   }
 
-  protected void exportEntries(AbstractEntry entry, Path outFile) {
+  private static ObjectMapper getObjectMapper() {
+    ObjectMapper mapper =
+        new ObjectMapper(
+            YAMLFactory.builder()
+                .disable(Feature.WRITE_DOC_START_MARKER, Feature.SPLIT_LINES)
+                .build());
+    mapper.setSerializationInclusion(Include.NON_NULL);
+    return mapper;
+  }
+
+  public static void exportEntries(List<AbstractEntry> pEntries, Path outFile, LogManager pLogger) {
     if (outFile == null) {
-      logger.log(Level.FINE, "Output file is null, not exporting witness.");
+      pLogger.log(Level.FINE, "Output file is null, not exporting witness.");
       return;
     }
 
+    // A bit inefficient, since it initializes the mapper each time
+    ObjectMapper pMapper = getObjectMapper();
+
     try (Writer writer = IO.openOutputFile(outFile, Charset.defaultCharset())) {
-      String entryYaml = mapper.writeValueAsString(ImmutableList.of(entry));
-      writer.write(entryYaml);
+      pMapper.writeValue(writer, pEntries);
     } catch (JsonProcessingException e) {
       throw new AssertionError(e);
     } catch (IOException e) {
-      logger.logUserException(
+      pLogger.logUserException(
           Level.INFO,
           e,
           "witness export to "

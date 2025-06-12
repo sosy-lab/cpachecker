@@ -167,7 +167,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     pConfig.inject(this);
     logger = pLogger;
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
-    predExporter = new PredicateMapWriter(pConfig, solver.getFormulaManager());
+    predExporter =
+        new PredicateMapWriter(pConfig, solver.getFormulaManager(), logger, Optional.of(pCfa));
     absMgr = new AbstractionManager(new SymbolicRegionManager(solver), pConfig, pLogger, solver);
     varToType = extractVarsWithType(pCfa);
     c2Formula =
