@@ -98,18 +98,18 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
-          "defines the syntax in which the next thread executing a statement is chosen."
-              + " may slow down or improve performance, depending on the verifier.")
-  private MultiControlStatementEncoding controlEncodingThread =
-      MultiControlStatementEncoding.IF_ELSE_CHAIN;
-
-  @Option(
-      secure = true,
-      description =
           "defines the syntax in which the next statement of a thread simulation is chosen."
               + " may slow down or improve performance, depending on the verifier.")
   private MultiControlStatementEncoding controlEncodingStatement =
       MultiControlStatementEncoding.SWITCH_CASE;
+
+  @Option(
+      secure = true,
+      description =
+          "defines the syntax in which the next thread executing a statement is chosen."
+              + " may slow down or improve performance, depending on the verifier.")
+  private MultiControlStatementEncoding controlEncodingThread =
+      MultiControlStatementEncoding.IF_ELSE_CHAIN;
 
   @Option(
       secure = true,
@@ -270,8 +270,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
             bitVectorReduction,
             comments,
             consecutiveLabels,
-            controlEncodingThread,
             controlEncodingStatement,
+            controlEncodingThread,
             inputFunctionDeclarations,
             inputTypeDeclarations,
             license,
