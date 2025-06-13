@@ -28,16 +28,37 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.Nondeterminism
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 public class InputRejectionTest {
+
+  private final MPOROptions defaultTestOptions =
+      MPOROptions.testInstance(
+          BitVectorEncoding.NONE,
+          false,
+          BitVectorReduction.NONE,
+          false,
+          MultiControlStatementEncoding.SWITCH_CASE,
+          MultiControlStatementEncoding.NONE,
+          false,
+          false,
+          false,
+          NondeterminismSource.NUM_STATEMENTS,
+          false,
+          false,
+          false,
+          false);
 
   /**
    * Tests for pInputFilePath if it throws an {@link RuntimeException} with the message
    * pErrorMessage in it.
    */
   private <T extends Throwable> void testExpectedRejection(
-      Path pInputFilePath, Class<T> pExpectedThrowable, InputRejectionMessage pExpected)
+      MPOROptions pOptions,
+      Path pInputFilePath,
+      Class<T> pExpectedThrowable,
+      InputRejectionMessage pExpected)
       throws Exception {
 
     // create cfa for test program pFileName
@@ -51,26 +72,9 @@ public class InputRejectionTest {
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
-    MPOROptions options =
-        MPOROptions.testInstance(
-            BitVectorEncoding.DECIMAL,
-            false,
-            // bit vectors are enabled for this unit test, so that pointer write is rejected
-            BitVectorReduction.ACCESS_ONLY,
-            false,
-            MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.NONE,
-            false,
-            false,
-            false,
-            NondeterminismSource.NUM_STATEMENTS,
-            false,
-            false,
-            false,
-            false);
     T throwable =
         assertThrows(
-            pExpectedThrowable, () -> MPORAlgorithm.testInstance(options, logger, inputCfa));
+            pExpectedThrowable, () -> MPORAlgorithm.testInstance(logger, inputCfa, pOptions));
     assertThat(pExpectedThrowable.isInstance(throwable)).isTrue();
     assertThat(throwable.getMessage().contains(pExpected.message)).isTrue();
   }
@@ -92,7 +96,10 @@ public class InputRejectionTest {
   public void testRejectNotParallel() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/relax-1.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.NOT_CONCURRENT);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.NOT_CONCURRENT);
   }
 
   @Test
@@ -100,7 +107,10 @@ public class InputRejectionTest {
     // this program uses pthread_cond_wait and pthread_cond_signal
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/sync01.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.UNSUPPORTED_FUNCTION);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.UNSUPPORTED_FUNCTION);
   }
 
   @Test
@@ -108,7 +118,10 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/indexer-no-pthread-exit.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS);
   }
 
   // TODO also create a test for pthread_create(...) != 0
@@ -120,7 +133,10 @@ public class InputRejectionTest {
   public void testRejectPthreadReturnValue() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/twostage_3.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.PTHREAD_RETURN_VALUE);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.PTHREAD_RETURN_VALUE);
   }
 
   @Test
@@ -128,7 +144,10 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-pthread-create-loop.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.PTHREAD_CREATE_LOOP);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.PTHREAD_CREATE_LOOP);
   }
 
   @Test
@@ -136,7 +155,10 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-direct-recursion.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.RECURSIVE_FUNCTION);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
@@ -144,13 +166,55 @@ public class InputRejectionTest {
     Path inputFilePath =
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-indirect-recursion.c");
     testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.RECURSIVE_FUNCTION);
+        defaultTestOptions,
+        inputFilePath,
+        RuntimeException.class,
+        InputRejectionMessage.RECURSIVE_FUNCTION);
   }
 
   @Test
   public void testRejectPointerWrite() throws Exception {
     Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pointer-write.c");
-    testExpectedRejection(
-        inputFilePath, RuntimeException.class, InputRejectionMessage.POINTER_WRITE);
+    MPOROptions customOptions =
+        MPOROptions.testInstance(
+            BitVectorEncoding.DECIMAL,
+            false,
+            // bit vectors are enabled for these tests, so that pointer write is rejected
+            BitVectorReduction.ACCESS_ONLY,
+            false,
+            MultiControlStatementEncoding.SWITCH_CASE,
+            MultiControlStatementEncoding.NONE,
+            false,
+            false,
+            false,
+            NondeterminismSource.NUM_STATEMENTS,
+            false,
+            false,
+            false,
+            false);
+
+    // create cfa for test program pFileName
+    LogManager logger = LogManager.createTestLogManager();
+    CFACreator creatorWithPreProcessor =
+        new CFACreator(
+            Configuration.builder().setOption("parser.usePreprocessor", "true").build(),
+            logger,
+            ShutdownNotifier.createDummy());
+    CFA inputCfa =
+        creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(inputFilePath.toString()));
+
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, customOptions);
+    String inputFileName = "input.i";
+
+    // test if MPORAlgorithm rejects program with correct error message
+    RuntimeException throwable =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                algorithm
+                    .buildSequentialization(inputFileName, SeqToken.__MPOR_SEQ__ + inputFileName)
+                    .toString());
+    String expectedMessage = InputRejectionMessage.POINTER_WRITE.message;
+    assertThat(throwable.getMessage().contains(expectedMessage)).isTrue();
   }
 }

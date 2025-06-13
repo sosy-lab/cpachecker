@@ -80,9 +80,9 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.DECIMAL,
+            BitVectorEncoding.NONE,
             false,
-            BitVectorReduction.ACCESS_ONLY,
+            BitVectorReduction.NONE,
             false,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
             MultiControlStatementEncoding.BINARY_IF_TREE,
@@ -131,9 +131,9 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.NONE,
+            BitVectorEncoding.DECIMAL,
             false,
-            BitVectorReduction.NONE,
+            BitVectorReduction.ACCESS_ONLY,
             true,
             MultiControlStatementEncoding.SWITCH_CASE,
             MultiControlStatementEncoding.BINARY_IF_TREE,
@@ -331,7 +331,7 @@ public class SequentializationTest {
         creatorWithPreProcessor.parseFileAndCreateCFA(ImmutableList.of(pInputFilePath.toString()));
 
     // create mpor algorithm and generate seq
-    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(pOptions, logger, inputCfa);
+    MPORAlgorithm algorithm = MPORAlgorithm.testInstance(logger, inputCfa, pOptions);
     String inputFileName = "test.i";
     String sequentialization =
         algorithm

@@ -317,7 +317,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   }
 
   public static MPORAlgorithm testInstance(
-      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa)
+      LogManager pLogManager, CFA pInputCfa, MPOROptions pOptions)
       throws InvalidConfigurationException {
 
     return new MPORAlgorithm(null, null, pLogManager, null, pInputCfa, pOptions);

@@ -225,6 +225,9 @@ public class InputRejection {
     }
   }
 
+  // TODO it would be best to check if the rightHandSide (= assigned value) is not equal to the
+  //  initializer, then this is an actual pointer write / update.
+  //  then we can use an optional RightHandSide to replace the pIsWrite parameter?
   /** Public, because checking is done in {@link MPORSubstitution}. */
   public static void checkPointerWrite(
       boolean pIsWrite, MPOROptions pOptions, CIdExpression pIdExpression, LogManager pLogger) {
