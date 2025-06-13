@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorReadWriteEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
@@ -135,39 +136,42 @@ class BitVectorReadWriteInjector {
         // exit pc -> reset bit vector to 0s so that no interference with still active threads
         newInjected.addAll(
             buildBitVectorReadWriteZeroAssignments(pOptions, pThread, pBitVectorVariables));
+        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target case
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
-        ImmutableSet<CVariableDeclaration> directReadVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, newTarget.block, BitVectorAccessType.READ);
-        ImmutableSet<CVariableDeclaration> directWriteVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, newTarget.block, BitVectorAccessType.WRITE);
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorReadWriteAssignments(
-                pOptions,
-                pThread,
-                pBitVectorVariables,
-                newTarget.block,
-                pLabelClauseMap,
-                pLabelBlockMap);
-        BitVectorEvaluationExpression evaluationExpression =
-            BitVectorReadWriteEvaluationBuilder.buildEvaluationByEncoding(
-                pOptions,
-                pThread,
-                directReadVariables,
-                directWriteVariables,
-                pBitVectorVariables,
-                pBinaryExpressionBuilder);
-        SeqBitVectorReadWriteEvaluationStatement evaluationStatement =
-            new SeqBitVectorReadWriteEvaluationStatement(
-                evaluationExpression, newTarget.block.getGotoLabel());
-        newInjected.add(evaluationStatement);
-        newInjected.addAll(bitVectorAssignments);
+        if (!SeqThreadStatementUtil.anySynchronizesThreads(newTarget.getAllStatements())) {
+          ImmutableSet<CVariableDeclaration> directReadVariables =
+              GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.READ);
+          ImmutableSet<CVariableDeclaration> directWriteVariables =
+              GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.WRITE);
+          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+              buildBitVectorReadWriteAssignments(
+                  pOptions,
+                  pThread,
+                  pBitVectorVariables,
+                  newTarget.block,
+                  pLabelClauseMap,
+                  pLabelBlockMap);
+          BitVectorEvaluationExpression evaluationExpression =
+              BitVectorReadWriteEvaluationBuilder.buildEvaluationByEncoding(
+                  pOptions,
+                  pThread,
+                  directReadVariables,
+                  directWriteVariables,
+                  pBitVectorVariables,
+                  pBinaryExpressionBuilder);
+          SeqBitVectorReadWriteEvaluationStatement evaluationStatement =
+              new SeqBitVectorReadWriteEvaluationStatement(
+                  evaluationExpression, newTarget.block.getGotoLabel());
+          newInjected.add(evaluationStatement);
+          newInjected.addAll(bitVectorAssignments);
+          return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        }
       }
-      return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
     }
     // no valid target pc (e.g. exit pc) -> return statement as is
     return pCurrentStatement;

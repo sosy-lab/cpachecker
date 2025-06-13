@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
@@ -136,32 +137,38 @@ class BitVectorAccessInjector {
         // for the exit pc, reset the bit vector to just 0s
         newInjected.addAll(
             buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, ImmutableSet.of()));
-
+        return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
       } else {
         // for all other target pc, set the bit vector based on global accesses in the target block
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
-        ImmutableSet<CVariableDeclaration> directVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-        ImmutableSet<CVariableDeclaration> reachableVariables =
-            GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
-                pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
-        BitVectorEvaluationExpression evaluationExpression =
-            BitVectorAccessEvaluationBuilder.buildEvaluationByEncoding(
-                pOptions, pThread, directVariables, pBitVectorVariables, pBinaryExpressionBuilder);
-        SeqBitVectorAccessEvaluationStatement evaluationStatement =
-            new SeqBitVectorAccessEvaluationStatement(
-                evaluationExpression, newTarget.block.getGotoLabel());
-        newInjected.add(evaluationStatement);
-        // the assignment is injected after the evaluation, it is only needed when commute fails
-        ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
-            buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
-        newInjected.addAll(bitVectorAssignments);
+        if (!SeqThreadStatementUtil.anySynchronizesThreads(newTarget.getAllStatements())) {
+          ImmutableSet<CVariableDeclaration> directVariables =
+              GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
+                  pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
+          ImmutableSet<CVariableDeclaration> reachableVariables =
+              GlobalVariableFinder.findReachableGlobalVariablesByAccessType(
+                  pLabelClauseMap, pLabelBlockMap, newTarget.block, BitVectorAccessType.ACCESS);
+          BitVectorEvaluationExpression evaluationExpression =
+              BitVectorAccessEvaluationBuilder.buildEvaluationByEncoding(
+                  pOptions,
+                  pThread,
+                  directVariables,
+                  pBitVectorVariables,
+                  pBinaryExpressionBuilder);
+          SeqBitVectorAccessEvaluationStatement evaluationStatement =
+              new SeqBitVectorAccessEvaluationStatement(
+                  evaluationExpression, newTarget.block.getGotoLabel());
+          newInjected.add(evaluationStatement);
+          // the assignment is injected after the evaluation, it is only needed when commute fails
+          ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
+              buildBitVectorAssignments(pOptions, pThread, pBitVectorVariables, reachableVariables);
+          newInjected.addAll(bitVectorAssignments);
+          return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
+        }
       }
-      return pCurrentStatement.cloneAppendingInjectedStatements(newInjected.build());
     }
-    // no valid target pc (e.g. exit pc) -> return statement as is
+    // no injection possible -> return statement as is
     return pCurrentStatement;
   }
 
