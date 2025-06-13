@@ -257,36 +257,45 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       Configuration pConfiguration,
       LogManager pLogManager,
       ShutdownNotifier pShutdownNotifier,
-      CFA pInputCfa)
+      CFA pInputCfa,
+      MPOROptions pOptions)
       throws InvalidConfigurationException {
 
-    pConfiguration.inject(this);
+    // the config can be null when unit testing
+    if (pConfiguration != null) {
+      pConfiguration.inject(this);
+    }
 
-    options =
-        new MPOROptions(
-            atomicBlockMerge,
-            bitVectorEncoding,
-            bitVectorEvaluationPrune,
-            bitVectorReduction,
-            comments,
-            consecutiveLabels,
-            controlEncodingStatement,
-            controlEncodingThread,
-            inputFunctionDeclarations,
-            inputTypeDeclarations,
-            license,
-            linkReduction,
-            nondeterminismSource,
-            outputMetadata,
-            outputPath,
-            overwriteFiles,
-            pruneEmptyStatements,
-            scalarPc,
-            sequentializationErrors,
-            shortVariableNames,
-            signedNondet,
-            validateParse,
-            validatePc);
+    if (pOptions != null) {
+      options = pOptions;
+    } else {
+      options =
+          new MPOROptions(
+              atomicBlockMerge,
+              bitVectorEncoding,
+              bitVectorEvaluationPrune,
+              bitVectorReduction,
+              comments,
+              consecutiveLabels,
+              controlEncodingStatement,
+              controlEncodingThread,
+              inputFunctionDeclarations,
+              inputTypeDeclarations,
+              license,
+              linkReduction,
+              nondeterminismSource,
+              outputMetadata,
+              outputPath,
+              overwriteFiles,
+              pruneEmptyStatements,
+              scalarPc,
+              sequentializationErrors,
+              shortVariableNames,
+              signedNondet,
+              validateParse,
+              validatePc);
+    }
+
     cpa = pCpa;
     config = pConfiguration;
     logger = pLogManager;
@@ -300,37 +309,17 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 
     threads = ThreadBuilder.createThreads(options, inputCfa);
-    ImmutableSet<CVariableDeclaration> globalVars =
-        CFAUtils.getGlobalVariableDeclarations(inputCfa);
-    substitutions =
-        MPORSubstitutionBuilder.buildSubstitutions(
-            options, globalVars, threads, binaryExpressionBuilder);
-  }
-
-  /** Use this constructor only for test purposes. */
-  private MPORAlgorithm(MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
-    options = pOptions;
-    cpa = null;
-    config = null;
-    logger = pLogManager;
-    shutdownNotifier = null;
-    inputCfa = pInputCfa;
-
-    InputRejection.handleRejections(logger, options, inputCfa);
-
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
-
-    threads = ThreadBuilder.createThreads(options, inputCfa);
     ImmutableSet<CVariableDeclaration> globalVariableDeclarations =
         CFAUtils.getGlobalVariableDeclarations(inputCfa);
     substitutions =
         MPORSubstitutionBuilder.buildSubstitutions(
-            options, globalVariableDeclarations, threads, binaryExpressionBuilder);
+            options, globalVariableDeclarations, threads, binaryExpressionBuilder, logger);
   }
 
   public static MPORAlgorithm testInstance(
-      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa) {
+      MPOROptions pOptions, LogManager pLogManager, CFA pInputCfa)
+      throws InvalidConfigurationException {
 
-    return new MPORAlgorithm(pOptions, pLogManager, pInputCfa);
+    return new MPORAlgorithm(null, null, pLogManager, null, pInputCfa, pOptions);
   }
 }

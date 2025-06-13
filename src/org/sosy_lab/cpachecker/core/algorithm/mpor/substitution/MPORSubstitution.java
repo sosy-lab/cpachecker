@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -44,6 +45,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejection;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.ThreadEdge;
@@ -54,6 +57,8 @@ public class MPORSubstitution {
   /** Whether this instance servers as a dummy, used only for debugging. */
   @SuppressWarnings("unused")
   private final boolean isDummy;
+
+  private final MPOROptions options;
 
   public final MPORThread thread;
 
@@ -81,8 +86,11 @@ public class MPORSubstitution {
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
+  private final LogManager logger;
+
   public MPORSubstitution(
       boolean pIsDummy,
+      MPOROptions pOptions,
       MPORThread pThread,
       ImmutableMap<CVariableDeclaration, CIdExpression> pGlobalSubstitutes,
       ImmutableMap<CVariableDeclaration, LocalVariableDeclarationSubstitute> pLocalSubstitutes,
@@ -91,9 +99,11 @@ public class MPORSubstitution {
       ImmutableMap<CParameterDeclaration, CIdExpression> pMainFunctionArgSubstitutes,
       ImmutableMap<ThreadEdge, ImmutableMap<CParameterDeclaration, CIdExpression>>
           pStartRoutineArgSubstitutes,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger) {
 
     isDummy = pIsDummy;
+    options = pOptions;
     thread = pThread;
     globalSubstitutes = pGlobalSubstitutes;
     localSubstitutes = pLocalSubstitutes;
@@ -101,18 +111,24 @@ public class MPORSubstitution {
     mainFunctionArgSubstitutes = pMainFunctionArgSubstitutes;
     startRoutineArgSubstitutes = pStartRoutineArgSubstitutes;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
+    logger = pLogger;
   }
 
   /**
    * If applicable, adds the {@link CVariableDeclaration} of {@code pIdExpression} to the respective
-   * sets.
+   * sets. {@code pIsWrite} is used to determine whether the expression to substitute is written,
+   * i.e. a LHS in an assignment.
    */
   private void handleGlobalVariableAccesses(
       CIdExpression pIdExpression,
-      boolean pIsAssignmentLeftHandSide,
+      boolean pIsWrite,
       Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables) {
 
+    // with bit vectors enabled, writing pointers (aliasing) is not allowed -> reject program
+    InputRejection.checkPointerWrite(pIsWrite, options, pIdExpression, logger);
+
+    // otherwise, if applicable, add declaration to global reads/writes
     if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
       if (variableDeclaration.isGlobal()) {
         // treat pthread_mutex_t accesses as writes, otherwise interleavings are lost
@@ -121,7 +137,7 @@ public class MPORSubstitution {
         if (pAccessedGlobalVariables.isPresent()) {
           pAccessedGlobalVariables.orElseThrow().add(variableDeclaration);
         }
-        if (pWrittenGlobalVariables.isPresent() && (pIsAssignmentLeftHandSide || isMutex)) {
+        if (pWrittenGlobalVariables.isPresent() && (pIsWrite || isMutex)) {
           pWrittenGlobalVariables.orElseThrow().add(variableDeclaration);
         }
       }
@@ -130,20 +146,21 @@ public class MPORSubstitution {
 
   /**
    * Substitutes the given expression, and tracks if any global variable was substituted alongside
-   * in {@code pAccessedGlobalVariables}.
+   * in {@code pAccessedGlobalVariables}. {@code pIsWrite} is used to determine whether the
+   * expression to substitute * is written, i.e. a LHS in an assignment.
    */
   public CExpression substitute(
       final CExpression pExpression,
       final Optional<ThreadEdge> pCallContext,
-      boolean pIsAssignmentLeftHandSide,
+      boolean pIsWrite,
       boolean pIsUnaryAmper,
       Optional<ImmutableSet.Builder<CVariableDeclaration>> pWrittenGlobalVariables,
       Optional<ImmutableSet.Builder<CVariableDeclaration>> pAccessedGlobalVariables,
       ImmutableSet.Builder<CFunctionDeclaration> pAccessedFunctionPointers) {
 
     checkArgument(
-        !pIsAssignmentLeftHandSide || pWrittenGlobalVariables.isPresent(),
-        "if pIsAssignmentLeftHandSide is true, pWrittenGlobalVariables must be present");
+        !pIsWrite || pWrittenGlobalVariables.isPresent(),
+        "if pIsWrite is true, pWrittenGlobalVariables must be present");
 
     // never substitute pure int or strings
     if (pExpression instanceof CIntegerLiteralExpression) {
@@ -159,10 +176,7 @@ public class MPORSubstitution {
       CSimpleDeclaration declaration = idExpression.getDeclaration();
       if (isSubstitutable(declaration)) {
         handleGlobalVariableAccesses(
-            idExpression,
-            pIsAssignmentLeftHandSide,
-            pWrittenGlobalVariables,
-            pAccessedGlobalVariables);
+            idExpression, pIsWrite, pWrittenGlobalVariables, pAccessedGlobalVariables);
         return getVariableSubstitute(idExpression.getDeclaration(), pCallContext);
       }
       // when accessing function pointers e.g. &func. this is also possible without the unary amper
@@ -212,7 +226,7 @@ public class MPORSubstitution {
           substitute(
               arrayExpression,
               pCallContext,
-              pIsAssignmentLeftHandSide,
+              pIsWrite,
               pIsUnaryAmper,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
@@ -238,7 +252,7 @@ public class MPORSubstitution {
           substitute(
               fieldReference.getFieldOwner(),
               pCallContext,
-              pIsAssignmentLeftHandSide,
+              pIsWrite,
               pIsUnaryAmper,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,
@@ -275,7 +289,7 @@ public class MPORSubstitution {
           substitute(
               pointer.getOperand(),
               pCallContext,
-              pIsAssignmentLeftHandSide,
+              pIsWrite,
               pIsUnaryAmper,
               pWrittenGlobalVariables,
               pAccessedGlobalVariables,

@@ -16,18 +16,21 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadObjectType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class InputRejection {
@@ -37,13 +40,15 @@ public class InputRejection {
     LANGUAGE_NOT_C("MPOR only supports language C", false),
     NOT_CONCURRENT(
         "MPOR expects concurrent C program with at least one pthread_create call", false),
+    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
+    POINTER_WRITE(
+        "MPOR does not support writing pointers (when bit vectors are enabled) in line ", true),
     PTHREAD_CREATE_LOOP(
         "MPOR does not support pthread_create calls in loops (or recursive functions)", false),
-    NO_PTHREAD_OBJECT_ARRAYS("MPOR does not support arrays of pthread objects in line ", true),
-    UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true),
     PTHREAD_RETURN_VALUE(
         "MPOR does not support pthread method return value assignments in line ", true),
-    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true);
+    RECURSIVE_FUNCTION("MPOR does not support the (in)direct recursive function in line ", true),
+    UNSUPPORTED_FUNCTION("MPOR does not support the function in line ", true);
 
     public final String message;
 
@@ -78,8 +83,6 @@ public class InputRejection {
    * </ul>
    */
   public static void handleRejections(LogManager pLogger, MPOROptions pOptions, CFA pInputCfa) {
-    // TODO add rejection for writing pointers (only when bit vectors are enabled)
-    //  i.e. pointers as left hand sides in assignment statements
     checkOptions(pLogger, pOptions);
     checkLanguageC(pLogger, pInputCfa);
     checkIsParallelProgram(pLogger, pInputCfa);
@@ -92,8 +95,9 @@ public class InputRejection {
   }
 
   @TerminatesExecution
-  private static void handleRejection(
+  public static void handleRejection(
       LogManager pLogger, InputRejectionMessage pMessage, Object... args) {
+
     String formatted = String.format(pMessage.formatMessage(), args);
     // using RuntimeException because checkArgument throws IllegalArgumentExceptions
     pLogger.logfUserException(Level.SEVERE, new RuntimeException(), "%s", formatted);
@@ -151,7 +155,7 @@ public class InputRejection {
                 handleRejection(
                     pLogger,
                     InputRejectionMessage.NO_PTHREAD_OBJECT_ARRAYS,
-                    Integer.toString(edge.getLineNumber()),
+                    edge.getLineNumber(),
                     edge.getCode());
               }
             }
@@ -215,8 +219,27 @@ public class InputRejection {
         handleRejection(
             pLogger,
             InputRejectionMessage.RECURSIVE_FUNCTION,
-            entry.getFunction().getFileLocation().getStartingLineNumber(),
+            entry.getFunction().getFileLocation().getStartingLineInOrigin(),
             entry.getFunctionName());
+      }
+    }
+  }
+
+  /** Public, because checking is done in {@link MPORSubstitution}. */
+  public static void checkPointerWrite(
+      boolean pIsWrite, MPOROptions pOptions, CIdExpression pIdExpression, LogManager pLogger) {
+
+    if (pIsWrite) {
+      if (pOptions.bitVectorReduction.isEnabled()) {
+        if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
+          if (variableDeclaration.getType() instanceof CPointerType) {
+            InputRejection.handleRejection(
+                pLogger,
+                InputRejectionMessage.POINTER_WRITE,
+                variableDeclaration.getFileLocation().getStartingLineInOrigin(),
+                variableDeclaration.toASTString());
+          }
+        }
       }
     }
   }

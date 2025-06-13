@@ -147,7 +147,7 @@ public class MPOROptions {
       NondeterminismSource pNondeterminismSource,
       boolean pScalarPc,
       boolean pSequentializationErrors,
-      boolean pShortVariables,
+      boolean pShortVariableNames,
       boolean pSignedNondet) {
 
     return new MPOROptions(
@@ -174,7 +174,7 @@ public class MPOROptions {
         true,
         pScalarPc,
         pSequentializationErrors,
-        pShortVariables,
+        pShortVariableNames,
         pSignedNondet,
         // no parse validation in unit tests -> tests are independent of implementation
         false,

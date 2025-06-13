@@ -53,16 +53,17 @@ public class InputRejectionTest {
     // test if MPORAlgorithm rejects program with correct throwable and pErrorMessage
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.NONE,
+            BitVectorEncoding.DECIMAL,
             false,
-            BitVectorReduction.NONE,
+            // bit vectors are enabled for this unit test, so that pointer write is rejected
+            BitVectorReduction.ACCESS_ONLY,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
-            MultiControlStatementEncoding.SWITCH_CASE,
+            MultiControlStatementEncoding.NONE,
             false,
             false,
             false,
-            NondeterminismSource.NEXT_THREAD,
+            NondeterminismSource.NUM_STATEMENTS,
             false,
             false,
             false,
@@ -112,7 +113,8 @@ public class InputRejectionTest {
 
   // TODO also create a test for pthread_create(...) != 0
 
-  // TODO the pthread_create call is nested inside binary expression(s) -> need to handle
+  // TODO the pthread_create call is nested inside binary expression(s). this should be checked for
+  //  when substituting (cf. pointer write), the expression search is already implemented there
   @Ignore
   @Test
   public void testRejectPthreadReturnValue() throws Exception {
@@ -143,5 +145,12 @@ public class InputRejectionTest {
         Path.of("./test/programs/mpor_seq/input_rejections/queue_longest-indirect-recursion.c");
     testExpectedRejection(
         inputFilePath, RuntimeException.class, InputRejectionMessage.RECURSIVE_FUNCTION);
+  }
+
+  @Test
+  public void testRejectPointerWrite() throws Exception {
+    Path inputFilePath = Path.of("./test/programs/mpor_seq/input_rejections/pointer-write.c");
+    testExpectedRejection(
+        inputFilePath, RuntimeException.class, InputRejectionMessage.POINTER_WRITE);
   }
 }
