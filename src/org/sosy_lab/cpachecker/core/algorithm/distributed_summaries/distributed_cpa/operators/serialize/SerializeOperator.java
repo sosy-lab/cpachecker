@@ -23,9 +23,6 @@ public interface SerializeOperator {
   DssMessagePayload serialize(AbstractState pState);
 
   default BooleanFormula serializeToFormula(AbstractState pState) {
-    if (pState == null) {
-      return null;
-    }
     throw new UnsupportedOperationException("This method is not supported.");
   }
 }

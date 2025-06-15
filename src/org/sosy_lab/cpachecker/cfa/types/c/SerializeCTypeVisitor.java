@@ -15,10 +15,23 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
 public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeException> {
 
+  private static final String ARRAY_TYPE_PREFIX = "ArrayType";
+  private static final String POINTER_TYPE_PREFIX = "PointerType";
+  private static final String FUNCTION_TYPE_PREFIX = "FunctionType";
+  private static final String SIMPLE_TYPE_PREFIX = "SimpleType";
+  private static final String COMPOSITE_TYPE_PREFIX = "CompositeType";
+  private static final String PROBLEM_TYPE_PREFIX = "ProblemType";
+  private static final String TYPEDEF_TYPE_PREFIX = "TypedefType";
+  private static final String VOID_TYPE_PREFIX = "VoidType";
+  private static final String BITFIELD_TYPE_PREFIX = "BitFieldType";
+  private static final String ELABORATED_TYPE_PREFIX = "ElaboratedType";
+  private static final String ENUM_TYPE_PREFIX = "EnumType";
+
   @Override
   public String visit(CArrayType pArrayType) {
     String result =
-        "ArrayType("
+        ARRAY_TYPE_PREFIX
+            + "("
             + pArrayType.isConst()
             + ", "
             + pArrayType.isVolatile()
@@ -30,8 +43,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CPointerType pPointerType) {
-
-    return "PointerType("
+    return POINTER_TYPE_PREFIX
+        + "("
         + pPointerType.isConst()
         + ", "
         + pPointerType.isVolatile()
@@ -42,7 +55,6 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CFunctionType pFunctionType) {
-
     StringBuilder parameters = new StringBuilder();
     for (CType param : pFunctionType.getParameters()) {
       parameters.append(param.accept(this)).append(", ");
@@ -51,7 +63,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
       parameters.setLength(parameters.length() - 2);
     }
 
-    return "FunctionType("
+    return FUNCTION_TYPE_PREFIX
+        + "("
         + pFunctionType.getReturnType().accept(this)
         + ", ["
         + parameters
@@ -62,7 +75,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CSimpleType pSimpleType) {
-    return "SimpleType("
+    return SIMPLE_TYPE_PREFIX
+        + "("
         + pSimpleType.isConst()
         + ", "
         + pSimpleType.isVolatile()
@@ -90,7 +104,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
     StringBuilder result = new StringBuilder();
 
     result
-        .append("CompositeType(")
+        .append(COMPOSITE_TYPE_PREFIX)
+        .append("(")
         .append(pCompositeType.isConst())
         .append(", ")
         .append(pCompositeType.isVolatile())
@@ -108,12 +123,13 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
   @Override
   public String visit(CProblemType pProblemType) {
     Objects.requireNonNull(pProblemType, "ProblemType must not be null");
-    return "ProblemType(" + pProblemType + ")";
+    return PROBLEM_TYPE_PREFIX + "(" + pProblemType + ")";
   }
 
   @Override
   public String visit(CTypedefType pTypedefType) {
-    return "TypedefType("
+    return TYPEDEF_TYPE_PREFIX
+        + "("
         + pTypedefType.isConst()
         + ", "
         + pTypedefType.isVolatile()
@@ -126,13 +142,15 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CVoidType pVoidType) {
-    String result = "VoidType(" + pVoidType.isConst() + ", " + pVoidType.isVolatile() + ")";
+    String result =
+        VOID_TYPE_PREFIX + "(" + pVoidType.isConst() + ", " + pVoidType.isVolatile() + ")";
     return result;
   }
 
   @Override
   public String visit(CBitFieldType pBitFieldType) {
-    return "BitFieldType("
+    return BITFIELD_TYPE_PREFIX
+        + "("
         + pBitFieldType.getBitFieldSize()
         + ", "
         + pBitFieldType.getType().accept(this)
@@ -141,7 +159,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
 
   @Override
   public String visit(CElaboratedType pElaboratedType) {
-    return "ElaboratedType("
+    return ELABORATED_TYPE_PREFIX
+        + "("
         + pElaboratedType.isConst()
         + ", "
         + pElaboratedType.isVolatile()
@@ -169,7 +188,8 @@ public class SerializeCTypeVisitor implements CTypeVisitor<String, RuntimeExcept
     }
 
     String result =
-        "EnumType("
+        ENUM_TYPE_PREFIX
+            + "("
             + pEnumType.isConst()
             + ","
             + pEnumType.isVolatile()

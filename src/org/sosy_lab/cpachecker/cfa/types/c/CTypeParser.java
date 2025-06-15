@@ -8,13 +8,32 @@
 
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CEnumerator;
 
+/**
+ * Utility class for parsing {@link CType} objects from their string representations.
+ *
+ * <p>The string format expected by this parser matches the output produced by {@link
+ * SerializeCTypeVisitor}. Each supported {@link CType} implementation is represented as a string
+ * with a specific prefix and a comma-separated list of arguments, for example:
+ *
+ * <pre>
+ *   SimpleType(false, false, int, false, false, false, false, false, false, false)
+ *   PointerType(true, false, SimpleType(...))
+ *   ArrayType(false, false, SimpleType(...))
+ *   FunctionType(SimpleType(...), [SimpleType(...), PointerType(...)], false)
+ * </pre>
+ *
+ * <p>This class provides a single entry point {@link #parse(String)} which reconstructs the
+ * corresponding {@link CType} object from such a string.
+ */
 public class CTypeParser {
 
   public static CType parse(String input) {
@@ -24,66 +43,108 @@ public class CTypeParser {
       return parsePointerType(input);
     } else if (input.startsWith("FunctionType(")) {
       return parseFunctionType(input);
-    } else if (input.startsWith("SimpleType(")) {
-      return parseSimpleType(input);
-    } else if (input.startsWith("CompositeType(")) {
-      return parseCompositeType(input);
+    } else if (input.startsWith("BitFieldType(")) {
+      return parseBitFieldType(input);
     } else if (input.startsWith("ProblemType(")) {
       return parseProblemType(input);
     } else if (input.startsWith("TypedefType(")) {
       return parseTypedefType(input);
-    } else if (input.startsWith("VoidType(")) {
-      return parseVoidType(input);
-    } else if (input.startsWith("BitFieldType(")) {
-      return parseBitFieldType(input);
     } else if (input.startsWith("ElaboratedType(")) {
       return parseElaboratedType(input);
+    } else if (input.startsWith("VoidType(")) {
+      return parseVoidType(input);
+    } else if (input.startsWith("SimpleType(")) {
+      return parseSimpleType(input);
+    } else if (input.startsWith("CompositeType(")) {
+      return parseCompositeType(input);
     } else if (input.startsWith("EnumType(")) {
       return parseEnumType(input);
-    } else {
-      throw new IllegalArgumentException("Unknown CType string: " + input);
     }
+    throw new IllegalArgumentException("Unknown type: " + input);
   }
+
+  private record PointerTypeParts(boolean isConst, boolean isVolatile, CType innerType) {}
+
+  private record ArrayTypeParts(boolean isConst, boolean isVolatile, CType innerType) {}
+
+  private record FunctionTypeParts(
+      CType returnType, List<CType> parameters, boolean takesVarArgs) {}
+
+  private record BitFieldTypeParts(int bitFieldSize, CType innerType) {}
+
+  private record TypedefTypeParts(
+      boolean isConst, boolean isVolatile, String name, CType canonicalType) {}
+
+  private record ElaboratedTypeParts(
+      boolean isConst,
+      boolean isVolatile,
+      CComplexType.ComplexTypeKind kind,
+      String name,
+      String origName) {}
+
+  private record VoidTypeParts(boolean isConst, boolean isVolatile) {}
+
+  private record SimpleTypeParts(
+      boolean isConst,
+      boolean isVolatile,
+      CBasicType basicType,
+      boolean hasLongSpecifier,
+      boolean hasShortSpecifier,
+      boolean hasSignedSpecifier,
+      boolean hasUnsignedSpecifier,
+      boolean hasComplexSpecifier,
+      boolean hasImaginarySpecifier,
+      boolean hasLongLongSpecifier) {}
+
+  private record CompositeTypeParts(
+      boolean isConst,
+      boolean isVolatile,
+      CComplexType.ComplexTypeKind kind,
+      String name,
+      String origName) {}
 
   private static CType parsePointerType(String input) {
     String content = extractInnerContent(input, "PointerType(");
     List<String> parts = splitIgnoringNestedCommas(content);
+    PointerTypeParts pointerParts =
+        new PointerTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            parse(parts.get(2)));
 
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CType innerType = parse(parts.get(2));
-
-    return new CPointerType(isConst, isVolatile, innerType);
+    return new CPointerType(
+        pointerParts.isConst(), pointerParts.isVolatile(), pointerParts.innerType());
   }
 
   private static CType parseArrayType(String input) {
     String content = extractInnerContent(input, "ArrayType(");
     List<String> parts = splitIgnoringNestedCommas(content);
+    ArrayTypeParts arrayParts =
+        new ArrayTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            parse(parts.get(2)));
 
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CType innerType = parse(parts.get(2));
-
-    return new CArrayType(isConst, isVolatile, innerType);
+    return new CArrayType(arrayParts.isConst(), arrayParts.isVolatile(), arrayParts.innerType());
   }
 
   private static CType parseFunctionType(String input) {
     String content = extractInnerContent(input, "FunctionType(");
     List<String> parts = splitIgnoringNestedCommas(content);
-    CType returnType = parse(parts.get(0));
-    List<CType> parameters = parseParameters(parts.get(1));
-    boolean takesVarArgs = Boolean.parseBoolean(parts.get(2));
+    FunctionTypeParts functionParts =
+        new FunctionTypeParts(
+            parse(parts.get(0)), parseParameters(parts.get(1)), Boolean.parseBoolean(parts.get(2)));
 
-    return new CFunctionType(returnType, parameters, takesVarArgs);
+    return new CFunctionType(
+        functionParts.returnType(), functionParts.parameters(), functionParts.takesVarArgs());
   }
 
   private static CType parseBitFieldType(String input) {
     String content = extractInnerContent(input, "BitFieldType(");
     List<String> parts = splitIgnoringNestedCommas(content);
-    int bitFieldSize = Integer.parseInt(parts.get(0));
-    CType innerType = parse(parts.get(1));
-
-    return new CBitFieldType(innerType, bitFieldSize);
+    BitFieldTypeParts bitFieldParts =
+        new BitFieldTypeParts(Integer.parseInt(parts.get(0)), parse(parts.get(1)));
+    return new CBitFieldType(bitFieldParts.innerType(), bitFieldParts.bitFieldSize());
   }
 
   private static CType parseProblemType(String input) {
@@ -93,74 +154,91 @@ public class CTypeParser {
 
   private static CType parseTypedefType(String input) {
     String content = extractInnerContent(input, "TypedefType(");
-    List<String> parts = splitIgnoringNestedCommas(content);
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    String name = parts.get(2);
-    CType canonicalType = parse(parts.get(3));
-
-    return new CTypedefType(isConst, isVolatile, name, canonicalType);
+    ImmutableList<String> parts = splitIgnoringNestedCommas(content);
+    TypedefTypeParts typeDefParts =
+        new TypedefTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            parts.get(2),
+            parse(parts.get(3)));
+    return new CTypedefType(
+        typeDefParts.isConst(),
+        typeDefParts.isVolatile(),
+        typeDefParts.name(),
+        typeDefParts.canonicalType());
   }
 
   private static CType parseElaboratedType(String input) {
     String content = extractInnerContent(input, "ElaboratedType(");
-    List<String> parts = splitIgnoringNestedCommas(content);
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CComplexType.ComplexTypeKind kind = CComplexType.ComplexTypeKind.valueOf(parts.get(2));
-    String name = parts.get(3);
-    String origName = parts.get(4);
-
-    return new CElaboratedType(isConst, isVolatile, kind, name, origName, null);
+    ImmutableList<String> parts = splitIgnoringNestedCommas(content);
+    ElaboratedTypeParts elaborateParts =
+        new ElaboratedTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            CComplexType.ComplexTypeKind.valueOf(parts.get(2)),
+            parts.get(3),
+            parts.get(4));
+    return new CElaboratedType(
+        elaborateParts.isConst(),
+        elaborateParts.isVolatile(),
+        elaborateParts.kind(),
+        elaborateParts.name(),
+        elaborateParts.origName(),
+        null);
   }
 
   private static CType parseVoidType(String input) {
     String content = extractInnerContent(input, "VoidType(");
     List<String> parts = splitIgnoringNestedCommas(content);
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-
-    return CVoidType.create(isConst, isVolatile);
+    VoidTypeParts voidParts =
+        new VoidTypeParts(Boolean.parseBoolean(parts.get(0)), Boolean.parseBoolean(parts.get(1)));
+    return CVoidType.create(voidParts.isConst(), voidParts.isVolatile());
   }
 
   private static CType parseSimpleType(String input) {
     String content = extractInnerContent(input, "SimpleType(");
-    List<String> parts = splitIgnoringNestedCommas(content);
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CBasicType basicType = getBasicTypeFromString(parts.get(2));
-    boolean hasLongSpecifier = Boolean.parseBoolean(parts.get(3));
-    boolean hasShortSpecifier = Boolean.parseBoolean(parts.get(4));
-    boolean hasSignedSpecifier = Boolean.parseBoolean(parts.get(5));
-    boolean hasUnsignedSpecifier = Boolean.parseBoolean(parts.get(6));
-    boolean hasComplexSpecifier = Boolean.parseBoolean(parts.get(7));
-    boolean hasImaginarySpecifier = Boolean.parseBoolean(parts.get(8));
-    boolean hasLongLongSpecifier = Boolean.parseBoolean(parts.get(9));
-
+    ImmutableList<String> parts = splitIgnoringNestedCommas(content);
+    SimpleTypeParts simpParts =
+        new SimpleTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            getBasicTypeFromString(parts.get(2)),
+            Boolean.parseBoolean(parts.get(3)),
+            Boolean.parseBoolean(parts.get(4)),
+            Boolean.parseBoolean(parts.get(5)),
+            Boolean.parseBoolean(parts.get(6)),
+            Boolean.parseBoolean(parts.get(7)),
+            Boolean.parseBoolean(parts.get(8)),
+            Boolean.parseBoolean(parts.get(9)));
     return new CSimpleType(
-        isConst,
-        isVolatile,
-        basicType,
-        hasLongSpecifier,
-        hasShortSpecifier,
-        hasSignedSpecifier,
-        hasUnsignedSpecifier,
-        hasComplexSpecifier,
-        hasImaginarySpecifier,
-        hasLongLongSpecifier);
+        simpParts.isConst(),
+        simpParts.isVolatile(),
+        simpParts.basicType(),
+        simpParts.hasLongSpecifier(),
+        simpParts.hasShortSpecifier(),
+        simpParts.hasSignedSpecifier(),
+        simpParts.hasUnsignedSpecifier(),
+        simpParts.hasComplexSpecifier(),
+        simpParts.hasImaginarySpecifier(),
+        simpParts.hasLongLongSpecifier());
   }
 
   private static CType parseCompositeType(String input) {
     String content = extractInnerContent(input, "CompositeType(");
-    List<String> parts = splitIgnoringNestedCommas(content);
-
-    boolean isConst = Boolean.parseBoolean(parts.get(0));
-    boolean isVolatile = Boolean.parseBoolean(parts.get(1));
-    CComplexType.ComplexTypeKind kind = CComplexType.ComplexTypeKind.valueOf(parts.get(2));
-    String name = parts.get(3);
-    String origName = parts.get(4);
-
-    return new CCompositeType(isConst, isVolatile, kind, name, origName);
+    ImmutableList<String> parts = splitIgnoringNestedCommas(content);
+    CompositeTypeParts compParts =
+        new CompositeTypeParts(
+            Boolean.parseBoolean(parts.get(0)),
+            Boolean.parseBoolean(parts.get(1)),
+            CComplexType.ComplexTypeKind.valueOf(parts.get(2)),
+            parts.get(3),
+            parts.get(4));
+    return new CCompositeType(
+        compParts.isConst(),
+        compParts.isVolatile(),
+        compParts.kind(),
+        compParts.name(),
+        compParts.origName());
   }
 
   private static CType parseEnumType(String input) {
@@ -187,41 +265,16 @@ public class CTypeParser {
     CSimpleType enumCompatibleType =
         new CSimpleType(
             false, false, CBasicType.INT, false, false, false, false, false, false, false);
-
     return new CEnumType(isConst, isVolatile, enumCompatibleType, enumerators, name, origName);
   }
 
-  private static List<String> splitIgnoringNestedCommas(String input) {
-    List<String> parts = new ArrayList<>();
-    StringBuilder currentPart = new StringBuilder();
-    int nestedParantheses = 0;
-    int nestedBrackets = 0;
-
-    for (int i = 0; i < input.length(); i++) {
-      char c = input.charAt(i);
-      if (c == '(') {
-        nestedParantheses++;
-      } else if (c == ')') {
-        nestedParantheses--;
-      }
-      if (c == '[') {
-        nestedBrackets++;
-      } else if (c == ']') {
-        nestedBrackets--;
-      }
-
-      if (c == ',' && nestedParantheses == 0 && nestedBrackets == 0) {
-        parts.add(currentPart.toString().trim());
-        currentPart.setLength(0);
-      } else {
-        currentPart.append(c);
-      }
-    }
-
-    if (currentPart.length() > 0) {
-      parts.add(currentPart.toString().trim());
-    }
-    return parts;
+  private static String extractInnerContent(String input, String prefix) {
+    Preconditions.checkArgument(
+        input.startsWith(prefix),
+        "Input string '" + input + "' does not start with the given prefix '" + prefix + "'.");
+    Preconditions.checkArgument(
+        input.endsWith(")"), "Input string '" + input + "' does not end with ')'.");
+    return input.substring(prefix.length(), input.length() - 1).trim();
   }
 
   private static List<CType> parseParameters(String input) {
@@ -236,6 +289,46 @@ public class CTypeParser {
     return parameters;
   }
 
+  /**
+   * Splits a string into parts separated by commas, ignoring commas inside nested parentheses and
+   * brackets.
+   *
+   * <p>For example: {@code "a, b(c,d), e[f,g], h"} would be split into {@code ["a", "b(c,d)",
+   * "e[f,g]", "h"]}.
+   *
+   * <p>This is necessary because some types may contain nested parameter lists or array
+   * declarations which contain commas that should not be treated as top-level separators.
+   */
+  private static ImmutableList<String> splitIgnoringNestedCommas(String input) {
+    ImmutableList.Builder<String> partsBuilder = ImmutableList.builder();
+    StringBuilder currentPart = new StringBuilder();
+    int nestedParentheses = 0;
+    int nestedBrackets = 0;
+
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == ',' && nestedParentheses == 0 && nestedBrackets == 0) {
+        partsBuilder.add(currentPart.toString().trim());
+        currentPart.setLength(0);
+      } else {
+        if (c == '(') {
+          nestedParentheses++;
+        } else if (c == ')') {
+          nestedParentheses--;
+        } else if (c == '[') {
+          nestedBrackets++;
+        } else if (c == ']') {
+          nestedBrackets--;
+        }
+        currentPart.append(c);
+      }
+    }
+    if (currentPart.length() > 0) {
+      partsBuilder.add(currentPart.toString().trim());
+    }
+    return partsBuilder.build();
+  }
+
   private static CBasicType getBasicTypeFromString(String typeStr) {
     return switch (typeStr) {
       case "_Bool" -> CBasicType.BOOL;
@@ -247,9 +340,5 @@ public class CTypeParser {
       case "__float128" -> CBasicType.FLOAT128;
       default -> CBasicType.UNSPECIFIED;
     };
-  }
-
-  private static String extractInnerContent(String input, String prefix) {
-    return input.substring(prefix.length(), input.length() - 1).trim();
   }
 }

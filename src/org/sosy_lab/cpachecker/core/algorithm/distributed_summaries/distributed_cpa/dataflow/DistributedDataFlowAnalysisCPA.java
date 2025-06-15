@@ -88,6 +88,9 @@ public class DistributedDataFlowAnalysisCPA
 
   @Override
   public boolean isTop(AbstractState pAbstractState) {
+    if (pAbstractState instanceof InvariantsState invariantsState) {
+      return invariantsState.getEnvironment().isEmpty();
+    }
     return false;
   }
 

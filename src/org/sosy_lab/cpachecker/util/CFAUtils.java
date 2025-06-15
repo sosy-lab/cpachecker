@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.elementAndList;
-import static org.sosy_lab.common.collect.Collections3.listAndElement;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -26,12 +24,10 @@ import com.google.common.graph.Traverser;
 import com.google.errorprone.annotations.DoNotCall;
 import com.google.errorprone.annotations.InlineMe;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -44,6 +40,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -71,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -91,6 +89,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -103,8 +102,10 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
@@ -115,7 +116,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -698,7 +698,7 @@ public class CFAUtils {
   }
 
   /**
-   * Extracts all variables with their types from the given CFA.
+   * Extracts all variables involved in the edges of the given CFA and their types.
    *
    * @return Map of memory locations of variables within cfa to their types.
    */
@@ -706,67 +706,161 @@ public class CFAUtils {
     Map<MemoryLocation, CType> types = new HashMap<>();
 
     for (CFAEdge edge : CFAUtils.allEdges(cfa)) {
-      ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(edge);
-      if (lhs instanceof AIdExpression idExpr) {
-        String qualifiedName = idExpr.getDeclaration().getQualifiedName();
-        Type type = CFAEdgeUtils.getLeftHandType(edge);
-        if (type instanceof CType) {
-          types.put(MemoryLocation.fromQualifiedName(qualifiedName), (CType) type);
+      switch (edge.getEdgeType()) {
+        case DeclarationEdge -> {
+          // Handle variable declarations (with/without initializer)
+          if (edge instanceof ADeclarationEdge declEdge) {
+            var decl = declEdge.getDeclaration();
+            if (decl instanceof CVariableDeclaration cVarDecl) {
+              MemoryLocation memLoc = MemoryLocation.forDeclaration(cVarDecl);
+              CType type = cVarDecl.getType();
+              types.put(memLoc, type);
+              var initializer = cVarDecl.getInitializer();
+              if (initializer != null) {
+                types.putAll(extractTypesFromCInitializer(initializer));
+              }
+            }
+          }
+        }
+        case StatementEdge -> {
+          // Handle assignments and function calls
+          if (edge instanceof AStatementEdge stmtEdge) {
+            var stmt = stmtEdge.getStatement();
+            if (stmt instanceof AExpressionAssignmentStatement assign) {
+              types.putAll(extractTypesFromALeftHandSide(assign.getLeftHandSide()));
+              types.putAll(extractTypesFromAExpression(assign.getRightHandSide()));
+            } else if (stmt instanceof AFunctionCallAssignmentStatement funCallAssign) {
+              types.putAll(extractTypesFromALeftHandSide(funCallAssign.getLeftHandSide()));
+              var funCallExpr = funCallAssign.getFunctionCallExpression();
+              for (var arg : funCallExpr.getParameterExpressions()) {
+                types.putAll(extractTypesFromAExpression(arg));
+              }
+            } else if (stmt instanceof AExpressionStatement exprStmt) {
+              types.putAll(extractTypesFromAExpression(exprStmt.getExpression()));
+            } else if (stmt instanceof AFunctionCallStatement funCallStmt) {
+              var funCallExpr = funCallStmt.getFunctionCallExpression();
+              for (var arg : funCallExpr.getParameterExpressions()) {
+                types.putAll(extractTypesFromAExpression(arg));
+              }
+            }
+          }
+        }
+        case AssumeEdge -> {
+          // Handle assume edges (conditions)
+          if (edge instanceof AssumeEdge assumeEdge) {
+            types.putAll(extractTypesFromAExpression(assumeEdge.getExpression()));
+          }
+        }
+        case ReturnStatementEdge -> {
+          // Handle return statements
+          if (edge instanceof AReturnStatementEdge retEdge) {
+            if (retEdge.getExpression().isPresent()) {
+              // If the edge has an assignment (i.e., return variable = expr), extract both sides
+              Optional<? extends AAssignment> assignmentOpt = retEdge.asAssignment();
+              if (assignmentOpt.isPresent()) {
+                AAssignment assignment = assignmentOpt.get();
+                if (assignment instanceof AExpressionAssignmentStatement exprAssign) {
+                  types.putAll(extractTypesFromALeftHandSide(exprAssign.getLeftHandSide()));
+                  types.putAll(extractTypesFromAExpression(exprAssign.getRightHandSide()));
+                } else if (assignment instanceof AFunctionCallAssignmentStatement funCallAssign) {
+                  types.putAll(extractTypesFromALeftHandSide(funCallAssign.getLeftHandSide()));
+                  var funCallExpr = funCallAssign.getFunctionCallExpression();
+                  for (var arg : funCallExpr.getParameterExpressions()) {
+                    types.putAll(extractTypesFromAExpression(arg));
+                  }
+                }
+              }
+              // Always extract from the returned expression as well
+              types.putAll(extractTypesFromAExpression(retEdge.getExpression().get()));
+            }
+          }
+        }
+        case FunctionCallEdge -> {
+          // Handle function call edges (arguments and parameters)
+          if (edge instanceof FunctionCallEdge callEdge) {
+            for (var arg : callEdge.getArguments()) {
+              types.putAll(extractTypesFromAExpression(arg));
+            }
+            for (var param : callEdge.getSuccessor().getFunctionParameters()) {
+              if (param.getType() instanceof CType cType) {
+                types.put(MemoryLocation.forDeclaration(param), cType);
+              }
+            }
+          }
+        }
+        case FunctionReturnEdge -> {
+          // Handle function return edges (return variable)
+          if (edge instanceof FunctionReturnEdge retEdge) {
+            var entry = retEdge.getFunctionEntry();
+            var retVarOpt = entry.getReturnVariable();
+            if (retVarOpt.isPresent()) {
+              var retVar = retVarOpt.get();
+              if (retVar.getType() instanceof CType cType) {
+                types.put(MemoryLocation.forDeclaration(retVar), cType);
+              }
+            }
+          }
+        }
+        default -> {
+          // Ignore blank, call-to-return, etc.
         }
       }
     }
     return types;
   }
 
-  /**
-   * Get all (sub)-paths through the given nodes connected only via blank edges.
-   *
-   * @param pNode the node to get the blank paths for.
-   * @return all (sub)-paths through the given nodes connected only via blank edges.
-   */
-  public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
-    List<List<CFANode>> blankPaths = new ArrayList<>();
-    Queue<List<CFANode>> waitlist = new ArrayDeque<>();
-    waitlist.offer(ImmutableList.of(pNode));
-    while (!waitlist.isEmpty()) {
-      List<CFANode> currentPath = waitlist.poll();
-      CFANode pathSucc = currentPath.get(currentPath.size() - 1);
-      List<BlankEdge> leavingBlankEdges =
-          CFAUtils.leavingEdges(pathSucc).filter(BlankEdge.class).toList();
-      if (pathSucc.getNumLeavingEdges() <= 0
-          || leavingBlankEdges.size() < pathSucc.getNumLeavingEdges()) {
-        blankPaths.add(currentPath);
-      } else {
-        for (CFAEdge leavingEdge : leavingBlankEdges) {
-          CFANode successor = leavingEdge.getSuccessor();
-          if (!currentPath.contains(successor)) {
-            List<CFANode> newPath = listAndElement(currentPath, successor);
-            waitlist.offer(newPath);
-          }
+  private static Map<MemoryLocation, CType> extractTypesFromAExpression(AExpression expr) {
+    Map<MemoryLocation, CType> result = new HashMap<>();
+    if (expr == null) return result;
+    if (expr instanceof CExpression cExpr) {
+      for (var id : CFAUtils.getIdExpressionsOfExpression(cExpr)) {
+        var decl = id.getDeclaration();
+        if (decl != null && decl.getType() != null) {
+          CType cType = decl.getType();
+          result.put(MemoryLocation.forDeclaration(decl), cType);
         }
       }
     }
-    waitlist.addAll(blankPaths);
-    blankPaths.clear();
-    while (!waitlist.isEmpty()) {
-      List<CFANode> currentPath = waitlist.poll();
-      CFANode pathPred = currentPath.get(0);
-      List<BlankEdge> enteringBlankEdges =
-          CFAUtils.enteringEdges(pathPred).filter(BlankEdge.class).toList();
-      if (pathPred.getNumEnteringEdges() <= 0
-          || enteringBlankEdges.size() < pathPred.getNumEnteringEdges()) {
-        blankPaths.add(currentPath);
-      } else {
-        for (CFAEdge enteringEdge : enteringBlankEdges) {
-          CFANode predecessor = enteringEdge.getPredecessor();
-          if (!currentPath.contains(predecessor)) {
-            List<CFANode> newPath = elementAndList(predecessor, currentPath);
-            waitlist.offer(newPath);
-          }
+    // Could add more cases for Java expressions if needed
+    return result;
+  }
+
+  private static Map<MemoryLocation, CType> extractTypesFromALeftHandSide(ALeftHandSide lhs) {
+    Map<MemoryLocation, CType> result = new HashMap<>();
+    if (lhs == null) return result;
+    if (lhs instanceof CLeftHandSide cLhs) {
+      if (cLhs instanceof CIdExpression id) {
+        var decl = id.getDeclaration();
+        if (decl != null && decl.getType() != null) {
+          CType cType = decl.getType();
+          result.put(MemoryLocation.forDeclaration(decl), cType);
         }
+      } else if (cLhs instanceof CFieldReference fieldRef) {
+        // Recursively extract from field owner
+        result.putAll(extractTypesFromAExpression(fieldRef.getFieldOwner()));
+      } else if (cLhs instanceof CArraySubscriptExpression arrSub) {
+        result.putAll(extractTypesFromAExpression(arrSub.getArrayExpression()));
+        result.putAll(extractTypesFromAExpression(arrSub.getSubscriptExpression()));
+      } else if (cLhs instanceof CPointerExpression ptr) {
+        result.putAll(extractTypesFromAExpression(ptr.getOperand()));
       }
     }
-    return blankPaths;
+    return result;
+  }
+
+  private static Map<MemoryLocation, CType> extractTypesFromCInitializer(CInitializer initializer) {
+    Map<MemoryLocation, CType> result = new HashMap<>();
+    if (initializer == null) return result;
+    if (initializer instanceof CDesignatedInitializer desInit) {
+      result.putAll(extractTypesFromCInitializer(desInit.getRightHandSide()));
+    } else if (initializer instanceof CInitializerExpression initExpr) {
+      result.putAll(extractTypesFromAExpression(initExpr.getExpression()));
+    } else if (initializer instanceof CInitializerList initList) {
+      for (var subInit : initList.getInitializers()) {
+        result.putAll(extractTypesFromCInitializer(subInit));
+      }
+    }
+    return result;
   }
 
   /** Sees whether the file locations of two {@link CFANode} are disjoint or not. */

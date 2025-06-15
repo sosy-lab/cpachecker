@@ -10,6 +10,20 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 
+/**
+ * Visitor for serializing {@link Value} objects to string representations.
+ *
+ * <p>Each supported {@link Value} implementation is represented as a string with a specific prefix
+ * and a parenthesized argument, for example:
+ *
+ * <ul>
+ *   <li><code>BooleanValue(1)</code> for boolean true, <code>BooleanValue(0)</code> for false
+ *   <li><code>NumericValue(42)</code> for numeric values
+ *   <li><code>FunctionValue(main)</code> for function values
+ * </ul>
+ *
+ * For unsupported or unknown values, an empty string is returned.
+ */
 public class SerializeValueVisitor implements ValueVisitor<String> {
 
   @Override

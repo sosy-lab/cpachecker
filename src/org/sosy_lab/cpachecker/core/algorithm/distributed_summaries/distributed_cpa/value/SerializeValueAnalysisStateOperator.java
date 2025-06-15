@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.value;
 
+import com.google.common.base.Joiner;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
@@ -33,24 +36,17 @@ public class SerializeValueAnalysisStateOperator implements SerializeOperator {
   @Override
   public DssMessagePayload serialize(AbstractState pState) {
     ValueAnalysisState valueState = (ValueAnalysisState) pState;
-    StringBuilder stringBuilder = new StringBuilder();
     SerializeValueVisitor visitor = new SerializeValueVisitor();
+    List<String> entries = new ArrayList<>();
     for (Entry<MemoryLocation, ValueAndType> entry : valueState.getConstants()) {
-      stringBuilder
-          .append(entry.getKey().getExtendedQualifiedName())
-          .append("->")
-          .append(entry.getValue().getType())
-          .append("=")
-          .append(entry.getValue().getValue().accept(visitor))
-          .append(" && ");
+      entries.add(
+          entry.getKey().getExtendedQualifiedName()
+              + "->"
+              + entry.getValue().getType()
+              + "="
+              + entry.getValue().getValue().accept(visitor));
     }
-    String serializedValueString = stringBuilder.toString();
-    if (serializedValueString.isEmpty()) {
-      serializedValueString = "No constants";
-    } else {
-      serializedValueString =
-          serializedValueString.substring(0, serializedValueString.length() - 4);
-    }
+    String serializedValueString = Joiner.on(" && ").join(entries);
 
     DssMessagePayload.Builder payload =
         DssMessagePayload.builder()

@@ -11,11 +11,16 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
+import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 import java.util.function.Predicate;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,15 +47,33 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.SolverException;
 
+@RunWith(Parameterized.class)
 public class DeserializeValueAnalysisStateOperatorTest {
 
   private static final String SPEC_PATH = "config/specification/default.spc";
-  private static final String TEST_PROGRAM_PATH =
-      "test/programs/block_analysis/simple_loop_double_safe.c";
+  private static final String TEST_PROGRAMS_DIR = "test/programs/block_analysis";
   private static final String CONFIG_PATH =
       "config/distributed-summary-synthesis/predicateAnalysis-value-block-forward.properties";
+
+  @Parameterized.Parameters(name = "{0}")
+  public static Collection<Object[]> data() {
+    File dir = new File(TEST_PROGRAMS_DIR);
+    File[] files = dir.listFiles();
+    Collection<Object[]> params = new ArrayList<>();
+    if (files != null) {
+      for (File f : files) {
+        params.add(new Object[] {f.getPath()});
+      }
+    }
+    return params;
+  }
+
+  private final String testProgramPath;
+
+  public DeserializeValueAnalysisStateOperatorTest(String testProgramPath) {
+    this.testProgramPath = testProgramPath;
+  }
 
   private CFA cfa;
   private BlockGraph blockGraph;
@@ -68,21 +91,13 @@ public class DeserializeValueAnalysisStateOperatorTest {
     config =
         TestDataTools.configurationForTest()
             .loadFromFile(CONFIG_PATH)
-            .setOption("cpa.predicate.blk.alwaysAtJoin", "true")
-            .setOption("cpa.predicate.blk.alwaysAtBranch", "true")
-            .setOption("cpa.predicate.blk.alwaysAtProgramExit", "true")
-            .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
-            .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionHeads", "true")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionCallNodes", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionExit", "true")
+            .loadFromFile("config/value-dss-test.properties")
             .build();
     logger = LogManager.createTestLogManager();
     shutdownManager = ShutdownManager.create();
     shutdownNotifier = shutdownManager.getNotifier();
     CFACreator creator = new CFACreator(config, logger, shutdownNotifier);
-    cfa = creator.parseFileAndCreateCFA(ImmutableList.of(TEST_PROGRAM_PATH));
+    cfa = creator.parseFileAndCreateCFA(ImmutableList.of(testProgramPath));
     variableTypes = CFAUtils.extractVariableTypes(cfa);
     blockGraph = createBlockGraph();
     solver = Solver.create(config, logger, shutdownNotifier);
@@ -92,41 +107,41 @@ public class DeserializeValueAnalysisStateOperatorTest {
   }
 
   @Test
-  public void testDeserializeFromFormula_equivalenceHolds() throws Exception {
+  public void testDeserializeFromFormula_equivalentFormulas() throws Exception {
     for (BlockNode blockNode : blockGraph.getNodes()) {
-      runAnalysisAndCheckDeserialization(blockNode);
+      AnalysisComponents components =
+          DssBlockAnalysisFactory.createAlgorithm(
+              logger, specification, cfa, config, shutdownManager, blockNode);
+
+      Algorithm algorithm = components.algorithm();
+      algorithm.run(components.reached());
+
+      AbstractState lastState = components.reached().getLastState();
+      ValueAnalysisState originalState =
+          AbstractStates.extractStateByType(lastState, ValueAnalysisState.class);
+
+      DeserializeValueAnalysisStateOperator deserializeOperator =
+          new DeserializeValueAnalysisStateOperator(cfa, variableTypes, solver);
+
+      SerializeValueAnalysisStateOperator serializeOperator =
+          new SerializeValueAnalysisStateOperator(solver);
+
+      BooleanFormula originalFormula = serializeOperator.serializeToFormula(originalState);
+
+      ValueAnalysisState deserializedState =
+          deserializeOperator.deserializeFromFormula(originalFormula);
+      BooleanFormula deserializedFormula = serializeOperator.serializeToFormula(deserializedState);
+
+      boolean origImpliesDeserialized = solver.implies(originalFormula, deserializedFormula);
+      boolean deserializedImpliesOrig = solver.implies(deserializedFormula, originalFormula);
+
+      assertWithMessage("Deserialized state must imply original formula")
+          .that(deserializedImpliesOrig)
+          .isTrue();
+      assertWithMessage("Original formula must imply deserialized state")
+          .that(origImpliesDeserialized)
+          .isTrue();
     }
-  }
-
-  private void runAnalysisAndCheckDeserialization(BlockNode blockNode)
-      throws CPAException, InterruptedException, InvalidConfigurationException, SolverException {
-
-    AnalysisComponents components =
-        DssBlockAnalysisFactory.createAlgorithm(
-            logger, specification, cfa, config, shutdownManager, blockNode);
-
-    Algorithm algorithm = components.algorithm();
-    algorithm.run(components.reached());
-
-    AbstractState lastState = components.reached().getLastState();
-    ValueAnalysisState originalState =
-        AbstractStates.extractStateByType(lastState, ValueAnalysisState.class);
-
-    DeserializeValueAnalysisStateOperator deserializeOperator =
-        new DeserializeValueAnalysisStateOperator(cfa, variableTypes, solver);
-
-    SerializeValueAnalysisStateOperator serializeOperator =
-        new SerializeValueAnalysisStateOperator(solver);
-
-    BooleanFormula originalFormula = serializeOperator.serializeToFormula(originalState);
-
-    ValueAnalysisState deserializedState =
-        deserializeOperator.deserializeFromFormula(originalFormula);
-    BooleanFormula deserializedFormula = serializeOperator.serializeToFormula(deserializedState);
-
-    boolean implication = solver.implies(originalFormula, deserializedFormula);
-
-    assertWithMessage("Deserialized state must imply original formula").that(implication).isTrue();
   }
 
   private BlockGraph createBlockGraph()

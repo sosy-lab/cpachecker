@@ -84,11 +84,19 @@ public class SMTToBooleanIntervalFormulaVisitor
                   LogicalNot.of(fmgr.visit(pArgs.get(0), this)),
                   LogicalNot.of(fmgr.visit(pArgs.get(1), this))));
 
-      case BV_SGT, BV_UGT, FP_GT, GT ->
-          LogicalNot.of(
-              LessThan.of(
-                  fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
-                  fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
+      case BV_SGT, BV_UGT, FP_GT, GT -> {
+        BooleanFormula<CompoundInterval> notLessThan =
+            LogicalNot.of(
+                LessThan.of(
+                    fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor),
+                    fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor)));
+        BooleanFormula<CompoundInterval> notEqual =
+            LogicalNot.of(
+                Equal.of(
+                    fmgr.visit(pArgs.get(0), smtToNumeralFormulaVisitor),
+                    fmgr.visit(pArgs.get(1), smtToNumeralFormulaVisitor)));
+        yield LogicalAnd.of(notLessThan, notEqual);
+      }
 
       case BV_SGE, BV_UGE, FP_GE, GTE ->
           LogicalNot.of(

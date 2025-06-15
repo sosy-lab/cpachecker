@@ -67,19 +67,7 @@ public class DeserializePredicateStateOperatorTest {
 
   @Before
   public void setUp() throws Exception {
-    config =
-        TestDataTools.configurationForTest()
-            .loadFromFile(CONFIG_PATH)
-            .setOption("cpa.predicate.blk.alwaysAtJoin", "true")
-            .setOption("cpa.predicate.blk.alwaysAtBranch", "true")
-            .setOption("cpa.predicate.blk.alwaysAtProgramExit", "true")
-            .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
-            .setOption("cpa.predicate.blk.alwaysAfterThreshold", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionHeads", "true")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionCallNodes", "false")
-            .setOption("cpa.predicate.blk.alwaysAtFunctionExit", "true")
-            .build();
+    config = TestDataTools.configurationForTest().loadFromFile(CONFIG_PATH).build();
     logger = LogManager.createTestLogManager();
     shutdownManager = ShutdownManager.create();
     shutdownNotifier = shutdownManager.getNotifier();

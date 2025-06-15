@@ -87,10 +87,8 @@ public class DistributedValueAnalysisCPA
 
   @Override
   public boolean isTop(AbstractState pAbstractState) {
-    if (pAbstractState instanceof ValueAnalysisState v) {
-      return v.getConstants().isEmpty();
-    }
-    return false;
+    ValueAnalysisState valueAnalysisState = (ValueAnalysisState) pAbstractState;
+    return valueAnalysisState.getConstants().isEmpty();
   }
 
   @Override

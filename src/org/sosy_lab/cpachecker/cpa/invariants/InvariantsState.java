@@ -1538,9 +1538,9 @@ public class InvariantsState
     if (pState2 == null) {
       return false;
     }
-    if (!abstractionState.isLessThanOrEqualTo(pState2.abstractionState)) {
-      return false;
-    }
+    // if (!abstractionState.isLessThanOrEqualTo(pState2.abstractionState)) {
+    //   return false;
+    // }
     // Perform the implication check (if this state definitely implies the other one, it is less
     // than or equal to it)
     for (BooleanFormula<CompoundInterval> rightAssumption : pState2.getEnvironmentAsAssumptions()) {

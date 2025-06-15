@@ -87,10 +87,10 @@ public class SMTToNumeralIntervalFormulaVisitor
       BigInteger value = (BigInteger) pValue;
       final int bitSize = ((FormulaType.BitvectorType) type).getSize();
       value = adjustForOverflow(value, bitSize);
-      BitVectorInterval bvInterval =
-          BitVectorInterval.of(BitVectorInfo.from(bitSize, true), value, value);
+      BitVectorInfo bitVectorInfo = BitVectorInfo.from(bitSize, true);
+      BitVectorInterval bvInterval = BitVectorInterval.of(bitVectorInfo, value, value);
       CompoundBitVectorInterval compoundInterval = CompoundBitVectorInterval.of(bvInterval);
-      return Constant.of(BitVectorInfo.from(bitSize, true), compoundInterval);
+      return Constant.of(bitVectorInfo, compoundInterval);
     }
     return null;
   }

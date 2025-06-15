@@ -59,11 +59,10 @@ public class FormulaToValueVisitor implements FormulaVisitor<Boolean> {
       final int bitSize = ((FormulaType.BitvectorType) type).getSize();
       value = adjustForOverflow(value, bitSize);
       if (currentMemoryLocation != null) {
+        CType variableType = variableTypes.get(currentMemoryLocation);
         constantsMap =
             constantsMap.putAndCopy(
-                currentMemoryLocation,
-                new ValueAndType(
-                    new NumericValue(value), variableTypes.get(currentMemoryLocation)));
+                currentMemoryLocation, new ValueAndType(new NumericValue(value), variableType));
       }
       return true;
     } else if (pValue instanceof Boolean) {

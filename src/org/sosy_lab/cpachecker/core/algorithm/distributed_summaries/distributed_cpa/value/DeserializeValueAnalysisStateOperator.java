@@ -42,6 +42,10 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
   private final Solver solver;
   private final FormulaManagerView formulaManager;
 
+  private static final String BOOLEAN_VALUE_PREFIX = "BooleanValue";
+  private static final String NUMERIC_VALUE_PREFIX = "NumericValue";
+  private static final String FUNCTION_VALUE_PREFIX = "FunctionValue";
+
   public DeserializeValueAnalysisStateOperator(
       CFA pCFA, Map<MemoryLocation, CType> pVariableTypes, Solver pSolver) {
     cfa = pCFA;
@@ -58,7 +62,7 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
     }
     String valueAnalysisString = (String) abstractStateOptional.orElseThrow();
 
-    if (valueAnalysisString.equals("No constants")) {
+    if (valueAnalysisString.isEmpty()) {
       return new ValueAnalysisState(cfa.getMachineModel());
     } else {
       Map<MemoryLocation, ValueAndType> constantsMap = new HashMap<>();
@@ -101,19 +105,19 @@ public class DeserializeValueAnalysisStateOperator implements DeserializeOperato
   }
 
   private Value extractValueFromString(String valueString) {
-    if (valueString.startsWith("BooleanValue")) {
+    if (valueString.startsWith(BOOLEAN_VALUE_PREFIX)) {
       long boolNumericValue =
           Long.parseLong(
               valueString.substring(valueString.indexOf('(') + 1, valueString.length() - 1));
       return BooleanValue.valueOf(boolNumericValue != 0);
 
-    } else if (valueString.startsWith("NumericValue")) {
+    } else if (valueString.startsWith(NUMERIC_VALUE_PREFIX)) {
       long numericValue =
           Long.parseLong(
               valueString.substring(valueString.indexOf('(') + 1, valueString.length() - 1));
       return new NumericValue(BigInteger.valueOf(numericValue));
 
-    } else if (valueString.startsWith("FunctionValue")) {
+    } else if (valueString.startsWith(FUNCTION_VALUE_PREFIX)) {
       String functionName =
           valueString.substring(valueString.indexOf('(') + 1, valueString.length() - 1);
       return new FunctionValue(functionName);
