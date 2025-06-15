@@ -137,6 +137,13 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean linkReduction = true;
 
   @Option(
+      description =
+          "the number of loop iterations to perform thread simulations. use 0 for an infinite loop"
+              + " (while (1)). any number other than 0 is unsound, because the entire state space"
+              + " is not searched.")
+  private int loopIterations = 0;
+
+  @Option(
       secure = true,
       description =
           "the source(s) of nondeterminism in the sequentialization. may slow down or improve"
@@ -283,6 +290,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               inputTypeDeclarations,
               license,
               linkReduction,
+              loopIterations,
               nondeterminismSource,
               outputMetadata,
               outputPath,

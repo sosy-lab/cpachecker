@@ -308,6 +308,11 @@ analysis.algorithm.MPOR.license = false
 # sequentialization to reduce the state space?
 analysis.algorithm.MPOR.linkReduction = true
 
+# the number of loop iterations to perform thread simulations. use 0 for an
+# infinite loop (while (1)). any number other than 0 is unsound, because the
+# entire state space is not searched.
+analysis.algorithm.MPOR.loopIterations = 0
+
 # the source(s) of nondeterminism in the sequentialization. may slow down or
 # improve performance, depending on the verifier.
 analysis.algorithm.MPOR.nondeterminismSource = NEXT_THREAD

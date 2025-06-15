@@ -15,6 +15,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.logging.Level;
+import org.checkerframework.dataflow.qual.TerminatesExecution;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
@@ -53,6 +54,8 @@ public class MPOROptions {
 
   public final boolean linkReduction;
 
+  public final int loopIterations;
+
   public final NondeterminismSource nondeterminismSource;
 
   public final boolean outputMetadata;
@@ -88,6 +91,7 @@ public class MPOROptions {
       boolean pInputTypeDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
+      int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
       boolean pOutputMetadata,
       String pOutputPath,
@@ -120,6 +124,7 @@ public class MPOROptions {
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
     linkReduction = pLinkReduction;
+    loopIterations = pLoopIterations;
     nondeterminismSource = pNondeterminismSource;
     outputMetadata = pOutputMetadata;
     outputPath = pOutputPath;
@@ -144,6 +149,7 @@ public class MPOROptions {
       boolean pInputFunctionDeclarations,
       boolean pLicense,
       boolean pLinkReduction,
+      int pLoopIterations,
       NondeterminismSource pNondeterminismSource,
       boolean pScalarPc,
       boolean pSequentializationErrors,
@@ -166,6 +172,7 @@ public class MPOROptions {
         true,
         pLicense,
         pLinkReduction,
+        pLoopIterations,
         pNondeterminismSource,
         false,
         SeqWriter.DEFAULT_OUTPUT_PATH,
@@ -212,12 +219,22 @@ public class MPOROptions {
     return true;
   }
 
+  @TerminatesExecution
   void handleOptionRejections(LogManager pLogger) {
+    if (loopIterations < 0) {
+      pLogger.logfUserException(
+          Level.SEVERE,
+          new RuntimeException(),
+          "loopIterations must be 0 or greater, cannot be %s",
+          loopIterations);
+      throw new AssertionError();
+    }
     if (controlEncodingStatement.equals(MultiControlStatementEncoding.NONE)) {
       pLogger.log(
           Level.SEVERE,
           "controlEncodingStatement cannot be %s",
           MultiControlStatementEncoding.NONE);
+      throw new AssertionError();
     }
   }
 
