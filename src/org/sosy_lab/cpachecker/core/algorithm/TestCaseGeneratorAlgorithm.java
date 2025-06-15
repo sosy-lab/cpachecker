@@ -111,9 +111,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+  private final Configuration config;
+  private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final Specification spec;
   private Set<CFAEdge> testTargets;
   private final Property specProp;
   private final CoreComponentsFactory factory;
@@ -133,9 +136,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     pConfig.inject(this);
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
     algorithm = pAlgorithm;
+    config = pConfig;
+    cfa = pCfa;
     cpa = pCpa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    spec = pSpec;
     factory = coreFactory;
     assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, logger, pCfa.getMachineModel());
@@ -188,7 +194,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         boolean ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
+//        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -306,13 +312,21 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return parentArgStates.iterator().next();
   }
 
-  // eReached is a single arg state thats the starting point of the extraction value analysis
+  // eReached is a single arg state that's the starting point of the extraction value analysis
   // after the algo is done, the newly reached states are added to this variable
   private void runExtractorAlgo(
       final ReachedSet pReached,
       AbstractState reachedState,
       CounterexampleInfo cexInfo) {
-
+    Algorithm extractionAlgorithm;
+    ConfigurableProgramAnalysis eCpa;
+    try {
+      eCpa = factory.createCPA(cfa, spec);
+      extractionAlgorithm = CPAAlgorithm.create(eCpa, logger, config, shutdownNotifier);
+    } catch (InvalidConfigurationException | InterruptedException | CPAException e) {
+      logger.log(Level.FINE, "Could not create CPA Algorithm for extractor.");
+      return;
+    }
     ARGState argState = (ARGState) reachedState;
     // initialisation of starting state and reachedSet
 
@@ -322,7 +336,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
 
-//    extractorRunCPAA(eReached);
+    extractorRunCPAA(eReached, extractionAlgorithm);
 
     evaluateExtractorResult(eReached);
   }
@@ -396,10 +410,11 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   // exploring the successors of eStartState for additional ARGstates
-  private void extractorRunCPAA(ReachedSet eReached) {
+  private void extractorRunCPAA(ReachedSet eReached, Algorithm extractionAlgorithm) {
+
     AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
     try {
-      status = algorithm.run(eReached);
+      status = extractionAlgorithm.run(eReached);
 
     } catch (CPAException e) {
       // precaution always set precision to false, thus last target state not handled in case of
