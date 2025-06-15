@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -19,12 +19,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class SeqForLoopStatement implements SeqLoopStatement {
+public class SeqForExpression implements SeqSingleControlExpression {
 
   private final CIdExpression loopCounter;
 
@@ -36,7 +34,7 @@ public class SeqForLoopStatement implements SeqLoopStatement {
    * Creates a for loop header of the form {@code for (int i = 0; i < pIterations; i = i + 1)} where
    * {@code i} is {@code pLoopCounter}.
    */
-  public SeqForLoopStatement(
+  public SeqForExpression(
       CIdExpression pLoopCounter,
       int pIterations,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -52,17 +50,23 @@ public class SeqForLoopStatement implements SeqLoopStatement {
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     StringBuilder loopHeader = new StringBuilder();
+
+    // add loop counter declaration: int i = 0;
     loopHeader.append(loopCounter.getDeclaration()).append(SeqSyntax.SPACE);
+
+    // add iteration condition: i < I
     CIntegerLiteralExpression iterationExpression =
         SeqExpressionBuilder.buildIntegerLiteralExpression(iterations);
     CBinaryExpression loopCondition =
         binaryExpressionBuilder.buildBinaryExpression(
             loopCounter, iterationExpression, BinaryOperator.LESS_THAN);
-    // add additional semicolon, the binary expression doesn't include it
+    // put additional semicolon, the binary expression doesn't include it
     loopHeader
         .append(loopCondition.toASTString())
         .append(SeqSyntax.SEMICOLON)
         .append(SeqSyntax.SPACE);
+
+    // add iteration increment: i = i + 1
     CExpressionAssignmentStatement iterationIncrement =
         SeqStatementBuilder.buildIncrementStatement(loopCounter, binaryExpressionBuilder);
     String iterationIncrementString = iterationIncrement.toASTString();
@@ -70,6 +74,12 @@ public class SeqForLoopStatement implements SeqLoopStatement {
     String incrementWithoutSemicolon =
         iterationIncrementString.substring(0, iterationIncrementString.length() - 1);
     loopHeader.append(incrementWithoutSemicolon);
-    return SeqToken._for + SeqSyntax.SPACE + SeqStringUtil.wrapInBrackets(loopHeader.toString());
+
+    return SingleControlExpressionUtil.buildStatementString(this, loopHeader.toString());
+  }
+
+  @Override
+  public SingleControlExpressionEncoding getEncoding() {
+    return SingleControlExpressionEncoding.FOR;
   }
 }

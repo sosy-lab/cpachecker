@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 /** Represents a conditional case block statement with {@code if} and {@code else if} statements. */
 public class SeqAssumeStatement implements SeqThreadStatement {
 
-  public final SeqSingleControlStatement controlStatement;
+  public final SeqSingleControlExpression controlStatement;
 
   private final CLeftHandSide pcLeftHandSide;
 
@@ -36,7 +36,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
   SeqAssumeStatement(
-      SeqSingleControlStatement pControlStatement,
+      SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       int pTargetPc) {
@@ -50,7 +50,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   private SeqAssumeStatement(
-      SeqSingleControlStatement pControlStatement,
+      SeqSingleControlExpression pControlStatement,
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,

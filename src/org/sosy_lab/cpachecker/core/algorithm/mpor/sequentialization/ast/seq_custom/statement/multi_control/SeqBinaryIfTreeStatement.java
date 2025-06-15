@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
@@ -16,10 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SingleControlExpressionEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -124,13 +126,12 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
   private LineOfCode buildIfSmallerSubtree(int pDepth, int pMid, CLeftHandSide pPc)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlStatement ifSubtree =
-        new SeqSingleControlStatement(
+    SeqIfExpression ifSubtree =
+        new SeqIfExpression(
             binaryExpressionBuilder.buildBinaryExpression(
                 pPc,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(pMid + 1),
-                BinaryOperator.LESS_THAN),
-            SingleControlStatementEncoding.IF);
+                BinaryOperator.LESS_THAN));
     return LineOfCode.of(
         pDepth, ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
   }
@@ -138,7 +139,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
   private LineOfCode buildElseSubtree(int pDepth, SeqStatement pLowStatement)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlStatement elseSubtree = new SeqSingleControlStatement();
+    SeqElseExpression elseSubtree = new SeqElseExpression();
     if (pLowStatement instanceof SeqBinaryIfTreeStatement) {
       // add additional newline prefix, if else subtree is binary tree itself
       return LineOfCode.withNewlinePrefix(
@@ -160,25 +161,24 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     SeqStatement lowStatement = pStatements.get(pLow);
     // if statement is a clause, use its label number as the equals check
     int low = getLabelNumberOrIndex(lowStatement, pLow);
-    SeqSingleControlStatement ifLeaf =
-        new SeqSingleControlStatement(
+    SeqIfExpression ifLeaf =
+        new SeqIfExpression(
             binaryExpressionBuilder.buildBinaryExpression(
                 pPc,
                 SeqExpressionBuilder.buildIntegerLiteralExpression(low),
-                BinaryOperator.EQUALS),
-            SingleControlStatementEncoding.IF);
+                BinaryOperator.EQUALS));
     return buildLeaf(ifLeaf, lowStatement, pInitialDepth, pDepth);
   }
 
   private LineOfCode buildElseLeaf(SeqStatement pHighStatement, int pInitialDepth, int pDepth)
       throws UnrecognizedCodeException {
 
-    SeqSingleControlStatement elseLeaf = new SeqSingleControlStatement();
+    SeqElseExpression elseLeaf = new SeqElseExpression();
     return buildLeaf(elseLeaf, pHighStatement, pInitialDepth, pDepth);
   }
 
   private LineOfCode buildLeaf(
-      SeqSingleControlStatement pSingleControlStatement,
+      SeqSingleControlExpression pSingleControlStatement,
       SeqStatement pStatement,
       int pInitialDepth,
       int pDepth)
@@ -189,14 +189,14 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
       // no newline if the statement itself is a binary tree for formatting
       String code =
           SeqStringUtil.wrapInCurlyBracketsInwardsWithNewlines(pStatement.toASTString(), 0, pDepth);
-      if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
+      if (pSingleControlStatement.getEncoding().equals(SingleControlExpressionEncoding.ELSE)) {
         // no additional tabs, when else leaf is binary tree so that "} else {" is compact
         return LineOfCode.withoutNewlineSuffix(0, SeqSyntax.SPACE + prefix + code);
       }
       return LineOfCode.withoutNewlineSuffix(pDepth, prefix + code);
     } else {
       String code = SeqStringUtil.wrapInCurlyBracketsInwards(pStatement.toASTString());
-      if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
+      if (pSingleControlStatement.getEncoding().equals(SingleControlExpressionEncoding.ELSE)) {
         if (pInitialDepth == pDepth) {
           // align if-else leafs
           return LineOfCode.of(pDepth - 1, prefix + code);

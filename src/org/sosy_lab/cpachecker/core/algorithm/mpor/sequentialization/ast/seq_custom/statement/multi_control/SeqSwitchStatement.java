@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -14,10 +14,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSwitchExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -35,7 +34,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final MPOROptions options;
 
-  private final SeqSingleControlStatement switchExpression;
+  private final SeqSwitchExpression switchExpression;
 
   private final Optional<CFunctionCallStatement> assumptions;
 
@@ -51,8 +50,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
       int pTabs) {
 
     options = pOptions;
-    switchExpression =
-        new SeqSingleControlStatement(pExpression, SingleControlStatementEncoding.SWITCH);
+    switchExpression = new SeqSwitchExpression(pExpression);
     assumptions = pAssumption;
     statements = pStatements;
     tabs = pTabs;

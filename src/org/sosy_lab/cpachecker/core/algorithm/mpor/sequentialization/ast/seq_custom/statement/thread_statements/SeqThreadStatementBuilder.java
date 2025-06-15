@@ -37,8 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
@@ -204,16 +205,16 @@ public class SeqThreadStatementBuilder {
     // the CFA converts the assumptions into 2 assume edges, even with if ... else if ... else
     checkArgument(pFirstEdge || pLastEdge, "either pFirstEdge and pLastEdge must be true");
 
-    SeqSingleControlStatement statement;
+    SeqSingleControlExpression expression;
     if (pFirstEdge) {
       // if (condition) for first assume edge
-      statement = new SeqSingleControlStatement(pAssumeEdge, SingleControlStatementEncoding.IF);
+      expression = new SeqIfExpression(pAssumeEdge.getExpression());
     } else {
       // use else ... for last (= second) assume edge
-      statement = new SeqSingleControlStatement();
+      expression = new SeqElseExpression();
     }
     return new SeqAssumeStatement(
-        statement, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
+        expression, pPcLeftHandSide, ImmutableSet.of(pSubstituteEdge), pTargetPc);
   }
 
   private static SeqLocalVariableDeclarationWithInitializerStatement

@@ -32,8 +32,6 @@ public class SeqToken {
 
   public static final String abort = "abort";
 
-  public static final String active_thread_count = "active_thread_count";
-
   public static final String act = "act";
 
   public static final String __assert_fail = "__assert_fail";
@@ -90,8 +88,6 @@ public class SeqToken {
   public static final String __file = "__file";
 
   public static final String __FILE_NAME_PLACEHOLDER__ = "__FILE_NAME_PLACEHOLDER__";
-
-  public static final String _for = "for";
 
   public static final String __function = "__function";
 

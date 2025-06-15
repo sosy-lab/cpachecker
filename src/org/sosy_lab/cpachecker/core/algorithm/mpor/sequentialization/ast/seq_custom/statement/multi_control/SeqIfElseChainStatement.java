@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.multi;
+package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
@@ -16,9 +16,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -79,18 +80,18 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     int currentIndex = pStartNumber;
     for (SeqStatement statement : pStatements) {
       boolean isFirst = currentIndex == pStartNumber;
-
-      // first statement: use "if", otherwise "else if"
-      SingleControlStatementEncoding controlStatementType =
-          isFirst ? SingleControlStatementEncoding.IF : SingleControlStatementEncoding.ELSE_IF;
       CBinaryExpression expressionEquals =
           pBinaryExpressionBuilder.buildBinaryExpression(
               pExpression,
               SeqExpressionBuilder.buildIntegerLiteralExpression(currentIndex),
               BinaryOperator.EQUALS);
-      SeqSingleControlStatement controlStatement =
-          new SeqSingleControlStatement(expressionEquals, controlStatementType);
-      String controlStatementString = controlStatement.toASTString();
+
+      // first statement: use "if", otherwise "else if"
+      SeqSingleControlExpression controlExpression =
+          isFirst
+              ? new SeqIfExpression(expressionEquals)
+              : new SeqElseIfExpression(expressionEquals);
+      String controlStatementString = controlExpression.toASTString();
       ifElseChain.add(
           LineOfCode.of(
               pTabs,
