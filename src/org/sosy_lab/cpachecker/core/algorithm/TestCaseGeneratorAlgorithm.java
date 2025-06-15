@@ -431,10 +431,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   private void evaluateExtractorResult(ReachedSet eReached) {
-    //    todo call processGoalState() for all elements of eReached that are testTargets
-//    todo optimisation: do not call for the first element of eReached, as that got already covered
-//  targetAbstractStates = from(eReached).filter(AbstractStates::isTargetState);
-//    evaluateGoalState(eStartState);
+// drop first element as it is the starting state that is always a TargetState
+      from(eReached).skip(1).filter(AbstractStates::isTargetState).
+          forEach(element -> evaluateGoalState((ARGState) element));
   }
 
   // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
