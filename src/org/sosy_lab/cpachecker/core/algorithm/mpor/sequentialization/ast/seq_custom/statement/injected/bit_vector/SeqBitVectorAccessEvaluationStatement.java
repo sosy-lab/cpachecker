@@ -48,7 +48,7 @@ public class SeqBitVectorAccessEvaluationStatement implements SeqBitVectorEvalua
           new SeqSingleControlStatement(evaluationExpression, SingleControlStatementEncoding.IF);
       return ifStatement.toASTString()
           + SeqSyntax.SPACE
-          + SeqStringUtil.wrapInCurlyInwards(gotoStatement.toASTString());
+          + SeqStringUtil.wrapInCurlyBracketsInwards(gotoStatement.toASTString());
     }
   }
 

@@ -58,6 +58,9 @@ public class SeqDeclarations {
     public static final CVariableDeclaration R =
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
+
+    public static final CVariableDeclaration I =
+        buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.i, SeqInitializer.INT_0);
   }
 
   public static class SeqParameterDeclaration {

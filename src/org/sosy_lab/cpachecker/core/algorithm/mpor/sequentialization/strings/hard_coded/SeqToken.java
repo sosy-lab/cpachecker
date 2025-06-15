@@ -91,6 +91,8 @@ public class SeqToken {
 
   public static final String __FILE_NAME_PLACEHOLDER__ = "__FILE_NAME_PLACEHOLDER__";
 
+  public static final String _for = "for";
+
   public static final String __function = "__function";
 
   public static final String G = "G";
@@ -98,6 +100,8 @@ public class SeqToken {
   public static final String GLOBAL = "GLOBAL";
 
   public static final String _goto = "goto";
+
+  public static final String i = "i";
 
   public static final String K = "K";
 

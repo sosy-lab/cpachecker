@@ -23,8 +23,7 @@ public class SeqSingleControlStatement implements SeqStatement {
     ELSE("else"),
     ELSE_IF("else if"),
     IF("if"),
-    SWITCH("switch"),
-    WHILE("while");
+    SWITCH("switch");
 
     public final String keyword;
 

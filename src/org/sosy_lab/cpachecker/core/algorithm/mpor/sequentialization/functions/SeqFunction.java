@@ -52,7 +52,7 @@ public abstract class SeqFunction {
 
   public final ImmutableList<LineOfCode> buildDefinition() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> rDefinition = ImmutableList.builder();
-    rDefinition.add(LineOfCode.of(0, SeqStringUtil.appendOpeningCurly(buildSignature())));
+    rDefinition.add(LineOfCode.of(0, SeqStringUtil.appendOpeningCurlyBrackets(buildSignature())));
     rDefinition.addAll(buildBody());
     rDefinition.add(LineOfCode.of(0, SeqSyntax.CURLY_BRACKET_RIGHT));
     return rDefinition.build();

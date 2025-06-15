@@ -142,9 +142,10 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     if (pLowStatement instanceof SeqBinaryIfTreeStatement) {
       // add additional newline prefix, if else subtree is binary tree itself
       return LineOfCode.withNewlinePrefix(
-          pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+          pDepth, SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
     } else {
-      return LineOfCode.of(pDepth, SeqStringUtil.wrapInCurlyOutwards(elseSubtree.toASTString()));
+      return LineOfCode.of(
+          pDepth, SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
     }
   }
 
@@ -187,14 +188,14 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     if (pStatement instanceof SeqBinaryIfTreeStatement) {
       // no newline if the statement itself is a binary tree for formatting
       String code =
-          SeqStringUtil.wrapInCurlyInwardsWithNewlines(pStatement.toASTString(), 0, pDepth);
+          SeqStringUtil.wrapInCurlyBracketsInwardsWithNewlines(pStatement.toASTString(), 0, pDepth);
       if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
         // no additional tabs, when else leaf is binary tree so that "} else {" is compact
         return LineOfCode.withoutNewlineSuffix(0, SeqSyntax.SPACE + prefix + code);
       }
       return LineOfCode.withoutNewlineSuffix(pDepth, prefix + code);
     } else {
-      String code = SeqStringUtil.wrapInCurlyInwards(pStatement.toASTString());
+      String code = SeqStringUtil.wrapInCurlyBracketsInwards(pStatement.toASTString());
       if (pSingleControlStatement.encoding.equals(SingleControlStatementEncoding.ELSE)) {
         if (pInitialDepth == pDepth) {
           // align if-else leafs

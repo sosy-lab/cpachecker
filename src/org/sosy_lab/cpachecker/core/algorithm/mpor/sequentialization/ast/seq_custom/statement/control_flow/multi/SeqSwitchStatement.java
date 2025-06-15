@@ -64,7 +64,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
     String casesString = buildCasesString(statements, tabs);
     return assumptionsString
         + SeqStringUtil.buildTab(tabs)
-        + SeqStringUtil.appendOpeningCurly(switchExpression.toASTString())
+        + SeqStringUtil.appendOpeningCurlyBrackets(switchExpression.toASTString())
         + SeqSyntax.NEWLINE
         + casesString
         + (options.sequentializationErrors

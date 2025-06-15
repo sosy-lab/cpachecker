@@ -37,8 +37,9 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqSingleControlStatement.SingleControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqForLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqLoopStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.control_flow.single.SeqWhileLoopStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.nondet_simulations.NondeterministicSimulationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -54,10 +55,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqMainFunction extends SeqFunction {
-
-  private static final SeqSingleControlStatement whileTrue =
-      new SeqSingleControlStatement(
-          SeqIntegerLiteralExpression.INT_1, SingleControlStatementEncoding.WHILE);
 
   private final MPOROptions options;
 
@@ -146,7 +143,8 @@ public class SeqMainFunction extends SeqFunction {
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
 
     // --- loop starts here ---
-    rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurly(whileTrue.toASTString())));
+    SeqLoopStatement loopHead = buildLoopHead(options, binaryExpressionBuilder);
+    rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurlyBrackets(loopHead.toASTString())));
 
     // add if next_thread is a non-determinism source
     if (options.nondeterminismSource.isNextThreadNondeterministic()) {
@@ -239,6 +237,17 @@ public class SeqMainFunction extends SeqFunction {
       }
     }
     return rMainArgAssignments.build();
+  }
+
+  private static SeqLoopStatement buildLoopHead(
+      MPOROptions pOptions, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+
+    if (pOptions.loopIterations == 0) {
+      return new SeqWhileLoopStatement(SeqIntegerLiteralExpression.INT_1);
+    } else {
+      return new SeqForLoopStatement(
+          SeqIdExpression.I, pOptions.loopIterations, pBinaryExpressionBuilder);
+    }
   }
 
   /** Returns {@link LineOfCode} for thread simulation declarations. */

@@ -24,6 +24,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStatementBuilder {
 
+  // Increment / Decrement =========================================================================
+
   public static CExpressionAssignmentStatement buildIncrementStatement(
       CLeftHandSide pLeftHandSide, CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
@@ -43,6 +45,8 @@ public class SeqStatementBuilder {
         pBinaryExpressionBuilder.buildBinaryExpression(
             pLeftHandSide, SeqIntegerLiteralExpression.INT_1, BinaryOperator.MINUS));
   }
+
+  // Assignments ===================================================================================
 
   /** Returns {@code pLeftHandSide = pRightHandSide;}. */
   public static CExpressionAssignmentStatement buildExpressionAssignmentStatement(

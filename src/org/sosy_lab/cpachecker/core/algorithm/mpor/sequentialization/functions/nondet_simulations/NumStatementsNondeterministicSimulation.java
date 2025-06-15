@@ -87,7 +87,8 @@ public class NumStatementsNondeterministicSimulation {
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
       SeqSingleControlStatement ifStatement =
           new SeqSingleControlStatement(loopCondition, SingleControlStatementEncoding.IF);
-      rLines.add(LineOfCode.of(2, SeqStringUtil.appendOpeningCurly(ifStatement.toASTString())));
+      rLines.add(
+          LineOfCode.of(2, SeqStringUtil.appendOpeningCurlyBrackets(ifStatement.toASTString())));
 
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(

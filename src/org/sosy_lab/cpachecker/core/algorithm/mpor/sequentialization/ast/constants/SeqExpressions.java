@@ -84,6 +84,8 @@ public class SeqExpressions {
 
     public static final CIdExpression R = buildIdExpression(SeqVariableDeclaration.R);
 
+    public static final CIdExpression I = buildIdExpression(SeqVariableDeclaration.I);
+
     // functions:
 
     public static final CIdExpression REACH_ERROR =

@@ -76,8 +76,17 @@ public class SeqStringUtil {
     return SeqSyntax.QUOTATION_MARK + pString + SeqSyntax.QUOTATION_MARK;
   }
 
+  // Brackets ======================================================================================
+
+  /** Returns "(pString)" */
+  public static String wrapInBrackets(String pString) {
+    return SeqSyntax.BRACKET_LEFT + pString + SeqSyntax.BRACKET_RIGHT;
+  }
+
+  // Curly Brackets ================================================================================
+
   /** Returns "{ pString }" */
-  public static String wrapInCurlyInwards(String pString) {
+  public static String wrapInCurlyBracketsInwards(String pString) {
     return SeqSyntax.CURLY_BRACKET_LEFT
         + SeqSyntax.SPACE
         + pString
@@ -85,7 +94,7 @@ public class SeqStringUtil {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  public static String wrapInCurlyInwardsWithNewlines(
+  public static String wrapInCurlyBracketsInwardsWithNewlines(
       String pString, int pBeginTabs, int pEndTabs) {
 
     return SeqSyntax.CURLY_BRACKET_LEFT
@@ -95,7 +104,7 @@ public class SeqStringUtil {
   }
 
   /** Returns "} pString {" */
-  public static String wrapInCurlyOutwards(String pString) {
+  public static String wrapInCurlyBracketsOutwards(String pString) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
         + SeqSyntax.SPACE
         + pString
@@ -104,9 +113,11 @@ public class SeqStringUtil {
   }
 
   /** Returns "pString {" */
-  public static String appendOpeningCurly(String pString) {
+  public static String appendOpeningCurlyBrackets(String pString) {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
+
+  // Tabs ==========================================================================================
 
   /** Returns pString with the specified amount of tabs as prefix and a new line \n as suffix. */
   public static String prependTabsWithNewline(int pTabs, String pString) {

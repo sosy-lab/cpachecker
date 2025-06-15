@@ -52,6 +52,6 @@ public class SeqRoundGotoStatement implements SeqInjectedStatement {
         rIncrement.toASTString() + SeqSyntax.SPACE + gotoStatement.toASTString();
     return ifStatement.toASTString()
         + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(innerStatement);
+        + SeqStringUtil.wrapInCurlyBracketsInwards(innerStatement);
   }
 }

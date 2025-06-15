@@ -72,7 +72,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
             pcLeftHandSide, targetPc, targetGoto, injectedStatements);
     return controlStatement.toASTString()
         + SeqSyntax.SPACE
-        + SeqStringUtil.wrapInCurlyInwards(targetStatements);
+        + SeqStringUtil.wrapInCurlyBracketsInwards(targetStatements);
   }
 
   @Override

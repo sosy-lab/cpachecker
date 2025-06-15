@@ -95,8 +95,8 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
           LineOfCode.of(
               pTabs,
               isFirst
-                  ? SeqStringUtil.appendOpeningCurly(controlStatementString)
-                  : SeqStringUtil.wrapInCurlyOutwards(controlStatementString)));
+                  ? SeqStringUtil.appendOpeningCurlyBrackets(controlStatementString)
+                  : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString)));
 
       ifElseChain.add(LineOfCode.of(pTabs + 1, statement.toASTString()));
       currentIndex++;
