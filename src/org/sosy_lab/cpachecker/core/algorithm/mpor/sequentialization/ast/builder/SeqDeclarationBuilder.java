@@ -49,7 +49,7 @@ public class SeqDeclarationBuilder {
       for (int i = 0; i < pNumThreads; i++) {
         rDeclarations.add(
             SeqDeclarationBuilder.buildVariableDeclaration(
-                false,
+                true,
                 SeqSimpleType.UNSIGNED_INT,
                 pPcVariables.getPcLeftHandSide(i).toASTString(),
                 SeqInitializer.getPcInitializer(i == 0)));
@@ -64,7 +64,7 @@ public class SeqDeclarationBuilder {
           new CInitializerList(FileLocation.DUMMY, initializers.build());
       rDeclarations.add(
           SeqDeclarationBuilder.buildVariableDeclaration(
-              false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
+              true, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, initializerList));
     }
     return rDeclarations.build();
   }

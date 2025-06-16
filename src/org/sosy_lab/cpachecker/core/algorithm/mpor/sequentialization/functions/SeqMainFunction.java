@@ -131,10 +131,9 @@ public class SeqMainFunction extends SeqFunction {
     // declare main() local variables NUM_THREADS, pc, next_thread
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
-        buildThreadSimulationVariableDeclarations(
+        buildLocalThreadSimulationVariableDeclarations(
             options,
             numThreadsVariable.getDeclaration(),
-            pcDeclarations,
             threadSimulationVariables));
 
     // add main function argument non-deterministic assignments
@@ -248,15 +247,15 @@ public class SeqMainFunction extends SeqFunction {
     }
   }
 
+  // TODO move to LOCUtil? thats also where the global thread sim var function is
   /**
    * Returns {@link LineOfCode} for thread simulation variable declarations. These are local to the
    * {@code main} function. Variables that are used in other functions are declared beforehand as
    * global variables.
    */
-  private ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
+  private ImmutableList<LineOfCode> buildLocalThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
       CSimpleDeclaration pNumThreadDeclaration,
-      ImmutableList<CVariableDeclaration> pPcDeclarations,
       ThreadSimulationVariables pThreadSimulationVariables) {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();

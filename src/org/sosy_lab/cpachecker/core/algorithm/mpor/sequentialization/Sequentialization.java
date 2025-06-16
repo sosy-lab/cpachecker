@@ -212,7 +212,7 @@ public class Sequentialization {
         SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
             options, bitVectorVariables, SubstituteUtil.extractThreads(substitutions));
     rProgram.addAll(
-        LineOfCodeUtil.buildThreadSimulationVariableDeclarations(
+        LineOfCodeUtil.buildGlobalThreadSimulationVariableDeclarations(
             options, pcDeclarations, bitVectorDeclarations));
 
     // add custom function declarations and definitions

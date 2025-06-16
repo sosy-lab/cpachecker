@@ -248,13 +248,24 @@ public class LineOfCodeUtil {
    *
    * <p>All other thread simulation variables are
    */
-  public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
+  public static ImmutableList<LineOfCode> buildGlobalThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
       ImmutableList<CVariableDeclaration> pPcDeclarations,
       ImmutableList<SeqBitVectorDeclaration> pBitVectorDeclarations)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
+
+    // last_thread
+    if (pOptions.conflictReduction) {
+      if (pOptions.signedNondet) {
+        rDeclarations.add(
+            LineOfCode.of(0, SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
+      } else {
+        rDeclarations.add(
+            LineOfCode.of(0, SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
+      }
+    }
 
     // next_thread
     if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {

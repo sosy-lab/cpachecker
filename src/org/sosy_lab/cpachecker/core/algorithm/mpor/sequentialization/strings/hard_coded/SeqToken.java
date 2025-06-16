@@ -105,6 +105,8 @@ public class SeqToken {
 
   public static final String L = "L";
 
+  public static final String last_thread = "last_thread";
+
   public static final String ldv_assume = "ldv_assume";
 
   public static final String LOCAL = "LOCAL";

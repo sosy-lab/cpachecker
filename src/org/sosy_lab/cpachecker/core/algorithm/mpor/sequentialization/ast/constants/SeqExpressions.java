@@ -75,8 +75,12 @@ public class SeqExpressions {
     public static final CIdExpression DUMMY_PC = buildIdExpression(SeqVariableDeclaration.DUMMY_PC);
 
     // TODO we should use the separate signed/unsigned declarations here
+    public static final CIdExpression LAST_THREAD =
+        buildIdExpression(SeqVariableDeclaration.LAST_THREAD_UNSIGNED);
+
+    // TODO we should use the separate signed/unsigned declarations here
     public static final CIdExpression NEXT_THREAD =
-        buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_SIGNED);
+        buildIdExpression(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED);
 
     public static final CIdExpression CNT = buildIdExpression(SeqVariableDeclaration.CNT);
 

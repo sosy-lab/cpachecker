@@ -35,18 +35,34 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqArrayType.UNSIGNED_INT_ARRAY, SeqToken.pc, SeqInitializerList.EMPTY_LIST);
 
+    // last_thread
+
+    public static final CVariableDeclaration LAST_THREAD_SIGNED =
+        buildVariableDeclaration(
+            true, SeqSimpleType.INT, SeqToken.last_thread, SeqInitializer.INT_0);
+
+    public static final CVariableDeclaration LAST_THREAD_UNSIGNED =
+        buildVariableDeclaration(
+            true, SeqSimpleType.UNSIGNED_INT, SeqToken.last_thread, SeqInitializer.INT_0);
+
+    // next_thread
+
     public static final CVariableDeclaration NEXT_THREAD_SIGNED =
         buildVariableDeclaration(
-            false, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_0);
+            true, SeqSimpleType.INT, SeqToken.next_thread, SeqInitializer.INT_0);
 
     public static final CVariableDeclaration NEXT_THREAD_UNSIGNED =
         buildVariableDeclaration(
-            false, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
+            true, SeqSimpleType.UNSIGNED_INT, SeqToken.next_thread, SeqInitializer.INT_0);
+
+    // cnt
 
     // TODO add long variable name option for all of these?
     public static final CVariableDeclaration CNT =
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.cnt, SeqInitializer.INT_1);
+
+    // K
 
     public static final CVariableDeclaration K_SIGNED =
         buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.K, SeqInitializer.INT_0);
@@ -55,9 +71,13 @@ public class SeqDeclarations {
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.K, SeqInitializer.INT_0);
 
+    // r
+
     public static final CVariableDeclaration R =
         buildVariableDeclaration(
             false, SeqSimpleType.UNSIGNED_INT, SeqToken.r, SeqInitializer.INT_0);
+
+    // i
 
     public static final CVariableDeclaration I =
         buildVariableDeclaration(false, SeqSimpleType.INT, SeqToken.i, SeqInitializer.INT_0);
