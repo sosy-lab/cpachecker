@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static org.junit.Assert.*;
@@ -64,7 +72,6 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
     final var values = new Integer[]{1, 7, 8, 15};
     for (Integer value : values) {
       var expectedNumber = value >= 8 ? BigInteger.valueOf(value - 16) : BigInteger.valueOf(value);
-      System.out.println(expectedNumber);
       var formula = ifm.makeNumber(BigInteger.valueOf(value));
       var expected = ifm.makeNumber(expectedNumber);
       try (ProverEnvironment prover = context.newProverEnvironment()) {

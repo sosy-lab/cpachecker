@@ -335,7 +335,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     if(pLsb != 0) {
       throw new UnsupportedOperationException("not yet implemented for CPAchecker");
     }
-    return wrap(BitvectorType.getBitvectorTypeWithSize(pMsb + 1), wrapAround(unwrap(pNumber), pMsb + 1));
+    return wrap(getBitvectorTypeWithSize(pMsb + 1), wrapAround(unwrap(pNumber), pMsb + 1));
   }
 
   @Override
@@ -344,7 +344,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     IntegerFormula x = unwrap(pNumber);
 
     if (!pSigned) {
-      return wrap(BitvectorType.getBitvectorTypeWithSize(width + pExtensionBits), x);
+      return wrap(getBitvectorTypeWithSize(width + pExtensionBits), x);
     } else {
       BigInteger nextUpperLimit = BigInteger.ONE.shiftLeft(width + pExtensionBits);
       BigInteger currentUpperLimit = BigInteger.ONE.shiftLeft(width);
@@ -359,7 +359,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
           integerFormulaManager.add(x, diffUpperLimit),
           x
       );
-      return wrap(BitvectorType.getBitvectorTypeWithSize(width + pExtensionBits), xSigned);
+      return wrap(getBitvectorTypeWithSize(width + pExtensionBits), xSigned);
     }
   }
 
