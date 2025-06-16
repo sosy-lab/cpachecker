@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
@@ -77,8 +76,9 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       try (ProverEnvironment prover = context.newProverEnvironment()) {
         var constraint = ifm.equal(replacer.wrapAround(formula, 4), expected);
         prover.addConstraint(constraint);
-        assertFalse(
-            "Formula %s should be trivially satisfiable".formatted(constraint), prover.isUnsat());
+        assertWithMessage("Formula %s should be trivially satisfiable".formatted(constraint))
+            .that(prover.isUnsat())
+            .isFalse();
       }
     }
   }
@@ -93,8 +93,9 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       try (ProverEnvironment prover = context.newProverEnvironment()) {
         var constraint = ifm.equal(replacer.wrapAroundSigned(formula, 4), expected);
         prover.addConstraint(constraint);
-        assertFalse(
-            "Formula %s should be trivially satisfiable".formatted(constraint), prover.isUnsat());
+        assertWithMessage("Formula %s should be trivially satisfiable".formatted(constraint))
+            .that(prover.isUnsat())
+            .isFalse();
       }
     }
   }
@@ -114,10 +115,12 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       BooleanFormula extract = bfm.not(replacer.equal(replacer.extract(larger, 7, 0), base));
       prover.addConstraint(extract);
       var unsat = prover.isUnsat();
-      assertTrue(
-          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
-              .formatted(range, extend, extract, unsat ? "" : prover.getModel()),
-          unsat);
+
+      assertWithMessage(
+              "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
+                  .formatted(range, extend, extract, unsat ? "" : prover.getModel()))
+          .that(unsat)
+          .isTrue();
     }
   }
 
@@ -136,10 +139,11 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       BooleanFormula extract = bfm.not(replacer.equal(replacer.extract(larger, 7, 0), base));
       prover.addConstraint(extract);
       var unsat = prover.isUnsat();
-      assertTrue(
-          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
-              .formatted(range, extend, extract, unsat ? "" : prover.getModel()),
-          unsat);
+      assertWithMessage(
+              "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
+                  .formatted(range, extend, extract, unsat ? "" : prover.getModel()))
+          .that(unsat)
+          .isTrue();
     }
   }
 
@@ -166,10 +170,11 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       try (ProverEnvironment prover = context.newProverEnvironment()) {
         var constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
-        assertFalse(
-            "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
-                .formatted(constraint, testDatum),
-            prover.isUnsat());
+        assertWithMessage(
+                "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
+                    .formatted(constraint, testDatum))
+            .that(prover.isUnsat())
+            .isFalse();
       }
     }
   }
@@ -197,10 +202,11 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       try (ProverEnvironment prover = context.newProverEnvironment()) {
         var constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
-        assertFalse(
-            "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
-                .formatted(constraint, testDatum),
-            prover.isUnsat());
+        assertWithMessage(
+                "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
+                    .formatted(constraint, testDatum))
+            .that(prover.isUnsat())
+            .isFalse();
       }
     }
   }
@@ -231,10 +237,11 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
           replacer.equal(replacer.multiply(a, b), replacer.multiply(aWrapped, bWrapped));
       prover.addConstraint(bfm.not(multiply));
       var unsat = prover.isUnsat();
-      assertTrue(
-          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
-              .formatted(rangeA, rangeB, multiply, unsat ? "" : prover.getModel()),
-          unsat);
+      assertWithMessage(
+              "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
+                  .formatted(rangeA, rangeB, multiply, unsat ? "" : prover.getModel()))
+          .that(unsat)
+          .isTrue();
     }
   }
 }
