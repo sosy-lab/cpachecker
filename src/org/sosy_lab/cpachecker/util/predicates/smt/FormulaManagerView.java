@@ -377,8 +377,13 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    return new FloatingPointFormulaManagerView(
-        wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
+    if (wrappingHandler.useIntAsBitvector()) {
+      return new FloatingPointFormulaManagerView(
+          wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
+    } else {
+      return new FloatingPointFormulaManagerView(
+          wrappingHandler, rawFpmgr, manager.getUFManager(), null);
+    }
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */

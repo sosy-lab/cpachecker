@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
@@ -31,13 +32,13 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
 
   private final FloatingPointFormulaManager manager;
   private final UFManager functionManager;
-  private final BitvectorFormulaManager bitvectorFormulaManager;
+  @Nullable private final BitvectorFormulaManager bitvectorFormulaManager;
 
   FloatingPointFormulaManagerView(
       FormulaWrappingHandler pWrappingHandler,
       FloatingPointFormulaManager pManager,
       UFManager pFunctionManager,
-      BitvectorFormulaManager pBitvectorFormulaManager) {
+      @Nullable BitvectorFormulaManager pBitvectorFormulaManager) {
     super(pWrappingHandler);
     manager = Preconditions.checkNotNull(pManager);
     functionManager = Preconditions.checkNotNull(pFunctionManager);
@@ -99,6 +100,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     } else if (useIntAsBitvector()) {
       // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
       // representing a bitvector
+      assert bitvectorFormulaManager != null;
       final var bv =
           bitvectorFormulaManager.makeBitvector(
               bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
@@ -116,6 +118,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     } else if (useIntAsBitvector()) {
       final var bv = manager.toIeeeBitvector(pNumber);
       final var retType = getFormulaType(bv);
+      assert bitvectorFormulaManager != null;
       return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));
     } else {
       FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
