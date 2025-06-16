@@ -115,7 +115,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       prover.addConstraint(extract);
       var unsat = prover.isUnsat();
       assertTrue(
-          "Formulas {\n%s, \n%s, \n%s\n} should be trivially unsatisfiable, but found model: \n%s"
+          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
               .formatted(range, extend, extract, unsat ? "" : prover.getModel()),
           unsat);
     }
@@ -137,7 +137,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       prover.addConstraint(extract);
       var unsat = prover.isUnsat();
       assertTrue(
-          "Formulas {\n%s, \n%s, \n%s\n} should be trivially unsatisfiable, but found model: \n%s"
+          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
               .formatted(range, extend, extract, unsat ? "" : prover.getModel()),
           unsat);
     }
@@ -167,7 +167,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
         var constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
         assertFalse(
-            "Formula \n%s for inputs\n%s\nshould be trivially satisfiable"
+            "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
                 .formatted(constraint, testDatum),
             prover.isUnsat());
       }
@@ -198,7 +198,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
         var constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
         assertFalse(
-            "Formula \n%s for inputs\n%s\nshould be trivially satisfiable"
+            "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
                 .formatted(constraint, testDatum),
             prover.isUnsat());
       }
@@ -232,7 +232,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       prover.addConstraint(bfm.not(multiply));
       var unsat = prover.isUnsat();
       assertTrue(
-          "Formulas {\n%s, \n%s, \n%s\n} should be trivially unsatisfiable, but found model: \n%s"
+          "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
               .formatted(rangeA, rangeB, multiply, unsat ? "" : prover.getModel()),
           unsat);
     }
