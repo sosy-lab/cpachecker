@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static org.junit.Assert.*;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
-import java.util.List;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -145,7 +145,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
   @Test
   public void testModulo() throws Exception {
     final var testData =
-        List.of(
+        ImmutableList.of(
             Pair.of(Pair.of(0, 5), 0),
             Pair.of(Pair.of(-1, 5), -1),
             Pair.of(Pair.of(-5, 5), 0),
@@ -176,7 +176,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
   @Test
   public void testDiv() throws Exception {
     final var testData =
-        List.of(
+        ImmutableList.of(
             Pair.of(Pair.of(0, 5), 0),
             Pair.of(Pair.of(-1, 5), 0),
             Pair.of(Pair.of(-5, 5), -1),
