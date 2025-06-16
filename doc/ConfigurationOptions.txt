@@ -255,7 +255,8 @@ analysis.algorithm.MPI = false
 analysis.algorithm.MPOR = false
 
 # merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end
-# via gotos?
+# via gotos? setting this to false does not model the input programs behavior
+# correctly.
 analysis.algorithm.MPOR.atomicBlockMerge = true
 
 # the encoding of the partial order reduction bit vectors.
@@ -276,6 +277,11 @@ analysis.algorithm.MPOR.bitVectorReduction = NONE
 # include comments with explaining trivia in the sequentialization? true ->
 # bigger file size
 analysis.algorithm.MPOR.comments = false
+
+# adds execution orders via assumptions for non-conflicting threads to reduce
+# the state space. it takes the previous and current thread and checks if
+# they commute from the current location
+analysis.algorithm.MPOR.conflictReduction = false
 
 # make labels for thread statements consecutive? i.e. 0 to n - 1 where n is
 # the number of statements. disabling may result in first statements being 

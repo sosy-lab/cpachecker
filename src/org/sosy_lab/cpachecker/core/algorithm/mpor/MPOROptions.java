@@ -40,6 +40,8 @@ public class MPOROptions {
 
   public final boolean comments;
 
+  public final boolean conflictReduction;
+
   public final boolean consecutiveLabels;
 
   public final MultiControlStatementEncoding controlEncodingStatement;
@@ -84,6 +86,7 @@ public class MPOROptions {
       boolean pBitVectorEvaluationPrune,
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
+      boolean pConflictReduction,
       boolean pConsecutiveLabels,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
@@ -117,6 +120,7 @@ public class MPOROptions {
     bitVectorEvaluationPrune = pBitVectorEvaluationPrune;
     bitVectorReduction = pBitVectorReduction;
     comments = pComments;
+    conflictReduction = pConflictReduction;
     consecutiveLabels = pConsecutiveLabels;
     controlEncodingStatement = pControlEncodingStatement;
     controlEncodingThread = pControlEncodingThread;
@@ -144,6 +148,7 @@ public class MPOROptions {
       boolean pPruneBitVectorEvaluation,
       BitVectorReduction pBitVectorReduction,
       boolean pComments,
+      boolean pConflictReduction,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
@@ -163,6 +168,7 @@ public class MPOROptions {
         pPruneBitVectorEvaluation,
         pBitVectorReduction,
         pComments,
+        pConflictReduction,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
         pControlEncodingStatement,

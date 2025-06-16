@@ -56,8 +56,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
   @Option(
       description =
-          "merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end via"
-              + " gotos?")
+          "merge statements between __VERIFIER_atomic_begin and __VERIFIER_atomic_end via gotos?"
+              + " setting this to false does not model the input programs behavior correctly.")
   private boolean atomicBlockMerge = true;
 
   @Option(secure = true, description = "the encoding of the partial order reduction bit vectors.")
@@ -87,6 +87,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "include comments with explaining trivia in the sequentialization? true ->"
               + " bigger file size")
   private boolean comments = false;
+
+  @Option(
+      secure = true,
+      description =
+          "adds execution orders via assumptions for non-conflicting threads to reduce the state"
+              + " space. it takes the previous and current thread and checks if they commute from"
+              + " the current location")
+  private boolean conflictReduction = false;
 
   @Option(
       description =
@@ -181,6 +189,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   private boolean scalarPc = true;
 
   @Option(
+      secure = true,
       description =
           "include additional reach_error marking sequentialization locations only reachable when"
               + " transformation is erroneous?")
@@ -283,6 +292,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               bitVectorEvaluationPrune,
               bitVectorReduction,
               comments,
+              conflictReduction,
               consecutiveLabels,
               controlEncodingStatement,
               controlEncodingThread,

@@ -39,6 +39,7 @@ public class InputRejectionTest {
           false,
           BitVectorReduction.NONE,
           false,
+          false,
           MultiControlStatementEncoding.SWITCH_CASE,
           MultiControlStatementEncoding.NONE,
           false,
@@ -182,6 +183,7 @@ public class InputRejectionTest {
             false,
             // bit vectors are enabled for these tests, so that pointer write is rejected
             BitVectorReduction.ACCESS_ONLY,
+            false,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
             MultiControlStatementEncoding.NONE,
