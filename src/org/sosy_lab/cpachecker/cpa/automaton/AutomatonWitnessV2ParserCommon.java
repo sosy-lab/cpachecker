@@ -100,46 +100,48 @@ class AutomatonWitnessV2ParserCommon {
       WaypointRecord follow, WaypointRecord cycle, ImmutableList<WaypointRecord> avoids) {}
 
   /**
-   * Separate the entries into segments whose waypoints should be passed one after the other
+   * Separate the entries into segments and check whether the witness is valid
    *
    * @param pEntries the entries to segmentize
    * @return the segmentized entries
    * @throws InvalidYAMLWitnessException if the YAML witness is not valid
    */
-  ImmutableList<PartitionedWaypoints> segmentize(List<AbstractEntry> pEntries)
+  ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
-    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
-    WaypointRecord latest = null;
-    int numTargetWaypoints = 0;
-    int numCycleWaypoints = 0;
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+        checkTargetIsAtEnd(violationEntry);
+        return segmentizedEntries;
+      }
+      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    }
+    return ImmutableList.of();
+  }
 
-        for (SegmentRecord segmentRecord : violationEntry.getContent()) {
-          ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
-          for (WaypointRecord waypoint : segmentRecord.getSegment()) {
-            latest = waypoint;
-            numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
-            if (waypoint.getAction().equals(WaypointAction.AVOID)) {
-              avoids.add(waypoint);
-            } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
-              if (numCycleWaypoints > 0) {
-                numCycleWaypoints = -1;
-              }
-              segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
-              break;
-            } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
-              numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
-              segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
-              break;
-            }
-          }
+  /**
+   * Separate the entries into segments whose waypoints should be passed one after the other
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   */
+  ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry) {
+    ImmutableList.Builder<PartitionedWaypoints> segments = new ImmutableList.Builder<>();
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      ImmutableList.Builder<WaypointRecord> avoids = new ImmutableList.Builder<>();
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        if (waypoint.getAction().equals(WaypointAction.AVOID)) {
+          avoids.add(waypoint);
+        } else if (waypoint.getAction().equals(WaypointAction.FOLLOW)) {
+          segments.add(new PartitionedWaypoints(waypoint, null, avoids.build()));
+          break;
+        } else if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+          segments.add(new PartitionedWaypoints(null, waypoint, avoids.build()));
+          break;
         }
-        break; // for now just take the first ViolationSequenceEntry in the witness V2
       }
     }
-    checkCycleIsUninterruptedAtEnd(numCycleWaypoints, numTargetWaypoints);
-    checkTargetIsAtEnd(latest, numCycleWaypoints, numTargetWaypoints);
     return segments.build();
   }
 
@@ -181,12 +183,18 @@ class AutomatonWitnessV2ParserCommon {
     }
   }
 
-  private void checkTargetIsAtEnd(
-      WaypointRecord latest, int numCycleWaypoints, int numTargetWaypoints)
+  private void checkTargetIsAtEnd(ViolationSequenceEntry pViolationEntry)
       throws InvalidYAMLWitnessException {
-    if (numCycleWaypoints > 0) {
-      return;
+    WaypointRecord latest = null;
+    int numTargetWaypoints = 0;
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        latest = waypoint;
+        numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
+      }
     }
+
     switch (numTargetWaypoints) {
       case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
       case 1 -> {

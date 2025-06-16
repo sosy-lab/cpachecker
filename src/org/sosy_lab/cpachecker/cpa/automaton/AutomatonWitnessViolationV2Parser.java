@@ -340,7 +340,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
 
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentize(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
