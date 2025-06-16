@@ -378,12 +378,18 @@ public class FormulaManagerView {
           e);
     }
     if (wrappingHandler.useIntAsBitvector()) {
-      return new FloatingPointFormulaManagerView(
-          wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
-    } else {
-      return new FloatingPointFormulaManagerView(
-          wrappingHandler, rawFpmgr, manager.getUFManager(), null);
+      try {
+        return new FloatingPointFormulaManagerView(
+            wrappingHandler,
+            rawFpmgr,
+            manager.getUFManager(),
+            manager.getBitvectorFormulaManager());
+      } catch (UnsupportedOperationException e) {
+        logger.logDebugException(e);
+      }
     }
+    return new FloatingPointFormulaManagerView(
+        wrappingHandler, rawFpmgr, manager.getUFManager(), null);
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
