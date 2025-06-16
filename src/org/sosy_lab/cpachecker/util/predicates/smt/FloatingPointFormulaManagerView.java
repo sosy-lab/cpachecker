@@ -58,7 +58,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointFormula pNumber, boolean pSigned, FormulaType<T> pTargetType) {
     // This method needs to unwrap/wrap pTargetType and the return value,
     // in case they are replaced with other formula types.
-    return wrap(pTargetType, manager.castTo(pNumber, pSigned, unwrapTypeUnlessBvAsInt(pTargetType)));
+    return wrap(
+        pTargetType, manager.castTo(pNumber, pSigned, unwrapTypeUnlessBvAsInt(pTargetType)));
   }
 
   @Override
@@ -69,7 +70,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return wrap(
         targetType,
-        manager.castTo(number, pSigned, unwrapTypeUnlessBvAsInt(targetType), pFloatingPointRoundingMode));
+        manager.castTo(
+            number, pSigned, unwrapTypeUnlessBvAsInt(targetType), pFloatingPointRoundingMode));
   }
 
   @Override
@@ -95,9 +97,11 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     if (useBitvectors()) {
       return manager.fromIeeeBitvector(pNumber, pTargetType);
     } else if (useIntAsBitvector()) {
-      // we don't use bitvectors but have found an integer --> consider this as an unsigned integer representing a bitvector
+      // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
+      // representing a bitvector
       final var bv =
-          bitvectorFormulaManager.makeBitvector(bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
+          bitvectorFormulaManager.makeBitvector(
+              bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
       return manager.fromIeeeBitvector(bv, pTargetType);
     } else {
       return ReplaceFloatingPointWithNumeralAndFunctionTheory.createConversionUF(
@@ -109,7 +113,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
   public BitvectorFormula toIeeeBitvector(FloatingPointFormula pNumber) {
     if (useBitvectors()) {
       return manager.toIeeeBitvector(pNumber);
-    } else if(useIntAsBitvector()) {
+    } else if (useIntAsBitvector()) {
       final var bv = manager.toIeeeBitvector(pNumber);
       final var retType = getFormulaType(bv);
       return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));

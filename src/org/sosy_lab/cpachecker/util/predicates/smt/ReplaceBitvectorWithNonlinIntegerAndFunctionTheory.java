@@ -48,7 +48,8 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
 
   @Option(
       secure = true,
-      description = "Use signed wraparound (default: false, use unbounded domain for signed values)")
+      description =
+          "Use signed wraparound (default: false, use unbounded domain for signed values)")
   private boolean signedWraparound = false;
 
   IntegerFormula wrapAround(IntegerFormula formula, int size) {
@@ -72,10 +73,12 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     } else {
       // we still need to convert the value to a signed version
       return booleanFormulaManager.ifThenElse(
-          integerFormulaManager.greaterOrEquals(formula, integerFormulaManager.makeNumber(upperSignedLimit)),
-          integerFormulaManager.negate(integerFormulaManager.subtract(integerFormulaManager.makeNumber(upperUnsignedLimit), formula)),
-          formula
-      );
+          integerFormulaManager.greaterOrEquals(
+              formula, integerFormulaManager.makeNumber(upperSignedLimit)),
+          integerFormulaManager.negate(
+              integerFormulaManager.subtract(
+                  integerFormulaManager.makeNumber(upperUnsignedLimit), formula)),
+          formula);
     }
   }
 
@@ -121,14 +124,18 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula negate(BitvectorFormula pNumber) {
-    return wrap(getFormulaType(pNumber), wrapAround(integerFormulaManager.negate(unwrap(pNumber)), getLength(pNumber)));
+    return wrap(
+        getFormulaType(pNumber),
+        wrapAround(integerFormulaManager.negate(unwrap(pNumber)), getLength(pNumber)));
   }
 
   @Override
   public BitvectorFormula add(BitvectorFormula pNumber1, BitvectorFormula pNumber2) {
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(
-        getFormulaType(pNumber1), wrapAround(integerFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)), getLength(pNumber1)));
+        getFormulaType(pNumber1),
+        wrapAround(
+            integerFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)), getLength(pNumber1)));
   }
 
   @Override
@@ -136,7 +143,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(
         getFormulaType(pNumber1),
-        wrapAround(integerFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)), getLength(pNumber1)));
+        wrapAround(
+            integerFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)),
+            getLength(pNumber1)));
   }
 
   @Override
@@ -145,13 +154,13 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(
         getFormulaType(pNumber1),
-        wrapAround(!pSigned ?
-                   integerFormulaManager.divide(
-                       unwrap(pNumber1),
-                       unwrap(pNumber2))
-                   : getC99ReplacementForSMTlib2Division(
-                       wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
-                       wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2))), getLength(pNumber1)));
+        wrapAround(
+            !pSigned
+                ? integerFormulaManager.divide(unwrap(pNumber1), unwrap(pNumber2))
+                : getC99ReplacementForSMTlib2Division(
+                    wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
+                    wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2))),
+            getLength(pNumber1)));
   }
 
   @Override
@@ -169,7 +178,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     IntegerFormula divisor = unwrap(denominator);
     IntegerFormula dividend = unwrap(numerator);
 
-    if(signed) {
+    if (signed) {
       divisor = wrapAroundSigned(divisor, getLength(denominator));
       dividend = wrapAroundSigned(dividend, getLength(numerator));
       final IntegerFormula zero = integerFormulaManager.makeNumber(0);
@@ -183,24 +192,24 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
 
       return wrap(
           getFormulaType(numerator),
-          wrapAround(booleanFormulaManager.ifThenElse(
-              booleanFormulaManager.or(
-                  integerFormulaManager.greaterOrEquals(dividend, zero),
-                  integerFormulaManager.equal(mod, zero)),
-              mod,
-              integerFormulaManager.add(mod, additionalUnit)), getLength(numerator)));
+          wrapAround(
+              booleanFormulaManager.ifThenElse(
+                  booleanFormulaManager.or(
+                      integerFormulaManager.greaterOrEquals(dividend, zero),
+                      integerFormulaManager.equal(mod, zero)),
+                  mod,
+                  integerFormulaManager.add(mod, additionalUnit)),
+              getLength(numerator)));
     } else {
-      return wrap(
-          getFormulaType(numerator),
-          integerFormulaManager.modulo(dividend, divisor)
-      );
+      return wrap(getFormulaType(numerator), integerFormulaManager.modulo(dividend, divisor));
     }
   }
 
   /**
    * @see BitvectorFormulaManagerView#divide(BitvectorFormula, BitvectorFormula, boolean)
    */
-  private IntegerFormula getC99ReplacementForSMTlib2Division(final IntegerFormula f1, final IntegerFormula f2) {
+  private IntegerFormula getC99ReplacementForSMTlib2Division(
+      final IntegerFormula f1, final IntegerFormula f2) {
 
     final IntegerFormula zero = integerFormulaManager.makeNumber(0);
     final IntegerFormula additionalUnit =
@@ -227,7 +236,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     assert getLength(pNumber1) == getLength(pNumber2) : "Expect operators to have the same size";
     return wrap(
         getFormulaType(pNumber1),
-        wrapAround(integerFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)), getLength(pNumber1)));
+        wrapAround(
+            integerFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)),
+            getLength(pNumber1)));
   }
 
   @Override
@@ -243,7 +254,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     if (!pSigned) {
       return integerFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
     } else {
-      return integerFormulaManager.greaterThan(wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)), wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+      return integerFormulaManager.greaterThan(
+          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
+          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -254,7 +267,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     if (!pSigned) {
       return integerFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
     } else {
-      return integerFormulaManager.greaterOrEquals(wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)), wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+      return integerFormulaManager.greaterOrEquals(
+          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
+          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -265,7 +280,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     if (!pSigned) {
       return integerFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
     } else {
-      return integerFormulaManager.lessThan(wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)), wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+      return integerFormulaManager.lessThan(
+          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
+          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -276,7 +293,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
     if (!pSigned) {
       return integerFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));
     } else {
-      return integerFormulaManager.lessOrEquals(wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)), wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
+      return integerFormulaManager.lessOrEquals(
+          wrapAroundSigned(unwrap(pNumber1), getLength(pNumber1)),
+          wrapAroundSigned(unwrap(pNumber2), getLength(pNumber2)));
     }
   }
 
@@ -287,10 +306,12 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
       start = BigInteger.ZERO;
     }
     assert end.compareTo(BigInteger.ZERO) >= 0 : "Expect end of range to always be positive";
-    var ret = booleanFormulaManager.and(
-        integerFormulaManager.lessOrEquals(integerFormulaManager.makeNumber(start), unwrap(term)),
-        integerFormulaManager.lessOrEquals(unwrap(term), integerFormulaManager.makeNumber(end))
-    );
+    var ret =
+        booleanFormulaManager.and(
+            integerFormulaManager.lessOrEquals(
+                integerFormulaManager.makeNumber(start), unwrap(term)),
+            integerFormulaManager.lessOrEquals(
+                unwrap(term), integerFormulaManager.makeNumber(end)));
     return ret;
   }
 
@@ -332,7 +353,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
-    if(pLsb != 0) {
+    if (pLsb != 0) {
       throw new UnsupportedOperationException("not yet implemented for CPAchecker");
     }
     return wrap(getBitvectorTypeWithSize(pMsb + 1), wrapAround(unwrap(pNumber), pMsb + 1));
@@ -350,15 +371,16 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
       BigInteger currentUpperLimit = BigInteger.ONE.shiftLeft(width);
       BigInteger currentSignedUpperLimit = BigInteger.ONE.shiftLeft(width - 1);
 
-      IntegerFormula diffUpperLimit = integerFormulaManager.makeNumber(nextUpperLimit.subtract(currentUpperLimit));
-      IntegerFormula currentSignedUpperLimitFormula = integerFormulaManager.makeNumber(currentSignedUpperLimit);
+      IntegerFormula diffUpperLimit =
+          integerFormulaManager.makeNumber(nextUpperLimit.subtract(currentUpperLimit));
+      IntegerFormula currentSignedUpperLimitFormula =
+          integerFormulaManager.makeNumber(currentSignedUpperLimit);
 
-      BooleanFormula isNegative = integerFormulaManager.greaterOrEquals(x, currentSignedUpperLimitFormula);
-      IntegerFormula xSigned = booleanFormulaManager.ifThenElse(
-          isNegative,
-          integerFormulaManager.add(x, diffUpperLimit),
-          x
-      );
+      BooleanFormula isNegative =
+          integerFormulaManager.greaterOrEquals(x, currentSignedUpperLimitFormula);
+      IntegerFormula xSigned =
+          booleanFormulaManager.ifThenElse(
+              isNegative, integerFormulaManager.add(x, diffUpperLimit), x);
       return wrap(getBitvectorTypeWithSize(width + pExtensionBits), xSigned);
     }
   }

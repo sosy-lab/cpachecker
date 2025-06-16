@@ -947,11 +947,14 @@ public class CtoFormulaConverter {
                 .castTo((FloatingPointFormula) pFormula, isSigned.test(pToCType), toType);
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
-        ret = fmgr.castFromFloat((FloatingPointFormula) pFormula, isSigned.test(pFromCType), toType);
+        ret =
+            fmgr.castFromFloat((FloatingPointFormula) pFormula, isSigned.test(pFromCType), toType);
       }
 
     } else if (toType.isFloatingPointType()) {
-      ret = fmgr.castToFloat(pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
+      ret =
+          fmgr.castToFloat(
+              pFormula, isSigned.test(pFromCType), (FormulaType.FloatingPointType) toType);
 
     } else {
       throw new IllegalArgumentException(

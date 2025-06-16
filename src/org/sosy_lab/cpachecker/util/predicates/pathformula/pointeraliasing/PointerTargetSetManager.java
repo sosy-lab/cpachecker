@@ -643,9 +643,7 @@ class PointerTargetSetManager {
     // this should probably only be given if
     //  cpa.predicate.addRangeConstraintsForNondet
     // is 'true'. But this is no-op for most cases anyway.
-    pConstraints.addConstraint(
-        formulaManager.makeRangeConstraint(newBaseFormula, false)
-    );
+    pConstraints.addConstraint(formulaManager.makeRangeConstraint(newBaseFormula, false));
 
     // Add alignment constraint
     // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).

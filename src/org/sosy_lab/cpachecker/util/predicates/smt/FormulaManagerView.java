@@ -195,7 +195,12 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
 
     // Check unsupported configurations first for good error messages instead of assertions
-    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.BITVECTOR, Theory.INTEGER, Theory.INTEGER_NLA, Theory.RATIONAL)
+    if (!ImmutableSet.of(
+            Theory.UNSUPPORTED,
+            Theory.BITVECTOR,
+            Theory.INTEGER,
+            Theory.INTEGER_NLA,
+            Theory.RATIONAL)
         .contains(encodeBitvectorAs)) {
       throw new InvalidConfigurationException(
           "Invalid value "
@@ -372,7 +377,8 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    return new FloatingPointFormulaManagerView(wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
+    return new FloatingPointFormulaManagerView(
+        wrappingHandler, rawFpmgr, manager.getUFManager(), manager.getBitvectorFormulaManager());
   }
 
   /** Creates the IntegerFormulaManager or a replacement based on the option encodeIntegerAs. */
@@ -965,25 +971,25 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
-
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
-    if(wrappingHandler.useIntAsBitvector()) {
+    if (wrappingHandler.useIntAsBitvector()) {
       final var bvManager = bitvectorFormulaManager;
       return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
-      return makeRangeConstraint(term,
+      return makeRangeConstraint(
+          term,
           makeNumber(getFormulaType(term), start),
-          makeNumber(getFormulaType(term), end), signed);
+          makeNumber(getFormulaType(term), end),
+          signed);
     }
   }
-
 
   public <T extends Formula> BooleanFormula makeRangeConstraint(T term, boolean signed) {
     if (getFormulaType(term).isBitvectorType() && wrappingHandler.useIntAsBitvector()) {
       final var bvManager = bitvectorFormulaManager;
-      final var size = ((BitvectorType)getFormulaType(term)).getSize();
-      if(signed) {
+      final var size = ((BitvectorType) getFormulaType(term)).getSize();
+      if (signed) {
         final var start = BigInteger.ONE.shiftLeft(size - 1).negate();
         final var end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
         return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
@@ -1011,27 +1017,29 @@ public class FormulaManagerView {
     return makeVariable(formulaType, makeNameNoIndex(name));
   }
 
-  public <T extends Formula> FloatingPointFormula castToFloat(T pFormula, boolean isSigned, FloatingPointType formulaType) {
+  public <T extends Formula> FloatingPointFormula castToFloat(
+      T pFormula, boolean isSigned, FloatingPointType formulaType) {
     Formula formula = pFormula;
-    if(encodeBitvectorAs != Theory.BITVECTOR && getFormulaType(formula).isBitvectorType()) {
+    if (encodeBitvectorAs != Theory.BITVECTOR && getFormulaType(formula).isBitvectorType()) {
       formula = unwrap(formula);
     }
-    if(getFormulaType(formula).isIntegerType()) {
+    if (getFormulaType(formula).isIntegerType()) {
       formula = manager.getBitvectorFormulaManager().makeBitvector(128, (IntegerFormula) formula);
     }
     return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
   }
 
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T castFromFloat(FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
-    T ret = getFloatingPointFormulaManager()
-        .castTo(
-            pFormula,
-            isSigned,
-            formulaType,
-            FloatingPointRoundingMode.TOWARD_ZERO);
-    if(wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
-      return (T) manager.getBitvectorFormulaManager().toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
+  public <T extends Formula> T castFromFloat(
+      FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
+    T ret =
+        getFloatingPointFormulaManager()
+            .castTo(pFormula, isSigned, formulaType, FloatingPointRoundingMode.TOWARD_ZERO);
+    if (wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
+      return (T)
+          manager
+              .getBitvectorFormulaManager()
+              .toIntegerFormula((BitvectorFormula) unwrap(ret), isSigned);
     }
     return ret;
   }
