@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPORUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.pthreads.PthreadUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqFunctionDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.functions.SeqAssumeFunction;
@@ -100,7 +102,7 @@ public class LineOfCodeUtil {
     return rEmptyFunctionDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildGlobalDeclarations(
+  public static ImmutableList<LineOfCode> buildInputGlobalVariableDeclarations(
       MPOROptions pOptions, MPORSubstitution pMainThreadSubstitution) {
 
     ImmutableList.Builder<LineOfCode> rGlobalDeclarations = ImmutableList.builder();
@@ -120,7 +122,7 @@ public class LineOfCodeUtil {
     return rGlobalDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildLocalDeclarations(
+  public static ImmutableList<LineOfCode> buildInputLocalVariableDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rLocalDeclarations = ImmutableList.builder();
@@ -155,7 +157,7 @@ public class LineOfCodeUtil {
     return rLocalDeclarations.build();
   }
 
-  public static ImmutableList<LineOfCode> buildParameterDeclarations(
+  public static ImmutableList<LineOfCode> buildInputParameterDeclarations(
       MPOROptions pOptions, ImmutableList<MPORSubstitution> pSubstitutions) {
 
     ImmutableList.Builder<LineOfCode> rParameterDeclarations = ImmutableList.builder();
@@ -239,24 +241,49 @@ public class LineOfCodeUtil {
     return rStartRoutineExitDeclarations.build();
   }
 
+  /**
+   * Creates all thread simulation variables that are global, so that they can be used in functions
+   * separate from the {@code main} function. Accessing them directly should be more efficient than
+   * passing them as parameters.
+   *
+   * <p>All other thread simulation variables are
+   */
   public static ImmutableList<LineOfCode> buildThreadSimulationVariableDeclarations(
-      MPOROptions pOptions, ThreadSimulationVariables pThreadSimulationVariables) {
+      MPOROptions pOptions,
+      ImmutableList<CVariableDeclaration> pPcDeclarations,
+      ImmutableList<SeqBitVectorDeclaration> pBitVectorDeclarations)
+      throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<LineOfCode> rThreadSimulationVariableDeclarations =
-        ImmutableList.builder();
+    ImmutableList.Builder<LineOfCode> rDeclarations = ImmutableList.builder();
+
+    // next_thread
+    if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+      if (pOptions.signedNondet) {
+        rDeclarations.add(
+            LineOfCode.of(0, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
+      } else {
+        rDeclarations.add(
+            LineOfCode.of(0, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+      }
+    }
+
+    // pc
     if (pOptions.comments) {
-      rThreadSimulationVariableDeclarations.add(
-          LineOfCode.of(0, SeqComment.THREAD_SIMULATION_VARIABLES));
+      rDeclarations.add(LineOfCode.empty());
+      rDeclarations.add(LineOfCode.of(0, SeqComment.PC_DECLARATION));
     }
-    for (CIdExpression threadVariable : pThreadSimulationVariables.getIdExpressions()) {
-      assert threadVariable.getDeclaration() instanceof CVariableDeclaration;
-      CVariableDeclaration varDeclaration = (CVariableDeclaration) threadVariable.getDeclaration();
-      rThreadSimulationVariableDeclarations.add(LineOfCode.of(0, varDeclaration.toASTString()));
+    for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
+      rDeclarations.add(LineOfCode.of(0, pcDeclaration.toASTString()));
     }
-    if (pOptions.comments) {
-      rThreadSimulationVariableDeclarations.add(LineOfCode.empty());
+
+    // if enabled: bit vectors (for partial order reductions)
+    if (pOptions.bitVectorReduction.isEnabled() && pOptions.bitVectorEncoding.isEnabled()) {
+      for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
+        rDeclarations.add(LineOfCode.of(0, bitVectorDeclaration.toASTString()));
+      }
     }
-    return rThreadSimulationVariableDeclarations.build();
+
+    return rDeclarations.build();
   }
 
   public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
@@ -320,8 +347,8 @@ public class LineOfCodeUtil {
             pOptions,
             pSubstitutions,
             clauses,
-            pBitVectorVariables,
             pPcVariables,
+            pThreadSimulationVariables,
             pBinaryExpressionBuilder,
             pLogger);
     rFunctionDefinitions.addAll(mainFunction.buildDefinition());

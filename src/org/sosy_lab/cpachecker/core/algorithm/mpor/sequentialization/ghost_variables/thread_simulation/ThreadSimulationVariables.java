@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 
+// TODO rename ThreadSynchronizationVariables, the pc etc. are also simulation vars but not here
 public class ThreadSimulationVariables {
 
   /** The map of {@code pthread_mutex_t} objects to their {@code {mutex}_LOCKED} variables. */

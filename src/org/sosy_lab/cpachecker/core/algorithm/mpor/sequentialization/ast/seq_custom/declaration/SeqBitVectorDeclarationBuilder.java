@@ -35,7 +35,7 @@ public class SeqBitVectorDeclarationBuilder {
   public static ImmutableList<SeqBitVectorDeclaration> buildBitVectorDeclarationsByEncoding(
       MPOROptions pOptions,
       Optional<BitVectorVariables> pBitVectorVariables,
-      ImmutableSet<MPORThread> pThreads) {
+      ImmutableList<MPORThread> pThreads) {
 
     if (!pOptions.bitVectorReduction.isEnabled() && !pOptions.bitVectorEncoding.isEnabled()) {
       return ImmutableList.of();
@@ -95,7 +95,7 @@ public class SeqBitVectorDeclarationBuilder {
   private static ImmutableList<SeqBitVectorDeclaration> buildScalarBitVectorDeclarationsByReduction(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
-      ImmutableSet<MPORThread> pThreads) {
+      ImmutableList<MPORThread> pThreads) {
 
     return switch (pOptions.bitVectorReduction) {
       case NONE -> ImmutableList.of();
@@ -115,7 +115,7 @@ public class SeqBitVectorDeclarationBuilder {
   }
 
   private static ImmutableList<SeqBitVectorDeclaration> createScalarBitVectorDeclarations(
-      ImmutableCollection<ScalarBitVector> pScalarBitVectors, ImmutableSet<MPORThread> pThreads) {
+      ImmutableCollection<ScalarBitVector> pScalarBitVectors, ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
     for (ScalarBitVector scalarBitVector : pScalarBitVectors) {

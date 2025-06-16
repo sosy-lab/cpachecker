@@ -21,10 +21,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter.FileExtension;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqLeftHandSideBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.declaration.SeqBitVectorDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -109,9 +113,11 @@ public class Sequentialization {
 
   private static final int FIRST_LINE = 1;
 
+  private final MPOROptions options;
+
   private final ImmutableList<MPORSubstitution> substitutions;
 
-  private final MPOROptions options;
+  private final int numThreads;
 
   private final String inputFileName;
 
@@ -135,15 +141,16 @@ public class Sequentialization {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
+    options = pOptions;
     substitutions = pSubstitutions;
+    numThreads = pSubstitutions.size();
     inputFileName = pInputFileName;
     outputFileName = pOutputFileName;
-    options = pOptions;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     ImmutableList<CLeftHandSide> pcLeftHandSides =
-        SeqLeftHandSideBuilder.buildPcLeftHandSides(pSubstitutions.size(), options.scalarPc);
+        SeqLeftHandSideBuilder.buildPcLeftHandSides(numThreads, options.scalarPc);
     ImmutableList<CBinaryExpression> threadNotActiveExpressions =
         SeqExpressionBuilder.buildThreadNotActiveExpressions(
             pcLeftHandSides, binaryExpressionBuilder);
@@ -188,19 +195,25 @@ public class Sequentialization {
     // add bit vector type (before, otherwise parse error) and all input program type declarations
     rProgram.addAll(LineOfCodeUtil.buildOriginalDeclarations(options, threads));
     rProgram.addAll(LineOfCodeUtil.buildBitVectorTypeDeclarations());
+    // add input function declarations without definition when their function pointers are used
     rProgram.addAll(LineOfCodeUtil.buildEmptyInputFunctionDeclarations(substituteEdges.values()));
     // add struct and variable declarations
-    rProgram.addAll(LineOfCodeUtil.buildGlobalDeclarations(options, mainSubstitution));
-    rProgram.addAll(LineOfCodeUtil.buildLocalDeclarations(options, substitutions));
-    rProgram.addAll(LineOfCodeUtil.buildParameterDeclarations(options, substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildInputGlobalVariableDeclarations(options, mainSubstitution));
+    rProgram.addAll(LineOfCodeUtil.buildInputLocalVariableDeclarations(options, substitutions));
+    rProgram.addAll(LineOfCodeUtil.buildInputParameterDeclarations(options, substitutions));
     rProgram.addAll(LineOfCodeUtil.buildMainFunctionArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineArgDeclarations(options, mainSubstitution));
     rProgram.addAll(LineOfCodeUtil.buildStartRoutineExitDeclarations(options, threads));
 
     // add variable declarations for ghost variables
+    ImmutableList<CVariableDeclaration> pcDeclarations =
+        SeqDeclarationBuilder.buildPcDeclarations(options, pcVariables, numThreads);
+    ImmutableList<SeqBitVectorDeclaration> bitVectorDeclarations =
+        SeqBitVectorDeclarationBuilder.buildBitVectorDeclarationsByEncoding(
+            options, bitVectorVariables, SubstituteUtil.extractThreads(substitutions));
     rProgram.addAll(
         LineOfCodeUtil.buildThreadSimulationVariableDeclarations(
-            options, threadSimulationVariables));
+            options, pcDeclarations, bitVectorDeclarations));
 
     // add custom function declarations and definitions
     rProgram.addAll(LineOfCodeUtil.buildFunctionDeclarations(options));
