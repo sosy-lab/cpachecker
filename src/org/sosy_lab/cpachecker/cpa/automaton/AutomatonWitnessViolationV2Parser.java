@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
@@ -254,6 +255,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
   }
 
   /**
+   * Transform a function return into automata transitions
+   *
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
@@ -337,9 +340,29 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
     return transitionBuilder.build();
   }
 
+  /**
+   * Separate the entries into segments and check whether the witness is valid witness v2.0
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+        checkTarget(violationEntry);
+        return segmentizedEntries;
+      }
+      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    }
+    return ImmutableList.of();
+  }
+
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentizeAndCheckV2(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;

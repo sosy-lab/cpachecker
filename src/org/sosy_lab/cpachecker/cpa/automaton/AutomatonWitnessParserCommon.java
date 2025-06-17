@@ -100,49 +100,9 @@ class AutomatonWitnessParserCommon {
       WaypointRecord follow, WaypointRecord cycle, ImmutableList<WaypointRecord> avoids) {}
 
   /**
-   * Separate the entries into segments and check whether the witness is valid witness v2.0
-   *
-   * @param pEntries the entries to segmentize
-   * @return the segmentized entries
-   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
-   */
-  ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2(List<AbstractEntry> pEntries)
-      throws InvalidYAMLWitnessException {
-    for (AbstractEntry entry : pEntries) {
-      if (entry instanceof ViolationSequenceEntry violationEntry) {
-        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-        checkTarget(violationEntry);
-        return segmentizedEntries;
-      }
-      break; // for now just take the first ViolationSequenceEntry in the witness V2
-    }
-    return ImmutableList.of();
-  }
-
-  /**
-   * Separate the entries into segments and check whether the witness is valid witness v2.1
-   *
-   * @param pEntries the entries to segmentize
-   * @return the segmentized entries
-   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
-   */
-  ImmutableList<PartitionedWaypoints> segmentizeAndCheckV21(List<AbstractEntry> pEntries)
-      throws InvalidYAMLWitnessException {
-    for (AbstractEntry entry : pEntries) {
-      if (entry instanceof ViolationSequenceEntry violationEntry) {
-        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-        checkCycleOrTargetAtEnd(violationEntry);
-        return segmentizedEntries;
-      }
-      break; // for now just take the first ViolationSequenceEntry in the witness V2
-    }
-    return ImmutableList.of();
-  }
-
-  /**
    * Separate the entries into segments whose waypoints should be passed one after the other
    *
-   * @param pEntries the entries to segmentize
+   * @param pViolationEntry the violation entry to segmentize
    * @return the segmentized entries
    */
   ImmutableList<PartitionedWaypoints> segmentize(ViolationSequenceEntry pViolationEntry) {
@@ -193,10 +153,10 @@ class AutomatonWitnessParserCommon {
   /**
    * Check that the target waypoint is precisely one and it is at the end of the witness
    *
-   * @param pViolationEntry
-   * @throws InvalidYAMLWitnessException
+   * @param pViolationEntry violation entry for which the target waypoint is checked
+   * @throws InvalidYAMLWitnessException if the target waypoint is placed wrongly
    */
-  private void checkTarget(ViolationSequenceEntry pViolationEntry)
+  protected void checkTarget(ViolationSequenceEntry pViolationEntry)
       throws InvalidYAMLWitnessException {
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;
@@ -225,13 +185,12 @@ class AutomatonWitnessParserCommon {
   }
 
   /**
-   * Separate the entries into segments and check whether the witness is valid
+   * Check whether the witness is valid
    *
-   * @param pEntries the entries to segmentize
-   * @return the segmentized entries
-   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   * @param pViolationEntry the violation entry for which the cycle and target waypoints are checked
+   * @throws InvalidYAMLWitnessException if the cycle or target waypoints are placed wrongly
    */
-  private void checkCycleOrTargetAtEnd(ViolationSequenceEntry pViolationEntry)
+  protected void checkCycleOrTargetAtEnd(ViolationSequenceEntry pViolationEntry)
       throws InvalidYAMLWitnessException {
     WaypointRecord latest = null;
     int numTargetWaypoints = 0;

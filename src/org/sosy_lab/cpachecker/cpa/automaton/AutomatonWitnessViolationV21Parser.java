@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.Invalid
 import org.sosy_lab.cpachecker.util.ast.ASTElement;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
@@ -39,10 +40,31 @@ class AutomatonWitnessViolationV21Parser extends AutomatonWitnessViolationV2Pars
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
+  /**
+   * Separate the entries into segments and check whether the witness is valid witness v2.1
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  @Override
+  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+        checkCycleOrTargetAtEnd(violationEntry);
+        return segmentizedEntries;
+      }
+      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    }
+    return ImmutableList.of();
+  }
+
   @Override
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentizeAndCheckV21(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
