@@ -8,4 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.yamlwitnessexport.model;
 
-public record PrecisionDeclarations(String symbolName, String symbolType) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record PrecisionDeclarations(
+    @JsonProperty("name") String symbolName, @JsonProperty("type") String symbolType) {}

@@ -228,7 +228,7 @@ public final class PredicatePrecisionBootstrapper {
                         parseInvariantsFromCorrectnessWitnessAsPredicates(predicatesFile));
               }
             } else if (witnessType.equals(WitnessType.PRECISION_WITNESS)) {
-              result.mergeWith(parsePredicateWintess(predicatesFile));
+              result = result.mergeWith(parsePredicateWintess(predicatesFile));
             } else {
               logger.log(
                   Level.WARNING, "Importing predicates from violation witness is not supported");
@@ -304,33 +304,33 @@ public final class PredicatePrecisionBootstrapper {
               }
             }
           } else if (scope instanceof LocalPrecisionScope pLocalScope) {
+            LocationRecord locationRecord = pLocalScope.getLocation();
+
+            Optional<CFANode> location =
+                astCfaRelation.getNodeForStatementLocation(
+                    locationRecord.getLine(), locationRecord.getColumn());
+
+            if (location.isEmpty()) {
+              logger.logf(
+                  Level.FINE,
+                  "Witness file %s contains a local precision scope for location %s, "
+                      + "but the location is not present in the CFA, ignoring it.",
+                  pWitnessFile,
+                  locationRecord);
+              // TODO: Whenever this happens this is a bug in the AstCfaRelation
+              continue;
+            }
+
+            Deque<String> callStack = new ArrayDeque<>();
+            callStack.push(locationRecord.getFunction());
+
+            Scope programScope =
+                switch (cfa.getLanguage()) {
+                  case C -> new CProgramScope(cfa, logger);
+                  default -> DummyScope.getInstance();
+                };
+
             for (String predicateString : precisionExchangeEntry.values()) {
-              LocationRecord locationRecord = pLocalScope.getLocation();
-
-              Optional<CFANode> location =
-                  astCfaRelation.getNodeForStatementLocation(
-                      locationRecord.getLine(), locationRecord.getColumn());
-
-              if (location.isEmpty()) {
-                logger.logf(
-                    Level.FINE,
-                    "Witness file %s contains a local precision scope for location %s, "
-                        + "but the location is not present in the CFA, ignoring it.",
-                    pWitnessFile,
-                    locationRecord);
-                // TODO: Whenever this happens this is a bug in the AstCfaRelation
-                continue;
-              }
-
-              Deque<String> callStack = new ArrayDeque<>();
-              callStack.push(locationRecord.getFunction());
-
-              Scope programScope =
-                  switch (cfa.getLanguage()) {
-                    case C -> new CProgramScope(cfa, logger);
-                    default -> DummyScope.getInstance();
-                  };
-
               try {
                 localPredicatesBuilder.put(
                     location.orElseThrow(),
