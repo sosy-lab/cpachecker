@@ -370,7 +370,7 @@ public final class AstCfaRelation {
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
 
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.floorEntry(closestStartingLocationToNode);
@@ -389,7 +389,7 @@ public final class AstCfaRelation {
       StartingLocation closestStartingLocationToNode =
           new StartingLocation(
               closestFileLocationToNode.getStartColumnInLine(),
-              closestFileLocationToNode.getStartingLineNumber());
+              closestFileLocationToNode.getStartingLineInOrigin());
       Entry<StartingLocation, ASTElement> element =
           startingLocationToTightestStatement.ceilingEntry(closestStartingLocationToNode);
 

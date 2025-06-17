@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import java.util.List;
 
-@JsonPropertyOrder({"entry_type", "metadata", "content"})
+@JsonPropertyOrder({"entry_type", "metadata", "declarations", "content"})
 @JsonTypeInfo(use = Id.NAME, include = As.PROPERTY, property = "entry_type", visible = true)
 public class PrecisionExchangeSetEntry extends AbstractEntry {
 
@@ -27,12 +27,21 @@ public class PrecisionExchangeSetEntry extends AbstractEntry {
   @JsonProperty("content")
   private final List<PrecisionExchangeEntry> content;
 
+  @JsonProperty("declarations")
+  private final List<PrecisionDeclaration> declarations;
+
   public PrecisionExchangeSetEntry(
       @JsonProperty("metadata") MetadataRecord pMetadata,
+      @JsonProperty("declarations") List<PrecisionDeclaration> pDeclarations,
       @JsonProperty("content") List<PrecisionExchangeEntry> pContent) {
     super(PRECISION_EXCHANGE_ENTRY_IDENTIFIER);
     metadata = pMetadata;
     content = pContent;
+    declarations = pDeclarations;
+  }
+
+  public List<PrecisionDeclaration> getDeclarations() {
+    return declarations;
   }
 
   public MetadataRecord getMetadata() {

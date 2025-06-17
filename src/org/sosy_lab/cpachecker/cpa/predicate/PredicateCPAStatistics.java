@@ -35,6 +35,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -81,7 +82,7 @@ final class PredicateCPAStatistics implements Statistics {
       description = "file for exporting final predicate map as a witness file",
       name = "predmapWitness.file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path predmapWitnessFile = Path.of("witness-predmap.yml");
+  private PathTemplate predmapWitnessFile = PathTemplate.ofFormatString("witness-predmap-%s.yml");
 
   @Option(secure = true, description = "export final loop invariants", name = "invariants.export")
   private boolean exportInvariants = true;
@@ -252,7 +253,7 @@ final class PredicateCPAStatistics implements Statistics {
   }
 
   private void exportPredmapAsWitness(
-      Path targetFile, MutablePredicateSets predicates, MetadataRecord pMetadataRecord) {
+      PathTemplate targetFile, MutablePredicateSets predicates, MetadataRecord pMetadataRecord) {
     Preconditions.checkNotNull(targetFile);
     Preconditions.checkNotNull(predicates);
 

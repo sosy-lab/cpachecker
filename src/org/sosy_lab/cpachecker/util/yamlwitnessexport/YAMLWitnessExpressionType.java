@@ -10,11 +10,26 @@ package org.sosy_lab.cpachecker.util.yamlwitnessexport;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateDumpFormat;
 
 public enum YAMLWitnessExpressionType {
   C,
   ACSL,
   SMTLIB;
+
+  public static YAMLWitnessExpressionType fromPredicateFormat(PredicateDumpFormat pFormat) {
+    switch (pFormat) {
+      case C:
+        return YAMLWitnessExpressionType.C;
+      case SMTLIB2:
+        return YAMLWitnessExpressionType.SMTLIB;
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported transformation from predicate dump format '"
+                + pFormat
+                + "' into a witness expression.");
+    }
+  }
 
   @Override
   @JsonValue

@@ -33,6 +33,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.MetadataRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 
@@ -70,9 +72,10 @@ public final class PredicateMapWriter {
 
   @Option(
       secure = true,
-      name = "predmap.witnessPredicateFormat",
-      description = "Format for exporting predicates from precisions.")
-  private PredicateDumpFormat witnessPredicateFormat = PredicateDumpFormat.C;
+      name = "predmap.witnessPredicateFormats",
+      description = "List of formats for exporting predicates from precisions in witnesses.")
+  private List<PredicateDumpFormat> witnessPredicateFormats =
+      ImmutableList.of(PredicateDumpFormat.C, PredicateDumpFormat.SMTLIB2);
 
   private final FormulaManagerView fmgr;
   private final LogManager logger;
@@ -167,10 +170,13 @@ public final class PredicateMapWriter {
       AbstractionPredicate pPredicate,
       PredicateDumpFormat pFormat,
       Function<String, Boolean> pIncludeVariablesFilter,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      ImmutableList.Builder<PrecisionDeclaration> pDeclarationBuilder) {
     return switch (pFormat) {
       case SMTLIB2 -> {
         Pair<String, List<String>> p = splitFormula(pFmgr, pPredicate.getSymbolicAtom());
+        pDeclarationBuilder.addAll(
+            FluentIterable.from(p.getSecond()).transform(value -> new PrecisionDeclaration(value)));
         yield Optional.of(Objects.requireNonNull(p.getFirst()));
       }
       case C -> {
@@ -218,106 +224,117 @@ public final class PredicateMapWriter {
       SetMultimap<CFANode, AbstractionPredicate> pLocation,
       SetMultimap<String, AbstractionPredicate> pFunction,
       Set<AbstractionPredicate> pGlobal,
-      Path pPath,
+      PathTemplate pPathTemplate,
       MetadataRecord pMetadataRecord) {
-    // Build the data structures that contain the predicates
-    ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
 
-    // Add all global predicates
-    entriesBuilder.add(
-        new PrecisionExchangeEntry(
-            // TODO: generalize the type and get it from the predicate type
-            YAMLWitnessExpressionType.C,
-            new GlobalPrecisionScope(),
-            FluentIterable.from(pGlobal)
-                .transform(
-                    pFormula ->
-                        getPredicateString(
-                            pFormula,
-                            witnessPredicateFormat,
-                            name ->
-                                // TODO: The ADDRESS_OF problem should not be solved here, but in
-                                //  the translation back from SMT to C
-                                notInternalVariable(name),
-                            fmgr))
-                .filter(Optional::isPresent)
-                .transform(Optional::orElseThrow)
-                .toSet()
-                .asList()));
+    for (PredicateDumpFormat witnessPredicateFormat : witnessPredicateFormats) {
 
-    // Add all function predicates
-    entriesBuilder.addAll(
-        FluentIterable.from(pFunction.keys())
-            .transform(
-                functionName ->
-                    new PrecisionExchangeEntry(
-                        // TODO: generalize the type and get it from the predicate type
-                        YAMLWitnessExpressionType.C,
-                        new FunctionPrecisionScope(functionName),
-                        FluentIterable.from(pFunction.get(functionName))
-                            .transform(
-                                pFormula ->
-                                    getPredicateString(
-                                        pFormula,
-                                        witnessPredicateFormat,
-                                        name ->
-                                            notInternalVariable(name)
-                                                && variableNameInFunction(name, functionName),
-                                        fmgr))
-                            .filter(Optional::isPresent)
-                            .transform(Optional::orElseThrow)
-                            .toSet()
-                            .asList()))
-            .toList());
+      // Build the data structures that contain the predicates
+      ImmutableList.Builder<PrecisionExchangeEntry> entriesBuilder = ImmutableList.builder();
+      ImmutableList.Builder<PrecisionDeclaration> declarationBuilder = ImmutableList.builder();
 
-    // Add all local predicates
-    if (cfa.isPresent()) {
-      AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+      YAMLWitnessExpressionType witnessExpressionType =
+          YAMLWitnessExpressionType.fromPredicateFormat(witnessPredicateFormat);
 
-      for (CFANode cfaNode : pLocation.keySet()) {
-        Optional<FileLocation> fileLocation =
-            astCfaRelation.getStatementFileLocationForNode(cfaNode);
+      // Add all global predicates
+      entriesBuilder.add(
+          new PrecisionExchangeEntry(
+              witnessExpressionType,
+              new GlobalPrecisionScope(),
+              FluentIterable.from(pGlobal)
+                  .transform(
+                      pFormula ->
+                          getPredicateString(
+                              pFormula,
+                              witnessPredicateFormat,
+                              name ->
+                                  // TODO: The ADDRESS_OF problem should not be solved here, but in
+                                  //  the translation back from SMT to C
+                                  notInternalVariable(name),
+                              fmgr,
+                              declarationBuilder))
+                  .filter(Optional::isPresent)
+                  .transform(Optional::orElseThrow)
+                  .toSet()
+                  .asList()));
 
-        if (fileLocation.isEmpty()) {
-          // TODO: This should never happen, it is a bug in the AST-CFA relation.
-          continue;
+      // Add all function predicates
+      entriesBuilder.addAll(
+          FluentIterable.from(pFunction.keys())
+              .transform(
+                  functionName ->
+                      new PrecisionExchangeEntry(
+                          witnessExpressionType,
+                          new FunctionPrecisionScope(functionName),
+                          FluentIterable.from(pFunction.get(functionName))
+                              .transform(
+                                  pFormula ->
+                                      getPredicateString(
+                                          pFormula,
+                                          witnessPredicateFormat,
+                                          name ->
+                                              notInternalVariable(name)
+                                                  && variableNameInFunction(name, functionName),
+                                          fmgr,
+                                          declarationBuilder))
+                              .filter(Optional::isPresent)
+                              .transform(Optional::orElseThrow)
+                              .toSet()
+                              .asList()))
+              .toList());
+
+      // Add all local predicates
+      if (cfa.isPresent()) {
+        AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
+
+        for (CFANode cfaNode : pLocation.keySet()) {
+          Optional<FileLocation> fileLocation =
+              astCfaRelation.getStatementFileLocationForNode(cfaNode);
+
+          if (fileLocation.isEmpty()) {
+            // TODO: This should never happen, it is a bug in the AST-CFA relation.
+            continue;
+          }
+
+          entriesBuilder.add(
+              new PrecisionExchangeEntry(
+                  witnessExpressionType,
+                  new LocalPrecisionScope(
+                      LocationRecord.createLocationRecordAtStart(
+                          fileLocation.orElseThrow(), cfaNode.getFunctionName())),
+                  FluentIterable.from(pLocation.get(cfaNode))
+                      .transform(
+                          pFormula ->
+                              getPredicateString(
+                                  pFormula,
+                                  witnessPredicateFormat,
+                                  variableName ->
+                                      notInternalVariable(variableName)
+                                          && variableNameInFunction(
+                                              variableName, cfaNode.getFunctionName())
+                                          && variableInOriginalProgram(
+                                              variableName, astCfaRelation, cfaNode),
+                                  fmgr,
+                                  declarationBuilder))
+                      .filter(Optional::isPresent)
+                      .transform(Optional::orElseThrow)
+                      .toSet()
+                      .asList()));
         }
-
-        entriesBuilder.add(
-            new PrecisionExchangeEntry(
-                YAMLWitnessExpressionType.C,
-                new LocalPrecisionScope(
-                    LocationRecord.createLocationRecordAtStart(
-                        fileLocation.orElseThrow(), cfaNode.getFunctionName())),
-                FluentIterable.from(pLocation.get(cfaNode))
-                    .transform(
-                        pFormula ->
-                            getPredicateString(
-                                pFormula,
-                                witnessPredicateFormat,
-                                variableName ->
-                                    notInternalVariable(variableName)
-                                        && variableNameInFunction(
-                                            variableName, cfaNode.getFunctionName())
-                                        && variableInOriginalProgram(
-                                            variableName, astCfaRelation, cfaNode),
-                                fmgr))
-                    .filter(Optional::isPresent)
-                    .transform(Optional::orElseThrow)
-                    .toSet()
-                    .asList()));
+      } else {
+        // If no CFA is present, we cannot export local predicates
+        logger.log(
+            Level.INFO,
+            "No CFA present, skipping export of local predicates in precision exchange set.");
       }
-    } else {
-      // If no CFA is present, we cannot export local predicates
-      logger.log(
-          Level.INFO,
-          "No CFA present, skipping export of local predicates in precision exchange set.");
+
+      PrecisionExchangeSetEntry precisionExchangeSetEntry =
+          new PrecisionExchangeSetEntry(
+              pMetadataRecord, declarationBuilder.build(), entriesBuilder.build());
+
+      Path exportPath = pPathTemplate.getPath(witnessPredicateFormat.toString());
+      AbstractYAMLWitnessExporter.exportEntries(
+          ImmutableList.of(precisionExchangeSetEntry), exportPath, logger);
     }
-
-    PrecisionExchangeSetEntry precisionExchangeSetEntry =
-        new PrecisionExchangeSetEntry(pMetadataRecord, entriesBuilder.build());
-
-    AbstractYAMLWitnessExporter.exportEntries(
-        ImmutableList.of(precisionExchangeSetEntry), pPath, logger);
   }
 }

@@ -27,7 +27,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public final class PredicatePersistenceUtils {
 
-  enum PredicateDumpFormat {
+  public enum PredicateDumpFormat {
     PLAIN,
     SMTLIB2,
     C,
