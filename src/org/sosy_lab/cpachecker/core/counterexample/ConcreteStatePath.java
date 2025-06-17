@@ -16,10 +16,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 /**
- * This class is used as a path of {@link CFAEdge} cfa edges and {@link ConcreteState} concrete
+ * This class is used as a path of {@link CFAEdge} CFA edges and {@link ConcreteState} concrete
  * States.
  *
- * <p>It represents a concrete path to an error location in the program. The cfa edges represent the
+ * <p>It represents a concrete path to an error location in the program. The CFA edges represent the
  * series of statements that lead to the error location. The concrete states hold the values of the
  * variables along the path.
  *
@@ -32,10 +32,10 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
   private final List<ConcreteStatePathNode> list;
 
   /**
-   * A object of this class can be constructed, when a list of pairs of concrete states {@link
-   * ConcreteState} and cfa edges {@link CFAEdge} are given.
+   * An object of this class can be constructed, when a list of pairs of concrete states {@link
+   * ConcreteState} and CFA edges {@link CFAEdge} are given.
    *
-   * @param pList a list of pairs of concrete States {@link ConcreteState} and cfa edges {@link
+   * @param pList a list of pairs of concrete States {@link ConcreteState} and CFA edges {@link
    *     CFAEdge}.
    */
   public ConcreteStatePath(List<ConcreteStatePathNode> pList) {

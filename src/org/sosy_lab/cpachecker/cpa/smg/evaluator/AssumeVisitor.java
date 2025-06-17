@@ -378,7 +378,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
      * Creates an object of the BinaryRelationResult. The object is used to determine the relation
      * between two symbolic values in the context of the given smgState and the given binary
      * operator. Note that the given symbolic values, which may also be address values, do not have
-     * to be part of the given Smg. The definition of an smg implies conditions for its values, even
+     * to be part of the given SMG. The definition of an SMG implies conditions for its values, even
      * if they are not part of it.
      *
      * @param pIsTrue boolean expression is true.

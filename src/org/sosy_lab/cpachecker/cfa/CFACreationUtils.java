@@ -61,7 +61,7 @@ public class CFACreationUtils {
       // unreachable edge, don't add it to the CFA
 
       if (!edge.getDescription().isEmpty()) {
-        // warn user, but not if its due to dead code produced by CIL
+        // warn user, but not if it's due to dead code produced by CIL
         Level level = Level.INFO;
         if (!warnForDeadCode) {
           level = Level.FINER;

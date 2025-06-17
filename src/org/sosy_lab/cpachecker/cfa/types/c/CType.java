@@ -50,13 +50,12 @@ public sealed interface CType extends Type
   /**
    * Check whether the current type has *known constant size* as defined by the C standard in §
    * 6.2.5 (23). These are types for which the size can be computed statically. Only incomplete
-   * types and variable-length arrays do not have known constant size, but GCC has a an extension
-   * that also allows such arrays in structs:
-   * https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
+   * types and variable-length arrays do not have known constant size, but GCC has an extension that
+   * also allows such arrays in structs: https://gcc.gnu.org/onlinedocs/gcc/Variable-Length.html
    */
   boolean hasKnownConstantSize();
 
-  /** Will throw a UnsupportedOperationException */
+  /** Will throw an UnsupportedOperationException */
   @Override
   int hashCode();
 

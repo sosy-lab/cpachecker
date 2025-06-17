@@ -68,7 +68,7 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
-  /** The cfa of this analysis */
+  /** The CFA of this analysis */
   private final CFA cfa;
 
   private final SMGOptions options;

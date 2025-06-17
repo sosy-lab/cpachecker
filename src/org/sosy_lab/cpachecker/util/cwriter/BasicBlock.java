@@ -75,13 +75,13 @@ class BasicBlock {
   }
 
   /**
-   * This method checks whether or nor the given declaration is already part of this block.
+   * This method checks whether the given declaration is already part of this block.
    *
    * <p>This is needed, as some tools (e.g. llbmc, i.e. clang) do not allow re-declaration of a
    * previously declared variable.
    *
    * @param declarationEdge the edge to check
-   * @return true, if the given declaration is already part of this block, else false
+   * @return whether the given declaration is already part of this block
    */
   boolean hasDeclaration(ADeclarationEdge declarationEdge) {
     return declarations.contains(declarationEdge);

@@ -151,7 +151,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
       ValueAnalysisState pValueState, MachineModel pMachineModel) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
-    // We assign every variable to the heap, thats why the variable map is empty.
+    // We assign every variable to the heap, that's why the variable map is empty.
     return new ConcreteState(
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),

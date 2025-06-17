@@ -47,7 +47,7 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
 
   /**
    * Create an automaton from a correctness witness. This automaton contains a single node and each
-   * invariant is marked as such on a edge which matches starts at that single state and returns to
+   * invariant is marked as such on an edge which matches starts at that single state and returns to
    * it. Each transition is only passed if the locations match.
    *
    * @param entries the entries of the correctness witness

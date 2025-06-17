@@ -131,7 +131,7 @@ public final class DomTree<T> implements Iterable<T> {
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterwards
+    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterward
 
     while (changed) {
 
@@ -169,8 +169,8 @@ public final class DomTree<T> implements Iterable<T> {
 
   /**
    * Computes the intersection of doms(pFst) and doms(pSnd) (doms(N) == all nodes that dominate N).
-   * Cooper et al. describe it as "[walking] up the the dominator tree from two different nodes
-   * until a common parent is reached".
+   * Cooper et al. describe it as "[walking] up the dominator tree from two different nodes until a
+   * common parent is reached".
    */
   private static int intersect(final int[] pDoms, final int pFst, final int pSnd) {
 

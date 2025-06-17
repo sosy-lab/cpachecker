@@ -192,8 +192,8 @@ public class SMGJoinAbstractionManager {
     offsets.addAll(offsetToHve2Map.keySet());
 
     /*
-     * Assign each pointer to shared pointer, if both smg contain this pointer,
-     * non shared pointer, if only one smg contains the pointer, ans shared value, if
+     * Assign each pointer to shared pointer, if both SMGs contain this pointer,
+     * non shared pointer, if only one SMG contains the pointer, ans shared value, if
      * the shared value is no pointer.
      *
      */

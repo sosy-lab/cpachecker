@@ -305,7 +305,7 @@ public class ThreadingState
   }
 
   /**
-   * check, whether one of the outgoing edges can be visited without requiring a already used lock.
+   * check, whether one of the outgoing edges can be visited without requiring an already used lock.
    */
   private boolean hasDeadlock() throws UnrecognizedCodeException {
     FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());

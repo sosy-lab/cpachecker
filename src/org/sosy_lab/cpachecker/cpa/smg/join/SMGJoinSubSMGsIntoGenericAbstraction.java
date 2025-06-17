@@ -196,7 +196,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     MatchResult result = MatchResult.getUnknownInstance();
 
     /*First, match for continue step, then match for stop step to
-     * join as much of the smg into the generic abstraction as possible.*/
+     * join as much of the SMG into the generic abstraction as possible.*/
     for (MaterlisationStep matStep : toBeChecked) {
       if (!matStep.isStopStep()) {
         result =

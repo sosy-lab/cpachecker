@@ -116,7 +116,7 @@ class FunctionCloner implements CFAVisitor {
   // needed to replace functioncalls, where args stay equal, but functionname changes
   private final boolean replaceFunctionOnly;
 
-  /** FunctionCloner clones a function of the cfa and uses a new functionName. */
+  /** FunctionCloner clones a function of the CFA and uses a new functionName. */
   public FunctionCloner(
       final String oldFunctionName,
       final String newFunctionName,

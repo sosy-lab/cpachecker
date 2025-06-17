@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/** Visitor that get's the interval from an expression, */
+/** Visitor that gets the interval from an expression, */
 class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Interval, UnrecognizedCodeException> {
 

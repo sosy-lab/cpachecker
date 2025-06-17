@@ -106,7 +106,7 @@ public class AutomatonInternalState {
   }
 
   /**
-   * Lets all outgoing transitions of this state resolve their "sink" states.
+   * Let all outgoing transitions of this state resolve their "sink" states.
    *
    * @param pAllStates map of all states of this automaton.
    */
@@ -121,7 +121,7 @@ public class AutomatonInternalState {
     return name;
   }
 
-  /** Returns a integer representation of this state. */
+  /** Returns an integer representation of this state. */
   public int getStateId() {
     return stateId;
   }

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * Operand1 is the left operand. Operand2 the right operand. The possible Operators are represented
  * by the enum {@link JBinaryExpression.BinaryOperator}
  *
- * <p>Some expression in Java, like the postfix increment, will be transformed into a infix
+ * <p>Some expression in Java, like the postfix increment, will be transformed into an infix
  * expression in the CFA and also be represented by this class.
  */
 public final class JBinaryExpression extends ABinaryExpression implements JExpression {

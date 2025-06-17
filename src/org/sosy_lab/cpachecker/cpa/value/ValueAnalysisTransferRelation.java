@@ -250,7 +250,7 @@ public class ValueAnalysisTransferRelation
   private boolean missingAssumeInformation;
 
   /**
-   * This class assigns symbolic values, if they are enabled. Otherwise it forgets the memory
+   * This class assigns symbolic values, if they are enabled. Otherwise, it forgets the memory
    * location.
    */
   private MemoryLocationValueHandler unknownValueHandler;

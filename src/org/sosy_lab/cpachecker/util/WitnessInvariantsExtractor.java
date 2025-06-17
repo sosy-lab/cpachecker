@@ -323,7 +323,7 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          // search if we already have an location invariant at this location,
+          // search if we already have a location invariant at this location,
           // if so assign it to previousInv:
           for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {

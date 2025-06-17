@@ -282,7 +282,7 @@ public class CEGARAlgorithm
 
     } else {
       // Check only last state, but only if it is different from the last iteration.
-      // Otherwise we would attempt to refine the same state twice if CEGARAlgorithm.run
+      // Otherwise, we would attempt to refine the same state twice if CEGARAlgorithm.run
       // is called again but this time the inner algorithm does not find any successor states.
       return !Objects.equals(reached.getLastState(), previousLastState)
           && isTargetState(reached.getLastState());

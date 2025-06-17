@@ -968,7 +968,7 @@ public class PolicyIterationManager {
       return Pair.of(ABSTRACTION_REQUIRED, null);
     }
 
-    // Slices and bounds for all template sub-components.
+    // Slices and bounds for all template subcomponents.
     List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
     List<PolicyBound> policyBounds = new ArrayList<>();
     List<Rational> coefficients = new ArrayList<>();

@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /**
  * An immutable collection of has-value-edges. Should keep invariant: All has-value-edges,
- * corresponding to one object, shouldn't interleave. Also it is possible to provide implementation
+ * corresponding to one object, shouldn't interleave. Also, it is possible to provide implementation
  * with sorting by objects and offsets
  */
 public interface SMGHasValueEdges extends Iterable<SMGEdgeHasValue> {

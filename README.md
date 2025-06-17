@@ -125,7 +125,7 @@ There are also additional output files in the directory `output/`:
  - `Statistics.txt`: Time statistics (can also be printed to console with `--stats`)
  
 Note that not all of these files will be available for all configurations.
-Also some of these files are only produced if an error is found (or vice-versa).
+Also, some of these files are only produced if an error is found (or vice-versa).
 CPAchecker will overwrite files in this directory!
 
 
