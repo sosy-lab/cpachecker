@@ -36,7 +36,7 @@ public class BitVectorAccessEvaluationBuilder {
    * Builds a pruned evaluation expression for the given bit vectors based on the direct access
    * variables.
    */
-  public static BitVectorEvaluationExpression buildEvaluationByEncoding(
+  static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectVariables,

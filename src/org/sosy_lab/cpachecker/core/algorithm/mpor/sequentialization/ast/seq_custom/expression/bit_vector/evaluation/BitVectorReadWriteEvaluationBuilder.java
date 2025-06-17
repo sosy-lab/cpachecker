@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorReadWriteEvaluationBuilder {
 
-  public static BitVectorEvaluationExpression buildEvaluationByEncoding(
+  static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
       MPORThread pActiveThread,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,

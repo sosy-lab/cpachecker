@@ -28,7 +28,7 @@ public class GlobalVariableFinder {
    * Returns {@code true} if any global variable is accessed when executing {@code pBlock} and its
    * directly linked blocks.
    */
-  public static boolean hasGlobalAccess(
+  static boolean hasGlobalAccess(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock) {
 
@@ -41,7 +41,7 @@ public class GlobalVariableFinder {
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
    */
-  public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
+  static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {
@@ -63,7 +63,7 @@ public class GlobalVariableFinder {
    * Returns all global variables accessed when executing {@code pBlock}, its directly linked blocks
    * and all possible successor blocks, that may or may not actually be executed.
    */
-  public static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
+  static ImmutableSet<CVariableDeclaration> findReachableGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementClause> pLabelClauseMap,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,

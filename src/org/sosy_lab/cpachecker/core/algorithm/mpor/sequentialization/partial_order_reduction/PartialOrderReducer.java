@@ -15,7 +15,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -34,18 +33,12 @@ public class PartialOrderReducer {
       LogManager pLogger)
       throws UnrecognizedCodeException {
 
-    if (pOptions.linkReduction
-        && pOptions.bitVectorReduction.equals(BitVectorReduction.ACCESS_ONLY)) {
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
-          StatementLinker.link(pClauses);
-      return BitVectorAccessInjector.inject(
-          pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
+    // TODO conflict reduction (make independent from bit vector reduction)
 
-    } else if (pOptions.linkReduction
-        && pOptions.bitVectorReduction.equals(BitVectorReduction.READ_AND_WRITE)) {
+    if (pOptions.linkReduction && pOptions.bitVectorReduction.isEnabled()) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
           StatementLinker.link(pClauses);
-      return BitVectorReadWriteInjector.inject(
+      return BitVectorInjector.inject(
           pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.linkReduction) {
