@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -117,13 +118,20 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         buildSingleThreadClausesWithoutCount(pClauses, pBinaryExpressionBuilder);
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
-        NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
+        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
+        pOptions.conflictReduction
+            ? Optional.of(
+                SeqStatementBuilder.buildLastThreadAssignment(
+                    SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id)))
+            : Optional.empty();
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
         pOptions.controlEncodingStatement,
         expression,
         assumption,
+        lastThreadUpdate,
         clauses,
         3,
         pBinaryExpressionBuilder);

@@ -68,13 +68,18 @@ public class SeqStatementBuilder {
         FileLocation.DUMMY, pLeftHandSide, pFunctionCallExpression);
   }
 
+  public static CExpressionAssignmentStatement buildLastThreadAssignment(
+      CExpression pRightHandSide) {
+
+    return buildExpressionAssignmentStatement(SeqIdExpression.LAST_THREAD, pRightHandSide);
+  }
+
   /**
    * Returns {@code next_thread = __VERIFIER_nondet_{u}int} with {@code uint} for unsigned, {@code
    * int} for signed.
    */
   public static CFunctionCallAssignmentStatement buildNextThreadAssignment(boolean pIsSigned) {
-    return new CFunctionCallAssignmentStatement(
-        FileLocation.DUMMY,
+    return buildFunctionCallAssignmentStatement(
         SeqIdExpression.NEXT_THREAD,
         pIsSigned
             ? VerifierNondetFunctionType.INT.getFunctionCallExpression()

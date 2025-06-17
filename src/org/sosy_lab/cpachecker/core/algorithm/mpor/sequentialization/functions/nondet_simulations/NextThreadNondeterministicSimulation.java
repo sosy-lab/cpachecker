@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -55,14 +56,17 @@ public class NextThreadNondeterministicSimulation {
       MPORThread thread = entry.getKey();
       CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.id);
       Optional<CFunctionCallStatement> assumption =
-          NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
+          NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
               pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
+      Optional<CExpressionAssignmentStatement> lastThreadUpdate =
+          NondeterministicSimulationUtil.tryBuildLastThreadIdUpdate(pOptions, thread);
       rStatements.add(
           MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
               pOptions,
               pOptions.controlEncodingStatement,
               expression,
               assumption,
+              lastThreadUpdate,
               entry.getValue(),
               4,
               pBinaryExpressionBuilder));

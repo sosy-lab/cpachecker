@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -26,9 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqDeclarationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqInitializerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqDeclarations.SeqVariableDeclaration;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
@@ -46,7 +45,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
@@ -62,8 +60,6 @@ public class SeqMainFunction extends SeqFunction {
 
   /** The thread-specific clauses in the while loop. */
   private final ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> clauses;
-
-  private final ImmutableList<CVariableDeclaration> pcDeclarations;
 
   // TODO make Optional
   private final CFunctionCallAssignmentStatement nextThreadAssignment;
@@ -97,21 +93,12 @@ public class SeqMainFunction extends SeqFunction {
 
     options = pOptions;
     mainSubstitution = SubstituteUtil.extractMainThreadSubstitution(pSubstitutions);
-    numThreadsVariable =
-        SeqExpressionBuilder.buildIdExpression(
-            SeqDeclarationBuilder.buildVariableDeclaration(
-                false,
-                SeqSimpleType.CONST_INT,
-                SeqToken.NUM_THREADS,
-                SeqInitializerBuilder.buildInitializerExpression(
-                    SeqExpressionBuilder.buildIntegerLiteralExpression(numThreads))));
+    numThreadsVariable = SeqExpressionBuilder.buildNumThreadsIdExpression(numThreads);
     clauses = pClauses;
     pcVariables = pPcVariables;
     threadSimulationVariables = pThreadSimulationVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
     logger = pLogger;
-
-    pcDeclarations = SeqDeclarationBuilder.buildPcDeclarations(options, pcVariables, numThreads);
 
     nextThreadAssignment = SeqStatementBuilder.buildNextThreadAssignment(pOptions.signedNondet);
     nextThreadAssumptions =
@@ -132,9 +119,7 @@ public class SeqMainFunction extends SeqFunction {
     // TODO its probably best to remove num threads entirely and just place the int
     rBody.addAll(
         buildLocalThreadSimulationVariableDeclarations(
-            options,
-            numThreadsVariable.getDeclaration(),
-            threadSimulationVariables));
+            options, numThreadsVariable.getDeclaration(), threadSimulationVariables));
 
     // add main function argument non-deterministic assignments
     rBody.addAll(buildMainFunctionArgNondetAssignments(mainSubstitution, logger));
@@ -142,6 +127,13 @@ public class SeqMainFunction extends SeqFunction {
     // --- loop starts here ---
     SeqSingleControlExpression loopHead = buildLoopHead(options, binaryExpressionBuilder);
     rBody.add(LineOfCode.of(1, SeqStringUtil.appendOpeningCurlyBrackets(loopHead.toASTString())));
+
+    // add last_thread = next_thread assignment (before setting next_thread)
+    if (options.conflictReduction && options.nondeterminismSource.isNextThreadNondeterministic()) {
+      CExpressionAssignmentStatement assignment =
+          SeqStatementBuilder.buildLastThreadAssignment(SeqIdExpression.NEXT_THREAD);
+      rBody.add(LineOfCode.of(2, assignment.toASTString()));
+    }
 
     // add if next_thread is a non-determinism source
     if (options.nondeterminismSource.isNextThreadNondeterministic()) {

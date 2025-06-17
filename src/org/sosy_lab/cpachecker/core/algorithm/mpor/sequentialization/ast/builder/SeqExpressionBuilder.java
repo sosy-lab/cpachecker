@@ -165,6 +165,16 @@ public class SeqExpressionBuilder {
     return new CIdExpression(FileLocation.DUMMY, pDeclaration);
   }
 
+  public static CIdExpression buildNumThreadsIdExpression(int pNumThreads) {
+    return SeqExpressionBuilder.buildIdExpression(
+        SeqDeclarationBuilder.buildVariableDeclaration(
+            false,
+            SeqSimpleType.CONST_INT,
+            SeqToken.NUM_THREADS,
+            SeqInitializerBuilder.buildInitializerExpression(
+                SeqExpressionBuilder.buildIntegerLiteralExpression(pNumThreads))));
+  }
+
   static ImmutableList<CIdExpression> buildScalarPcExpressions(int pNumThreads) {
     ImmutableList.Builder<CIdExpression> rScalarPc = ImmutableList.builder();
     for (int i = 0; i < pNumThreads; i++) {

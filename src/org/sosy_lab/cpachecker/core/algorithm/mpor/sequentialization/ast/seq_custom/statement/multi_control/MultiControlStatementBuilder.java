@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -25,6 +26,7 @@ public class MultiControlStatementBuilder {
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
+      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -35,17 +37,24 @@ public class MultiControlStatementBuilder {
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
-              pExpression, pAssumption, pStatements, pTabs, pBinaryExpressionBuilder);
+              pExpression,
+              pAssumption,
+              pLastThreadUpdate,
+              pStatements,
+              pTabs,
+              pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
           new SeqIfElseChainStatement(
               pExpression,
               Sequentialization.INIT_PC,
               pAssumption,
+              pLastThreadUpdate,
               pStatements,
               pTabs,
               pBinaryExpressionBuilder);
       case SWITCH_CASE ->
-          new SeqSwitchStatement(pOptions, pExpression, pAssumption, pStatements, pTabs);
+          new SeqSwitchStatement(
+              pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements, pTabs);
     };
   }
 }

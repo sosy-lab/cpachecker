@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -78,12 +79,14 @@ public class NondeterministicSimulationUtil {
         SeqIdExpression.NEXT_THREAD,
         // the outer multi control statement never has an assumption
         Optional.empty(),
+        // the outer multi control statement never updates last_thread
+        Optional.empty(),
         pInnerMultiControlStatements,
         2,
         pBinaryExpressionBuilder);
   }
 
-  static Optional<CFunctionCallStatement> buildNextThreadActiveAssumption(
+  static Optional<CFunctionCallStatement> tryBuildNextThreadActiveAssumption(
       MPOROptions pOptions,
       PcVariables pPcVariables,
       MPORThread pThread,
@@ -103,6 +106,18 @@ public class NondeterministicSimulationUtil {
       return Optional.of(assumeCall);
     }
     return Optional.empty();
+  }
+
+  static Optional<CExpressionAssignmentStatement> tryBuildLastThreadIdUpdate(
+      MPOROptions pOptions, MPORThread pThread) {
+
+    if (!pOptions.conflictReduction
+        || pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+      return Optional.empty();
+    }
+    CIntegerLiteralExpression integerLiteralExpression =
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id);
+    return Optional.of(SeqStatementBuilder.buildLastThreadAssignment(integerLiteralExpression));
   }
 
   // r and K statements/expressions ================================================================

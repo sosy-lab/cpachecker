@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -34,6 +35,8 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   private final Optional<CFunctionCallStatement> assumption;
 
+  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
+
   private final ImmutableList<? extends SeqStatement> statements;
 
   private final int tabs;
@@ -44,6 +47,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       CLeftHandSide pExpression,
       int pStartNumber,
       Optional<CFunctionCallStatement> pAssumption,
+      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
@@ -51,6 +55,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     expression = pExpression;
     startNumber = pStartNumber;
     assumption = pAssumption;
+    lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
     tabs = pTabs;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -58,25 +63,28 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    ImmutableList<LineOfCode> ifElseChain =
-        buildIfElseChain(
-            expression, startNumber, assumption, statements, tabs, binaryExpressionBuilder);
-    return LineOfCodeUtil.buildString(ifElseChain);
+    ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
+    if (assumption.isPresent()) {
+      ifElseChain.add(LineOfCode.of(tabs, assumption.orElseThrow().toASTString()));
+    }
+    ifElseChain.addAll(
+        buildIfElseChain(expression, startNumber, statements, tabs, binaryExpressionBuilder));
+    // TODO the problem here is that with continue; this becomes unreachable -> fix
+    if (lastThreadUpdate.isPresent()) {
+      ifElseChain.add(LineOfCode.of(tabs, lastThreadUpdate.orElseThrow().toASTString()));
+    }
+    return LineOfCodeUtil.buildString(ifElseChain.build());
   }
 
   private static ImmutableList<LineOfCode> buildIfElseChain(
       CLeftHandSide pExpression,
       int pStartNumber,
-      Optional<CFunctionCallStatement> pAssumption,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
-    if (pAssumption.isPresent()) {
-      ifElseChain.add(LineOfCode.of(pTabs, pAssumption.orElseThrow().toASTString()));
-    }
     int currentIndex = pStartNumber;
     for (SeqStatement statement : pStatements) {
       boolean isFirst = currentIndex == pStartNumber;

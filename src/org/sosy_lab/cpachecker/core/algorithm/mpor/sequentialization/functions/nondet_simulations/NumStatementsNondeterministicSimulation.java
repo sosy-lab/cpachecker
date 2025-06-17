@@ -110,14 +110,17 @@ public class NumStatementsNondeterministicSimulation {
         buildSingleThreadClausesWithCount(pClauses, pBinaryExpressionBuilder);
     CLeftHandSide expression = pPcVariables.getPcLeftHandSide(pThread.id);
     Optional<CFunctionCallStatement> assumption =
-        NondeterministicSimulationUtil.buildNextThreadActiveAssumption(
+        NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
+        NondeterministicSimulationUtil.tryBuildLastThreadIdUpdate(pOptions, pThread);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,
             pOptions.controlEncodingStatement,
             expression,
             assumption,
+            lastThreadUpdate,
             clauses,
             3,
             pBinaryExpressionBuilder);

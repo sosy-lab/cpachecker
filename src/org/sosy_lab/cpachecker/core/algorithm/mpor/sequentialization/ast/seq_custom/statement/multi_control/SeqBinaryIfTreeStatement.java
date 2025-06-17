@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -35,6 +36,8 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   private final Optional<CFunctionCallStatement> assumption;
 
+  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
+
   private final ImmutableList<? extends SeqStatement> statements;
 
   private final int tabs;
@@ -44,12 +47,14 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
   SeqBinaryIfTreeStatement(
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
+      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableList<? extends SeqStatement> pStatements,
       int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     expression = pExpression;
     assumption = pAssumption;
+    lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
     tabs = pTabs;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
@@ -62,6 +67,10 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
       tree.add(LineOfCode.of(tabs, assumption.orElseThrow().toASTString()));
     }
     recursivelyBuildTree(statements, statements, tabs, tabs, expression, tree);
+    // TODO the problem here is that with continue; this becomes unreachable -> fix
+    if (lastThreadUpdate.isPresent()) {
+      tree.add(LineOfCode.of(tabs, lastThreadUpdate.orElseThrow().toASTString()));
+    }
     return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
   }
 
