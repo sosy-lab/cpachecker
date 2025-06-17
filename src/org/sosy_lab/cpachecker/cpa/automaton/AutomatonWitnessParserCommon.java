@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.Waypo
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
 @Options(prefix = "witness")
-class AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessParserCommon {
 
   @Option(secure = true, description = "File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -63,10 +63,10 @@ class AutomatonWitnessV2ParserCommon {
 
   final InvariantExchangeFormatTransformer transformer;
 
-  AutomatonWitnessV2ParserCommon(
+  AutomatonWitnessParserCommon(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
-    pConfig.inject(this, AutomatonWitnessV2ParserCommon.class);
+    pConfig.inject(this, AutomatonWitnessParserCommon.class);
     logger = pLogger;
     cfa = pCFA;
     config = pConfig;
@@ -100,18 +100,38 @@ class AutomatonWitnessV2ParserCommon {
       WaypointRecord follow, WaypointRecord cycle, ImmutableList<WaypointRecord> avoids) {}
 
   /**
-   * Separate the entries into segments and check whether the witness is valid
+   * Separate the entries into segments and check whether the witness is valid witness v2.0
    *
    * @param pEntries the entries to segmentize
    * @return the segmentized entries
    * @throws InvalidYAMLWitnessException if the YAML witness is not valid
    */
-  ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+  ImmutableList<PartitionedWaypoints> segmentizeAndCheckV2(List<AbstractEntry> pEntries)
       throws InvalidYAMLWitnessException {
     for (AbstractEntry entry : pEntries) {
       if (entry instanceof ViolationSequenceEntry violationEntry) {
         ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
-        checkTargetIsAtEnd(violationEntry);
+        checkTarget(violationEntry);
+        return segmentizedEntries;
+      }
+      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    }
+    return ImmutableList.of();
+  }
+
+  /**
+   * Separate the entries into segments and check whether the witness is valid witness v2.1
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  ImmutableList<PartitionedWaypoints> segmentizeAndCheckV21(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+        checkCycleOrTargetAtEnd(violationEntry);
         return segmentizedEntries;
       }
       break; // for now just take the first ViolationSequenceEntry in the witness V2
@@ -158,7 +178,7 @@ class AutomatonWitnessV2ParserCommon {
             default -> DummyScope.getInstance();
           };
       Scope scope =
-          AutomatonWitnessV2ParserUtils.determineScopeForLine(
+          AutomatonWitnessParserUtils.determineScopeForLine(
               resultFunction, null, line, defaultScope);
       AExpression exp =
           transformer
@@ -168,6 +188,71 @@ class AutomatonWitnessV2ParserCommon {
     } catch (UnrecognizedCodeException e) {
       throw new WitnessParseException("Could not parse string into valid expression", e);
     }
+  }
+
+  /**
+   * Check that the target waypoint is precisely one and it is at the end of the witness
+   *
+   * @param pViolationEntry
+   * @throws InvalidYAMLWitnessException
+   */
+  private void checkTarget(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
+    WaypointRecord latest = null;
+    int numTargetWaypoints = 0;
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        latest = waypoint;
+        numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
+      }
+    }
+    checkTargetIsAtEnd(latest, numTargetWaypoints);
+  }
+
+  private void checkTargetIsAtEnd(WaypointRecord pLatest, int pNumTargetWaypoints)
+      throws InvalidYAMLWitnessException {
+    switch (pNumTargetWaypoints) {
+      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
+      case 1 -> {
+        if (pLatest != null && !pLatest.getType().equals(WaypointType.TARGET)) {
+          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
+        }
+      }
+      default ->
+          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
+    }
+  }
+
+  /**
+   * Separate the entries into segments and check whether the witness is valid
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  private void checkCycleOrTargetAtEnd(ViolationSequenceEntry pViolationEntry)
+      throws InvalidYAMLWitnessException {
+    WaypointRecord latest = null;
+    int numTargetWaypoints = 0;
+    int numCycleWaypoints = 0;
+
+    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
+      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
+        latest = waypoint;
+        numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
+        if (waypoint.getAction().equals(WaypointAction.CYCLE)) {
+          numCycleWaypoints += numCycleWaypoints >= 0 ? 1 : 0;
+          // The sequence of cycle waypoints is interrupted
+        } else if (numCycleWaypoints > 0) {
+          numCycleWaypoints = -1;
+        }
+      }
+    }
+    if (numCycleWaypoints == 0) {
+      checkTargetIsAtEnd(latest, numTargetWaypoints);
+    }
+    checkCycleIsUninterruptedAtEnd(numCycleWaypoints, numTargetWaypoints);
   }
 
   private void checkCycleIsUninterruptedAtEnd(int numCycleWaypoints, int numTargetWaypoints)
@@ -180,30 +265,6 @@ class AutomatonWitnessV2ParserCommon {
           "Cycle waypoints are interrupted with follow waypoints in witness V2!");
     } else if (numCycleWaypoints == 0) {
       throw new InvalidYAMLWitnessException("No target or cycle waypoint in witness V2!");
-    }
-  }
-
-  private void checkTargetIsAtEnd(ViolationSequenceEntry pViolationEntry)
-      throws InvalidYAMLWitnessException {
-    WaypointRecord latest = null;
-    int numTargetWaypoints = 0;
-
-    for (SegmentRecord segmentRecord : pViolationEntry.getContent()) {
-      for (WaypointRecord waypoint : segmentRecord.getSegment()) {
-        latest = waypoint;
-        numTargetWaypoints += waypoint.getType().equals(WaypointType.TARGET) ? 1 : 0;
-      }
-    }
-
-    switch (numTargetWaypoints) {
-      case 0 -> throw new InvalidYAMLWitnessException("No target waypoint in witness V2!");
-      case 1 -> {
-        if (latest != null && !latest.getType().equals(WaypointType.TARGET)) {
-          throw new InvalidYAMLWitnessException("Target waypoint is not at the end in witness V2!");
-        }
-      }
-      default ->
-          throw new InvalidYAMLWitnessException("More than one target waypoint in witness V2!");
     }
   }
 

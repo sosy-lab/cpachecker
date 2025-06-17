@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
-class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
 
   AutomatonWitnessV2ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
