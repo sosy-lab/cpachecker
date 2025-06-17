@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointAction;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonWitnessViolationV21Parser extends AutomatonWitnessViolationV2Parser {
-  AutomatonWitnessViolationV21Parser(
+class AutomatonWitnessViolationV2d1Parser extends AutomatonWitnessViolationV2Parser {
+  AutomatonWitnessViolationV2d1Parser(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);

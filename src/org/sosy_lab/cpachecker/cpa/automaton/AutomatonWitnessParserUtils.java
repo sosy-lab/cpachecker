@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
@@ -40,11 +41,6 @@ public class AutomatonWitnessParserUtils {
     public InvalidYAMLWitnessException(String pReason) {
       super(pReason);
     }
-  }
-
-  public enum WitnessYAMLVersion {
-    V2,
-    V21
   }
 
   /**
@@ -142,7 +138,7 @@ public class AutomatonWitnessParserUtils {
     return getWitnessTypeIfYAML(entries);
   }
 
-  static Optional<WitnessYAMLVersion> getWitnessVersion(List<AbstractEntry> entries) {
+  static Optional<YAMLWitnessVersion> getWitnessVersion(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
       return Optional.empty();
     } else if (FluentIterable.from(entries)
@@ -153,7 +149,7 @@ public class AutomatonWitnessParserUtils {
                         .getMetadata()
                         .getFormatVersion()
                         .equals("2.0")))) {
-      return Optional.of(WitnessYAMLVersion.V2);
+      return Optional.of(YAMLWitnessVersion.V2);
     } else if (FluentIterable.from(entries)
         .allMatch(
             e ->
@@ -162,7 +158,7 @@ public class AutomatonWitnessParserUtils {
                         .getMetadata()
                         .getFormatVersion()
                         .equals("2.1")))) {
-      return Optional.of(WitnessYAMLVersion.V21);
+      return Optional.of(YAMLWitnessVersion.V2d1);
     }
     return Optional.empty();
   }

@@ -19,8 +19,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.WitnessYAMLVersion;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
 public class AutomatonWitnessV2Parser {
@@ -74,10 +74,10 @@ public class AutomatonWitnessV2Parser {
       AutomatonWitnessViolationV2Parser parser;
       if (AutomatonWitnessParserUtils.getWitnessVersion(entries)
           .orElseThrow()
-          .equals(WitnessYAMLVersion.V2)) {
+          .equals(YAMLWitnessVersion.V2)) {
         parser = new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
       } else {
-        parser = new AutomatonWitnessViolationV21Parser(config, logger, shutdownNotifier, cfa);
+        parser = new AutomatonWitnessViolationV2d1Parser(config, logger, shutdownNotifier, cfa);
       }
       return parser.createViolationAutomatonFromEntries(entries);
     }
