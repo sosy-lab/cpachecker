@@ -121,10 +121,17 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
-      name = "violation.witness",
+      name = "violation.witness.graphml",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Path.of("nontermination_witness.graphml");
+  private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.yaml",
+      description = "Export termination counterexample to file in YAML format ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessYaml = Path.of("nontermination_witness.yml");
 
   @Option(
       secure = true,
@@ -403,7 +410,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
+    if (pResult == Result.FALSE &&
+        (violationWitnessGraphml != null
+        || violationWitnessYaml != null
+        || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
@@ -482,9 +492,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               state -> Objects.equals(state, loopStartInCEX),
               provideQuasiInvariant);
 
-      if (violationWitness != null) {
+      if (violationWitnessGraphml != null) {
         WitnessToOutputFormatsUtils.writeWitness(
-            violationWitness,
+            violationWitnessGraphml,
             compressWitness,
             pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
             logger);
