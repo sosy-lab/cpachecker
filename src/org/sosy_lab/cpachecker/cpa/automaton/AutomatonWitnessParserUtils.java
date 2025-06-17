@@ -145,13 +145,23 @@ public class AutomatonWitnessParserUtils {
   static Optional<WitnessYAMLVersion> getWitnessVersion(List<AbstractEntry> entries) {
     if (entries.isEmpty()) {
       return Optional.empty();
-    } else if (FluentIterable.from(entries).allMatch(e ->
-        (e instanceof ViolationSequenceEntry
-            && ((ViolationSequenceEntry) e).getMetadata().getFormatVersion().equals("2.0")))) {
+    } else if (FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry
+                    && ((ViolationSequenceEntry) e)
+                        .getMetadata()
+                        .getFormatVersion()
+                        .equals("2.0")))) {
       return Optional.of(WitnessYAMLVersion.V2);
-    } else if (FluentIterable.from(entries).allMatch(e ->
-        (e instanceof ViolationSequenceEntry
-            && ((ViolationSequenceEntry) e).getMetadata().getFormatVersion().equals("2.1"))))  {
+    } else if (FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry
+                    && ((ViolationSequenceEntry) e)
+                        .getMetadata()
+                        .getFormatVersion()
+                        .equals("2.1")))) {
       return Optional.of(WitnessYAMLVersion.V21);
     }
     return Optional.empty();

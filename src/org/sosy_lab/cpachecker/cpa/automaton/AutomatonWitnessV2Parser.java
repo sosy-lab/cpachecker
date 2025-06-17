@@ -75,11 +75,9 @@ public class AutomatonWitnessV2Parser {
       if (AutomatonWitnessParserUtils.getWitnessVersion(entries)
           .orElseThrow()
           .equals(WitnessYAMLVersion.V2)) {
-        parser =
-            new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
+        parser = new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
       } else {
-        parser =
-            new AutomatonWitnessViolationV21Parser(config, logger, shutdownNotifier, cfa);
+        parser = new AutomatonWitnessViolationV21Parser(config, logger, shutdownNotifier, cfa);
       }
       return parser.createViolationAutomatonFromEntries(entries);
     }

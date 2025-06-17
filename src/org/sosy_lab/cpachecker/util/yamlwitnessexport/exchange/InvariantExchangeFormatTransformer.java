@@ -88,8 +88,7 @@ public class InvariantExchangeFormatTransformer {
         ImmutableSet.of(invariantString),
         resultFunction,
         cparser,
-        AutomatonWitnessParserUtils.determineScopeForLine(
-            resultFunction, callStack, pLine, pScope),
+        AutomatonWitnessParserUtils.determineScopeForLine(resultFunction, callStack, pLine, pScope),
         parserTools);
   }
 
