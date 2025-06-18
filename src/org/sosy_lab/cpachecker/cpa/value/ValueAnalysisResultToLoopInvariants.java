@@ -175,7 +175,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     ALL,
     FUNCTION_SCOPE,
     PROGRAM_RELATION,
-    ASSUME_RELATION;
+    ASSUME_RELATION
   }
 
   private int numBooleanInvariants = -1;
@@ -316,16 +316,16 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
     return switch (combinationStrategy) {
       case ALL -> Predicates.alwaysTrue();
-      case FUNCTION_SCOPE -> (vars -> globalOrSameFunction(vars));
+      case FUNCTION_SCOPE -> vars -> globalOrSameFunction(vars);
       case PROGRAM_RELATION -> {
         ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
             detectVariablesAllowedForCombination(pCfa, Predicates.alwaysTrue());
-        yield (vars -> areAllVariablesRelated(inRelation, vars));
+        yield vars -> areAllVariablesRelated(inRelation, vars);
       }
       case ASSUME_RELATION -> {
         ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
             detectVariablesAllowedForCombination(pCfa, Predicates.instanceOf(AssumeEdge.class));
-        yield (vars -> areAllVariablesRelated(inRelation, vars));
+        yield vars -> areAllVariablesRelated(inRelation, vars);
       }
     };
   }
