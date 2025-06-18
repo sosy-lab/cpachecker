@@ -26,6 +26,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.Nondeterminism
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
@@ -116,6 +118,16 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + " may slow down or improve performance, depending on the verifier.")
   private MultiControlStatementEncoding controlEncodingThread =
       MultiControlStatementEncoding.IF_ELSE_CHAIN;
+
+  @Option(
+      secure = true,
+      description = "format the output sequentialized C program using clang-format?")
+  private boolean formatCode = true;
+
+  @Option(
+      secure = true,
+      description = "set the C formatting style preset used by clang-format, if enabled.")
+  private ClangFormatStyle formatStyle = ClangFormatStyle.WEBKIT;
 
   @Option(
       secure = true,
@@ -233,10 +245,12 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
     String inputFileName = firstInputFilePath.toString();
     String outputFileName = SeqNameUtil.buildOutputFileName(firstInputFilePath);
     Sequentialization sequentialization = buildSequentialization(inputFileName, outputFileName);
-    String outputProgram = sequentialization.toString();
+    String program = sequentialization.toString();
+    String formattedProgram =
+        options.formatCode ? ClangFormatter.format(program, options.formatStyle, logger) : program;
     SeqWriter seqWriter =
         new SeqWriter(shutdownNotifier, logger, outputFileName, inputCfa.getFileNames(), options);
-    seqWriter.write(outputProgram);
+    seqWriter.write(formattedProgram);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
@@ -303,6 +317,8 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               consecutiveLabels,
               controlEncodingStatement,
               controlEncodingThread,
+              formatCode,
+              formatStyle,
               inputFunctionDeclarations,
               inputTypeDeclarations,
               license,

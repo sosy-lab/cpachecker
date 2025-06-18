@@ -295,6 +295,13 @@ analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
 analysis.algorithm.MPOR.controlEncodingThread = IF_ELSE_CHAIN
   enum:     [NONE, BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
+# format the output sequentialized C program using clang-format?
+analysis.algorithm.MPOR.formatCode = true
+
+# set the C formatting style preset used by clang-format, if enabled.
+analysis.algorithm.MPOR.formatStyle = WEBKIT
+  enum:     [CHROMIUM, GNU, GOOGLE, LLVM, MICROSOFT, MOZILLA, WEBKIT]
+
 # include original function declarations from input file? true -> bigger file
 # size
 analysis.algorithm.MPOR.inputFunctionDeclarations = false

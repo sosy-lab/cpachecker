@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.formatting.ClangFormatStyle;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 
@@ -46,6 +47,10 @@ public class MPOROptions {
   public final MultiControlStatementEncoding controlEncodingStatement;
 
   public final MultiControlStatementEncoding controlEncodingThread;
+
+  public final boolean formatCode;
+
+  public final ClangFormatStyle formatStyle;
 
   public final boolean inputFunctionDeclarations;
 
@@ -91,6 +96,8 @@ public class MPOROptions {
       boolean pConsecutiveLabels,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
+      boolean pFormatCode,
+      ClangFormatStyle pFormatStyle,
       boolean pInputFunctionDeclarations,
       boolean pInputTypeDeclarations,
       boolean pLicense,
@@ -126,6 +133,8 @@ public class MPOROptions {
     consecutiveLabels = pConsecutiveLabels;
     controlEncodingStatement = pControlEncodingStatement;
     controlEncodingThread = pControlEncodingThread;
+    formatCode = pFormatCode;
+    formatStyle = pFormatStyle;
     inputFunctionDeclarations = pInputFunctionDeclarations;
     inputTypeDeclarations = pInputTypeDeclarations;
     license = pLicense;
@@ -177,6 +186,9 @@ public class MPOROptions {
         true,
         pControlEncodingStatement,
         pControlEncodingThread,
+        // never format output code so that unit test is independent of clang-format
+        false,
+        ClangFormatStyle.GNU,
         pInputFunctionDeclarations,
         // always include type declarations at the moment, excluding them is unsafe
         true,
