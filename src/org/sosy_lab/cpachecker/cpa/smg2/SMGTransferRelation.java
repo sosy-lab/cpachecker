@@ -1019,27 +1019,6 @@ public class SMGTransferRelation
     return resultStateBuilder.build();
   }
 
-  private Type getBooleanType(AExpression pExpression) {
-    if (pExpression instanceof CExpression) {
-      return SMGCPAExpressionEvaluator.getCanonicalType((CExpression) pExpression);
-    } else if (pExpression instanceof AcslPredicate) {
-      return AcslBuiltinLogicType.BOOLEAN;
-    } else {
-      throw new AssertionError("Unhandled expression type " + pExpression.getClass());
-    }
-  }
-
-  private List<ValueAndSMGState> getExpressionValue(AExpression pExpression, Type type, SMGCPAValueVisitor pVv)
-      throws CPATransferException {
-    if (pExpression instanceof CRightHandSide) {
-      return pVv.evaluate((CRightHandSide) pExpression, (CType) type);
-    } else if (pExpression instanceof AcslPredicate) {
-      return pVv.evaluate((AcslPredicate) pExpression, (AcslType) type);
-    } else {
-      throw new AssertionError("unhandled righthandside-expression: " + pExpression);
-    }
-  }
-
   /*
    *  returns 'true' if the given value represents the specified boolean bool.
    *  A return of 'false' does not necessarily mean that the given value represents !bool,
