@@ -66,7 +66,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     if (lastThreadUpdate.isPresent()) {
       tree.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }
-    return LineOfCodeUtil.buildStringWithoutTrailingNewline(tree.build());
+    return LineOfCodeUtil.buildString(tree.build());
   }
 
   @Override
@@ -107,7 +107,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
       pTree.add(buildIfSmallerSubtree(midIndex, pPc));
       recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(0, mid), pPc, pTree);
-      pTree.add(buildElseSubtree(pCurrentStatements.get(0)));
+      pTree.add(buildElseSubtree());
       recursivelyBuildTree(pAllStatements, pCurrentStatements.subList(mid, size), pPc, pTree);
       pTree.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     }
@@ -125,16 +125,9 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     return LineOfCode.of(ifSubtree.toASTString() + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT);
   }
 
-  private LineOfCode buildElseSubtree(SeqStatement pLowStatement) throws UnrecognizedCodeException {
-
+  private LineOfCode buildElseSubtree() throws UnrecognizedCodeException {
     SeqElseExpression elseSubtree = new SeqElseExpression();
-    if (pLowStatement instanceof SeqBinaryIfTreeStatement) {
-      // add additional newline prefix, if else subtree is binary tree itself
-      return LineOfCode.withNewlinePrefix(
-          SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
-    } else {
-      return LineOfCode.of(SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
-    }
+    return LineOfCode.of(SeqStringUtil.wrapInCurlyBracketsOutwards(elseSubtree.toASTString()));
   }
 
   private LineOfCode buildIfEqualsLeaf(

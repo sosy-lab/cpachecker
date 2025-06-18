@@ -14,47 +14,24 @@ public class LineOfCode {
 
   public final String code;
 
-  private final boolean newlinePrefix;
-
-  private final boolean newlineSuffix;
-
-  private LineOfCode(String pCode, boolean pNewlinePrefix, boolean pNewlineSuffix) {
+  private LineOfCode(String pCode) {
     code = pCode;
-    newlinePrefix = pNewlinePrefix;
-    newlineSuffix = pNewlineSuffix;
+  }
+
+  public static LineOfCode of(String pCode) {
+    return new LineOfCode(pCode);
+  }
+
+  public static LineOfCode empty() {
+    return new LineOfCode(SeqSyntax.EMPTY_STRING);
   }
 
   public LineOfCode cloneWithCode(String pCode) {
     return LineOfCode.of(pCode);
   }
 
-  public LineOfCode cloneWithoutNewline() {
-    return LineOfCode.withoutNewlineSuffix(code);
-  }
-
-  public static LineOfCode of(String pCode) {
-    return new LineOfCode(pCode, false, true);
-  }
-
-  public static LineOfCode withoutNewlineSuffix(String pCode) {
-    return new LineOfCode(pCode, false, false);
-  }
-
-  public static LineOfCode withNewlinePrefix(String pCode) {
-    return new LineOfCode(pCode, true, true);
-  }
-
-  /** Use this constructor to create an empty {@link LineOfCode}, i.e. {@code ""} with newline. */
-  public static LineOfCode empty() {
-    return new LineOfCode(SeqSyntax.EMPTY_STRING, false, true);
-  }
-
   @Override
   public String toString() {
-    return buildNewline(newlinePrefix) + code + buildNewline(newlineSuffix);
-  }
-
-  private String buildNewline(boolean pNewline) {
-    return pNewline ? SeqSyntax.NEWLINE : SeqSyntax.EMPTY_STRING;
+    return code + SeqSyntax.NEWLINE;
   }
 }

@@ -115,7 +115,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   }
 
   private static String buildCaseWithLabelNumber(int pLabelNumber) {
-    return SeqToken._case + SeqSyntax.SPACE + pLabelNumber + SeqSyntax.COLON + SeqSyntax.NEWLINE;
+    return SeqToken._case + SeqSyntax.SPACE + pLabelNumber + SeqSyntax.COLON;
   }
 
   private static String buildBreakSuffix(SeqStatement pStatement) {
