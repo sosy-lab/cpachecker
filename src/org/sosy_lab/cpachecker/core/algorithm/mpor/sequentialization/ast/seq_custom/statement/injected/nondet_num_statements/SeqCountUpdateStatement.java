@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -20,11 +18,6 @@ public class SeqCountUpdateStatement implements SeqInjectedStatement {
 
   public SeqCountUpdateStatement(CExpressionAssignmentStatement pCountUpdate) {
     countUpdate = pCountUpdate;
-  }
-
-  @Override
-  public Optional<CIdExpression> getIdExpression() {
-    return Optional.empty();
   }
 
   @Override

@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -55,11 +54,6 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     bitVectorEvaluationPairs = pBitVectorEvaluationPairs;
     pcVariables = pPcVariables;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
-  }
-
-  @Override
-  public Optional<CIdExpression> getIdExpression() {
-    return Optional.empty();
   }
 
   @Override

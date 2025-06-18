@@ -9,11 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.conflict;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
@@ -46,11 +44,6 @@ public class SeqConflictAssumptionStatement implements SeqInjectedStatement {
     bitVectorEvaluation = pBitVectorEvaluation;
     assumptionExpression = pAssumptionExpression;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
-  }
-
-  @Override
-  public Optional<CIdExpression> getIdExpression() {
-    return Optional.empty();
   }
 
   @Override
