@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -273,5 +274,20 @@ public final class MPORUtil {
       }
     }
     return false;
+  }
+
+  // Collections ===================================================================================
+
+  /**
+   * Returns a new {@link ImmutableSet} containing all pElements from the given set except the
+   * specified element.
+   *
+   * <p>If the element is not present in the original set, the original set is returned unchanged.
+   */
+  public static <T> ImmutableSet<T> withoutElement(ImmutableSet<T> pElements, T pElementToRemove) {
+    if (pElements.contains(pElementToRemove)) {
+      return ImmutableSet.copyOf(Sets.difference(pElements, ImmutableSet.of(pElementToRemove)));
+    }
+    return pElements;
   }
 }

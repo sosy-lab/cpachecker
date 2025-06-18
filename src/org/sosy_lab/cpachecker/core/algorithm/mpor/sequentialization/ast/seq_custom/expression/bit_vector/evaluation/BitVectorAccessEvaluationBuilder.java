@@ -38,7 +38,7 @@ public class BitVectorAccessEvaluationBuilder {
    */
   static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -51,17 +51,17 @@ public class BitVectorAccessEvaluationBuilder {
       case BINARY, DECIMAL, HEXADECIMAL -> {
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedDenseEvaluation(
-              pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+              pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         } else {
           yield buildFullDenseEvaluation(
-              pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+              pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         }
       }
       case SCALAR -> {
         if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedScalarEvaluation(pActiveThread, pDirectVariables, pBitVectorVariables);
+          yield buildPrunedScalarEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
         } else {
-          yield buildFullScalarEvaluation(pActiveThread, pDirectVariables, pBitVectorVariables);
+          yield buildFullScalarEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
         }
       }
     };
@@ -70,7 +70,7 @@ public class BitVectorAccessEvaluationBuilder {
   // Dense Access Bit Vectors ======================================================================
 
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -81,11 +81,11 @@ public class BitVectorAccessEvaluationBuilder {
       return BitVectorEvaluationExpression.empty();
     }
     return buildFullDenseEvaluation(
-        pActiveThread, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+        pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
   }
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -96,7 +96,7 @@ public class BitVectorAccessEvaluationBuilder {
             pBitVectorVariables.globalVariableIds, pDirectVariables);
     ImmutableSet<CExpression> otherBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            BitVectorAccessType.ACCESS, pActiveThread);
+            BitVectorAccessType.ACCESS, pOtherThreads);
     CExpression rightHandSide =
         BitVectorEvaluationUtil.binaryDisjunction(otherBitVectors, pBinaryExpressionBuilder);
     CBinaryExpression binaryExpression =
@@ -109,7 +109,7 @@ public class BitVectorAccessEvaluationBuilder {
   // Scalar Access Bit Vectors =====================================================================
 
   private static BitVectorEvaluationExpression buildPrunedScalarEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
@@ -124,14 +124,12 @@ public class BitVectorAccessEvaluationBuilder {
       CVariableDeclaration globalVariable = entry.getKey();
       ScalarBitVector scalarBitVector = entry.getValue();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = scalarBitVector.variables;
-      CIdExpression activeVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, accessVariables);
       // if the LHS (current variable) is not accessed, then the entire && expression is 0 -> prune
       if (pDirectVariables.contains(globalVariable)) {
         // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
         ImmutableList<SeqExpression> otherVariables =
             BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-                activeVariable, accessVariables);
+                pOtherThreads, accessVariables);
         // create logical not -> !(B || C || ...)
         SeqLogicalNotExpression logicalNot =
             new SeqLogicalNotExpression(BitVectorEvaluationUtil.logicalDisjunction(otherVariables));
@@ -145,7 +143,7 @@ public class BitVectorAccessEvaluationBuilder {
   }
 
   private static BitVectorEvaluationExpression buildFullScalarEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
@@ -159,11 +157,9 @@ public class BitVectorAccessEvaluationBuilder {
     for (var entry : scalarBitVectors.entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
-      CIdExpression activeVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, accessVariables);
       ImmutableList<SeqExpression> otherVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              activeVariable, accessVariables);
+              pOtherThreads, accessVariables);
       // create logical disjunction -> (B || C || ...)
       SeqExpression disjunction = BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
       // create logical and -> (A && (B || C || ...))

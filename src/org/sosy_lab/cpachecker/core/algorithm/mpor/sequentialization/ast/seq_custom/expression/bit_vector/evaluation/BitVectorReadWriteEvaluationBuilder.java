@@ -36,7 +36,7 @@ public class BitVectorReadWriteEvaluationBuilder {
 
   static BitVectorEvaluationExpression buildEvaluationByEncoding(
       MPOROptions pOptions,
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -50,14 +50,14 @@ public class BitVectorReadWriteEvaluationBuilder {
       case BINARY, DECIMAL, HEXADECIMAL -> {
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedDenseEvaluation(
-              pActiveThread,
+              pOtherThreads,
               pDirectReadVariables,
               pDirectWriteVariables,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
         } else {
           yield buildFullDenseEvaluation(
-              pActiveThread,
+              pOtherThreads,
               pDirectReadVariables,
               pDirectWriteVariables,
               pBitVectorVariables,
@@ -67,10 +67,10 @@ public class BitVectorReadWriteEvaluationBuilder {
       case SCALAR -> {
         if (pOptions.bitVectorEvaluationPrune) {
           yield buildPrunedScalarEvaluation(
-              pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
+              pOtherThreads, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
         } else {
           yield buildFullScalarEvaluation(
-              pActiveThread, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
+              pOtherThreads, pDirectReadVariables, pDirectWriteVariables, pBitVectorVariables);
         }
       }
     };
@@ -79,7 +79,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Pruned Dense Evaluation =======================================================================
 
   private static BitVectorEvaluationExpression buildPrunedDenseEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -88,10 +88,10 @@ public class BitVectorReadWriteEvaluationBuilder {
 
     Optional<SeqExpression> leftHandSide =
         buildPrunedDenseLeftHandSide(
-            pActiveThread, pDirectReadVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+            pOtherThreads, pDirectReadVariables, pBitVectorVariables, pBinaryExpressionBuilder);
     Optional<SeqExpression> rightHandSide =
         buildPrunedDenseRightHandSide(
-            pActiveThread, pDirectWriteVariables, pBitVectorVariables, pBinaryExpressionBuilder);
+            pOtherThreads, pDirectWriteVariables, pBitVectorVariables, pBinaryExpressionBuilder);
 
     if (leftHandSide.isPresent() && rightHandSide.isPresent()) {
       // both LHS and RHS present: create &&
@@ -107,7 +107,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   }
 
   private static Optional<SeqExpression> buildPrunedDenseLeftHandSide(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -121,7 +121,7 @@ public class BitVectorReadWriteEvaluationBuilder {
               pBitVectorVariables.globalVariableIds, pDirectReadVariables);
       ImmutableSet<CExpression> otherWriteBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-              BitVectorAccessType.WRITE, pActiveThread);
+              BitVectorAccessType.WRITE, pOtherThreads);
       CBinaryExpression leftHandSide =
           buildGeneralDenseLeftHandSide(
               directReadBitVector, otherWriteBitVectors, pBinaryExpressionBuilder);
@@ -130,7 +130,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   }
 
   private static Optional<SeqExpression> buildPrunedDenseRightHandSide(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
@@ -144,10 +144,10 @@ public class BitVectorReadWriteEvaluationBuilder {
               pBitVectorVariables.globalVariableIds, pDirectWriteVariables);
       ImmutableSet<CExpression> otherReadBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-              BitVectorAccessType.READ, pActiveThread);
+              BitVectorAccessType.READ, pOtherThreads);
       ImmutableSet<CExpression> otherWriteBitVectors =
           pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-              BitVectorAccessType.WRITE, pActiveThread);
+              BitVectorAccessType.WRITE, pOtherThreads);
       CBinaryExpression rRightHandSide =
           buildGeneralDenseRightHandSide(
               directWriteBitVector,
@@ -161,7 +161,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Full Dense Evaluation =========================================================================
 
   private static BitVectorEvaluationExpression buildFullDenseEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables,
@@ -170,10 +170,10 @@ public class BitVectorReadWriteEvaluationBuilder {
 
     ImmutableSet<CExpression> otherReadBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            BitVectorAccessType.READ, pActiveThread);
+            BitVectorAccessType.READ, pOtherThreads);
     ImmutableSet<CExpression> otherWriteBitVectors =
         pBitVectorVariables.getOtherDenseReachableBitVectorsByAccessType(
-            BitVectorAccessType.WRITE, pActiveThread);
+            BitVectorAccessType.WRITE, pOtherThreads);
 
     // (R & (W' | W'' | ...))
     CIntegerLiteralExpression directReadBitVector =
@@ -234,7 +234,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Pruned Scalar Evaluation ======================================================================
 
   private static BitVectorEvaluationExpression buildPrunedScalarEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables) {
@@ -249,22 +249,18 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       // handle read variables
       ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
-      CIdExpression activeReadVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, readVariables);
       ImmutableList<SeqExpression> otherReadVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              activeReadVariable, readVariables);
+              pOtherThreads, readVariables);
 
       // handle write variables
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
           Objects.requireNonNull(
                   pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(globalVariable))
               .variables;
-      CIdExpression activeWriteVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, writeVariables);
       ImmutableList<SeqExpression> otherWriteVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              activeWriteVariable, writeVariables);
+              pOtherThreads, writeVariables);
 
       Optional<SeqLogicalExpression> leftHandSide =
           buildPrunedScalarLeftHandSide(pDirectReadVariables, globalVariable, otherWriteVariables);
@@ -319,7 +315,7 @@ public class BitVectorReadWriteEvaluationBuilder {
   // Full Scalar Evaluation =======================================================================
 
   private static BitVectorEvaluationExpression buildFullScalarEvaluation(
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
       BitVectorVariables pBitVectorVariables) {
@@ -334,24 +330,20 @@ public class BitVectorReadWriteEvaluationBuilder {
 
       // handle read variables
       ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
-      CIdExpression activeReadVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, readVariables);
       // convert from CExpression to SeqExpression
       ImmutableList<SeqExpression> otherReadVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              activeReadVariable, readVariables);
+              pOtherThreads, readVariables);
 
       // handle write variables
       ScalarBitVector scalarBitVector =
           pBitVectorVariables.scalarWriteBitVectors.orElseThrow().get(globalVariable);
       ImmutableMap<MPORThread, CIdExpression> writeVariables =
           Objects.requireNonNull(scalarBitVector).variables;
-      CIdExpression activeWriteVariable =
-          BitVectorEvaluationUtil.extractActiveVariable(pActiveThread, writeVariables);
       // convert from CExpression to SeqExpression
       ImmutableList<SeqExpression> otherWriteVariables =
           BitVectorEvaluationUtil.convertOtherVariablesToSeqExpression(
-              activeWriteVariable, writeVariables);
+              pOtherThreads, writeVariables);
 
       scalarExpressions.add(
           buildFullScalarSingleVariableEvaluation(

@@ -17,9 +17,10 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class BitVectorVariables {
 
+  // TODO best make all these fields private
+
   public final int numGlobalVariables;
 
-  // TODO make this consider memory locations, not variable names
   public final ImmutableMap<CVariableDeclaration, Integer> globalVariableIds;
 
   private final Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors;
@@ -66,11 +67,11 @@ public class BitVectorVariables {
 
   // TODO CIdExpression?
   public ImmutableSet<CExpression> getOtherDenseReachableBitVectorsByAccessType(
-      BitVectorAccessType pAccessType, MPORThread pThread) {
+      BitVectorAccessType pAccessType, ImmutableSet<MPORThread> pOtherThreads) {
 
     ImmutableSet.Builder<CExpression> rVariables = ImmutableSet.builder();
     for (DenseBitVector variable : getDenseBitVectorsByAccessType(pAccessType)) {
-      if (!variable.thread.equals(pThread)) {
+      if (pOtherThreads.contains(variable.thread)) {
         rVariables.add(variable.reachableVariable);
       }
     }

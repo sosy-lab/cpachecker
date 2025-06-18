@@ -180,6 +180,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description = "prune empty statements (with only pc writes) from the sequentialization?")
   private boolean pruneEmptyStatements = true;
 
+  // TODO also add option for scalarBitVectors / arrayBitVectors
   @Option(
       secure = true,
       description =

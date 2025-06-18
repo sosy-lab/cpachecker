@@ -20,7 +20,7 @@ public class BitVectorEvaluationBuilder {
 
   public static BitVectorEvaluationExpression buildEvaluationByReduction(
       MPOROptions pOptions,
-      MPORThread pActiveThread,
+      ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectAccessVariables,
       ImmutableSet<CVariableDeclaration> pDirectReadVariables,
       ImmutableSet<CVariableDeclaration> pDirectWriteVariables,
@@ -35,14 +35,14 @@ public class BitVectorEvaluationBuilder {
       case ACCESS_ONLY ->
           BitVectorAccessEvaluationBuilder.buildEvaluationByEncoding(
               pOptions,
-              pActiveThread,
+              pOtherThreads,
               pDirectAccessVariables,
               pBitVectorVariables,
               pBinaryExpressionBuilder);
       case READ_AND_WRITE ->
           BitVectorReadWriteEvaluationBuilder.buildEvaluationByEncoding(
               pOptions,
-              pActiveThread,
+              pOtherThreads,
               pDirectReadVariables,
               pDirectWriteVariables,
               pBitVectorVariables,

@@ -40,11 +40,12 @@ public class BitVectorEvaluationUtil {
   }
 
   static ImmutableList<SeqExpression> convertOtherVariablesToSeqExpression(
-      CIdExpression pActiveVariable, ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
+      ImmutableSet<MPORThread> pOtherThreads,
+      ImmutableMap<MPORThread, CIdExpression> pAllVariables) {
 
-    return pAllVariables.values().stream()
-        .filter(v -> !v.equals(pActiveVariable))
-        .map(CToSeqExpression::new)
+    return pAllVariables.entrySet().stream()
+        .filter(entry -> pOtherThreads.contains(entry.getKey()))
+        .map(entry -> new CToSeqExpression(entry.getValue()))
         .collect(ImmutableList.toImmutableList());
   }
 
