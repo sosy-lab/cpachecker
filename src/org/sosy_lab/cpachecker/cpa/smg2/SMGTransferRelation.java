@@ -825,7 +825,7 @@ public class SMGTransferRelation
     // We also might learn something by assuming symbolic or unknown values based on known values
     try {
       Collection<SMGState> handledAssumptions =
-          handleAssumption(expression, cfaEdge, truthAssumption);
+          handleCAssumption(expression, cfaEdge, truthAssumption);
       if (handledAssumptions == null || handledAssumptions.isEmpty()) {
         return null;
       }
@@ -848,8 +848,8 @@ public class SMGTransferRelation
     }
   }
 
-  private @Nullable Collection<SMGState> handleAssumption(
-      AExpression expression, CFAEdge cfaEdge, boolean truthValue)
+  private @Nullable Collection<SMGState> handleCAssumption(
+      CExpression expression, CFAEdge cfaEdge, boolean truthValue)
       throws CPATransferException, SolverException, InterruptedException {
 
     if (stats != null) {
@@ -857,7 +857,7 @@ public class SMGTransferRelation
     }
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
-    AExpression simplifiedExpressionFirst = simplifiedExpression.getFirst();
+    CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
 
@@ -877,12 +877,9 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
-    final Type booleanType = getBooleanType(expression);
-
-    // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    List<ValueAndSMGState> valueList = getExpressionValue(simplifiedExpressionFirst, booleanType, vv);
-
-    for (ValueAndSMGState valueAndState : valueList) {
+    for (ValueAndSMGState valueAndState :
+        vv.evaluate(
+            cExpression, SMGCPAExpressionEvaluator.getCanonicalType((CExpression) expression))) {
       Value value = valueAndState.getValue();
       SMGState currentState = valueAndState.getState();
 
@@ -907,7 +904,93 @@ public class SMGTransferRelation
                 booleanVariables,
                 functionName);
         try {
-          List<ValueAndSMGState> maybeFeasiblePaths = ((CExpression) expression).accept(avv);
+          List<ValueAndSMGState> maybeFeasiblePaths = cExpression.accept(avv);
+          if (maybeFeasiblePaths == null) {
+            // Infeasible
+            return null;
+          }
+          return transformedImmutableListCopy(maybeFeasiblePaths, ValueAndSMGState::getState);
+        } catch (SMGSolverException e) {
+          if (e.isSolverException()) {
+            throw e.getSolverException();
+          } else {
+            Preconditions.checkArgument(e.isInterruptedException());
+            throw e.getInterruptedException();
+          }
+        }
+
+      } else if (representsBoolean(value, truthValue)) {
+        // We do not know more than before, and the assumption is fulfilled, so return the state
+        // from the value visitor (we don't need a copy as every state operation generates a new
+        // state and never modifies the old state)
+        resultStateBuilder.add(currentState);
+
+      } else {
+        // Assumption not fulfilled
+        return null;
+      }
+    }
+    return resultStateBuilder.build();
+  }
+
+  private @Nullable Collection<SMGState> handleAcslAssumption(
+      AcslPredicate expression, CFAEdge cfaEdge, boolean truthValue)
+      throws CPATransferException, SolverException, InterruptedException {
+
+    if (stats != null) {
+      stats.incrementAssumptions();
+    }
+
+    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
+    AcslPredicate acslPredicate = (AcslPredicate) simplifiedExpression.getFirst();
+    truthValue = simplifiedExpression.getSecond();
+
+
+    /*
+    if (expression instanceof CBinaryExpression binEx
+        && binEx.getOperand2() instanceof CIntegerLiteralExpression loopBound) {
+      if (binEx.getOperator().equals(LESS_THAN) || binEx.getOperator().equals(LESS_EQUAL)) {
+        // Concrete loop of the form x < 5, increment abstraction bound to 1 larger than loop
+        if (precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+            <= loopBound.getValue().intValueExact()
+            && precisionAdjustmentOptions.getListAbstractionMinimumLengthThreshold()
+            < precisionAdjustmentOptions.getListAbstractionMaximumIncreaseLengthThreshold()) {
+          precisionAdjustmentOptions.incListAbstractionMinimumLengthThreshold();
+        }
+      }
+    }
+    */
+
+    ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
+    // Get the value of the expression (either true[1L], false[0L], or unknown[null])
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger, options);
+    for (ValueAndSMGState valueAndState :
+        vv.evaluate(acslPredicate, AcslBuiltinLogicType.BOOLEAN)) {
+      Value value = valueAndState.getValue();
+      SMGState currentState = valueAndState.getState();
+
+      if (value.isExplicitlyKnown() && stats != null) {
+        stats.incrementDeterministicAssumptions();
+      }
+
+      if (!value.isExplicitlyKnown()) {
+        // Use the assigning value visitor, we might be able to deterministically assume values (for
+        // example 0 == x -> x = 0).
+        // This utilizes symbolic execution if enabled and adds constraints accordingly. Might
+        // return null if a path is infeasible.
+        SMGCPAAssigningValueVisitor avv =
+            new SMGCPAAssigningValueVisitor(
+                evaluator,
+                solver,
+                currentState,
+                cfaEdge,
+                logger,
+                truthValue,
+                options,
+                booleanVariables,
+                functionName);
+        try {
+          List<ValueAndSMGState> maybeFeasiblePaths = acslPredicate.accept(avv);
           if (maybeFeasiblePaths == null) {
             // Infeasible
             return null;
@@ -1178,7 +1261,11 @@ public class SMGTransferRelation
     Collection<SMGState> newStates = ImmutableList.of(pState);
 
     for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
-      newStates = handleAssumption(assumption, pCfaEdge, true);
+      if (assumption instanceof CExpression pCAssumption) {
+        newStates = handleCAssumption(pCAssumption, pCfaEdge, true);
+      } else if(assumption instanceof AcslPredicate pAcslAssumption) {
+        newStates = handleAcslAssumption(pAcslAssumption, pCfaEdge, true);
+      }
 
       if (newStates == null) {
         break;
