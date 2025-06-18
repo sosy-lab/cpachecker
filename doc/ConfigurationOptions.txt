@@ -3851,6 +3851,10 @@ cpa.value.interpolation.applyUnsatSuffixOptimization = true
 # whether to manage the callstack, which is needed for BAM
 cpa.value.interpolation.manageCallstack = true
 
+# Defines which variables may be combined in binary and ternary invariants
+cpa.value.invExport.combinationStrategy = ALL
+  enum:     [ALL, FUNCTION_SCOPE, PROGRAM_RELATION, ASSUME_RELATION]
+
 # Enable invariants that use  an arithmetic operator(linear invariants are
 # enabled separately)
 cpa.value.invExport.exportArithmetic = true
