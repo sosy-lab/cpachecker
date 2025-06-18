@@ -44,36 +44,32 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final ImmutableList<? extends SeqStatement> statements;
 
-  private final int tabs;
-
   SeqSwitchStatement(
       MPOROptions pOptions,
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
-      ImmutableList<? extends SeqStatement> pStatements,
-      int pTabs) {
+      ImmutableList<? extends SeqStatement> pStatements) {
 
     options = pOptions;
     switchExpression = new SeqSwitchExpression(pExpression);
     assumption = pAssumption;
     lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
-    tabs = pTabs;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> switchCase = ImmutableList.builder();
     if (assumption.isPresent()) {
-      switchCase.add(LineOfCode.of(tabs, assumption.orElseThrow().toASTString()));
+      switchCase.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
     }
     switchCase.add(
-        LineOfCode.of(tabs, SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
-    switchCase.addAll(buildCases(options, statements, tabs));
-    switchCase.add(LineOfCode.of(tabs, SeqSyntax.CURLY_BRACKET_RIGHT));
+        LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
+    switchCase.addAll(buildCases(options, statements));
+    switchCase.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     if (lastThreadUpdate.isPresent()) {
-      switchCase.add(LineOfCode.of(tabs, lastThreadUpdate.orElseThrow().toASTString()));
+      switchCase.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }
     return LineOfCodeUtil.buildString(switchCase.build());
   }
@@ -84,7 +80,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   }
 
   private static ImmutableList<LineOfCode> buildCases(
-      MPOROptions pOptions, ImmutableList<? extends SeqStatement> pStatements, int pTabs)
+      MPOROptions pOptions, ImmutableList<? extends SeqStatement> pStatements)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rCases = ImmutableList.builder();
@@ -92,41 +88,34 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
       SeqStatement statement = pStatements.get(i);
       String casePrefix = buildCasePrefix(statement, i);
       String breakSuffix = buildBreakSuffix(statement);
-      rCases.add(buildSingleCase(pTabs, casePrefix, statement, breakSuffix));
+      rCases.add(buildSingleCase(casePrefix, statement, breakSuffix));
       if (i == pStatements.size() - 1) {
         if (pOptions.sequentializationErrors) {
-          rCases.add(LineOfCode.of(pTabs + 1, Sequentialization.defaultCaseClauseError));
+          rCases.add(LineOfCode.of(Sequentialization.defaultCaseClauseError));
         }
       }
     }
     return rCases.build();
   }
 
-  private static LineOfCode buildSingleCase(
-      int pTabs, String pPrefix, SeqStatement pStatement, String pSuffix)
+  private static LineOfCode buildSingleCase(String pPrefix, SeqStatement pStatement, String pSuffix)
       throws UnrecognizedCodeException {
 
-    return LineOfCode.of(pTabs + 1, pPrefix + pStatement.toASTString() + pSuffix);
+    return LineOfCode.of(pPrefix + pStatement.toASTString() + pSuffix);
   }
 
   private static String buildCasePrefix(SeqStatement pStatement, int pIndex) {
     if (pStatement instanceof SeqThreadStatementClause clause) {
       // if case statement is clause, use label number
-      return buildCaseWithLabelNumber(clause, clause.labelNumber);
+      return buildCaseWithLabelNumber(clause.labelNumber);
     } else {
       // otherwise enumerate from 0 to caseNum - 1
-      return buildCaseWithLabelNumber(pStatement, pIndex);
+      return buildCaseWithLabelNumber(pIndex);
     }
   }
 
-  private static String buildCaseWithLabelNumber(SeqStatement pStatement, int pLabelNumber) {
-    return SeqToken._case
-        + SeqSyntax.SPACE
-        + pLabelNumber
-        + SeqSyntax.COLON
-        + (pStatement instanceof SeqSwitchStatement
-            ? SeqSyntax.NEWLINE
-            : SeqStringUtil.buildSpaceAlign(pLabelNumber));
+  private static String buildCaseWithLabelNumber(int pLabelNumber) {
+    return SeqToken._case + SeqSyntax.SPACE + pLabelNumber + SeqSyntax.COLON + SeqSyntax.NEWLINE;
   }
 
   private static String buildBreakSuffix(SeqStatement pStatement) {

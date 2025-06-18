@@ -82,7 +82,6 @@ public class NondeterministicSimulationUtil {
         // the outer multi control statement never updates last_thread
         Optional.empty(),
         pInnerMultiControlStatements,
-        2,
         pBinaryExpressionBuilder);
   }
 

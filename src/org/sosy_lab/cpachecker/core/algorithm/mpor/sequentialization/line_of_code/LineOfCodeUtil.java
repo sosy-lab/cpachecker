@@ -54,7 +54,7 @@ public class LineOfCodeUtil {
     ImmutableList.Builder<LineOfCode> rBitVectorTypeDeclarations = ImmutableList.builder();
     for (BitVectorDataType bitVectorType : BitVectorDataType.values()) {
       CTypeDeclaration bitVectorTypeDeclaration = bitVectorType.buildDeclaration();
-      rBitVectorTypeDeclarations.add(LineOfCode.of(0, bitVectorTypeDeclaration.toASTString()));
+      rBitVectorTypeDeclarations.add(LineOfCode.of(bitVectorTypeDeclaration.toASTString()));
     }
     return rBitVectorTypeDeclarations.build();
   }
@@ -64,7 +64,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rOriginalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rOriginalDeclarations.add(LineOfCode.of(0, SeqComment.UNCHANGED_DECLARATIONS));
+      rOriginalDeclarations.add(LineOfCode.of(SeqComment.UNCHANGED_DECLARATIONS));
     }
     // add all original program declarations that are not substituted
     for (MPORThread thread : pThreads) {
@@ -74,7 +74,7 @@ public class LineOfCodeUtil {
         // add function and type declaration only if enabled in options
         if (!(declaration instanceof CFunctionDeclaration) || pOptions.inputFunctionDeclarations) {
           if (!(declaration instanceof CTypeDeclaration) || pOptions.inputTypeDeclarations) {
-            rOriginalDeclarations.add(LineOfCode.of(0, declaration.toASTString()));
+            rOriginalDeclarations.add(LineOfCode.of(declaration.toASTString()));
           }
         }
       }
@@ -95,7 +95,7 @@ public class LineOfCodeUtil {
         if (visited.add(functionDeclaration)) {
           String emptyDefinition =
               SeqStringUtil.buildEmptyFunctionDefinitionFromDeclaration(functionDeclaration);
-          rEmptyFunctionDeclarations.add(LineOfCode.of(0, emptyDefinition));
+          rEmptyFunctionDeclarations.add(LineOfCode.of(emptyDefinition));
         }
       }
     }
@@ -107,7 +107,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rGlobalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rGlobalDeclarations.add(LineOfCode.of(0, SeqComment.GLOBAL_VAR_DECLARATIONS));
+      rGlobalDeclarations.add(LineOfCode.of(SeqComment.GLOBAL_VAR_DECLARATIONS));
     }
     ImmutableList<CVariableDeclaration> globalDeclarations =
         pMainThreadSubstitution.getGlobalDeclarations();
@@ -127,7 +127,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rLocalDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rLocalDeclarations.add(LineOfCode.of(0, SeqComment.LOCAL_VAR_DECLARATIONS));
+      rLocalDeclarations.add(LineOfCode.of(SeqComment.LOCAL_VAR_DECLARATIONS));
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> localDeclarations = substitution.getLocalDeclarations();
@@ -136,17 +136,16 @@ public class LineOfCodeUtil {
           CInitializer initializer = localDeclaration.getInitializer();
           if (initializer == null) {
             // no initializer -> add declaration as is
-            rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
+            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTString()));
 
           } else if (MPORUtil.isFunctionPointer(localDeclaration.getInitializer())) {
             // function pointer initializer -> add declaration as is
-            rLocalDeclarations.add(LineOfCode.of(0, localDeclaration.toASTString()));
+            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTString()));
 
           } else if (!MPORUtil.isConstCpaCheckerTmp(localDeclaration)) {
             // const CPAchecker_TMP variables are declared and initialized directly in the case.
             // everything else: add declaration without initializer (and assign later in cases)
-            rLocalDeclarations.add(
-                LineOfCode.of(0, localDeclaration.toASTStringWithoutInitializer()));
+            rLocalDeclarations.add(LineOfCode.of(localDeclaration.toASTStringWithoutInitializer()));
           }
         }
       }
@@ -162,7 +161,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rParameterDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rParameterDeclarations.add(LineOfCode.of(0, SeqComment.PARAMETER_VAR_SUBSTITUTES));
+      rParameterDeclarations.add(LineOfCode.of(SeqComment.PARAMETER_VAR_SUBSTITUTES));
     }
     for (MPORSubstitution substitution : pSubstitutions) {
       ImmutableList<CVariableDeclaration> parameterDeclarations =
@@ -188,7 +187,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rArgDeclarations.add(LineOfCode.of(0, SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES));
+      rArgDeclarations.add(LineOfCode.of(SeqComment.MAIN_FUNCTION_ARG_SUBSTITUTES));
     }
     for (CIdExpression mainArg : pMainThreadSubstitution.mainFunctionArgSubstitutes.values()) {
       rArgDeclarations.add(LineOfCodeUtil.buildLineOfCode(mainArg.getDeclaration()));
@@ -204,7 +203,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rStartRoutineArgDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rStartRoutineArgDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
+      rStartRoutineArgDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_ARG_SUBSTITUTES));
     }
     ImmutableList<CVariableDeclaration> startRoutineArgDeclarations =
         pMainThreadSubstitution.getStartRoutineArgDeclarations();
@@ -226,13 +225,13 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rStartRoutineExitDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rStartRoutineExitDeclarations.add(LineOfCode.of(0, SeqComment.START_ROUTINE_EXIT_VARIABLES));
+      rStartRoutineExitDeclarations.add(LineOfCode.of(SeqComment.START_ROUTINE_EXIT_VARIABLES));
     }
     for (MPORThread thread : pThreads) {
       Optional<CIdExpression> exitVariable = thread.startRoutineExitVariable;
       if (exitVariable.isPresent()) {
         rStartRoutineExitDeclarations.add(
-            LineOfCode.of(0, exitVariable.orElseThrow().getDeclaration().toASTString()));
+            LineOfCode.of(exitVariable.orElseThrow().getDeclaration().toASTString()));
       }
     }
     if (pOptions.comments) {
@@ -241,12 +240,11 @@ public class LineOfCodeUtil {
     return rStartRoutineExitDeclarations.build();
   }
 
+  // TODO since conflict evaluations are not in a separate function, put all this into main()
   /**
    * Creates all thread simulation variables that are global, so that they can be used in functions
    * separate from the {@code main} function. Accessing them directly should be more efficient than
    * passing them as parameters.
-   *
-   * <p>All other thread simulation variables are
    */
   public static ImmutableList<LineOfCode> buildGlobalThreadSimulationVariableDeclarations(
       MPOROptions pOptions,
@@ -259,38 +257,34 @@ public class LineOfCodeUtil {
     // last_thread
     if (pOptions.conflictReduction) {
       if (pOptions.signedNondet) {
-        rDeclarations.add(
-            LineOfCode.of(0, SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_SIGNED.toASTString()));
       } else {
-        rDeclarations.add(
-            LineOfCode.of(0, SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.LAST_THREAD_UNSIGNED.toASTString()));
       }
     }
 
     // next_thread
     if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
       if (pOptions.signedNondet) {
-        rDeclarations.add(
-            LineOfCode.of(0, SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_SIGNED.toASTString()));
       } else {
-        rDeclarations.add(
-            LineOfCode.of(0, SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
+        rDeclarations.add(LineOfCode.of(SeqVariableDeclaration.NEXT_THREAD_UNSIGNED.toASTString()));
       }
     }
 
     // pc
     if (pOptions.comments) {
       rDeclarations.add(LineOfCode.empty());
-      rDeclarations.add(LineOfCode.of(0, SeqComment.PC_DECLARATION));
+      rDeclarations.add(LineOfCode.of(SeqComment.PC_DECLARATION));
     }
     for (CVariableDeclaration pcDeclaration : pPcDeclarations) {
-      rDeclarations.add(LineOfCode.of(0, pcDeclaration.toASTString()));
+      rDeclarations.add(LineOfCode.of(pcDeclaration.toASTString()));
     }
 
     // if enabled: bit vectors (for partial order reductions)
     if (pOptions.bitVectorReduction || pOptions.conflictReduction) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
-        rDeclarations.add(LineOfCode.of(0, bitVectorDeclaration.toASTString()));
+        rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
       }
     }
 
@@ -300,22 +294,22 @@ public class LineOfCodeUtil {
   public static ImmutableList<LineOfCode> buildFunctionDeclarations(MPOROptions pOptions) {
     ImmutableList.Builder<LineOfCode> rFunctionDeclarations = ImmutableList.builder();
     if (pOptions.comments) {
-      rFunctionDeclarations.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
+      rFunctionDeclarations.add(LineOfCode.of(SeqComment.CUSTOM_FUNCTION_DECLARATIONS));
     }
     // reach_error, abort, assert, nondet_int may be duplicate depending on the input program
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
+    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSERT_FAIL.toASTString()));
     if (pOptions.signedNondet) {
       rFunctionDeclarations.add(
-          LineOfCode.of(0, VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString()));
+          LineOfCode.of(VerifierNondetFunctionType.INT.getFunctionDeclaration().toASTString()));
     } else {
       rFunctionDeclarations.add(
-          LineOfCode.of(0, VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString()));
+          LineOfCode.of(VerifierNondetFunctionType.UINT.getFunctionDeclaration().toASTString()));
     }
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ABORT.toASTString()));
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.REACH_ERROR.toASTString()));
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.ASSUME.toASTString()));
+    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ABORT.toASTString()));
+    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.REACH_ERROR.toASTString()));
+    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.ASSUME.toASTString()));
     // main should always be duplicate
-    rFunctionDeclarations.add(LineOfCode.of(0, SeqFunctionDeclaration.MAIN.toASTString()));
+    rFunctionDeclarations.add(LineOfCode.of(SeqFunctionDeclaration.MAIN.toASTString()));
     if (pOptions.comments) {
       rFunctionDeclarations.add(LineOfCode.empty());
     }
@@ -335,7 +329,7 @@ public class LineOfCodeUtil {
 
     ImmutableList.Builder<LineOfCode> rFunctionDefinitions = ImmutableList.builder();
     if (pOptions.comments) {
-      rFunctionDefinitions.add(LineOfCode.of(0, SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
+      rFunctionDefinitions.add(LineOfCode.of(SeqComment.CUSTOM_FUNCTION_DEFINITIONS));
     }
     // custom function definitions: reach_error(), assume(), main()
     SeqReachErrorFunction reachError = new SeqReachErrorFunction();
@@ -390,32 +384,13 @@ public class LineOfCodeUtil {
     return rString.toString();
   }
 
-  /**
-   * Create and return the {@link ImmutableList} for {@code pString} that is split on newlines and
-   * preserves leading {@link LineOfCode#tabs} and adds {@code pAdditionalTabs}.
-   *
-   * <p>This function adds additional leading whitespaces if the amount of leading whitespaces is
-   * not a multiple of {@link SeqStringUtil#TAB_SIZE}.
-   */
-  public static ImmutableList<LineOfCode> buildLinesOfCode(int pAdditionalTabs, String pString) {
+  /** Create and return the {@link ImmutableList} for {@code pString} that is split on newlines. */
+  public static ImmutableList<LineOfCode> buildLinesOfCode(String pString) {
     ImmutableList.Builder<LineOfCode> rLinesOfCode = ImmutableList.builder();
     for (String line : SeqStringUtil.splitOnNewline(pString)) {
-      int leadingSpaces = line.length() - line.stripLeading().length();
-      int tabs = (int) Math.ceil((double) leadingSpaces / SeqStringUtil.TAB_SIZE);
-      rLinesOfCode.add(LineOfCode.of(tabs + pAdditionalTabs, line.trim()));
+      rLinesOfCode.add(LineOfCode.of(line.trim()));
     }
     return rLinesOfCode.build();
-  }
-
-  /**
-   * Create and return the {@link ImmutableList} for {@code pString} that is split on newlines and
-   * preserves leading {@link LineOfCode#tabs}.
-   *
-   * <p>This function adds additional leading whitespaces if the amount of leading whitespaces is
-   * not a multiple of {@link SeqStringUtil#TAB_SIZE}.
-   */
-  public static ImmutableList<LineOfCode> buildLinesOfCode(String pString) {
-    return buildLinesOfCode(0, pString);
   }
 
   /** Return the list of {@link LineOfCode} for pAstNodes. */
@@ -431,6 +406,6 @@ public class LineOfCodeUtil {
 
   /** Return the single {@link LineOfCode} for pAstNode. */
   public static <T extends CAstNode> LineOfCode buildLineOfCode(T pAstNode) {
-    return LineOfCode.of(0, pAstNode.toASTString());
+    return LineOfCode.of(pAstNode.toASTString());
   }
 }

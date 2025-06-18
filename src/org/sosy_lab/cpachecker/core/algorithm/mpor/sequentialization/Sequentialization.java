@@ -55,36 +55,32 @@ public class Sequentialization {
 
   private final ImmutableList<LineOfCode> licenseHeader =
       ImmutableList.of(
-          LineOfCode.of(0, "// This file is part of CPAchecker,"),
-          LineOfCode.of(0, "// a tool for configurable software verification:"),
-          LineOfCode.of(0, "// https://cpachecker.sosy-lab.org"),
-          LineOfCode.of(0, "//"),
+          LineOfCode.of("// This file is part of CPAchecker,"),
+          LineOfCode.of("// a tool for configurable software verification:"),
+          LineOfCode.of("// https://cpachecker.sosy-lab.org"),
+          LineOfCode.of("//"),
           LineOfCode.of(
-              0,
               "// SPDX-"
                   + "FileCopyrightText: "
                   + Year.now(ZoneId.systemDefault()).getValue()
                   + " Dirk Beyer <https://www.sosy-lab.org>"),
-          LineOfCode.of(0, "//"),
+          LineOfCode.of("//"),
           // splitting this with + so that 'reuse lint' accepts it
-          LineOfCode.of(0, "// SPDX-" + "License-" + "Identifier: " + license));
+          LineOfCode.of("// SPDX-" + "License-" + "Identifier: " + license));
 
   private static final ImmutableList<LineOfCode> mporHeader =
       ImmutableList.of(
           LineOfCode.of(
-              0,
               "// This sequentialization (transformation of a concurrent program into an"
                   + " equivalent"),
           LineOfCode.of(
-              0,
               "// sequential program) was created by the MPORAlgorithm implemented in CPAchecker."),
-          LineOfCode.of(0, "//"),
+          LineOfCode.of("//"),
           LineOfCode.of(
-              0,
               "// Assertion fails from the function "
                   + SeqToken.__SEQUENTIALIZATION_ERROR__
                   + " mark faulty sequentializations."),
-          LineOfCode.of(0, "// All other assertion fails are induced by faulty input programs."),
+          LineOfCode.of("// All other assertion fails are induced by faulty input programs."),
           LineOfCode.empty());
 
   public static final String inputReachErrorDummy =

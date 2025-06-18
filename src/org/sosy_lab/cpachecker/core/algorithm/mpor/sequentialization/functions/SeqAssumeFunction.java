@@ -58,7 +58,7 @@ public class SeqAssumeFunction extends SeqFunction {
             + SeqSyntax.SEMICOLON
             + SeqSyntax.SPACE
             + SeqSyntax.CURLY_BRACKET_RIGHT;
-    rBody.add(LineOfCode.of(1, code));
+    rBody.add(LineOfCode.of(code));
     return rBody.build();
   }
 

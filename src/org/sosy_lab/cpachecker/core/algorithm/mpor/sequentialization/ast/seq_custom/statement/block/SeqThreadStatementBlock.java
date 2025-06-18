@@ -23,10 +23,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementBlock implements SeqStatement {
 
-  private static final int GOTO_LABEL_TABS = 6;
-
-  private static final int BLOCK_TABS = GOTO_LABEL_TABS + 1;
-
   private final MPOROptions options;
 
   /**
@@ -52,12 +48,11 @@ public class SeqThreadStatementBlock implements SeqStatement {
     StringBuilder statementsString = new StringBuilder();
     for (int i = 0; i < statements.size(); i++) {
       // we use a fixed tab length so that blocks are aligned, even in binary if-else trees
-      statementsString.append(SeqSyntax.NEWLINE).append(SeqStringUtil.buildTab(BLOCK_TABS));
+      statementsString.append(SeqSyntax.NEWLINE);
       statementsString.append(statements.get(i).toASTString()).append(SeqSyntax.SPACE);
     }
     Optional<String> suffix = tryBuildSuffixByMultiControlStatementEncoding(options, statements);
     return SeqSyntax.NEWLINE
-        + SeqStringUtil.buildTab(GOTO_LABEL_TABS)
         + gotoLabel.toASTString()
         + SeqSyntax.SPACE
         + statementsString

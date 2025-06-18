@@ -68,7 +68,6 @@ public class NextThreadNondeterministicSimulation {
               assumption,
               lastThreadUpdate,
               entry.getValue(),
-              4,
               pBinaryExpressionBuilder));
     }
     return rStatements.build();

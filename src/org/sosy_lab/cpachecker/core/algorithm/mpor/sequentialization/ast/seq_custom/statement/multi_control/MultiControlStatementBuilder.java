@@ -28,7 +28,6 @@ public class MultiControlStatementBuilder {
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableList<? extends SeqStatement> pStatements,
-      int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return switch (pMultiControlStatementEncoding) {
@@ -37,12 +36,7 @@ public class MultiControlStatementBuilder {
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
-              pExpression,
-              pAssumption,
-              pLastThreadUpdate,
-              pStatements,
-              pTabs,
-              pBinaryExpressionBuilder);
+              pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
           new SeqIfElseChainStatement(
               pExpression,
@@ -50,11 +44,10 @@ public class MultiControlStatementBuilder {
               pAssumption,
               pLastThreadUpdate,
               pStatements,
-              pTabs,
               pBinaryExpressionBuilder);
       case SWITCH_CASE ->
           new SeqSwitchStatement(
-              pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements, pTabs);
+              pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements);
     };
   }
 }

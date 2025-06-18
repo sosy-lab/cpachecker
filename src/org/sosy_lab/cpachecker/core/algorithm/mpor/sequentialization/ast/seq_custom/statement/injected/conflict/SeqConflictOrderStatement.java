@@ -73,7 +73,6 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             Optional.empty(),
             Optional.empty(),
             assumptionStatements,
-            7,
             binaryExpressionBuilder);
     return SeqStringUtil.appendCurlyBracketRight(ifLastThreadNotNextThread.toASTString())
         + SeqSyntax.NEWLINE

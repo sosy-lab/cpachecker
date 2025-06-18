@@ -73,9 +73,9 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
     ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
 
     // assigning K and r is necessary only once since we use next_thread
-    rLines.add(LineOfCode.of(2, pKNondet.toASTString()));
-    rLines.add(LineOfCode.of(2, pKGreaterZeroAssumption.toASTString()));
-    rLines.add(LineOfCode.of(2, pRReset.toASTString()));
+    rLines.add(LineOfCode.of(pKNondet.toASTString()));
+    rLines.add(LineOfCode.of(pKGreaterZeroAssumption.toASTString()));
+    rLines.add(LineOfCode.of(pRReset.toASTString()));
 
     ImmutableList<SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
@@ -133,7 +133,6 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         assumption,
         lastThreadUpdate,
         clauses,
-        3,
         pBinaryExpressionBuilder);
   }
 

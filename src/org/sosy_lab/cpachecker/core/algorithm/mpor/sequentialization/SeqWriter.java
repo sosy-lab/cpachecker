@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -179,7 +181,7 @@ public class SeqWriter {
     rMetadata.append("metadata:\n");
     rMetadata.append(createCPAcheckerVersionEntry());
     rMetadata.append(createCreationTimeEntry());
-    rMetadata.append(buildTab(1)).append("input_files:\n");
+    rMetadata.append(buildYmlTab(1)).append("input_files:\n");
     for (Path path : inputFilePaths) {
       rMetadata.append(createInputFileNameEntry(path.getFileName()));
       rMetadata.append(createInputFilePathEntry(path));
@@ -187,31 +189,32 @@ public class SeqWriter {
     rMetadata.append("\n");
     rMetadata.append("algorithm_options:\n");
     for (Field field : options.getClass().getDeclaredFields()) {
-      rMetadata.append(buildTab(1)).append(field.getName()).append(": ");
+      rMetadata.append(buildYmlTab(1)).append(field.getName()).append(": ");
       rMetadata.append(field.get(options)).append("\n");
     }
     return rMetadata.toString();
   }
 
   private String createCPAcheckerVersionEntry() {
-    return buildTab(1) + "CPAchecker_version: " + CPAchecker.getPlainVersion() + "\n";
+    return buildYmlTab(1) + "cpachecker_version: " + CPAchecker.getPlainVersion() + "\n";
   }
 
   private String createCreationTimeEntry() {
     Instant now = Instant.now(); // retrieve current UTC time
     String date = DateTimeFormatter.ISO_INSTANT.format(now); // format in ISO 8601
-    return buildTab(1) + "UTC_creation_time: " + date + "\n";
+    return buildYmlTab(1) + "utc_creation_time: " + date + "\n";
   }
 
   private String createInputFileNameEntry(Path pFileName) {
-    return buildTab(1) + "- name: " + pFileName + "\n";
+    return buildYmlTab(1) + "- name: " + pFileName + "\n";
   }
 
   private String createInputFilePathEntry(Path pPath) {
-    return buildTab(2) + "path: " + pPath + "\n";
+    return buildYmlTab(2) + "path: " + pPath + "\n";
   }
 
-  private static String buildTab(int pTabs) {
-    return " ".repeat(YML_TAB_SIZE).repeat(Math.max(0, pTabs));
+  private static String buildYmlTab(int pTabs) {
+    checkArgument(pTabs >= 0, "pTabs must be >= 0");
+    return " ".repeat(YML_TAB_SIZE).repeat(pTabs);
   }
 }

@@ -41,8 +41,6 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   private final ImmutableList<? extends SeqStatement> statements;
 
-  private final int tabs;
-
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   SeqIfElseChainStatement(
@@ -51,7 +49,6 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableList<? extends SeqStatement> pStatements,
-      int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     expression = pExpression;
@@ -59,7 +56,6 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     assumption = pAssumption;
     lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
-    tabs = pTabs;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
@@ -67,13 +63,13 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
     if (assumption.isPresent()) {
-      ifElseChain.add(LineOfCode.of(tabs, assumption.orElseThrow().toASTString()));
+      ifElseChain.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
     }
     ifElseChain.addAll(
-        buildIfElseChain(expression, startNumber, statements, tabs, binaryExpressionBuilder));
+        buildIfElseChain(expression, startNumber, statements, binaryExpressionBuilder));
     // TODO the problem here is that with continue; this becomes unreachable -> fix
     if (lastThreadUpdate.isPresent()) {
-      ifElseChain.add(LineOfCode.of(tabs, lastThreadUpdate.orElseThrow().toASTString()));
+      ifElseChain.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }
     return LineOfCodeUtil.buildString(ifElseChain.build());
   }
@@ -82,7 +78,6 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       CLeftHandSide pExpression,
       int pStartNumber,
       ImmutableList<? extends SeqStatement> pStatements,
-      int pTabs,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
@@ -104,15 +99,14 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       String controlStatementString = controlExpression.toASTString();
       ifElseChain.add(
           LineOfCode.of(
-              pTabs,
               isFirst
                   ? SeqStringUtil.appendCurlyBracketRight(controlStatementString)
                   : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString)));
 
-      ifElseChain.add(LineOfCode.of(pTabs + 1, statement.toASTString()));
+      ifElseChain.add(LineOfCode.of(statement.toASTString()));
       currentIndex++;
     }
-    ifElseChain.add(LineOfCode.of(pTabs, SeqSyntax.CURLY_BRACKET_RIGHT));
+    ifElseChain.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     return ifElseChain.build();
   }
 

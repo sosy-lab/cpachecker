@@ -75,8 +75,8 @@ public class NumStatementsNondeterministicSimulation {
       ImmutableList<SeqThreadStatementClause> clauses = entry.getValue();
 
       // choose nondet iterations and reset current iteration before each loop
-      rLines.add(LineOfCode.of(2, pKNondet.toASTString()));
-      rLines.add(LineOfCode.of(2, pRReset.toASTString()));
+      rLines.add(LineOfCode.of(pKNondet.toASTString()));
+      rLines.add(LineOfCode.of(pRReset.toASTString()));
 
       // add condition if loop still active and K > 0
       CBinaryExpression pcUnequalExitPc =
@@ -85,14 +85,13 @@ public class NumStatementsNondeterministicSimulation {
       SeqLogicalAndExpression loopCondition =
           new SeqLogicalAndExpression(pcUnequalExitPc, pKGreaterZero);
       SeqIfExpression ifExpression = new SeqIfExpression(loopCondition);
-      rLines.add(
-          LineOfCode.of(2, SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
+      rLines.add(LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifExpression.toASTString())));
 
       // add the thread loop statements (assumptions and switch)
       rLines.addAll(
           buildSingleThreadClausesWithCount(
               pOptions, pPcVariables, thread, clauses, pBinaryExpressionBuilder));
-      rLines.add(LineOfCode.of(2, SeqSyntax.CURLY_BRACKET_RIGHT));
+      rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     }
     return rLines.build();
   }
@@ -122,7 +121,6 @@ public class NumStatementsNondeterministicSimulation {
             assumption,
             lastThreadUpdate,
             clauses,
-            3,
             pBinaryExpressionBuilder);
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
     return rLines.build();

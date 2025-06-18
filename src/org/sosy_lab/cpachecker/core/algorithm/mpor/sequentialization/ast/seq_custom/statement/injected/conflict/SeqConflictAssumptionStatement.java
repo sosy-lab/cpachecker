@@ -48,22 +48,19 @@ public class SeqConflictAssumptionStatement implements SeqInjectedStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    // TODO adjust tabs
     ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
     CBinaryExpression pcActiveExpression =
         SeqExpressionBuilder.buildPcUnequalExitPc(pcLeftHandSide, binaryExpressionBuilder);
     SeqIfExpression ifPcActiveExpression = new SeqIfExpression(pcActiveExpression);
     lines.add(
-        LineOfCode.of(
-            3, SeqStringUtil.appendCurlyBracketRight(ifPcActiveExpression.toASTString())));
+        LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifPcActiveExpression.toASTString())));
     SeqIfExpression ifBitVectorExpression = new SeqIfExpression(bitVectorEvaluation);
     lines.add(
-        LineOfCode.of(
-            4, SeqStringUtil.appendCurlyBracketRight(ifBitVectorExpression.toASTString())));
+        LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifBitVectorExpression.toASTString())));
     CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(assumptionExpression);
-    lines.add(LineOfCode.of(5, assumeCall.toASTString()));
-    lines.add(LineOfCode.of(4, SeqSyntax.CURLY_BRACKET_RIGHT));
-    lines.add(LineOfCode.of(3, SeqSyntax.CURLY_BRACKET_RIGHT));
+    lines.add(LineOfCode.of(assumeCall.toASTString()));
+    lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+    lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     return LineOfCodeUtil.buildString(lines.build());
   }
 }

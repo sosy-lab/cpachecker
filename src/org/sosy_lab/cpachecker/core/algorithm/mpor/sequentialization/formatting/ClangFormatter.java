@@ -13,6 +13,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 
@@ -21,20 +22,17 @@ public class ClangFormatter {
 
   private static final String CLANG_FORMAT = "clang-format";
 
+  private static final Charset charset = Charset.defaultCharset();
+
   /** Formats and returns the C code given in {@code pCode}. */
   public static String format(String pCode, ClangFormatStyle pStyle, LogManager pLogger) {
     try {
       return format(pCode, pStyle);
     } catch (IOException | InterruptedException e) {
-      if (e.getMessage().contains("Cannot run program")
-          || e.getMessage().contains("No such file")) {
-        pLogger.log(
-            Level.SEVERE, CLANG_FORMAT, "not found. ensure that", CLANG_FORMAT, "is installed.");
-      } else {
-        pLogger.log(
-            Level.SEVERE, CLANG_FORMAT, "failed due to an error. using unformatted code instead.");
-      }
-      pLogger.logfUserException(Level.SEVERE, e, e.getMessage());
+      pLogger.logfUserException(
+          Level.SEVERE,
+          e,
+          CLANG_FORMAT + " failed due to an error. using unformatted code instead.");
     }
     return pCode;
   }
@@ -45,14 +43,14 @@ public class ClangFormatter {
     Process process = pb.start();
     // send code to clang-format stdin
     try (BufferedWriter writer =
-        new BufferedWriter(new OutputStreamWriter(process.getOutputStream()))) {
+        new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), charset))) {
       writer.write(pCode);
       writer.flush();
     }
     // read formatted code from stdout
     StringBuilder formattedCode = new StringBuilder();
     try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        new BufferedReader(new InputStreamReader(process.getInputStream(), charset))) {
       String line;
       while ((line = reader.readLine()) != null) {
         formattedCode.append(line).append(System.lineSeparator());
@@ -64,7 +62,7 @@ public class ClangFormatter {
       // read stderr if something went wrong
       StringBuilder errorOutput = new StringBuilder();
       try (BufferedReader errorReader =
-          new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+          new BufferedReader(new InputStreamReader(process.getErrorStream(), charset))) {
         String line;
         while ((line = errorReader.readLine()) != null) {
           errorOutput.append(line).append(System.lineSeparator());

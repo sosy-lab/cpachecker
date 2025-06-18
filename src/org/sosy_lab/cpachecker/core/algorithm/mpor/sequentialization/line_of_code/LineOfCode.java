@@ -8,12 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code;
 
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 public class LineOfCode {
-
-  public final int tabs;
 
   public final String code;
 
@@ -21,49 +18,40 @@ public class LineOfCode {
 
   private final boolean newlineSuffix;
 
-  private LineOfCode(int pTabs, String pCode, boolean pNewlinePrefix, boolean pNewlineSuffix) {
-    // pCode.isEmpty() -> pTabs == 0
-    /*checkArgument(!pCode.isEmpty() || pTabs == 0, "if pCode is empty, pTabs must be 0");
-    checkArgument(
-        pCode.length() == pCode.trim().length(),
-        "pCode cannot have leading or trailing whitespaces");*/
-    tabs = pTabs;
+  private LineOfCode(String pCode, boolean pNewlinePrefix, boolean pNewlineSuffix) {
     code = pCode;
     newlinePrefix = pNewlinePrefix;
     newlineSuffix = pNewlineSuffix;
   }
 
   public LineOfCode cloneWithCode(String pCode) {
-    return LineOfCode.of(tabs, pCode);
+    return LineOfCode.of(pCode);
   }
 
   public LineOfCode cloneWithoutNewline() {
-    return LineOfCode.withoutNewlineSuffix(tabs, code);
+    return LineOfCode.withoutNewlineSuffix(code);
   }
 
-  public static LineOfCode of(int pTabs, String pCode) {
-    return new LineOfCode(pTabs, pCode, false, true);
+  public static LineOfCode of(String pCode) {
+    return new LineOfCode(pCode, false, true);
   }
 
-  public static LineOfCode withoutNewlineSuffix(int pTabs, String pCode) {
-    return new LineOfCode(pTabs, pCode, false, false);
+  public static LineOfCode withoutNewlineSuffix(String pCode) {
+    return new LineOfCode(pCode, false, false);
   }
 
-  public static LineOfCode withNewlinePrefix(int pTabs, String pCode) {
-    return new LineOfCode(pTabs, pCode, true, true);
+  public static LineOfCode withNewlinePrefix(String pCode) {
+    return new LineOfCode(pCode, true, true);
   }
 
   /** Use this constructor to create an empty {@link LineOfCode}, i.e. {@code ""} with newline. */
   public static LineOfCode empty() {
-    return new LineOfCode(0, SeqSyntax.EMPTY_STRING, false, true);
+    return new LineOfCode(SeqSyntax.EMPTY_STRING, false, true);
   }
 
   @Override
   public String toString() {
-    return buildNewline(newlinePrefix)
-        + SeqStringUtil.buildTab(tabs)
-        + code
-        + buildNewline(newlineSuffix);
+    return buildNewline(newlinePrefix) + code + buildNewline(newlineSuffix);
   }
 
   private String buildNewline(boolean pNewline) {

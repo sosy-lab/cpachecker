@@ -38,12 +38,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
 
-  /** The amount of spaces in a tab, adjust as desired. */
-  public static final int TAB_SIZE = 0;
-
-  /** This value - 1 is the max expected label number used for whitespace padding alignment. */
-  public static final int MAX_ALIGN = 4;
-
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
@@ -53,17 +47,11 @@ public class SeqStringUtil {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
+      // TODO fix, the continue makes the last_thread update unreachable
       case BINARY_IF_TREE, IF_ELSE_CHAIN -> SeqToken._continue + SeqSyntax.SEMICOLON;
       // tests showed that using break in switch is more efficient than continue, despite the loop
       case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
     };
-  }
-
-  /** Builds a whitespace aligner based on the number of digits in {@code pNumber}. */
-  public static String buildSpaceAlign(int pNumber) {
-    int numberLength = String.valueOf(pNumber).length();
-    int padding = numberLength % MAX_ALIGN;
-    return SeqSyntax.SPACE.repeat(MAX_ALIGN - padding);
   }
 
   /** Returns {@code /* pString * /} without the last whitespace (Javadoc doesn't allow it ...) */
@@ -94,15 +82,6 @@ public class SeqStringUtil {
         + SeqSyntax.CURLY_BRACKET_RIGHT;
   }
 
-  public static String wrapInCurlyBracketsInwardsWithNewlines(
-      String pString, int pBeginTabs, int pEndTabs) {
-
-    return SeqSyntax.CURLY_BRACKET_LEFT
-        + SeqSyntax.NEWLINE
-        + prependTabsWithNewline(pBeginTabs, pString)
-        + prependTabsWithoutNewline(pEndTabs, SeqSyntax.CURLY_BRACKET_RIGHT);
-  }
-
   /** Returns "} pString {" */
   public static String wrapInCurlyBracketsOutwards(String pString) {
     return SeqSyntax.CURLY_BRACKET_RIGHT
@@ -115,26 +94,6 @@ public class SeqStringUtil {
   /** Returns "pString {" */
   public static String appendCurlyBracketRight(String pString) {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
-  }
-
-  // Tabs ==========================================================================================
-
-  /** Returns pString with the specified amount of tabs as prefix and a new line \n as suffix. */
-  public static String prependTabsWithNewline(int pTabs, String pString) {
-    return prependTabsWithoutNewline(pTabs, pString) + SeqSyntax.NEWLINE;
-  }
-
-  /** Returns pString with the specified amount of tabs as prefix. */
-  public static String prependTabsWithoutNewline(int pTabs, String pString) {
-    return buildTab(pTabs) + pString;
-  }
-
-  public static String buildTab(int pTabs) {
-    return repeat(SeqSyntax.SPACE, pTabs * TAB_SIZE);
-  }
-
-  public static String repeat(String pString, int pAmount) {
-    return pString.repeat(Math.max(0, pAmount));
   }
 
   public static Iterable<String> splitOnNewline(String pString) {
