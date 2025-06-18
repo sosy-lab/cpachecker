@@ -3857,13 +3857,17 @@ cpa.value.invExport.combinationStrategy = ALL
 
 # Enable invariants that use  an arithmetic operator(linear invariants are
 # enabled separately)
-cpa.value.invExport.exportArithmetic = true
+cpa.value.invExport.exportArithmetic = false
 
 # Enable to export invariants that include two variables
 cpa.value.invExport.exportBinary = true
 
 # Enable invariants that use a bit operator
 cpa.value.invExport.exportBitops = true
+
+# Enable to export invariants stating whether single variables are even or
+# odd
+cpa.value.invExport.exportEvenVal = true
 
 # Enable to export linear equalities or inequalities over variables, e.g., ax
 # + by + c = 0, ax + bx + c <= 0, ax + bx + c >= 0, or ax + by + cy + d = 0

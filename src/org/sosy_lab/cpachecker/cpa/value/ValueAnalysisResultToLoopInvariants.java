@@ -103,6 +103,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "Enable to export invariants on single variables")
   private boolean exportUnary = true;
 
+  @Option(
+      secure = true,
+      description = "Enable to export invariants stating whether single variables are even or odd")
+  private boolean exportEvenVal = true;
+
   @Option(secure = true, description = "Enable to export invariants that include two variables")
   private boolean exportBinary = true;
 
@@ -125,7 +130,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       description =
           "Enable invariants that use  an arithmetic operator"
               + "(linear invariants are enabled separately)")
-  private boolean exportArithmetic = true;
+  private boolean exportArithmetic = false;
 
   @Option(secure = true, description = "Enable invariants that use a bit operator")
   private boolean exportBitops = true;
@@ -229,6 +234,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             }
           }
         }
+
+        inRelation = builder.build();
       }
     },
     ASSUME_RELATION {
@@ -260,6 +267,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
           }
         }
+
+        inRelation = builder.build();
       }
     };
 
@@ -435,7 +444,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           EXPORT_OPTION.NO_OPT,
           pLoopInvariantsFiles.getPath("_num"));
 
-      if (exportArithmetic) {
+      if (exportEvenVal) {
         filterCandidatesAndExportPrecision(
             invPerLoc,
             inv ->
@@ -694,7 +703,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not supported bitwise negation ~x
     // not expressible: zweierpotenz
     numNumericInvariants = Math.max(0, numNumericInvariants);
-    if (exportArithmetic) {
+    if (exportEvenVal) {
       numEvenOrOdd = Math.max(0, numEvenOrOdd);
     }
     numBooleanInvariants = Math.max(0, numBooleanInvariants);
@@ -705,13 +714,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
               new SingleNumericVariableInvariant(
-                  varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
+                  varAndVals.getKey(), val.asNumericValue(), exportEvenVal);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             numInv.adaptToAdditionalValue(valPlusType.getValue());
           }
           pInvBuilder.add(numInv);
           numNumericInvariants += numInv.getNumInvariants();
-          if (exportArithmetic) {
+          if (exportEvenVal) {
             numEvenOrOdd += numInv.exportEvenOrOdd() ? 1 : 0;
           }
         } else if (val instanceof BooleanValue) {
