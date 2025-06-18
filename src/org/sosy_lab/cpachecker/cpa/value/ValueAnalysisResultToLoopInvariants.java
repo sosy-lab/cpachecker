@@ -14,6 +14,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -149,7 +150,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       secure = true,
       description = "Defines which variables may be combined in binary and ternary invariants",
       name = "combinationStrategy")
-  private AllowedVariableCombinations combinationChecker = AllowedVariableCombinations.ALL;
+  private AllowedVariableCombinations combinationStrategy = AllowedVariableCombinations.ALL;
 
   /* TODO support?
    * @Option(
@@ -168,127 +169,13 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private final ImmutableMap<MemoryLocation, Type> varToType;
   private final CtoFormulaConverter c2Formula;
   private final MachineModel machineModel;
+  private final Predicate<Collection<MemoryLocation>> combinationChecker;
 
-  private enum AllowedVariableCombinations implements Predicate<Collection<MemoryLocation>> {
-    ALL {
-      @Override
-      public boolean apply(final Collection<MemoryLocation> pVariables) {
-        return true;
-      }
-
-      @Override
-      public void initialize(final CFA pCfa) {
-        // do nothing
-      }
-    },
-    FUNCTION_SCOPE {
-
-      @Override
-      public boolean apply(final Collection<MemoryLocation> pVariables) {
-        Preconditions.checkNotNull(pVariables);
-        return pVariables.size() <= 1 || globalOrSameFunction(pVariables);
-      }
-
-      private boolean globalOrSameFunction(final Collection<MemoryLocation> pVariables) {
-        String funName = null;
-        for (MemoryLocation var : pVariables) {
-          if (var.isOnFunctionStack()) {
-            if (funName == null) {
-              funName = var.getFunctionName();
-            } else if (!funName.equals(var.getFunctionName())) {
-              return false;
-            }
-          }
-        }
-        return true;
-      }
-
-      @Override
-      public void initialize(final CFA pCfa) {
-        // do nothing
-      }
-    },
-    PROGRAM_RELATION {
-      ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation = null;
-
-      @Override
-      public boolean apply(final Collection<MemoryLocation> pVariables) {
-        Preconditions.checkNotNull(pVariables);
-        Preconditions.checkNotNull(inRelation, "Need to call initialize first");
-        return areAllRelated(inRelation, pVariables);
-      }
-
-      @Override
-      public void initialize(final CFA pCfa) {
-        ImmutableMultimap.Builder<MemoryLocation, MemoryLocation> builder =
-            ImmutableMultimap.builder();
-
-        for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
-          if (edge.getRawAST().isPresent()) {
-            FluentIterable<MemoryLocation> varsAtNode =
-                CFAUtils.traverseRecursively(edge.getRawAST().get())
-                    .filter(AIdExpression.class)
-                    .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration()));
-            for (MemoryLocation var : varsAtNode) {
-              builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
-            }
-          }
-        }
-
-        inRelation = builder.build();
-      }
-    },
-    ASSUME_RELATION {
-      ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation = null;
-
-      @Override
-      public boolean apply(final Collection<MemoryLocation> pVariables) {
-        Preconditions.checkNotNull(pVariables);
-        Preconditions.checkNotNull(inRelation, "Need to call initialize first");
-        return areAllRelated(inRelation, pVariables);
-      }
-
-      @Override
-      public void initialize(final CFA pCfa) {
-        ImmutableMultimap.Builder<MemoryLocation, MemoryLocation> builder =
-            ImmutableMultimap.builder();
-        // builder.put(null, null);
-
-        for (FluentIterable<MemoryLocation> varsAtNode :
-            CFAUtils.allEdges(pCfa)
-                .filter(AssumeEdge.class)
-                .transform(
-                    edge ->
-                        CFAUtils.traverseRecursively(edge.getExpression())
-                            .filter(AIdExpression.class)
-                            .transform(
-                                var -> MemoryLocation.forDeclaration(var.getDeclaration())))) {
-          for (MemoryLocation var : varsAtNode) {
-            builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
-          }
-        }
-
-        inRelation = builder.build();
-      }
-    };
-
-    private static boolean areAllRelated(
-        final Multimap<MemoryLocation, MemoryLocation> pRelatedVars,
-        final Collection<MemoryLocation> pVariables) {
-      if (pVariables.size() > 1) {
-        for (MemoryLocation var : pVariables) {
-          for (MemoryLocation var2 : pVariables) {
-            if (!var.equals(var2) && !pRelatedVars.containsEntry(var, var2)) {
-              return false;
-            }
-          }
-        }
-      }
-
-      return true;
-    }
-
-    public abstract void initialize(final CFA pCfa);
+  private enum AllowedVariableCombinations {
+    ALL,
+    FUNCTION_SCOPE,
+    PROGRAM_RELATION,
+    ASSUME_RELATION;
   }
 
   private int numBooleanInvariants = -1;
@@ -337,7 +224,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     if (!anyInvariantsConfiguredForExport()) {
       logger.log(Level.WARNING, "No invariants configured for export");
     }
-    combinationChecker.initialize(pCfa);
+    combinationChecker = createAllowedVariableChecker(pCfa);
   }
 
   private boolean anyInvariantsConfiguredForExport() {
@@ -373,6 +260,74 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     }
 
     return builder.buildKeepingLast();
+  }
+
+  private ImmutableMultimap<MemoryLocation, MemoryLocation> detectVariablesAllowedForCombination(
+      final CFA pCfa, final Predicate<CFAEdge> pEdgesToConsider) {
+    ImmutableListMultimap.Builder<MemoryLocation, MemoryLocation> builder =
+        ImmutableListMultimap.builder();
+
+    for (CFAEdge edge : CFAUtils.allEdges(pCfa).filter(pEdgesToConsider)) {
+      if (edge.getRawAST().isPresent()) {
+        FluentIterable<MemoryLocation> varsAtNode =
+            CFAUtils.traverseRecursively(edge.getRawAST().orElseThrow())
+                .filter(AIdExpression.class)
+                .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration()));
+        for (MemoryLocation var : varsAtNode) {
+          builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  private boolean areAllVariablesRelated(
+      final Multimap<MemoryLocation, MemoryLocation> pRelatedVars,
+      final Collection<MemoryLocation> pVariables) {
+    if (pVariables.size() > 1) {
+      for (MemoryLocation var : pVariables) {
+        for (MemoryLocation var2 : pVariables) {
+          if (!var.equals(var2) && !pRelatedVars.containsEntry(var, var2)) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private boolean globalOrSameFunction(final Collection<MemoryLocation> pVariables) {
+    String funName = null;
+    for (MemoryLocation var : pVariables) {
+      if (var.isOnFunctionStack()) {
+        if (funName == null) {
+          funName = var.getFunctionName();
+        } else if (!funName.equals(var.getFunctionName())) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private Predicate<Collection<MemoryLocation>> createAllowedVariableChecker(final CFA pCfa) {
+
+    return switch (combinationStrategy) {
+      case ALL -> Predicates.alwaysTrue();
+      case FUNCTION_SCOPE -> (vars -> globalOrSameFunction(vars));
+      case PROGRAM_RELATION -> {
+        ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
+            detectVariablesAllowedForCombination(pCfa, Predicates.alwaysTrue());
+        yield (vars -> areAllVariablesRelated(inRelation, vars));
+      }
+      case ASSUME_RELATION -> {
+        ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation =
+            detectVariablesAllowedForCombination(pCfa, Predicates.instanceOf(AssumeEdge.class));
+        yield (vars -> areAllVariablesRelated(inRelation, vars));
+      }
+    };
   }
 
   @Override
