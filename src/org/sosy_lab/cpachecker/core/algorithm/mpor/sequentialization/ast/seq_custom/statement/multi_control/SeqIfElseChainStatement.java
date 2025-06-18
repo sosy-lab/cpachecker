@@ -31,6 +31,8 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
   private final CLeftHandSide expression;
 
+  // TODO instead of a startNumber, we should have a list of expressions
+  //  because conflicts do not have consecutive numbers
   private final int startNumber;
 
   private final Optional<CFunctionCallStatement> assumption;
@@ -104,7 +106,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
           LineOfCode.of(
               pTabs,
               isFirst
-                  ? SeqStringUtil.appendOpeningCurlyBrackets(controlStatementString)
+                  ? SeqStringUtil.appendCurlyBracketRight(controlStatementString)
                   : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString)));
 
       ifElseChain.add(LineOfCode.of(pTabs + 1, statement.toASTString()));

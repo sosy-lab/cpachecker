@@ -268,11 +268,8 @@ analysis.algorithm.MPOR.bitVectorEncoding = NONE
 analysis.algorithm.MPOR.bitVectorEvaluationPrune = false
 
 # add partial order reduction (bit vectors storing global variable) in the
-# sequentialization to reduce the state space? distinguishing between global
-# variable reads and writes, not just accesses, reduces the state space more
-# but may not be faster due to evaluation overhead.
-analysis.algorithm.MPOR.bitVectorReduction = NONE
-  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
+# sequentialization to reduce the state space?
+analysis.algorithm.MPOR.bitVectorReduction = false
 
 # include comments with explaining trivia in the sequentialization? true ->
 # bigger file size
@@ -337,6 +334,12 @@ analysis.algorithm.MPOR.overwriteFiles = true
 
 # prune empty statements (with only pc writes) from the sequentialization?
 analysis.algorithm.MPOR.pruneEmptyStatements = true
+
+# how to determine if statements commute. distinguishing between global 
+# variable reads and writes, not just accesses, reduces the state space more
+# but  may not be faster due to evaluation overhead.
+analysis.algorithm.MPOR.reductionMode = NONE
+  enum:     [NONE, ACCESS_ONLY, READ_AND_WRITE]
 
 # use separate int values (scalars) for tracking thread pcs instead of int
 # arrays? may slow down or improve verification depending on the verifier and

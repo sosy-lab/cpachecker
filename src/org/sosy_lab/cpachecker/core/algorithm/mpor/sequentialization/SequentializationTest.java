@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
 /**
@@ -58,7 +58,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.SCALAR,
             true,
-            BitVectorReduction.READ_AND_WRITE,
+            true,
             true,
             true,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
@@ -68,6 +68,7 @@ public class SequentializationTest {
             true,
             0,
             NondeterminismSource.NUM_STATEMENTS,
+            ReductionMode.READ_AND_WRITE,
             true,
             true,
             false,
@@ -82,9 +83,9 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.NONE,
+            BitVectorEncoding.BINARY,
             false,
-            BitVectorReduction.NONE,
+            false,
             false,
             true,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
@@ -94,6 +95,7 @@ public class SequentializationTest {
             true,
             42,
             NondeterminismSource.NUM_STATEMENTS,
+            ReductionMode.ACCESS_ONLY,
             true,
             false,
             false,
@@ -112,7 +114,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.BINARY,
             true,
-            BitVectorReduction.READ_AND_WRITE,
+            true,
             false,
             false,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
@@ -122,6 +124,7 @@ public class SequentializationTest {
             true,
             1,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.READ_AND_WRITE,
             false,
             false,
             false,
@@ -139,7 +142,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.DECIMAL,
             false,
-            BitVectorReduction.ACCESS_ONLY,
+            true,
             true,
             true,
             MultiControlStatementEncoding.SWITCH_CASE,
@@ -149,6 +152,7 @@ public class SequentializationTest {
             true,
             0,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
+            ReductionMode.ACCESS_ONLY,
             true,
             true,
             true,
@@ -164,7 +168,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.DECIMAL,
             false,
-            BitVectorReduction.ACCESS_ONLY,
+            true,
             false,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
@@ -174,6 +178,7 @@ public class SequentializationTest {
             true,
             7,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.ACCESS_ONLY,
             false,
             true,
             true,
@@ -189,9 +194,9 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.NONE,
+            BitVectorEncoding.DECIMAL,
             false,
-            BitVectorReduction.NONE,
+            false,
             false,
             true,
             MultiControlStatementEncoding.SWITCH_CASE,
@@ -201,6 +206,7 @@ public class SequentializationTest {
             true,
             0,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.READ_AND_WRITE,
             false,
             true,
             false,
@@ -217,7 +223,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.NONE,
             false,
-            BitVectorReduction.NONE,
+            false,
             false,
             false,
             MultiControlStatementEncoding.BINARY_IF_TREE,
@@ -227,6 +233,7 @@ public class SequentializationTest {
             false,
             Integer.MAX_VALUE,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.NONE,
             true,
             true,
             false,
@@ -245,7 +252,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.BINARY,
             false,
-            BitVectorReduction.ACCESS_ONLY,
+            true,
             true,
             true,
             MultiControlStatementEncoding.BINARY_IF_TREE,
@@ -255,6 +262,7 @@ public class SequentializationTest {
             true,
             0,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.ACCESS_ONLY,
             true,
             false,
             false,
@@ -271,7 +279,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.HEXADECIMAL,
             true,
-            BitVectorReduction.READ_AND_WRITE,
+            true,
             false,
             false,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
@@ -281,6 +289,7 @@ public class SequentializationTest {
             true,
             9999,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
+            ReductionMode.READ_AND_WRITE,
             false,
             true,
             false,
@@ -298,7 +307,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.NONE,
             false,
-            BitVectorReduction.NONE,
+            false,
             true,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
@@ -308,6 +317,7 @@ public class SequentializationTest {
             true,
             16,
             NondeterminismSource.NEXT_THREAD_AND_NUM_STATEMENTS,
+            ReductionMode.NONE,
             true,
             false,
             true,
@@ -323,7 +333,7 @@ public class SequentializationTest {
         MPOROptions.testInstance(
             BitVectorEncoding.SCALAR,
             false,
-            BitVectorReduction.ACCESS_ONLY,
+            true,
             true,
             true,
             MultiControlStatementEncoding.BINARY_IF_TREE,
@@ -333,6 +343,7 @@ public class SequentializationTest {
             true,
             32,
             NondeterminismSource.NEXT_THREAD,
+            ReductionMode.ACCESS_ONLY,
             false,
             true,
             true,

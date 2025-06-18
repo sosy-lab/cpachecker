@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class SeqStringUtil {
 
   /** The amount of spaces in a tab, adjust as desired. */
-  public static final int TAB_SIZE = 3;
+  public static final int TAB_SIZE = 0;
 
   /** This value - 1 is the max expected label number used for whitespace padding alignment. */
   public static final int MAX_ALIGN = 4;
@@ -113,7 +113,7 @@ public class SeqStringUtil {
   }
 
   /** Returns "pString {" */
-  public static String appendOpeningCurlyBrackets(String pString) {
+  public static String appendCurlyBracketRight(String pString) {
     return pString + SeqSyntax.SPACE + SeqSyntax.CURLY_BRACKET_LEFT;
   }
 

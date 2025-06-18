@@ -37,7 +37,7 @@ public class SeqBitVectorDeclarationBuilder {
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableList<MPORThread> pThreads) {
 
-    if (!pOptions.bitVectorReduction.isEnabled() && !pOptions.bitVectorEncoding.isEnabled()) {
+    if (!pOptions.bitVectorReduction && !pOptions.bitVectorEncoding.isEnabled()) {
       return ImmutableList.of();
     }
     return switch (pOptions.bitVectorEncoding) {
@@ -53,7 +53,7 @@ public class SeqBitVectorDeclarationBuilder {
   private static ImmutableList<SeqBitVectorDeclaration> buildDenseBitVectorDeclarationsByReduction(
       MPOROptions pOptions, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.bitVectorReduction) {
+    return switch (pOptions.reductionMode) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           buildDenseBitVectorDeclarationsByAccessType(
@@ -97,7 +97,7 @@ public class SeqBitVectorDeclarationBuilder {
       BitVectorVariables pBitVectorVariables,
       ImmutableList<MPORThread> pThreads) {
 
-    return switch (pOptions.bitVectorReduction) {
+    return switch (pOptions.reductionMode) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
           createScalarBitVectorDeclarations(

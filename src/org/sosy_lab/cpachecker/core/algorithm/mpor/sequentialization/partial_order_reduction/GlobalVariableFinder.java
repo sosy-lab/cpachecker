@@ -41,7 +41,7 @@ public class GlobalVariableFinder {
    * Returns all global variables accessed when executing {@code pBlock} and its directly linked
    * blocks.
    */
-  static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
+  public static ImmutableSet<CVariableDeclaration> findDirectGlobalVariablesByAccessType(
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
       SeqThreadStatementBlock pBlock,
       BitVectorAccessType pAccessType) {

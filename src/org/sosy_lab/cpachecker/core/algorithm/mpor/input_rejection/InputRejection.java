@@ -82,8 +82,7 @@ public class InputRejection {
    *   <li>contains a recursive function call (both direct and indirect)
    * </ul>
    */
-  public static void handleRejections(LogManager pLogger, MPOROptions pOptions, CFA pInputCfa) {
-    checkOptions(pLogger, pOptions);
+  public static void handleRejections(LogManager pLogger, CFA pInputCfa) {
     checkLanguageC(pLogger, pInputCfa);
     checkIsParallelProgram(pLogger, pInputCfa);
     checkUnsupportedFunctions(pLogger, pInputCfa);
@@ -103,24 +102,6 @@ public class InputRejection {
     pLogger.logfUserException(Level.SEVERE, new RuntimeException(), "%s", formatted);
     // we need the error message here too for unit tests (matching error messages to programs)
     throw new RuntimeException(formatted);
-  }
-
-  /** Checks if the options specified by the user are valid i.e. non-conflicting. */
-  private static void checkOptions(LogManager pLogger, MPOROptions pOptions) {
-    if (pOptions.bitVectorReduction.isEnabled() && !pOptions.bitVectorEncoding.isEnabled()) {
-      pLogger.log(
-          Level.SEVERE,
-          "porBitVectorReduction is set, but porBitVectorEncoding is not set. Either remove"
-              + " porBitVectorReduction or specify porBitVectorEncoding.");
-      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
-    }
-    if (pOptions.bitVectorEncoding.isEnabled() && !pOptions.bitVectorReduction.isEnabled()) {
-      pLogger.log(
-          Level.SEVERE,
-          "porBitVectorEncoding is set, but porBitVectorReduction is not set. Either remove"
-              + " porBitVectorEncoding or specify porBitVectorReduction.");
-      handleRejection(pLogger, InputRejectionMessage.INVALID_OPTIONS);
-    }
   }
 
   private static void checkLanguageC(LogManager pLogger, CFA pInputCfa) {
@@ -233,7 +214,7 @@ public class InputRejection {
       boolean pIsWrite, MPOROptions pOptions, CIdExpression pIdExpression, LogManager pLogger) {
 
     if (pIsWrite) {
-      if (pOptions.bitVectorReduction.isEnabled()) {
+      if (pOptions.bitVectorReduction) {
         if (pIdExpression.getDeclaration() instanceof CVariableDeclaration variableDeclaration) {
           if (variableDeclaration.getType() instanceof CPointerType) {
             InputRejection.handleRejection(

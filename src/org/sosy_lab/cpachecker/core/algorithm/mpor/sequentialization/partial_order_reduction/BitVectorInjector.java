@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorReadWriteEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadCreationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
@@ -183,8 +182,8 @@ public class BitVectorInjector {
               buildBitVectorEvaluationStatement(
                   pOptions,
                   pOtherThreads,
-                  newTarget.block,
                   pLabelBlockMap,
+                  newTarget.block,
                   pBitVectorVariables,
                   pBinaryExpressionBuilder);
           newInjected.add(evaluationStatement);
@@ -206,57 +205,27 @@ public class BitVectorInjector {
     return pCurrentStatement;
   }
 
-  // Bit Vector Evaluation =========================================================================
+  // Bit Vector Evaluations =======================================================================
 
   private static SeqBitVectorEvaluationStatement buildBitVectorEvaluationStatement(
       MPOROptions pOptions,
       ImmutableSet<MPORThread> pOtherThreads,
-      SeqThreadStatementBlock pTargetBlock,
       ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
+      SeqThreadStatementBlock pTargetBlock,
       BitVectorVariables pBitVectorVariables,
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    return switch (pOptions.bitVectorReduction) {
-      case NONE ->
-          throw new IllegalArgumentException(
-              "cannot build evaluation for reduction " + pOptions.bitVectorReduction);
-      case ACCESS_ONLY -> {
-        ImmutableSet<CVariableDeclaration> directAccessVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pTargetBlock, BitVectorAccessType.ACCESS);
-        BitVectorEvaluationExpression evaluationExpression =
-            BitVectorEvaluationBuilder.buildEvaluationByReduction(
-                pOptions,
-                pOtherThreads,
-                directAccessVariables,
-                ImmutableSet.of(),
-                ImmutableSet.of(),
-                pBitVectorVariables,
-                pBinaryExpressionBuilder);
-        yield new SeqBitVectorAccessEvaluationStatement(
-            evaluationExpression, pTargetBlock.getGotoLabel());
-      }
-      case READ_AND_WRITE -> {
-        ImmutableSet<CVariableDeclaration> directReadVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pTargetBlock, BitVectorAccessType.READ);
-        ImmutableSet<CVariableDeclaration> directWriteVariables =
-            GlobalVariableFinder.findDirectGlobalVariablesByAccessType(
-                pLabelBlockMap, pTargetBlock, BitVectorAccessType.WRITE);
-        BitVectorEvaluationExpression evaluationExpression =
-            BitVectorEvaluationBuilder.buildEvaluationByReduction(
-                pOptions,
-                pOtherThreads,
-                ImmutableSet.of(),
-                directReadVariables,
-                directWriteVariables,
-                pBitVectorVariables,
-                pBinaryExpressionBuilder);
-        yield new SeqBitVectorReadWriteEvaluationStatement(
-            evaluationExpression, pTargetBlock.getGotoLabel());
-      }
-    };
+    BitVectorEvaluationExpression evaluationExpression =
+        BitVectorEvaluationBuilder.buildEvaluationByDirectVariableAccesses(
+            pOptions,
+            pOtherThreads,
+            pLabelBlockMap,
+            pTargetBlock,
+            pBitVectorVariables,
+            pBinaryExpressionBuilder);
+    return new SeqBitVectorAccessEvaluationStatement(
+        evaluationExpression, pTargetBlock.getGotoLabel());
   }
 
   // Bit Vector Assignments ========================================================================
@@ -264,7 +233,7 @@ public class BitVectorInjector {
   private static ImmutableList<SeqBitVectorAssignmentStatement> buildBitVectorResetsByReduction(
       MPOROptions pOptions, MPORThread pThread, BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.bitVectorReduction) {
+    return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);
@@ -286,7 +255,7 @@ public class BitVectorInjector {
           ImmutableMap<Integer, SeqThreadStatementBlock> pLabelBlockMap,
           BitVectorVariables pBitVectorVariables) {
 
-    return switch (pOptions.bitVectorReduction) {
+    return switch (pOptions.reductionMode) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build assignments for reduction " + pOptions.bitVectorReduction);

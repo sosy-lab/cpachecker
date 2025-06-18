@@ -69,8 +69,7 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
       switchCase.add(LineOfCode.of(tabs, assumption.orElseThrow().toASTString()));
     }
     switchCase.add(
-        LineOfCode.of(
-            tabs, SeqStringUtil.appendOpeningCurlyBrackets(switchExpression.toASTString())));
+        LineOfCode.of(tabs, SeqStringUtil.appendCurlyBracketRight(switchExpression.toASTString())));
     switchCase.addAll(buildCases(options, statements, tabs));
     switchCase.add(LineOfCode.of(tabs, SeqSyntax.CURLY_BRACKET_RIGHT));
     if (lastThreadUpdate.isPresent()) {

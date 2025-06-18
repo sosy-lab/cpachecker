@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.SeqWriter;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqNameUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitution;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.MPORSubstitutionBuilder;
@@ -75,11 +75,9 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description =
           "add partial order reduction (bit vectors storing global variable) in the"
-              + " sequentialization to reduce the state space? distinguishing between global"
-              + " variable reads and writes, not just accesses, reduces the state space more but"
-              + " may not be faster due to evaluation overhead.")
+              + " sequentialization to reduce the state space?")
   // using optional for @Options is not allowed, unfortunately...
-  private BitVectorReduction bitVectorReduction = BitVectorReduction.NONE;
+  private boolean bitVectorReduction = false;
 
   @Option(
       secure = true,
@@ -179,6 +177,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       secure = true,
       description = "prune empty statements (with only pc writes) from the sequentialization?")
   private boolean pruneEmptyStatements = true;
+
+  @Option(
+      secure = true,
+      description =
+          "how to determine if statements commute. distinguishing between global "
+              + " variable reads and writes, not just accesses, reduces the state space more but"
+              + "  may not be faster due to evaluation overhead.")
+  private ReductionMode reductionMode = ReductionMode.NONE;
 
   // TODO also add option for scalarBitVectors / arrayBitVectors
   @Option(
@@ -307,6 +313,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               outputPath,
               overwriteFiles,
               pruneEmptyStatements,
+              reductionMode,
               scalarPc,
               sequentializationErrors,
               shortVariableNames,
@@ -323,7 +330,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
 
     options.handleOptionRejections(logger);
     options.handleOptionWarnings(logger);
-    InputRejection.handleRejections(logger, options, inputCfa);
+    InputRejection.handleRejections(logger, inputCfa);
 
     binaryExpressionBuilder = new CBinaryExpressionBuilder(inputCfa.getMachineModel(), logger);
 

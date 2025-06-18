@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.input_rejection.InputRejectio
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.NondeterminismSource;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorReduction;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.partial_order_reduction.ReductionMode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -37,7 +37,7 @@ public class InputRejectionTest {
       MPOROptions.testInstance(
           BitVectorEncoding.NONE,
           false,
-          BitVectorReduction.NONE,
+          false,
           false,
           false,
           MultiControlStatementEncoding.SWITCH_CASE,
@@ -47,6 +47,7 @@ public class InputRejectionTest {
           false,
           0,
           NondeterminismSource.NUM_STATEMENTS,
+          ReductionMode.NONE,
           false,
           false,
           false,
@@ -182,7 +183,7 @@ public class InputRejectionTest {
             BitVectorEncoding.DECIMAL,
             false,
             // bit vectors are enabled for these tests, so that pointer write is rejected
-            BitVectorReduction.ACCESS_ONLY,
+            true,
             false,
             false,
             MultiControlStatementEncoding.SWITCH_CASE,
@@ -192,6 +193,7 @@ public class InputRejectionTest {
             false,
             0,
             NondeterminismSource.NUM_STATEMENTS,
+            ReductionMode.ACCESS_ONLY,
             false,
             false,
             false,

@@ -69,7 +69,12 @@ public class SeqThreadStatementClauseBuilder {
     // if enabled, apply partial order reduction and reduce number of clauses
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> reducedClauses =
         PartialOrderReducer.reduce(
-            pOptions, pBitVectorVariables, atomicBlocks, pBinaryExpressionBuilder, pLogger);
+            pOptions,
+            pBitVectorVariables,
+            pPcVariables,
+            atomicBlocks,
+            pBinaryExpressionBuilder,
+            pLogger);
     // ensure label numbers are consecutive (enforce start at 0, end at clauseNum - 1)
     ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> consecutiveLabels =
         pOptions.consecutiveLabels

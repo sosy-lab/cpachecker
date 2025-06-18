@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
+// TODO for all single control expressions, it would be best to also add statements.
+//  the statements have lists of other statements that are placed inside
 public interface SeqSingleControlExpression extends SeqStatement {
   SingleControlExpressionEncoding getEncoding();
 }
