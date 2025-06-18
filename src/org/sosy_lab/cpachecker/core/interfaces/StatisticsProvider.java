@@ -16,7 +16,7 @@ public interface StatisticsProvider {
   /**
    * Add a {@link Statistics} object from this provider to a collection.
    *
-   * <p>The provider is free to add zero, one or more objects. However it SHOULD not make any other
+   * <p>The provider is free to add zero, one or more objects. However, it SHOULD not make any other
    * modifications to the collection.
    *
    * @param statsCollection The collection where the statistics are added.

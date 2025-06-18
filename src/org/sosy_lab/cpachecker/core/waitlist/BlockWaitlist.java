@@ -72,7 +72,7 @@ public class BlockWaitlist implements Waitlist {
     /**
      * check resource limits
      *
-     * @return true if resource limit has been reached
+     * @return whether resource limit has been reached
      */
     boolean checkResources() {
       if (isEntryBlock) {
@@ -239,7 +239,7 @@ public class BlockWaitlist implements Waitlist {
    * checks whether function name is a block (for example, starts with emg_control or emg_callback
    * or matches ldv_.*_instance_)
    *
-   * @return true if it is a block entry
+   * @return whether it is a block entry
    */
   private boolean isBlock(String func) {
     for (Pattern p : ldvPattern) {

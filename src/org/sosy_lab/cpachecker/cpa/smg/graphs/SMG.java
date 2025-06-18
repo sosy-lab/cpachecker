@@ -432,7 +432,7 @@ public sealed class SMG implements UnmodifiableSMG permits CLangSMG {
    * IllegalArgumentException} if pObject is not present in the SMG.
    *
    * @param pObject An object.
-   * @return True if Object is valid, False if it is invalid.
+   * @return whether the object is valid.
    */
   @Override
   public final boolean isObjectValid(SMGObject pObject) {

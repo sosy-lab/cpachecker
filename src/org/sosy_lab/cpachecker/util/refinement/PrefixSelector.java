@@ -205,7 +205,7 @@ public class PrefixSelector {
               .obtainDomainTypeScoreForVariables(
                   pPrefix.extractSetOfIdentifiers(), loopStructure, logger);
 
-      // TODO next line looks like a bug. The score is either MAX_INT or ZERO afterwards.
+      // TODO next line looks like a bug. The score is either MAX_INT or ZERO afterward.
       if (score != DEFAULT_SCORE) {
         score = 0;
       }

@@ -452,7 +452,7 @@ class AssignmentQuantifierHandler {
    * calls {@link #quantifyAssignments(PartialAssignment, ImmutableList, BooleanFormula, boolean)}
    * recursively.
    *
-   * @param assignment The the simple partial slice assignment to quantify.
+   * @param assignment the simple partial slice assignment to quantify.
    * @param nextVariablesToQuantify Remaining variables that need to be quantified, without the one
    *     to currently encode. Each variable which still needs to be quantified, except the one to
    *     currently encode, must appear in this list exactly once.

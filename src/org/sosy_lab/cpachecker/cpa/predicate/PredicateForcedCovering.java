@@ -249,7 +249,7 @@ final class PredicateForcedCovering implements ForcedCovering, StatisticsProvide
         }
 
         // For debugging, run stop operator on this element.
-        // However, ARGStopSep may return false although it is covered,
+        // However, ARGStopSep may return false, although it is covered,
         // thus the second check.
         assert stop.stop(argState, Collections.singleton(coveringCandidate), pPrecision)
                 || argState.isCovered()

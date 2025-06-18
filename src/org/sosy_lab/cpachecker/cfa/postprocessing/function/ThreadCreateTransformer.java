@@ -135,7 +135,7 @@ public class ThreadCreateTransformer {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 
-    // We need to repeat this loop several times, because we traverse that part cfa, which is
+    // We need to repeat this loop several times, because we traverse that partial CFA, which is
     // reachable from main
     for (Entry<CFAEdge, CFunctionCallExpression> entry : threadVisitor.threadCreates.entrySet()) {
       CFAEdge edge = entry.getKey();

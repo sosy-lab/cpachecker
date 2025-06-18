@@ -436,7 +436,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
-   * Returns a address leading from a value. If the target is an abstract heap segment, materialize
+   * Returns an address leading from a value. If the target is an abstract heap segment, materialize
    * heap segment.
    *
    * <p>Constant.
@@ -1229,7 +1229,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     // if some edge points to a large enough chunk of memory, then use its middle part.
     // TODO this code is ugly and might better be placed inside heap.getHVEdges,
     // but there it removes the existing value from the heap for the rest of the region
-    // and that is not wanted. Thus we add this very special case here.
+    // and that is not wanted. Thus, we add this very special case here.
     SMGEdgeHasValueFilter filterOffsetZero =
         new SMGEdgeHasValueFilter()
             .overlapsWith(
@@ -1292,7 +1292,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGValue value;
 
     // If the value is not yet known by the SMG
-    // create a unconstrained new symbolic value
+    // create an unconstrained new symbolic value
     if (pValue.isUnknown()) {
       value = SMGKnownSymValue.of();
     } else {
@@ -2143,7 +2143,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   public SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration) {
 
     /* Treat functions as global objects with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     return heap.getObjectForVisibleVariable(functionQualifiedSMGName);
@@ -2153,7 +2153,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       throws SMGInconsistentException {
 
     /* Treat functions as global variable with unknown memory size.
-     * Only write them into the smg when necessary*/
+     * Only write them into the SMG when necessary*/
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
 
     assert heap.getObjectForVisibleVariable(functionQualifiedSMGName) == null;

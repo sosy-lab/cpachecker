@@ -49,7 +49,7 @@ public final class AbstractStates {
    * Retrieve one of the wrapped abstract states by type. If the hierarchy of (wrapped) abstract
    * states has several levels, this method searches through them recursively.
    *
-   * <p>The type does not need to match exactly, the returned state has just to be a sub-type of the
+   * <p>The type does not need to match exactly, the returned state has just to be a subtype of the
    * type passed as argument.
    *
    * <p>If you want to get all wrapped states with this type, use <code>

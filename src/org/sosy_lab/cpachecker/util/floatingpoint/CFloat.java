@@ -396,7 +396,7 @@ public abstract class CFloat {
   }
 
   public final CFloatWrapper round(CFloatWrapper pWrapper, long pOverflow) {
-    // TODO: currently only rounding mode NEAREST_TIE_TO_EVEN; implement others
+    // TODO: currently, only rounding mode NEAREST_TIE_TO_EVEN; implement others
     CFloatWrapper rWrapper = pWrapper.copy();
     if (pOverflow != 0) {
       long man = rWrapper.getMantissa();

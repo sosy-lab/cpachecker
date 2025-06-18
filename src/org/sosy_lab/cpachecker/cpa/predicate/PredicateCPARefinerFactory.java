@@ -108,7 +108,7 @@ public final class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterward.
    *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.

@@ -506,7 +506,7 @@ class ASTConverter {
   /**
    * If the given AST node <code>foo</code> originally occurs inside the unary operator parentheses,
    * return the parent AST node with all the parentheses, e.g., <code>(foo)</code> or <code>((foo))
-   * </code>. Otherwise return <code>foo</code> unchanged.
+   * </code>. Otherwise, return <code>foo</code> unchanged.
    */
   private IASTNode reAddParentheses(IASTNode currentNode) {
     while (currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
@@ -800,7 +800,7 @@ class ASTConverter {
     name += i;
 
     // If there is no initializer, the variable cannot be const.
-    // For others we add it as our temporary variables are single-use.
+    // For others, we add it as our temporary variables are single-use.
     CType type = CTypes.withConstSetTo(pType, initializer != null);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
@@ -890,7 +890,7 @@ class ASTConverter {
           return new CExpressionAssignmentStatement(
               fileLoc, lhs, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
-          throw parseContext.parseError("Expression is not free of side-effects", e);
+          throw parseContext.parseError("Expression is not free of side effects", e);
         }
 
       } else {
@@ -1153,7 +1153,7 @@ class ASTConverter {
             }
             isFirstVisit = false;
 
-            // only first field access may be an pointer dereference so we do not have to check
+            // only first field access may be a pointer dereference so we do not have to check
             // anything
             // in this clause, just put a field reference to the next field on the actual owner
           } else {
@@ -2162,9 +2162,9 @@ class ASTConverter {
       // For example, array modifiers and pointer operators are declared in the
       // "wrong" way:
       // "int (*drives[4])[6]" is "array 4 of pointer to array 6 of int"
-      // (The inner most modifiers are the highest-level ones.)
+      // (The innermost modifiers are the highest-level ones.)
       // So we don't do this recursively, but instead collect all modifiers
-      // and apply them after we have reached the inner-most declarator.
+      // and apply them after we have reached the innermost declarator.
 
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = new ArrayList<>(1);
@@ -2324,7 +2324,7 @@ class ASTConverter {
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-      // Arrays with unknown length but an string initializer
+      // Arrays with unknown length but a string initializer
       // have their length calculated from the initializer.
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";
@@ -2891,7 +2891,7 @@ class ASTConverter {
 
       } else {
         throw parseContext.parseError(
-            "Initializer is not free of side-effects, it is a "
+            "Initializer is not free of side effects, it is a "
                 + initializer.getClass().getSimpleName(),
             e);
       }

@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
- * Implements a integer expression that evaluates and returns a <code>int</code> value when <code>
+ * Implements an integer expression that evaluates and returns a <code>int</code> value when <code>
  * eval()</code> is called. The Expression can be evaluated multiple times.
  */
 interface AutomatonIntExpr extends AutomatonExpression<Integer> {

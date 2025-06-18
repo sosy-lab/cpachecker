@@ -304,7 +304,7 @@ public sealed class CFANode implements Comparable<CFANode>
    * Variables can come into scope again, e.g. when iterating through a loop or calling a function
    * twice.
    *
-   * <p>We currently do not return function parameters for function exit nodes. Additionally we do
+   * <p>We currently do not return function parameters for function exit nodes. Additionally, we do
    * not report any analysis-specific variables for encoding the return value of a function. Those
    * variables can be retrieved separately via {@link FunctionExitNode#getEntryNode()} or directly
    * in the analysis.

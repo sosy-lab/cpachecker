@@ -139,7 +139,7 @@ public abstract class PathTranslator {
     }
 
     while (!waitlist.isEmpty()) {
-      // we need to sort the list based on arg element id because we have to process
+      // we need to sort the list based on ARG element id because we have to process
       // the edges in topological sort
       Collections.sort(waitlist);
 

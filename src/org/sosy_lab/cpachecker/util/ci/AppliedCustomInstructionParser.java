@@ -201,7 +201,7 @@ public class AppliedCustomInstructionParser {
   }
 
   /**
-   * Creates a ImmutableSet out of the given String[].
+   * Creates an ImmutableSet out of the given String[].
    *
    * @param pNodes String[]
    * @return Immutable Set of CFANodes out of the String[]
@@ -303,7 +303,7 @@ public class AppliedCustomInstructionParser {
             throw new AppliedCustomInstructionParsingFailedException(
                 "Function "
                     + leavingEdge.getSuccessor().getFunctionName()
-                    + " is not side effect free, uses global variables");
+                    + " is not side-effect free, uses global variables");
           }
           nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getReturnNode(), succOutputVars);
         } else {

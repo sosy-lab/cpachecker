@@ -111,7 +111,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier points to the second identifier.
+   * Checks whether the first identifier points to the second identifier.
    *
    * @param pSource the first identifier.
    * @param pTarget the second identifier.
@@ -137,7 +137,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is known to point to the second identifier.
+   * Checks whether the first identifier is known to point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely points to the second identifier,
    *     <code>false</code> if it might point to it or is known not to point to it.
@@ -147,7 +147,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is known to not point to the second identifier.
+   * Checks whether the first identifier is known to not point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely does not points to the second
    *     identifier, <code>false</code> if it might point to it or is known to point to it.
@@ -157,7 +157,7 @@ public class PointerState implements AbstractState {
   }
 
   /**
-   * Checks whether or not the first identifier is may point to the second identifier.
+   * Checks whether the first identifier is may point to the second identifier.
    *
    * @return <code>true</code> if the first identifier definitely points to the second identifier or
    *     might point to it, <code>false</code> if it is known not to point to it.

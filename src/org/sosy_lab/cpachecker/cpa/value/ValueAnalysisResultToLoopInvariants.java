@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
@@ -18,11 +19,15 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.AtomicDouble;
 import java.io.IOException;
+import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -40,15 +45,20 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -67,6 +77,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -92,6 +103,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   @Option(secure = true, description = "Enable to export invariants on single variables")
   private boolean exportUnary = true;
 
+  @Option(
+      secure = true,
+      description = "Enable to export invariants stating whether single variables are even or odd")
+  private boolean exportEvenVal = true;
+
   @Option(secure = true, description = "Enable to export invariants that include two variables")
   private boolean exportBinary = true;
 
@@ -114,7 +130,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       description =
           "Enable invariants that use  an arithmetic operator"
               + "(linear invariants are enabled separately)")
-  private boolean exportArithmetic = true;
+  private boolean exportArithmetic = false;
 
   @Option(secure = true, description = "Enable invariants that use a bit operator")
   private boolean exportBitops = true;
@@ -128,6 +144,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           "Enable invariants that use a shift operator,"
               + " note that additionally exportBitops must be enabled")
   private boolean exportShiftops = true;
+
+  @Option(
+      secure = true,
+      description = "Defines which variables may be combined in binary and ternary invariants",
+      name = "combinationStrategy")
+  private AllowedVariableCombinations combinationChecker = AllowedVariableCombinations.ALL;
 
   /* TODO support?
    * @Option(
@@ -147,14 +169,145 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private final CtoFormulaConverter c2Formula;
   private final MachineModel machineModel;
 
+  private enum AllowedVariableCombinations implements Predicate<Collection<MemoryLocation>> {
+    ALL {
+      @Override
+      public boolean apply(final Collection<MemoryLocation> pVariables) {
+        return true;
+      }
+
+      @Override
+      public void initialize(final CFA pCfa) {
+        // do nothing
+      }
+    },
+    FUNCTION_SCOPE {
+
+      @Override
+      public boolean apply(final Collection<MemoryLocation> pVariables) {
+        Preconditions.checkNotNull(pVariables);
+        return pVariables.size() <= 1 || globalOrSameFunction(pVariables);
+      }
+
+      private boolean globalOrSameFunction(final Collection<MemoryLocation> pVariables) {
+        String funName = null;
+        for (MemoryLocation var : pVariables) {
+          if (var.isOnFunctionStack()) {
+            if (funName == null) {
+              funName = var.getFunctionName();
+            } else if (!funName.equals(var.getFunctionName())) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      @Override
+      public void initialize(final CFA pCfa) {
+        // do nothing
+      }
+    },
+    PROGRAM_RELATION {
+      ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation = null;
+
+      @Override
+      public boolean apply(final Collection<MemoryLocation> pVariables) {
+        Preconditions.checkNotNull(pVariables);
+        Preconditions.checkNotNull(inRelation, "Need to call initialize first");
+        return areAllRelated(inRelation, pVariables);
+      }
+
+      @Override
+      public void initialize(final CFA pCfa) {
+        ImmutableMultimap.Builder<MemoryLocation, MemoryLocation> builder =
+            ImmutableMultimap.builder();
+
+        for (CFAEdge edge : CFAUtils.allEdges(pCfa)) {
+          if (edge.getRawAST().isPresent()) {
+            FluentIterable<MemoryLocation> varsAtNode =
+                CFAUtils.traverseRecursively(edge.getRawAST().get())
+                    .filter(AIdExpression.class)
+                    .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration()));
+            for (MemoryLocation var : varsAtNode) {
+              builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
+            }
+          }
+        }
+
+        inRelation = builder.build();
+      }
+    },
+    ASSUME_RELATION {
+      ImmutableMultimap<MemoryLocation, MemoryLocation> inRelation = null;
+
+      @Override
+      public boolean apply(final Collection<MemoryLocation> pVariables) {
+        Preconditions.checkNotNull(pVariables);
+        Preconditions.checkNotNull(inRelation, "Need to call initialize first");
+        return areAllRelated(inRelation, pVariables);
+      }
+
+      @Override
+      public void initialize(final CFA pCfa) {
+        ImmutableMultimap.Builder<MemoryLocation, MemoryLocation> builder =
+            ImmutableMultimap.builder();
+        // builder.put(null, null);
+
+        for (FluentIterable<MemoryLocation> varsAtNode :
+            CFAUtils.allEdges(pCfa)
+                .filter(AssumeEdge.class)
+                .transform(
+                    edge ->
+                        CFAUtils.traverseRecursively(edge.getExpression())
+                            .filter(AIdExpression.class)
+                            .transform(
+                                var -> MemoryLocation.forDeclaration(var.getDeclaration())))) {
+          for (MemoryLocation var : varsAtNode) {
+            builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
+          }
+        }
+
+        inRelation = builder.build();
+      }
+    };
+
+    private static boolean areAllRelated(
+        final Multimap<MemoryLocation, MemoryLocation> pRelatedVars,
+        final Collection<MemoryLocation> pVariables) {
+      if (pVariables.size() > 1) {
+        for (MemoryLocation var : pVariables) {
+          for (MemoryLocation var2 : pVariables) {
+            if (!var.equals(var2) && !pRelatedVars.containsEntry(var, var2)) {
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
+    }
+
+    public abstract void initialize(final CFA pCfa);
+  }
+
   private int numBooleanInvariants = -1;
   private int numNumericInvariants = -1;
+  private int numEvenOrOdd = -1;
 
   private int numCompRelationalInvariants = -1;
   private int numArithmeticRelationalInvariants = -1;
   private int numBitRelationalInvariants = -1;
+  private int numShiftInvariants = -1;
 
   private int numLinearInvariants = -1;
+  private int numTwoLinearInvariants = -1;
+
+  private enum EXPORT_OPTION {
+    ALL,
+    ONLY_OPT,
+    NO_OPT
+  }
 
   public ValueAnalysisResultToLoopInvariants(
       final @Nullable ImmutableSet<CFANode> pLoopHeads,
@@ -184,6 +337,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     if (!anyInvariantsConfiguredForExport()) {
       logger.log(Level.WARNING, "No invariants configured for export");
     }
+    combinationChecker.initialize(pCfa);
   }
 
   private boolean anyInvariantsConfiguredForExport() {
@@ -196,7 +350,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     ImmutableMap.Builder<MemoryLocation, Type> builder = ImmutableMap.builder();
 
     for (AbstractSimpleDeclaration decl :
-        FluentIterable.from(pCfa.edges())
+        CFAUtils.allEdges(pCfa)
             .filter(ADeclarationEdge.class)
             .transform(ADeclarationEdge::getDeclaration)
             .filter(AbstractSimpleDeclaration.class)
@@ -209,7 +363,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     }
 
     for (AParameterDeclaration decl :
-        FluentIterable.from(pCfa.edges())
+        CFAUtils.allEdges(pCfa)
             .filter(FunctionCallEdge.class)
             .transform(FunctionCallEdge::getFunctionCallExpression)
             .transform(AFunctionCallExpression::getDeclaration)
@@ -237,6 +391,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             numNumericInvariants >= 0,
             "Number of generated variable range invariants",
             numNumericInvariants)
+        .beginLevel()
+        .putIf(numEvenOrOdd >= 0, "Number of generated even/odd invariants", numEvenOrOdd)
+        .endLevel()
         .putIf(
             numCompRelationalInvariants >= 0,
             "Number of generated variable comparison invariants",
@@ -249,24 +406,155 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             numBitRelationalInvariants >= 0,
             "Number of generated variable bit computation invariants",
             numBitRelationalInvariants)
+        .beginLevel()
         .putIf(
-            numLinearInvariants >= 0, "Number of generated linear invariants", numLinearInvariants);
+            numShiftInvariants >= 0,
+            "Number of invariants with shift operations",
+            numShiftInvariants)
+        .endLevel()
+        .putIf(
+            numLinearInvariants >= 0, "Number of generated linear invariants", numLinearInvariants)
+        .beginLevel()
+        .putIf(
+            numTwoLinearInvariants >= 0,
+            "Number of generated linear invariants with two variables",
+            numTwoLinearInvariants);
+  }
+
+  public void generateAndExportLoopInvariantsAsOnePredicatePrecisionPerType(
+      final UnmodifiableReachedSet pReached, final PathTemplate pLoopInvariantsFiles) {
+    Preconditions.checkNotNull(pLoopInvariantsFiles);
+    if (!anyInvariantsConfiguredForExport()) {
+      logger.log(Level.INFO, "No invariants configured for export.");
+      return;
+    }
+
+    Map<CFANode, Collection<CandidateInvariant>> invPerLoc = generateInvariants(pReached);
+
+    if (exportUnary) {
+      filterCandidatesAndExportPrecision(
+          invPerLoc,
+          Predicates.instanceOf(SingleBooleanVariableInvariant.class),
+          EXPORT_OPTION.ALL,
+          pLoopInvariantsFiles.getPath("_bool"));
+
+      filterCandidatesAndExportPrecision(
+          invPerLoc,
+          Predicates.instanceOf(SingleNumericVariableInvariant.class),
+          EXPORT_OPTION.NO_OPT,
+          pLoopInvariantsFiles.getPath("_num"));
+
+      if (exportEvenVal) {
+        filterCandidatesAndExportPrecision(
+            invPerLoc,
+            inv ->
+                inv instanceof SingleNumericVariableInvariant invCast && invCast.exportEvenOrOdd(),
+            EXPORT_OPTION.ONLY_OPT,
+            pLoopInvariantsFiles.getPath("_even"));
+      }
+    }
+
+    if (exportBinary) {
+      if (exportRelational) {
+        filterCandidatesAndExportPrecision(
+            invPerLoc,
+            Predicates.instanceOf(TwoVariableRelationInvariant.class),
+            EXPORT_OPTION.ALL,
+            pLoopInvariantsFiles.getPath("_rel"));
+      }
+      if (exportArithmetic) {
+        filterCandidatesAndExportPrecision(
+            invPerLoc,
+            inv ->
+                inv instanceof TwoVariableArithmeticInvariant invCast
+                    && invCast.getNumInvariants() > 0,
+            EXPORT_OPTION.ALL,
+            pLoopInvariantsFiles.getPath("_arith"));
+      }
+      if (exportBitops) {
+        filterCandidatesAndExportPrecision(
+            invPerLoc,
+            inv ->
+                inv instanceof TwoVariableBitOpsInvariant invCast
+                    && invCast.getNumInvariants() - invCast.getNumShiftInvariants() > 0,
+            EXPORT_OPTION.NO_OPT,
+            pLoopInvariantsFiles.getPath("_bit"));
+        if (exportShiftops) {
+          filterCandidatesAndExportPrecision(
+              invPerLoc,
+              inv ->
+                  inv instanceof TwoVariableBitOpsInvariant invCast
+                      && invCast.getNumShiftInvariants() > 0,
+              EXPORT_OPTION.ONLY_OPT,
+              pLoopInvariantsFiles.getPath("_shift"));
+        }
+      }
+      if (exportLinear) {
+        filterCandidatesAndExportPrecision(
+            invPerLoc,
+            inv -> inv instanceof LinearInEqualityInvariant invCast && invCast.getNumVars() == 2,
+            EXPORT_OPTION.ALL,
+            pLoopInvariantsFiles.getPath("_lin2"));
+      }
+    }
+
+    if (exportTernary && exportLinear) {
+      filterCandidatesAndExportPrecision(
+          invPerLoc,
+          inv -> inv instanceof LinearInEqualityInvariant invCast && invCast.getNumVars() == 3,
+          EXPORT_OPTION.ALL,
+          pLoopInvariantsFiles.getPath("_lin3"));
+    }
+  }
+
+  private void filterCandidatesAndExportPrecision(
+      final Map<CFANode, Collection<CandidateInvariant>> pUnfilteredMap,
+      final Predicate<CandidateInvariant> pFilter,
+      final EXPORT_OPTION pExportOpt,
+      final Path outputFile) {
+
+    Map<CFANode, Collection<CandidateInvariant>> filteredCandidates =
+        ImmutableMap.copyOf(
+            FluentIterable.from(pUnfilteredMap.entrySet())
+                .transform(
+                    entry ->
+                        Map.entry(
+                            entry.getKey(),
+                            FluentIterable.from(entry.getValue()).filter(pFilter).toList()))
+                .filter(entry -> !entry.getValue().isEmpty()));
+
+    if (!filteredCandidates.isEmpty()) {
+      try (Writer w = IO.openOutputFile(outputFile, Charset.defaultCharset())) {
+        exportAsPredicatePrecision(filteredCandidates, pExportOpt, w);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write loop invariants to file " + outputFile);
+      }
+    }
   }
 
   public void generateAndExportLoopInvariantsAsPredicatePrecision(
       final UnmodifiableReachedSet pReached, final Appendable sb) throws IOException {
-    // reset statistics
-    numBooleanInvariants = -1;
-    numNumericInvariants = -1;
-    numCompRelationalInvariants = -1;
-    numArithmeticRelationalInvariants = -1;
-    numBitRelationalInvariants = -1;
-    numLinearInvariants = -1;
 
     if (!anyInvariantsConfiguredForExport()) {
       logger.log(Level.INFO, "No invariants configured for export.");
       return;
     }
+
+    exportAsPredicatePrecision(generateInvariants(pReached), EXPORT_OPTION.ALL, sb);
+  }
+
+  private Map<CFANode, Collection<CandidateInvariant>> generateInvariants(
+      final UnmodifiableReachedSet pReached) {
+    // reset statistics
+    numBooleanInvariants = -1;
+    numNumericInvariants = -1;
+    numEvenOrOdd = -1;
+    numCompRelationalInvariants = -1;
+    numArithmeticRelationalInvariants = -1;
+    numBitRelationalInvariants = -1;
+    numShiftInvariants = -1;
+    numLinearInvariants = -1;
 
     ImmutableMultimap<Pair<CFANode, Optional<CallstackStateEqualsWrapper>>, ValueAnalysisState>
         contextLocToStates = extractAndMapRelevantValueStates(pReached);
@@ -284,7 +572,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       invariants.addAll(generateInvariants(contextLocToStates.get(contextLoc)));
     }
 
-    exportAsPredicatePrecision(invPerLoc, sb);
+    return invPerLoc;
   }
 
   private ImmutableMultimap<
@@ -312,7 +600,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   }
 
   private void exportAsPredicatePrecision(
-      final Map<CFANode, Collection<CandidateInvariant>> pInvPerLoc, final Appendable sb)
+      final Map<CFANode, Collection<CandidateInvariant>> pInvPerLoc,
+      final EXPORT_OPTION pExportOpt,
+      final Appendable sb)
       throws IOException {
 
     ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> locInvBuilder =
@@ -325,7 +615,12 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               .transformAndConcat(
                   canInv ->
                       canInv.asBooleanFormulae(
-                          solver.getFormulaManager(), varToType, c2Formula, machineModel))
+                          solver.getFormulaManager(),
+                          varToType,
+                          c2Formula,
+                          machineModel,
+                          pExportOpt))
+              .filter(bf -> !solver.getFormulaManager().getBooleanFormulaManager().isTrue(bf))
               .transform(bf -> absMgr.makePredicate(bf)));
     }
 
@@ -407,8 +702,11 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
     // not supported: set of values,  (allgemein x == a (mod b)
     // not supported bitwise negation ~x
     // not expressible: zweierpotenz
-    numNumericInvariants = 0;
-    numBooleanInvariants = 0;
+    numNumericInvariants = Math.max(0, numNumericInvariants);
+    if (exportEvenVal) {
+      numEvenOrOdd = Math.max(0, numEvenOrOdd);
+    }
+    numBooleanInvariants = Math.max(0, numBooleanInvariants);
     for (Entry<MemoryLocation, List<ValueAndType>> varAndVals : pVarsWithVals.entrySet()) {
       if (!varAndVals.getKey().isReference()) {
         Value val = varAndVals.getValue().get(0).getValue();
@@ -416,20 +714,30 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           Preconditions.checkState(varToType.containsKey(varAndVals.getKey()));
           SingleNumericVariableInvariant numInv =
               new SingleNumericVariableInvariant(
-                  varAndVals.getKey(), val.asNumericValue(), exportArithmetic);
+                  varAndVals.getKey(), val.asNumericValue(), exportEvenVal);
           for (ValueAndType valPlusType : varAndVals.getValue()) {
             numInv.adaptToAdditionalValue(valPlusType.getValue());
           }
           pInvBuilder.add(numInv);
           numNumericInvariants += numInv.getNumInvariants();
+          if (exportEvenVal) {
+            numEvenOrOdd += numInv.exportEvenOrOdd() ? 1 : 0;
+          }
         } else if (val instanceof BooleanValue) {
           SingleBooleanVariableInvariant boolInv =
               new SingleBooleanVariableInvariant(varAndVals.getKey(), (BooleanValue) val);
+
+          boolean onlyOneVal = true;
           for (ValueAndType valPlusType : varAndVals.getValue()) {
-            boolInv.adaptToAdditionalValue(valPlusType.getValue());
+            if (!boolInv.adaptToAdditionalValue(valPlusType.getValue())) {
+              onlyOneVal = false;
+              break;
+            }
           }
-          pInvBuilder.add(boolInv);
-          numBooleanInvariants += boolInv.getNumInvariants();
+          if (onlyOneVal) {
+            pInvBuilder.add(boolInv);
+            numBooleanInvariants++;
+          }
         }
       }
     }
@@ -438,10 +746,22 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
   private void addInvariantsOverTwoVariables(
       final Map<MemoryLocation, List<ValueAndType>> pVarsWithVals,
       final ImmutableCollection.Builder<CandidateInvariant> pInvBuilder) {
-    numCompRelationalInvariants = 0;
-    numArithmeticRelationalInvariants = 0;
-    numBitRelationalInvariants = 0;
-    numLinearInvariants = 0;
+    if (exportRelational) {
+      numCompRelationalInvariants = Math.max(0, numCompRelationalInvariants);
+    }
+    if (exportArithmetic) {
+      numArithmeticRelationalInvariants = Math.max(0, numArithmeticRelationalInvariants);
+    }
+    if (exportBitops) {
+      numBitRelationalInvariants = Math.max(0, numBitRelationalInvariants);
+    }
+    if (exportShiftops) {
+      numShiftInvariants = Math.max(0, numShiftInvariants);
+    }
+    if (exportLinear) {
+      numLinearInvariants = Math.max(0, numLinearInvariants);
+    }
+    numTwoLinearInvariants = Math.max(0, numTwoLinearInvariants);
 
     // two variables
     // relational
@@ -469,7 +789,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       for (Entry<MemoryLocation, List<ValueAndType>> varWithVals2 : pVarsWithVals.entrySet()) {
         if (varWithVals1.getKey().equals(varWithVals2.getKey())
             || exploredVars.contains(varWithVals2.getKey())
-            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)) {
+            || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
+            || !combinationChecker.apply(
+                ImmutableList.of(varWithVals1.getKey(), varWithVals2.getKey()))) {
           continue;
         }
 
@@ -654,14 +976,19 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           if (bitInv != null) {
             pInvBuilder.add(bitInv);
             numBitRelationalInvariants += bitInv.getNumInvariants();
+            if (exportShiftops) {
+              numShiftInvariants += bitInv.getNumShiftInvariants();
+            }
           }
           if (linInv1 != null) {
             pInvBuilder.add(linInv1);
             numLinearInvariants++;
+            numTwoLinearInvariants++;
           }
           if (linInv2 != null) {
             pInvBuilder.add(linInv2);
             numLinearInvariants++;
+            numTwoLinearInvariants++;
           }
         }
       }
@@ -693,7 +1020,9 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
             || exploredVarsOuter.contains(varWithVals2.getKey())
             || !(varToType.get(varWithVals2.getKey()) instanceof CSimpleType)
             || varWithVals2.getValue().size() < 3
-            || varWithVals1.getValue().size() != varWithVals2.getValue().size()) {
+            || varWithVals1.getValue().size() != varWithVals2.getValue().size()
+            || !combinationChecker.apply(
+                ImmutableList.of(varWithVals1.getKey(), varWithVals2.getKey()))) {
           exploredVarsInner.add(varWithVals2.getKey());
           continue;
         }
@@ -717,7 +1046,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
                 || exploredVarsInner.contains(varWithVals3.getKey())
                 || !(varToType.get(varWithVals3.getKey()) instanceof CSimpleType)
                 || varWithVals3.getValue().size() < 3
-                || varWithVals1.getValue().size() != varWithVals3.getValue().size()) {
+                || varWithVals1.getValue().size() != varWithVals3.getValue().size()
+                || !combinationChecker.apply(
+                    ImmutableList.of(
+                        varWithVals1.getKey(), varWithVals2.getKey(), varWithVals3.getKey()))) {
               continue;
             }
 
@@ -998,7 +1330,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final FormulaManagerView pFormulaManagerView,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel);
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt);
 
     protected static boolean isIntegralType(final Number pNum) {
       return pNum instanceof java.lang.Byte
@@ -1361,17 +1694,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       }
     }
 
-    private int getNumInvariants() {
-      return alwaysTrue || alwaysFalse ? 1 : 0;
-    }
-
-    private void adaptToAdditionalValue(final Value pValue) {
+    private boolean adaptToAdditionalValue(final Value pValue) {
       Preconditions.checkNotNull(pValue);
       Preconditions.checkArgument(pValue instanceof BooleanValue);
       BooleanValue newVal = (BooleanValue) pValue;
       Preconditions.checkNotNull(newVal);
       alwaysTrue = alwaysTrue && newVal.isTrue();
       alwaysFalse = alwaysFalse && !newVal.isTrue();
+      return alwaysFalse || alwaysTrue;
     }
 
     @Override
@@ -1379,28 +1709,31 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final FormulaManagerView pFmgrV,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel) {
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
       Preconditions.checkArgument(pVarToType.containsKey(var));
       Preconditions.checkArgument(pVarToType.get(var) instanceof CType);
       Preconditions.checkState(!(alwaysFalse && alwaysTrue));
 
-      if (alwaysTrue || alwaysFalse) {
-        FormulaType<?> formulaType =
-            pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var));
-        Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
+      if (pExportOpt != EXPORT_OPTION.ONLY_OPT) {
+        if (alwaysTrue || alwaysFalse) {
+          FormulaType<?> formulaType =
+              pC2Formula.getFormulaTypeFromCType((CType) pVarToType.get(var));
+          Formula varF = pFmgrV.makeVariable(formulaType, var.getExtendedQualifiedName());
 
-        if (varF instanceof BooleanFormula) {
-          if (alwaysTrue) {
-            return ImmutableList.of((BooleanFormula) varF);
-          } else if (alwaysFalse) {
-            return ImmutableList.of(pFmgrV.makeNot((BooleanFormula) varF));
-          }
-        } else {
-          if (alwaysTrue) {
-            return ImmutableList.of(
-                pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
-          } else if (alwaysFalse) {
-            return ImmutableList.of(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0)));
+          if (varF instanceof BooleanFormula) {
+            if (alwaysTrue) {
+              return ImmutableList.of((BooleanFormula) varF);
+            } else if (alwaysFalse) {
+              return ImmutableList.of(pFmgrV.makeNot((BooleanFormula) varF));
+            }
+          } else {
+            if (alwaysTrue) {
+              return ImmutableList.of(
+                  pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
+            } else if (alwaysFalse) {
+              return ImmutableList.of(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0)));
+            }
           }
         }
       }
@@ -1502,12 +1835,17 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       return num;
     }
 
+    private boolean exportEvenOrOdd() {
+      return alwaysEven || alwaysOdd;
+    }
+
     @Override
     protected Collection<BooleanFormula> asBooleanFormulae(
         final FormulaManagerView pFmgrV,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel) {
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
       Preconditions.checkArgument(pVarToType.containsKey(var));
       Preconditions.checkArgument(pVarToType.get(var) instanceof CType);
       Preconditions.checkState(!(alwaysEven && alwaysOdd));
@@ -1521,33 +1859,37 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
               ? pMachineModel.isSigned((CSimpleType) pVarToType.get(var))
               : true;
 
-      if (minVal.equals(maxVal)) {
-        result.add(
-            pFmgrV.makeEqual(varF, encodeNumVal(pFmgrV, formulaType, varF, minVal.getNumber())));
-      } else {
-        result.add(
-            pFmgrV.makeGreaterOrEqual(
-                varF, encodeNumVal(pFmgrV, formulaType, varF, minVal.getNumber()), signed));
-        result.add(
-            pFmgrV.makeLessOrEqual(
-                varF, encodeNumVal(pFmgrV, formulaType, varF, maxVal.getNumber()), signed));
+      if (pExportOpt != EXPORT_OPTION.ONLY_OPT) {
+        if (minVal.equals(maxVal)) {
+          result.add(
+              pFmgrV.makeEqual(varF, encodeNumVal(pFmgrV, formulaType, varF, minVal.getNumber())));
+        } else {
+          result.add(
+              pFmgrV.makeGreaterOrEqual(
+                  varF, encodeNumVal(pFmgrV, formulaType, varF, minVal.getNumber()), signed));
+          result.add(
+              pFmgrV.makeLessOrEqual(
+                  varF, encodeNumVal(pFmgrV, formulaType, varF, maxVal.getNumber()), signed));
+        }
+
+        if (isNeverZero && isZeroInMinMax()) {
+          result.add(pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
+        }
       }
 
-      if (isNeverZero && isZeroInMinMax()) {
-        result.add(pFmgrV.makeNot(pFmgrV.makeEqual(varF, pFmgrV.makeNumber(formulaType, 0))));
-      }
-
-      if (alwaysEven) {
-        result.add(
-            pFmgrV.makeEqual(
-                pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
-                pFmgrV.makeNumber(formulaType, 0)));
-      } else if (alwaysOdd) {
-        result.add(
-            pFmgrV.makeNot(
-                pFmgrV.makeEqual(
-                    pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
-                    pFmgrV.makeNumber(formulaType, 0))));
+      if (pExportOpt != EXPORT_OPTION.NO_OPT) {
+        if (alwaysEven) {
+          result.add(
+              pFmgrV.makeEqual(
+                  pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
+                  pFmgrV.makeNumber(formulaType, 0)));
+        } else if (alwaysOdd) {
+          result.add(
+              pFmgrV.makeNot(
+                  pFmgrV.makeEqual(
+                      pFmgrV.makeRemainder(varF, pFmgrV.makeNumber(formulaType, 2), signed),
+                      pFmgrV.makeNumber(formulaType, 0))));
+        }
       }
 
       return result;
@@ -1625,7 +1967,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final FormulaManagerView pFmgrV,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel) {
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
 
       Preconditions.checkArgument(pVarToType.containsKey(var));
       Preconditions.checkArgument(pVarToType.get(var) instanceof CSimpleType);
@@ -1635,6 +1978,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
           pMachineModel.isSigned((CSimpleType) pVarToType.get(var))
               == pMachineModel.isSigned((CSimpleType) pVarToType.get(var2)));
       Preconditions.checkState(comp != ComparisonType.NONE);
+
+      if (pExportOpt == EXPORT_OPTION.ONLY_OPT) {
+        return ImmutableList.of();
+      }
 
       CType compareType =
           getCompareType((CSimpleType) pVarToType.get(var), (CSimpleType) pVarToType.get(var2));
@@ -1942,7 +2289,8 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         FormulaManagerView pFmgrV,
         ImmutableMap<MemoryLocation, Type> pVarToType,
         CtoFormulaConverter pC2Formula,
-        MachineModel pMachineModel) {
+        MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
       Collection<BooleanFormula> result = new ArrayList<>(4);
 
       Preconditions.checkArgument(pVarToType.containsKey(var1));
@@ -1964,6 +2312,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       boolean signed;
       CSimpleType compareTypeVars = getCompareType(type1, type2);
       CSimpleType formulaType;
+
+      if (pExportOpt == EXPORT_OPTION.ONLY_OPT) {
+        return result;
+      }
 
       Formula varF =
           pFmgrV.makeVariable(
@@ -2274,21 +2626,29 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
 
       if (includeShiftOps) {
 
-        if (opVar1ShiftLeft.getSecond() != EqualCompareType.NONE) {
-          num++;
-        }
+        num += getNumShiftInvariants();
+      }
 
-        if (opVar2ShiftLeft.getSecond() != EqualCompareType.NONE) {
-          num++;
-        }
+      return num;
+    }
 
-        if (opVar1ShiftRight.getSecond() != EqualCompareType.NONE) {
-          num++;
-        }
+    private int getNumShiftInvariants() {
+      int num = 0;
 
-        if (opVar2ShiftRight.getSecond() != EqualCompareType.NONE) {
-          num++;
-        }
+      if (opVar1ShiftLeft.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opVar2ShiftLeft.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opVar1ShiftRight.getSecond() != EqualCompareType.NONE) {
+        num++;
+      }
+
+      if (opVar2ShiftRight.getSecond() != EqualCompareType.NONE) {
+        num++;
       }
 
       return num;
@@ -2299,12 +2659,17 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final FormulaManagerView pFmgrV,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel) {
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
       Collection<BooleanFormula> result;
-      if (includeShiftOps) {
+      if (includeShiftOps && pExportOpt == EXPORT_OPTION.ALL) {
         result = new ArrayList<>(7);
       } else {
-        result = new ArrayList<>(3);
+        if (pExportOpt == EXPORT_OPTION.NO_OPT) {
+          result = new ArrayList<>(3);
+        } else {
+          result = new ArrayList<>(4);
+        }
       }
 
       Preconditions.checkArgument(pVarToType.containsKey(var1));
@@ -2332,55 +2697,60 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       Preconditions.checkState(
           varF instanceof BitvectorFormula && varF2 instanceof BitvectorFormula);
 
-      if (opBitAnd.getSecond() != EqualCompareType.NONE) {
-        formulaType =
-            getCompareType(
-                compareTypeVars, getCTypeFromValue(signedVars, opBitAnd.getFirst(), pMachineModel));
-        signed = pMachineModel.isSigned(formulaType);
-        result.add(
-            makeComparison(
-                pFmgrV.makeAnd(
-                    simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
-                    simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
-                opBitAnd,
-                pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
-                signed));
+      if (pExportOpt != EXPORT_OPTION.ONLY_OPT) {
+        if (opBitAnd.getSecond() != EqualCompareType.NONE) {
+          formulaType =
+              getCompareType(
+                  compareTypeVars,
+                  getCTypeFromValue(signedVars, opBitAnd.getFirst(), pMachineModel));
+          signed = pMachineModel.isSigned(formulaType);
+          result.add(
+              makeComparison(
+                  pFmgrV.makeAnd(
+                      simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
+                      simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
+                  opBitAnd,
+                  pFmgrV,
+                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  signed));
+        }
+
+        if (opBitOr.getSecond() != EqualCompareType.NONE) {
+          formulaType =
+              getCompareType(
+                  compareTypeVars,
+                  getCTypeFromValue(signedVars, opBitOr.getFirst(), pMachineModel));
+          signed = pMachineModel.isSigned(formulaType);
+          result.add(
+              makeComparison(
+                  pFmgrV.makeOr(
+                      simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
+                      simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
+                  opBitOr,
+                  pFmgrV,
+                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  signed));
+        }
+
+        if (opBitXor.getSecond() != EqualCompareType.NONE) {
+          formulaType =
+              getCompareType(
+                  compareTypeVars,
+                  getCTypeFromValue(signedVars, opBitXor.getFirst(), pMachineModel));
+          signed = pMachineModel.isSigned(formulaType);
+          result.add(
+              makeComparison(
+                  pFmgrV.makeXor(
+                      simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
+                      simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
+                  opBitXor,
+                  pFmgrV,
+                  pC2Formula.getFormulaTypeFromCType(formulaType),
+                  signed));
+        }
       }
 
-      if (opBitOr.getSecond() != EqualCompareType.NONE) {
-        formulaType =
-            getCompareType(
-                compareTypeVars, getCTypeFromValue(signedVars, opBitOr.getFirst(), pMachineModel));
-        signed = pMachineModel.isSigned(formulaType);
-        result.add(
-            makeComparison(
-                pFmgrV.makeOr(
-                    simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
-                    simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
-                opBitOr,
-                pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
-                signed));
-      }
-
-      if (opBitXor.getSecond() != EqualCompareType.NONE) {
-        formulaType =
-            getCompareType(
-                compareTypeVars, getCTypeFromValue(signedVars, opBitXor.getFirst(), pMachineModel));
-        signed = pMachineModel.isSigned(formulaType);
-        result.add(
-            makeComparison(
-                pFmgrV.makeXor(
-                    simpleCast(varF, signed, type1, formulaType, pFmgrV, pC2Formula),
-                    simpleCast(varF2, signed, type2, formulaType, pFmgrV, pC2Formula)),
-                opBitXor,
-                pFmgrV,
-                pC2Formula.getFormulaTypeFromCType(formulaType),
-                signed));
-      }
-
-      if (includeShiftOps) {
+      if (includeShiftOps && pExportOpt != EXPORT_OPTION.NO_OPT) {
 
         if (opVar1ShiftLeft.getSecond() != EqualCompareType.NONE) {
           formulaType =
@@ -2483,6 +2853,10 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
       isFloatingType = pFloatingType;
     }
 
+    private int getNumVars() {
+      return vars.length;
+    }
+
     private boolean adaptToAdditionalValues(final Value[] newVals) {
       Preconditions.checkNotNull(newVals);
       Preconditions.checkArgument(newVals.length == vars.length);
@@ -2543,13 +2917,14 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         final FormulaManagerView pFmgrV,
         final ImmutableMap<MemoryLocation, Type> pVarToType,
         final CtoFormulaConverter pC2Formula,
-        final MachineModel pMachineModel) {
+        final MachineModel pMachineModel,
+        final EXPORT_OPTION pExportOpt) {
 
       Formula varAdditionTerm = null;
       Formula varTerm;
       MemoryLocation var;
 
-      if (vars.length < 1) {
+      if (pExportOpt == EXPORT_OPTION.ONLY_OPT || vars.length < 1) {
         return ImmutableList.of();
       }
 

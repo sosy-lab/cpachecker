@@ -26,7 +26,7 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
 
-  /** The cfa of this analysis. Only needed for its entry function. */
+  /** The CFA of this analysis. Only needed for its entry function. */
   private final CFA cfa;
 
   /** Remember if we need to take memsafety into account for interpolants. * */

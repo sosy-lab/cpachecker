@@ -138,7 +138,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
       // check whether ABS=>PRED, because only then we can guarantee that
       // ( ( exists PRED: f(ABS,PRED) ) and PRED ) == f(ABS,PRED),
-      // which is required for a valid (and precise) reduction and expansion afterwards
+      // which is required for a valid (and precise) reduction and expansion afterward
       boolean abstractionImpliesPredicate = false;
       try {
         abstractionImpliesPredicate = rmgr.entails(abstraction, predicate.getAbstractVariable());
@@ -160,7 +160,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
    * the following requirements:
    *
    * <ul>
-   *   <li>contain variables never used outside of the block, also transitively.
+   *   <li>contain variables never used outside the block, also transitively.
    *   <li>do not encode pointers, addresses, return variables.
    * </ul>
    *
@@ -307,8 +307,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
           : "TODO: need to handle location-instance-specific predicates in"
               + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
-       * several times along a error path and the index would always start from 0 again.
-       * Thus we ignore LocationInstancePredicates and hope nobody is using them.
+       * several times along an error path and the index would always start from 0 again.
+       * Thus, we ignore LocationInstancePredicates and hope nobody is using them.
        * TODO can we assure this?
        */
 
@@ -483,8 +483,8 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
     PathFormula executedFunction =
         pmgr.makeAnd(functionCallWithSSA, expandedState.getAbstractionFormula().asFormula());
 
-    // after function-execution we have to re-use the previous indices (fromouter scope),
-    // thus lets change the SSAmap.
+    // after function-execution we have to re-use the previous indices (from outer scope),
+    // thus let's change the SSAmap.
     PathFormula executedFunctionWithSSA =
         executedFunction.withContext(newSummSsa, executedFunction.getPointerTargetSet());
 
@@ -532,7 +532,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
 
   /**
    * rootSSA might not contain correct indices for the local variables of calling function-scope. so
-   * lets build a new SSA from: - local variables from rootSSA, -> update indices (their indices
+   * let's build a new SSA from: - local variables from rootSSA, -> update indices (their indices
    * will have "holes") - local variables from expandedSSA, -> ignore indices (their indices are the
    * "holes") - global variables from expandedSSA, -> update indices (we have to keep them) - the
    * local return variables from expandedState. -> update indices (we have to keep them, there can
@@ -581,7 +581,7 @@ final class BAMPredicateReducer extends GenericReducer<PredicateAbstractState, P
         // If MAX(expIndex, rootIndex) is not expIndex,
         // we are in the rebuilding-phase of the recursive BAM-algorithm and leave a cached block.
         // in this case the index is irrelevant and can be set to expIndex (TODO really?).
-        // Otherwise (the important case, MAX == expIndex)
+        // Otherwise (the important case, MAX == expIndex),
         // we are in the refinement step and build the CEX-path.
         rootBuilder.setIndex(var, type, expandedSSA.getIndex(var));
       }

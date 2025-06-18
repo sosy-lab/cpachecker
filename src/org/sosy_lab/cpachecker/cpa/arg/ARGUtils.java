@@ -1108,7 +1108,7 @@ public class ARGUtils {
               || !AbstractStates.extractLocation(outOfLoopState).equals(edgeSuccessor)) {
             sb.append("STOP;\n");
 
-            // here we go out of the loop back to the arg path
+            // here we go out of the loop back to the ARG path
           } else {
             handleGotoArg(sb, outOfLoopState);
           }
@@ -1214,9 +1214,9 @@ public class ARGUtils {
    *       issue is fixed, the prefix "try" should be removed from the function name and the return
    *       type should be changed to {@link CounterexampleInfo}.
    *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
-   *       determining whether or not the counterexample should be marked as imprecise. Currently,
-   *       this heuristic will simply always mark a counterexample as feasible if and only if the
-   *       analysis used consists of either a ValueAnalysisCPA or a SMGCPA.
+   *       determining whether the counterexample should be marked as imprecise. Currently, this
+   *       heuristic will simply always mark a counterexample as feasible if and only if the
+   *       analysis used consists of either a ValueAnalysisCPA or an SMGCPA.
    * </ol>
    *
    * @param pTargetState the target state to get the counterexample for.

@@ -217,7 +217,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
       forkedStateMap.put(s, newState);
 
-      // Now we strengthen the splitted state with negated interpolant:
+      // Now we strengthen the split state with negated interpolant:
       BooleanFormula negatedItp = bfmgr.not(itp);
       impact.strengthenStateWithInterpolant(negatedItp, newState, lastAbstraction);
     }
@@ -384,7 +384,7 @@ public final class SlicingAbstractionsStrategy extends RefinementStrategy
 
     // for minimalSlicing, there could be the case that no states got changed
     // in the refinement, but still some edges in the error path are infeasible
-    // Therefore we need to make sure that allChangedStates at least contains
+    // Therefore, we need to make sure that allChangedStates at least contains
     // all abstraction states on the error path:
     if (minimalSlicing) {
       allChangedStates.addAll(

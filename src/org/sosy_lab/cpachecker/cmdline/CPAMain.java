@@ -161,7 +161,7 @@ public class CPAMain {
     Runtime.getRuntime().addShutdownHook(shutdownHook);
 
     // This is for actually forcing a termination when CPAchecker
-    // fails to shutdown within some time.
+    // fails to shut down within some time.
     ShutdownRequestListener forcedExitOnShutdown =
         ForceTerminationOnShutdown.createShutdownListener(logManager, shutdownHook);
     shutdownNotifier.register(forcedExitOnShutdown);
@@ -332,7 +332,7 @@ public class CPAMain {
           CommonVerificationProperty.VALID_MEMTRACK);
 
   /**
-   * Parse the command line, read the configuration file, and setup the program-wide base paths.
+   * Parse the command line, read the configuration file, and set up the program-wide base paths.
    *
    * @return A Configuration object, the output directory, and the specification properties.
    */
@@ -372,7 +372,7 @@ public class CPAMain {
 
     // We want to be able to use options of type "File" with some additional
     // logic provided by FileTypeConverter, so we create such a converter,
-    // add it to our Configuration object and to the the map of default converters.
+    // add it to our Configuration object and to the map of default converters.
     // The latter will ensure that it is used whenever a Configuration object
     // is created.
     FileTypeConverter fileTypeConverter =
@@ -825,7 +825,7 @@ public class CPAMain {
       LogManager logManager)
       throws IOException {
 
-    // setup output streams
+    // set up output streams
     PrintStream console = options.printStatistics ? System.out : null;
     OutputStream file = null;
     @SuppressWarnings("resource") // not necessary for Closer, it handles this itself
