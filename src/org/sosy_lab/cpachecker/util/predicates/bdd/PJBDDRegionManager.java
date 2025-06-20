@@ -300,7 +300,7 @@ public class PJBDDRegionManager implements RegionManager {
           }
           break;
         default:
-          throw new IllegalArgumentException("Unknown DD type "+useDDType);
+          throw new IllegalArgumentException("Unknown DD type " + useDDType);
       }
 
       resolveProperties(builder);

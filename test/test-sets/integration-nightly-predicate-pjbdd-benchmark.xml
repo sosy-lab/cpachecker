@@ -21,23 +21,39 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
   <rundefinition name="PJBDD-OBDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
+    <option name="--option">bdd.pjbdd.useDDType=BDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=Guava</option>
+    <option name="--option">bdd.pjbdd.tableType=Array</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=true</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=false</option>
   </rundefinition>
   <rundefinition name="PJBDD-intDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=IntDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=None</option>
     <option name="--option">bdd.pjbdd.tableType=CASArray</option>
-    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=true</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=false</option>
   </rundefinition>
   <rundefinition name="PJBDD-TaggedDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TaggedDD</option>
-    <option name="--option">bdd.pjbdd.parallelizationType=None</option>
-    <option name="--option">bdd.pjbdd.tableType=CASArray</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
+    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
     <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=true</option>
   </rundefinition>
   <rundefinition name="PJBDD-TBDD-predicateAnalysis">
     <option name="--option">bdd.package=PJBDD</option>
     <option name="--option">bdd.pjbdd.useDDType=TBDD</option>
+    <option name="--option">bdd.pjbdd.parallelizationType=ForkJoin</option>
+    <option name="--option">bdd.pjbdd.tableType=ConcurrentHashMap</option>
+    <option name="--option">bdd.pjbdd.synchronizeReordering=false</option>
+    <option name="--option">bdd.pjbdd.useApply=true</option>
+    <option name="--option">bdd.pjbdd.threadSafety=true</option>
   </rundefinition>
   <!--
   <columns>

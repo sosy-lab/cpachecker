@@ -695,7 +695,7 @@ bdd.pjbdd.parallelizationType = "ForkJoin"
   allowed values: [ForkJoin, CompletableFuture, Future, Guava, Stream, None]
 
 # Enable Synchronized Reordering in PJBDD
-bdd.pjbdd.synchronizeReordering = true
+bdd.pjbdd.synchronizeReordering = false
 
 # unique table's concurrency factor
 bdd.pjbdd.tableParallelism = 10000
