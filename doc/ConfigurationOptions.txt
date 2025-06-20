@@ -695,13 +695,13 @@ bdd.pjbdd.parallelizationType = "ForkJoin"
   allowed values: [ForkJoin, CompletableFuture, Future, Guava, Stream, None]
 
 # Enable Synchronized Reordering in PJBDD
-bdd.pjbdd.synchronizeReordering = false
+bdd.pjbdd.synchronizeReordering = true
 
 # unique table's concurrency factor
 bdd.pjbdd.tableParallelism = 10000
 
 # Type of Table used in PJBDD
-bdd.pjbdd.tableType = "CASArray"
+bdd.pjbdd.tableType = "ConcurrentHashMap"
   allowed values: [ConcurrentHashBucket, ConcurrentHashMap, CASArray, Array]
 
 # Thread safe bdd operations.
