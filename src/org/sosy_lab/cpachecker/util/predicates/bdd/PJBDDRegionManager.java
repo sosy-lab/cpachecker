@@ -250,7 +250,7 @@ public class PJBDDRegionManager implements RegionManager {
     private String tableType = "ConcurrentHashMap";
 
     @Option(secure = true, description = "Enable Synchronized Reordering in PJBDD")
-    private boolean synchronizeReordering = true;
+    private boolean synchronizeReordering = false;
 
     @Option(secure = true, description = "Enable Apply Algorithm in PJBDD")
     private boolean useApply = true;
@@ -300,7 +300,7 @@ public class PJBDDRegionManager implements RegionManager {
           }
           break;
         default:
-          throw new IllegalArgumentException("Unknown DD type");
+          throw new IllegalArgumentException("Unknown DD type "+useDDType);
       }
 
       resolveProperties(builder);
