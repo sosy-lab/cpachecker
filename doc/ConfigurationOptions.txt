@@ -2669,11 +2669,12 @@ cpa.predicate.predmap.file = "predmap.txt"
 # Format for exporting predicates from precisions.
 cpa.predicate.predmap.predicateFormat = SMTLIB2
   enum:     [PLAIN, SMTLIB2, C]
-cpa.predicate.predmap.witnessPredicateFormat = C
-  enum:     [PLAIN, SMTLIB2, C]
+
+# List of formats for exporting predicates from precisions in witnesses.
+cpa.predicate.predmap.witnessPredicateFormats = [PredicateDumpFormat.C, PredicateDumpFormat.SMTLIB2]
 
 # file for exporting final predicate map as a witness file
-cpa.predicate.predmapWitness.file = "witness-predmap.yml"
+cpa.predicate.predmapWitness.file = "witness-predmap-%s.yml"
 
 # Specify whether to overapproximate quantified formula, if one or more
 # quantifiers couldn't be eliminated.(Otherwise an exception will be thrown)

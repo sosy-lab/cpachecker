@@ -15,7 +15,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.errorprone.annotations.concurrent.LazyInit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -187,7 +192,7 @@ public final class AstCfaRelation {
    * @return the node that starts the iteration statement at the given line and column if it could
    *     be uniquely determined
    */
-  public Optional<CFANode> getNodeForStatementLocation(int line, int column) {
+  public ImmutableSet<CFANode> getNodeForStatementLocation(int line, int column) {
     if (startingLocationToTightestStatement == null) {
       initializeMapFromStartingLocationToTightestStatement();
     }
@@ -200,10 +205,36 @@ public final class AstCfaRelation {
     if (statement.location().getStartingLineNumber() != line
         || statement.location().getStartColumnInLine() != column) {
       // We only want to match the exact starting location of the statement
-      return Optional.empty();
+      return ImmutableSet.of();
     }
 
-    return statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+    Optional<CFANode> firstNode =
+        statement.edges().stream().map(CFAEdge::getPredecessor).findFirst();
+
+    if (firstNode.isEmpty()) {
+      return ImmutableSet.of();
+    }
+
+    // Since blank edges are considered to be the same location, as they
+    // do not execute a statement, we add all nodes that are reachable by
+    // only using blank edges from the current node.
+    ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
+    Set<CFANode> visited = new HashSet<>();
+    List<CFANode> toVisit = new ArrayList<>(Collections.singleton(firstNode.orElseThrow()));
+
+    while (!toVisit.isEmpty()) {
+      CFANode currentNode = toVisit.remove(toVisit.size() - 1);
+      Set<CFANode> newNodes =
+          CFAUtils.leavingEdges(currentNode)
+              .filter(BlankEdge.class)
+              .transform(CFAEdge::getSuccessor)
+              .filter(node -> !visited.contains(node))
+              .toSet();
+      visited.addAll(newNodes);
+      nodes.addAll(newNodes);
+    }
+
+    return nodes.build();
   }
 
   private void initializeMapFromLineAndStartColumnToIfStructure() {

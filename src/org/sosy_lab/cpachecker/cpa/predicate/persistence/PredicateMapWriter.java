@@ -288,38 +288,63 @@ public final class PredicateMapWriter {
         AstCfaRelation astCfaRelation = cfa.orElseThrow().getAstCfaRelation();
 
         for (CFANode cfaNode : pLocation.keySet()) {
+          String functionName = cfaNode.getFunctionName();
+
           Optional<FileLocation> fileLocation =
               astCfaRelation.getStatementFileLocationForNode(cfaNode);
 
           if (fileLocation.isEmpty()) {
             // TODO: This should never happen, it is a bug in the AST-CFA relation.
-            continue;
-          }
 
-          entriesBuilder.add(
-              new PrecisionExchangeEntry(
-                  witnessExpressionType,
-                  new LocalPrecisionScope(
-                      LocationRecord.createLocationRecordAtStart(
-                          fileLocation.orElseThrow(), cfaNode.getFunctionName())),
-                  FluentIterable.from(pLocation.get(cfaNode))
-                      .transform(
-                          pFormula ->
-                              getPredicateString(
-                                  pFormula,
-                                  witnessPredicateFormat,
-                                  variableName ->
-                                      notInternalVariable(variableName)
-                                          && variableNameInFunction(
-                                              variableName, cfaNode.getFunctionName())
-                                          && variableInOriginalProgram(
-                                              variableName, astCfaRelation, cfaNode),
-                                  fmgr,
-                                  declarationBuilder))
-                      .filter(Optional::isPresent)
-                      .transform(Optional::orElseThrow)
-                      .toSet()
-                      .asList()));
+            // As a workaround, we export the predicates as function-scoped
+            // predicates, but this is not quite correct.
+            entriesBuilder.add(
+                new PrecisionExchangeEntry(
+                    witnessExpressionType,
+                    new FunctionPrecisionScope(functionName),
+                    FluentIterable.from(pLocation.get(cfaNode))
+                        .transform(
+                            pFormula ->
+                                getPredicateString(
+                                    pFormula,
+                                    witnessPredicateFormat,
+                                    name ->
+                                        notInternalVariable(name)
+                                            && variableNameInFunction(name, functionName),
+                                    fmgr,
+                                    declarationBuilder))
+                        .filter(Optional::isPresent)
+                        .transform(Optional::orElseThrow)
+                        .toSet()
+                        .asList()));
+
+          } else {
+
+            entriesBuilder.add(
+                new PrecisionExchangeEntry(
+                    witnessExpressionType,
+                    new LocalPrecisionScope(
+                        LocationRecord.createLocationRecordAtStart(
+                            fileLocation.orElseThrow(), cfaNode.getFunctionName())),
+                    FluentIterable.from(pLocation.get(cfaNode))
+                        .transform(
+                            pFormula ->
+                                getPredicateString(
+                                    pFormula,
+                                    witnessPredicateFormat,
+                                    variableName ->
+                                        notInternalVariable(variableName)
+                                            && variableNameInFunction(
+                                                variableName, cfaNode.getFunctionName())
+                                            && variableInOriginalProgram(
+                                                variableName, astCfaRelation, cfaNode),
+                                    fmgr,
+                                    declarationBuilder))
+                        .filter(Optional::isPresent)
+                        .transform(Optional::orElseThrow)
+                        .toSet()
+                        .asList()));
+          }
         }
       } else {
         // If no CFA is present, we cannot export local predicates

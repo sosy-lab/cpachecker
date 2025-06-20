@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -258,28 +259,21 @@ public class WitnessInvariantsExtractor {
     // candidate for the node
     for (Invariant invariant : invariants) {
       // For efficiency purposes, we match loop invariants differently to location invariants
-      Optional<CFANode> node;
+      Set<CFANode> nodes;
       if (invariant.isLoopInvariant()) {
-        node =
-            cfa.getAstCfaRelation()
-                .getNodeForIterationStatementLocation(invariant.getLine(), invariant.getColumn());
+        nodes =
+            cfa
+                .getAstCfaRelation()
+                .getNodeForIterationStatementLocation(invariant.getLine(), invariant.getColumn())
+                .stream()
+                .collect(Collectors.toSet());
       } else {
-        node =
+        nodes =
             cfa.getAstCfaRelation()
                 .getNodeForStatementLocation(invariant.getLine(), invariant.getColumn());
       }
 
-      if (node.isPresent()) {
-        candidateInvariants.add(
-            new ExpressionTreeLocationInvariant(
-                "Invariant matched at line "
-                    + invariant.getLine()
-                    + " with column "
-                    + invariant.getColumn(),
-                node.orElseThrow(),
-                invariant.getFormula(),
-                toCodeVisitorCache));
-      } else {
+      if (nodes.isEmpty()) {
         logger.log(
             Level.WARNING,
             "Could not find node for invariant at location ",
@@ -292,6 +286,18 @@ public class WitnessInvariantsExtractor {
                   + invariant.getLine()
                   + ":"
                   + invariant.getColumn());
+        }
+      } else {
+        for (CFANode node : nodes) {
+          candidateInvariants.add(
+              new ExpressionTreeLocationInvariant(
+                  "Invariant matched at line "
+                      + invariant.getLine()
+                      + " with column "
+                      + invariant.getColumn(),
+                  node,
+                  invariant.getFormula(),
+                  toCodeVisitorCache));
         }
       }
     }

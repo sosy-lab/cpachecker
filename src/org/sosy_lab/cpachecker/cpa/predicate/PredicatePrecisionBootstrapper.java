@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
@@ -68,6 +71,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.Converter.PrecisionConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessExpressionType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.Invariant;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.exchange.InvariantExchangeFormatTransformer;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
@@ -75,6 +79,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.FunctionPrecisionSco
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.GlobalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocalPrecisionScope;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionDeclaration;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionExchangeSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.PrecisionScope;
@@ -249,6 +254,102 @@ public final class PredicatePrecisionBootstrapper {
     return result;
   }
 
+  private Optional<BooleanFormula> parseLocalPredicate(
+      YAMLWitnessExpressionType pExpressionType,
+      String predicateString,
+      String commonDefinitions,
+      LocationRecord locationRecord,
+      Deque<String> callStack,
+      Scope programScope,
+      InvariantExchangeFormatTransformer transformer)
+      throws InterruptedException {
+    return switch (pExpressionType) {
+      case C -> {
+        try {
+          yield Optional.of(
+              toFormula(
+                  transformer.createExpressionTreeFromString(
+                      Optional.ofNullable(locationRecord.getFunction()),
+                      predicateString,
+                      locationRecord.getLine(),
+                      callStack,
+                      programScope)));
+        } catch (CPATransferException e) {
+          logger.logDebugException(e);
+          yield Optional.empty();
+        }
+      }
+      case ACSL -> {
+        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+        yield Optional.empty();
+      }
+      case SMTLIB ->
+          Optional.of(
+              formulaManagerView.parse(
+                  Joiner.on(System.lineSeparator())
+                      .join(ImmutableList.of(commonDefinitions, predicateString))));
+    };
+  }
+
+  private Optional<BooleanFormula> parseFunctionPredicate(
+      YAMLWitnessExpressionType pExpressionType,
+      String predicateString,
+      String commonDefinitions,
+      String functionName,
+      InvariantExchangeFormatTransformer transformer)
+      throws InterruptedException {
+    return switch (pExpressionType) {
+      case C -> {
+        try {
+          yield Optional.of(
+              toFormula(
+                  transformer.createExpressionTreeFromStringInFunctionScope(
+                      predicateString, functionName)));
+        } catch (CPATransferException e) {
+          logger.logDebugException(e);
+          yield Optional.empty();
+        }
+      }
+      case ACSL -> {
+        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+        yield Optional.empty();
+      }
+      case SMTLIB ->
+          Optional.of(
+              formulaManagerView.parse(
+                  Joiner.on(System.lineSeparator())
+                      .join(ImmutableList.of(commonDefinitions, predicateString))));
+    };
+  }
+
+  private Optional<BooleanFormula> parseGlobalPredicate(
+      YAMLWitnessExpressionType pExpressionType,
+      String predicateString,
+      String commonDefinitions,
+      InvariantExchangeFormatTransformer transformer)
+      throws InterruptedException {
+    return switch (pExpressionType) {
+      case C -> {
+        try {
+          yield Optional.of(
+              toFormula(transformer.createExpressionTreeFromStringInGlobalScope(predicateString)));
+        } catch (CPATransferException e) {
+          logger.logDebugException(e);
+          yield Optional.empty();
+        }
+      }
+      case ACSL -> {
+        logger.log(Level.WARNING, "ACSL expressions are not supported to exchange precision");
+        yield Optional.empty();
+      }
+      case SMTLIB ->
+          Optional.of(
+              formulaManagerView.parse(
+                  Joiner.on(System.lineSeparator())
+                      .join(ImmutableList.of(commonDefinitions, predicateString))));
+    };
+  }
+
   private PredicatePrecision parsePredicateWintess(final Path pWitnessFile)
       throws InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
@@ -267,46 +368,71 @@ public final class PredicatePrecisionBootstrapper {
           return result;
         }
 
-        ImmutableList.Builder<AbstractionPredicate> globalPredicatesBuilder =
-            ImmutableList.builder();
+        Builder<AbstractionPredicate> globalPredicatesBuilder = ImmutableList.builder();
         ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder =
             ImmutableSetMultimap.builder();
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder =
             ImmutableSetMultimap.builder();
 
         AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
+        String commonDefinitions =
+            FluentIterable.from(pExchangeSetEntry.getDeclarations())
+                .transform(PrecisionDeclaration::value)
+                .join(Joiner.on(System.lineSeparator()));
 
         for (PrecisionExchangeEntry precisionExchangeEntry : pExchangeSetEntry.getContent()) {
           PrecisionScope scope = precisionExchangeEntry.scope();
           if (scope instanceof GlobalPrecisionScope) {
+
             for (String predicateString : precisionExchangeEntry.values()) {
-              try {
-                globalPredicatesBuilder.add(
-                    abstractionManager.makePredicate(
-                        toFormula(
-                            transformer.createExpressionTreeFromStringInGlobalScope(
-                                predicateString))));
-              } catch (CPATransferException e) {
-                logger.logDebugException(e);
+
+              Optional<BooleanFormula> globalPredicate =
+                  parseGlobalPredicate(
+                      precisionExchangeEntry.format(),
+                      predicateString,
+                      commonDefinitions,
+                      transformer);
+
+              if (globalPredicate.isEmpty()) {
+                logger.logf(
+                    Level.WARNING,
+                    "The global predicate '%s' in witness file %s is invalid, ignoring it.",
+                    predicateString,
+                    pWitnessFile);
+                continue;
               }
+
+              globalPredicatesBuilder.add(
+                  abstractionManager.makePredicate(globalPredicate.orElseThrow()));
             }
           } else if (scope instanceof FunctionPrecisionScope pFunctionScope) {
             for (String predicateString : precisionExchangeEntry.values()) {
-              try {
-                functionPredicatesBuilder.put(
-                    pFunctionScope.getFunctionName(),
-                    abstractionManager.makePredicate(
-                        toFormula(
-                            transformer.createExpressionTreeFromStringInFunctionScope(
-                                predicateString, pFunctionScope.getFunctionName()))));
-              } catch (CPATransferException e) {
-                logger.logDebugException(e);
+
+              Optional<BooleanFormula> functionPredicate =
+                  parseFunctionPredicate(
+                      precisionExchangeEntry.format(),
+                      predicateString,
+                      commonDefinitions,
+                      pFunctionScope.getFunctionName(),
+                      transformer);
+              if (functionPredicate.isEmpty()) {
+                logger.logf(
+                    Level.WARNING,
+                    "Witness file %s contains an invalid function predicate for function %s, "
+                        + "ignoring it.",
+                    pWitnessFile,
+                    pFunctionScope.getFunctionName());
+                continue;
               }
+
+              functionPredicatesBuilder.put(
+                  pFunctionScope.getFunctionName(),
+                  abstractionManager.makePredicate(functionPredicate.orElseThrow()));
             }
           } else if (scope instanceof LocalPrecisionScope pLocalScope) {
             LocationRecord locationRecord = pLocalScope.getLocation();
 
-            Optional<CFANode> location =
+            Set<CFANode> location =
                 astCfaRelation.getNodeForStatementLocation(
                     locationRecord.getLine(), locationRecord.getColumn());
 
@@ -331,19 +457,30 @@ public final class PredicatePrecisionBootstrapper {
                 };
 
             for (String predicateString : precisionExchangeEntry.values()) {
-              try {
+
+              Optional<BooleanFormula> precisionFormula =
+                  parseLocalPredicate(
+                      precisionExchangeEntry.format(),
+                      predicateString,
+                      commonDefinitions,
+                      locationRecord,
+                      callStack,
+                      programScope,
+                      transformer);
+
+              for (CFANode loc : location) {
+                if (precisionFormula.isEmpty()) {
+                  logger.logf(
+                      Level.WARNING,
+                      "Witness file %s contains an invalid precision formula for location %s, "
+                          + "ignoring it.",
+                      pWitnessFile,
+                      loc);
+                  continue;
+                }
+
                 localPredicatesBuilder.put(
-                    location.orElseThrow(),
-                    abstractionManager.makePredicate(
-                        toFormula(
-                            transformer.createExpressionTreeFromString(
-                                Optional.ofNullable(locationRecord.getFunction()),
-                                predicateString,
-                                locationRecord.getLine(),
-                                callStack,
-                                programScope))));
-              } catch (CPATransferException e) {
-                logger.logDebugException(e);
+                    loc, abstractionManager.makePredicate(precisionFormula.orElseThrow()));
               }
             }
           } else {
