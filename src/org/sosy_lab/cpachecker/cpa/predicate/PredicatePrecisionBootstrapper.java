@@ -12,7 +12,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
@@ -368,7 +367,8 @@ public final class PredicatePrecisionBootstrapper {
           return result;
         }
 
-        Builder<AbstractionPredicate> globalPredicatesBuilder = ImmutableList.builder();
+        ImmutableList.Builder<AbstractionPredicate> globalPredicatesBuilder =
+            ImmutableList.builder();
         ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder =
             ImmutableSetMultimap.builder();
         ImmutableSetMultimap.Builder<CFANode, AbstractionPredicate> localPredicatesBuilder =

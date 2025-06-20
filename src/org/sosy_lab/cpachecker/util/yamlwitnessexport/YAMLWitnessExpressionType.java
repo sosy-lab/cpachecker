@@ -18,17 +18,15 @@ public enum YAMLWitnessExpressionType {
   SMTLIB;
 
   public static YAMLWitnessExpressionType fromPredicateFormat(PredicateDumpFormat pFormat) {
-    switch (pFormat) {
-      case C:
-        return YAMLWitnessExpressionType.C;
-      case SMTLIB2:
-        return YAMLWitnessExpressionType.SMTLIB;
-      default:
-        throw new IllegalArgumentException(
-            "Unsupported transformation from predicate dump format '"
-                + pFormat
-                + "' into a witness expression.");
-    }
+    return switch (pFormat) {
+      case C -> YAMLWitnessExpressionType.C;
+      case SMTLIB2 -> YAMLWitnessExpressionType.SMTLIB;
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported transformation from predicate dump format '"
+                  + pFormat
+                  + "' into a witness expression.");
+    };
   }
 
   @Override

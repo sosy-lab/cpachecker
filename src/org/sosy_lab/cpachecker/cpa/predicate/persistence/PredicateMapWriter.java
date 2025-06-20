@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.splitFormula;
 import static org.sosy_lab.cpachecker.util.expressions.ExpressionTrees.FUNCTION_DELIMITER;
 
@@ -260,28 +261,27 @@ public final class PredicateMapWriter {
 
       // Add all function predicates
       entriesBuilder.addAll(
-          FluentIterable.from(pFunction.keys())
-              .transform(
-                  functionName ->
-                      new PrecisionExchangeEntry(
-                          witnessExpressionType,
-                          new FunctionPrecisionScope(functionName),
-                          FluentIterable.from(pFunction.get(functionName))
-                              .transform(
-                                  pFormula ->
-                                      getPredicateString(
-                                          pFormula,
-                                          witnessPredicateFormat,
-                                          name ->
-                                              notInternalVariable(name)
-                                                  && variableNameInFunction(name, functionName),
-                                          fmgr,
-                                          declarationBuilder))
-                              .filter(Optional::isPresent)
-                              .transform(Optional::orElseThrow)
-                              .toSet()
-                              .asList()))
-              .toList());
+          transformedImmutableListCopy(
+              pFunction.keys(),
+              functionName ->
+                  new PrecisionExchangeEntry(
+                      witnessExpressionType,
+                      new FunctionPrecisionScope(functionName),
+                      FluentIterable.from(pFunction.get(functionName))
+                          .transform(
+                              pFormula ->
+                                  getPredicateString(
+                                      pFormula,
+                                      witnessPredicateFormat,
+                                      name ->
+                                          notInternalVariable(name)
+                                              && variableNameInFunction(name, functionName),
+                                      fmgr,
+                                      declarationBuilder))
+                          .filter(Optional::isPresent)
+                          .transform(Optional::orElseThrow)
+                          .toSet()
+                          .asList())));
 
       // Add all local predicates
       if (cfa.isPresent()) {
