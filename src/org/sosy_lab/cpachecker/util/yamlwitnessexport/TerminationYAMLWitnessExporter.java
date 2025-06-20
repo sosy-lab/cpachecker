@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.LocationRecord;
 
 public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter {
-  public TerminationYAMLWitnessExporter(Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
+  public TerminationYAMLWitnessExporter(
+      Configuration pConfig, CFA pCfa, Specification pSpecification, LogManager pLogger)
       throws InvalidConfigurationException {
     super(pConfig, pCfa, pSpecification, pLogger);
   }
@@ -40,7 +41,8 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     return pFormula.replaceAll("\\b\\w+::", "");
   }
 
-  private InvariantEntry processSupportingInvariant(SupportingInvariant pSupportingInvariant, CFANode pLoopHead) {
+  private InvariantEntry processSupportingInvariant(
+      SupportingInvariant pSupportingInvariant, CFANode pLoopHead) {
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
             pLoopHead.getLeavingEdge(0).getFileLocation(),
@@ -53,8 +55,8 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         locationRecord);
   }
 
-  private void constructWitness(Multimap<Loop, TerminationArgument> pTerminationArguments, Path pPath)
-      throws IOException {
+  private void constructWitness(
+      Multimap<Loop, TerminationArgument> pTerminationArguments, Path pPath) throws IOException {
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
     for (Loop loop : pTerminationArguments.keys()) {
@@ -72,21 +74,24 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
   }
 
   /**
-   * Export YAML witness from termination arguments in form of ranking functions and supporting invariants.
-   * Termination property is supported only by witnesses of version 2.1 and higher.
+   * Export YAML witness from termination arguments in form of ranking functions and supporting
+   * invariants. Termination property is supported only by witnesses of version 2.1 and higher.
    *
    * @param pTerminationArguments in the form of ranking functions and supporting invariants.
    */
-  public void export(Multimap<Loop, TerminationArgument> pTerminationArguments, PathTemplate pOutputFileTemplate)
-      throws IOException{
+  public void export(
+      Multimap<Loop, TerminationArgument> pTerminationArguments, PathTemplate pOutputFileTemplate)
+      throws IOException {
 
     for (YAMLWitnessVersion witnessVersion : ImmutableSet.copyOf(witnessVersions)) {
       Path outputFile = pOutputFileTemplate.getPath(witnessVersion.toString());
-        switch (witnessVersion) {
-          case V2 -> logger.log(Level.SEVERE, "Format in version 2.0 does not support termination witnesses.");
-          case V2d1 -> constructWitness(pTerminationArguments, outputFile);
-        };
+      switch (witnessVersion) {
+        case V2 ->
+            logger.log(
+                Level.SEVERE, "Format in version 2.0 does not support termination witnesses.");
+        case V2d1 -> constructWitness(pTerminationArguments, outputFile);
+      }
+      ;
     }
   }
-
 }

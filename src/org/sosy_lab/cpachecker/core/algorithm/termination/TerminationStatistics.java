@@ -210,7 +210,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               pConfig,
               pCFA,
               Specification.alwaysSatisfied()
-                  .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+                  .withAdditionalProperties(
+                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
               pLogger);
     } else {
       terminationWitnessExporter = null;
