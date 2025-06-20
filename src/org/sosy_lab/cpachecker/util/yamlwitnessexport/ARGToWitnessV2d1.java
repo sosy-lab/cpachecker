@@ -43,7 +43,7 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   }
 
   /**
-   * Create an invariant in the format for witnesses version 3.0 for the abstractions encoded by the
+   * Create an invariant in the format for witnesses version 2.1 for the abstractions encoded by the
    * ARG states
    *
    * @param argStates the ARG states encoding abstractions of the state
