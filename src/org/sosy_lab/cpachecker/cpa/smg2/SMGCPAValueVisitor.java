@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBinaryTermPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslBooleanLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslCharLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslExistsPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslForallPredicate;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicateVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslRealLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslResultTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslStringLiteralTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTermVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
@@ -3322,8 +3324,87 @@ public class SMGCPAValueVisitor
   }
 
   @Override
-  public List<ValueAndSMGState> visit(AcslIdTerm pAcslBinaryTerm) throws CPATransferException {
-    return List.of();
+  public List<ValueAndSMGState> visit(AcslIdTerm pAcslIdTerm) throws CPATransferException {
+    AcslSimpleDeclaration acslDecl = pAcslIdTerm.getDeclaration();
+    String variableName = acslDecl.getQualifiedName();
+    AcslType variableType = pAcslIdTerm.getExpressionType();
+
+    ImmutableList.Builder<ValueAndSMGState> finalStatesBuilder = new ImmutableList.Builder<>();
+    if (variableType instanceof AcslCType) {
+      CType expressionType = ((AcslCType) variableType).getType();
+      CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(expressionType);
+
+
+      if (returnType instanceof CArrayType) {
+        // If the variable is a pointer to an array, deref that and return the array
+
+        // if the variable is an array, create/search new pointer to the array and return that
+        finalStatesBuilder.add(
+            evaluator.createAddressForLocalOrGlobalVariable(variableName, state));
+
+      } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
+        // Struct/Unions on the stack/global; return the memory location in a
+        // SymbolicIdentifier. This is then used as interpretation such that the Value
+        // of the memory location (on the stack) is used. This is used by assignments only as far as
+        // I know, i.e. when assigning a complete struct to a new variable.
+        finalStatesBuilder.add(
+            ValueAndSMGState.of(
+                SymbolicValueFactory.getInstance()
+                    .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
+                state));
+
+      } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
+        // Pointer/Array/Function types should return a Value that internally can be translated into
+        // a
+        // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
+        // offsets inside the points to edge). These have to be packaged into a AddressExpression
+        // with an 0 offset. Modifications of the offset of the address can be done by subsequent
+        // methods. (The check is fine because we already filtered out structs/unions)
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, expressionType);
+        // Now use the qualified name to get the actual global/stack memory location
+        for (ValueAndSMGState readValueAndState :
+            evaluator.readStackOrGlobalVariable(
+                state,
+                acslDecl.getQualifiedName(),
+                new NumericValue(BigInteger.ZERO),
+                sizeInBits,
+                SMGCPAExpressionEvaluator.getCanonicalType(expressionType))) {
+          Value readValue = readValueAndState.getValue();
+          SMGState newState = readValueAndState.getState();
+
+          if (returnType instanceof CFunctionType
+              || ((CPointerType) returnType).getType() instanceof CFunctionType) {
+            // TODO: lift into more general place
+            if (newState.isPointingToMallocZero(readValue)) {
+              newState = newState.withInvalidReadOfMallocZeroPointer(readValue);
+            }
+          }
+
+          Value addressValue;
+          if (evaluator.isPointerValue(readValue, newState)) {
+            addressValue = AddressExpression.withZeroOffset(readValue, returnType);
+          } else {
+            // Not a known pointer value, most likely an unknown value as symbolic identifier
+            addressValue = readValue;
+          }
+
+          finalStatesBuilder.add(ValueAndSMGState.of(addressValue, newState));
+        }
+
+      } else {
+        // Everything else should be readable and returnable directly; just return the Value
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, expressionType);
+        // Now use the qualified name to get the actual global/stack memory location
+        finalStatesBuilder.addAll(
+            evaluator.readStackOrGlobalVariable(
+                state,
+                acslDecl.getQualifiedName(),
+                new NumericValue(BigInteger.ZERO),
+                sizeInBits,
+                SMGCPAExpressionEvaluator.getCanonicalType(expressionType)));
+      }
+    }
+    return finalStatesBuilder.build();
   }
 
   @Override
