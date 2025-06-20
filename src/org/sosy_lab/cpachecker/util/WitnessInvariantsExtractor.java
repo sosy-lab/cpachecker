@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.io.MoreFiles;
@@ -27,7 +28,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -266,7 +266,7 @@ public class WitnessInvariantsExtractor {
                 .getAstCfaRelation()
                 .getNodeForIterationStatementLocation(invariant.getLine(), invariant.getColumn())
                 .stream()
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
       } else {
         nodes =
             cfa.getAstCfaRelation()
