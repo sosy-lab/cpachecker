@@ -13,6 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.SupportingInvariant;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfunctions.RankingFunction;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -41,6 +43,21 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
     return pFormula.replaceAll("\\b\\w+::", "");
   }
 
+  private String rightSideOfRankingFunction(String pRankingFunction) {
+    int firstEquals = pRankingFunction.indexOf('=');
+    return pRankingFunction.substring(firstEquals + 1).trim();
+  }
+
+  // The function replaces variable names with annotation \prev, i.e. x -> \prev(x)
+  private String addPrevKeyWordInFrontOfTheVariables(RankingFunction pRankingFunction) {
+    String rankingFunctionWithPrev = pRankingFunction.toString();
+    for (IProgramVar var : pRankingFunction.getVariables()) {
+      String newVarName = "\\prev(" + var + ")";
+      rankingFunctionWithPrev = rankingFunctionWithPrev.replace(var.toString(), newVarName);
+    }
+    return rankingFunctionWithPrev;
+  }
+
   private InvariantEntry processSupportingInvariant(
       SupportingInvariant pSupportingInvariant, CFANode pLoopHead) {
     LocationRecord locationRecord =
@@ -55,18 +72,37 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
         locationRecord);
   }
 
+  private InvariantEntry processRankingFunction(
+      RankingFunction pRankingFunction, CFANode pLoopHead) {
+    LocationRecord locationRecord =
+        LocationRecord.createLocationRecordAtStart(
+            pLoopHead.getLeavingEdge(0).getFileLocation(),
+            pLoopHead.getFunction().getFileLocation().getFileName().toString(),
+            pLoopHead.getFunctionName());
+    String prevRank =
+        rightSideOfRankingFunction(addPrevKeyWordInFrontOfTheVariables(pRankingFunction));
+    String currentRank = rightSideOfRankingFunction(pRankingFunction.toString());
+    return new InvariantEntry(
+        removeFunctionFromVarsName(prevRank + " > " + currentRank),
+        InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword(),
+        YAMLWitnessExpressionType.C,
+        locationRecord);
+  }
+
   private void constructWitness(
       Multimap<Loop, TerminationArgument> pTerminationArguments, Path pPath) throws IOException {
     ImmutableList.Builder<AbstractInvariantEntry> entries = new ImmutableList.Builder<>();
 
-    for (Loop loop : pTerminationArguments.keys()) {
+    for (Loop loop : pTerminationArguments.keySet()) {
+      CFANode loopHead = loop.getLoopNodes().first();
       for (TerminationArgument argument : pTerminationArguments.get(loop)) {
         // First construct reachability invariants that support the termination argument.
         for (SupportingInvariant supportingInvariant : argument.getSupportingInvariants()) {
-          entries.add(processSupportingInvariant(supportingInvariant, loop.getLoopNodes().first()));
+          entries.add(processSupportingInvariant(supportingInvariant, loopHead));
         }
 
-        // Construct transition invariants from ranking functions
+        // Construct transition invariants from ranking function
+        entries.add(processRankingFunction(argument.getRankingFunction(), loopHead));
       }
     }
     exportEntries(
