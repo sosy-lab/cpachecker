@@ -127,7 +127,6 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
                 Level.SEVERE, "Format in version 2.0 does not support termination witnesses.");
         case V2d1 -> constructWitness(pTerminationArguments, outputFile);
       }
-      ;
     }
   }
 }
