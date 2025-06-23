@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
@@ -435,6 +436,18 @@ public final class PredicatePrecisionBootstrapper {
             Set<CFANode> location =
                 astCfaRelation.getNodeForStatementLocation(
                     locationRecord.getLine(), locationRecord.getColumn());
+
+            // Sometimes the location is not exactly matched, so we do a fuzzy match by
+            // adding the next location. One example is a `for(a = 0; a < 6; ++a) {}` loop,
+            // where the location being matched is the `a = 0` statement, which is the closest
+            // statement when exporting a precision for the loop head at the location `a < 6`.
+            // TODO: This is a workaround, we should fix the AstCfaRelation to be more flexible
+            //  in what is desired i.e. we require matching at the statement and expression level.
+            location =
+                FluentIterable.from(location)
+                    .transformAndConcat(CFAUtils::successorsOf)
+                    .append(location)
+                    .toSet();
 
             if (location.isEmpty()) {
               logger.logf(

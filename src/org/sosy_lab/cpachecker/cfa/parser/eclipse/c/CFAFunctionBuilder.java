@@ -1662,7 +1662,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     // loopStart is the Node before the loop itself,
     // it is the one after the init edge(s)
     final CFANode loopStart =
-        createInitEdgeForForLoop(forStatement.getInitializerStatement(), fileLocation, loopInit);
+        createInitEdgeForForLoop(
+            forStatement.getInitializerStatement(),
+            // Use the file location of the actual initializer
+            astCreator.getLocation(forStatement.getInitializerStatement()),
+            loopInit);
     loopStart.setLoopStart();
 
     // loopEnd is Node before "counter++;"
