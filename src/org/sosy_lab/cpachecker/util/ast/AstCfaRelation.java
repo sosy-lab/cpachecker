@@ -221,6 +221,7 @@ public final class AstCfaRelation {
     ImmutableSet.Builder<CFANode> nodes = ImmutableSet.builder();
     Set<CFANode> visited = new HashSet<>();
     List<CFANode> toVisit = new ArrayList<>(Collections.singleton(firstNode.orElseThrow()));
+    nodes.add(firstNode.orElseThrow());
 
     while (!toVisit.isEmpty()) {
       CFANode currentNode = toVisit.remove(toVisit.size() - 1);
