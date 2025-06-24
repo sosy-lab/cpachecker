@@ -202,7 +202,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
   /*
    * This method computes line number depending on the pattern. For example, if the pattern is
-   * [!cond], then we want to add the edge only after the real statement in the program. Further, is
+   * [!cond], then we want to add the edge only after the real statement in the program. Further, if
    * the line number could not be parsed and the source state of the transition is annotated with
    * INIT then the intended line number is 0. Moreover, if the order is BEFORE, we want to include
    * the edge one line before the real operation and similarly for AFTER.

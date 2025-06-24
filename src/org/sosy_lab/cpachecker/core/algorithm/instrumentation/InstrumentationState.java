@@ -45,13 +45,14 @@ public class InstrumentationState {
   }
 
   public boolean isFunctionHeadAnnotation() {
-    return stateAnnotation == StateAnnotation.FUNCTIONHEAD;
+    return stateAnnotation == StateAnnotation.FUNCTIONHEADFORLOOP;
   }
 
   public boolean stateMatchesCfaNode(CFANode pCFANode) {
     return ((stateAnnotation == StateAnnotation.INIT || stateAnnotation == StateAnnotation.TRUE)
             && !name.equals("DUMMY"))
-        || (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart());
+        || (stateAnnotation == StateAnnotation.LOOPHEAD && pCFANode.isLoopStart()
+            || (stateAnnotation == StateAnnotation.FUNCTIONHEADFORLOOP && pCFANode.isLoopStart()));
   }
 
   @Override

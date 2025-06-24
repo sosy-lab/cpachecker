@@ -39,7 +39,7 @@ public class InstrumentationAutomaton {
     TRUE,
     LOOPHEAD,
     INIT,
-    FUNCTIONHEAD,
+    FUNCTIONHEADFORLOOP,
     FALSE
   }
 
@@ -358,7 +358,8 @@ public class InstrumentationAutomaton {
   }
 
   private void constructTerminationWithCountersAutomaton(int pIndex) {
-    InstrumentationState q1 = new InstrumentationState("q1", StateAnnotation.FUNCTIONHEAD, this);
+    InstrumentationState q1 =
+        new InstrumentationState("q1", StateAnnotation.FUNCTIONHEADFORLOOP, this);
     InstrumentationState q2 = new InstrumentationState("q2", StateAnnotation.LOOPHEAD, this);
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.LOOPHEAD, this);
     InstrumentationState q4 = new InstrumentationState("q4", StateAnnotation.FALSE, this);
