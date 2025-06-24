@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
-public class AutomatonWitnessV2ParserUtils {
+public class AutomatonWitnessParserUtils {
 
   public static class InvalidYAMLWitnessException extends InvalidConfigurationException {
     @Serial private static final long serialVersionUID = -5647551194742587246L;
@@ -40,6 +40,11 @@ public class AutomatonWitnessV2ParserUtils {
     public InvalidYAMLWitnessException(String pReason) {
       super(pReason);
     }
+  }
+
+  public enum WitnessYAMLVersion {
+    V2,
+    V21
   }
 
   /**
@@ -78,7 +83,7 @@ public class AutomatonWitnessV2ParserUtils {
     Scope result = pScope;
     if (result instanceof CProgramScope r) {
       result = r.withLocationDescriptor(pLocationDescriptor);
-      if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
+      if (pExplicitScope.isPresent() || (pFunctionStack != null && !pFunctionStack.isEmpty())) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
           functionName = pExplicitScope.orElseThrow();
@@ -106,7 +111,7 @@ public class AutomatonWitnessV2ParserUtils {
         MoreFiles.asByteSource(pPath),
         x -> {
           try {
-            AutomatonWitnessV2ParserUtils.parseYAML(x);
+            AutomatonWitnessParserUtils.parseYAML(x);
             return true;
           } catch (JsonProcessingException e) {
             return false;
@@ -129,12 +134,37 @@ public class AutomatonWitnessV2ParserUtils {
       entries =
           AutomatonGraphmlParser.handlePotentiallyGZippedInput(
               MoreFiles.asByteSource(pPath),
-              AutomatonWitnessV2ParserUtils::parseYAML,
+              AutomatonWitnessParserUtils::parseYAML,
               WitnessParseException::new);
     } catch (WitnessParseException e) {
       return Optional.empty();
     }
     return getWitnessTypeIfYAML(entries);
+  }
+
+  static Optional<WitnessYAMLVersion> getWitnessVersion(List<AbstractEntry> entries) {
+    if (entries.isEmpty()) {
+      return Optional.empty();
+    } else if (FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry
+                    && ((ViolationSequenceEntry) e)
+                        .getMetadata()
+                        .getFormatVersion()
+                        .equals("2.0")))) {
+      return Optional.of(WitnessYAMLVersion.V2);
+    } else if (FluentIterable.from(entries)
+        .allMatch(
+            e ->
+                (e instanceof ViolationSequenceEntry
+                    && ((ViolationSequenceEntry) e)
+                        .getMetadata()
+                        .getFormatVersion()
+                        .equals("2.1")))) {
+      return Optional.of(WitnessYAMLVersion.V21);
+    }
+    return Optional.empty();
   }
 
   static Optional<WitnessType> getWitnessTypeIfYAML(List<AbstractEntry> entries) {

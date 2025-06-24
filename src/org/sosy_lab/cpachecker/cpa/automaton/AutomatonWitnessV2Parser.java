@@ -19,6 +19,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.WitnessYAMLVersion;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 
@@ -62,16 +63,22 @@ public class AutomatonWitnessV2Parser {
    */
   private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
-    List<AbstractEntry> entries = AutomatonWitnessV2ParserUtils.parseYAML(pInputStream);
-    if (AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(entries)
+    List<AbstractEntry> entries = AutomatonWitnessParserUtils.parseYAML(pInputStream);
+    if (AutomatonWitnessParserUtils.getWitnessTypeIfYAML(entries)
         .orElseThrow()
         .equals(WitnessType.CORRECTNESS_WITNESS)) {
       AutomatonWitnessV2ParserCorrectness parser =
           new AutomatonWitnessV2ParserCorrectness(config, logger, shutdownNotifier, cfa);
       return parser.createCorrectnessAutomatonFromEntries(entries);
     } else {
-      AutomatonWitnessViolationV2Parser parser =
-          new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
+      AutomatonWitnessViolationV2Parser parser;
+      if (AutomatonWitnessParserUtils.getWitnessVersion(entries)
+          .orElseThrow()
+          .equals(WitnessYAMLVersion.V2)) {
+        parser = new AutomatonWitnessViolationV2Parser(config, logger, shutdownNotifier, cfa);
+      } else {
+        parser = new AutomatonWitnessViolationV21Parser(config, logger, shutdownNotifier, cfa);
+      }
       return parser.createViolationAutomatonFromEntries(entries);
     }
   }

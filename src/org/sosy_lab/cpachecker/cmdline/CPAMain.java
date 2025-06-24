@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.specification.Property.CoverFunctionCallProp
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -710,7 +710,7 @@ public class CPAMain {
         // stdout/stderr. This is not desired in CPAchecker. For the meaning of the error see:
         // https://stackoverflow.com/questions/11577420/fatal-error-11-content-is-not-allowed-in-prolog
         Optional<WitnessType> optionalWitnessTypeYAML =
-            AutomatonWitnessV2ParserUtils.getWitnessTypeIfYAML(options.witness);
+            AutomatonWitnessParserUtils.getWitnessTypeIfYAML(options.witness);
         if (optionalWitnessTypeYAML.isPresent()) {
           witnessType = optionalWitnessTypeYAML.orElseThrow();
         } else {

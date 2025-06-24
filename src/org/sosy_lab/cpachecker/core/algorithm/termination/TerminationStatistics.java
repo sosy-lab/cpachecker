@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
-import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -92,6 +91,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -109,7 +109,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
 
 @Options(prefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -124,10 +124,17 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
   @Option(
       secure = true,
-      name = "violation.witness",
+      name = "violation.witness.graphml",
       description = "Export termination counterexample to file as GraphML automaton ")
   @FileOption(Type.OUTPUT_FILE)
-  private Path violationWitness = Path.of("nontermination_witness.graphml");
+  private Path violationWitnessGraphml = Path.of("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.yaml",
+      description = "Export termination counterexample to file in YAML format ")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate violationWitnessYaml = PathTemplate.ofFormatString("nontermination_witness_%s.yml");
 
   @Option(
       secure = true,
@@ -135,28 +142,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       description = "Export termination counterexample to file as dot/graphviz automaton ")
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitnessDot = Path.of("nontermination_witness.dot");
-
-  @Option(
-      secure = true,
-      name = "yamlProofWitness",
-      description =
-          "The template from which the different "
-              + "versions of the correctness witnesses will be exported. "
-              + "Each version replaces the string '%s' "
-              + "with its version number.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate yamlWitnessOutputFileTemplate =
-      PathTemplate.ofFormatString("witness-%s.yml");
-
-  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
-  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
-  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
-  // added to make it possible to deactivate the export.
-  @Option(
-      secure = true,
-      name = "exportYamlCorrectnessWitness",
-      description = "export correctness witness in YAML format")
-  private boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -181,7 +166,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   protected final LogManager logger;
 
   protected final WitnessExporter witnessExporter;
-  private final TerminationYAMLWitnessExporter terminationWitnessExporter;
+  private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
@@ -204,18 +189,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
-    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
-      terminationWitnessExporter =
-          new TerminationYAMLWitnessExporter(
-              pConfig,
-              pCFA,
-              Specification.alwaysSatisfied()
-                  .withAdditionalProperties(
-                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
-              pLogger);
-    } else {
-      terminationWitnessExporter = null;
-    }
+    cexToWitnessEporter =
+        new CounterexampleToWitness(
+            pConfig,
+            pCFA,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+            pLogger);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
@@ -441,7 +421,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
+    if (pResult == Result.FALSE &&
+        (violationWitnessGraphml != null
+        || violationWitnessYaml != null
+        || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
@@ -452,14 +435,6 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(violations.hasNext());
       exportViolationWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
-    }
-
-    if (pResult == Result.TRUE) {
-      try {
-        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
-      } catch (IOException e) {
-        logger.log(SEVERE, "There is a problem when constructing the termination witness.");
-      }
     }
   }
 
@@ -528,9 +503,9 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               state -> Objects.equals(state, loopStartInCEX),
               provideQuasiInvariant);
 
-      if (violationWitness != null) {
+      if (violationWitnessGraphml != null) {
         WitnessToOutputFormatsUtils.writeWitness(
-            violationWitness,
+            violationWitnessGraphml,
             compressWitness,
             pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
             logger);
@@ -543,9 +518,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
             logger);
       }
-    } catch (InterruptedException e) {
+
+      if (violationWitnessYaml != null) {
+        cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
+      }
+    } catch (InterruptedException | IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not export termination witness due to interruption");
+          WARNING, e, "Could not export termination witness.");
     }
   }
 

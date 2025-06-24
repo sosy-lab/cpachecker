@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CheckReachesEleme
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.IsStatementEdge;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.Or;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessV2ParserUtils.InvalidYAMLWitnessException;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils.InvalidYAMLWitnessException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -57,10 +57,11 @@ import org.sosy_lab.cpachecker.util.ast.IfElement;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.WaypointRecord.WaypointType;
 
-class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
+class AutomatonWitnessViolationV2Parser extends AutomatonWitnessParserCommon {
 
   private final CParser cparser;
   private final ParserTools parserTools;
@@ -102,7 +103,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @param pDistanceToViolation the distance to the violation
    * @return an automaton transition encoding the reaching of the target
    */
-  private AutomatonTransition handleTarget(
+  protected AutomatonTransition handleTarget(
       String nextStateId, Integer followLine, Integer followColumn, Integer pDistanceToViolation) {
     // For the reachability specification the target waypoint should exactly point to where the
     // violation occurs. For no-overflow, instead it should point to the beginning of the full
@@ -142,7 +143,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @throws InterruptedException if the function call is interrupted
    * @throws WitnessParseException if the constraint cannot be parsed
    */
-  private AutomatonTransition handleAssumption(
+  protected AutomatonTransition handleAssumption(
       String nextStateId,
       ASTElement enterElement,
       int followLine,
@@ -180,7 +181,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @return a list of transitions matching the branching waypoint, empty if they could not be
    *     created
    */
-  private Optional<List<AutomatonTransition>> handleFollowWaypointAtStatement(
+  protected Optional<List<AutomatonTransition>> handleFollowWaypointAtStatement(
       AstCfaRelation pAstCfaRelation,
       String nextStateId,
       Integer followColumn,
@@ -254,6 +255,8 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
   }
 
   /**
+   * Transform a function return into automata transitions
+   *
    * @param nextStateId the id of the next state in the automaton being constructed
    * @param followLine the line at which the target is
    * @param followColumn the column at which the target is
@@ -264,7 +267,7 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
    * @return an automaton transition encoding the constraint on the returned value of a function
    * @throws InterruptedException if the function call is interrupted
    */
-  private AutomatonTransition handleFunctionReturn(
+  protected AutomatonTransition handleFunctionReturn(
       String nextStateId,
       Integer followLine,
       Integer followColumn,
@@ -337,9 +340,29 @@ class AutomatonWitnessViolationV2Parser extends AutomatonWitnessV2ParserCommon {
     return transitionBuilder.build();
   }
 
+  /**
+   * Separate the entries into segments and check whether the witness is valid witness v2.0
+   *
+   * @param pEntries the entries to segmentize
+   * @return the segmentized entries
+   * @throws InvalidYAMLWitnessException if the YAML witness is not valid
+   */
+  protected ImmutableList<PartitionedWaypoints> segmentizeAndCheck(List<AbstractEntry> pEntries)
+      throws InvalidYAMLWitnessException {
+    for (AbstractEntry entry : pEntries) {
+      if (entry instanceof ViolationSequenceEntry violationEntry) {
+        ImmutableList<PartitionedWaypoints> segmentizedEntries = segmentize(violationEntry);
+        checkTarget(violationEntry);
+        return segmentizedEntries;
+      }
+      break; // for now just take the first ViolationSequenceEntry in the witness V2
+    }
+    return ImmutableList.of();
+  }
+
   Automaton createViolationAutomatonFromEntries(List<AbstractEntry> pEntries)
       throws InterruptedException, InvalidYAMLWitnessException, WitnessParseException {
-    List<PartitionedWaypoints> segments = segmentize(pEntries);
+    List<PartitionedWaypoints> segments = segmentizeAndCheck(pEntries);
     // this needs to be called exactly WitnessAutomaton for the option
     // WitnessAutomaton.cpa.automaton.treatErrorsAsTargets to work
     final String automatonName = AutomatonGraphmlParser.WITNESS_AUTOMATON_NAME;
