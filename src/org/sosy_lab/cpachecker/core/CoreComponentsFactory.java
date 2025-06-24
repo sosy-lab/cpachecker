@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.TestGoalToConditio
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
+import org.sosy_lab.cpachecker.core.algorithm.termination.validation.TerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -321,6 +322,13 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
+      name = "algorithm.terminationWitnessCheck",
+      description =
+          "use termination witness validator to check a correctness witness for termination")
+  private boolean useTerminationWitnessValidation = false;
+
+  @Option(
+      secure = true,
       name = "algorithm.undefinedFunctionCollector",
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
@@ -465,6 +473,11 @@ public class CoreComponentsFactory {
       algorithm =
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
+    } else if (useTerminationWitnessValidation) {
+        logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+        algorithm =
+            new TerminationWitnessValidator(
+                cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =

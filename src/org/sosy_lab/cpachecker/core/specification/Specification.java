@@ -231,7 +231,7 @@ public final class Specification {
       }
       AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
       assert acslParser.areIsomorphicCFAs(cfa)
-          : "CFAs of task program and annotated progra m differ, "
+          : "CFAs of task program and annotated program differ, "
               + "annotated program is probably unrelated to this task";
       automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else if (AutomatonWitnessV2ParserUtils.isYAMLWitness(specFile)) {
