@@ -23,7 +23,6 @@ import threading
 import ssl
 import zipfile
 import zlib
-import json
 
 from getpass import getpass
 from time import sleep
@@ -90,8 +89,6 @@ HASH_CODE_CACHE_PATH = os.path.join(
 )
 
 VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
-
-DEFAULT_TOOL_NAME = "CPAchecker"
 
 
 class WebClientError(Exception):
@@ -433,28 +430,8 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        tool_information = self._request_tool_information(revision)
-        self._revision = tool_information.get("commitHash", revision)
-        self._tool_version = tool_information.get("toolVersion", self._revision)
-        self._tool_name = tool_information.get("toolName", DEFAULT_TOOL_NAME)
-
-        if "commitHash" not in tool_information:
-            logging.warning(
-                "Could not retrieve commit hash. Using fallback value: %s",
-                revision,
-            )
-
-        if "toolVersion" not in tool_information:
-            logging.warning(
-                "Could not retrieve the tool version. Using fallback value: %s",
-                self._revision,
-            )
-
-        if "toolName" not in tool_information:
-            logging.warning(
-                "Could not retrieve the tool name. Using fallback value: %s",
-                DEFAULT_TOOL_NAME,
-            )
+        self._revision = self._request_tool_revision(revision)
+        self._tool_name = self._request_tool_name()
 
         if re.match("^.*:[0-9]*$", revision) and revision != self._revision:
             logging.warning(
@@ -464,7 +441,7 @@ class WebInterface:
                 revision,
             )
         else:
-            logging.info("Using %s version %s.", self._tool_name, self._tool_version)
+            logging.info("Using %s version %s.", self._tool_name, self._revision)
 
         if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
@@ -525,19 +502,21 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _request_tool_information(self, revision):
-        path = "tool/info?revision=" + revision
-        (version_information, _) = self._request("GET", path)
-        return json.loads(version_information.decode("UTF-8"))
+    def _request_tool_revision(self, revision):
+        path = "tool/version_string?revision=" + revision
+        (resolved_svn_revision, _) = self._request("GET", path)
+        return resolved_svn_revision.decode("UTF-8")
+
+    def _request_tool_name(self):
+        path = "tool/name"
+        (tool_name, _) = self._request("GET", path)
+        return tool_name.decode("UTF-8")
 
     def tool_revision(self):
         return self._revision
 
     def tool_name(self):
         return self._tool_name
-
-    def tool_version(self):
-        return self._tool_version
 
     def _get_sha256_hash(self, path):
         path = os.path.abspath(path)
@@ -829,7 +808,7 @@ class WebInterface:
 
         # TODO use code from CPAchecker module, it add --stats and sets --timelimit,
         # instead of doing it here manually, too
-        if self._tool_name == DEFAULT_TOOL_NAME:
+        if self._tool_name == "CPAchecker":
             params.append(("option", "statistics.print=true"))
 
             if "softtimelimit" in rlimits:

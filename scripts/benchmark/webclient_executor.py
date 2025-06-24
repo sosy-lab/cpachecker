@@ -69,7 +69,7 @@ def init(config, benchmark):
         version=benchexec.__version__,
     )
 
-    benchmark.tool_version = _webclient.tool_version()
+    benchmark.tool_version = _webclient.tool_revision()
     benchmark.executable = "bin/cpachecker"
 
 
