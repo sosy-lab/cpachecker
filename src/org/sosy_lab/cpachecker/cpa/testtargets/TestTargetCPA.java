@@ -104,7 +104,7 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
           "If you choose target type to be FUN_CALL, you need to specify the target function.");
     }
 
-    precisionAdjustment = new TestTargetPrecisionAdjustment();
+    precisionAdjustment = new TestTargetPrecisionAdjustment(false);
     transferRelation =
         new TestTargetTransferRelation(
             targetEdge == null

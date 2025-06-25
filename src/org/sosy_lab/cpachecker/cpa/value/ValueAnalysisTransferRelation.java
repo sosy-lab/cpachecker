@@ -616,8 +616,8 @@ public class ValueAnalysisTransferRelation
     if (value.isExplicitlyKnown() && stats != null) {
       stats.incrementDeterministicAssumptions();
     }
-
-    if (!value.isExplicitlyKnown()) {
+    boolean extractorMode = false;
+    if (!value.isExplicitlyKnown() && !extractorMode) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
       AssigningValueVisitor avv =
