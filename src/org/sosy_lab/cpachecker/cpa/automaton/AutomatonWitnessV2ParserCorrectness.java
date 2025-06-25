@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
+  private final String ENTRY_STATE_ID = "singleState";
 
   AutomatonWitnessV2ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -45,26 +46,23 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
     super(pConfig, pLogger, pShutdownNotifier, pCFA);
   }
 
-  /**
-   * Create an automaton from a correctness witness. This automaton contains a single node and each
-   * invariant is marked as such on an edge which matches starts at that single state and returns to
-   * it. Each transition is only passed if the locations match.
-   *
-   * @param entries the entries of the correctness witness
-   * @return an automaton for the correctness witness
-   * @throws InterruptedException if the function is interrupted
-   * @throws WitnessParseException if there is some problem parsing the witness
-   */
-  Automaton createCorrectnessAutomatonFromEntries(List<AbstractEntry> entries)
-      throws InterruptedException, WitnessParseException {
+  protected String getUuidFromEntries(List<AbstractEntry> entries) throws WitnessParseException {
     String automatonName = "No Loop Invariant Present";
-    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
-    String entryStateId = "singleState";
+    for (AbstractEntry entry : entries) {
+      if (entry instanceof InvariantSetEntry invariantSetEntry) {
+        automatonName = invariantSetEntry.metadata.getUuid();
+      } else {
+        throw new WitnessParseException(
+            "The witness contained other statements than Loop and Location Invariants!");
+      }
+    }
+    return automatonName;
+  }
 
+  protected ImmutableList.Builder<AutomatonTransition> createTransitionsFromEntries(
+      List<AbstractEntry> entries) throws InterruptedException, WitnessParseException {
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
-
     ImmutableList.Builder<AutomatonTransition> transitions = new ImmutableList.Builder<>();
-
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
 
@@ -109,13 +107,13 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
               transitions.add(
                   new AutomatonTransition.Builder(
                           new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
-                          entryStateId)
+                          ENTRY_STATE_ID)
                       .withCandidateInvariants(invariant)
                       .build());
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
               transitions.add(
                   new AutomatonTransition.Builder(
-                          new CheckCoversColumnAndLine(column, line), entryStateId)
+                          new CheckCoversColumnAndLine(column, line), ENTRY_STATE_ID)
                       .withCandidateInvariants(invariant)
                       .build());
             } else {
@@ -124,20 +122,38 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
             }
           }
         }
-        automatonName = invariantSetEntry.metadata.getUuid();
       } else {
         throw new WitnessParseException(
             "The witness contained other statements than Loop Invariants!");
       }
     }
+    return transitions;
+  }
 
+  /**
+   * Create an automaton from a correctness witness. This automaton contains a single node and each
+   * invariant is marked as such on an edge which matches starts at that single state and returns to
+   * it. Each transition is only passed if the locations match.
+   *
+   * @param entries the entries of the correctness witness
+   * @return an automaton for the correctness witness
+   * @throws InterruptedException if the function is interrupted
+   * @throws WitnessParseException if there is some problem parsing the witness
+   */
+  Automaton createCorrectnessAutomatonFromEntries(List<AbstractEntry> entries)
+      throws InterruptedException, WitnessParseException {
+    ImmutableList<AutomatonTransition> automatonTransitions =
+        createTransitionsFromEntries(entries).build();
     List<AutomatonInternalState> automatonStates =
         ImmutableList.of(
-            new AutomatonInternalState(entryStateId, transitions.build(), false, false, true));
+            new AutomatonInternalState(ENTRY_STATE_ID, automatonTransitions, false, false, true));
+    Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
 
     Automaton automaton;
     try {
-      automaton = new Automaton(automatonName, automatonVariables, automatonStates, entryStateId);
+      automaton =
+          new Automaton(
+              getUuidFromEntries(entries), automatonVariables, automatonStates, ENTRY_STATE_ID);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(
           "The witness automaton generated from the provided Witness V2 is invalid!", e);

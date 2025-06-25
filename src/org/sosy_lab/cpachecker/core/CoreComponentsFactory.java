@@ -474,10 +474,10 @@ public class CoreComponentsFactory {
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if (useTerminationWitnessValidation) {
-        logger.log(Level.INFO, "Using validator for violation witnesses for termination");
-        algorithm =
-            new TerminationWitnessValidator(
-                cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
+      logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+      algorithm =
+          new TerminationWitnessValidator(
+              cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =

@@ -91,7 +91,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
@@ -134,7 +133,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       name = "violation.witness.yaml",
       description = "Export termination counterexample to file in YAML format ")
   @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate violationWitnessYaml = PathTemplate.ofFormatString("nontermination_witness_%s.yml");
+  private PathTemplate violationWitnessYaml =
+      PathTemplate.ofFormatString("nontermination_witness_%s.yml");
 
   @Option(
       secure = true,
@@ -421,10 +421,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE &&
-        (violationWitnessGraphml != null
-        || violationWitnessYaml != null
-        || violationWitnessDot != null)) {
+    if (pResult == Result.FALSE
+        && (violationWitnessGraphml != null
+            || violationWitnessYaml != null
+            || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached.stream()
               .filter(AbstractStates::isTargetState)
@@ -523,8 +523,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         cexToWitnessEporter.export(cexInfo, violationWitnessYaml, 0);
       }
     } catch (InterruptedException | IOException e) {
-      logger.logUserException(
-          WARNING, e, "Could not export termination witness.");
+      logger.logUserException(WARNING, e, "Could not export termination witness.");
     }
   }
 
