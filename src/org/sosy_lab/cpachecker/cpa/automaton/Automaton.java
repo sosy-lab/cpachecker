@@ -156,6 +156,23 @@ public class Automaton {
     return invariants;
   }
 
+  public Collection<ExpressionTree<AExpression>> getAllCandidateTransitionInvariants() {
+    Collection<ExpressionTree<AExpression>> invariants = new ArrayList<>(states.size());
+    ExpressionTree<AExpression> invariant;
+
+    for (AutomatonInternalState state : states) {
+      for (AutomatonTransition trans : state.getTransitions()) {
+        invariant = trans.getCandidateTransitionInvariants();
+        if (invariant == ExpressionTrees.<AExpression>getTrue()
+            || invariant == ExpressionTrees.<AExpression>getFalse()) {
+          continue;
+        }
+        invariants.add(invariant);
+      }
+    }
+    return invariants;
+  }
+
   /**
    * Assert this automaton fulfills the requirements of an ObserverAutomaton. This means the
    * Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element
