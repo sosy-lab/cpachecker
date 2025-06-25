@@ -55,6 +55,7 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }
