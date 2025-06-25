@@ -272,6 +272,7 @@ public class ValueAnalysisResultToLoopInvariants implements AutoCloseable {
         FluentIterable<MemoryLocation> varsAtNode =
             CFAUtils.traverseRecursively(edge.getRawAST().orElseThrow())
                 .filter(AIdExpression.class)
+                .filter(var -> var.getDeclaration() != null)
                 .transform(var -> MemoryLocation.forDeclaration(var.getDeclaration()));
         for (MemoryLocation var : varsAtNode) {
           builder.putAll(var, varsAtNode.filter(varV -> !var.equals(varV)));
