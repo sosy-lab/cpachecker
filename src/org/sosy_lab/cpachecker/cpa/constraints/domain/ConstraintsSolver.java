@@ -456,7 +456,7 @@ public class ConstraintsSolver {
         // Remember formulas that are needed and already processed, so that we can remove them in
         // the correct order if a lower formula needs to be removed.
         totalKept[0]++;
-        retainedFormulas.push(constraintOnStack);
+        retainedFormulas.addLast(constraintOnStack);
 
       } else {
         if (retainedFormulas.isEmpty()) {
@@ -469,11 +469,14 @@ public class ConstraintsSolver {
         } else {
           // We need to remove levels that we already iterated through, they are found in
           // retainedFormulas.
-          formulasToRemove.addAll(retainedFormulas);
+          formulasToRemove = retainedFormulas;
           totalRemoved[0] += retainedFormulas.size();
           // Remove from the top of the stack and restart iterator.
           removeMultipleFormulasFromTop(
               formulasToRemove, constraintsToCheck, totalKept, totalRemoved);
+          // Don't use the current iterator anymore!
+          // removeMultipleFormulasFromTop() calls this method anew itself.
+          break;
         }
       }
     }
@@ -485,11 +488,10 @@ public class ConstraintsSolver {
       Collection<BooleanFormula> constraintsToCheck,
       int[] totalKept,
       int[] totalRemoved) {
-    if (!formulasToRemove.isEmpty()) {
-      // Remove from the top.
-      stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
-      onlyRemoveFromTopOfStack(formulasToRemove);
-    }
+    assert !formulasToRemove.isEmpty();
+    // Remove from the top.
+    stats.persistentProverUsedIncrementallyFormulasPopdAndRepushed.inc();
+    onlyRemoveFromTopOfStack(formulasToRemove);
     buildProverStackFor(constraintsToCheck, totalKept, totalRemoved);
   }
 
@@ -538,8 +540,8 @@ public class ConstraintsSolver {
       // Remove formulas from the top of the stack until we removed the formula that needs to be
       // removed. Formulas that are removed but needed again are pushed back later.
       if (!formulasToRemove.isEmpty()) {
-        BooleanFormula formulaToRemove = formulasToRemove.pop();
-        assert constraintOnStack == formulaToRemove;
+        BooleanFormula formulaToRemove = formulasToRemove.removeFirst();
+        checkState(constraintOnStack == formulaToRemove);
         // Potentially problematic on level 1 for some solvers!
         persistentProver.pop();
         currentStack.remove();
