@@ -156,7 +156,7 @@ public class TestTargetCPA extends AbstractCPA implements ConfigurableProgramAna
 
     targetOptions = new TestTargetOptions(pConfig);
 
-    precisionAdjustment = new TestTargetPrecisionAdjustment();
+    precisionAdjustment = new TestTargetPrecisionAdjustment(false);
     transferRelation = new TestTargetTransferRelation(targetOptions, pCfa, pLogger);
   }
 
