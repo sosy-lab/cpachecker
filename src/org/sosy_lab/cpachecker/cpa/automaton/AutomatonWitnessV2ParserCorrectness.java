@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.ast.AstCfaRelation;
 import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.YAMLWitnessVersion;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInformationRecord;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.Invar
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 
 class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
-  private final String ENTRY_STATE_ID = "singleState";
+  protected final String ENTRY_STATE_ID = "singleState";
 
   AutomatonWitnessV2ParserCorrectness(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCFA)
@@ -77,6 +78,12 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
             Integer column = invariantEntry.getLocation().getColumn();
             Pair<Integer, Integer> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
+
+            // Check for transition loop invariants and do not throw an exception as they are in the future formats.
+            if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())
+                && invariantSetEntry.metadata.getFormatVersion().equals(YAMLWitnessVersion.V2d1.toString())) {
+              continue;
+            }
 
             // Parsing is expensive for long invariants, we therefore try to reduce it
             Pair<String, String> lookupKey = Pair.of(resultFunction.orElseThrow(), invariantString);
