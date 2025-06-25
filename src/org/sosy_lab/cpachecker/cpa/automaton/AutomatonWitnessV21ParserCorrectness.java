@@ -42,8 +42,8 @@ class AutomatonWitnessV21ParserCorrectness extends AutomatonWitnessV2ParserCorre
   }
 
   /**
-   * Extends the function from parser for version 2.0 to handle transition invariants in addition
-   * to the normal loop and location invariants.
+   * Extends the function from parser for version 2.0 to handle transition invariants in addition to
+   * the normal loop and location invariants.
    *
    * @param entries from the witness
    * @return the transitions containing invariants and transition invariants
@@ -53,7 +53,8 @@ class AutomatonWitnessV21ParserCorrectness extends AutomatonWitnessV2ParserCorre
   @Override
   protected ImmutableList.Builder<AutomatonTransition> createTransitionsFromEntries(
       List<AbstractEntry> entries) throws InterruptedException, WitnessParseException {
-    ImmutableList.Builder<AutomatonTransition> transitions = super.createTransitionsFromEntries(entries);
+    ImmutableList.Builder<AutomatonTransition> transitions =
+        super.createTransitionsFromEntries(entries);
     AstCfaRelation astCfaRelation = cfa.getAstCfaRelation();
     SetMultimap<Pair<Integer, Integer>, Pair<String, String>> lineToSeenInvariants =
         HashMultimap.create();
@@ -85,7 +86,8 @@ class AutomatonWitnessV21ParserCorrectness extends AutomatonWitnessV2ParserCorre
               continue;
             }
 
-            // The checks for the entries that contain unsupported entries is done as part of the 2.0 construction
+            // The checks for the entries that contain unsupported entries is done as part of the
+            // 2.0 construction
             if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
               Optional<IterationElement> optionalIterationStructure =
                   astCfaRelation.getIterationStructureStartingAtColumn(column, line);
@@ -99,8 +101,8 @@ class AutomatonWitnessV21ParserCorrectness extends AutomatonWitnessV2ParserCorre
 
               transitions.add(
                   new AutomatonTransition.Builder(
-                      new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
-                      ENTRY_STATE_ID)
+                          new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
+                          ENTRY_STATE_ID)
                       .withCandidateTransitionInvariants(invariant)
                       .build());
             }

@@ -79,9 +79,13 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessParserCommon {
             Pair<Integer, Integer> position = Pair.of(line, column);
             String invariantType = invariantEntry.getType();
 
-            // Check for transition loop invariants and do not throw an exception as they are in the future formats.
+            // Check for transition loop invariants and do not throw an exception as they are in the
+            // future formats.
             if (invariantType.equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())
-                && invariantSetEntry.metadata.getFormatVersion().equals(YAMLWitnessVersion.V2d1.toString())) {
+                && invariantSetEntry
+                    .metadata
+                    .getFormatVersion()
+                    .equals(YAMLWitnessVersion.V2d1.toString())) {
               continue;
             }
 

@@ -154,7 +154,8 @@ class AutomatonTransition {
     }
 
     @CanIgnoreReturnValue
-    Builder withCandidateTransitionInvariants(ExpressionTree<AExpression> pCandidateTransitionInvariants) {
+    Builder withCandidateTransitionInvariants(
+        ExpressionTree<AExpression> pCandidateTransitionInvariants) {
       candidateTransitionInvariants = pCandidateTransitionInvariants;
       return this;
     }
