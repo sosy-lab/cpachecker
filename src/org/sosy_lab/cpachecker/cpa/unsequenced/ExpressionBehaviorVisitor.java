@@ -81,8 +81,8 @@ public class ExpressionBehaviorVisitor
         SideEffectInfo sideEffectInfo = new SideEffectInfo(loc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
         result.addSideEffect(sideEffectInfo);
         logger.logf(
-            Level.INFO,
-            sideEffectInfo.toString());
+            Level.INFO, "%s",
+            sideEffectInfo);
       }
     }
 
@@ -231,8 +231,8 @@ public class ExpressionBehaviorVisitor
           SideEffectKind.POINTER_DEREFERENCE);
       result.addSideEffect(sideEffectInfo);
       logger.logf(
-          Level.INFO,
-          sideEffectInfo.toString());
+          Level.INFO,"%s",
+          sideEffectInfo);
     }
 
     return result;
