@@ -18,11 +18,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -60,6 +62,30 @@ public class UnseqBehaviorAnalysisState
   // === Side effect management ===
   public ImmutableMap<String, ImmutableSet<SideEffectInfo>> getSideEffectsInFun() {
     return sideEffectsInFun;
+  }
+
+  public Set<SideEffectInfo> getAllPointerSideEffects() {
+    return sideEffectsInFun.values().stream()
+        .flatMap(Set::stream)
+        .filter(se -> se.sideEffectKind() == SideEffectKind.POINTER_DEREFERENCE)
+        .collect(Collectors.toSet());
+  }
+
+  public UnseqBehaviorAnalysisState replaceSideEffectBatch(SideEffectInfo original, Set<SideEffectInfo> replacements) {
+    Map<String, Set<SideEffectInfo>> updated = new HashMap<>();
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : sideEffectsInFun.entrySet()) {
+      Set<SideEffectInfo> set = new HashSet<>(entry.getValue());
+      if (set.remove(original)) {
+        set.addAll(replacements);
+      }
+      updated.put(entry.getKey(), set);
+    }
+    return new UnseqBehaviorAnalysisState(
+        UnseqUtils.toImmutableSideEffectsMap(updated),
+        calledFunctionStack,
+        detectedConflicts,
+        tmpToOriginalExprMap,
+        logger);
   }
 
   // === Conflict tracking ===

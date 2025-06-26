@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
 public class ExpressionAnalysisSummary {
-
   private final Set<SideEffectInfo> sideEffects = new HashSet<>();
   private final Set<CBinaryExpression> unsequencedBinaryExprs = new HashSet<>();
   private final Map<CRightHandSide, Set<SideEffectInfo>> sideEffectsPerSubExpr =

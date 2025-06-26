@@ -11,12 +11,31 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/**
+ * Records side-effect information caused by a program operation,
+ * such as a memory write or read through a pointer or global variable.
+ *
+ * @param memoryLocation the location that was read from or written to;
+ *                       If sideEffectKind is POINTER_DEREFERENCE, then memoryLocation refers to the pointer variable,
+ *                       not the actual target address (which may be unknown at this point).
+ * @param accessType the type of access performed: either READ or WRITE.
+ * @param cfaEdge the CFA edge on which the side effect occurs, useful for diagnostics.
+ * @param sideEffectKind the kind of memory access: global variable, pointer dereference, etc.
+ */
 public record SideEffectInfo(
-    MemoryLocation memoryLocation, AccessType accessType, CFAEdge cfaEdge) {
+    MemoryLocation memoryLocation,
+    AccessType accessType,
+    CFAEdge cfaEdge,
+    SideEffectKind sideEffectKind) {
 
   public enum AccessType {
     WRITE,
     READ
+  }
+
+  public enum SideEffectKind {
+    GLOBAL_VARIABLE,
+    POINTER_DEREFERENCE,
   }
 
   public boolean isWrite() {
@@ -27,15 +46,26 @@ public record SideEffectInfo(
     return accessType == AccessType.READ;
   }
 
+  public boolean isPointerAccess() {
+    return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE;
+  }
+
   @Override
   public String toString() {
+    String locInfo =
+        (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE)
+        ? "pointer " + memoryLocation.toString()
+        : memoryLocation.toString();
+
     return String.format(
-        "%s@%s at %s (line %d, col %d) %s",
-        memoryLocation.getExtendedQualifiedName(),
+        "[%s] %s@%s at %s (line %d, col %d) %s",
+        sideEffectKind,
+        locInfo,
         accessType,
         cfaEdge.getFileLocation().getNiceFileName(),
         cfaEdge.getFileLocation().getStartingLineInOrigin(),
         cfaEdge.getFileLocation().getStartColumnInLine(),
         cfaEdge.getCode());
   }
+
 }

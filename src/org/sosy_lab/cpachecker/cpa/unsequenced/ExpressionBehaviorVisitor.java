@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
+import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -75,14 +76,13 @@ public class ExpressionBehaviorVisitor
     // 2. Handel side effect
     if (idExpr.getDeclaration() instanceof CVariableDeclaration decl) {
       MemoryLocation loc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
-      if (!loc.isOnFunctionStack()) {
-        result.addSideEffect(new SideEffectInfo(loc, accessType, cfaEdge));
+      // global variable
+      if (decl.isGlobal()) {
+        SideEffectInfo sideEffectInfo = new SideEffectInfo(loc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
+        result.addSideEffect(sideEffectInfo);
         logger.logf(
             Level.INFO,
-            "[GlobalAccess] %s on %s at %s",
-            accessType,
-            loc,
-            cfaEdge.getFileLocation());
+            sideEffectInfo.toString());
       }
     }
 
@@ -219,8 +219,21 @@ public class ExpressionBehaviorVisitor
 
     CExpression operand = pointerExpr.getOperand();
     ExpressionAnalysisSummary operandSummary = operand.accept(this);
-
     result.addSideEffects(operandSummary.getSideEffects());
+
+    if (operand instanceof CIdExpression idExpr) {
+      MemoryLocation pointerLoc = MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
+
+      SideEffectInfo sideEffectInfo = new SideEffectInfo(
+          pointerLoc,           // pointer itself address here
+          accessType,
+          cfaEdge,
+          SideEffectKind.POINTER_DEREFERENCE);
+      result.addSideEffect(sideEffectInfo);
+      logger.logf(
+          Level.INFO,
+          sideEffectInfo.toString());
+    }
 
     return result;
   }
