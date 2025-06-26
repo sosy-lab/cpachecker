@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
@@ -109,6 +110,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.CounterexampleToWitness;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.TerminationYAMLWitnessExporter;
 
 @Options(prefix = "termination")
 public class TerminationStatistics extends LassoAnalysisStatistics {
@@ -135,6 +137,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   @FileOption(Type.OUTPUT_FILE)
   private PathTemplate violationWitnessYaml =
       PathTemplate.ofFormatString("nontermination_witness_%s.yml");
+
+  @Option(
+      secure = true,
+      name = "yamlProofWitness",
+      description =
+          "The template from which the different "
+              + "versions of the correctness witnesses will be exported. "
+              + "Each version replaces the string '%s' "
+              + "with its version number.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate yamlWitnessOutputFileTemplate =
+      PathTemplate.ofFormatString("witness-%s.yml");
+
+  // Since the default of the 'yamlProofWitness' option is not null, it is not possible to
+  // deactivate it in the configs, since when it is 'null' the default value is used, which is not
+  // null. Due to this reason, the 'exportYamlCorrectnessWitness' option is
+  // added to make it possible to deactivate the export.
+  @Option(
+      secure = true,
+      name = "exportYamlCorrectnessWitness",
+      description = "export correctness witness in YAML format")
+  private boolean exportYamlCorrectnessWitness = true;
 
   @Option(
       secure = true,
@@ -166,6 +190,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   protected final LogManager logger;
 
   protected final WitnessExporter witnessExporter;
+  private final TerminationYAMLWitnessExporter terminationWitnessExporter;
   private final CounterexampleToWitness cexToWitnessEporter;
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
@@ -189,6 +214,19 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
             Specification.alwaysSatisfied()
                 .withAdditionalProperties(ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
             pCFA);
+    if (exportYamlCorrectnessWitness && yamlWitnessOutputFileTemplate != null) {
+      terminationWitnessExporter =
+          new TerminationYAMLWitnessExporter(
+              pConfig,
+              pCFA,
+              Specification.alwaysSatisfied()
+                  .withAdditionalProperties(
+                      ImmutableSet.of(CommonVerificationProperty.TERMINATION)),
+              pLogger);
+    } else {
+      terminationWitnessExporter = null;
+    }
+
     cexToWitnessEporter =
         new CounterexampleToWitness(
             pConfig,
@@ -435,6 +473,14 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Preconditions.checkState(violations.hasNext());
       exportViolationWitness((ARGState) pReached.getFirstState(), violations.next());
       Preconditions.checkState(!violations.hasNext());
+    }
+
+    if (pResult == Result.TRUE) {
+      try {
+        terminationWitnessExporter.export(terminationArguments, yamlWitnessOutputFileTemplate);
+      } catch (IOException e) {
+        logger.log(SEVERE, "There is a problem when constructing the termination witness.");
+      }
     }
   }
 
