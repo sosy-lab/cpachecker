@@ -135,23 +135,6 @@ public final class ErrorPathShrinker {
     return ImmutableList.copyOf(shortErrorPath);
   }
 
-  // this function is probably not needed, as the full path is believed to always end in the target
-  // state
-  /* This method iterates a path and copies all the edges until
-   * the target state into the result.
-   *
-   * @param path the Path to iterate */
-  /*
-  private static List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
-    int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);
-    if (targetPos > 0) {
-      return path.getFullPath().subList(0, targetPos);
-    } else {
-      return path.getFullPath();
-    }
-  }
-  */
-
   private void handleEdge(
       final CFAEdge cfaEdge,
       final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath,
