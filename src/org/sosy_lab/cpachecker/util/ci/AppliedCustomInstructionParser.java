@@ -559,7 +559,7 @@ public class AppliedCustomInstructionParser {
       if (!pIastArraySubscriptExpression.getArrayExpression().accept(this)) {
         return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
       }
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override
@@ -574,9 +574,9 @@ public class AppliedCustomInstructionParser {
           .getDeclaration()
           .getQualifiedName()
           .equals(pIastIdExpression.getDeclaration().getName())) {
-        return Boolean.TRUE;
+        return true;
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -594,7 +594,7 @@ public class AppliedCustomInstructionParser {
       if (!pIastBinaryExpression.getOperand1().accept(this)) {
         return pIastBinaryExpression.getOperand2().accept(this);
       }
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override
@@ -609,7 +609,7 @@ public class AppliedCustomInstructionParser {
 
     @Override
     protected Boolean visitDefault(final CExpression pExp) {
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -621,23 +621,23 @@ public class AppliedCustomInstructionParser {
     public Boolean visit(final CInitializerList pInitializerList) {
       for (CInitializer init : pInitializerList.getInitializers()) {
         if (init.accept(this)) {
-          return Boolean.TRUE;
+          return true;
         }
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
     public Boolean visit(final CDesignatedInitializer pCStructInitializerPart) {
       for (CDesignator des : pCStructInitializerPart.getDesignators()) {
         if (des.accept(this)) {
-          return Boolean.TRUE;
+          return true;
         }
       }
       if (pCStructInitializerPart.getRightHandSide() != null) {
         return pCStructInitializerPart.getRightHandSide().accept(this);
       }
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -648,14 +648,14 @@ public class AppliedCustomInstructionParser {
     @Override
     public Boolean visit(final CArrayRangeDesignator pArrayRangeDesignator) {
       if (pArrayRangeDesignator.getCeilExpression().accept(this)) {
-        return Boolean.TRUE;
+        return true;
       }
       return pArrayRangeDesignator.getFloorExpression().accept(this);
     }
 
     @Override
     public Boolean visit(final CFieldDesignator pFieldDesignator) {
-      return Boolean.FALSE;
+      return false;
     }
   }
 

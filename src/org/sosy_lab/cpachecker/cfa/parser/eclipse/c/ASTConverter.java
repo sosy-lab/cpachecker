@@ -987,7 +987,7 @@ class ASTConverter {
 
     @Override
     public Boolean visitDefault(CType pT) {
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override

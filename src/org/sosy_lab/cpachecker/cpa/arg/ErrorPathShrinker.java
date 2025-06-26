@@ -172,7 +172,7 @@ public final class ErrorPathShrinker {
     // add each edge to the shrinkedErrorPath in the first place
     if (currentCFAEdgeWithAssumptions != null) {
       Pair<CFAEdgeWithAssumptions, Boolean> normalPair =
-          Pair.of(currentCFAEdgeWithAssumptions, Boolean.FALSE);
+          Pair.of(currentCFAEdgeWithAssumptions, false);
       shortPath.addFirst(normalPair);
     }
 
@@ -487,7 +487,7 @@ public final class ErrorPathShrinker {
                 currentCFAEdgeWithAssumptions.getCFAEdge(),
                 assumptions.build(),
                 currentCFAEdgeWithAssumptions.getComment()),
-            Boolean.TRUE);
+            true);
 
     // empty assumptions for fresh accumulation for next edge in short path
     assumptions = ImmutableSet.builder();
