@@ -226,6 +226,13 @@ public class ValueAnalysisTransferRelation
                 + " are called. This can be unsound!")
     private Set<String> additionalAllowedUnsupportedFunctions = ImmutableSet.of();
 
+    @Option(
+        secure = true,
+        name = "extractorMode",
+        description =
+            "CPA is running in extractor mode of test case generation")
+    private boolean extractorMode = false;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -265,6 +272,10 @@ public class ValueAnalysisTransferRelation
     public long randomSamplingSeed() {
       return randomSamplingSeed;
     }
+
+    boolean isExtractorMode() {
+      return extractorMode;
+    }
   }
 
   private final ValueTransferOptions options;
@@ -285,6 +296,7 @@ public class ValueAnalysisTransferRelation
   private Value notScopedFieldValue;
 
   private boolean missingAssumeInformation;
+  private boolean safeAssume;
 
   /**
    * This class assigns symbolic values, if they are enabled. Otherwise, it forgets the memory
@@ -324,6 +336,7 @@ public class ValueAnalysisTransferRelation
     logger = pLogger;
 
     stats = pStats;
+    safeAssume = options.isExtractorMode();
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
@@ -675,9 +688,8 @@ public class ValueAnalysisTransferRelation
     if (value.isExplicitlyKnown() && stats != null) {
       stats.incrementDeterministicAssumptions();
     }
-    boolean extractorMode = false;
-    boolean onlySafeAssumptions = true;
-    if (!value.isExplicitlyKnown() && !extractorMode) {
+
+    if (!value.isExplicitlyKnown() && !safeAssume) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
       AssigningValueVisitor avv =
