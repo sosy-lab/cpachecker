@@ -13,7 +13,9 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSetMultimap;
+import java.io.IOException;
 import java.io.Serial;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -24,8 +26,11 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
 import javax.swing.ViewportLayout;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -50,8 +55,10 @@ import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
@@ -108,6 +115,21 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       description =
           "how many mutated test cases should be additionally generated (disabled if <= 0)")
   private int numMutations = 0;
+
+  @Option(
+      secure = true,
+      name = "useExtractor",
+      required = true,
+      description = "run extraction analysis everytime a test goal is found.")
+  private boolean useExtractor = true;
+
+  @Option(
+      secure = true,
+      name = "extractor.config",
+      required = true,
+      description = "configuration file for test case extraction with CPAchecker")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private @Nullable Path configFile = null;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -215,7 +237,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           }
         } catch (InterruptedException e1) {
           // may be thrown only be counterexample check, if not will be thrown again in finally
-          // block due to respective shutdown notifier call)
+          // block due to respective shutdown notifier call
           status = status.withPrecise(false);
         } finally {
 
@@ -246,8 +268,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-//                  runExtractorAlgo(pReached, reachedState, cexInfo);
-
+                  // no extractor analysis if no config file exists
+                  if (useExtractor == true) {
+                    runExtractorAlgo(pReached, reachedState, cexInfo);
+                  }
                   if (shouldReportCoveredErrorCallAsError()) {
                     addErrorStateWithTargetInformation(pReached);
                     shouldReturnFalse = true;
@@ -318,27 +342,57 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       final ReachedSet pReached,
       AbstractState reachedState,
       CounterexampleInfo cexInfo) {
+
     Algorithm extractionAlgorithm;
-    ConfigurableProgramAnalysis eCpa;
     try {
-      eCpa = factory.createCPA(cfa, spec);
-      extractionAlgorithm = CPAAlgorithm.create(eCpa, logger, config, shutdownNotifier);
-    } catch (InvalidConfigurationException | InterruptedException | CPAException e) {
+      extractionAlgorithm = createExtractorAlgorithm();
+    } catch (CPAException e) {
       logger.log(Level.FINE, "Could not create CPA Algorithm for extractor.");
       return;
     }
-    ARGState argState = (ARGState) reachedState;
     // initialisation of starting state and reachedSet
-
+    ARGState argState = (ARGState) reachedState;
     ARGState eStartState = createStartState(argState);
     processExpressions(cexInfo, eStartState);
-
     ReachedSet eReached = factory.createReachedSet(cpa);
     eReached.add(eStartState, pReached.getPrecision(reachedState));
-
+    // run value analysis and check what additional targets have been covered
     extractorRunCPAA(eReached, extractionAlgorithm);
-
     evaluateExtractorResult(eReached);
+  }
+
+  private Algorithm createExtractorAlgorithm()
+      throws CPAException {
+    Algorithm extractionAlgorithm = null;
+    try {
+      assert (configFile != null);
+      ConfigurationBuilder lConfigBuilder = Configuration.builder().loadFromFile(configFile);
+      Configuration lConfig = lConfigBuilder.build();
+      // todo create new logger and shutdownnotifier?
+      CoreComponentsFactory eFactory =
+          new CoreComponentsFactory(
+              lConfig, logger, shutdownNotifier, AggregatedReachedSets.empty());
+
+      ConfigurableProgramAnalysis eCpas = eFactory.createCPA(cfa, spec);
+      extractionAlgorithm = eFactory.createAlgorithm(eCpas, cfa, spec);
+
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.FINE,
+          "Could not create CPA Algorithm for extractor because of Invalid Configuration.");
+    } catch (IOException e) {
+      logger.log(Level.FINE,
+          "Could not create CPA Algorithm for extractor because of IO exception:" + e);
+    } catch (InterruptedException e) {
+      logger.log(Level.FINE,
+          "Could not create CPA Algorithm for extractor because of Interrupted Exception.");
+
+    } catch (Exception e) {
+      logger.log(Level.FINE, "Could not create CPA Algorithm for extractor.");
+    }
+    if (extractionAlgorithm == null) {
+      throw new CPAException("Could not create CPA Algorithm for extractor.");
+    }
+    return extractionAlgorithm;
   }
 
   private ARGState createStartState(ARGState argState) {
@@ -424,7 +478,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
     } catch (InterruptedException e1) {
       // may be thrown only be counterexample check, if not will be thrown again in finally
-      // block due to respective shutdown notifier call)
+      // block due to respective shutdown notifier call
       status = status.withPrecise(false);
     } finally {
     }
@@ -436,7 +490,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           forEach(element -> evaluateGoalState((ARGState) element));
   }
 
-  // checks for singe ARGState if the the targetEdge that led to that state is an uncovered test goal
+  // checks for singe ARGState if the targetEdge that led to that state is an uncovered test goal
   // if so, the goal is marked as covered
   private void evaluateGoalState(ARGState nextGoalState) {
     if (nextGoalState == null) {
