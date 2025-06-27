@@ -676,6 +676,7 @@ public class ValueAnalysisTransferRelation
       stats.incrementDeterministicAssumptions();
     }
     boolean extractorMode = false;
+    boolean onlySafeAssumptions = true;
     if (!value.isExplicitlyKnown() && !extractorMode) {
       ValueAnalysisState element = ValueAnalysisState.copyOf(state);
 
