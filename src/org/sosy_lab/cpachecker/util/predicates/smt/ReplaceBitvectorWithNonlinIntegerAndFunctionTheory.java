@@ -49,7 +49,8 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
   @Option(
       secure = true,
       description =
-          "Use signed wraparound (default: false, use unbounded domain for signed values)")
+          "Use signed wraparound when encoding bitvectors as integers, using non-linear arithmetic"
+              + " (default: false, use unbounded domain for signed values)")
   private boolean signedWraparound = false;
 
   IntegerFormula wrapAround(IntegerFormula formula, int size) {
