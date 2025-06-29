@@ -108,7 +108,6 @@ public class FormulaManagerView {
   enum Theory {
     UNSUPPORTED,
     INTEGER,
-    INTEGER_NLA,
     RATIONAL,
     BITVECTOR,
     FLOAT,
@@ -169,6 +168,13 @@ public class FormulaManagerView {
   @Option(
       secure = true,
       description =
+          "When using encodeBitvectorAs=INTEGER, this will modify the bitvector replacement"
+              + " behavior such that unsigned integers will wrap around.")
+  private boolean useNonlinearArithmeticForIntAsBv = false;
+
+  @Option(
+      secure = true,
+      description =
           "Theory to use as backend for floats. If different from FLOAT, the specified theory is"
               + " used to approximate floats. This can be used for solvers that do not support"
               + " floating-point arithmetic, or for increased performance. If UNSUPPORTED, solvers"
@@ -195,18 +201,18 @@ public class FormulaManagerView {
     manager = checkNotNull(pFormulaManager);
 
     // Check unsupported configurations first for good error messages instead of assertions
-    if (!ImmutableSet.of(
-            Theory.UNSUPPORTED,
-            Theory.BITVECTOR,
-            Theory.INTEGER,
-            Theory.INTEGER_NLA,
-            Theory.RATIONAL)
+    if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.BITVECTOR, Theory.INTEGER, Theory.RATIONAL)
         .contains(encodeBitvectorAs)) {
       throw new InvalidConfigurationException(
           "Invalid value "
               + encodeBitvectorAs
               + " for option cpa.predicate.encodeBitvectorAs. "
               + "This kind of theory approximation is not supported.");
+    }
+    if (encodeBitvectorAs != Theory.INTEGER && useNonlinearArithmeticForIntAsBv) {
+      throw new InvalidConfigurationException(
+          "Setting cpa.predicate.useNonlinearArithmeticForIntAsBv without"
+              + " cpa.predicate.encodeBitvectorAs = INTEGER is not supported.");
     }
     if (!ImmutableSet.of(Theory.UNSUPPORTED, Theory.FLOAT, Theory.INTEGER, Theory.RATIONAL)
         .contains(encodeFloatAs)) {
@@ -298,19 +304,22 @@ public class FormulaManagerView {
       rawBvmgr =
           switch (encodeBitvectorAs) {
             case BITVECTOR -> manager.getBitvectorFormulaManager();
-            case INTEGER ->
-                new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
+            case INTEGER -> {
+              if (useNonlinearArithmeticForIntAsBv) {
+                yield new ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
+                    wrappingHandler,
+                    manager.getBooleanFormulaManager(),
+                    manager.getIntegerFormulaManager(),
+                    config);
+              } else {
+                yield new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
                     manager.getIntegerFormulaManager(),
                     manager.getUFManager(),
                     config);
-            case INTEGER_NLA ->
-                new ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
-                    wrappingHandler,
-                    manager.getBooleanFormulaManager(),
-                    manager.getIntegerFormulaManager(),
-                    config);
+              }
+            }
             case RATIONAL ->
                 new ReplaceBitvectorWithNumeralAndFunctionTheory<>(
                     wrappingHandler,
@@ -997,7 +1006,9 @@ public class FormulaManagerView {
   }
 
   public <T extends Formula> BooleanFormula makeRangeConstraint(T term, boolean signed) {
-    if (getFormulaType(term).isBitvectorType() && encodeBitvectorAs == Theory.INTEGER_NLA) {
+    if (getFormulaType(term).isBitvectorType()
+        && encodeBitvectorAs == Theory.INTEGER
+        && useNonlinearArithmeticForIntAsBv) {
       final var bvManager = bitvectorFormulaManager;
       final var size = ((BitvectorType) getFormulaType(term)).getSize();
       if (signed) {

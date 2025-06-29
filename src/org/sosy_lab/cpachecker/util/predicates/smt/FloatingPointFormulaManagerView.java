@@ -45,7 +45,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     bitvectorFormulaManager = pBitvectorFormulaManager;
   }
 
-  // unwraps a type, unless it is a bitvector type, and encodeBitvectorsAs == INTEGER || INTEGER_NLA
+  // unwraps a type, unless it is a bitvector type, and useIntAsBitvector()
   private FormulaType<?> unwrapTypeUnlessBvAsInt(FormulaType<?> pType) {
     if (useIntAsBitvector() && pType.isBitvectorType()) {
       return pType;

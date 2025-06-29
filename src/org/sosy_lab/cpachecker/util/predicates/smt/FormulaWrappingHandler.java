@@ -60,7 +60,7 @@ final class FormulaWrappingHandler {
   }
 
   boolean useIntAsBitvector() {
-    return encodeBitvectorAs == Theory.INTEGER || encodeBitvectorAs == Theory.INTEGER_NLA;
+    return encodeBitvectorAs == Theory.INTEGER;
   }
 
   @SuppressWarnings("unchecked")
@@ -148,7 +148,6 @@ final class FormulaWrappingHandler {
       return switch (encodeBitvectorAs) {
         case BITVECTOR -> type;
         case INTEGER -> FormulaType.IntegerType;
-        case INTEGER_NLA -> FormulaType.IntegerType;
         case RATIONAL -> FormulaType.RationalType;
         case UNSUPPORTED ->
             throw new AssertionError(

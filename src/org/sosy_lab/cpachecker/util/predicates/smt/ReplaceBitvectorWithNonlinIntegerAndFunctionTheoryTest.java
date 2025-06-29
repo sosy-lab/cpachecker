@@ -51,7 +51,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
     wrappingHandler =
         new FormulaWrappingHandler(
             context.getFormulaManager(),
-            Theory.INTEGER_NLA,
+            Theory.INTEGER,
             Theory.FLOAT,
             Theory.INTEGER,
             new ReplaceIntegerEncodingOptions(Configuration.defaultConfiguration()));
