@@ -165,7 +165,7 @@ public class BitvectorFormulaManagerView extends BaseManagerView
 
   public BooleanFormula addRangeConstraint(
       BitvectorFormula term, BigInteger start, BigInteger end) {
-    if (manager instanceof ReplaceBitvectorWithNonlinIntegerAndFunctionTheory nonlinIntManager) {
+    if (manager instanceof ReplaceBitvectorWithNLAIntegerTheory nonlinIntManager) {
       return nonlinIntManager.addRangeConstraint(term, start, end);
     } else {
       throw new UnsupportedOperationException(

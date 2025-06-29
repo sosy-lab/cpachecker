@@ -314,7 +314,7 @@ public class FormulaManagerView {
             case BITVECTOR -> manager.getBitvectorFormulaManager();
             case INTEGER -> {
               if (useNonlinearArithmeticForIntAsBv) {
-                yield new ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
+                yield new ReplaceBitvectorWithNLAIntegerTheory(
                     wrappingHandler,
                     manager.getBooleanFormulaManager(),
                     manager.getIntegerFormulaManager(),

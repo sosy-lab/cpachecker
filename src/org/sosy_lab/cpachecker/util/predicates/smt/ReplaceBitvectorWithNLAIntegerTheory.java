@@ -28,13 +28,13 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @Options(prefix = "cpa.predicate")
-class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
+class ReplaceBitvectorWithNLAIntegerTheory extends BaseManagerView
     implements BitvectorFormulaManager {
 
   private final BooleanFormulaManager booleanFormulaManager;
   private final IntegerFormulaManager integerFormulaManager;
 
-  ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
+  ReplaceBitvectorWithNLAIntegerTheory(
       FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pBooleanFormulaManager,
       IntegerFormulaManager pIntegerFormulaManager,

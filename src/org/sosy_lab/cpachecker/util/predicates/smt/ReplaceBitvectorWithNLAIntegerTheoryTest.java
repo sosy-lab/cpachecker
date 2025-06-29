@@ -33,13 +33,13 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
-public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
+public class ReplaceBitvectorWithNLAIntegerTheoryTest {
 
   private static SolverContext context;
   private static IntegerFormulaManager ifm;
   private static BooleanFormulaManager bfm;
   private static FormulaWrappingHandler wrappingHandler;
-  private static ReplaceBitvectorWithNonlinIntegerAndFunctionTheory replacer;
+  private static ReplaceBitvectorWithNLAIntegerTheory replacer;
 
   @BeforeClass
   public static void initSolver() throws Exception {
@@ -59,7 +59,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
     ifm = context.getFormulaManager().getIntegerFormulaManager();
     bfm = context.getFormulaManager().getBooleanFormulaManager();
     replacer =
-        new ReplaceBitvectorWithNonlinIntegerAndFunctionTheory(
+        new ReplaceBitvectorWithNLAIntegerTheory(
             wrappingHandler, bfm, ifm, Configuration.defaultConfiguration());
   }
 
