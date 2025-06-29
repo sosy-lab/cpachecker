@@ -994,7 +994,7 @@ public class FormulaManagerView {
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
     if (wrappingHandler.useIntAsBitvector()) {
-      final var bvManager = bitvectorFormulaManager;
+      final BitvectorFormulaManagerView bvManager = bitvectorFormulaManager;
       return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
       return makeRangeConstraint(
@@ -1009,15 +1009,15 @@ public class FormulaManagerView {
     if (getFormulaType(term).isBitvectorType()
         && encodeBitvectorAs == Theory.INTEGER
         && useNonlinearArithmeticForIntAsBv) {
-      final var bvManager = bitvectorFormulaManager;
-      final var size = ((BitvectorType) getFormulaType(term)).getSize();
+      final BitvectorFormulaManagerView bvManager = bitvectorFormulaManager;
+      final int size = ((BitvectorType) getFormulaType(term)).getSize();
       if (signed) {
-        final var start = BigInteger.ONE.shiftLeft(size - 1).negate();
-        final var end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
+        final BigInteger start = BigInteger.ONE.shiftLeft(size - 1).negate();
+        final BigInteger end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
         return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
       } else {
-        final var start = BigInteger.ZERO;
-        final var end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
+        final BigInteger start = BigInteger.ZERO;
+        final BigInteger end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
         return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
       }
     } else {

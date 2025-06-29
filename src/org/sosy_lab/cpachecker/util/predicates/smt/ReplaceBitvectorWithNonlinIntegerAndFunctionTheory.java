@@ -55,8 +55,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
   IntegerFormula wrapAround(IntegerFormula formula, int size) {
     BigInteger upperLimit = BigInteger.TWO.pow(size);
     IntegerFormula upperLimitFormula = integerFormulaManager.makeNumber(upperLimit);
-    var ret = integerFormulaManager.modulo(formula, upperLimitFormula);
-    return ret;
+    return integerFormulaManager.modulo(formula, upperLimitFormula);
   }
 
   IntegerFormula wrapAroundSigned(IntegerFormula formula, int size) {
@@ -113,7 +112,7 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
 
   @Override
   public BitvectorFormula makeVariable(BitvectorType type, String pVar) {
-    final var newVar = integerFormulaManager.makeVariable(pVar);
+    final IntegerFormula newVar = integerFormulaManager.makeVariable(pVar);
     return wrap(type, newVar);
   }
 
@@ -306,13 +305,9 @@ class ReplaceBitvectorWithNonlinIntegerAndFunctionTheory extends BaseManagerView
       start = BigInteger.ZERO;
     }
     assert end.compareTo(BigInteger.ZERO) >= 0 : "Expect end of range to always be positive";
-    var ret =
-        booleanFormulaManager.and(
-            integerFormulaManager.lessOrEquals(
-                integerFormulaManager.makeNumber(start), unwrap(term)),
-            integerFormulaManager.lessOrEquals(
-                unwrap(term), integerFormulaManager.makeNumber(end)));
-    return ret;
+    return booleanFormulaManager.and(
+        integerFormulaManager.lessOrEquals(integerFormulaManager.makeNumber(start), unwrap(term)),
+        integerFormulaManager.lessOrEquals(unwrap(term), integerFormulaManager.makeNumber(end)));
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.cpachecker.util.predicates.smt.ReplaceIntegerWithBitvectorTheory.ReplaceIntegerEncodingOptions;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -69,12 +70,13 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
 
   @Test
   public void testUnsignedWrapAround() throws Exception {
-    final var values = new Integer[] {1, -1, 15, -15, 16, -16, 25, -25};
+    final Integer[] values = new Integer[] {1, -1, 15, -15, 16, -16, 25, -25};
     for (Integer value : values) {
-      var formula = ifm.makeNumber(BigInteger.valueOf(value));
-      var expected = ifm.makeNumber(BigInteger.valueOf(value).mod(BigInteger.valueOf(16)));
+      IntegerFormula formula = ifm.makeNumber(BigInteger.valueOf(value));
+      IntegerFormula expected =
+          ifm.makeNumber(BigInteger.valueOf(value).mod(BigInteger.valueOf(16)));
       try (ProverEnvironment prover = context.newProverEnvironment()) {
-        var constraint = ifm.equal(replacer.wrapAround(formula, 4), expected);
+        BooleanFormula constraint = ifm.equal(replacer.wrapAround(formula, 4), expected);
         prover.addConstraint(constraint);
         assertWithMessage("Formula %s should be trivially satisfiable".formatted(constraint))
             .that(prover.isUnsat())
@@ -85,13 +87,14 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
 
   @Test
   public void testSignedWrapAround() throws Exception {
-    final var values = new Integer[] {1, 7, 8, 15};
+    final Integer[] values = new Integer[] {1, 7, 8, 15};
     for (Integer value : values) {
-      var expectedNumber = value >= 8 ? BigInteger.valueOf(value - 16) : BigInteger.valueOf(value);
-      var formula = ifm.makeNumber(BigInteger.valueOf(value));
-      var expected = ifm.makeNumber(expectedNumber);
+      BigInteger expectedNumber =
+          value >= 8 ? BigInteger.valueOf(value - 16) : BigInteger.valueOf(value);
+      IntegerFormula formula = ifm.makeNumber(BigInteger.valueOf(value));
+      IntegerFormula expected = ifm.makeNumber(expectedNumber);
       try (ProverEnvironment prover = context.newProverEnvironment()) {
-        var constraint = ifm.equal(replacer.wrapAroundSigned(formula, 4), expected);
+        BooleanFormula constraint = ifm.equal(replacer.wrapAroundSigned(formula, 4), expected);
         prover.addConstraint(constraint);
         assertWithMessage("Formula %s should be trivially satisfiable".formatted(constraint))
             .that(prover.isUnsat())
@@ -103,8 +106,10 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
   @Test
   public void testRangeExtendExtractUnsigned() throws Exception {
     try (ProverEnvironment prover = context.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      final var base = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(8), "base");
-      final var larger = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
+      final BitvectorFormula base =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(8), "base");
+      final BitvectorFormula larger =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
       BooleanFormula range =
           replacer.addRangeConstraint(
@@ -114,7 +119,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       prover.addConstraint(extend);
       BooleanFormula extract = bfm.not(replacer.equal(replacer.extract(larger, 7, 0), base));
       prover.addConstraint(extract);
-      var unsat = prover.isUnsat();
+      boolean unsat = prover.isUnsat();
 
       assertWithMessage(
               "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
@@ -127,8 +132,10 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
   @Test
   public void testRangeExtendExtractSigned() throws Exception {
     try (ProverEnvironment prover = context.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      final var base = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(8), "base");
-      final var larger = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
+      final BitvectorFormula base =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(8), "base");
+      final BitvectorFormula larger =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(16), "larger");
 
       BooleanFormula range =
           replacer.addRangeConstraint(
@@ -138,7 +145,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       prover.addConstraint(extend);
       BooleanFormula extract = bfm.not(replacer.equal(replacer.extract(larger, 7, 0), base));
       prover.addConstraint(extract);
-      var unsat = prover.isUnsat();
+      boolean unsat = prover.isUnsat();
       assertWithMessage(
               "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
                   .formatted(range, extend, extract, unsat ? "" : prover.getModel()))
@@ -149,7 +156,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
 
   @Test
   public void testModulo() throws Exception {
-    final var testData =
+    final ImmutableList<Pair<Pair<Integer, Integer>, Integer>> testData =
         ImmutableList.of(
             Pair.of(Pair.of(0, 5), 0),
             Pair.of(Pair.of(-1, 5), -1),
@@ -162,13 +169,13 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
             Pair.of(Pair.of(-6, -5), -1),
             Pair.of(Pair.of(6, -5), 1));
     for (Pair<Pair<Integer, Integer>, Integer> testDatum : testData) {
-      var a = replacer.makeBitvector(4, testDatum.getFirst().getFirst());
-      var b = replacer.makeBitvector(4, testDatum.getFirst().getSecond());
-      var c = replacer.makeBitvector(4, testDatum.getSecond());
+      BitvectorFormula a = replacer.makeBitvector(4, testDatum.getFirst().getFirst());
+      BitvectorFormula b = replacer.makeBitvector(4, testDatum.getFirst().getSecond());
+      BitvectorFormula c = replacer.makeBitvector(4, testDatum.getSecond());
 
-      var input = replacer.remainder(a, b, true);
+      BitvectorFormula input = replacer.remainder(a, b, true);
       try (ProverEnvironment prover = context.newProverEnvironment()) {
-        var constraint = replacer.equal(input, c);
+        BooleanFormula constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
         assertWithMessage(
                 "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
@@ -181,7 +188,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
 
   @Test
   public void testDiv() throws Exception {
-    final var testData =
+    final ImmutableList<Pair<Pair<Integer, Integer>, Integer>> testData =
         ImmutableList.of(
             Pair.of(Pair.of(0, 5), 0),
             Pair.of(Pair.of(-1, 5), 0),
@@ -194,13 +201,13 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
             Pair.of(Pair.of(-6, -5), 1),
             Pair.of(Pair.of(6, -5), -1));
     for (Pair<Pair<Integer, Integer>, Integer> testDatum : testData) {
-      var a = replacer.makeBitvector(4, testDatum.getFirst().getFirst());
-      var b = replacer.makeBitvector(4, testDatum.getFirst().getSecond());
-      var c = replacer.makeBitvector(4, testDatum.getSecond());
+      BitvectorFormula a = replacer.makeBitvector(4, testDatum.getFirst().getFirst());
+      BitvectorFormula b = replacer.makeBitvector(4, testDatum.getFirst().getSecond());
+      BitvectorFormula c = replacer.makeBitvector(4, testDatum.getSecond());
 
-      var input = replacer.divide(a, b, true);
+      BitvectorFormula input = replacer.divide(a, b, true);
       try (ProverEnvironment prover = context.newProverEnvironment()) {
-        var constraint = replacer.equal(input, c);
+        BooleanFormula constraint = replacer.equal(input, c);
         prover.addConstraint(constraint);
         assertWithMessage(
                 "Formula %n%s for inputs%n%s%nshould be trivially satisfiable"
@@ -214,13 +221,15 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
   @Test
   public void testMultiply() throws Exception {
     try (ProverEnvironment prover = context.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      final var a = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(4), "a");
-      final var aWrapped =
+      final BitvectorFormula a =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(4), "a");
+      final BitvectorFormula aWrapped =
           wrappingHandler.wrap(
               FormulaType.getBitvectorTypeWithSize(4),
               replacer.wrapAroundSigned((IntegerFormula) wrappingHandler.unwrap(a), 4));
-      final var b = replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(4), "b");
-      final var bWrapped =
+      final BitvectorFormula b =
+          replacer.makeVariable(FormulaType.getBitvectorTypeWithSize(4), "b");
+      final BitvectorFormula bWrapped =
           wrappingHandler.wrap(
               FormulaType.getBitvectorTypeWithSize(4),
               replacer.wrapAroundSigned((IntegerFormula) wrappingHandler.unwrap(b), 4));
@@ -236,7 +245,7 @@ public class ReplaceBitvectorWithNonlinIntegerAndFunctionTheoryTest {
       BooleanFormula multiply =
           replacer.equal(replacer.multiply(a, b), replacer.multiply(aWrapped, bWrapped));
       prover.addConstraint(bfm.not(multiply));
-      var unsat = prover.isUnsat();
+      boolean unsat = prover.isUnsat();
       assertWithMessage(
               "Formulas {%n%s, %n%s, %n%s%n} should be trivially unsatisfiable, but found model: %n%s"
                   .formatted(rangeA, rangeB, multiply, unsat ? "" : prover.getModel()))

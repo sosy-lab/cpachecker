@@ -100,7 +100,7 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     } else if (useIntAsBitvector() && bitvectorFormulaManager != null) {
       // we don't use bitvectors but have found an integer --> consider this as an unsigned integer
       // representing a bitvector
-      final var bv =
+      final BitvectorFormula bv =
           bitvectorFormulaManager.makeBitvector(
               bitvectorFormulaManager.getLength(pNumber), (IntegerFormula) unwrap(pNumber));
       return manager.fromIeeeBitvector(bv, pTargetType);
@@ -115,8 +115,8 @@ public class FloatingPointFormulaManagerView extends BaseManagerView
     if (useBitvectors()) {
       return manager.toIeeeBitvector(pNumber);
     } else if (useIntAsBitvector() && bitvectorFormulaManager != null) {
-      final var bv = manager.toIeeeBitvector(pNumber);
-      final var retType = getFormulaType(bv);
+      final BitvectorFormula bv = manager.toIeeeBitvector(pNumber);
+      final FormulaType<BitvectorFormula> retType = getFormulaType(bv);
       return wrap(retType, bitvectorFormulaManager.toIntegerFormula(bv, false));
     } else {
       FloatingPointType type = (FloatingPointType) getFormulaType(pNumber);
