@@ -192,6 +192,14 @@ public class FormulaManagerView {
               + " are required by the analysis.")
   private Theory encodeIntegerAs = Theory.INTEGER;
 
+  @Option(
+      secure = true,
+      description =
+          "Rounding mode to use for float -> int conversion. The C standard defines this as"
+              + " TOWARD_ZERO (in C99: 6.3.1.4 Real floating and integer, p1), therefore this"
+              + " setting should not be modified for verifying C programs.")
+  private FloatingPointRoundingMode floatToIntRoundingMode = FloatingPointRoundingMode.TOWARD_ZERO;
+
   @VisibleForTesting
   public FormulaManagerView(
       FormulaManager pFormulaManager, Configuration config, LogManager pLogger)
@@ -1056,7 +1064,7 @@ public class FormulaManagerView {
       FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
     T ret =
         getFloatingPointFormulaManager()
-            .castTo(pFormula, isSigned, formulaType, FloatingPointRoundingMode.TOWARD_ZERO);
+            .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);
     if (wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
       return (T)
           manager

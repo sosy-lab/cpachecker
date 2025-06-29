@@ -2496,6 +2496,13 @@ cpa.predicate.encodeOverflowsWithUFs = false
 # file are global and declared before this function is called.
 cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 
+# Rounding mode to use for float -> int conversion. The C standard defines
+# this as TOWARD_ZERO (in C99: 6.3.1.4 Real floating and integer, p1),
+# therefore this setting should not be modified for verifying C programs.
+cpa.predicate.floatToIntRoundingMode = TOWARD_ZERO
+  enum:     [NEAREST_TIES_TO_EVEN, NEAREST_TIES_AWAY, TOWARD_POSITIVE, TOWARD_NEGATIVE,
+             TOWARD_ZERO]
+
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
