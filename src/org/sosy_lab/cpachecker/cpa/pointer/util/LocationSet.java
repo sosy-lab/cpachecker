@@ -8,15 +8,14 @@
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public interface LocationSet extends Comparable<LocationSet> {
 
-  boolean mayPointTo(MemoryLocation pLocation);
+  boolean mayPointTo(PointerTarget pLocation);
 
-  LocationSet addElements(Set<MemoryLocation> pLocations);
+  LocationSet addElements(Set<PointerTarget> pLocations);
 
-  LocationSet addElements(Set<MemoryLocation> pLocations, boolean pContainsNull);
+  LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull);
 
   LocationSet addElements(LocationSet pLocations);
 

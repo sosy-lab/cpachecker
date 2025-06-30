@@ -9,19 +9,18 @@
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class LocationSetTop implements LocationSet {
 
   public static final LocationSetTop INSTANCE = new LocationSetTop();
 
   @Override
-  public boolean mayPointTo(MemoryLocation pTarget) {
+  public boolean mayPointTo(PointerTarget pTarget) {
     return true;
   }
 
   @Override
-  public LocationSet addElements(Set<MemoryLocation> pTargets) {
+  public LocationSet addElements(Set<PointerTarget> pTargets) {
     return this;
   }
 
@@ -31,7 +30,7 @@ public class LocationSetTop implements LocationSet {
   }
 
   @Override
-  public LocationSet addElements(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+  public LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull) {
     return this;
   }
 

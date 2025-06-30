@@ -13,25 +13,20 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Ordering;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.SortedSet;
-
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import java.util.*;
 
 public class ExplicitLocationSet implements LocationSet {
 
-  private final SortedSet<MemoryLocation> explicitSet;
+  private final SortedSet<PointerTarget> explicitSet;
   private final boolean containsNull;
 
-  private ExplicitLocationSet(Set<MemoryLocation> pLocations) {
+  private ExplicitLocationSet(Set<PointerTarget> pLocations) {
     assert !pLocations.isEmpty() : "set should not be empty";
     explicitSet = ImmutableSortedSet.copyOf(pLocations);
     containsNull = false;
   }
 
-  private ExplicitLocationSet(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+  private ExplicitLocationSet(Set<PointerTarget> pLocations, boolean pContainsNull) {
     assert (!pLocations.isEmpty() || pContainsNull) : "set should not be empty";
     explicitSet = ImmutableSortedSet.copyOf(pLocations);
     containsNull = pContainsNull;
@@ -43,7 +38,7 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   @Override
-  public boolean mayPointTo(MemoryLocation pLocation) {
+  public boolean mayPointTo(PointerTarget pLocation) {
     return explicitSet.contains(pLocation);
   }
 
@@ -59,40 +54,40 @@ public class ExplicitLocationSet implements LocationSet {
   }
 
   @Override
-  public LocationSet addElements(Set<MemoryLocation> pLocations) {
+  public LocationSet addElements(Set<PointerTarget> pLocations) {
     if (explicitSet.containsAll(pLocations)) {
       return this;
     }
-    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<PointerTarget> builder = ImmutableSet.builder();
     builder.addAll(explicitSet);
     builder.addAll(pLocations);
     return new ExplicitLocationSet(builder.build(), containsNull);
   }
 
   @Override
-  public LocationSet addElements(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+  public LocationSet addElements(Set<PointerTarget> pLocations, boolean pContainsNull) {
     if (explicitSet.containsAll(pLocations) && containsNull == pContainsNull) {
       return this;
     }
-    ImmutableSet.Builder<MemoryLocation> builder = ImmutableSet.builder();
+    ImmutableSet.Builder<PointerTarget> builder = ImmutableSet.builder();
     builder.addAll(explicitSet);
     builder.addAll(pLocations);
     boolean newContainsNull = containsNull || pContainsNull;
     return new ExplicitLocationSet(builder.build(), newContainsNull);
   }
 
-  public static LocationSet from(MemoryLocation pLocation) {
+  public static LocationSet from(PointerTarget pLocation) {
     return new ExplicitLocationSet(ImmutableSet.of(pLocation));
   }
 
-  public static LocationSet from(Set<MemoryLocation> pLocations) {
+  public static LocationSet from(Set<PointerTarget> pLocations) {
     if (pLocations.isEmpty()) {
       return LocationSetBot.INSTANCE;
     }
     return new ExplicitLocationSet(pLocations);
   }
 
-  public static LocationSet from(Set<MemoryLocation> pLocations, boolean pContainsNull) {
+  public static LocationSet from(Set<PointerTarget> pLocations, boolean pContainsNull) {
     if (pLocations.isEmpty() && !pContainsNull) {
       return LocationSetBot.INSTANCE;
     }
@@ -182,7 +177,7 @@ public class ExplicitLocationSet implements LocationSet {
     return explicitSet.size();
   }
 
-  public Set<MemoryLocation> getExplicitLocations() {
+  public Set<PointerTarget> getExplicitLocations() {
     return explicitSet;
   }
 
