@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Set;
 import org.sosy_lab.common.Classes;
@@ -23,9 +23,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 
 @Options(prefix = "witness.validation.transitionInvariants")
 public class TerminationWitnessValidator implements Algorithm {
@@ -41,7 +41,7 @@ public class TerminationWitnessValidator implements Algorithm {
       Classes.getCodeLocation(NonTerminationWitnessValidator.class)
           .resolveSibling("config/specification/TerminatingStatements.spc");
 
-  private final Automaton witness;
+  private final Path witnessPath;
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -52,7 +52,7 @@ public class TerminationWitnessValidator implements Algorithm {
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
-      final ImmutableList<Automaton> pSpecificationAutomata)
+      final ImmutableSet<Path> pWitnessPath)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     cfa = pCfa;
@@ -60,15 +60,15 @@ public class TerminationWitnessValidator implements Algorithm {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (pSpecificationAutomata.size() < 1) {
+    if (pWitnessPath.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
     }
-    if (pSpecificationAutomata.size() != 1) {
+    if (pWitnessPath.size() != 1) {
       throw new InvalidConfigurationException(
           "Expect that only violation witness is part of the specification.");
     }
 
-    witness = pSpecificationAutomata.get(0);
+    witnessPath = pWitnessPath.stream().findAny().orElseThrow();
   }
 
   @Override
@@ -76,12 +76,15 @@ public class TerminationWitnessValidator implements Algorithm {
     Set<ExpressionTreeLocationInvariant> invariants;
     try {
       WitnessInvariantsExtractor invariantsExtractor =
-          new WitnessInvariantsExtractor(config, witness, logger, cfa, shutdownNotifier);
+          new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witnessPath);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidConfigurationException e) {
       throw new CPAException(
           "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
+    } catch (InvalidWitnessException e) {
+      throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
+    System.out.println(invariants);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

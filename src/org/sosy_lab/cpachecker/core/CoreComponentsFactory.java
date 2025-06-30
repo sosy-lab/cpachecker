@@ -477,7 +477,11 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
       algorithm =
           new TerminationWitnessValidator(
-              cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
+              cfa,
+              config,
+              logger,
+              shutdownNotifier,
+              specification.getPathToSpecificationAutomata().keySet());
     } else if (useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =

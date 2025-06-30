@@ -16,6 +16,8 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -104,7 +106,7 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = pInvariantEntry.getValue();
+    String invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry.getValue());
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -116,6 +118,26 @@ public class InvariantExchangeFormatTransformer {
         };
 
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+  }
+
+  /**
+   * In case the witness is termination witness, it may contain \prev keyword which is not parsed.
+   * We have to encode this keyword into the names of the variables.
+   *
+   * @param pInvariantString transition invariant string
+   * @return Invariant string with \prev encoded as __PREV suffix
+   */
+  private String replacePrevKeywordWithFreshVariables(String pInvariantString) {
+    Pattern pattern = Pattern.compile("\\\\prev\\(([^)]+)\\)");
+    Matcher matcher = pattern.matcher(pInvariantString);
+    StringBuilder result = new StringBuilder();
+
+    while (matcher.find()) {
+      String variable = matcher.group(1);
+      matcher.appendReplacement(result, variable + "__PREV");
+    }
+    matcher.appendTail(result);
+    return result.toString();
   }
 
   /**
