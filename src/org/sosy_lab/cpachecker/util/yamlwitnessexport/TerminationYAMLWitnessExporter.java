@@ -17,15 +17,18 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.termination.rankingfuncti
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.ast.IterationElement;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractInvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantEntry.InvariantRecordType;
@@ -60,9 +63,16 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
   private InvariantEntry processSupportingInvariant(
       SupportingInvariant pSupportingInvariant, CFANode pLoopHead) {
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(pLoopHead);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
-            pLoopHead.getLeavingEdge(0).getFileLocation(),
+            fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
     return new InvariantEntry(
@@ -74,9 +84,16 @@ public class TerminationYAMLWitnessExporter extends AbstractYAMLWitnessExporter 
 
   private InvariantEntry processRankingFunction(
       RankingFunction pRankingFunction, CFANode pLoopHead) {
+    Optional<IterationElement> iterationStructure =
+        getASTStructure().getTightestIterationStructureForNode(pLoopHead);
+    if (iterationStructure.isEmpty()) {
+      return null;
+    }
+    FileLocation fileLocation = iterationStructure.orElseThrow().getCompleteElement().location();
+
     LocationRecord locationRecord =
         LocationRecord.createLocationRecordAtStart(
-            pLoopHead.getLeavingEdge(0).getFileLocation(),
+            fileLocation,
             pLoopHead.getFunction().getFileLocation().getFileName().toString(),
             pLoopHead.getFunctionName());
     String prevRank =
