@@ -146,14 +146,18 @@ public class InvariantExchangeFormatTransformer {
 
   private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
     if (pInvariantEntry.getType().equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())
-      || pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+        || pInvariantEntry
+            .getType()
+            .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
       return true;
     }
     return false;
   }
 
   private boolean isTransitionInvariant(InvariantEntry pInvariantEntry) {
-    return pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword());
+    return pInvariantEntry
+        .getType()
+        .equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword());
   }
 
   /**

@@ -84,7 +84,6 @@ public class TerminationWitnessValidator implements Algorithm {
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
-    System.out.println(invariants);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }
