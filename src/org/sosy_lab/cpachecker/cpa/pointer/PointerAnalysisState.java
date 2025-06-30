@@ -92,6 +92,10 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
   public boolean isLessOrEqual(PointerAnalysisState pOtherState)
       throws CPAException, InterruptedException {
 
+    if (this == pOtherState) {
+      return true;
+    }
+
     if (isBottom()) {
       return true;
     }
@@ -104,7 +108,10 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       LocationSet thisTargets = getPointsToSet(source);
       LocationSet otherTargets = pOtherState.getPointsToSet(source);
 
-      if (!otherTargets.isTop() && !otherTargets.containsAll(thisTargets)) {
+      if (thisTargets.isTop() && !otherTargets.isTop()) {
+        return false;
+      }
+      if (!otherTargets.containsAll(thisTargets)) {
         return false;
       }
     }
@@ -132,12 +139,11 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
 
       LocationSet joinedTargets;
       if (thisTargets.isTop() || otherTargets.isTop()) {
-        joinedTargets = LocationSetTop.INSTANCE;
+        joinedMap = joinedMap.removeAndCopy(source);
       } else {
         joinedTargets = thisTargets.addElements(otherTargets);
+        joinedMap = joinedMap.putAndCopy(source, joinedTargets);
       }
-
-      joinedMap = joinedMap.putAndCopy(source, joinedTargets);
     }
 
     for (MemoryLocation source : pOtherState.pointsToMap.keySet()) {

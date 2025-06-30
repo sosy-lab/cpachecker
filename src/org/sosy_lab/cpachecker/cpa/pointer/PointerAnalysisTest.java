@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -46,7 +45,7 @@ public class PointerAnalysisTest {
     TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
-    System.out.println(result.getLog());
+    // System.out.println(result.getLog());
     result.assertIsSafe();
   }
 
