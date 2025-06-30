@@ -9,23 +9,43 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import com.google.common.collect.ImmutableList;
+import java.nio.file.Path;
+import java.util.Set;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 
+@Options(prefix = "witness.validation.transitionInvariants")
 public class TerminationWitnessValidator implements Algorithm {
 
-  private final Configuration config;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdown;
-  private final CFA cfa;
+  @Option(
+      secure = true,
+      required = true,
+      name = "terminatingStatements",
+      description =
+          "Path to automaton specification describing which statements let the program terminate.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path terminatingStatementsAutomaton =
+      Classes.getCodeLocation(NonTerminationWitnessValidator.class)
+          .resolveSibling("config/specification/TerminatingStatements.spc");
+
   private final Automaton witness;
+  private final CFA cfa;
+  private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
+  private final Configuration config;
 
   public TerminationWitnessValidator(
       final CFA pCfa,
@@ -38,7 +58,7 @@ public class TerminationWitnessValidator implements Algorithm {
     cfa = pCfa;
     config = pConfig;
     logger = pLogger;
-    shutdown = pShutdownNotifier;
+    shutdownNotifier = pShutdownNotifier;
 
     if (pSpecificationAutomata.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
@@ -53,6 +73,15 @@ public class TerminationWitnessValidator implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    Set<ExpressionTreeLocationInvariant> invariants;
+    try {
+      WitnessInvariantsExtractor invariantsExtractor =
+          new WitnessInvariantsExtractor(config, witness, logger, cfa, shutdownNotifier);
+      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException(
+          "Invalid Configuration while analyzing witness:\n" + e.getMessage(), e);
+    }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

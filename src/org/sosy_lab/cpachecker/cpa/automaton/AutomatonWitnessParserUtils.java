@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParse
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.AbstractEntry;
+import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.InvariantSetEntry;
 import org.sosy_lab.cpachecker.util.yamlwitnessexport.model.ViolationSequenceEntry;
 
 public class AutomatonWitnessParserUtils {
@@ -149,19 +150,29 @@ public class AutomatonWitnessParserUtils {
         .allMatch(
             e ->
                 (e instanceof ViolationSequenceEntry
-                    && ((ViolationSequenceEntry) e)
-                        .getMetadata()
-                        .getFormatVersion()
-                        .equals("2.0")))) {
+                        && ((ViolationSequenceEntry) e)
+                            .getMetadata()
+                            .getFormatVersion()
+                            .equals("2.0"))
+                    || (e instanceof InvariantSetEntry
+                        && ((InvariantSetEntry) e)
+                            .getMetadata()
+                            .getFormatVersion()
+                            .equals("2.0")))) {
       return Optional.of(WitnessYAMLVersion.V2);
     } else if (FluentIterable.from(entries)
         .allMatch(
             e ->
                 (e instanceof ViolationSequenceEntry
-                    && ((ViolationSequenceEntry) e)
-                        .getMetadata()
-                        .getFormatVersion()
-                        .equals("2.1")))) {
+                        && ((ViolationSequenceEntry) e)
+                            .getMetadata()
+                            .getFormatVersion()
+                            .equals("2.1"))
+                    || (e instanceof InvariantSetEntry
+                        && ((InvariantSetEntry) e)
+                            .getMetadata()
+                            .getFormatVersion()
+                            .equals("2.1")))) {
       return Optional.of(WitnessYAMLVersion.V21);
     }
     return Optional.empty();

@@ -474,7 +474,7 @@ public class CoreComponentsFactory {
           new NonTerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if (useTerminationWitnessValidation) {
-      logger.log(Level.INFO, "Using validator for violation witnesses for termination");
+      logger.log(Level.INFO, "Using validator for correctness witnesses for termination");
       algorithm =
           new TerminationWitnessValidator(
               cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
