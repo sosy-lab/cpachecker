@@ -106,7 +106,7 @@ public class InvariantExchangeFormatTransformer {
     Integer line = pInvariantEntry.getLocation().getLine();
     Optional<String> resultFunction =
         Optional.ofNullable(pInvariantEntry.getLocation().getFunction());
-    String invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry.getValue());
+    String invariantString = replacePrevKeywordWithFreshVariables(pInvariantEntry);
 
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
@@ -127,9 +127,13 @@ public class InvariantExchangeFormatTransformer {
    * @param pInvariantString transition invariant string
    * @return Invariant string with \prev encoded as __PREV suffix
    */
-  private String replacePrevKeywordWithFreshVariables(String pInvariantString) {
+  private String replacePrevKeywordWithFreshVariables(InvariantEntry pInvariantEntry) {
+    String invariantString = pInvariantEntry.getValue();
+    if (!isTransitionInvariant(pInvariantEntry)) {
+      return invariantString;
+    }
     Pattern pattern = Pattern.compile("\\\\prev\\(([^)]+)\\)");
-    Matcher matcher = pattern.matcher(pInvariantString);
+    Matcher matcher = pattern.matcher(invariantString);
     StringBuilder result = new StringBuilder();
 
     while (matcher.find()) {
@@ -138,6 +142,18 @@ public class InvariantExchangeFormatTransformer {
     }
     matcher.appendTail(result);
     return result.toString();
+  }
+
+  private boolean isLoopInvariant(InvariantEntry pInvariantEntry) {
+    if (pInvariantEntry.getType().equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())
+      || pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword())) {
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isTransitionInvariant(InvariantEntry pInvariantEntry) {
+    return pInvariantEntry.getType().equals(InvariantRecordType.TRANSITION_LOOP_INVARIANT.getKeyword());
   }
 
   /**
@@ -175,9 +191,7 @@ public class InvariantExchangeFormatTransformer {
                     line,
                     column,
                     invariantEntry.getLocation().getFunction(),
-                    invariantEntry
-                        .getType()
-                        .equals(InvariantRecordType.LOOP_INVARIANT.getKeyword())));
+                    isLoopInvariant(invariantEntry)));
 
             lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
           }
