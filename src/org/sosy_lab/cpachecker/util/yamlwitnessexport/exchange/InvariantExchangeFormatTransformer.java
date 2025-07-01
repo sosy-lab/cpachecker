@@ -195,7 +195,8 @@ public class InvariantExchangeFormatTransformer {
                     line,
                     column,
                     invariantEntry.getLocation().getFunction(),
-                    isLoopInvariant(invariantEntry)));
+                    isLoopInvariant(invariantEntry),
+                    isTransitionInvariant(invariantEntry)));
 
             lineToSeenInvariants.get(cacheLookupKey).add(invariantString);
           }

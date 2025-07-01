@@ -24,18 +24,21 @@ public class Invariant {
   private final int column;
   private final String function;
   private final boolean isLoopInvariant;
+  private final boolean isTransitionInvariant;
 
   public Invariant(
       ExpressionTree<AExpression> pFormula,
       int pLine,
       int pColumn,
       String pFunction,
-      boolean pIsLoopInvariant) {
+      boolean pIsLoopInvariant,
+      boolean pIsTransitionInvariant) {
     formula = Objects.requireNonNull(pFormula);
     line = pLine;
     column = pColumn;
     function = Objects.requireNonNull(pFunction);
     isLoopInvariant = pIsLoopInvariant;
+    isTransitionInvariant = pIsTransitionInvariant;
   }
 
   public int getLine() {
@@ -51,6 +54,10 @@ public class Invariant {
   }
 
   public boolean isLoopInvariant() {
+    return isLoopInvariant;
+  }
+
+  public boolean isTransitionInvariant() {
     return isLoopInvariant;
   }
 
