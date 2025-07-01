@@ -15,6 +15,6 @@ public enum InvalidationReason {
 
   @Override
   public String toString() {
-    return name().toLowerCase();
+    return name();
   }
 }

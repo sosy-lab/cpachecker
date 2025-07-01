@@ -19,6 +19,6 @@ SPDX-License-Identifier: Apache-2.0
     <rundefinition name="PointerAnalysis-SmallTest"/>
 
     <tasks name="Examples">
-        <include>../../doc/examples/*.c</include>
+        <include>../programs/pointer/*.yml</include>
     </tasks>
 </benchmark>
