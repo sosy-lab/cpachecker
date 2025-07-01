@@ -119,16 +119,15 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   @Option(
       secure = true,
       name = "useExtractor",
-      required = true,
       description = "run extraction analysis everytime a test goal is found.")
-  private boolean useExtractor = true;
+  private boolean useExtractor = false;
 
   @Option(
       secure = true,
       name = "extractor.config",
-      required = true,
+//      required = true,
       description = "configuration file for test case extraction with CPAchecker")
-  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path configFile = null;
 
   private final Algorithm algorithm;
