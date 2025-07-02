@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -106,6 +107,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "termination")
@@ -159,6 +161,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private final LocationStateFactory locFac;
   private @Nullable Loop nonterminatingLoop = null;
 
+  private final MachineModel machineModel;
+
   public TerminationStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     this(pConfig, pLogger, 0, pCFA);
@@ -170,6 +174,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
     pConfig.inject(this, TerminationStatistics.class);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
+    machineModel = pCFA.getMachineModel();
 
     witnessExporter =
         new WitnessExporter(
@@ -702,9 +707,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         termVal = ((ConstantTerm) entry.getValue()).getValue();
 
         if (termVal instanceof BigDecimal) {
+          // FIXME: Conversion from BigDecimal to FloatValue is lossy and may cause rounding issues
           litexpr =
               new CFloatLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.FLOAT, (BigDecimal) termVal);
+                  FileLocation.DUMMY,
+                  machineModel,
+                  CNumericTypes.FLOAT,
+                  FloatValue.fromString(FloatValue.Format.Float32, termVal.toString()));
         } else if (termVal instanceof BigInteger) {
           litexpr =
               CIntegerLiteralExpression.createDummyLiteral(
@@ -727,10 +736,10 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       return CIntegerLiteralExpression.createDummyLiteral(
           rat.numerator().divide(rat.denominator()).longValue(), CNumericTypes.INT);
     } else {
+      FloatValue n = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
+      FloatValue d = FloatValue.fromInteger(FloatValue.Format.Float32, rat.numerator());
       return new CFloatLiteralExpression(
-          FileLocation.DUMMY,
-          CNumericTypes.FLOAT,
-          new BigDecimal(rat.numerator()).divide(new BigDecimal(rat.denominator())));
+          FileLocation.DUMMY, machineModel, CNumericTypes.FLOAT, n.divide(d));
     }
   }
 

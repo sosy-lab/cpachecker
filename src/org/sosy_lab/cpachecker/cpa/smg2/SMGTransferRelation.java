@@ -208,6 +208,7 @@ public class SMGTransferRelation
     solver =
         new ConstraintsSolver(
             Configuration.defaultConfiguration(),
+            pMachineModel,
             smtSolver,
             formulaManager,
             converter,

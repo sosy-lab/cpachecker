@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -49,7 +49,7 @@ public class ExpressionTransformer {
     return new NumericValue(pValue);
   }
 
-  protected Value createNumericValue(BigDecimal pValue) {
+  protected Value createNumericValue(FloatValue pValue) {
     return new NumericValue(pValue);
   }
 
@@ -96,7 +96,7 @@ public class ExpressionTransformer {
   }
 
   public SymbolicExpression visit(AFloatLiteralExpression pIastFloatLiteralExpression) {
-    final BigDecimal value = pIastFloatLiteralExpression.getValue();
+    final FloatValue value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
     return SymbolicValueFactory.getInstance().asConstant(createNumericValue(value), floatType);

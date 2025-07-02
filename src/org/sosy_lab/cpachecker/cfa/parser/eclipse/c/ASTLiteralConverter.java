@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static java.lang.Character.isDigit;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ascii;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloat;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNative;
-import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * This Class contains functions, that convert literals (chars, numbers) from C-source into
@@ -40,7 +38,6 @@ import org.sosy_lab.cpachecker.util.floatingpoint.CFloatNativeAPI;
  */
 // Deprecated because of the temporary use of the CFloatNative class. This will be replaced by
 // CFloatImpl as soon as available.
-@SuppressWarnings("deprecation")
 class ASTLiteralConverter {
 
   private final MachineModel machine;
@@ -149,39 +146,42 @@ class ASTLiteralConverter {
   }
 
   @VisibleForTesting
-  CLiteralExpression parseFloatLiteral(
+  CFloatLiteralExpression parseFloatLiteral(
       FileLocation pFileLoc, CType pType, String pValueStr, IASTLiteralExpression pExp) {
+    String input = Ascii.toLowerCase(pValueStr);
 
     // According to section 6.4.4.2 "Floating constants" of the C standard,
     // an unsuffixed floating constant has type double. If suffixed by the letter f or F, it has
     // type float. If suffixed by the letter l or L, it has type long double.
-
-    // TODO: replace CFloatNative-class by CFloatImpl when available
-    CFloat cFloat;
-    if (pValueStr.endsWith("L") || pValueStr.endsWith("l")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_LONG_DOUBLE);
-    } else if (pValueStr.endsWith("F") || pValueStr.endsWith("f")) {
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_SINGLE);
+    FloatValue.Format format;
+    if (input.endsWith("l")) {
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float80;
+    } else if (input.endsWith("f")) {
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float32;
     } else {
-      // literal has no suffix declared
-      cFloat = new CFloatNative(pValueStr, CFloatNativeAPI.FP_TYPE_DOUBLE);
+      format = FloatValue.Format.Float64;
     }
 
-    if (cFloat.isInfinity()) {
-      if (cFloat.isNegative()) {
-        return CFloatLiteralExpression.forNegativeInfinity(pFileLoc, pType);
-      } else {
-        return CFloatLiteralExpression.forPositiveInfinity(pFileLoc, pType);
-      }
-    }
-
+    FloatValue value;
     try {
-      BigDecimal value = new BigDecimal(cFloat.toString());
-      return new CFloatLiteralExpression(pFileLoc, pType, value);
-    } catch (NumberFormatException e) {
+      // FloatValue.fromString allows some inputs that would not be legal in a C program.
+      // Specifically, it will parse special values like "inf" or "nan" and allows a "+" or "-" sign
+      // in front of the number. This is not a problem as the Eclipse CDT parser follows the C
+      // standard and will not recognize such floating point literals.
+      // For all inputs that we do encounter in this function FloatValue.fromString behaves exactly
+      // as specified by the C standard.
+      value = FloatValue.fromString(format, input);
+    } catch (IllegalArgumentException e) {
       throw parseContext.parseError(
-          String.format("unable to parse floating point literal (%s)", cFloat.toString()), pExp);
+          String.format("unable to parse floating point literal (%s)", pValueStr), pExp);
     }
+
+    // Round the parsed value to the target type
+    value = value.withPrecision(FloatValue.Format.fromCType(machine, pType));
+
+    return new CFloatLiteralExpression(pFileLoc, machine, pType, value);
   }
 
   @VisibleForTesting

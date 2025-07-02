@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreatorUsingCConverter;
@@ -118,8 +119,11 @@ public class ConstraintsSolver {
 
   private ConstraintsStatistics stats;
 
+  private final MachineModel machineModel;
+
   public ConstraintsSolver(
       final Configuration pConfig,
+      final MachineModel pMachineModel,
       final Solver pSolver,
       final FormulaManagerView pFormulaManager,
       final CtoFormulaConverter pConverter,
@@ -134,6 +138,7 @@ public class ConstraintsSolver {
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
     stats = pStats;
+    machineModel = pMachineModel;
 
     if (doCaching) {
       cache = new MatchingConstraintsCache();
@@ -352,7 +357,7 @@ public class ConstraintsSolver {
   }
 
   private FormulaCreator getFormulaCreator(String pFunctionName) {
-    return new FormulaCreatorUsingCConverter(converter, pFunctionName);
+    return new FormulaCreatorUsingCConverter(machineModel, converter, pFunctionName);
   }
 
   /**
