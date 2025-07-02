@@ -42,7 +42,7 @@ public class DssFixpointNotifier {
     return instance;
   }
 
-  public void waiting(String id) throws InterruptedException {
+  public void waiting(String id) {
     waiting.put(id, id);
     if (waiting.size() == connections) {
       connection

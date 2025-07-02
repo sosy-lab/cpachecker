@@ -39,9 +39,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DssWorkerBuilder {
 
-  public record Components(
-      ImmutableList<DssActor> actors, ImmutableList<? extends DssConnection> connections) {}
-
   private final CFA cfa;
   private final Specification specification;
 
@@ -89,13 +86,13 @@ public class DssWorkerBuilder {
 
   @CanIgnoreReturnValue
   public DssWorkerBuilder addAnalysisWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
-    String workerId = nextId(pNode.getId());
+    String workerId = pNode.getId();
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.put(
         new CommunicationId(workerId, DssCommunicationEntity.BLOCK),
         connection ->
             new DssAnalysisWorker(
-                nextId(pNode.getId()),
+                workerId,
                 pOptions,
                 connection,
                 pNode,
@@ -139,7 +136,7 @@ public class DssWorkerBuilder {
 
   @CanIgnoreReturnValue
   public DssWorkerBuilder addRootWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
-    String workerId = "root-worker-" + nextId(pNode.getId());
+    String workerId = pNode.getId();
     final LogManager logger = getLogger(pOptions, workerId);
     workerGenerators.put(
         new CommunicationId(workerId, DssCommunicationEntity.BLOCK),
@@ -156,10 +153,6 @@ public class DssWorkerBuilder {
         connection ->
             new DssObserverWorker(pId, connection, pNumberOfBlocks, messageFactory, logger));
     return this;
-  }
-
-  private String nextId(String pAdditionalIdentifier) {
-    return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }
 
   // Needed to forward exception handling to actual method and not the add* functions.

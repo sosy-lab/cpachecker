@@ -29,8 +29,9 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
     String serializedBlockState = pMessage.getAbstractStateContent(BlockState.class).get(STATE_KEY);
     Preconditions.checkNotNull(serializedBlockState);
-    Preconditions.checkArgument(!serializedBlockState.isBlank());
-    Preconditions.checkArgument(serializedBlockState.equals(blockNode.getId()));
+    Preconditions.checkArgument(
+        blockNode.getPredecessorIds().contains(serializedBlockState)
+            || blockNode.getSuccessorIds().contains(serializedBlockState));
     return new BlockState(
         DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,

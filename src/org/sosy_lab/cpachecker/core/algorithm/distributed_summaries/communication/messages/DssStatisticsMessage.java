@@ -47,7 +47,7 @@ public class DssStatisticsMessage extends DssMessage {
   }
 
   DssStatisticsMessage(String pSenderId, ImmutableMap<String, String> pContent) {
-    super(pSenderId, DssMessageType.RESULT, pContent);
+    super(pSenderId, DssMessageType.STATISTIC, pContent);
   }
 
   @Override

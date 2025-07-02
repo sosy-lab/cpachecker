@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import static org.sosy_lab.common.collect.Collections3.listAndElement;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -61,7 +63,7 @@ public class ContentBuilder {
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
     String fullKey =
-        Joiner.on(".").join(ImmutableList.<String>builder().addAll(level).add(pKey).build());
+        Joiner.on(".").join(listAndElement(level, pKey));
     contentBuilder.put(fullKey, pValue);
     return this;
   }

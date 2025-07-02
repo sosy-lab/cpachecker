@@ -24,7 +24,8 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
-   * messages according to the enum {@link MessageType}.
+   * messages according to the enum {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType}.
    *
    * @param pQueue the queue to forward
    */

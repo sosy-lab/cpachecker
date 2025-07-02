@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -56,11 +58,18 @@ public class DssMessageBroadcaster {
     }
   }
 
+  public void broadcastToIds(DssMessage message, ImmutableSet<String> ids) {
+    for (String id : ids) {
+      BlockingQueue<DssMessage> queue = connectionsBySenderId.get(id);
+      Objects.requireNonNull(queue, "No connection found for id: " + id).add(message);
+    }
+  }
+
   public void broadcastToAll(DssMessage message) {
     broadcast(message, DssCommunicationEntity.ALL);
   }
 
-  public void broadcastToBlock(DssMessage message) {
+  public void broadcastToBlocks(DssMessage message) {
     broadcast(message, DssCommunicationEntity.BLOCK);
   }
 

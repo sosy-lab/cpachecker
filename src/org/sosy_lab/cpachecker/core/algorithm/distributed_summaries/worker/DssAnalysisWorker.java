@@ -20,6 +20,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
@@ -160,6 +161,25 @@ public class DssAnalysisWorker extends DssWorker {
   @Override
   public boolean shutdownRequested() {
     return shutdown;
+  }
+
+  @Override
+  public void broadcast(Collection<DssMessage> pMessage) throws InterruptedException {
+    DssMessageBroadcaster broadcaster = getConnection().getBroadcaster();
+    for (DssMessage message : pMessage) {
+      sentMessages.inc();
+      switch (message.getType()) {
+        case PRECONDITION -> {
+          broadcaster.broadcastToObserver(message);
+          broadcaster.broadcastToIds(message, block.getSuccessorIds());
+        }
+        case VIOLATION_CONDITION -> {
+          broadcaster.broadcastToObserver(message);
+          broadcaster.broadcastToIds(message, block.getPredecessorIds());
+        }
+        case EXCEPTION, RESULT, STATISTIC -> broadcaster.broadcastToAll(message);
+      }
+    }
   }
 
   @Override

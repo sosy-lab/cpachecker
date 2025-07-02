@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -28,7 +27,7 @@ public abstract class DssWorker implements DssActor {
   private final String id;
 
   private final StatCounter receivedMessages;
-  private final StatCounter sentMessages;
+  protected final StatCounter sentMessages;
 
   /**
    * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
@@ -49,7 +48,7 @@ public abstract class DssWorker implements DssActor {
     // pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (DssMessage message : pMessage) {
       sentMessages.inc();
-      getConnection().getBroadcaster().broadcast(message, DssCommunicationEntity.ALL);
+      getConnection().getBroadcaster().broadcastToAll(message);
     }
   }
 

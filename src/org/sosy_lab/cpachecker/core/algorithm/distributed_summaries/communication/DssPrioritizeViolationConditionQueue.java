@@ -29,7 +29,7 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
-   * messages according to the enum {@link MessageType}.
+   * messages according to the enum {@link DssMessageType}.
    *
    * @param pQueue the queue to forward
    */
