@@ -298,7 +298,6 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
       LocationSet rhsTargets = pState.getPointsToSet(returnVar.orElseThrow());
       if (rhsTargets instanceof ExplicitLocationSet explicitSet) {
         Set<PointerTarget> newTargets = new HashSet<>();
-        // TODO check NULL
         boolean containsNull = explicitSet.containsNull();
 
         for (PointerTarget target : explicitSet.getExplicitLocations()) {

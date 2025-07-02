@@ -8,11 +8,10 @@
 
 #include <assert.h>
 
-extern void __VERIFIER_error();
 int main() {
   int a = 0;
   int *p = &a;
   p = &a;
-  assert(p != &a);
+  assert(p == &a);
   return 0;
 }
