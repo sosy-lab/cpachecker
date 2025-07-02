@@ -232,7 +232,7 @@ public class SMGCPABuiltins {
       throws CPATransferException {
 
     if (isExternalAllocationFunction(calledFunctionName)) {
-      return evaluateExternalAllocationFunction(cFCExpression, pState);
+      return evaluateExternalAllocationFunction(cFCExpression, pState, calledFunctionName);
     }
 
     return switch (calledFunctionName) {
@@ -720,7 +720,8 @@ public class SMGCPABuiltins {
               Level.FINE,
               "Returned unknown value with allocated memory for unknown function " + cFCExpression,
               pCfaEdge);
-          builder.addAll(evaluateExternalAllocationFunction(cFCExpression, checkedState));
+          builder.addAll(
+              evaluateExternalAllocationFunction(cFCExpression, checkedState, calledFunctionName));
         }
         yield builder.build();
       }
@@ -1316,9 +1317,10 @@ public class SMGCPABuiltins {
   }
 
   private List<ValueAndSMGState> evaluateExternalAllocationFunction(
-      CFunctionCallExpression pFunctionCall, SMGState pState) {
+      CFunctionCallExpression pFunctionCall, SMGState pState, String calledFunctionName) {
 
-    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)) {
+    if (!(pFunctionCall.getExpressionType() instanceof CPointerType)
+        || !isExternalAllocationFunction(calledFunctionName)) {
       // Non-allocating call, return unknown value.
       return ImmutableList.of(ValueAndSMGState.ofUnknownValue(pState));
     }
