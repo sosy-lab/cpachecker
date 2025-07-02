@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayDeque;
@@ -14,8 +14,7 @@ import java.util.Deque;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DssFixpointNotifier;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
 
@@ -57,8 +56,8 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
       DssMessage message = queue.take();
       Deque<DssMessage> queueForMessage =
           switch (message.getType()) {
-            case STATISTICS, FOUND_RESULT, ERROR -> highestPriority;
-            case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next;
+            case STATISTIC, RESULT, EXCEPTION -> highestPriority;
+            case VIOLATION_CONDITION, PRECONDITION -> next;
           };
       queueForMessage.add(message);
     }

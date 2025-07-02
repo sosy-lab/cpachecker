@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -20,16 +19,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics.ThreadCPUTimer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.arg.DistributedARGCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssStatisticsMessage.DssStatisticType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -115,40 +114,40 @@ public class DssAnalysisWorker extends DssWorker {
           yield dssBlockAnalysis.runAnalysisUnderCondition(
               (DssViolationConditionMessage) message, true);
         } catch (Exception | Error e) {
-          yield ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
+          yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
           backwardAnalysisTime.stop();
         }
       }
-      case BLOCK_POSTCONDITION -> {
+      case PRECONDITION -> {
         try {
           forwardAnalysisTime.start();
-          yield dssBlockAnalysis.runAnalysis((DssPostConditionMessage) message);
+          yield dssBlockAnalysis.runAnalysis((DssPreconditionMessage) message);
         } catch (Exception | Error e) {
-          yield ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e));
+          yield ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e));
         } finally {
           forwardAnalysisTime.stop();
         }
       }
-      case ERROR, FOUND_RESULT -> {
+      case EXCEPTION, RESULT -> {
         shutdown = true;
-        yield ImmutableSet.of(messageFactory.newStatisticsMessage(getBlockId(), getStats()));
+        yield ImmutableSet.of(messageFactory.createDssStatisticsMessage(getBlockId(), getStats()));
       }
-      case STATISTICS -> ImmutableSet.of();
+      case STATISTIC -> ImmutableSet.of();
     };
   }
 
   public void storeMessage(DssMessage message) throws SolverException, InterruptedException {
     switch (message.getType()) {
-      case STATISTICS, FOUND_RESULT, ERROR -> {}
+      case STATISTIC, RESULT, EXCEPTION -> {}
       case VIOLATION_CONDITION -> {
         DssViolationConditionMessage errorCond = (DssViolationConditionMessage) message;
         dssBlockAnalysis.updateViolationCondition(errorCond);
         dssBlockAnalysis.updateSeenPrefixes(errorCond);
       }
-      case BLOCK_POSTCONDITION -> {
+      case PRECONDITION -> {
         //noinspection ResultOfMethodCallIgnored
-        dssBlockAnalysis.shouldRepeatAnalysis((DssPostConditionMessage) message);
+        dssBlockAnalysis.shouldRepeatAnalysis((DssPreconditionMessage) message);
       }
     }
   }
@@ -170,7 +169,8 @@ public class DssAnalysisWorker extends DssWorker {
       super.run();
     } catch (Exception | Error e) {
       logger.logException(Level.SEVERE, e, "Worker stopped working due to an error...");
-      broadcastOrLogException(ImmutableSet.of(messageFactory.newErrorMessage(getBlockId(), e)));
+      broadcastOrLogException(
+          ImmutableSet.of(messageFactory.createDssExceptionMessage(getBlockId(), e)));
       shutdown = true;
     }
   }
@@ -184,22 +184,22 @@ public class DssAnalysisWorker extends DssWorker {
     return "Worker{block=" + block + ", finished=" + shutdownRequested() + '}';
   }
 
-  private Map<String, Object> getStats() {
-    DistributedCompositeCPA forwardDCPA = null;
-    if (dssBlockAnalysis.getDCPA() instanceof DistributedARGCPA arg) {
-      if (arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
-        forwardDCPA = composite;
-      }
+  private ImmutableMap<StatisticsKey, String> getStats() {
+    ImmutableMap.Builder<StatisticsKey, String> stats = ImmutableMap.builder();
+
+    if (dssBlockAnalysis.getDCPA() instanceof DistributedARGCPA arg
+        && arg.getWrappedCPA() instanceof DistributedCompositeCPA composite) {
+      stats.putAll(composite.getStatistics().getStatistics());
     }
 
-    return ImmutableMap.<String, Object>builder()
-        .put(DssStatisticType.FORWARD_TIME.name(), forwardAnalysisTime.nanos())
-        .put(DssStatisticType.BACKWARD_TIME.name(), backwardAnalysisTime.nanos())
-        .put(DssStatisticType.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
-        .put(DssStatisticType.MESSAGES_RECEIVED.name(), Integer.toString(getReceivedMessages()))
+    return stats
         .put(
-            DssStatisticType.FORWARD_ANALYSIS_STATS.name(),
-            forwardDCPA == null ? ImmutableMap.of() : forwardDCPA.getStatistics().getStatistics())
+            StatisticsKey.PRECONDITION_CALCULATION_TIME, Long.toString(forwardAnalysisTime.nanos()))
+        .put(
+            StatisticsKey.VIOLATION_CONDITION_CALCULATION_TIME,
+            Long.toString(backwardAnalysisTime.nanos()))
+        .put(StatisticsKey.MESSAGES_SENT, Integer.toString(getSentMessages()))
+        .put(StatisticsKey.MESSAGES_RECEIVED, Integer.toString(getReceivedMessages()))
         .buildOrThrow();
   }
 }

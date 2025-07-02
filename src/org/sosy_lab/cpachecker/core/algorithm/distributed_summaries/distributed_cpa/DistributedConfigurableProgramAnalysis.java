@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.NoPrecisionDeserializeOperator;
@@ -16,7 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.verification_condition.ViolationConditionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -82,10 +82,11 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
     return getAbstractStateClass().isAssignableFrom(pClass);
   }
 
-  default DssMessagePayload serialize(AbstractState pAbstractState, Precision pPrecision) {
-    return DssMessagePayload.builder()
-        .addAllEntries(getSerializeOperator().serialize(pAbstractState))
-        .addAllEntries(getSerializePrecisionOperator().serializePrecision(pPrecision))
-        .buildPayload();
+  default ImmutableMap<String, String> serialize(
+      AbstractState pAbstractState, Precision pPrecision) {
+    return ImmutableMap.<String, String>builder()
+        .putAll(getSerializeOperator().serialize(pAbstractState))
+        .putAll(getSerializePrecisionOperator().serializePrecision(pPrecision))
+        .buildOrThrow();
   }
 }

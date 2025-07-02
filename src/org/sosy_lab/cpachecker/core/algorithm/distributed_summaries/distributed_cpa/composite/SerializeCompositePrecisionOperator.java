@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializePrecisionOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -31,8 +31,8 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
   }
 
   @Override
-  public DssMessagePayload serializePrecision(Precision pPrecision) {
-    DssMessagePayload.Builder payload = DssMessagePayload.builder();
+  public ImmutableMap<String, String> serializePrecision(Precision pPrecision) {
+    ImmutableMap.Builder<String, String> payload = ImmutableMap.builder();
     try {
       CompositePrecision wrapped = (CompositePrecision) pPrecision;
       for (Precision wrappedPrecision : wrapped.getWrappedPrecisions()) {
@@ -45,12 +45,12 @@ public class SerializeCompositePrecisionOperator implements SerializePrecisionOp
                           CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition())
                       .getClass())) {
             payload =
-                payload.addAllEntries(
+                payload.putAll(
                     value.getSerializePrecisionOperator().serializePrecision(wrappedPrecision));
           }
         }
       }
-      return payload.buildPayload();
+      return payload.buildOrThrow();
     } catch (InterruptedException e) {
       throw new AssertionError(e);
     }

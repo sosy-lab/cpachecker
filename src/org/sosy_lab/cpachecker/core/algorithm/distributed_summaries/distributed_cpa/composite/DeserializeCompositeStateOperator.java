@@ -8,16 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -30,19 +28,19 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       registered;
   private final CompositeCPA compositeCPA;
-  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
   private final DssBlockAnalysisStatistics stats;
+  private final BlockNode blockNode;
 
   public DeserializeCompositeStateOperator(
       CompositeCPA pCompositeCPA,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
+      BlockNode pBlockNode,
       DssBlockAnalysisStatistics pStats) {
     compositeCPA = pCompositeCPA;
     registered = pRegistered;
-    integerCFANodeMap = pIntegerCFANodeMap;
     stats = pStats;
+    blockNode = pBlockNode;
   }
 
   @Override
@@ -58,7 +56,7 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
         } else {
           states.add(
               wrappedCPA.getInitialState(
-                  Objects.requireNonNull(integerCFANodeMap.get(pMessage.getTargetNodeNumber())),
+                  DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
                   StateSpacePartition.getDefaultPartition()));
         }
       }

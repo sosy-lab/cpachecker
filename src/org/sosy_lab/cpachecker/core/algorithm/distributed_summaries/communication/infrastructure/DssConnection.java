@@ -2,14 +2,14 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure;
 
 import java.io.Closeable;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 
 public interface DssConnection extends Closeable {
 
@@ -37,5 +37,5 @@ public interface DssConnection extends Closeable {
    *
    * @param message Message to broadcast
    */
-  void write(DssMessage message) throws InterruptedException;
+  DssMessageBroadcaster getBroadcaster();
 }

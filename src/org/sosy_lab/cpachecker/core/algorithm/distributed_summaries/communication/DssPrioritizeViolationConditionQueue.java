@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
+package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication;
 
 import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.ArrayDeque;
@@ -15,8 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
 
 public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueue<DssMessage> {
 
@@ -25,7 +25,7 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
   private int current = 0;
 
   private final Deque<DssMessage> highestPriority;
-  private final Map<MessageType, ArrayDeque<DssMessage>> next;
+  private final Map<DssMessageType, ArrayDeque<DssMessage>> next;
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
@@ -37,8 +37,8 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
     queue = pQueue;
     highestPriority = new ArrayDeque<>();
     next = new LinkedHashMap<>();
-    next.put(MessageType.VIOLATION_CONDITION, new ArrayDeque<>());
-    next.put(MessageType.BLOCK_POSTCONDITION, new ArrayDeque<>());
+    next.put(DssMessageType.VIOLATION_CONDITION, new ArrayDeque<>());
+    next.put(DssMessageType.PRECONDITION, new ArrayDeque<>());
   }
 
   public DssPrioritizeViolationConditionQueue() {
@@ -63,16 +63,16 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
       DssMessage message = queue.take();
       Deque<DssMessage> queueForMessage =
           switch (message.getType()) {
-            case STATISTICS, FOUND_RESULT, ERROR -> highestPriority;
-            case VIOLATION_CONDITION, BLOCK_POSTCONDITION -> next.get(message.getType());
+            case STATISTIC, RESULT, EXCEPTION -> highestPriority;
+            case VIOLATION_CONDITION, PRECONDITION -> next.get(message.getType());
           };
       queueForMessage.add(message);
     }
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();
     }
-    Deque<DssMessage> ViolationConditions = next.get(MessageType.VIOLATION_CONDITION);
-    Deque<DssMessage> postConditions = next.get(MessageType.BLOCK_POSTCONDITION);
+    Deque<DssMessage> ViolationConditions = next.get(DssMessageType.VIOLATION_CONDITION);
+    Deque<DssMessage> postConditions = next.get(DssMessageType.PRECONDITION);
     if (!ViolationConditions.isEmpty()) {
       if (current >= TAKE_POSTCONDITION && !postConditions.isEmpty()) {
         current = 0;

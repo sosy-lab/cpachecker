@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
-import com.google.common.collect.ImmutableMap;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -30,11 +29,10 @@ public class DistributedFunctionPointerCPA
   private final FunctionPointerCPA functionPointerCPA;
   private final ViolationConditionOperator verificationConditionOperator;
 
-  public DistributedFunctionPointerCPA(
-      FunctionPointerCPA pParentCPA, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+  public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode) {
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
-    deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pIntegerCFANodeMap);
+    deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pNode);
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             pParentCPA.getTransferRelation(), pParentCPA);

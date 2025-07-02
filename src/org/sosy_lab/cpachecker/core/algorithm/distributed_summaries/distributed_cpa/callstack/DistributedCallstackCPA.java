@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -37,11 +38,15 @@ public class DistributedCallstackCPA implements ForwardingDistributedConfigurabl
   private final ViolationConditionOperator verificationConditionOperator;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA, CFA pCFA, Map<Integer, CFANode> pIdToNodeMap) {
+      CallstackCPA pCallstackCPA,
+      BlockNode pBlockNode,
+      CFA pCFA,
+      Map<Integer, CFANode> pIdToNodeMap) {
     callstackCPA = pCallstackCPA;
     cfa = pCFA;
     serialize = new SerializeCallstackStateOperator();
-    deserialize = new DeserializeCallstackStateOperator(pCallstackCPA, pIdToNodeMap::get);
+    deserialize =
+        new DeserializeCallstackStateOperator(pCallstackCPA, pBlockNode, pIdToNodeMap::get);
     verificationConditionOperator =
         new BackwardTransferViolationConditionOperator(
             callstackCPA.getTransferRelation().copyBackwards(), pCallstackCPA);

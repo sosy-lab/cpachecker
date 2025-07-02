@@ -9,16 +9,17 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 
 public class SerializeBlockStateOperator implements SerializeOperator {
 
   @Override
-  public DssMessagePayload serialize(AbstractState pState) {
+  public ImmutableMap<String, String> serialize(AbstractState pState) {
     Preconditions.checkArgument(pState instanceof BlockState);
-    return DssMessagePayload.builder().buildPayload();
+    return ImmutableMap.of(
+        BlockState.class.getName(), ((BlockState) pState).getBlockNode().getId());
   }
 }

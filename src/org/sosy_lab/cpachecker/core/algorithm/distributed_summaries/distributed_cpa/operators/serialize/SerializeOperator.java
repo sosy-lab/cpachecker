@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
+import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface SerializeOperator {
@@ -19,5 +19,5 @@ public interface SerializeOperator {
    * @param pState this state will be serialized
    * @return payload
    */
-  DssMessagePayload serialize(AbstractState pState);
+  ImmutableMap<String, String> serialize(AbstractState pState);
 }

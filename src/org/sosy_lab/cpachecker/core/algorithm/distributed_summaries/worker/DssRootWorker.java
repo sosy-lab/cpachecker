@@ -14,10 +14,10 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
 
 public class DssRootWorker extends DssWorker {
 
@@ -51,18 +51,16 @@ public class DssRootWorker extends DssWorker {
   public Collection<DssMessage> processMessage(DssMessage pMessage) {
     return switch (pMessage.getType()) {
       case VIOLATION_CONDITION -> {
-        if (pMessage.getTargetNodeNumber() == root.getFinalLocation().getNodeNumber()) {
-          yield ImmutableSet.of(
-              messageFactory.newResultMessage(
-                  root.getId(), root.getFinalLocation().getNodeNumber(), Result.FALSE));
+        if (root.getSuccessorIds().contains(pMessage.getSenderId())) {
+          yield ImmutableSet.of(messageFactory.createDssResultMessage(root.getId(), Result.FALSE));
         }
         yield ImmutableSet.of();
       }
-      case FOUND_RESULT, ERROR -> {
+      case RESULT, EXCEPTION -> {
         shutdown = true;
         yield ImmutableSet.of();
       }
-      case STATISTICS, BLOCK_POSTCONDITION -> ImmutableSet.of();
+      case STATISTIC, PRECONDITION -> ImmutableSet.of();
     };
   }
 

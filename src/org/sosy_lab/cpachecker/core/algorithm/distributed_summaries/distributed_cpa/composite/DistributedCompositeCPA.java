@@ -49,7 +49,6 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
   public DistributedCompositeCPA(
       CompositeCPA pCompositeCPA,
       BlockNode pNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap,
       ImmutableMap<
               Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
@@ -57,12 +56,11 @@ public class DistributedCompositeCPA implements ForwardingDistributedConfigurabl
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
-        new DeserializeCompositeStateOperator(
-            compositeCPA, registered, pIntegerCFANodeMap, statistics);
+        new DeserializeCompositeStateOperator(compositeCPA, registered, pNode, statistics);
     proceed = new ProceedCompositeStateOperator(registered, statistics);
     serializePrecisionOperator = new SerializeCompositePrecisionOperator(registered);
     deserializePrecisionOperator =
-        new DeserializeCompositePrecisionOperator(registered, compositeCPA, pIntegerCFANodeMap);
+        new DeserializeCompositePrecisionOperator(registered, pNode, compositeCPA);
     analyses = registered;
     verificationConditionOperator = new CompositeViolationConditionOperator(compositeCPA, analyses);
   }

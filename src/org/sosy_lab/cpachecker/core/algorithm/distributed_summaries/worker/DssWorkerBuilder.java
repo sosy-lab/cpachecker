@@ -9,22 +9,31 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
+import java.util.function.Supplier;
 import java.util.logging.FileHandler;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster.CommunicationId;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssSchedulerConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -37,48 +46,53 @@ public class DssWorkerBuilder {
   private final Specification specification;
 
   private final DssMessageFactory messageFactory;
-  private final List<WorkerGenerator> workerGenerators;
-  private final DssConnectionProvider<?> connectionProvider;
-  private int additionalConnections;
+  private final Map<CommunicationId, WorkerGenerator> workerGenerators;
+  private final Supplier<BlockingQueue<DssMessage>> queueFactory;
 
   public DssWorkerBuilder(
       CFA pCFA,
-      DssConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
+      Supplier<BlockingQueue<DssMessage>> pQueueFactory,
       DssMessageFactory pMessageFactory) {
     cfa = pCFA;
     specification = pSpecification;
+    queueFactory = pQueueFactory;
     messageFactory = pMessageFactory;
-    // only one available for now
-    connectionProvider = pConnectionProvider;
-    workerGenerators = new ArrayList<>();
+    workerGenerators = new LinkedHashMap<>();
   }
 
-  public Components build()
+  public List<DssActor> build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
-    List<? extends DssConnection> connections =
-        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
-    List<DssWorker> worker = new ArrayList<>();
-    for (int i = 0; i < workerGenerators.size(); i++) {
-      worker.add(workerGenerators.get(i).apply(connections.get(i)));
-    }
-    List<? extends DssConnection> excessConnections =
-        connections.subList(
-            workerGenerators.size(), workerGenerators.size() + additionalConnections);
-    return new Components(ImmutableList.copyOf(worker), ImmutableList.copyOf(excessConnections));
-  }
 
-  @CanIgnoreReturnValue
-  public DssWorkerBuilder createAdditionalConnections(int numberConnections) {
-    additionalConnections = numberConnections;
-    return this;
+    // create a queue for each worker and additional connection
+    ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
+        ImmutableMap.builderWithExpectedSize(workerGenerators.size());
+    for (CommunicationId id : workerGenerators.keySet()) {
+      queues.put(id, queueFactory.get());
+    }
+    ImmutableMap<CommunicationId, BlockingQueue<DssMessage>> allQueues = queues.buildOrThrow();
+
+    // create a broadcaster for all queues
+    DssMessageBroadcaster broadcaster = new DssMessageBroadcaster(allQueues);
+
+    // create connections for each worker
+    ImmutableList.Builder<DssActor> workers =
+        ImmutableList.builderWithExpectedSize(workerGenerators.size());
+    for (Entry<CommunicationId, WorkerGenerator> generatorEntry : workerGenerators.entrySet()) {
+      DssSchedulerConnection connection =
+          new DssSchedulerConnection(allQueues.get(generatorEntry.getKey()), broadcaster);
+      workers.add(generatorEntry.getValue().apply(connection));
+    }
+
+    return workers.build();
   }
 
   @CanIgnoreReturnValue
   public DssWorkerBuilder addAnalysisWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
     String workerId = nextId(pNode.getId());
     final LogManager logger = getLogger(pOptions, workerId);
-    workerGenerators.add(
+    workerGenerators.put(
+        new CommunicationId(workerId, DssCommunicationEntity.BLOCK),
         connection ->
             new DssAnalysisWorker(
                 nextId(pNode.getId()),
@@ -115,7 +129,8 @@ public class DssWorkerBuilder {
       BlockGraph pBlockTree, DssAnalysisOptions pOptions) {
     String workerId = "visualization-worker";
     final LogManager logger = getLogger(pOptions, workerId);
-    workerGenerators.add(
+    workerGenerators.put(
+        new CommunicationId(workerId, DssCommunicationEntity.OBSERVER),
         connection ->
             new DssVisualizationWorker(
                 workerId, pBlockTree, connection, pOptions, messageFactory, logger));
@@ -126,8 +141,20 @@ public class DssWorkerBuilder {
   public DssWorkerBuilder addRootWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
     String workerId = "root-worker-" + nextId(pNode.getId());
     final LogManager logger = getLogger(pOptions, workerId);
-    workerGenerators.add(
+    workerGenerators.put(
+        new CommunicationId(workerId, DssCommunicationEntity.BLOCK),
         connection -> new DssRootWorker(workerId, connection, pNode, messageFactory, logger));
+    return this;
+  }
+
+  @CanIgnoreReturnValue
+  public DssWorkerBuilder addObserverWorker(
+      String pId, int pNumberOfBlocks, DssAnalysisOptions pOptions) {
+    final LogManager logger = getLogger(pOptions, pId);
+    workerGenerators.put(
+        new CommunicationId(pId, DssCommunicationEntity.OBSERVER),
+        connection ->
+            new DssObserverWorker(pId, connection, pNumberOfBlocks, messageFactory, logger));
     return this;
   }
 

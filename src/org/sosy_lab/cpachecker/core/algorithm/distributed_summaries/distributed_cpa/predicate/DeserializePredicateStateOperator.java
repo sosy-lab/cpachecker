@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssSerializeUtil;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentReader;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -48,30 +49,28 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
-    String formula =
-        PredicateOperatorUtil.extractFormulaString(
-            pMessage, predicateCPA.getClass(), formulaManagerView);
-    SSAMap map = SSAMap.emptySSAMap();
-    PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
-
     SerializationInfoStorage.storeSerializationInformation(predicateCPA, cfa);
+    ContentReader predicateContent = pMessage.getAbstractStateContent(PredicateAbstractState.class);
     try {
-      if (pMessage instanceof DssPostConditionMessage bspcm) {
-        map = bspcm.getSSAMap();
-        pts = bspcm.getPointerTargetSet();
-      } else if (pMessage instanceof DssViolationConditionMessage bsecm) {
-        map = bsecm.getSSAMap();
-        pts = bsecm.getPointerTargetSet();
-      }
+      String serializedSsaMap = predicateContent.get(SerializePredicateStateOperator.SSA_KEY);
+      Preconditions.checkNotNull(serializedSsaMap, "SSA Map must be provided");
+      SSAMap map = DssSerializeUtil.deserialize(serializedSsaMap, SSAMap.class);
+
+      String serializedPts = predicateContent.get(SerializePredicateStateOperator.PTS_KEY);
+      Preconditions.checkNotNull(serializedPts, "PTS must be provided");
+      PointerTargetSet pts = DssSerializeUtil.deserialize(serializedPts, PointerTargetSet.class);
+
+      String serializedState = predicateContent.get(SerializePredicateStateOperator.STATE_KEY);
+      Preconditions.checkNotNull(serializedState, "State must be provided");
+
+      PathFormula abstraction =
+          PredicateOperatorUtil.getPathFormula(
+              serializedState, pathFormulaManager, formulaManagerView, pts, map);
+
+      return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+          abstraction, previousState);
     } finally {
       SerializationInfoStorage.clear();
     }
-
-    PathFormula abstraction =
-        PredicateOperatorUtil.getPathFormula(
-            formula, pathFormulaManager, formulaManagerView, pts, map);
-
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        abstraction, previousState);
   }
 }

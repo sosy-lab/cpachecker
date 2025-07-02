@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Preconditions;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.deserialize.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
@@ -21,18 +20,20 @@ import org.sosy_lab.cpachecker.cpa.block.BlockState.BlockStateType;
 public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   private final BlockNode blockNode;
-  private final ImmutableMap<Integer, CFANode> integerCFANodeMap;
 
-  public DeserializeBlockStateOperator(
-      BlockNode pBlockNode, ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+  public DeserializeBlockStateOperator(BlockNode pBlockNode) {
     blockNode = pBlockNode;
-    integerCFANodeMap = pIntegerCFANodeMap;
   }
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) throws InterruptedException {
+    String serializedBlockState =
+        pMessage.getAbstractStateContent(BlockState.class).get(BlockState.class.getName());
+    Preconditions.checkNotNull(serializedBlockState);
+    Preconditions.checkArgument(!serializedBlockState.isBlank());
+    Preconditions.checkArgument(serializedBlockState.equals(blockNode.getId()));
     return new BlockState(
-        integerCFANodeMap.get(pMessage.getTargetNodeNumber()),
+        DeserializeOperator.startLocationFromMessageType(pMessage, blockNode),
         blockNode,
         BlockStateType.INITIAL,
         Optional.empty());

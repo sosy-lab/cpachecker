@@ -8,30 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.stream.Stream;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -39,13 +32,16 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssDefaultQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.DssPrioritizeViolationConditionQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage.DssMessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BridgeDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.DssBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.ImportDecomposition;
@@ -58,44 +54,31 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNodeWithoutGraphInformation;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.linear_decomposition.LinearBlockNodeDecomposition;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssDefaultQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssPrioritizeViolationConditionQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageConverter;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssStatisticsMessage.DssStatisticType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryDssConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAnalysisWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusAndResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssWorkerBuilder.Components;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "distributedSummaries")
-public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider, Statistics {
+public class DistributedSummarySynthesis implements Algorithm, StatisticsProvider {
 
   private record OldAndNewMessages(List<DssMessage> oldMessages, List<DssMessage> newMessages) {}
+
+  private static final String OBSERVER_WORKER_ID = "__observer__";
 
   private final Configuration configuration;
   private final DssMessageFactory messageFactory;
@@ -105,17 +88,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final DssAnalysisOptions options;
-
-  private final Map<String, Object> stats;
-
-  private final StatInt numberWorkers = new StatInt(StatKind.MAX, "Number of worker");
-  private final StatInt averageNumberOfEdges =
-      new StatInt(StatKind.AVG, "Average number of edges in block");
-  private final StatInt numberWorkersWithoutAbstraction =
-      new StatInt(StatKind.MAX, "Worker without abstraction");
-
-  private final StatTimer decompositionTimer = new StatTimer("Decomposition time");
-  private final StatTimer instrumentationTimer = new StatTimer("Instrumentation time");
+  private final List<Statistics> stats;
 
   @Option(
       description =
@@ -221,11 +194,11 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     initialCFA = pInitialCFA;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
+    stats = new ArrayList<>();
     options = new DssAnalysisOptions(configuration);
     // We inject the DssMessageFactory into all other block-summary components from here
     // because this is the outermost class for their setup.
     messageFactory = new DssMessageFactory(options);
-    stats = new HashMap<>();
     blockOperator = new BlockOperator();
     configuration.inject(blockOperator);
     try {
@@ -269,43 +242,135 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     };
   }
 
+  private Modification modifyBlockGraph(
+      BlockGraph blockGraph, DistributedSummarySynthesisStatistics dssStats) {
+    dssStats.getInstrumentationTimer().start();
+    Modification modification =
+        BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
+    dssStats.getInstrumentationTimer().stop();
+    ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
+    dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
+    if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
+      for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
+        for (BlockNode node : blockGraph.getNodes()) {
+          if (node.getId().equals(successorId)) {
+            if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
+              throw new AssertionError(
+                  "Direct successors of the root node are required to have an abstraction"
+                      + " location.");
+            }
+          }
+        }
+      }
+    }
+    if (!abstractionDeadEnds.isEmpty()) {
+      logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
+    }
+    for (BlockNode node : modification.blockGraph().getNodes()) {
+      dssStats.getAverageNumberOfEdges().setNextValue(node.getEdges().size());
+    }
+    return modification;
+  }
+
+  private BlockGraph decompose(DistributedSummarySynthesisStatistics dssStats)
+      throws IOException, InterruptedException {
+    DssBlockDecomposition decomposer = getDecomposer();
+    dssStats.getDecompositionTimer().start();
+    BlockGraph blockGraph = decomposer.decompose(initialCFA);
+    dssStats.getDecompositionTimer().stop();
+    blockGraph.checkConsistency(shutdownManager.getNotifier());
+    return blockGraph;
+  }
+
+  private StatusAndResult runSingleDssWorker(BlockGraph blockGraph, CFA cfa)
+      throws CPAException,
+          SolverException,
+          InterruptedException,
+          InvalidConfigurationException,
+          IOException {
+    BlockNode blockNode =
+        blockGraph.getNodes().stream()
+            .filter(b -> b.getId().equals(spawnWorkerForId))
+            .findAny()
+            .orElseThrow();
+    List<DssActor> actors =
+        new DssWorkerBuilder(cfa, specification, getQueueSupplier(), messageFactory)
+            .addAnalysisWorker(blockNode, options)
+            .build();
+
+    DssAnalysisWorker actor = (DssAnalysisWorker) Iterables.getOnlyElement(actors);
+    // use list instead of set. Each message has a unique timestamp,
+    // so there will be no duplicates that a set can remove.
+    // But the equality checks are unnecessarily expensive
+    List<DssMessage> response = new ArrayList<>();
+    if (knownConditions.isEmpty() && newConditions.isEmpty()) {
+      response.addAll(actor.runInitialAnalysis());
+    } else {
+      OldAndNewMessages preparedBatches = prepareOldAndNewMessages(knownConditions, newConditions);
+      for (DssMessage message : preparedBatches.oldMessages()) {
+        actor.storeMessage(message);
+      }
+      for (DssMessage message : preparedBatches.newMessages()) {
+        response.addAll(actor.processMessage(message));
+      }
+    }
+    writeAllMessages(response);
+    return new StatusAndResult(AlgorithmStatus.NO_PROPERTY_CHECKED, Result.UNKNOWN);
+  }
+
+  private StatusAndResult runDss(
+      CFA cfa, BlockGraph blockGraph, DistributedSummarySynthesisStatistics dssStats)
+      throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
+    List<DssActor> actors = createDssActors(cfa, blockGraph);
+    dssStats.getNumberWorkers().setNextValue(actors.size());
+    // run workers
+    List<Thread> threads = new ArrayList<>(actors.size());
+    DssObserverWorker observer = null;
+    for (DssActor worker : actors) {
+      if (worker instanceof Statistics workerStatistics) {
+        stats.add(workerStatistics);
+      }
+      if (worker.getId().equals(OBSERVER_WORKER_ID)) {
+        // the observer worker is special, it does not run in a thread
+        // but blocks the main thread until all workers are finished
+        if (worker instanceof DssObserverWorker o) {
+          observer = o;
+          continue;
+        }
+        throw new AssertionError(
+            "Observer worker must be an instance of DssObserverWorker, but is: "
+                + worker.getClass().getName());
+      }
+      Thread thread = new Thread(worker, worker.getId());
+      thread.setDaemon(true);
+      threads.add(thread);
+    }
+    Preconditions.checkNotNull(observer, "Observer worker must be present in actors.");
+    DssFixpointNotifier.init(messageFactory, observer.getConnection(), actors.size());
+    // must be started after fixpoint notifier is initialized
+    for (Thread thread : threads) {
+      thread.start();
+    }
+
+    // blocks the thread until result message is received
+    return observer.observe();
+  }
+
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
+    DistributedSummarySynthesisStatistics dssStats = new DistributedSummarySynthesisStatistics();
+    stats.add(dssStats);
     try {
       // create blockGraph and reduce to relevant parts
-      DssBlockDecomposition decomposer = getDecomposer();
-      decompositionTimer.start();
-      BlockGraph blockGraph = decomposer.decompose(initialCFA);
-      decompositionTimer.stop();
-      blockGraph.checkConsistency(shutdownManager.getNotifier());
+      BlockGraph blockGraph = decompose(dssStats);
       if (generateBlockGraphOnly) {
         blockGraph.export(blockCFAFile);
         logger.logf(Level.INFO, "Block graph exported to %s.", blockCFAFile);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
-      instrumentationTimer.start();
-      Modification modification =
-          BlockGraphModification.instrumentCFA(initialCFA, blockGraph, configuration, logger);
-      instrumentationTimer.stop();
-      ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
-      numberWorkersWithoutAbstraction.setNextValue(abstractionDeadEnds.size());
-      if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
-        for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
-          for (BlockNode node : blockGraph.getNodes()) {
-            if (node.getId().equals(successorId)) {
-              if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-                throw new AssertionError(
-                    "Direct successors of the root node are required to have an abstraction"
-                        + " location.");
-              }
-            }
-          }
-        }
-      }
-      if (!abstractionDeadEnds.isEmpty()) {
-        logger.logf(Level.INFO, "Abstraction is not possible at: %s", abstractionDeadEnds);
-      }
+
+      Modification modification = modifyBlockGraph(blockGraph, dssStats);
       CFA cfa = modification.cfa();
       blockGraph = modification.blockGraph();
       logger.logf(
@@ -314,83 +379,27 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
           blockGraph.getNodes().size(),
           decompositionType);
 
-      // create workers
-      Collection<BlockNode> blocks = blockGraph.getNodes();
+      StatusAndResult statusAndResult;
       if (!spawnWorkerForId.isBlank()) {
-        BlockNode blockNode =
-            blocks.stream().filter(b -> b.getId().equals(spawnWorkerForId)).findAny().orElseThrow();
-        Components build =
-            new DssWorkerBuilder(
-                    cfa,
-                    new InMemoryDssConnectionProvider(getQueueSupplier()),
-                    specification,
-                    messageFactory)
-                .addAnalysisWorker(blockNode, options)
-                .build();
-
-        DssAnalysisWorker actor = (DssAnalysisWorker) Iterables.getOnlyElement(build.actors());
-        // use list instead of set. Each message has a unique timestamp,
-        // so there will be no duplicates that a set can remove.
-        // But the equality checks are unnecessarily expensive
-        List<DssMessage> response = new ArrayList<>();
-        if (knownConditions.isEmpty() && newConditions.isEmpty()) {
-          response.addAll(actor.runInitialAnalysis());
-        } else {
-          OldAndNewMessages preparedBatches =
-              prepareOldAndNewMessages(knownConditions, newConditions);
-          for (DssMessage message : preparedBatches.oldMessages()) {
-            actor.storeMessage(message);
-          }
-          for (DssMessage message : preparedBatches.newMessages()) {
-            response.addAll(actor.processMessage(message));
-          }
-        }
-        writeAllMessages(response);
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
+        statusAndResult = runSingleDssWorker(blockGraph, cfa);
+      } else {
+        statusAndResult = runDss(cfa, blockGraph, dssStats);
       }
 
-      Components components = createComponentsDss(cfa, blockGraph);
-      if (components.connections().size() != 1) {
-        throw new CPAException("Components need to provide exactly one additional connection");
+      Result result = statusAndResult.result();
+      if (result == Result.FALSE) {
+        ARGState state = (ARGState) reachedSet.getFirstState();
+        assert state != null;
+        CompositeState cState = (CompositeState) state.getWrappedState();
+        Precision initialPrecision = reachedSet.getPrecision(state);
+        assert cState != null;
+        List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
+        states.add(DummyTargetState.withoutTargetInformation());
+        reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+      } else if (result == Result.TRUE) {
+        reachedSet.clear();
       }
-
-      numberWorkers.setNextValue(components.actors().size());
-
-      // listen to messages
-      try (DssConnection mainThreadConnection = components.connections().get(0)) {
-        DssFixpointNotifier.init(
-            messageFactory,
-            mainThreadConnection,
-            components.connections().size() + components.actors().size());
-        // run workers
-        for (DssActor worker : components.actors()) {
-          Thread thread = new Thread(worker, worker.getId());
-          thread.setDaemon(true);
-          thread.start();
-        }
-        String observerId = "observer";
-        LogManager observerLogger = getLogger(options, observerId);
-        DssObserverWorker observer =
-            new DssObserverWorker(
-                observerId, mainThreadConnection, blocks.size(), messageFactory, observerLogger);
-        // blocks the thread until result message is received
-        StatusAndResult resultPair = observer.observe();
-        Result result = resultPair.result();
-        stats.putAll(observer.getStats());
-        if (result == Result.FALSE) {
-          ARGState state = (ARGState) reachedSet.getFirstState();
-          assert state != null;
-          CompositeState cState = (CompositeState) state.getWrappedState();
-          Precision initialPrecision = reachedSet.getPrecision(state);
-          assert cState != null;
-          List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
-          states.add(DummyTargetState.withoutTargetInformation());
-          reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
-        } else if (result == Result.TRUE) {
-          reachedSet.clear();
-        }
-        return resultPair.status();
-      }
+      return statusAndResult.status();
     } catch (InvalidConfigurationException | IOException | SolverException e) {
       logger.logException(Level.SEVERE, e, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", e);
@@ -400,26 +409,24 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
   }
 
   private void writeAllMessages(List<DssMessage> response) throws IOException {
-    MessageConverter converter = new MessageConverter();
     int messageCount = 0;
     for (DssMessage dssMessage : response) {
       Files.createDirectories(outputMessages);
       final String outputFileNamePrefix = dssMessage.getType().name();
       final String outputFileName = outputFileNamePrefix + messageCount + ".json";
       Path outputPath = outputMessages.resolve(outputFileName);
-      Files.writeString(outputPath, converter.messageToJson(dssMessage));
+      JSON.writeJSONString(dssMessage.asJson(), outputPath);
       messageCount++;
     }
   }
 
   private OldAndNewMessages prepareOldAndNewMessages(
       List<Path> pKnownConditions, List<Path> pNewConditions) throws IOException {
-    MessageConverter converter = new MessageConverter();
     List<DssMessage> toBeConsideredOld = new ArrayList<>();
     List<DssMessage> toBeConsideredNew = new ArrayList<>();
     // known conditions always stay 'old' and never become 'true'
     for (Path knownMessageFile : pKnownConditions) {
-      DssMessage message = converter.jsonToMessage(Files.readString(knownMessageFile));
+      DssMessage message = DssMessage.fromJson(knownMessageFile);
       toBeConsideredOld.add(message);
     }
 
@@ -432,8 +439,8 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     // others as 'old'.
     boolean isFirstPostcondition = true;
     for (Path newMessageFile : pNewConditions) {
-      DssMessage message = converter.jsonToMessage(Files.readString(newMessageFile));
-      if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+      DssMessage message = DssMessage.fromJson(newMessageFile);
+      if (message.getType() == DssMessageType.PRECONDITION) {
         if (isFirstPostcondition) {
           // Do postconditions first, so that information is known before error conditions are
           // checked
@@ -449,99 +456,24 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     return new OldAndNewMessages(toBeConsideredOld, toBeConsideredNew);
   }
 
-  private LogManager getLogger(DssAnalysisOptions pOptions, String workerId) {
-    try {
-      return pOptions.getLogDirectory() != null
-          ? BasicLogManager.createWithHandler(
-              new FileHandler(pOptions.getLogDirectory().toString() + "/" + workerId + ".log"))
-          : LogManager.createNullLogManager();
-    } catch (IOException e) {
-      return LogManager.createNullLogManager();
-    }
-  }
-
-  private Components createComponentsDss(CFA cfa, BlockGraph blockGraph)
+  private List<DssActor> createDssActors(CFA cfa, BlockGraph blockGraph)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(
-                cfa,
-                new InMemoryDssConnectionProvider(getQueueSupplier()),
-                specification,
-                messageFactory)
-            .createAdditionalConnections(1)
+        new DssWorkerBuilder(cfa, specification, getQueueSupplier(), messageFactory)
             .addRootWorker(blockGraph.getRoot(), options);
     for (BlockNode distinctNode : blocks) {
-      averageNumberOfEdges.setNextValue(distinctNode.getEdges().size());
       builder = builder.addAnalysisWorker(distinctNode, options);
     }
     if (options.isDebugModeEnabled()) {
       builder = builder.addVisualizationWorker(blockGraph, options);
     }
+    builder.addObserverWorker(OBSERVER_WORKER_ID, blockGraph.getNodes().size(), options);
     return builder.build();
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    Map<String, Object> overall = new HashMap<>();
-    for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
-      writer = writer.put("BlockID " + blockID, blockID).beginLevel();
-      Object mapObject = stats.get(blockID);
-      Map<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
-      Map<?, ?> forwardMap =
-          ImmutableSortedMap.copyOf(
-              (Map<?, ?>) map.remove(DssStatisticType.FORWARD_ANALYSIS_STATS.name()));
-      for (Entry<?, ?> entry : map.entrySet()) {
-        writer =
-            writer.put(
-                DssStatisticType.valueOf(entry.getKey().toString()).getName(),
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      for (Entry<?, ?> entry : forwardMap.entrySet()) {
-        writer =
-            writer.put(
-                DssStatisticType.valueOf(entry.getKey().toString()).getName() + " (forward)",
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      writer = writer.endLevel();
-    }
-    writer = writer.put("Overall", "Sum of all blocks").beginLevel();
-    for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
-      writer =
-          writer.put(
-              DssStatisticType.valueOf(stringObjectEntry.getKey()).getName() + " (overall)",
-              convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
-    }
-    writer
-        .put(numberWorkers)
-        .put(numberWorkersWithoutAbstraction)
-        .put(averageNumberOfEdges)
-        .put(instrumentationTimer)
-        .put(decompositionTimer);
-  }
-
-  private String convert(String pKey, String pNumber) {
-    if (DssStatisticType.valueOf(pKey).isFormatAsTime()) {
-      return TimeSpan.ofNanos(Long.parseLong(pNumber)).formatAs(TimeUnit.SECONDS);
-    }
-    return pNumber;
-  }
-
-  private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
-    pOverall.merge(
-        pKey, pValue, (v1, v2) -> Long.parseLong(v1.toString()) + Long.parseLong(v2.toString()));
-  }
-
-  @Override
-  public @Nullable String getName() {
-    return "Distributed Summary Analysis";
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(this);
+    statsCollection.addAll(stats);
   }
 }

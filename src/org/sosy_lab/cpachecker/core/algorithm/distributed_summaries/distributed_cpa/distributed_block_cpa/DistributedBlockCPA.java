@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
@@ -37,15 +36,12 @@ public class DistributedBlockCPA implements ForwardingDistributedConfigurablePro
   private final ConfigurableProgramAnalysis blockCPA;
   private final Function<CFANode, BlockState> blockStateSupplier;
 
-  public DistributedBlockCPA(
-      ConfigurableProgramAnalysis pBlockCPA,
-      BlockNode pNode,
-      ImmutableMap<Integer, CFANode> pIntegerCFANodeMap) {
+  public DistributedBlockCPA(ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode) {
     checkArgument(
         pBlockCPA instanceof BlockCPA, "%s is no %s", pBlockCPA.getClass(), BlockCPA.class);
     blockCPA = pBlockCPA;
     serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator = new DeserializeBlockStateOperator(pNode, pIntegerCFANodeMap);
+    deserializeOperator = new DeserializeBlockStateOperator(pNode);
     proceedOperator = new ProceedBlockStateOperator(pNode);
     blockStateSupplier =
         node -> new BlockState(node, pNode, BlockStateType.INITIAL, Optional.empty());

@@ -14,10 +14,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusPrecise;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusPropertyChecked;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssObserverWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -29,24 +25,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class DssBlockAnalyses {
 
   private DssBlockAnalyses() {}
-
-  static DssMessagePayload appendStatus(
-      AlgorithmStatus pStatus, DssMessagePayload pCurrentPayload) {
-    return DssMessagePayload.builder()
-        .addAllEntries(pCurrentPayload)
-        .addEntry(
-            DssMessagePayload.PROPERTY,
-            pStatus.wasPropertyChecked()
-                ? StatusPropertyChecked.CHECKED.name()
-                : StatusPropertyChecked.UNCHECKED.name())
-        .addEntry(
-            DssMessagePayload.SOUND,
-            pStatus.isSound() ? StatusSoundness.SOUND.name() : StatusSoundness.UNSOUND.name())
-        .addEntry(
-            DssMessagePayload.PRECISE,
-            pStatus.isPrecise() ? StatusPrecise.PRECISE.name() : StatusPrecise.IMPRECISE.name())
-        .buildPayload();
-  }
 
   /**
    * Simulate the CPA algorithm on the given reached set using the states provided in the list. The

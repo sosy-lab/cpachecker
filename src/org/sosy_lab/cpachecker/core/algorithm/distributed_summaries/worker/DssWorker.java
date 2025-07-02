@@ -13,9 +13,10 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.DssMessageFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssCommunicationEntity;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -48,7 +49,7 @@ public abstract class DssWorker implements DssActor {
     // pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (DssMessage message : pMessage) {
       sentMessages.inc();
-      getConnection().write(message);
+      getConnection().getBroadcaster().broadcast(message, DssCommunicationEntity.ALL);
     }
   }
 
@@ -75,7 +76,8 @@ public abstract class DssWorker implements DssActor {
     } catch (CPAException | InterruptedException | IOException | SolverException e) {
       logger.logfException(
           Level.SEVERE, e, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(messageFactory.newErrorMessage(getId(), e)));
+      broadcastOrLogException(
+          ImmutableList.of(messageFactory.createDssExceptionMessage(getId(), e)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }
