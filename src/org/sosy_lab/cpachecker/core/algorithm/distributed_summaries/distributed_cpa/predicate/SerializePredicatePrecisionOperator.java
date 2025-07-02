@@ -60,7 +60,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
                 locationInstancePredicates.put(
                     l.getLocation().getNodeNumber() + "," + l.getInstance(),
                     serializeAbstractionPredicate(p)));
-    for (String key : locationInstancePredicates.keys()) {
+    for (String key : locationInstancePredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(locationInstancePredicates.get(key)));
     }
     contentBuilder.popLevel();
@@ -73,7 +73,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
             (l, p) ->
                 localPredicates.put(
                     Integer.toString(l.getNodeNumber()), serializeAbstractionPredicate(p)));
-    for (String key : localPredicates.keys()) {
+    for (String key : localPredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(localPredicates.get(key)));
     }
     contentBuilder.popLevel();
@@ -83,7 +83,7 @@ public class SerializePredicatePrecisionOperator implements SerializePrecisionOp
     predicatePrecision
         .getFunctionPredicates()
         .forEach((l, p) -> functionPredicates.put(l, serializeAbstractionPredicate(p)));
-    for (String key : functionPredicates.keys()) {
+    for (String key : functionPredicates.keySet()) {
       contentBuilder.put(key, Joiner.on(" , ").join(functionPredicates.get(key)));
     }
     contentBuilder.popLevel();

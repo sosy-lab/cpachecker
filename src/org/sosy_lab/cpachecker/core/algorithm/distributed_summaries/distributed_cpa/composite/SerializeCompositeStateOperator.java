@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DssBlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
@@ -37,17 +38,16 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
     try {
       stats.getSerializationCount().inc();
       stats.getSerializationTime().start();
-      ImmutableMap.Builder<String, String> payload =
-          ImmutableMap.builderWithExpectedSize(registered.size());
+      ContentBuilder contentBuilder = ContentBuilder.builderWithExpectedSize(registered.size());
       CompositeState compositeState = ((CompositeState) pState);
       for (AbstractState wrappedState : compositeState.getWrappedStates()) {
         for (DistributedConfigurableProgramAnalysis value : registered.values()) {
           if (value.doesOperateOn(wrappedState.getClass())) {
-            payload = payload.putAll(value.getSerializeOperator().serialize(wrappedState));
+            contentBuilder.putAll(value.getSerializeOperator().serialize(wrappedState));
           }
         }
       }
-      return payload.buildOrThrow();
+      return contentBuilder.build();
     } finally {
       stats.getSerializationTime().stop();
     }

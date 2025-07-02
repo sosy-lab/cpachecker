@@ -13,6 +13,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface SerializeOperator {
 
+  String STATE_KEY = "state";
+
   /**
    * Serialize an abstract state to the content of a message
    *

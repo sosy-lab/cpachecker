@@ -13,9 +13,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssPreconditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssViolationConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface DeserializeOperator {
+
+  String STATE_KEY = SerializeOperator.STATE_KEY;
 
   static CFANode startLocationFromMessageType(DssMessage pMessage, BlockNode blockNode) {
     if (pMessage instanceof DssViolationConditionMessage) {

@@ -13,9 +13,9 @@ import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 
 public class SerializeCallstackStateOperator implements SerializeOperator {
@@ -31,6 +31,9 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
     }
     Collections.reverse(states);
     String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
-    return ImmutableMap.of(CallstackCPA.class.getName(), result);
+    return ContentBuilder.builder()
+        .pushLevel(CallstackState.class.getName())
+        .put(STATE_KEY, result)
+        .build();
   }
 }

@@ -25,7 +25,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class SerializePredicateStateOperator implements SerializeOperator {
 
-  public static final String STATE_KEY = "state";
   public static final String SSA_KEY = "ssa";
   public static final String PTS_KEY = "pts";
   public static final String READABLE_KEY = "readable";

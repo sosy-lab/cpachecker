@@ -726,9 +726,6 @@ bdd.sylvan.threads = 0
 # sequentialize all accesses to the BDD library.
 bdd.synchronizeLibraryAccess = false
 
-# output file for visualizing the block graph
-blockCFAFile = "block_analysis/blocks.json"
-
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
@@ -4217,6 +4214,12 @@ distributedSummaries.importDecomposition = no default value
 # 'true' and the verification condition 'false'.
 distributedSummaries.knownConditions = []
 
+# output file for visualizing the block graph
+distributedSummaries.logging.blockCFAFile = "block_analysis/blocks.json"
+
+# output file for visualizing message exchange
+distributedSummaries.logging.reportFiles = "block_analysis/messages"
+
 # List of input files that contain preconditions and verification conditions
 # that should be assumed as 'new' by block-summary analysis. For each message
 # in this list, block-summary analysis will perform a new analysis run in the
@@ -4245,9 +4248,6 @@ distributedSummaries.worker.forwardConfiguration = "config/distributed-summary-s
 # Destination directory for the logfiles of all DssWorkers. The logfiles have
 # the same name as the ID of the worker.
 distributedSummaries.worker.logDirectory = "block_analysis/logfiles"
-
-# output file for visualizing message exchange
-dss.logging.reportFiles = "block_analysis/messages"
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

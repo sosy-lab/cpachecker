@@ -60,7 +60,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       Preconditions.checkNotNull(serializedPts, "PTS must be provided");
       PointerTargetSet pts = DssSerializeUtil.deserialize(serializedPts, PointerTargetSet.class);
 
-      String serializedState = predicateContent.get(SerializePredicateStateOperator.STATE_KEY);
+      String serializedState = predicateContent.get(STATE_KEY);
       Preconditions.checkNotNull(serializedState, "State must be provided");
 
       PathFormula abstraction =

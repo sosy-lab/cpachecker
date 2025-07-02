@@ -36,8 +36,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(DssMessage pMessage) {
-    String stateJson =
-        pMessage.getAbstractStateContent(CallstackState.class).get(CallstackState.class.getName());
+    String stateJson = pMessage.getAbstractStateContent(CallstackState.class).get(STATE_KEY);
     assert stateJson != null;
     if (stateJson.isBlank()) {
       CFANode location = DeserializeOperator.startLocationFromMessageType(pMessage, blockNode);

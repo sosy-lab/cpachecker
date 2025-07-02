@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
@@ -39,6 +40,9 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
             .append(", ");
       }
     }
-    return ImmutableMap.of(FunctionPointerState.class.getName(), serialized.toString());
+    return ContentBuilder.builder()
+        .pushLevel(FunctionPointerState.class.getName())
+        .put(STATE_KEY, serialized.toString())
+        .build();
   }
 }

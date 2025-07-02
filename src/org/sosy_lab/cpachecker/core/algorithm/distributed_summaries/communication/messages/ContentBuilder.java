@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayDeque;
@@ -21,13 +22,18 @@ public class ContentBuilder {
 
   private final Deque<String> level;
 
-  private ContentBuilder() {
-    contentBuilder = ImmutableMap.builder();
+  private ContentBuilder(int pExpectedSize) {
+    contentBuilder = ImmutableMap.builderWithExpectedSize(pExpectedSize);
     level = new ArrayDeque<>();
   }
 
   public static ContentBuilder builder() {
-    return new ContentBuilder();
+    // 4 is the default expected size (ImmutableCollection.Builder.DEFAULT_INITIAL_CAPACITY)
+    return new ContentBuilder(4);
+  }
+
+  public static ContentBuilder builderWithExpectedSize(int pExpectedSize) {
+    return new ContentBuilder(pExpectedSize);
   }
 
   @CanIgnoreReturnValue
@@ -54,15 +60,16 @@ public class ContentBuilder {
 
   @CanIgnoreReturnValue
   public ContentBuilder put(String pKey, String pValue) {
-    String fullKey = Joiner.on(".").join(level) + "." + pKey;
+    String fullKey =
+        Joiner.on(".").join(ImmutableList.<String>builder().addAll(level).add(pKey).build());
     contentBuilder.put(fullKey, pValue);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public ContentBuilder putAll(Map<String, String> pContent) {
     for (Map.Entry<String, String> entry : pContent.entrySet()) {
-      String key = entry.getKey();
-      put(key, entry.getValue());
+      put(entry.getKey(), entry.getValue());
     }
     return this;
   }

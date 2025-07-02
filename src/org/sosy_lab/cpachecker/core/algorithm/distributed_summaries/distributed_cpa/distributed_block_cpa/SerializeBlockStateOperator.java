@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.ContentBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.serialize.SerializeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
@@ -19,7 +20,9 @@ public class SerializeBlockStateOperator implements SerializeOperator {
   @Override
   public ImmutableMap<String, String> serialize(AbstractState pState) {
     Preconditions.checkArgument(pState instanceof BlockState);
-    return ImmutableMap.of(
-        BlockState.class.getName(), ((BlockState) pState).getBlockNode().getId());
+    return ContentBuilder.builder()
+        .pushLevel(BlockState.class.getName())
+        .put(STATE_KEY, ((BlockState) pState).getBlockNode().getId())
+        .build();
   }
 }
