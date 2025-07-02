@@ -32,10 +32,6 @@ public interface DssConnection extends Closeable {
    */
   boolean hasPendingMessages();
 
-  /**
-   * Write and broadcast a message to all connections including itself.
-   *
-   * @param message Message to broadcast
-   */
+  /** Retrieves the {@link DssMessageBroadcaster} for this connection. */
   DssMessageBroadcaster getBroadcaster();
 }

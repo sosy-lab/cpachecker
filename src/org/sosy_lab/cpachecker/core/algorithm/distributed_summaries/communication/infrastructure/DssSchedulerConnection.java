@@ -27,7 +27,6 @@ public class DssSchedulerConnection implements DssConnection {
   @Override
   public DssMessage read() throws InterruptedException {
     if (closed) {
-      ;
       throw new IllegalStateException(
           "Cannot read from an already closed " + DssSchedulerConnection.class);
     }

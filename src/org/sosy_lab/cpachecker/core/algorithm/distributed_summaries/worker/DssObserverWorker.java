@@ -135,10 +135,10 @@ public class DssObserverWorker extends DssWorker implements Statistics {
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     Map<StatisticsKey, String> overall = new HashMap<>();
-    for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
-      writer = writer.put("BlockID " + blockID, blockID).beginLevel();
-      Map<StatisticsKey, String> blockStats = stats.get(blockID);
-      for (Entry<StatisticsKey, String> entry : blockStats.entrySet()) {
+    for (Entry<String, Map<StatisticsKey, String>> statEntry : stats.entrySet()) {
+      String blockId = statEntry.getKey();
+      writer = writer.put("BlockID " + blockId, blockId).beginLevel();
+      for (Entry<StatisticsKey, String> entry : statEntry.getValue().entrySet()) {
         writer = writer.put(entry.getKey().getKey(), convert(entry.getKey(), entry.getValue()));
         overall.merge(
             entry.getKey(),

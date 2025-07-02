@@ -105,7 +105,7 @@ public class DssMessageFactory {
           Objects.requireNonNull(
               messageContent.get(DssMessage.DSS_MESSAGE_CONTENT_ID),
               "Content must not be null in DssMessage export"));
-      return noTimestampMessage.build();
+      return noTimestampMessage.buildOrThrow();
     }
     return pMessage.asJson();
   }

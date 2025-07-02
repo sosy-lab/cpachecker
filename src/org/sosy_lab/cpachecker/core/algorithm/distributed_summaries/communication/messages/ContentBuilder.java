@@ -60,8 +60,9 @@ public class ContentBuilder {
   }
 
   public ContentBuilder putAll(Map<String, String> pContent) {
-    for (String key : pContent.keySet()) {
-      put(key, pContent.get(key));
+    for (Map.Entry<String, String> entry : pContent.entrySet()) {
+      String key = entry.getKey();
+      put(key, entry.getValue());
     }
     return this;
   }

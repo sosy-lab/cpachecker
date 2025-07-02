@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains all DSS messages and utility for parsing.
- */
+/** This package contains all DSS messages and utility for parsing. */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;

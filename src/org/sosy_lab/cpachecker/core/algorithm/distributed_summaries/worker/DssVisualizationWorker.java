@@ -15,11 +15,6 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
@@ -27,24 +22,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.graph.BlockGraph;
 
-@Options
 public class DssVisualizationWorker extends DssWorker {
 
   private final DssConnection connection;
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private final Path reportFiles;
   private boolean shutdown = false;
-
-  @Option(
-      name = "dss.logging.reportFiles",
-      description = "output file for visualizing message exchange")
-  @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path reportFiles = Path.of("block_analysis/messages");
-
-  @Option(
-      name = "dss.logging.blockCFAFile",
-      description = "output file for visualizing the block graph")
-  @FileOption(Type.OUTPUT_FILE)
-  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
   DssVisualizationWorker(
       String id,
@@ -52,13 +35,12 @@ public class DssVisualizationWorker extends DssWorker {
       DssConnection pConnection,
       DssAnalysisOptions pOptions,
       DssMessageFactory pMessageFactory,
-      LogManager pLogger)
-      throws InvalidConfigurationException {
+      LogManager pLogger) {
     super(id, pMessageFactory, pLogger);
-    pOptions.getParentConfig().inject(this);
     connection = pConnection;
+    reportFiles = pOptions.getReportFiles();
     try {
-      pNode.export(blockCFAFile);
+      pNode.export(pOptions.getBlockCFAFile());
     } catch (IOException e) {
       pLogger.logException(
           Level.WARNING,

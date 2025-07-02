@@ -20,6 +20,18 @@ import org.sosy_lab.common.configuration.Options;
 public class DssAnalysisOptions {
 
   @Option(
+      name = "logging.reportFiles",
+      description = "output file for visualizing message exchange")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path reportFiles = Path.of("block_analysis/messages");
+
+  @Option(
+      name = "logging.blockCFAFile",
+      description = "output file for visualizing the block graph")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path blockCFAFile = Path.of("block_analysis/blocks.json");
+
+  @Option(
       name = "debug",
       description =
           "Whether to enable debug mode of block-summary analysis. This creates visual output for"
@@ -50,6 +62,14 @@ public class DssAnalysisOptions {
   public DssAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     parentConfig = pConfig;
+  }
+
+  public Path getBlockCFAFile() {
+    return blockCFAFile;
+  }
+
+  public Path getReportFiles() {
+    return reportFiles;
   }
 
   public boolean isDebugModeEnabled() {

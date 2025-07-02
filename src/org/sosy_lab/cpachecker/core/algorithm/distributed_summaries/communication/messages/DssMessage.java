@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,7 +50,7 @@ public abstract class DssMessage {
   private final ImmutableMap<String, String> content;
 
   DssMessage(String pSenderId, DssMessageType pType, Map<String, String> pContent) {
-    Preconditions.checkArgument(isValid(pContent), "Invalid content for message type: " + pType);
+    checkArgument(isValid(pContent), "Invalid content for message type: " + "%s", pType);
     senderId = pSenderId;
     type = pType;
     timestamp = Instant.now();
@@ -69,9 +72,10 @@ public abstract class DssMessage {
   }
 
   private ContentReader getArbitraryContent(String pKey) {
-    Preconditions.checkArgument(
+    checkArgument(
         type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + type);
+        "Cannot get content for type: " + "%s",
+        type);
     Map<String, String> stateContent = ContentReader.read(content).pushLevel(pKey).getContent();
     Preconditions.checkState(!stateContent.isEmpty());
     Preconditions.checkState(stateContent.values().stream().noneMatch(Objects::isNull));
@@ -87,17 +91,17 @@ public abstract class DssMessage {
   }
 
   public final Result getResult() {
-    Preconditions.checkArgument(
-        type == DssMessageType.RESULT, "Cannot get content for type: " + type);
+    checkArgument(type == DssMessageType.RESULT, "Cannot get content for type: " + "%s", type);
     String resultString = content.get(DssResultMessage.DSS_MESSAGE_RESULT_KEY);
     Preconditions.checkNotNull(resultString, "Result content is missing in message: " + this);
     return Result.valueOf(resultString);
   }
 
   public final AlgorithmStatus getAlgorithmStatus() {
-    Preconditions.checkArgument(
+    checkArgument(
         type == DssMessageType.PRECONDITION || type == DssMessageType.VIOLATION_CONDITION,
-        "Cannot get content for type: " + type);
+        "Cannot get content for type: " + "%s",
+        type);
     ContentReader reader =
         ContentReader.read(content).pushLevel(DssMessageFactory.DSS_MESSAGE_STATUS_KEY);
     boolean checkedProperty =
@@ -121,8 +125,7 @@ public abstract class DssMessage {
   }
 
   public final String getExceptionMessage() {
-    Preconditions.checkArgument(
-        type == DssMessageType.EXCEPTION, "Cannot get content for type: " + type);
+    checkArgument(type == DssMessageType.EXCEPTION, "Cannot get content for type: " + "%s", type);
     String exceptionMessage = content.get(DssExceptionMessage.DSS_MESSAGE_EXCEPTION_KEY);
     Preconditions.checkNotNull(
         exceptionMessage, "Exception message is missing in message: " + this);
@@ -143,14 +146,14 @@ public abstract class DssMessage {
   }
 
   public final Map<StatisticsKey, String> getStats() {
-    Preconditions.checkState(
-        type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + type);
+    checkState(
+        type == DssMessageType.STATISTIC, "Cannot get stats for message type: " + "%s", type);
     ImmutableMap.Builder<StatisticsKey, String> statsBuilder = ImmutableMap.builder();
     for (Map.Entry<String, String> entry : content.entrySet()) {
       StatisticsKey key = StatisticsKey.valueOf(entry.getKey());
       statsBuilder.put(key, entry.getValue());
     }
-    return statsBuilder.build();
+    return statsBuilder.buildOrThrow();
   }
 
   private static class DssMessageProxy {
