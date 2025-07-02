@@ -270,7 +270,7 @@ public class WitnessInvariantsExtractor {
       }
 
       if (node.isPresent()) {
-        candidateInvariants.add(
+        ExpressionTreeLocationInvariant candidateInvariant =
             new ExpressionTreeLocationInvariant(
                 "Invariant matched at line "
                     + invariant.getLine()
@@ -278,7 +278,11 @@ public class WitnessInvariantsExtractor {
                     + invariant.getColumn(),
                 node.orElseThrow(),
                 invariant.getFormula(),
-                toCodeVisitorCache));
+                toCodeVisitorCache);
+        if (invariant.isTransitionInvariant()) {
+          candidateInvariant.setTransitionInvariant();
+        }
+        candidateInvariants.add(candidateInvariant);
       } else {
         logger.log(
             Level.WARNING,

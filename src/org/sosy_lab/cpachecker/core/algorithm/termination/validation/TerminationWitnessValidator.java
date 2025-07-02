@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.util.Set;
@@ -21,11 +24,21 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.Formula;
 
 @Options(prefix = "witness.validation.transitionInvariants")
 public class TerminationWitnessValidator implements Algorithm {
@@ -46,9 +59,14 @@ public class TerminationWitnessValidator implements Algorithm {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
+  private final PathFormulaManager pfmgr;
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
+  private final Solver solver;
 
   public TerminationWitnessValidator(
       final CFA pCfa,
+      final ConfigurableProgramAnalysis pCPA,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
@@ -59,6 +77,13 @@ public class TerminationWitnessValidator implements Algorithm {
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
+    @SuppressWarnings("resource")
+    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(pCPA, PredicateCPA.class, IMCAlgorithm.class);
+    solver = predCpa.getSolver();
+    pfmgr = predCpa.getPathFormulaManager();
+    fmgr = predCpa.getSolver().getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
 
     if (pWitnessPath.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
@@ -84,6 +109,29 @@ public class TerminationWitnessValidator implements Algorithm {
     } catch (InvalidWitnessException e) {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
+
+    ImmutableMap<LoopStructure.Loop, Formula> loopsToTransitionInvariants =
+        mapTransitionInvariantsToLoops(
+            cfa.getLoopStructure().orElseThrow().getAllLoops(), invariants);
+
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
+  }
+
+  private ImmutableMap<LoopStructure.Loop, Formula> mapTransitionInvariantsToLoops(
+      ImmutableCollection<LoopStructure.Loop> pLoops,
+      Set<ExpressionTreeLocationInvariant> pInvariants) {
+    ImmutableMap.Builder<LoopStructure.Loop, Formula> builder = new Builder<>();
+
+    for (LoopStructure.Loop loop : pLoops) {
+      Formula invariantForTheLoop = bfmgr.makeTrue();
+      for (ExpressionTreeLocationInvariant invariant : pInvariants) {
+        if (!invariant.isTransitionInvariant()) {
+          // The check for supporting invariants is not yet supported
+          // TODO: Implement checking that the invariants are really invariants
+          continue;
+        }
+      }
+    }
+    return builder.build();
   }
 }

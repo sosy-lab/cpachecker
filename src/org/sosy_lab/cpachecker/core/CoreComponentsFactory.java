@@ -478,6 +478,7 @@ public class CoreComponentsFactory {
       algorithm =
           new TerminationWitnessValidator(
               cfa,
+              cpa,
               config,
               logger,
               shutdownNotifier,
