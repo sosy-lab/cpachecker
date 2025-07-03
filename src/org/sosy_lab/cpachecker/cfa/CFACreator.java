@@ -1026,7 +1026,7 @@ public class CFACreator {
     }
 
     if (cfa.getLanguage() == Language.C) {
-      addDefaultInitializers(globalVars);
+      addDefaultInitializers(cfa.getMachineModel(), globalVars);
     } else {
       // TODO addDefaultInitializerForJava
     }
@@ -1088,7 +1088,8 @@ public class CFACreator {
    *
    * @param globalVars a list with all global declarations
    */
-  private static void addDefaultInitializers(List<Pair<ADeclaration, String>> globalVars) {
+  private static void addDefaultInitializers(
+      MachineModel pMachineModel, List<Pair<ADeclaration, String>> globalVars) {
     // first, collect all variables which do have an explicit initializer
     Set<String> initializedVariables = new HashSet<>();
     for (Pair<ADeclaration, String> p : globalVars) {
@@ -1133,7 +1134,7 @@ public class CFACreator {
           CType type = v.getType().getCanonicalType();
           if (!(type instanceof CElaboratedType)
               || (((CElaboratedType) type).getKind() == ComplexTypeKind.ENUM)) {
-            CInitializer initializer = CDefaults.forType(type, v.getFileLocation());
+            CInitializer initializer = CDefaults.forType(pMachineModel, type, v.getFileLocation());
             v.addInitializer(initializer);
             v =
                 new CVariableDeclaration(

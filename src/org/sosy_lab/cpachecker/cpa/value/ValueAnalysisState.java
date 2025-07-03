@@ -16,7 +16,6 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import java.io.Serial;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,6 +74,7 @@ import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -822,12 +822,10 @@ public final class ValueAnalysisState
         BigInteger value = getBigIntFromIntegerNumber(pNum.getNumber());
         val = new CIntegerLiteralExpression(loc, simpleType, value);
       } else if (simpleType.getType().isFloatingPointType()) {
-        double value = pNum.getNumber().doubleValue();
-        if (Double.isNaN(value) || Double.isInfinite(value)) {
-          // Cannot represent this here
-          return Optional.empty();
-        }
-        val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+        FloatValue.Format precision = FloatValue.Format.fromCType(machineModel, simpleType);
+        val =
+            new CFloatLiteralExpression(
+                loc, machineModel, simpleType, pNum.floatingPointValue(precision));
       } else {
         throw new AssertionError("Unexpected type: " + simpleType);
       }

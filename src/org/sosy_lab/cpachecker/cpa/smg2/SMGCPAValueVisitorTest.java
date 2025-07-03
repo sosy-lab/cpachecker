@@ -201,7 +201,7 @@ public class SMGCPAValueVisitorTest {
             AnalysisDirection.FORWARD);
 
     return new ConstraintsSolver(
-        config, smtSolver, formulaManager, converter, new ConstraintsStatistics());
+        config, MACHINE_MODEL, smtSolver, formulaManager, converter, new ConstraintsStatistics());
   }
 
   // Resets state and visitor to an empty state
@@ -1983,7 +1983,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName + typeToTest,
-              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
 
       CUnaryExpression amperVar = wrapInAmper(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -2584,7 +2584,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(typeToTest, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, typeToTest, FileLocation.DUMMY));
 
       CUnaryExpression sizeOfVar = wrapInSizeof(new CIdExpression(FileLocation.DUMMY, decl));
 
@@ -3055,7 +3055,7 @@ public class SMGCPAValueVisitorTest {
             variableName + "NotQual",
             variableName + "NotQual",
             variableName,
-            CDefaults.forType(structPointerType, FileLocation.DUMMY));
+            CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
 
     CIdExpression structVarExpr = new CIdExpression(FileLocation.DUMMY, declararation);
 
@@ -3128,7 +3128,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(structPointerType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, structPointerType, FileLocation.DUMMY));
     } else {
       declararation =
           new CVariableDeclaration(
@@ -3139,7 +3139,7 @@ public class SMGCPAValueVisitorTest {
               variableName + "NotQual",
               variableName + "NotQual",
               variableName,
-              CDefaults.forType(elaboratedType, FileLocation.DUMMY));
+              CDefaults.forType(MACHINE_MODEL, elaboratedType, FileLocation.DUMMY));
     }
 
     return new CIdExpression(FileLocation.DUMMY, declararation);

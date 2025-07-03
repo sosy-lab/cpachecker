@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -61,6 +62,11 @@ public class SymbolicExpressionToCExpressionTransformer
     implements SymbolicValueVisitor<CExpression> {
 
   private static final FileLocation DUMMY_LOCATION = FileLocation.DUMMY;
+  private final MachineModel machineModel;
+
+  public SymbolicExpressionToCExpressionTransformer(MachineModel pMachineModel) {
+    machineModel = pMachineModel;
+  }
 
   @Override
   public CExpression visit(SymbolicIdentifier pValue) {
@@ -84,7 +90,7 @@ public class SymbolicExpressionToCExpressionTransformer
       return ((SymbolicValue) pValue).accept(this);
 
     } else {
-      return pValue.accept(new ValueToCExpressionTransformer(pType));
+      return pValue.accept(new ValueToCExpressionTransformer(machineModel, pType));
     }
   }
 
