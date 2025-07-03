@@ -58,7 +58,7 @@ public class Invariant {
   }
 
   public boolean isTransitionInvariant() {
-    return isLoopInvariant;
+    return isTransitionInvariant;
   }
 
   public ExpressionTree<AExpression> getFormula() {

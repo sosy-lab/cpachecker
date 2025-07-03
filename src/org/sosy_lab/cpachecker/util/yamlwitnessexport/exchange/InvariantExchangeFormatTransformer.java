@@ -27,7 +27,12 @@ import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonWitnessParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.CParserUtils.ParserTools;
@@ -111,6 +116,8 @@ public class InvariantExchangeFormatTransformer {
     Deque<String> callStack = new ArrayDeque<>();
     callStack.push(pInvariantEntry.getLocation().getFunction());
 
+    registerThePrevVariables(invariantString);
+
     Scope scope =
         switch (cfa.getLanguage()) {
           case C -> new CProgramScope(cfa, logger);
@@ -118,6 +125,51 @@ public class InvariantExchangeFormatTransformer {
         };
 
     return createExpressionTreeFromString(resultFunction, invariantString, line, callStack, scope);
+  }
+
+  /**
+   * In case the witness is termination witness, it may contain x__PREV variables. These variables
+   * need to be registered in the scope. We add arbitrary edges into the head of the main with the
+   * declarations of these variables in CFA.
+   *
+   * @param pInvariant the invariant as string
+   * @param pScope the scope of the cfa, where we need to register the variables
+   * @return The new scope with the variables with __PREV
+   */
+  private void registerThePrevVariables(String pInvariant) {
+    Pattern pattern = Pattern.compile("\\b\\w+__PREV\\b");
+    Matcher matcher = pattern.matcher(pInvariant);
+
+    Scope scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
+
+    while (matcher.find()) {
+      String prevVariable = matcher.group();
+      String nameOfTheVariableInProgram =
+          prevVariable.substring(0, prevVariable.lastIndexOf("__PREV"));
+      CDeclaration declaration =
+          new CVariableDeclaration(
+              cfa.getMainFunction().getFileLocation(),
+              false,
+              CStorageClass.AUTO,
+              scope.lookupVariable(nameOfTheVariableInProgram).getType(),
+              prevVariable,
+              prevVariable,
+              prevVariable,
+              null);
+
+      cfa.getMainFunction()
+          .addLeavingEdge(
+              new CDeclarationEdge(
+                  scope.lookupType(nameOfTheVariableInProgram) + " " + prevVariable + ";",
+                  cfa.getMainFunction().getFileLocation(),
+                  cfa.getMainFunction(),
+                  CFANode.newDummyCFANode(),
+                  declaration));
+    }
   }
 
   /**
@@ -141,6 +193,7 @@ public class InvariantExchangeFormatTransformer {
       matcher.appendReplacement(result, variable + "__PREV");
     }
     matcher.appendTail(result);
+
     return result.toString();
   }
 

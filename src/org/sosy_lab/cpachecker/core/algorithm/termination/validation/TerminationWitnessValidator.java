@@ -23,6 +23,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -30,14 +31,17 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 @Options(prefix = "witness.validation.transitionInvariants")
@@ -64,6 +68,8 @@ public class TerminationWitnessValidator implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
+  private PathFormula context;
+
   public TerminationWitnessValidator(
       final CFA pCfa,
       final ConfigurableProgramAnalysis pCPA,
@@ -84,6 +90,7 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = predCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    context = pfmgr.makeEmptyPathFormula();
 
     if (pWitnessPath.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
@@ -113,25 +120,46 @@ public class TerminationWitnessValidator implements Algorithm {
     ImmutableMap<LoopStructure.Loop, Formula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(
             cfa.getLoopStructure().orElseThrow().getAllLoops(), invariants);
-
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   private ImmutableMap<LoopStructure.Loop, Formula> mapTransitionInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
-      Set<ExpressionTreeLocationInvariant> pInvariants) {
+      Set<ExpressionTreeLocationInvariant> pInvariants)
+      throws InterruptedException {
     ImmutableMap.Builder<LoopStructure.Loop, Formula> builder = new Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
-      Formula invariantForTheLoop = bfmgr.makeTrue();
+      BooleanFormula invariantForTheLoop = bfmgr.makeFalse();
       for (ExpressionTreeLocationInvariant invariant : pInvariants) {
         if (!invariant.isTransitionInvariant()) {
           // The check for supporting invariants is not yet supported
           // TODO: Implement checking that the invariants are really invariants
           continue;
         }
+
+        if (isTheInvariantLocationInLoop(loop, invariant.getLocation())) {
+          BooleanFormula invariantFormula;
+          try {
+            invariantFormula = invariant.getFormula(fmgr, pfmgr, pfmgr.makeEmptyPathFormula());
+          } catch (CPATransferException e) {
+            invariantFormula = bfmgr.makeFalse();
+          }
+          invariantForTheLoop = bfmgr.or(invariantForTheLoop, invariantFormula);
+        }
       }
+      builder.put(loop, invariantForTheLoop);
     }
     return builder.build();
+  }
+
+  private boolean isTheInvariantLocationInLoop(
+      LoopStructure.Loop pLoop, CFANode pInvariantLocation) {
+    for (CFANode loopNode : pLoop.getLoopNodes()) {
+      if (loopNode.equals(pInvariantLocation)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
