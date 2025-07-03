@@ -1856,6 +1856,9 @@ cpa.congruence.trackCongruenceSum = false
 # Cache formulas produced by path formula manager
 cpa.congruence.useCachingPathFormulaManager = true
 
+# Whether to allow the model generation to fail for known problems or not
+cpa.constraints.allowModelFailure = false
+
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
