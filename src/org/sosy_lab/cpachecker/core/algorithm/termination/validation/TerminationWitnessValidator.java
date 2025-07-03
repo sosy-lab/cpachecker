@@ -68,8 +68,6 @@ public class TerminationWitnessValidator implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  private PathFormula context;
-
   public TerminationWitnessValidator(
       final CFA pCfa,
       final ConfigurableProgramAnalysis pCPA,
@@ -90,7 +88,6 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = predCpa.getSolver().getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    context = pfmgr.makeEmptyPathFormula();
 
     if (pWitnessPath.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
