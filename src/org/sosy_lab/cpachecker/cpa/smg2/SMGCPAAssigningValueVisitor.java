@@ -639,7 +639,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * Tests if getExtendedQualifiedName() will succeed.
    *
    * @param expr current CExpression
-   * @return true if the expression is handleable by the assigning visitor
+   * @return whether the expression is handleable by the assigning visitor
    */
   private boolean isNestingHandleable(CExpression expr) {
     if (expr instanceof CBinaryExpression) {

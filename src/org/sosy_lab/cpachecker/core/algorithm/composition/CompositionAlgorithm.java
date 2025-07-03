@@ -193,7 +193,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "initCondition",
       description =
-          "Whether or not to create an initial condition, that excludes no paths, "
+          "Whether to create an initial condition, that excludes no paths, "
               + "before first analysis is run."
               + "Required when first analysis uses condition from conditional model checking")
   private boolean generateInitialFalseCondition = false;

@@ -137,7 +137,7 @@ usually below a CompositeCPA instance.
 To override this behavior
 and specify where the CPAs for specification automata should be inserted,
 use the placeholder `$specification` in the appropriate place.
-Thus the following example is again identical to the previous two:
+Thus, the following example is again identical to the previous two:
 
 ```
 cpa = cpa.arg.ARGCPA arg

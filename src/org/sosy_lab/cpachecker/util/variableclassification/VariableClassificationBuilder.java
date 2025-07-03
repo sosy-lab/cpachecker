@@ -525,8 +525,6 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       case BlankEdge, CallToReturnEdge -> {
         // other cases are not interesting
       }
-      default ->
-          throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 
@@ -638,7 +636,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     for (int i = 0; i < params.size(); i++) {
       final CExpression param = params.get(i);
 
-      /* special case: external functioncall with possible side-effect!
+      /* special case: external functioncall with possible side effect!
        * this is the only statement, where a pointer-operation is allowed
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.

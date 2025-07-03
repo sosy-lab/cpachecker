@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * The Class ErrorPathShrinker gets an targetPath and creates a new Path, with only the important
+ * The Class ErrorPathShrinker gets a targetPath and creates a new Path, with only the important
  * edges of the Path. The idea behind this Class is, that not every action (CFAEdge) before an error
  * occurs is important for the error, only a few actions (CFAEdges) are important.
  */
@@ -86,7 +86,7 @@ public final class ErrorPathShrinker {
   public ErrorPathShrinker() {}
 
   /**
-   * The function shrinkErrorPath gets an targetPath and creates a new Path, with only the important
+   * The function shrinkErrorPath gets a targetPath and creates a new Path, with only the important
    * edges of the Path.
    *
    * @param pTargetPath the "long" targetPath
@@ -122,7 +122,7 @@ public final class ErrorPathShrinker {
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
 
-    /* if the ErrorNode is inside of a function, the long path (pTargetPath) is not handled
+    /* if the ErrorNode is inside a function, the long path (pTargetPath) is not handled
      * until the StartNode, but only until the functionCall.
      * so update the sets of variables and call the PathHandler again until
      * the longPath is completely handled.*/
@@ -134,23 +134,6 @@ public final class ErrorPathShrinker {
     // assert importantVars.isEmpty() : "some variables are never declared: " + importantVars;
     return ImmutableList.copyOf(shortErrorPath);
   }
-
-  // this function is probably not needed, as the full path is believed to always end in the target
-  // state
-  /* This method iterates a path and copies all the edges until
-   * the target state into the result.
-   *
-   * @param path the Path to iterate */
-  /*
-  private static List<CFAEdge> getEdgesUntilTarget(final ARGPath path) {
-    int targetPos = indexOf(path.asStatesList(), IS_TARGET_STATE);
-    if (targetPos > 0) {
-      return path.getFullPath().subList(0, targetPos);
-    } else {
-      return path.getFullPath();
-    }
-  }
-  */
 
   private void handleEdge(
       final CFAEdge cfaEdge,
@@ -172,7 +155,7 @@ public final class ErrorPathShrinker {
     // add each edge to the shrinkedErrorPath in the first place
     if (currentCFAEdgeWithAssumptions != null) {
       Pair<CFAEdgeWithAssumptions, Boolean> normalPair =
-          Pair.of(currentCFAEdgeWithAssumptions, Boolean.FALSE);
+          Pair.of(currentCFAEdgeWithAssumptions, false);
       shortPath.addFirst(normalPair);
     }
 
@@ -324,7 +307,7 @@ public final class ErrorPathShrinker {
 
   /**
    * This method handles assumptions (a==b, a<=b, true, etc.). Assumptions are not handled as
-   * important edges, if they are part of a switchStatement. Otherwise this method only adds all
+   * important edges, if they are part of a switchStatement. Otherwise, this method only adds all
    * variables in an assumption (expression) to the important variables.
    */
   private void handleAssumption(AExpression assumeExp) {
@@ -335,7 +318,7 @@ public final class ErrorPathShrinker {
   }
 
   /**
-   * This method checks, if the current assumption is part of a switchStatement. Therefore it
+   * This method checks, if the current assumption is part of a switchStatement. Therefore, it
    * compares the current assumption with the expression of the last added CFAEdge. It can also
    * check similar assumptions like "if(x>3) {if(x>4){...}}".
    *
@@ -487,7 +470,7 @@ public final class ErrorPathShrinker {
                 currentCFAEdgeWithAssumptions.getCFAEdge(),
                 assumptions.build(),
                 currentCFAEdgeWithAssumptions.getComment()),
-            Boolean.TRUE);
+            true);
 
     // empty assumptions for fresh accumulation for next edge in short path
     assumptions = ImmutableSet.builder();

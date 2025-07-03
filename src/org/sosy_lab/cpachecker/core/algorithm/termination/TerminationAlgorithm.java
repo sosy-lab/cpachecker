@@ -728,7 +728,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       }
       case REMOVE_LOOP -> removeLoop(pReachedSet, pTargetState);
       case RESET -> resetReachedSet(pReachedSet, pInitialLocation);
-      default -> throw new AssertionError(resetReachedSetStrategy);
     }
   }
 

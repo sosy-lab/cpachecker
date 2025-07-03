@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
@@ -76,6 +77,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
+import org.sosy_lab.java_smt.api.FloatingPointNumber;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -439,8 +442,15 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CFloatLiteralExpression fExp) throws UnrecognizedCodeException {
-    FormulaType<?> t = conv.getFormulaTypeFromCType(fExp.getExpressionType());
-    return mgr.getFloatingPointFormulaManager().makeNumber(fExp.getValue(), (FloatingPointType) t);
+    FloatingPointFormulaManager fmgr = mgr.getFloatingPointFormulaManager();
+    FloatValue value = fExp.getValue();
+    FloatingPointNumber converted = value.toFloatingPointNumber();
+
+    return fmgr.makeNumber(
+        converted.getExponent(),
+        converted.getMantissa(),
+        converted.getSign(),
+        FormulaType.getFloatingPointType(value.getFormat().expBits(), value.getFormat().sigBits()));
   }
 
   @Override
@@ -454,7 +464,7 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CUnaryExpression exp) throws UnrecognizedCodeException {
     CExpression operand = exp.getOperand();
     UnaryOperator op = exp.getOperator();
-    switch (op) {
+    return switch (op) {
       case MINUS, TILDE -> {
         // Handle Integer Promotion
         CType t = operand.getExpressionType();
@@ -485,20 +495,16 @@ public class ExpressionToFormulaVisitor
                 + mgr.getFormulaType(ret)
                 + " do not match in visit(CUnaryExpression) for "
                 + exp;
-        return ret;
+        yield ret;
       }
-      case AMPER -> {
-        return visitDefault(exp);
-      }
+      case AMPER -> visitDefault(exp);
+
       case SIZEOF -> {
         CType lCType = exp.getOperand().getExpressionType();
-        return getSizeExpression(lCType);
+        yield getSizeExpression(lCType);
       }
-      case ALIGNOF -> {
-        return handleAlignOf(exp, exp.getOperand().getExpressionType());
-      }
-      default -> throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
-    }
+      case ALIGNOF -> handleAlignOf(exp, exp.getOperand().getExpressionType());
+    };
   }
 
   @Override
@@ -1338,7 +1344,7 @@ public class ExpressionToFormulaVisitor
    *
    * @param formatString the scanf format string
    * @param pVariableType the type of the receiving variable
-   * @return true if the scanf-format-specifier agrees with the type it writes to
+   * @return whether the scanf-format-specifier agrees with the type it writes to
    * @throws UnsupportedCodeException if the format specifier is not supported
    */
   private boolean isCompatibleWithScanfFormatString(String formatString, CType pVariableType)
@@ -1447,7 +1453,7 @@ public class ExpressionToFormulaVisitor
           castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
-        // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+        // XXX: Currently, MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
         // which corresponds to the semantics of 'round'.
         // Hence, we represent those semantics by the formula below, until there
         // is a release of MathSAT supporting NEAREST_TIE_AWAY.

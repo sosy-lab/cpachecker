@@ -12,6 +12,7 @@ import com.google.common.base.Equivalence;
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /** Wrapper for {@link Value} to make equal {@link NumericValue}s equal for the valuesMapping. */
 public final class ValueWrapper extends Equivalence<Value> {
@@ -27,6 +28,8 @@ public final class ValueWrapper extends Equivalence<Value> {
         return ((Float) arg0Num).compareTo(((Float) arg1Num)) == 0;
       } else if (arg0Num instanceof Double && arg1Num instanceof Double) {
         return ((Double) arg0Num).compareTo(((Double) arg1Num)) == 0;
+      } else if (arg0Num instanceof FloatValue || arg1Num instanceof FloatValue) {
+        return arg0Num.equals(arg1Num);
       } else if (!(arg0Num instanceof Double)
           && !(arg1Num instanceof Double)
           && !(arg0Num instanceof Float)

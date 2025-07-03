@@ -67,24 +67,21 @@ public class LlvmTypeConverter {
       final TypeRef pLlvmType, final boolean isUnsigned, final boolean isConst) {
     final boolean isVolatile = false;
     TypeKind typeKind = pLlvmType.getTypeKind();
-    switch (typeKind) {
-      case Void -> {
-        return CVoidType.VOID;
-      }
-      case Half, Float, Double, X86_FP80, FP128, PPC_FP128 -> {
-        return getFloatType(typeKind, isUnsigned);
-      }
+    return switch (typeKind) {
+      case Void -> CVoidType.VOID;
+
+      case Half, Float, Double, X86_FP80, FP128, PPC_FP128 -> getFloatType(typeKind, isUnsigned);
+
       case Integer -> {
         int integerWidth = pLlvmType.getIntTypeWidth();
-        return getIntegerType(integerWidth, isUnsigned, isConst);
+        yield getIntegerType(integerWidth, isUnsigned, isConst);
       }
       case Function -> {
         assert !isConst : "We don't support function types that are const";
-        return getFunctionType(pLlvmType);
+        yield getFunctionType(pLlvmType);
       }
-      case Struct -> {
-        return createStructType(pLlvmType, isConst);
-      }
+      case Struct -> createStructType(pLlvmType, isConst);
+
       case Array -> {
         CIntegerLiteralExpression arrayLength =
             new CIntegerLiteralExpression(
@@ -92,7 +89,7 @@ public class LlvmTypeConverter {
                 ARRAY_LENGTH_TYPE,
                 BigInteger.valueOf(pLlvmType.getArrayLength()));
 
-        return new CArrayType(
+        yield new CArrayType(
             isConst,
             isVolatile,
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
@@ -102,7 +99,7 @@ public class LlvmTypeConverter {
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
-        return new CPointerType(
+        yield new CPointerType(
             isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned, isConst));
       }
       case Vector -> {
@@ -112,7 +109,7 @@ public class LlvmTypeConverter {
                 ARRAY_LENGTH_TYPE,
                 BigInteger.valueOf(pLlvmType.getVectorSize()));
 
-        return new CArrayType(
+        yield new CArrayType(
             isConst,
             isVolatile,
             getCType(pLlvmType.getElementType(), isUnsigned, isConst),
@@ -120,10 +117,9 @@ public class LlvmTypeConverter {
       }
       case Label, Metadata, X86_MMX, Token -> {
         logger.log(Level.FINE, "Ignoring type kind", typeKind);
-        return null;
+        yield null;
       }
-      default -> throw new AssertionError("Unhandled type kind " + typeKind);
-    }
+    };
   }
 
   private CType createStructType(final TypeRef pStructType, boolean isConst) {

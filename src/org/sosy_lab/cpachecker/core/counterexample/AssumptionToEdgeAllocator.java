@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -106,6 +105,8 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 import org.sosy_lab.java_smt.api.FloatingPointNumber;
 
 /**
@@ -467,7 +468,7 @@ public class AssumptionToEdgeAllocator {
       ValueLiteralsVisitor v = new ValueLiteralsVisitor(pValue, leftHandSide, pConcreteState);
       ValueLiterals valueLiterals = cType.accept(v);
 
-      // resolve field references that lack a address
+      // resolve field references that lack an address
       if (isStructOrUnionType(cType) && leftHandSide instanceof CIdExpression) {
         v.resolveStruct(cType, valueLiterals, (CIdExpression) leftHandSide, functionName);
       }
@@ -782,7 +783,7 @@ public class AssumptionToEdgeAllocator {
     private @Nullable Object lookupReference(CFieldReference pIastFieldReference) {
 
       /* Fieldreferences are sometimes represented as variables,
-      e.g a.b.c in main is main::a$b$c */
+      e.g. a.b.c in main is main::a$b$c */
       FieldReference fieldReference = getFieldReference(pIastFieldReference, functionName);
 
       if (fieldReference != null && concreteState.hasValueForLeftHandSide(fieldReference)) {
@@ -980,7 +981,7 @@ public class AssumptionToEdgeAllocator {
 
       private Address lookupReferenceAddress(CFieldReference pIastFieldReference) {
         /* Fieldreferences are sometimes represented as variables,
-        e.g a.b.c in main is main::a$b$c */
+        e.g. a.b.c in main is main::a$b$c */
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
@@ -1086,34 +1087,31 @@ public class AssumptionToEdgeAllocator {
           addressType = rVarInBinaryExpType;
         } else {
           if (assumeLinearArithmetics) {
-            switch (binaryExp.getOperator()) {
-              case MULTIPLY:
+            return switch (binaryExp.getOperator()) {
+              case MULTIPLY -> {
                 // Multiplication with constants is sometimes supported
                 if (allowMultiplicationWithConstants
                     && (lVarInBinaryExp instanceof ALiteralExpression
                         || rVarInBinaryExp instanceof ALiteralExpression)) {
-                  return super.visit(binaryExp);
+                  yield super.visit(binaryExp);
                 }
-                return Value.UnknownValue.getInstance();
-              case DIVIDE:
-              case MODULO:
+                yield Value.UnknownValue.getInstance();
+              }
+              case DIVIDE, MODULO -> {
                 // Division and modulo with constants are sometimes supported
                 if (allowDivisionAndModuloByConstants
                     && rVarInBinaryExp instanceof ALiteralExpression) {
-                  break;
+                  yield super.visit(binaryExp);
                 }
-              // $FALL-THROUGH$
-              case BINARY_AND:
-              case BINARY_OR:
-              case BINARY_XOR:
-              case SHIFT_LEFT:
-              case SHIFT_RIGHT:
-                return Value.UnknownValue.getInstance();
-              default:
-                break;
-            }
+                yield Value.UnknownValue.getInstance();
+              }
+              case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT ->
+                  Value.UnknownValue.getInstance();
+              default -> super.visit(binaryExp);
+            };
+          } else {
+            return super.visit(binaryExp);
           }
-          return super.visit(binaryExp);
         }
 
         BinaryOperator binaryOperator = binaryExp.getOperator();
@@ -1123,7 +1121,7 @@ public class AssumptionToEdgeAllocator {
                 ? ((CPointerType) addressType).getType().getCanonicalType()
                 : ((CArrayType) addressType).getType().getCanonicalType();
 
-        switch (binaryOperator) {
+        return switch (binaryOperator) {
           case PLUS, MINUS -> {
             Value addressValueV = address.accept(this);
 
@@ -1133,7 +1131,7 @@ public class AssumptionToEdgeAllocator {
                 || offsetValueV.isUnknown()
                 || !addressValueV.isNumericValue()
                 || !offsetValueV.isNumericValue()) {
-              return Value.UnknownValue.getInstance();
+              yield Value.UnknownValue.getInstance();
             }
 
             Number addressValueNumber = addressValueV.asNumericValue().getNumber();
@@ -1144,12 +1142,11 @@ public class AssumptionToEdgeAllocator {
             BigDecimal typeSize = new BigDecimal(machineModel.getSizeof(elementType));
             BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
-            switch (binaryOperator) {
-              case PLUS:
-                return new NumericValue(addressValue.add(pointerOffsetValue));
-              case MINUS:
+            yield switch (binaryOperator) {
+              case PLUS -> new NumericValue(addressValue.add(pointerOffsetValue));
+              case MINUS -> {
                 if (lVarIsAddress) {
-                  return new NumericValue(addressValue.subtract(pointerOffsetValue));
+                  yield new NumericValue(addressValue.subtract(pointerOffsetValue));
                 } else {
                   throw new UnrecognizedCodeException(
                       "Expected pointer arithmetic "
@@ -1157,14 +1154,12 @@ public class AssumptionToEdgeAllocator {
                           + binaryExp.toASTString(),
                       binaryExp);
                 }
-              default:
-                throw new AssertionError();
-            }
+              }
+              default -> throw new AssertionError();
+            };
           }
-          default -> {
-            return Value.UnknownValue.getInstance();
-          }
-        }
+          default -> Value.UnknownValue.getInstance();
+        };
       }
 
       @Override
@@ -1377,91 +1372,95 @@ public class AssumptionToEdgeAllocator {
       return valueLiterals;
     }
 
-    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
-      CSimpleType simpleType = pSimpleType.getCanonicalType();
-      CBasicType basicType = simpleType.getType();
+    /**
+     * Convert an integer value to floating point
+     *
+     * <p>Will fail and return the original value if converting would lose precision.
+     */
+    private Number convertToFloat(Number pNumber, CType pType) {
+      // Calculate the target precision
+      Format precision = FloatValue.Format.fromCType(machineModel, pType);
 
-      switch (basicType) {
-        case BOOL, CHAR, INT -> {
-          return handleIntegerNumbers(pValue, simpleType);
-        }
-        case FLOAT, DOUBLE -> {
-          if (assumeLinearArithmetics) {
-            break;
-          }
-          return handleFloatingPointNumbers(pValue, simpleType);
-        }
-        default -> {}
+      // Convert to floating-point
+      BigInteger integerValue = new NumericValue(pNumber).bigIntegerValue();
+      FloatValue floatValue = FloatValue.fromInteger(precision, integerValue);
+
+      // Check that no precision was lost
+      Optional<BigInteger> maybeInteger = floatValue.toInteger();
+      if (maybeInteger.isEmpty() || !maybeInteger.orElseThrow().equals(integerValue)) {
+        return pNumber;
+      } else {
+        return floatValue;
       }
+    }
 
-      return UnknownValueLiteral.getInstance();
+    protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
+      CBasicType basicType = pSimpleType.getCanonicalType().getType();
+      if (pValue instanceof FloatingPointNumber pFloatingPointNumber) {
+        // Unlike other floating point values, FloatingPointNumbers do not implement the Number
+        // interface and need to be converted first
+        pValue = FloatValue.fromFloatingPointNumber(pFloatingPointNumber);
+      }
+      if (pValue instanceof Number pNumber) {
+        NumericValue numericValue = new NumericValue(pNumber);
+        switch (basicType) {
+          case BOOL, CHAR, INT, INT128 -> {
+            Preconditions.checkArgument(
+                numericValue.hasIntegerType(),
+                "Expecting an integer value, but `%s` has type `%s`.",
+                pNumber,
+                pNumber.getClass().getSimpleName());
+            return handleIntegerNumbers(pNumber, pSimpleType);
+          }
+          case FLOAT, DOUBLE, FLOAT128 -> {
+            // The value may have any type that implements the Number interface. We accept integers,
+            // floats and rationals. The type check here makes sure that the class is known to our
+            // implementation
+            Preconditions.checkArgument(
+                numericValue.hasFloatType()
+                    || numericValue.hasIntegerType()
+                    || numericValue.getNumber() instanceof Rational,
+                "Expecting a floating-point value, but `%s` has unknown type `%s`.",
+                pNumber,
+                pNumber.getClass().getSimpleName());
+
+            // If we were handed an integer, try converting it to float first
+            if (numericValue.hasIntegerType()) {
+              pNumber = convertToFloat(pNumber, pSimpleType);
+            }
+            return handleFloatingPointNumbers(pNumber, pSimpleType);
+          }
+          default ->
+              throw new AssertionError(String.format("Value has unknown type `%s`", basicType));
+        }
+      }
+      throw new AssertionError("Values must implement the Number interface.");
     }
 
     private ValueLiterals createUnknownValueLiterals() {
       return new ValueLiterals();
     }
 
-    private static boolean isSinglePrecision(FloatingPointNumber pFloatingPointNumber) {
-      return pFloatingPointNumber.getExponentSize() == 8
-          && pFloatingPointNumber.getMantissaSize() == 23;
-    }
-
-    private static boolean isDoublePrecision(FloatingPointNumber pFloatingPointNumber) {
-      return pFloatingPointNumber.getExponentSize() == 11
-          && pFloatingPointNumber.getMantissaSize() == 52;
-    }
-
     private ValueLiteral handleFloatingPointNumbers(Object pValue, CSimpleType pType) {
-
-      if (pValue instanceof Rational) {
-        double val = ((Rational) pValue).doubleValue();
-        if (Double.isInfinite(val) || Double.isNaN(val)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
-
-      } else if (pValue instanceof Double) {
-        double doubleValue = ((Double) pValue);
-        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
-      } else if (pValue instanceof Float) {
-        float floatValue = ((Float) pValue);
-        if (Float.isInfinite(floatValue) || Double.isNaN(floatValue)) {
-          // TODO return correct value
-          return UnknownValueLiteral.getInstance();
-        }
-        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(floatValue), pType);
+      if (pValue instanceof Rational rationalValue) {
+        FloatValue.Format format = FloatValue.Format.fromCType(machineModel, pType);
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromRational(format, rationalValue), machineModel, pType);
+      } else if (pValue instanceof Double doubleValue) {
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromDouble(doubleValue), machineModel, pType);
+      } else if (pValue instanceof Float floatValue) {
+        return ExplicitValueLiteral.valueOf(FloatValue.fromFloat(floatValue), machineModel, pType);
+      } else if (pValue instanceof FloatValue floatValue) {
+        return ExplicitValueLiteral.valueOf(floatValue, machineModel, pType);
       } else if (pValue instanceof FloatingPointNumber floatingPointNumber) {
-        if (!isDoublePrecision(floatingPointNumber) && !isSinglePrecision(floatingPointNumber)) {
-          // TODO return correct value once we have arbitrary floats
-          return UnknownValueLiteral.getInstance();
-        }
-
-        double doubleValue = floatingPointNumber.doubleValue();
-        if (Double.isInfinite(doubleValue) || Double.isNaN(doubleValue)) {
-          // TODO return correct value once we have arbitrary floats
-          return UnknownValueLiteral.getInstance();
-        }
-
-        return ExplicitValueLiteral.valueOf(BigDecimal.valueOf(doubleValue), pType);
+        return ExplicitValueLiteral.valueOf(
+            FloatValue.fromFloatingPointNumber(floatingPointNumber), machineModel, pType);
       }
-
-      BigDecimal val;
-
-      // TODO support rationals
-      try {
-        val = new BigDecimal(pValue.toString());
-      } catch (NumberFormatException e) {
-
-        logger.log(Level.INFO, "Can't parse " + value + " as value for the counter-example path.");
-        return UnknownValueLiteral.getInstance();
-      }
-
-      return ExplicitValueLiteral.valueOf(val, pType);
+      throw new UnsupportedOperationException(
+          String.format(
+              "Can't handle the value `%s` of type `%s` as a floating point number.",
+              pValue, pValue.getClass().getSimpleName()));
     }
 
     public void resolveStruct(
@@ -1473,27 +1472,11 @@ public class AssumptionToEdgeAllocator {
     }
 
     private ValueLiteral handleIntegerNumbers(Object pValue, CSimpleType pType) {
-
-      String valueStr = pValue.toString();
-
-      if (valueStr.matches("((-)?)\\d*")) {
-        BigInteger integerValue = new BigInteger(valueStr);
-
-        return handlePotentialIntegerOverflow(integerValue, pType);
-      } else {
-        List<String> numberParts = Splitter.on('.').splitToList(valueStr);
-
-        if (numberParts.size() == 2
-            && numberParts.get(1).matches("0*")
-            && numberParts.get(0).matches("((-)?)\\d*")) {
-
-          BigInteger integerValue = new BigInteger(numberParts.get(0));
-          return handlePotentialIntegerOverflow(integerValue, pType);
-        }
+      if (pValue instanceof Number pNumber) {
+        BigInteger beforeCast = new NumericValue(pNumber).getIntegerValue();
+        return handlePotentialIntegerOverflow(beforeCast, pType);
       }
-
-      ValueLiteral valueLiteral = handleFloatingPointNumbers(pValue, pType);
-      return valueLiteral.isUnknown() ? valueLiteral : valueLiteral.addCast(pType);
+      throw new AssertionError("Values must implement the Number interface.");
     }
 
     /**
@@ -1579,24 +1562,22 @@ public class AssumptionToEdgeAllocator {
             pType.hasImaginarySpecifier(),
             pType.hasLongLongSpecifier());
       } else {
-        switch (pType.getType()) {
-          case INT:
-            if (pType.hasShortSpecifier()) {
-              return CNumericTypes.SIGNED_INT;
-            } else if (pType.hasLongSpecifier()) {
-              return CNumericTypes.SIGNED_LONG_LONG_INT;
-            } else if (pType.hasLongLongSpecifier()) {
-              // fall through, this is already the largest type
-            } else {
-              // if it had neither specifier it is a plain (unsigned) int
-              return CNumericTypes.SIGNED_LONG_INT;
-            }
-          // $FALL-THROUGH$
-          default:
-            // just log and do not throw an exception in order to not break things
-            logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
-            return pType;
+        if (pType.getType() == CBasicType.INT) {
+          if (pType.hasShortSpecifier()) {
+            return CNumericTypes.SIGNED_INT;
+          } else if (pType.hasLongSpecifier()) {
+            return CNumericTypes.SIGNED_LONG_LONG_INT;
+          } else if (pType.hasLongLongSpecifier()) {
+            // fall through, this is already the largest type
+          } else {
+            // if it had neither specifier it is a plain (unsigned) int
+            return CNumericTypes.SIGNED_LONG_INT;
+          }
         }
+
+        // just log and do not throw an exception in order to not break things
+        logger.logf(Level.WARNING, "Cannot find next larger type for %s", pType);
+        return pType;
       }
     }
 
@@ -2136,10 +2117,20 @@ public class AssumptionToEdgeAllocator {
       return new ExplicitValueLiteral(literal);
     }
 
-    public static ValueLiteral valueOf(BigDecimal value, CSimpleType pType) {
+    public static ValueLiteral valueOf(
+        FloatValue value, MachineModel pMachineModel, CSimpleType pType) {
+
+      Format targetFormat = FloatValue.Format.fromCType(pMachineModel, pType);
+      if (!targetFormat.equals(value.getFormat())
+          && value.withPrecision(targetFormat).withPrecision(value.getFormat()).equals(value)) {
+        // If the precision of the value doesn't match the type, convert it to the new precision if
+        // this can be done without rounding
+        // FIXME Find out why the precision doesn't match the type
+        value = value.withPrecision(targetFormat);
+      }
 
       CFloatLiteralExpression literal =
-          new CFloatLiteralExpression(FileLocation.DUMMY, pType, value);
+          new CFloatLiteralExpression(FileLocation.DUMMY, pMachineModel, pType, value);
       return new ExplicitValueLiteral(literal);
     }
 

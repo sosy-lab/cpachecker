@@ -29,7 +29,7 @@ class ASTOperatorConverter {
     parseContext = pParseContext;
   }
 
-  /** converts and returns the operator of an unaryExpression (PLUS, MINUS, NOT, STAR,...) */
+  /** converts and returns the operator of a unaryExpression (PLUS, MINUS, NOT, STAR,...) */
   UnaryOperator convertUnaryOperator(final IASTUnaryExpression e) {
     return switch (e.getOperator()) {
       case IASTUnaryExpression.op_amper -> UnaryOperator.AMPER;
@@ -46,7 +46,7 @@ class ASTOperatorConverter {
   }
 
   /**
-   * converts and returns the operator of an binaryExpression (PLUS, MINUS, MULTIPLY,...) with an
+   * converts and returns the operator of a binaryExpression (PLUS, MINUS, MULTIPLY,...) with a
    * flag, if the operator causes an assignment.
    */
   Pair<BinaryOperator, Boolean> convertBinaryOperator(final IASTBinaryExpression e) {

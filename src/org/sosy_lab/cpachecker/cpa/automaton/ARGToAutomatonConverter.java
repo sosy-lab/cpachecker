@@ -160,7 +160,6 @@ public class ARGToAutomatonConverter {
       case LOCATION -> getLocationAutomatonForStates(root, Predicates.alwaysFalse(), targetsOnly);
       case CALLSTACK ->
           getCallstackAutomatonForStates(root, getLeaves(root, targetsOnly), targetsOnly);
-      default -> throw new AssertionError("unexpected strategy");
     };
   }
 
@@ -173,7 +172,6 @@ public class ARGToAutomatonConverter {
       case GLOBAL_CONDITIONS -> getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES -> getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
       case TARGETS -> getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
-      default -> throw new AssertionError("unexpected strategy");
     };
   }
 
@@ -215,7 +213,7 @@ public class ARGToAutomatonConverter {
       for (ARGState child : s.getChildren()) {
         child = uncover(child);
         if (ignoreState.apply(child)) {
-          // ignore those states here, BOTTOM-state will be inserted afterwards automatically.
+          // ignore those states here, BOTTOM-state will be inserted afterward automatically.
           // Note: if sibling with same location is not ignored, ignorance might be useless.
           continue;
         }
@@ -332,7 +330,6 @@ public class ARGToAutomatonConverter {
       case WEIGHTED -> // export all nodes, where children are heavier than a given limit
           getWeightedAutomata(root, pDependencies);
       case FIRST_BFS -> getFirstBFSAutomata(root, pDependencies);
-      default -> throw new AssertionError("unexpected export strategy");
     };
   }
 
@@ -741,18 +738,15 @@ public class ARGToAutomatonConverter {
     Preconditions.checkArgument(!pRoot.equals(pLeaf));
     Preconditions.checkArgument(!pLeaf.isCovered());
 
-    switch (dataStrategy) {
+    return switch (dataStrategy) {
       case LOCATION -> {
         Collection<ARGState> allStatesOnPaths = getAllStatesOnPathsTo(pLeaf);
         Preconditions.checkArgument(allStatesOnPaths.contains(pRoot));
         Preconditions.checkArgument(allStatesOnPaths.contains(pLeaf));
-        return getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
+        yield getLocationAutomatonForStates(pRoot, s -> !allStatesOnPaths.contains(s), true);
       }
-      case CALLSTACK -> {
-        return getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
-      }
-      default -> throw new AssertionError("unhandled case");
-    }
+      case CALLSTACK -> getCallstackAutomatonForStates(pRoot, Collections.singleton(pLeaf), true);
+    };
   }
 
   private Automaton getCallstackAutomatonForStates(

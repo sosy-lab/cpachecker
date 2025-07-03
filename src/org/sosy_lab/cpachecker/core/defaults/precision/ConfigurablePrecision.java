@@ -47,7 +47,7 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
               + " precision")
   private Pattern variableWhitelist = Pattern.compile("");
 
-  @Option(secure = true, description = "If this option is used, booleans from the cfa are tracked.")
+  @Option(secure = true, description = "If this option is used, booleans from the CFA are tracked.")
   private boolean trackBooleanVariables = true;
 
   @Option(

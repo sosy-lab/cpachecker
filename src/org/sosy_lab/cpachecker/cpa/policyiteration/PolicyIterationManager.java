@@ -908,7 +908,6 @@ public class PolicyIterationManager {
             logger.log(Level.INFO, optEnvironment.toString());
             throw new CPATransferException("Solver returned undefined status");
           }
-          default -> throw new AssertionError("Unhandled enum value in switch: " + status);
         }
       }
     } catch (SolverException e) {
@@ -969,7 +968,7 @@ public class PolicyIterationManager {
       return Pair.of(ABSTRACTION_REQUIRED, null);
     }
 
-    // Slices and bounds for all template sub-components.
+    // Slices and bounds for all template subcomponents.
     List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
     List<PolicyBound> policyBounds = new ArrayList<>();
     List<Rational> coefficients = new ArrayList<>();
@@ -1171,22 +1170,18 @@ public class PolicyIterationManager {
       return true;
     }
 
-    switch (abstractionLocations) {
-      case ALL -> {
-        return true;
-      }
+    return switch (abstractionLocations) {
+      case ALL -> true;
+
       case LOOPHEAD -> {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
+        yield (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       }
-      case MERGE -> {
-        return node.getNumEnteringEdges() > 1;
-      }
-      default -> throw new UnsupportedOperationException("Unexpected state");
-    }
+      case MERGE -> node.getNumEnteringEdges() > 1;
+    };
   }
 
   /**

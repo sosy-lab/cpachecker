@@ -309,7 +309,7 @@ public class PathChecker {
 
     PathIterator pathIt = pPath.fullPathIterator();
 
-    // for recursion we need to update SSA-indices after returning from a function call,
+    // For recursion, we need to update SSA-indices after returning from a function call,
     // in non-recursive cases this should not change anything.
     Deque<PathFormula> callstack = new ArrayDeque<>();
 

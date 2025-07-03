@@ -151,7 +151,7 @@ public class OctagonTransferRelation
     Set<OctagonState> cleanedUpStates = new HashSet<>();
     // TODO overapproximation here, we should not need to remove those vars
     // instead it would be much better if we could omit creating them, p.e. through
-    // creating the temporary vars in the cfa, before analyzing the program
+    // creating the temporary vars in the CFA, before analyzing the program
     for (OctagonState st : successors) {
       cleanedUpStates.add(st.removeTempVars(functionName, TEMP_VAR_PREFIX));
     }
@@ -212,10 +212,10 @@ public class OctagonTransferRelation
         return handleLiteralBooleanExpression(
             ((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
 
-      } else if (expression instanceof CFloatLiteralExpression) {
+      } else if (expression instanceof CFloatLiteralExpression floatLiteral) {
         // only when the float is exactly zero the condition is wrong, for all other float values it
         // is true
-        int val = Math.abs(((CFloatLiteralExpression) expression).getValue().signum());
+        int val = floatLiteral.getValue().isZero() ? 0 : 1;
         return handleLiteralBooleanExpression(val, truthAssumption, state);
       } else {
         return Collections.singleton(state);
@@ -266,15 +266,15 @@ public class OctagonTransferRelation
       throws CPATransferException {
 
     // IMPORTANT: for this switch we assume that in each conditional statement, there is only one
-    // condition, (this simplification is added in the cfa creation phase)
-    switch (binExp.getOperator()) {
-      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO -> {
-        // TODO check which cases can be handled
-        return Collections.singleton(pState);
-        // for the following cases we first create a temporary variable where
-        // the result of the operation is saved, afterwards, the equality with == 0
-        // is checked
-      }
+    // condition, (this simplification is added in the CFA creation phase)
+    return switch (binExp.getOperator()) {
+      case BINARY_AND, BINARY_OR, BINARY_XOR, SHIFT_LEFT, SHIFT_RIGHT, MODULO ->
+          // TODO check which cases can be handled
+          Collections.singleton(pState);
+
+      // for the following cases we first create a temporary variable where
+      // the result of the operation is saved, afterward, the equality with == 0
+      // is checked
       case MINUS, PLUS, MULTIPLY, DIVIDE -> {
         MemoryLocation tempVarName =
             MemoryLocation.forLocalVariable(
@@ -289,7 +289,7 @@ public class OctagonTransferRelation
 
           // we have an undefined value, so there is no need to make any assumptions about it
           if (coeffs.equals(OctagonUniversalCoefficients.INSTANCE)) {
-            return Collections.singleton(pState);
+            yield Collections.singleton(pState);
           }
 
           OctagonState tmp =
@@ -300,29 +300,29 @@ public class OctagonTransferRelation
           tmp = tmp.makeAssignment(tempVarName, coeffs.expandToSize(tmp.sizeOfVariables(), tmp));
           possibleStates.addAll(handleSingleBooleanExpression(tempVarName, truthAssumption, tmp));
         }
-        return possibleStates;
-        // in the following cases we have to check left and right part of the binary
-        // expression, when they are not single variables but contain for example
-        // another binary expression we have to create some temporary variables again
-        // which will be compared afterwards
+        yield possibleStates;
       }
+
+      // in the following cases we have to check left and right part of the binary
+      // expression, when they are not single variables but contain for example
+      // another binary expression we have to create some temporary variables again
+      // which will be compared afterward
       case EQUALS, NOT_EQUALS, GREATER_EQUAL, GREATER_THAN, LESS_EQUAL, LESS_THAN -> {
         CExpression left = binExp.getOperand1();
         CExpression right = binExp.getOperand2();
         BinaryOperator op = binExp.getOperator();
 
         if (!isHandleableVariable(left) || !isHandleableVariable(right)) {
-          return Collections.singleton(pState);
+          yield Collections.singleton(pState);
         }
 
         if (left instanceof CLiteralExpression || right instanceof CLiteralExpression) {
-          return handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, pState);
+          yield handleBinaryAssumptionWithLiteral(left, right, op, truthAssumption, pState);
         } else {
-          return handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
+          yield handleBinaryAssumptionWithoutLiteral(binExp, truthAssumption, left, right, pState);
         }
       }
-      default -> throw new CPATransferException("Unhandled case: " + binExp.getOperator());
-    }
+    };
   }
 
   /**
@@ -1164,30 +1164,19 @@ public class OctagonTransferRelation
               if (leftCoeffs
                   .expandToSize(rightVisitorState.sizeOfVariables(), rightVisitorState)
                   .equals(rightCoeffs)) {
-                switch (binOp) {
-                  case EQUALS:
-                  case GREATER_EQUAL:
-                  case LESS_EQUAL:
-                    returnCoefficients.add(
-                        Pair.of(
-                            OctagonSimpleCoefficients.getBoolTRUECoeffs(
-                                rightVisitorState.sizeOfVariables(), rightVisitorState),
-                            rightVisitorState));
-                    break;
-                  case NOT_EQUALS:
-                  case LESS_THAN:
-                  case GREATER_THAN:
-                    returnCoefficients.add(
-                        Pair.of(
-                            OctagonSimpleCoefficients.getBoolFALSECoeffs(
-                                rightVisitorState.sizeOfVariables(), rightVisitorState),
-                            rightVisitorState));
-                    break;
-                  // unused default statements, all possible values for this switch
-                  // statement are handled above
-                  default:
-                    throw new AssertionError("Unhandled case in switch clause.");
-                }
+                OctagonSimpleCoefficients coefficients =
+                    switch (binOp) {
+                      case EQUALS, GREATER_EQUAL, LESS_EQUAL ->
+                          OctagonSimpleCoefficients.getBoolTRUECoeffs(
+                              rightVisitorState.sizeOfVariables(), rightVisitorState);
+                      case NOT_EQUALS, LESS_THAN, GREATER_THAN ->
+                          OctagonSimpleCoefficients.getBoolFALSECoeffs(
+                              rightVisitorState.sizeOfVariables(), rightVisitorState);
+                      // unused default statements, all possible values for this switch
+                      // statement are handled above
+                      default -> throw new AssertionError("Unhandled case in switch clause.");
+                    };
+                returnCoefficients.add(Pair.of(coefficients, rightVisitorState));
                 continue;
               }
 
@@ -1201,24 +1190,15 @@ public class OctagonTransferRelation
                 rightCoeffs =
                     leftCoeffs.expandToSize(rightVisitorState.sizeOfVariables(), rightVisitorState);
 
-                // because we change the sides of the operands, we have to change the
-                // operator, too
-                switch (binOp) {
-                  case GREATER_EQUAL:
-                    binOp = BinaryOperator.LESS_EQUAL;
-                    break;
-                  case GREATER_THAN:
-                    binOp = BinaryOperator.LESS_THAN;
-                    break;
-                  case LESS_EQUAL:
-                    binOp = BinaryOperator.GREATER_EQUAL;
-                    break;
-                  case LESS_THAN:
-                    binOp = BinaryOperator.GREATER_THAN;
-                    break;
-                  default:
-                    break;
-                }
+                // because we change the sides of the operands, we have to change the operator, too
+                binOp =
+                    switch (binOp) {
+                      case GREATER_EQUAL -> BinaryOperator.LESS_EQUAL;
+                      case GREATER_THAN -> BinaryOperator.LESS_THAN;
+                      case LESS_EQUAL -> BinaryOperator.GREATER_EQUAL;
+                      case LESS_THAN -> BinaryOperator.GREATER_THAN;
+                      default -> binOp;
+                    };
 
               } else {
                 rightVisitorState =
@@ -1604,7 +1584,7 @@ public class OctagonTransferRelation
 
       Set<Pair<IOctagonCoefficients, OctagonState>> returnValues = new HashSet<>();
 
-      // we negate all coefficients and afterwards return the computed results
+      // we negate all coefficients and afterward return the computed results
       for (Pair<IOctagonCoefficients, OctagonState> pair : operand) {
         returnValues.add(Pair.of(pair.getFirst().mul(OctagonIntValue.NEG_ONE), pair.getSecond()));
       }

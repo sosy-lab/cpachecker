@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
-import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -465,7 +464,6 @@ final class PredicateCPAInvariantsManager implements StatisticsProvider, Invaria
               wasSuccessful =
                   findInvariantInterpolants(
                       allStatesTrace, abstractionStatesTrace, invariantShutdown.getNotifier());
-          default -> throw new AssertionError("Unhandled case statement");
         }
 
         if (wasSuccessful) {

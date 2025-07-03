@@ -469,7 +469,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
   }
 
   /**
-   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore, each arg
    * ("x") assigned to a param ("int a") of the function.
    */
   private boolean handleFunctionCall(CFunctionCallEdge edge, Collection<String> importantVars) {

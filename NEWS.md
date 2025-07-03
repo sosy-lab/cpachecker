@@ -556,7 +556,7 @@ Further changes:
 * Benchmarking Support  
   CPAchecker provides scripts for benchmarking with large sets of programs.
   These have been extended and now provide more precise time and memory measurement
-  (using Linux cgroups). Also the generated HTML tables have more features now.
+  (using Linux cgroups). Also, the generated HTML tables have more features now.
   (cf. doc/Benchmark.txt)
 
 

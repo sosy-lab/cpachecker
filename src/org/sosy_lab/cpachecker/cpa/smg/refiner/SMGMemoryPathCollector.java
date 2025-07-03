@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
-/** This utility class computes MemoryPaths for a SMG. */
+/** This utility class computes MemoryPaths for an SMG. */
 public class SMGMemoryPathCollector {
 
   private enum SMGObjectPosition {
@@ -271,7 +271,6 @@ public class SMGMemoryPathCollector {
       case GLOBAL -> SMGMemoryPath.valueOf(pVariableName, pOffset);
       case STACK -> SMGMemoryPath.valueOf(pVariableName, pFunctionName, pOffset, pLocationOnStack);
       case HEAP -> SMGMemoryPath.valueOf(pParent, pOffset);
-      default -> throw new AssertionError();
     };
   }
 }

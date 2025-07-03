@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class allows to export the information of abstract states as SMT-formula. Therefore we
+ * This class allows to export the information of abstract states as SMT-formula. Therefore, we
  * filter the abstract states for matching {@link FormulaReportingState}s and retrieve the formula
  * from there. Then we export the formulas in a fixed line-based format, which allows re-usage with
  * a further predicate analysis.
@@ -79,7 +79,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
       secure = true,
       description =
           "instead of writing the exact state-representation as a single formula, write its atoms"
-              + " as a list of formulas. Therefore we ignore operators for conjunction and"
+              + " as a list of formulas. Therefore, we ignore operators for conjunction and"
               + " disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
@@ -228,7 +228,6 @@ public class StateToFormulaWriter implements StatisticsProvider {
       case ATOM ->
           // atomize formulas
           formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
-      default -> throw new AssertionError("unknown option");
     }
 
     // filter out formulas with no information

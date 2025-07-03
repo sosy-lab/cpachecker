@@ -437,7 +437,7 @@ final class VariableAndFieldRelevancyComputer {
             + fieldOwnerType.getClass().getSimpleName()
             + ".";
     final CCompositeType compositeType = (CCompositeType) fieldOwnerType;
-    // Currently we don't pay attention to possible const and volatile modifiers
+    // Currently, we don't pay attention to possible const and volatile modifiers
     if (compositeType.isConst() || compositeType.isVolatile()) {
       return new CCompositeType(
           false,
@@ -566,8 +566,6 @@ final class VariableAndFieldRelevancyComputer {
         }
       }
       case BlankEdge, CallToReturnEdge -> {}
-      default ->
-          throw new UnrecognizedCodeException("Unknown edge type: " + edge.getEdgeType(), edge);
     }
 
     return result;

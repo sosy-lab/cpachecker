@@ -29,7 +29,7 @@ public final class SMGNullObject extends SMGObject {
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
-    /*There is no object that can replace the null object in an smg.*/
+    /* There is no object that can replace the null object in an SMG. */
     return false;
   }
 

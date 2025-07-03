@@ -59,7 +59,7 @@ public class ProgramDeclarations {
   /**
    * Register a type in the program wide scope. This does not mean that every other file of the
    * program has access to this type, but it does mean that if the same type is declared in another
-   * file these types will be identical afterwards. (This happens in conjunction to the proper
+   * file these types will be identical afterward. (This happens in conjunction to the proper
    * handling of type declarations in the GlobalScope)
    */
   public void registerTypeDeclaration(CComplexTypeDeclaration declaration) {
@@ -407,7 +407,7 @@ public class ProgramDeclarations {
         }
       }
 
-      // length is ok, so check the if the types are ok, too
+      // length is ok, so check if the types are ok, too
       return areEqualTypes(
           ((CArrayType) type1).getType(), ((CArrayType) type2).getType(), foundTypes);
 

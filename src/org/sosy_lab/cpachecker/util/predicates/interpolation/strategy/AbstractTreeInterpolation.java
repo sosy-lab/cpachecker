@@ -83,7 +83,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     // (D) variables/symbols in each interpolant are part of both partitions
 
     // PROBLEM: we rebuild some interpolants before returning them from {@getInterpolants()}.
-    // Thus the check might fail. TODO check this!
+    // Thus, the check might fail. TODO check this!
 
     assert formulas.size() == subtrees.length() : "each formula must be part of a subtree";
     assert formulas.size() == interpolants.size() + 1
@@ -204,7 +204,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
     END // node with several children, end of a subtree
   }
 
-  /** returns the current position in a interpolation tree. */
+  /** returns the current position in an interpolation tree. */
   private static <T> TreePosition getTreePosition(
       final List<InterpolationGroup<T>> formulasWithStatesAndGroupdIds, final int position) {
     final AbstractState abstractionState =
@@ -313,7 +313,6 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
           startOfSubTree.add(stack.getLast().getSecond());
           formulas.add(formula);
         }
-        default -> throw new AssertionError();
       }
     }
     ImmutableIntArray resultingStartOfSubtree = startOfSubTree.build();
@@ -339,9 +338,9 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
   }
 
   /**
-   * The default Predicate Analysis can only handle a flat list of interpolants. Thus we convert the
-   * tree-structure back into a linear chain of interpolants. The analysis must handle special cases
-   * on its own, i.e. use BAM with function-rebuilding.
+   * The default Predicate Analysis can only handle a flat list of interpolants. Thus, we convert
+   * the tree-structure back into a linear chain of interpolants. The analysis must handle special
+   * cases on its own, i.e. use BAM with function-rebuilding.
    *
    * <p>For function-entries (START-point) we use TRUE, for function-returns (END-point) both
    * function-summary and function-execution (merged into one formula).
@@ -366,18 +365,17 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
         positionOfA++) {
       // last interpolant would be False.
 
-      final BooleanFormula itp;
-      switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
-        case START -> itp = bfmgr.makeTrue();
-        case END -> {
-          // add the last inner formula and the common root (merge-formula)
-          final BooleanFormula functionSummary = iter.next();
-          final BooleanFormula functionExecution = iter.next();
-          itp = rebuildInterpolant(functionSummary, functionExecution);
-        }
-        case MIDDLE -> itp = iter.next();
-        default -> throw new AssertionError();
-      }
+      final BooleanFormula itp =
+          switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
+            case START -> bfmgr.makeTrue();
+            case END -> {
+              // add the last inner formula and the common root (merge-formula)
+              final BooleanFormula functionSummary = iter.next();
+              final BooleanFormula functionExecution = iter.next();
+              yield rebuildInterpolant(functionSummary, functionExecution);
+            }
+            case MIDDLE -> iter.next();
+          };
       interpolants.add(itp);
     }
 
@@ -388,7 +386,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /**
    * We need all atoms of both interpolants in one formula, If one of the formulas is True or False,
-   * we do not get Atoms from it. Thus we remove those cases.
+   * we do not get Atoms from it. Thus, we remove those cases.
    */
   protected BooleanFormula rebuildInterpolant(
       final BooleanFormula functionSummary, final BooleanFormula functionExecution) {
