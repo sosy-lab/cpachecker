@@ -130,12 +130,15 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     timestamp_to_message = {}
     sorted_keys = sorted(block_logs.keys())
     index_dict = {}
-    for index in enumerate(sorted_keys):
-        index_dict[index[1]] = index[0]
+    for i, index in enumerate(sorted_keys):
+        index_dict[index] = i
     for message in all_messages:
+        sender = message["header"]["senderId"]
+        if sender not in index_dict:
+            continue
         timestamp_to_message.setdefault(
             message["header"]["timestamp"] - first_timestamp, [""] * len(block_logs)
-        )[index_dict[message["header"]["senderId"]]] = message
+        )[index_dict[sender]] = message
     headers = ["time"] + sorted_keys
     table = Airium()
     with table.table(klass="worker"):
