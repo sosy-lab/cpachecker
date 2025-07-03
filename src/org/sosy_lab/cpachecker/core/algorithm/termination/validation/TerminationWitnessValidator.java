@@ -48,19 +48,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-@Options(prefix = "witness.validation.transitionInvariants")
 public class TerminationWitnessValidator implements Algorithm {
-
-  @Option(
-      secure = true,
-      required = true,
-      name = "terminatingStatements",
-      description =
-          "Path to automaton specification describing which statements let the program terminate.")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path terminatingStatementsAutomaton =
-      Classes.getCodeLocation(NonTerminationWitnessValidator.class)
-          .resolveSibling("config/specification/TerminatingStatements.spc");
 
   private static final DummyTargetState DUMMY_TARGET_STATE =
       DummyTargetState.withSimpleTargetInformation("termination");
@@ -83,7 +71,6 @@ public class TerminationWitnessValidator implements Algorithm {
       final ShutdownNotifier pShutdownNotifier,
       final ImmutableSet<Path> pWitnessPath)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
     cfa = pCfa;
     config = pConfig;
     logger = pLogger;
@@ -93,7 +80,7 @@ public class TerminationWitnessValidator implements Algorithm {
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(pCPA, PredicateCPA.class, IMCAlgorithm.class);
     solver = predCpa.getSolver();
     pfmgr = predCpa.getPathFormulaManager();
-    fmgr = predCpa.getSolver().getFormulaManager();
+    fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
 
     if (pWitnessPath.size() < 1) {
