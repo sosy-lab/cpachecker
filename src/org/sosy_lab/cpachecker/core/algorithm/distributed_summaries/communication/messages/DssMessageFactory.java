@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicati
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DssAn
 public class DssMessageFactory {
 
   private final boolean exportTimestamp;
+  private final int identifier;
 
   public static final String DSS_MESSAGE_STATUS_KEY = "status";
   public static final String DSS_MESSAGE_PRECISE_KEY = "precise";
@@ -29,6 +31,7 @@ public class DssMessageFactory {
 
   public DssMessageFactory(DssAnalysisOptions pOptions) {
     exportTimestamp = pOptions.isDebugModeEnabled();
+    identifier = Instant.now().hashCode();
   }
 
   private ImmutableMap<String, String> serializeStatus(AlgorithmStatus pStatus) {

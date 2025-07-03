@@ -79,12 +79,12 @@ def html_for_message(message, block_log: Dict[str, str]):
             div("")
         return str(div), ""
 
-    infos = block_log[message["from"]]
+    infos = block_log[message["header"]["senderId"]]
 
     predecessors = infos.get("predecessors", [])
     successors = infos.get("successors", [])
-    result = message.get("payload", "no contents available")
-    direction = message["type"]
+    result = message.get("content", "no contents available")
+    direction = message["header"]["messageType"]
     arrow = "-"
     senders = ["all"]
     receivers = ["all"]
@@ -102,7 +102,7 @@ def html_for_message(message, block_log: Dict[str, str]):
 
     code = "\n".join([x for x in infos["code"] if x])
 
-    with div.div(title=f"{message['from']}:\n{code}"):
+    with div.div(title=f"{message['header']['senderId']}:\n{code}"):
         with div.p():
             with div.span():
                 div(arrow)
@@ -126,7 +126,7 @@ def html_for_message(message, block_log: Dict[str, str]):
 
 
 def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
-    first_timestamp = int(all_messages[0]["timestamp"])
+    first_timestamp = int(all_messages[0]["header"]["timestamp"])
     timestamp_to_message = {}
     sorted_keys = sorted(block_logs.keys())
     index_dict = {}
@@ -134,8 +134,8 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
         index_dict[index[1]] = index[0]
     for message in all_messages:
         timestamp_to_message.setdefault(
-            message["timestamp"] - first_timestamp, [""] * len(block_logs)
-        )[index_dict[message["from"]]] = message
+            message["header"]["timestamp"] - first_timestamp, [""] * len(block_logs)
+        )[index_dict[message["header"]["senderId"]]] = message
     headers = ["time"] + sorted_keys
     table = Airium()
     with table.table(klass="worker"):
@@ -146,7 +146,7 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
 
         # row values
         type_to_klass = {
-            "BLOCK_POSTCONDITION": "precondition",
+            "PRECONDITION": "precondition",
             "VIOLATION_CONDITION": "postcondition",
         }
         for timestamp, messages in timestamp_to_message.items():
@@ -156,7 +156,9 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
                     if not msg:
                         table.td()
                     else:
-                        klass = type_to_klass.get(msg["type"], "normal")
+                        klass = type_to_klass.get(
+                            msg["header"]["messageType"], "normal"
+                        )
                         table.td(klass=klass, _t=html_for_message(msg, block_logs))
 
     return str(table)
@@ -204,10 +206,14 @@ def export_messages_table(
         message_table_css_file = Path(__file__).parent / "table.css"
 
     for message in all_messages:
-        message["timestamp"] = int(message["timestamp"])
+        message["header"]["timestamp"] = int(message["header"]["timestamp"])
 
     all_messages = sorted(
-        all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
+        all_messages,
+        key=lambda entry: (
+            entry["header"]["timestamp"],
+            entry["header"]["senderId"][1::],
+        ),
     )
 
     output_path.mkdir(parents=True, exist_ok=True)
@@ -238,13 +244,14 @@ def visualize_messages(
     )
     for message_json in jsons:
         parsed_file = parse_jsons(message_dir / message_json)
+        header = parsed_file["header"]
         if hash_code is None:
-            hash_code = parsed_file.get("hashCode", "UNKNOWN")
-        if hash_code == parsed_file.get("hashCode", "UNKNOWN"):
+            hash_code = header.get("identifier", "UNKNOWN")
+        if hash_code == header.get("identifier", "UNKNOWN"):
             parsed_file["filename"] = str(message_json)
             all_messages.append(parsed_file)
-        if "hashCode" not in parsed_file:
-            print(f"WARNING: Missing hashCode in {message_json}")
+        if "identifier" not in header:
+            print(f"WARNING: Missing identifier in {message_json}")
     if not all_messages:
         return
 

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
@@ -28,6 +29,7 @@ public class DssVisualizationWorker extends DssWorker {
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final Path reportFiles;
   private boolean shutdown = false;
+  private final int identifier;
 
   DssVisualizationWorker(
       String id,
@@ -37,6 +39,7 @@ public class DssVisualizationWorker extends DssWorker {
       DssMessageFactory pMessageFactory,
       LogManager pLogger) {
     super(id, pMessageFactory, pLogger);
+    identifier = Instant.now().hashCode();
     connection = pConnection;
     reportFiles = pOptions.getReportFiles();
     try {
@@ -53,7 +56,8 @@ public class DssVisualizationWorker extends DssWorker {
 
   private void log(DssMessage pMessage) throws IOException {
     JSON.writeJSONString(
-        pMessage.asJson(), reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
+        pMessage.asJsonWithIdentifier(identifier),
+        reportFiles.resolve("M" + idGenerator.getFreshId() + ".json"));
   }
 
   @Override

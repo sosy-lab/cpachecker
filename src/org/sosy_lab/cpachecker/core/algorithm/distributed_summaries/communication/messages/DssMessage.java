@@ -43,6 +43,7 @@ public abstract class DssMessage {
   public static final String DSS_MESSAGE_SENDER_ID_KEY = "senderId";
   public static final String DSS_MESSAGE_TYPE_KEY = "messageType";
   public static final String DSS_MESSAGE_TIMESTAMP_KEY = "timestamp";
+  public static final String DSS_MESSAGE_IDENTIFIER_KEY = "identifier";
 
   private final String senderId;
   private final DssMessageType type;
@@ -132,17 +133,22 @@ public abstract class DssMessage {
     return exceptionMessage;
   }
 
-  public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
-    ImmutableMap<String, String> header =
+  public final ImmutableMap<String, ImmutableMap<String, String>> asJsonWithIdentifier(
+      int pIdentifier) {
+    ImmutableMap.Builder<String, String> header =
         ImmutableMap.<String, String>builder()
             .put(DSS_MESSAGE_SENDER_ID_KEY, getSenderId())
             .put(DSS_MESSAGE_TYPE_KEY, getType().name())
-            .put(DSS_MESSAGE_TIMESTAMP_KEY, getTimestamp().toString())
-            .buildOrThrow();
+            .put(DSS_MESSAGE_TIMESTAMP_KEY, Integer.toString(getTimestamp().getNano()))
+            .put(DSS_MESSAGE_IDENTIFIER_KEY, Integer.toString(pIdentifier));
     return ImmutableMap.<String, ImmutableMap<String, String>>builder()
-        .put(DSS_MESSAGE_HEADER_ID, header)
+        .put(DSS_MESSAGE_HEADER_ID, header.buildOrThrow())
         .put(DSS_MESSAGE_CONTENT_ID, content)
         .buildOrThrow();
+  }
+
+  public final ImmutableMap<String, ImmutableMap<String, String>> asJson() {
+    return asJsonWithIdentifier(0);
   }
 
   public final Map<StatisticsKey, String> getStats() {
