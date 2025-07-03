@@ -84,6 +84,12 @@ public class ConstraintsSolver {
     }
   }
 
+  @Option(
+      secure = true,
+      description = "Whether to allow the model generation to fail for known problems or not",
+      name = "allowModelFailure")
+  private boolean allowModelFailure = false;
+
   @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
   private boolean cacheSubsets = false;
 
@@ -296,10 +302,7 @@ public class ConstraintsSolver {
 
       } else if (res.isSat()) {
         return new SolverResult(
-            relevantConstraints,
-            Satisfiability.SAT,
-            Optional.ofNullable(res.getModelAssignment()),
-            Optional.empty());
+            relevantConstraints, Satisfiability.SAT, res.getModelAssignment(), Optional.empty());
 
       } else {
 
@@ -372,12 +375,20 @@ public class ConstraintsSolver {
     ImmutableList<ValueAssignment> satisfyingModel = null;
     ImmutableCollection<ValueAssignment> definiteAssignmentsInModel = null;
     if (!unsat) {
-      satisfyingModel = prover.getModelAssignments();
+      try {
+        satisfyingModel = prover.getModelAssignments();
+      } catch (IllegalArgumentException iae) {
+        // Mathsat error, still usable, but no model
+        if (allowModelFailure && !iae.getMessage().contains("MathSAT returned null")) {
+          throw iae;
+        }
+      }
       cache.addSat(constraintsAsFormulas, satisfyingModel);
+
       // doing this while the complete formula is still on the prover environment stack is
       // cheaper than performing another complete SAT check when the assignment is really
       // requested
-      if (resolveDefinites) {
+      if (resolveDefinites && satisfyingModel != null) {
         definiteAssignmentsInModel =
             resolveDefiniteAssignments(pConstraintsToCheck, satisfyingModel, prover);
         assert satisfyingModel.containsAll(definiteAssignmentsInModel)
@@ -922,7 +933,7 @@ public class ConstraintsSolver {
     private Optional<ImmutableList<ValueAssignment>> modelAssignment;
 
     public static CacheResult getSat(ImmutableList<ValueAssignment> pModelAssignment) {
-      return new CacheResult(Result.SAT, Optional.of(pModelAssignment));
+      return new CacheResult(Result.SAT, Optional.ofNullable(pModelAssignment));
     }
 
     public static CacheResult getUnsat() {
@@ -946,9 +957,8 @@ public class ConstraintsSolver {
       return result.equals(Result.UNSAT);
     }
 
-    public ImmutableList<ValueAssignment> getModelAssignment() {
-      checkState(modelAssignment.isPresent(), "No model exists");
-      return modelAssignment.orElseThrow();
+    public Optional<ImmutableList<ValueAssignment>> getModelAssignment() {
+      return modelAssignment;
     }
   }
 }
