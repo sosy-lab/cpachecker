@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.concurrent.ConcurrentHashMap;
+import com.google.common.collect.Sets;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
@@ -19,7 +20,7 @@ public class DssFixpointNotifier {
 
   private final DssConnection connection;
   private final int connections;
-  private final ConcurrentHashMap<String, String> waiting;
+  private final Set<String> waiting;
   private static DssFixpointNotifier instance;
   private final DssMessageFactory messageFactory;
 
@@ -28,7 +29,7 @@ public class DssFixpointNotifier {
     messageFactory = pMessageFactory;
     connection = pConnection;
     connections = pConnections;
-    waiting = new ConcurrentHashMap<>();
+    waiting = Sets.newConcurrentHashSet();
   }
 
   public static void init(
@@ -43,7 +44,7 @@ public class DssFixpointNotifier {
   }
 
   public void waiting(String id) {
-    waiting.put(id, id);
+    waiting.add(id);
     if (waiting.size() == connections) {
       connection
           .getBroadcaster()
