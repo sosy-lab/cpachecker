@@ -95,18 +95,6 @@ public class UnseqBehaviorAnalysisTransferRelation
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
       } else if (lhsExpr instanceof CPointerExpression pointerExpr) {
-
-        logger.logf(
-            Level.WARNING,
-            """
-            PointerCPA cannot resolve pointer arithmetic expressions like '%s' in statement '%s' (%s).
-            As a result, the side effect will be recorded on the pointer base as if there were no offset.
-            This may lead to incorrect alias resolution and missed or spurious conflict reports.
-            """,
-            pointerExpr.toASTString(),
-            statementEdge.getCode(),
-            statementEdge.getFileLocation());
-
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.READ, newState));

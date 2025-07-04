@@ -18,6 +18,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,6 +32,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -134,10 +138,19 @@ public class ExpressionBehaviorVisitor
     result.addUnsequencedBinaryExprs(leftSummary.getUnsequencedBinaryExprs());
     result.addUnsequencedBinaryExprs(rightSummary.getUnsequencedBinaryExprs());
 
+    if (isPointerArithmetic(binaryExpr)) {
+      logger.logf(
+          Level.WARNING,
+          "[Pointer Arithmetic] '%s' at %s. CPAchecker currently cannot fully analyze this expression. Analysis may miss alias resolution or report imprecise conflicts.",
+          UnseqUtils.replaceTmpInExpression(binaryExpr, state),
+          binaryExpr.getFileLocation()
+      );
+    }
+
+
     // Check if current binary operator itself is unsequenced
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
       result.addUnsequencedBinaryExpr(binaryExpr);
-
       logger.logf(
           Level.INFO,
           "Detected unsequenced binary expression '%s' at %s",
@@ -267,4 +280,27 @@ public class ExpressionBehaviorVisitor
           true;
     };
   }
+
+  private boolean isPointerArithmetic(CBinaryExpression expr) {
+    BinaryOperator op = expr.getOperator();
+    if (op != BinaryOperator.PLUS && op != BinaryOperator.MINUS) {
+      return false;
+    }
+
+    CType leftType = expr.getOperand1().getExpressionType();
+    CType rightType = expr.getOperand2().getExpressionType();
+
+    return (isPointerType(leftType) && isIntegerType(rightType)) ||
+        (isIntegerType(leftType) && isPointerType(rightType)) ||
+        (isPointerType(leftType) && isPointerType(rightType) && op == BinaryOperator.MINUS);
+  }
+
+  private boolean isPointerType(CType type) {
+    return type instanceof CPointerType;
+  }
+
+  private boolean isIntegerType(CType type) {
+    return type instanceof CSimpleType simpleType && simpleType.getType().isIntegerType();
+  }
+
 }
