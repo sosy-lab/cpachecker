@@ -67,7 +67,7 @@ public class UnseqBehaviorAnalysisState
   public Set<SideEffectInfo> getAllPointerSideEffects() {
     return sideEffectsInFun.values().stream()
         .flatMap(Set::stream)
-        .filter(se -> se.sideEffectKind() == SideEffectKind.POINTER_DEREFERENCE)
+        .filter(se -> se.sideEffectKind() == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED)
         .collect(Collectors.toSet());
   }
 

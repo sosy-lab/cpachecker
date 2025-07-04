@@ -228,7 +228,7 @@ public class ExpressionBehaviorVisitor
           pointerLoc,           // pointer itself address here
           accessType,
           cfaEdge,
-          SideEffectKind.POINTER_DEREFERENCE);
+          SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
       result.addSideEffect(sideEffectInfo);
       logger.logf(
           Level.INFO,"%s",

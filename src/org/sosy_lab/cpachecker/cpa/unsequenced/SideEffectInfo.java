@@ -21,12 +21,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * @param accessType the type of access performed: either READ or WRITE.
  * @param cfaEdge the CFA edge on which the side effect occurs, useful for diagnostics.
  * @param sideEffectKind the kind of memory access: global variable, pointer dereference, etc.
+ * @param isResolvedPointer true if this pointer dereference has already been resolved to its alias target
  */
 public record SideEffectInfo(
     MemoryLocation memoryLocation,
     AccessType accessType,
     CFAEdge cfaEdge,
-    SideEffectKind sideEffectKind) {
+    SideEffectKind sideEffectKind){
 
   public enum AccessType {
     WRITE,
@@ -35,7 +36,8 @@ public record SideEffectInfo(
 
   public enum SideEffectKind {
     GLOBAL_VARIABLE,
-    POINTER_DEREFERENCE,
+    POINTER_DEREFERENCE_UNRESOLVED,
+    POINTER_DEREFERENCE_RESOLVED,
   }
 
   public boolean isWrite() {
@@ -47,18 +49,30 @@ public record SideEffectInfo(
   }
 
   public boolean isPointerAccess() {
-    return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE;
+    return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED
+        || sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED;
+  }
+
+  public boolean isUnresolvedPointer() {
+    return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED;
+  }
+  public boolean isResolvedPointer() {
+    return sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED;
   }
 
   @Override
   public String toString() {
     String locInfo =
-        (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE)
+        (isPointerAccess())
         ? "pointer " + memoryLocation.toString()
         : memoryLocation.toString();
 
+    String resolvedMark = (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED)
+                          ? "[RESOLVED] " : "";
+
     return String.format(
-        "[%s] %s@%s at %s (line %d, col %d) %s",
+        "%s[%s] %s@%s at %s (line %d, col %d) %s",
+        resolvedMark,
         sideEffectKind,
         locInfo,
         accessType,

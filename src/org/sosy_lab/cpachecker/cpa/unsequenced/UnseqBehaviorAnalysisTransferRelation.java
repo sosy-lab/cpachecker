@@ -27,7 +27,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -60,8 +59,9 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class UnseqBehaviorAnalysisTransferRelation
@@ -88,9 +88,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression rhsExpr = exprAssign.getRightHandSide();
 
       // if functioncall true, then record side effects inside it
-      if (lhsExpr instanceof CIdExpression
-          || (lhsExpr instanceof CPointerExpression pointerExpr
-              && pointerExpr.getOperand() instanceof CIdExpression)) {
+      if (lhsExpr instanceof CIdExpression||
+          (lhsExpr instanceof CPointerExpression pointerExpr && pointerExpr.getOperand() instanceof CIdExpression)) {
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState));
@@ -98,6 +97,18 @@ public class UnseqBehaviorAnalysisTransferRelation
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(rhsExpr, statementEdge, AccessType.READ, newState));
       } else if (lhsExpr instanceof CPointerExpression pointerExpr) {
+
+        logger.logf(
+            Level.WARNING,
+            """
+            PointerCPA cannot resolve pointer arithmetic expressions like '%s' in statement '%s' (%s).
+            As a result, the side effect will be recorded on the pointer base as if there were no offset.
+            This may lead to incorrect alias resolution and missed or spurious conflict reports.
+            """,
+            pointerExpr.toASTString(),
+            statementEdge.getCode(),
+            statementEdge.getFileLocation());
+
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.READ, newState));
@@ -620,35 +631,40 @@ public class UnseqBehaviorAnalysisTransferRelation
   }
 
   @Override
-  public Collection<UnseqBehaviorAnalysisState> strengthen(
+  public Collection<? extends AbstractState> strengthen(
       AbstractState pElement,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
       Precision pPrecision)
-      throws CPATransferException, InterruptedException {
+      throws UnrecognizedCodeException {
 
-    checkState(pElement instanceof UnseqBehaviorAnalysisState);
-    UnseqBehaviorAnalysisState unseqState = (UnseqBehaviorAnalysisState) pElement;
+    if (!(pElement instanceof UnseqBehaviorAnalysisState unseqState)) {
+      return Collections.singleton(pElement);
+    }
 
-    Optional<PointerState> pointerStateOpt =
-        FluentIterable.from(otherStates).filter(PointerState.class).first().toJavaUtil();
+    Optional<PointerState> pointerStateOpt = FluentIterable.from(pOtherElements)
+        .filter(PointerState.class)
+        .first()
+        .toJavaUtil();
 
     if (pointerStateOpt.isEmpty()) {
-      return Collections.singleton(unseqState);
+      return Collections.singleton(pElement);
     }
 
     PointerState pointerState = pointerStateOpt.orElseThrow();
-    logger.logf(Level.INFO, "PointerCPA pointsToMap: %s", pointerState.getPointsToMap());
+    if (!pointerState.getPointsToMap().isEmpty()) {
+      logger.logf(Level.INFO, "PointerCPA pointsToMap: %s", pointerState.getPointsToMap());
+    }
     UnseqBehaviorAnalysisState result = unseqState;
 
     Set<SideEffectInfo> pointerEffects = unseqState.getAllPointerSideEffects();
     if (pointerEffects.isEmpty()) {
-      return Collections.singleton(unseqState);
+      return Collections.singleton(pElement);
     }
 
     for (SideEffectInfo se : pointerEffects) {
-      if (se.sideEffectKind() != SideEffectKind.POINTER_DEREFERENCE) {
-        continue;
+      if (!se.isUnresolvedPointer()) {
+        continue; //skip already resolved or irrelevant
       }
 
       MemoryLocation pointer = se.memoryLocation();
@@ -657,15 +673,24 @@ public class UnseqBehaviorAnalysisTransferRelation
       if (!pointees.isTop() && !pointees.isBot()) {
         Iterable<MemoryLocation> resolvedTargets =
             PointerTransferRelation.toNormalSet(pointerState, pointees);
+
+        logger.logf(Level.INFO,
+            "Replacing pointer memory %s with resolved target(s): %s at edge: %s",
+            pointer,
+            resolvedTargets,
+            se.cfaEdge().getCode());
+
         Set<SideEffectInfo> resolvedEffects = new HashSet<>();
         for (MemoryLocation target : resolvedTargets) {
-          resolvedEffects.add(
-              new SideEffectInfo(
-                  target, se.accessType(), se.cfaEdge(), SideEffectKind.POINTER_DEREFERENCE));
+          resolvedEffects.add(new SideEffectInfo(
+              target,
+              se.accessType(),
+              se.cfaEdge(),
+              SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
         }
         result = result.replaceSideEffectBatch(se, resolvedEffects);
       } else {
-        logger.logf(Level.WARNING, "Could not resolve alias for: %s", pointer);
+        logger.logf(Level.WARNING, "Could not resolve alias for: %s ", pointer.getExtendedQualifiedName());
       }
     }
 
