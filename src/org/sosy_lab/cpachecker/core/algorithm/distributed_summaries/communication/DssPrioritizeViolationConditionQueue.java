@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueue<DssMessage> {
 
   private final BlockingQueue<DssMessage> queue;
-  private static final int TAKE_POSTCONDITION = 4;
+  private static final int TAKE_VIOLATION_CONDITION = 4;
   private int current = 0;
 
   private final Deque<DssMessage> highestPriority;
@@ -71,15 +71,15 @@ public class DssPrioritizeViolationConditionQueue extends ForwardingBlockingQueu
     if (!highestPriority.isEmpty()) {
       return highestPriority.removeFirst();
     }
-    Deque<DssMessage> ViolationConditions = next.get(DssMessageType.VIOLATION_CONDITION);
+    Deque<DssMessage> violationConditions = next.get(DssMessageType.VIOLATION_CONDITION);
     Deque<DssMessage> postConditions = next.get(DssMessageType.PRECONDITION);
-    if (!ViolationConditions.isEmpty()) {
-      if (current >= TAKE_POSTCONDITION && !postConditions.isEmpty()) {
+    if (!violationConditions.isEmpty()) {
+      if (current >= TAKE_VIOLATION_CONDITION && !postConditions.isEmpty()) {
         current = 0;
         return postConditions.removeFirst();
       } else {
         current++;
-        return ViolationConditions.removeFirst();
+        return violationConditions.removeFirst();
       }
     } else if (!postConditions.isEmpty()) {
       return postConditions.removeFirst();

@@ -44,6 +44,12 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
     return queue;
   }
 
+  @Override
+  public boolean add(DssMessage pMessage) {
+    DssFixpointNotifier.getInstance().active(Thread.currentThread().getName());
+    return queue.add(pMessage);
+  }
+
   /**
    * Messages are returned according to the defined ordering.
    *

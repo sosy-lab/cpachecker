@@ -21,10 +21,8 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssExceptionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssMessageFactory;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.messages.DssStatisticsMessage.StatisticsKey;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -69,11 +67,11 @@ public class DssObserverWorker extends DssWorker implements Statistics {
       }
       case VIOLATION_CONDITION, PRECONDITION -> statusObserver.updateStatus(pMessage);
       case EXCEPTION -> {
+        errorMessage = Optional.of(pMessage.getExceptionMessage());
         shutdown = true;
-        errorMessage = Optional.of(((DssExceptionMessage) pMessage).getExceptionMessage());
       }
       case STATISTIC -> {
-        stats.put(pMessage.getSenderId(), ((DssStatisticsMessage) pMessage).getStats());
+        stats.put(pMessage.getSenderId(), pMessage.getStats());
         shutdown = stats.size() == numberOfBlocks;
       }
     }

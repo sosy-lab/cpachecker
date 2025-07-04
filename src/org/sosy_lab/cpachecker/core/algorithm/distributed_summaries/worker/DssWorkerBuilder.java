@@ -13,9 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
@@ -43,7 +41,7 @@ public class DssWorkerBuilder {
   private final Specification specification;
 
   private final DssMessageFactory messageFactory;
-  private final Map<CommunicationId, WorkerGenerator> workerGenerators;
+  private final ImmutableMap.Builder<CommunicationId, WorkerGenerator> workerGenerators;
   private final Supplier<BlockingQueue<DssMessage>> queueFactory;
 
   public DssWorkerBuilder(
@@ -55,16 +53,17 @@ public class DssWorkerBuilder {
     specification = pSpecification;
     queueFactory = pQueueFactory;
     messageFactory = pMessageFactory;
-    workerGenerators = new LinkedHashMap<>();
+    workerGenerators = ImmutableMap.builder();
   }
 
   public List<DssActor> build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
 
     // create a queue for each worker and additional connection
+    ImmutableMap<CommunicationId, WorkerGenerator> futureWorkers = workerGenerators.buildOrThrow();
     ImmutableMap.Builder<CommunicationId, BlockingQueue<DssMessage>> queues =
-        ImmutableMap.builderWithExpectedSize(workerGenerators.size());
-    for (CommunicationId id : workerGenerators.keySet()) {
+        ImmutableMap.builderWithExpectedSize(futureWorkers.size());
+    for (CommunicationId id : futureWorkers.keySet()) {
       queues.put(id, queueFactory.get());
     }
     ImmutableMap<CommunicationId, BlockingQueue<DssMessage>> allQueues = queues.buildOrThrow();
@@ -74,8 +73,8 @@ public class DssWorkerBuilder {
 
     // create connections for each worker
     ImmutableList.Builder<DssActor> workers =
-        ImmutableList.builderWithExpectedSize(workerGenerators.size());
-    for (Entry<CommunicationId, WorkerGenerator> generatorEntry : workerGenerators.entrySet()) {
+        ImmutableList.builderWithExpectedSize(futureWorkers.size());
+    for (Entry<CommunicationId, WorkerGenerator> generatorEntry : futureWorkers.entrySet()) {
       DssSchedulerConnection connection =
           new DssSchedulerConnection(allQueues.get(generatorEntry.getKey()), broadcaster);
       workers.add(generatorEntry.getValue().apply(connection));
@@ -102,23 +101,6 @@ public class DssWorkerBuilder {
                 ShutdownManager.create(),
                 logger));
     return this;
-  }
-
-  private LogManager getLogger(DssAnalysisOptions pOptions, String workerId) {
-    try {
-      Path logDirectory = pOptions.getLogDirectory();
-      if (logDirectory != null) {
-        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
-        if (!logDirectoryExists) {
-          throw new IOException("Could not create log directory: " + logDirectory);
-        }
-        return BasicLogManager.createWithHandler(
-            new FileHandler(logDirectory + "/" + workerId + ".log"));
-      }
-    } catch (IOException e) {
-      // fall-through to return null-log manager
-    }
-    return LogManager.createNullLogManager();
   }
 
   @CanIgnoreReturnValue
@@ -153,6 +135,23 @@ public class DssWorkerBuilder {
         connection ->
             new DssObserverWorker(pId, connection, pNumberOfBlocks, messageFactory, logger));
     return this;
+  }
+
+  private LogManager getLogger(DssAnalysisOptions pOptions, String workerId) {
+    try {
+      Path logDirectory = pOptions.getLogDirectory();
+      if (logDirectory != null) {
+        boolean logDirectoryExists = logDirectory.toFile().mkdirs();
+        if (!logDirectoryExists) {
+          throw new IOException("Could not create log directory: " + logDirectory);
+        }
+        return BasicLogManager.createWithHandler(
+            new FileHandler(logDirectory + "/" + workerId + ".log"));
+      }
+    } catch (IOException e) {
+      // fall-through to return null-log manager
+    }
+    return LogManager.createNullLogManager();
   }
 
   // Needed to forward exception handling to actual method and not the add* functions.
