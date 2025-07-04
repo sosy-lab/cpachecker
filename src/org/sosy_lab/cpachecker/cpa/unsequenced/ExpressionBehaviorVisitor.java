@@ -82,11 +82,10 @@ public class ExpressionBehaviorVisitor
       MemoryLocation loc = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
       // global variable
       if (decl.isGlobal()) {
-        SideEffectInfo sideEffectInfo = new SideEffectInfo(loc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
+        SideEffectInfo sideEffectInfo =
+            new SideEffectInfo(loc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
         result.addSideEffect(sideEffectInfo);
-        logger.logf(
-            Level.INFO, "%s",
-            sideEffectInfo);
+        logger.logf(Level.INFO, "%s", sideEffectInfo);
       }
     }
 
@@ -141,12 +140,11 @@ public class ExpressionBehaviorVisitor
     if (isPointerArithmetic(binaryExpr)) {
       logger.logf(
           Level.WARNING,
-          "[Pointer Arithmetic] '%s' at %s. CPAchecker currently cannot fully analyze this expression. Analysis may miss alias resolution or report imprecise conflicts.",
+          "[Pointer Arithmetic] '%s' at %s. CPAchecker currently cannot fully analyze this"
+              + " expression. Analysis may miss alias resolution or report imprecise conflicts.",
           UnseqUtils.replaceTmpInExpression(binaryExpr, state),
-          binaryExpr.getFileLocation()
-      );
+          binaryExpr.getFileLocation());
     }
-
 
     // Check if current binary operator itself is unsequenced
     if (isUnsequencedBinaryOperator(binaryExpr.getOperator())) {
@@ -188,7 +186,8 @@ public class ExpressionBehaviorVisitor
       // The alignof operator yields the alignment requirement of its operand type.
       // C11: 6.3.2.1
       // Except when it is the operand of the unary & operator,
-      // an lvalue that does not have array type is converted to the value stored in the designated object
+      // an lvalue that does not have array type is converted to the value stored in the designated
+      // object
       // (this is called lvalue conversion).
       // Then no lvalue conversion means no read here
       case ALIGNOF, AMPER -> ExpressionAnalysisSummary.empty();
@@ -240,17 +239,17 @@ public class ExpressionBehaviorVisitor
     result.addSideEffects(operandSummary.getSideEffects());
 
     if (operand instanceof CIdExpression idExpr) {
-      MemoryLocation pointerLoc = MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
+      MemoryLocation pointerLoc =
+          MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
 
-      SideEffectInfo sideEffectInfo = new SideEffectInfo(
-          pointerLoc,           // pointer itself address here
-          accessType,
-          cfaEdge,
-          SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
+      SideEffectInfo sideEffectInfo =
+          new SideEffectInfo(
+              pointerLoc, // pointer itself address here
+              accessType,
+              cfaEdge,
+              SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
       result.addSideEffect(sideEffectInfo);
-      logger.logf(
-          Level.INFO,"%s",
-          sideEffectInfo);
+      logger.logf(Level.INFO, "%s", sideEffectInfo);
     }
 
     return result;
@@ -290,9 +289,9 @@ public class ExpressionBehaviorVisitor
     CType leftType = expr.getOperand1().getExpressionType();
     CType rightType = expr.getOperand2().getExpressionType();
 
-    return (isPointerType(leftType) && isIntegerType(rightType)) ||
-        (isIntegerType(leftType) && isPointerType(rightType)) ||
-        (isPointerType(leftType) && isPointerType(rightType) && op == BinaryOperator.MINUS);
+    return (isPointerType(leftType) && isIntegerType(rightType))
+        || (isIntegerType(leftType) && isPointerType(rightType))
+        || (isPointerType(leftType) && isPointerType(rightType) && op == BinaryOperator.MINUS);
   }
 
   private boolean isPointerType(CType type) {
@@ -302,5 +301,4 @@ public class ExpressionBehaviorVisitor
   private boolean isIntegerType(CType type) {
     return type instanceof CSimpleType simpleType && simpleType.getType().isIntegerType();
   }
-
 }

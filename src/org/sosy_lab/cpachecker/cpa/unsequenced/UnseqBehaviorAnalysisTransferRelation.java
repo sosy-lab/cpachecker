@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.unsequenced;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -86,8 +84,9 @@ public class UnseqBehaviorAnalysisTransferRelation
       CExpression rhsExpr = exprAssign.getRightHandSide();
 
       // if functioncall true, then record side effects inside it
-      if (lhsExpr instanceof CIdExpression||
-          (lhsExpr instanceof CPointerExpression pointerExpr && pointerExpr.getOperand() instanceof CIdExpression)) {
+      if (lhsExpr instanceof CIdExpression
+          || (lhsExpr instanceof CPointerExpression pointerExpr
+              && pointerExpr.getOperand() instanceof CIdExpression)) {
         mergeSideEffects(
             mergedSideEffects,
             recordSideEffectsIfInFunctionCall(lhsExpr, statementEdge, AccessType.WRITE, newState));
@@ -628,10 +627,8 @@ public class UnseqBehaviorAnalysisTransferRelation
       return Collections.singleton(pElement);
     }
 
-    Optional<PointerState> pointerStateOpt = FluentIterable.from(pOtherElements)
-        .filter(PointerState.class)
-        .first()
-        .toJavaUtil();
+    Optional<PointerState> pointerStateOpt =
+        FluentIterable.from(pOtherElements).filter(PointerState.class).first().toJavaUtil();
 
     if (pointerStateOpt.isEmpty()) {
       return Collections.singleton(pElement);
@@ -650,7 +647,7 @@ public class UnseqBehaviorAnalysisTransferRelation
 
     for (SideEffectInfo se : pointerEffects) {
       if (!se.isUnresolvedPointer()) {
-        continue; //skip already resolved or irrelevant
+        continue; // skip already resolved or irrelevant
       }
 
       MemoryLocation pointer = se.memoryLocation();
@@ -660,7 +657,8 @@ public class UnseqBehaviorAnalysisTransferRelation
         Iterable<MemoryLocation> resolvedTargets =
             PointerTransferRelation.toNormalSet(pointerState, pointees);
 
-        logger.logf(Level.INFO,
+        logger.logf(
+            Level.INFO,
             "Replacing pointer memory %s with resolved target(s): %s at edge: %s",
             pointer,
             resolvedTargets,
@@ -668,15 +666,17 @@ public class UnseqBehaviorAnalysisTransferRelation
 
         Set<SideEffectInfo> resolvedEffects = new HashSet<>();
         for (MemoryLocation target : resolvedTargets) {
-          resolvedEffects.add(new SideEffectInfo(
-              target,
-              se.accessType(),
-              se.cfaEdge(),
-              SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+          resolvedEffects.add(
+              new SideEffectInfo(
+                  target,
+                  se.accessType(),
+                  se.cfaEdge(),
+                  SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
         }
         result = result.replaceSideEffectBatch(se, resolvedEffects);
       } else {
-        logger.logf(Level.WARNING, "Could not resolve alias for: %s ", pointer.getExtendedQualifiedName());
+        logger.logf(
+            Level.WARNING, "Could not resolve alias for: %s ", pointer.getExtendedQualifiedName());
       }
     }
 

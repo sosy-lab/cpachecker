@@ -71,7 +71,8 @@ public class UnseqBehaviorAnalysisState
         .collect(Collectors.toSet());
   }
 
-  public UnseqBehaviorAnalysisState replaceSideEffectBatch(SideEffectInfo original, Set<SideEffectInfo> replacements) {
+  public UnseqBehaviorAnalysisState replaceSideEffectBatch(
+      SideEffectInfo original, Set<SideEffectInfo> replacements) {
     Map<String, Set<SideEffectInfo>> updated = new HashMap<>();
     for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : sideEffectsInFun.entrySet()) {
       Set<SideEffectInfo> set = new HashSet<>(entry.getValue());
