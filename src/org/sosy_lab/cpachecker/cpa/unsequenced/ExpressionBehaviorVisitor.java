@@ -173,8 +173,13 @@ public class ExpressionBehaviorVisitor
       }
       // C11: 6.5.3.4
       // The alignof operator yields the alignment requirement of its operand type.
-      case ALIGNOF -> ExpressionAnalysisSummary.empty();
-      case MINUS, TILDE, AMPER -> unaryExpr.getOperand().accept(this);
+      // C11: 6.3.2.1
+      // Except when it is the operand of the unary & operator,
+      // an lvalue that does not have array type is converted to the value stored in the designated object
+      // (this is called lvalue conversion).
+      // Then no lvalue conversion means no read here
+      case ALIGNOF, AMPER -> ExpressionAnalysisSummary.empty();
+      case MINUS, TILDE -> unaryExpr.getOperand().accept(this);
     };
   }
 

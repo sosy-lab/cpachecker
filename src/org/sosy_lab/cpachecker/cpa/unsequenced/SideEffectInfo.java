@@ -62,17 +62,18 @@ public record SideEffectInfo(
 
   @Override
   public String toString() {
-    String locInfo =
-        (isPointerAccess())
-        ? "pointer " + memoryLocation.toString()
-        : memoryLocation.toString();
+    String locInfo;
 
-    String resolvedMark = (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED)
-                          ? "[RESOLVED] " : "";
+    if (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_RESOLVED) {
+      locInfo = "pointee " + memoryLocation;
+    } else if (sideEffectKind == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED) {
+      locInfo = "pointer " + memoryLocation;
+    } else {
+      locInfo = memoryLocation.toString();
+    }
 
     return String.format(
-        "%s[%s] %s@%s at %s (line %d, col %d) %s",
-        resolvedMark,
+        "[%s] %s@%s at %s (line %d, col %d) %s",
         sideEffectKind,
         locInfo,
         accessType,

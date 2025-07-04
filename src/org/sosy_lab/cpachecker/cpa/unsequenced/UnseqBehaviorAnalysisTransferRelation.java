@@ -59,9 +59,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.AccessType;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class UnseqBehaviorAnalysisTransferRelation
