@@ -447,6 +447,7 @@ public class ConstraintsSolver {
 
     // TODO: replace this with the soon to be public stack from JavaSMT and make it an assertion!
     // assertStack();
+    checkState(constraintsToCheck.size() == currentConstraintsOnProver.size());
   }
 
   private void buildProverStackFor(
