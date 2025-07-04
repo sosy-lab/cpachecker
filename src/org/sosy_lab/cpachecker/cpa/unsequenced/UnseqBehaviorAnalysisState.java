@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -64,11 +63,11 @@ public class UnseqBehaviorAnalysisState
     return sideEffectsInFun;
   }
 
-  public Set<SideEffectInfo> getAllPointerSideEffects() {
+  public ImmutableSet<SideEffectInfo> getAllPointerSideEffects() {
     return sideEffectsInFun.values().stream()
         .flatMap(Set::stream)
         .filter(se -> se.sideEffectKind() == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED)
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public UnseqBehaviorAnalysisState replaceSideEffectBatch(

@@ -20,7 +20,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  *     target address (which may be unknown at this point).
  * @param accessType the type of access performed: either READ or WRITE.
  * @param cfaEdge the CFA edge on which the side effect occurs, useful for diagnostics.
- * @param sideEffectKind the kind of memory access: global variable, pointer dereference unresolved and pointer dereference resolved
+ * @param sideEffectKind the kind of memory access: global variable, pointer dereference unresolved
+ *     and pointer dereference resolved
  */
 public record SideEffectInfo(
     MemoryLocation memoryLocation,
@@ -36,7 +37,7 @@ public record SideEffectInfo(
   public enum SideEffectKind {
     GLOBAL_VARIABLE,
     POINTER_DEREFERENCE_UNRESOLVED,
-    //isResolvedPointer true if this pointer dereference has already been resolved to its alias
+    // isResolvedPointer true if this pointer dereference has already been resolved to its alias
     POINTER_DEREFERENCE_RESOLVED,
   }
 
