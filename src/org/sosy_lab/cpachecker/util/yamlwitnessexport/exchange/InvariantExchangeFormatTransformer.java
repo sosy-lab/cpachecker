@@ -12,6 +12,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -156,11 +157,12 @@ public class InvariantExchangeFormatTransformer {
               false,
               CStorageClass.AUTO,
               scope.lookupVariable(nameOfTheVariableInProgram).getType(),
-              prevVariable,
-              prevVariable,
-              prevVariable,
+              "main::" + prevVariable,
+              "main::" + prevVariable,
+              "main::" + prevVariable,
               null);
-
+      // TODO: Add also the original variable into the scope?
+      cfa.getMainFunction().addOutOfScopeVariables(Collections.singleton(declaration));
       cfa.getMainFunction()
           .addLeavingEdge(
               new CDeclarationEdge(

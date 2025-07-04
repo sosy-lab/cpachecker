@@ -15,13 +15,17 @@ import com.google.common.collect.ImmutableSet;
 import de.uni_freiburg.informatik.ultimate.util.datastructures.HashDeque;
 import java.nio.file.Path;
 import java.util.Deque;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -38,8 +42,11 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor.InvalidWitnessException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.QuantifiedFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -57,7 +64,9 @@ public class TerminationWitnessValidator implements Algorithm {
   private final PathFormulaManager pfmgr;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
+  private final QuantifiedFormulaManagerView qfmgr;
   private final Solver solver;
+  private final Scope scope;
 
   public TerminationWitnessValidator(
       final CFA pCfa,
@@ -71,6 +80,11 @@ public class TerminationWitnessValidator implements Algorithm {
     config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    scope =
+        switch (cfa.getLanguage()) {
+          case C -> new CProgramScope(cfa, logger);
+          default -> DummyScope.getInstance();
+        };
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(pCPA, PredicateCPA.class, IMCAlgorithm.class);
@@ -78,6 +92,7 @@ public class TerminationWitnessValidator implements Algorithm {
     pfmgr = predCpa.getPathFormulaManager();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
+    qfmgr = fmgr.getQuantifiedFormulaManager();
 
     if (pWitnessPath.size() < 1) {
       throw new InvalidConfigurationException("Witness file is missing in specification.");
@@ -106,7 +121,7 @@ public class TerminationWitnessValidator implements Algorithm {
       throw new CPAException("Invalid witness:\n" + e.getMessage(), e);
     }
 
-    ImmutableMap<LoopStructure.Loop, Formula> loopsToTransitionInvariants =
+    ImmutableMap<LoopStructure.Loop, BooleanFormula> loopsToTransitionInvariants =
         mapTransitionInvariantsToLoops(loops, invariants);
 
     // Check that every transition invariant is disjunctively well-founded
@@ -139,11 +154,11 @@ public class TerminationWitnessValidator implements Algorithm {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private ImmutableMap<LoopStructure.Loop, Formula> mapTransitionInvariantsToLoops(
+  private ImmutableMap<LoopStructure.Loop, BooleanFormula> mapTransitionInvariantsToLoops(
       ImmutableCollection<LoopStructure.Loop> pLoops,
       Set<ExpressionTreeLocationInvariant> pInvariants)
       throws InterruptedException {
-    ImmutableMap.Builder<LoopStructure.Loop, Formula> builder = new Builder<>();
+    ImmutableMap.Builder<LoopStructure.Loop, BooleanFormula> builder = new Builder<>();
 
     for (LoopStructure.Loop loop : pLoops) {
       BooleanFormula invariantForTheLoop = bfmgr.makeFalse();
@@ -179,9 +194,79 @@ public class TerminationWitnessValidator implements Algorithm {
     return false;
   }
 
-  // TODO: Write this method
-  private boolean isTheFormulaWellFounded(LoopStructure.Loop pLoop, Formula pFormula) {
+  /**
+   * This method checks whether one concrete subformula from transition invariant is well-founded.
+   * It does it using the check T(s,s') => [∃s1.T(s,s1) ∧ ¬T(s',s1)] ∧ [∀s2.T(s,s2) => T(s',s2)] If
+   * this holds, it means that the number of states reachable from s is decreasing. In other words,
+   * the cardinality of the set of reachable states is rank for every state.
+   *
+   * @param pLoop that the transition invariant overapproximates
+   * @param pFormula representing the transition invariant
+   * @return true if the formula really is well-founded, false otherwise
+   */
+  private boolean isTheFormulaWellFounded(LoopStructure.Loop pLoop, BooleanFormula pFormula) {
+    SSAMap ssaMap = setIndicesToDifferentValues(pFormula, 1, 2);
+
+    // T(s,s')
+    BooleanFormula oneStep = fmgr.instantiate(pFormula, ssaMap);
+
+    // ∃s1.T(s,s1) ∧ ¬T(s',s1)
+    makeStatesEquivalent(oneStep, 1, 2);
+
     return true;
+  }
+
+  /**
+   * Constructs a new SSAMap, where the __PREV variables and normal variables are instantiated
+   * differently.
+   *
+   * @param pFormula given on input
+   * @param prevIndex to which should the __PREV variables be instantiated
+   * @param currIndex to which should the normal variables be instantiated
+   * @return instantiated ssaMap
+   */
+  private SSAMap setIndicesToDifferentValues(Formula pFormula, int prevIndex, int currIndex) {
+    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
+    for (String var : fmgr.extractVariableNames(pFormula)) {
+      builder.setIndex(
+          var, scope.lookupVariable(var).getType(), var.contains("__PREV") ? prevIndex : currIndex);
+    }
+    return builder.build();
+  }
+
+  /**
+   * Constructs formulas to make some states equivalent. For example, s' occurs in the formulas both
+   * in T(.,s') and T(s',.), so we have to make the corresponding variables equivalent.
+   *
+   * @param pFormula on the input
+   * @param prevIndex the index of the variables from the previous state
+   * @param currIndex the index of the current variables
+   * @return the formula with terms like x_PREV@1 <==> x@2
+   */
+  private BooleanFormula makeStatesEquivalent(
+      BooleanFormula pFormula, int prevIndex, int currIndex) {
+    BooleanFormula equivalence = bfmgr.makeTrue();
+    Map<String, Formula> mapNamesToVars = fmgr.extractVariables(pFormula);
+    for (String prevVar : fmgr.extractVariableNames(pFormula)) {
+      if (prevVar.contains("__PREV") && prevVar.contains("@" + prevIndex)) {
+        String prevVarPure = prevVar.replace("__PREV", "");
+        prevVarPure = prevVarPure.replace("@" + prevIndex, "");
+        String currVar = "";
+        for (String var : fmgr.extractVariableNames(pFormula)) {
+          if (var.replace("@" + currIndex, "").equals(prevVarPure)) {
+            currVar = var;
+            break;
+          }
+        }
+        if (!currVar.isEmpty()) {
+          equivalence =
+              fmgr.makeAnd(
+                  equivalence,
+                  fmgr.makeEqual(mapNamesToVars.get(prevVar), mapNamesToVars.get(currVar)));
+        }
+      }
+    }
+    return equivalence;
   }
 
   // TODO: Write the method that decomposes the formula with rewrite rules and puts the formulas in
