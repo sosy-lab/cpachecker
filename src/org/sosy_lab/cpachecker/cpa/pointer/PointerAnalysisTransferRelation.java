@@ -517,7 +517,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     return pState;
   }
 
-  private static LocationSet getReferencedLocations(
+  public static LocationSet getReferencedLocations(
       final CRightHandSide pExpression, final PointerAnalysisState pState, final int pDerefCounter)
       throws UnrecognizedCodeException {
 
@@ -726,7 +726,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         && intLiteral.getValue().longValue() == 0;
   }
 
-  private int determineDerefCounter(CRightHandSide pExpression, boolean pIsLhs) {
+  public int determineDerefCounter(CRightHandSide pExpression, boolean pIsLhs) {
     if (pExpression instanceof CExpression cExpression) {
       if (isNullPointer(cExpression)) {
         return 0;
@@ -736,7 +736,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     return 0;
   }
 
-  private int determineDerefCounter(CExpression pExpression, boolean pIsLhs) {
+  public static int determineDerefCounter(CExpression pExpression, boolean pIsLhs) {
     int derefCounter = 0;
 
     if (!pIsLhs) {
@@ -763,7 +763,7 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
     return computeExpressionDerefCounter(pExpression, derefCounter);
   }
 
-  private int computeExpressionDerefCounter(CExpression pExpression, int pCounter) {
+  public static int computeExpressionDerefCounter(CExpression pExpression, int pCounter) {
     if (pExpression == null) {
       return pCounter;
     }
