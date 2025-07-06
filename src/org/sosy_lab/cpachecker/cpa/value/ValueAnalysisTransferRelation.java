@@ -199,6 +199,16 @@ public class ValueAnalysisTransferRelation
                 + " and this can produce wrong results.")
     private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
+    @Option(
+        secure = true,
+        description =
+            "Able blacklisting for addressed variables to enable tracking through pointer analysis")
+    private boolean ableAddressedVariableBlacklisting = false;
+
+    public boolean isAbleAddressedVariableBlacklisting() {
+      return ableAddressedVariableBlacklisting;
+    }
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -740,9 +750,12 @@ public class ValueAnalysisTransferRelation
       memoryLocation = MemoryLocation.forLocalVariable(functionName, varName);
     }
 
-    if (addressedVariables.contains(decl.getQualifiedName()) && declarationType instanceof CType) {
-      ValueAnalysisState.addToBlacklist(memoryLocation);
-    }
+    if (options.ableAddressedVariableBlacklisting)
+      if (addressedVariables.contains(decl.getQualifiedName())
+          && declarationType instanceof CType) {
+        ValueAnalysisState.addToBlacklist(memoryLocation);
+        logger.logf(Level.INFO, "Blacklisting addressed variable: %s", decl.getQualifiedName());
+      }
 
     if (init instanceof AInitializerExpression aInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
@@ -1383,7 +1396,6 @@ public class ValueAnalysisTransferRelation
                   UnknownValue.getInstance());
 
           newState = handleModf(rightHandSide, pointerState, newState);
-
           result.add(newState);
         }
         toStrengthen.clear();
@@ -1585,6 +1597,12 @@ public class ValueAnalysisTransferRelation
             }
           }
         }
+      }
+    }
+    if (!value.isExplicitlyKnown()) {
+      if (pRightHandSide instanceof CRightHandSide cRightHandSide) {
+        ExpressionValueVisitor evv = getVisitor();
+        value = evv.evaluate(cRightHandSide, (CType) type);
       }
     }
 
