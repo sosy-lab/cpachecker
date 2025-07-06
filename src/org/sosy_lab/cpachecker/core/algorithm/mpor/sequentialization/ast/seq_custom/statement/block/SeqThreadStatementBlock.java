@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementUtil;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -45,18 +47,14 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
-    StringBuilder statementsString = new StringBuilder();
-    for (int i = 0; i < statements.size(); i++) {
-      // we use a fixed tab length so that blocks are aligned, even in binary if-else trees
-      statementsString.append(SeqSyntax.NEWLINE);
-      statementsString.append(statements.get(i).toASTString()).append(SeqSyntax.SPACE);
+    ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
+    lines.add(LineOfCode.of(gotoLabel.toASTString() + SeqSyntax.SPACE));
+    for (SeqThreadStatement statement : statements) {
+      lines.add(LineOfCode.of(statement.toASTString() + SeqSyntax.SPACE));
     }
     Optional<String> suffix = tryBuildSuffixByMultiControlStatementEncoding(options, statements);
-    return SeqSyntax.NEWLINE
-        + gotoLabel.toASTString()
-        + SeqSyntax.SPACE
-        + statementsString
-        + (suffix.isPresent() ? suffix.orElseThrow() : SeqSyntax.EMPTY_STRING);
+    lines.add(suffix.isPresent() ? LineOfCode.of(suffix.orElseThrow()) : LineOfCode.empty());
+    return LineOfCodeUtil.buildString(lines.build());
   }
 
   public SeqBlockGotoLabelStatement getGotoLabel() {

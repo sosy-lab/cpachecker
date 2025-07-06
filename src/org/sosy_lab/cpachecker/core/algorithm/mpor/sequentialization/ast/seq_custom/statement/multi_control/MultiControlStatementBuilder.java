@@ -8,14 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
 public class MultiControlStatementBuilder {
@@ -27,24 +26,20 @@ public class MultiControlStatementBuilder {
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
-      ImmutableList<? extends SeqStatement> pStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     return switch (pMultiControlStatementEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
-      case BINARY_IF_TREE ->
-          new SeqBinaryIfTreeStatement(
-              pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);
+      case BINARY_IF_TREE -> {
+        throw new IllegalArgumentException("binary if trees are currently not supported");
+        // TODO
+        /*new SeqBinaryIfTreeStatement(
+        pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);*/
+      }
       case IF_ELSE_CHAIN ->
-          new SeqIfElseChainStatement(
-              pExpression,
-              Sequentialization.INIT_PC,
-              pAssumption,
-              pLastThreadUpdate,
-              pStatements,
-              pBinaryExpressionBuilder);
+          new SeqIfElseChainStatement(pAssumption, pLastThreadUpdate, pStatements);
       case SWITCH_CASE ->
           new SeqSwitchStatement(
               pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements);

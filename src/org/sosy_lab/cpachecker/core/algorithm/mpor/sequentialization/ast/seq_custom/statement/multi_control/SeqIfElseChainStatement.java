@@ -9,14 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqElseIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
@@ -29,34 +26,21 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqIfElseChainStatement implements SeqMultiControlStatement {
 
-  private final CLeftHandSide expression;
-
-  // TODO instead of a startNumber, we should have a list of expressions
-  //  because conflicts do not have consecutive numbers
-  private final int startNumber;
-
+  // TODO generalize into preceding statements, ImmutableList<CStatement>?
   private final Optional<CFunctionCallStatement> assumption;
 
   private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
-  private final ImmutableList<? extends SeqStatement> statements;
-
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
+  private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
   SeqIfElseChainStatement(
-      CLeftHandSide pExpression,
-      int pStartNumber,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
-      ImmutableList<? extends SeqStatement> pStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
-    expression = pExpression;
-    startNumber = pStartNumber;
     assumption = pAssumption;
     lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
-    binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
   @Override
@@ -65,8 +49,7 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
     if (assumption.isPresent()) {
       ifElseChain.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
     }
-    ifElseChain.addAll(
-        buildIfElseChain(expression, startNumber, statements, binaryExpressionBuilder));
+    ifElseChain.addAll(buildIfElseChain(statements));
     // TODO the problem here is that with continue; this becomes unreachable -> fix
     if (lastThreadUpdate.isPresent()) {
       ifElseChain.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
@@ -75,36 +58,25 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
   }
 
   private static ImmutableList<LineOfCode> buildIfElseChain(
-      CLeftHandSide pExpression,
-      int pStartNumber,
-      ImmutableList<? extends SeqStatement> pStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> ifElseChain = ImmutableList.builder();
-    int currentIndex = pStartNumber;
-    for (SeqStatement statement : pStatements) {
-      boolean isFirst = currentIndex == pStartNumber;
-      CBinaryExpression expressionEquals =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              pExpression,
-              SeqExpressionBuilder.buildIntegerLiteralExpression(currentIndex),
-              BinaryOperator.EQUALS);
-
+    boolean isFirst = true;
+    for (var statement : pStatements.entrySet()) {
       // first statement: use "if", otherwise "else if"
       SeqSingleControlExpression controlExpression =
           isFirst
-              ? new SeqIfExpression(expressionEquals)
-              : new SeqElseIfExpression(expressionEquals);
+              ? new SeqIfExpression(statement.getKey())
+              : new SeqElseIfExpression(statement.getKey());
       String controlStatementString = controlExpression.toASTString();
       ifElseChain.add(
           LineOfCode.of(
               isFirst
                   ? SeqStringUtil.appendCurlyBracketRight(controlStatementString)
                   : SeqStringUtil.wrapInCurlyBracketsOutwards(controlStatementString)));
-
-      ifElseChain.add(LineOfCode.of(statement.toASTString()));
-      currentIndex++;
+      ifElseChain.add(LineOfCode.of(statement.getValue().toASTString()));
+      isFirst = false;
     }
     ifElseChain.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     return ifElseChain.build();

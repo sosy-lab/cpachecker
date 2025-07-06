@@ -11,27 +11,67 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementClauseUtil {
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
-    ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
+    Builder<Integer> rAllTargetPc = ImmutableSet.builder();
     if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
       rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());
     }
     return rAllTargetPc.build();
+  }
+
+  public static CExpression getStatementExpressionByEncoding(
+      MultiControlStatementEncoding pEncoding,
+      CExpression pExpression,
+      int pStatementNumber,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
+
+    return switch (pEncoding) {
+      case NONE ->
+          throw new IllegalArgumentException(
+              "cannot build label expression for control encoding " + pEncoding);
+      case BINARY_IF_TREE, IF_ELSE_CHAIN ->
+          pBinaryExpressionBuilder.buildBinaryExpression(
+              pExpression,
+              SeqExpressionBuilder.buildIntegerLiteralExpression(pStatementNumber),
+              BinaryOperator.EQUALS);
+      case SWITCH_CASE -> SeqExpressionBuilder.buildIntegerLiteralExpression(pStatementNumber);
+    };
+  }
+
+  public static ImmutableMap<CExpression, SeqThreadStatementClause> mapLabelExpressionToClause(
+      ImmutableList<SeqThreadStatementClause> pClauses) {
+
+    ImmutableMap.Builder<CExpression, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
+    for (SeqThreadStatementClause clause : pClauses) {
+      CIntegerLiteralExpression labelExpression =
+          SeqExpressionBuilder.buildIntegerLiteralExpression(clause.labelNumber);
+      rOriginPcs.put(labelExpression, clause);
+    }
+    return rOriginPcs.buildOrThrow();
   }
 
   /**

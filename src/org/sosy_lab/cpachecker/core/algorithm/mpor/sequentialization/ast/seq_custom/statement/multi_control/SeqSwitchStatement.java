@@ -9,7 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -17,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSwitchExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -42,14 +44,18 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
 
   private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
-  private final ImmutableList<? extends SeqStatement> statements;
+  /**
+   * there is no restriction to literal expressions as keys because something like {@code case 1 +
+   * 2:} i.e. a {@link CBinaryExpression} is also possible.
+   */
+  private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
   SeqSwitchStatement(
       MPOROptions pOptions,
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
-      ImmutableList<? extends SeqStatement> pStatements) {
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     options = pOptions;
     switchExpression = new SeqSwitchExpression(pExpression);
@@ -80,19 +86,19 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   }
 
   private static ImmutableList<LineOfCode> buildCases(
-      MPOROptions pOptions, ImmutableList<? extends SeqStatement> pStatements)
+      MPOROptions pOptions, ImmutableMap<CExpression, ? extends SeqStatement> pStatements)
       throws UnrecognizedCodeException {
 
     ImmutableList.Builder<LineOfCode> rCases = ImmutableList.builder();
-    for (int i = 0; i < pStatements.size(); i++) {
-      SeqStatement statement = pStatements.get(i);
-      String casePrefix = buildCasePrefix(statement, i);
+    int index = 0;
+    for (var entry : pStatements.entrySet()) {
+      boolean isLast = index == pStatements.size() - 1;
+      SeqStatement statement = entry.getValue();
+      String casePrefix = buildCasePrefix(entry.getKey());
       String breakSuffix = buildBreakSuffix(statement);
       rCases.add(buildSingleCase(casePrefix, statement, breakSuffix));
-      if (i == pStatements.size() - 1) {
-        if (pOptions.sequentializationErrors) {
-          rCases.add(LineOfCode.of(Sequentialization.defaultCaseClauseError));
-        }
+      if (isLast && pOptions.sequentializationErrors) {
+        rCases.add(LineOfCode.of(Sequentialization.defaultCaseClauseError));
       }
     }
     return rCases.build();
@@ -104,18 +110,8 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
     return LineOfCode.of(pPrefix + pStatement.toASTString() + pSuffix);
   }
 
-  private static String buildCasePrefix(SeqStatement pStatement, int pIndex) {
-    if (pStatement instanceof SeqThreadStatementClause clause) {
-      // if case statement is clause, use label number
-      return buildCaseWithLabelNumber(clause.labelNumber);
-    } else {
-      // otherwise enumerate from 0 to caseNum - 1
-      return buildCaseWithLabelNumber(pIndex);
-    }
-  }
-
-  private static String buildCaseWithLabelNumber(int pLabelNumber) {
-    return SeqToken._case + SeqSyntax.SPACE + pLabelNumber + SeqSyntax.COLON;
+  private static String buildCasePrefix(CExpression pExpression) {
+    return SeqToken._case + SeqSyntax.SPACE + pExpression.toASTString() + SeqSyntax.COLON;
   }
 
   private static String buildBreakSuffix(SeqStatement pStatement) {

@@ -120,8 +120,7 @@ public class NumStatementsNondeterministicSimulation {
             expression,
             assumption,
             lastThreadUpdate,
-            clauses,
-            pBinaryExpressionBuilder);
+            SeqThreadStatementClauseUtil.mapLabelExpressionToClause(clauses));
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
     return rLines.build();
   }

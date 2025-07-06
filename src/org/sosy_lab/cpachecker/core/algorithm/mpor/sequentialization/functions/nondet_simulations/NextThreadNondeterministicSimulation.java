@@ -12,11 +12,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.pc.PcVariables;
@@ -35,23 +38,25 @@ public class NextThreadNondeterministicSimulation {
       CBinaryExpressionBuilder pBinaryExpressionBuilder)
       throws UnrecognizedCodeException {
 
-    ImmutableList<SeqMultiControlStatement> innerMultiControlStatements =
+    ImmutableMap<CExpression, SeqMultiControlStatement> innerMultiControlStatements =
         buildInnerMultiControlStatements(
             pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
-            pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
+            pOptions, innerMultiControlStatements);
     return LineOfCodeUtil.buildLinesOfCode(outerMultiControlStatement.toASTString());
   }
 
-  private static ImmutableList<SeqMultiControlStatement> buildInnerMultiControlStatements(
-      MPOROptions pOptions,
-      PcVariables pPcVariables,
-      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder)
-      throws UnrecognizedCodeException {
+  private static ImmutableMap<CExpression, SeqMultiControlStatement>
+      buildInnerMultiControlStatements(
+          MPOROptions pOptions,
+          PcVariables pPcVariables,
+          ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+          CBinaryExpressionBuilder pBinaryExpressionBuilder)
+          throws UnrecognizedCodeException {
 
-    ImmutableList.Builder<SeqMultiControlStatement> rStatements = ImmutableList.builder();
+    ImmutableMap.Builder<CExpression, SeqMultiControlStatement> rStatements =
+        ImmutableMap.builder();
     for (var entry : pClauses.entrySet()) {
       MPORThread thread = entry.getKey();
       CLeftHandSide expression = pPcVariables.getPcLeftHandSide(thread.id);
@@ -60,15 +65,19 @@ public class NextThreadNondeterministicSimulation {
               pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
       Optional<CExpressionAssignmentStatement> lastThreadUpdate =
           NondeterministicSimulationUtil.tryBuildLastThreadIdUpdate(pOptions, thread);
-      rStatements.add(
+      rStatements.put(
+          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
+              pOptions.controlEncodingThread,
+              SeqIdExpression.NEXT_THREAD,
+              thread.id,
+              pBinaryExpressionBuilder),
           MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
               pOptions,
               pOptions.controlEncodingStatement,
               expression,
               assumption,
               lastThreadUpdate,
-              entry.getValue(),
-              pBinaryExpressionBuilder));
+              SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue())));
     }
     return rStatements.build();
   }

@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -70,8 +71,7 @@ public class NondeterministicSimulationUtil {
    */
   static SeqMultiControlStatement buildOuterMultiControlStatement(
       MPOROptions pOptions,
-      ImmutableList<SeqMultiControlStatement> pInnerMultiControlStatements,
-      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+      ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements) {
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
@@ -81,8 +81,7 @@ public class NondeterministicSimulationUtil {
         Optional.empty(),
         // the outer multi control statement never updates last_thread
         Optional.empty(),
-        pInnerMultiControlStatements,
-        pBinaryExpressionBuilder);
+        pInnerMultiControlStatements);
   }
 
   static Optional<CFunctionCallStatement> tryBuildNextThreadActiveAssumption(
