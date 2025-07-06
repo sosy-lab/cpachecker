@@ -15,13 +15,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
@@ -69,7 +69,11 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
                 SeqIdExpression.LAST_THREAD, nextThreadExpression, BinaryOperator.NOT_EQUALS));
     ImmutableMap<CExpression, SeqConflictAssumptionStatement> assumptionStatements =
         buildConflictAssumptionStatements(
-            nextThreadExpression, bitVectorEvaluationPairs, pcVariables, binaryExpressionBuilder);
+            options,
+            nextThreadExpression,
+            bitVectorEvaluationPairs,
+            pcVariables,
+            binaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             options,
@@ -90,6 +94,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
 
   private static ImmutableMap<CExpression, SeqConflictAssumptionStatement>
       buildConflictAssumptionStatements(
+          MPOROptions pOptions,
           CExpression pNextThreadExpression,
           ImmutableMap<MPORThread, BitVectorEvaluationExpression> pBitVectorEvaluationPairs,
           PcVariables pPcVariables,
@@ -101,11 +106,12 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     for (var entry : pBitVectorEvaluationPairs.entrySet()) {
       MPORThread otherThread = entry.getKey();
       CLeftHandSide pcLeftHandSide = pPcVariables.getPcLeftHandSide(otherThread.id);
-      CIntegerLiteralExpression threadIdExpression =
-          SeqExpressionBuilder.buildIntegerLiteralExpression(otherThread.id);
-      CBinaryExpression lastThreadExpression =
-          pBinaryExpressionBuilder.buildBinaryExpression(
-              SeqIdExpression.LAST_THREAD, threadIdExpression, BinaryOperator.EQUALS);
+      CExpression lastThreadExpression =
+          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
+              pOptions.controlEncodingThread,
+              SeqIdExpression.LAST_THREAD,
+              otherThread.id,
+              pBinaryExpressionBuilder);
       CBinaryExpression assumptionExpression =
           pBinaryExpressionBuilder.buildBinaryExpression(
               pNextThreadExpression,
