@@ -19,6 +19,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -89,8 +93,31 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
   private final LogManager logger;
   private int allocationCounter = 0;
 
-  public PointerAnalysisTransferRelation(LogManager pLogger) {
+  @Options(prefix = "cpa.pointer")
+  public static class PointerTransferOptions {
+
+    public enum HeapAllocationStrategy {
+      SINGLE,
+      PER_CALL,
+      PER_LINE
+    }
+
+    @Option(
+        secure = true,
+        description =
+            "Strategy for mapping heap allocations to symbolic heap locations: SINGLE, PER_CALL, PER_LINE")
+    private HeapAllocationStrategy heapAllocationStrategy = HeapAllocationStrategy.SINGLE;
+
+    public PointerTransferOptions(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+  }
+
+  private final PointerTransferOptions options;
+
+  public PointerAnalysisTransferRelation(LogManager pLogger, PointerTransferOptions pOptions) {
     logger = pLogger;
+    options = pOptions;
   }
 
   @Override
@@ -402,8 +429,21 @@ public class PointerAnalysisTransferRelation extends SingleEdgeTransferRelation 
         if (PointerUtils.isMallocFunction(
             callAssignment.getFunctionCallExpression().getFunctionNameExpression())) {
           String currentFunction = pCfaEdge.getPredecessor().getFunctionName();
-          HeapLocation heapLocation =
-              HeapLocation.forAllocation(currentFunction, allocationCounter++);
+          HeapLocation heapLocation;
+
+          switch (options.heapAllocationStrategy) {
+            case SINGLE -> heapLocation = HeapLocation.forAllocation(currentFunction, -1);
+            case PER_CALL ->
+                heapLocation = HeapLocation.forAllocation(currentFunction, allocationCounter++);
+            case PER_LINE -> {
+              int line = pCfaEdge.getFileLocation().getStartingLineInOrigin();
+              heapLocation = HeapLocation.forLineBasedAllocation(currentFunction, line);
+            }
+            default ->
+                throw new AssertionError(
+                    "Unhandled heap allocation strategy: " + options.heapAllocationStrategy);
+          }
+
           int lhsDeref = determineDerefCounter(lhs, true);
           LocationSet lhsLocations = getReferencedLocations(lhs, pState, lhsDeref);
           LocationSet rhsSet = ExplicitLocationSet.from(heapLocation);

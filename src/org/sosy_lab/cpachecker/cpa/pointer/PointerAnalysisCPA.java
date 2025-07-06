@@ -23,6 +23,8 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
 @Options(prefix = "cpa.pointer")
 public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
@@ -33,7 +35,7 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
       toUppercase = true,
       values = {"JOIN", "SEP"},
       description = "which merge operator to use for PointerAnalysisCPA")
-  private String mergeType = "JOIN";
+  private String mergeType = "SEP";
 
   @Option(
       secure = true,
@@ -43,6 +45,10 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
       description = "which stop operator to use for PointerAnalysisCPA")
   private String stopType = "SEP";
 
+  private final Configuration config;
+  private final LogManager logger;
+  private final PointerTransferOptions transferOptions;
+
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
@@ -51,8 +57,16 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
 
   public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(DelegateAbstractDomain.getInstance(), new PointerAnalysisTransferRelation(pLogger));
-    pConfig.inject(this);
+    super(DelegateAbstractDomain.getInstance(), null);
+    config = pConfig;
+    logger = pLogger;
+    pConfig.inject(this, PointerAnalysisCPA.class);
+    transferOptions = new PointerTransferOptions(pConfig);
+  }
+
+  @Override
+  public PointerAnalysisTransferRelation getTransferRelation() {
+    return new PointerAnalysisTransferRelation(logger, transferOptions);
   }
 
   public static CPAFactory factory() {

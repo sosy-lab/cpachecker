@@ -23,8 +23,13 @@ public class HeapLocation implements PointerTarget {
   }
 
   public static HeapLocation forAllocation(String pFunctionName, int pIndex) {
-    String finalIdentifier = "heap_obj" + pIndex;
+    String finalIdentifier = (pIndex == -1) ? "heap_obj" : "heap_obj" + pIndex;
+    // String finalIdentifier = "heap_obj" + pIndex;
     return new HeapLocation(pFunctionName, finalIdentifier);
+  }
+
+  public static HeapLocation forLineBasedAllocation(String pFunctionName, int lineNumber) {
+    return new HeapLocation(pFunctionName, "heap_obj" + lineNumber);
   }
 
   @Override
@@ -34,17 +39,6 @@ public class HeapLocation implements PointerTarget {
         .compare(this.identifier, (pOther instanceof HeapLocation other) ? other.identifier : "")
         .result();
   }
-
-  //  @Override
-  //  public int compareTo(PointerTarget pOther) {
-  //    if (pOther instanceof HeapLocation other) {
-  //      return identifier.compareTo(other.identifier);
-  //    } else if (pOther instanceof MemoryLocationPointer) {
-  //      return 1;
-  //    } else {
-  //      return 0;
-  //    }
-  //  }
 
   @Override
   public boolean equals(Object pOther) {
