@@ -45,20 +45,20 @@ public class SeqSwitchStatement implements SeqMultiControlStatement {
   private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
   /**
-   * there is no restriction to literal expressions as keys because something like {@code case 1 +
-   * 2:} i.e. a {@link CBinaryExpression} is also possible.
+   * No restriction to literal expressions as keys because e.g. {@code case 1 + 2:} i.e. a {@link
+   * CBinaryExpression} is allowed in C.
    */
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
 
   SeqSwitchStatement(
       MPOROptions pOptions,
-      CLeftHandSide pExpression,
+      CLeftHandSide pSwitchExpression,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
 
     options = pOptions;
-    switchExpression = new SeqSwitchExpression(pExpression);
+    switchExpression = new SeqSwitchExpression(pSwitchExpression);
     assumption = pAssumption;
     lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;

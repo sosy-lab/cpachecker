@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -26,18 +27,18 @@ public class MultiControlStatementBuilder {
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
       Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
-      ImmutableMap<CExpression, ? extends SeqStatement> pStatements) {
+      // ImmutableMap retains insertion order when using ImmutableMap.Builder
+      ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
+    // TODO add default error statement for binary tree and if-else chain
     return switch (pMultiControlStatementEncoding) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
-      case BINARY_IF_TREE -> {
-        throw new IllegalArgumentException("binary if trees are currently not supported");
-        // TODO
-        /*new SeqBinaryIfTreeStatement(
-        pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);*/
-      }
+      case BINARY_IF_TREE ->
+          new SeqBinaryIfTreeStatement(
+              pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
           new SeqIfElseChainStatement(pAssumption, pLastThreadUpdate, pStatements);
       case SWITCH_CASE ->

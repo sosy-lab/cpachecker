@@ -71,7 +71,8 @@ public class NondeterministicSimulationUtil {
    */
   static SeqMultiControlStatement buildOuterMultiControlStatement(
       MPOROptions pOptions,
-      ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements) {
+      ImmutableMap<CExpression, SeqMultiControlStatement> pInnerMultiControlStatements,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
@@ -81,7 +82,8 @@ public class NondeterministicSimulationUtil {
         Optional.empty(),
         // the outer multi control statement never updates last_thread
         Optional.empty(),
-        pInnerMultiControlStatements);
+        pInnerMultiControlStatements,
+        pBinaryExpressionBuilder);
   }
 
   static Optional<CFunctionCallStatement> tryBuildNextThreadActiveAssumption(

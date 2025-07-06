@@ -77,7 +77,8 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             SeqIdExpression.LAST_THREAD,
             Optional.empty(),
             Optional.empty(),
-            assumptionStatements);
+            assumptionStatements,
+            binaryExpressionBuilder);
 
     lines.add(
         LineOfCode.of(

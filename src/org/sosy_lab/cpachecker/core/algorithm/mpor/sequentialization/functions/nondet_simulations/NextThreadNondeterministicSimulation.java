@@ -43,7 +43,7 @@ public class NextThreadNondeterministicSimulation {
             pOptions, pPcVariables, pClauses, pBinaryExpressionBuilder);
     SeqMultiControlStatement outerMultiControlStatement =
         NondeterministicSimulationUtil.buildOuterMultiControlStatement(
-            pOptions, innerMultiControlStatements);
+            pOptions, innerMultiControlStatements, pBinaryExpressionBuilder);
     return LineOfCodeUtil.buildLinesOfCode(outerMultiControlStatement.toASTString());
   }
 
@@ -77,7 +77,8 @@ public class NextThreadNondeterministicSimulation {
               expression,
               assumption,
               lastThreadUpdate,
-              SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue())));
+              SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue()),
+              pBinaryExpressionBuilder));
     }
     return rStatements.buildOrThrow();
   }
