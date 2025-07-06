@@ -79,6 +79,6 @@ public class NextThreadNondeterministicSimulation {
               lastThreadUpdate,
               SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue())));
     }
-    return rStatements.build();
+    return rStatements.buildOrThrow();
   }
 }

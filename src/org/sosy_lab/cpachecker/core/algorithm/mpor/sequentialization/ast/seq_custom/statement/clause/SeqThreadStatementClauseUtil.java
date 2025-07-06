@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -34,7 +33,7 @@ public class SeqThreadStatementClauseUtil {
 
   /** Searches for all target {@code pc} in {@code pStatement}. */
   public static ImmutableSet<Integer> collectAllIntegerTargetPc(SeqThreadStatement pStatement) {
-    Builder<Integer> rAllTargetPc = ImmutableSet.builder();
+    ImmutableSet.Builder<Integer> rAllTargetPc = ImmutableSet.builder();
     if (pStatement.getTargetPc().isPresent()) {
       // add the direct target pc, if present
       rAllTargetPc.add(pStatement.getTargetPc().orElseThrow());

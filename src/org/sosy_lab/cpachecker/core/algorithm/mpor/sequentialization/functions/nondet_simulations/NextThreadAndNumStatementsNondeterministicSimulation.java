@@ -111,7 +111,7 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
           buildSingleThreadMultiControlStatementWithoutCount(
               pOptions, pPcVariables, thread, clauses, pBinaryExpressionBuilder));
     }
-    return rStatements.build();
+    return rStatements.buildOrThrow();
   }
 
   private static SeqMultiControlStatement buildSingleThreadMultiControlStatementWithoutCount(

@@ -44,8 +44,37 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BitVectorInjector {
 
-  protected static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
+  // Public Interfaces =============================================================================
+
+  static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> injectWithEvaluations(
       MPOROptions pOptions,
+      BitVectorVariables pBitVectorVariables,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
+
+    return inject(pOptions, true, pBitVectorVariables, pClauses, pBinaryExpressionBuilder, pLogger);
+  }
+
+  static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> injectWithoutEvaluations(
+      MPOROptions pOptions,
+      BitVectorVariables pBitVectorVariables,
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder,
+      LogManager pLogger)
+      throws UnrecognizedCodeException {
+
+    return inject(
+        pOptions, false, pBitVectorVariables, pClauses, pBinaryExpressionBuilder, pLogger);
+  }
+
+  // Private =======================================================================================
+  // TODO rename the methods, the names are not very concise
+
+  private static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> inject(
+      MPOROptions pOptions,
+      boolean pAddEvaluation,
       BitVectorVariables pBitVectorVariables,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
       CBinaryExpressionBuilder pBinaryExpressionBuilder,
@@ -73,6 +102,7 @@ public class BitVectorInjector {
           activeThread,
           injectBitVectors(
               pOptions,
+              pAddEvaluation,
               activeThread,
               otherThreads,
               pBitVectorVariables,
@@ -86,6 +116,7 @@ public class BitVectorInjector {
 
   private static ImmutableList<SeqThreadStatementClause> injectBitVectors(
       MPOROptions pOptions,
+      boolean pAddEvaluation,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       BitVectorVariables pBitVectorVariables,
@@ -100,6 +131,7 @@ public class BitVectorInjector {
       SeqThreadStatementBlock newBlock =
           injectBitVectorsIntoBlock(
               pOptions,
+              pAddEvaluation,
               clause.block,
               pActiveThread,
               pOtherThreads,
@@ -112,6 +144,7 @@ public class BitVectorInjector {
         newMergedBlocks.add(
             injectBitVectorsIntoBlock(
                 pOptions,
+                pAddEvaluation,
                 mergedBlock,
                 pActiveThread,
                 pOtherThreads,
@@ -127,6 +160,7 @@ public class BitVectorInjector {
 
   private static SeqThreadStatementBlock injectBitVectorsIntoBlock(
       MPOROptions pOptions,
+      boolean pAddEvaluation,
       SeqThreadStatementBlock pBlock,
       MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
@@ -141,6 +175,7 @@ public class BitVectorInjector {
       newStatements.add(
           injectBitVectorsIntoStatement(
               pOptions,
+              pAddEvaluation,
               pActiveThread,
               pOtherThreads,
               statement,
@@ -154,6 +189,7 @@ public class BitVectorInjector {
 
   private static SeqThreadStatement injectBitVectorsIntoStatement(
       MPOROptions pOptions,
+      boolean pAddEvaluation,
       final MPORThread pActiveThread,
       ImmutableSet<MPORThread> pOtherThreads,
       SeqThreadStatement pCurrentStatement,
@@ -178,15 +214,17 @@ public class BitVectorInjector {
         SeqThreadStatementClause newTarget =
             Objects.requireNonNull(pLabelClauseMap.get(intTargetPc));
         if (!SeqThreadStatementUtil.anySynchronizesThreads(newTarget.getAllStatements())) {
-          SeqBitVectorEvaluationStatement evaluationStatement =
-              buildBitVectorEvaluationStatement(
-                  pOptions,
-                  pOtherThreads,
-                  pLabelBlockMap,
-                  newTarget.block,
-                  pBitVectorVariables,
-                  pBinaryExpressionBuilder);
-          newInjected.add(evaluationStatement);
+          if (pAddEvaluation) {
+            SeqBitVectorEvaluationStatement evaluationStatement =
+                buildBitVectorEvaluationStatement(
+                    pOptions,
+                    pOtherThreads,
+                    pLabelBlockMap,
+                    newTarget.block,
+                    pBitVectorVariables,
+                    pBinaryExpressionBuilder);
+            newInjected.add(evaluationStatement);
+          }
           // the assignment is injected after the evaluation, it is only needed when commute fails
           ImmutableList<SeqBitVectorAssignmentStatement> bitVectorAssignments =
               buildBitVectorAssignmentsByReduction(

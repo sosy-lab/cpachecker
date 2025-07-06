@@ -115,6 +115,6 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
               pcLeftHandSide, entry.getValue(), assumptionExpression, pBinaryExpressionBuilder);
       rStatements.put(lastThreadExpression, assumptionStatement);
     }
-    return rStatements.build();
+    return rStatements.buildOrThrow();
   }
 }

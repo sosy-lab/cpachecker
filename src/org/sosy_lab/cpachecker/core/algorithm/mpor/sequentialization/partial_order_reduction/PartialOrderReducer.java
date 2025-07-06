@@ -39,7 +39,7 @@ public class PartialOrderReducer {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
           StatementLinker.link(pClauses);
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> withBitVectors =
-          BitVectorInjector.inject(
+          BitVectorInjector.injectWithEvaluations(
               pOptions,
               pBitVectorVariables.orElseThrow(),
               linked,
@@ -56,15 +56,22 @@ public class PartialOrderReducer {
     } else if (pOptions.linkReduction && pOptions.bitVectorReduction) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
           StatementLinker.link(pClauses);
-      return BitVectorInjector.inject(
+      return BitVectorInjector.injectWithEvaluations(
           pOptions, pBitVectorVariables.orElseThrow(), linked, pBinaryExpressionBuilder, pLogger);
 
     } else if (pOptions.linkReduction && pOptions.conflictReduction) {
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> linked =
           StatementLinker.link(pClauses);
+      ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> withBitVectors =
+          BitVectorInjector.injectWithoutEvaluations(
+              pOptions,
+              pBitVectorVariables.orElseThrow(),
+              linked,
+              pBinaryExpressionBuilder,
+              pLogger);
       return ConflictResolver.resolve(
           pOptions,
-          linked,
+          withBitVectors,
           pBitVectorVariables.orElseThrow(),
           pPcVariables,
           pBinaryExpressionBuilder,

@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ConflictResolver {
 
+  // Public Interface ==============================================================================
+
   static ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> resolve(
       MPOROptions pOptions,
       ImmutableMap<MPORThread, ImmutableList<SeqThreadStatementClause>> pClauses,
@@ -70,6 +72,8 @@ public class ConflictResolver {
     }
     return rResolved.buildOrThrow();
   }
+
+  // Private =======================================================================================
 
   private static ImmutableList<SeqThreadStatementClause> addConflictOrdersToClauses(
       MPOROptions pOptions,
