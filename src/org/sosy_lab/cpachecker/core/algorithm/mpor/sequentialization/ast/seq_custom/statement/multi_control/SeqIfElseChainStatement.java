@@ -55,9 +55,8 @@ public class SeqIfElseChainStatement implements SeqMultiControlStatement {
       ifElseChain.add(LineOfCode.of(assumption.orElseThrow().toASTString()));
     }
     ifElseChain.addAll(buildIfElseChain(statements));
-    if (threadEndLabel.isPresent()) {
-      ifElseChain.add(LineOfCode.of(threadEndLabel.orElseThrow().toASTString()));
-    }
+    ifElseChain.addAll(
+        MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));
     if (lastThreadUpdate.isPresent()) {
       ifElseChain.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }

@@ -72,9 +72,7 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
-    if (threadEndLabel.isPresent()) {
-      tree.add(LineOfCode.of(threadEndLabel.orElseThrow().toASTString()));
-    }
+    tree.addAll(MultiControlStatementBuilder.buildThreadEndLabel(threadEndLabel, lastThreadUpdate));
     if (lastThreadUpdate.isPresent()) {
       tree.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }

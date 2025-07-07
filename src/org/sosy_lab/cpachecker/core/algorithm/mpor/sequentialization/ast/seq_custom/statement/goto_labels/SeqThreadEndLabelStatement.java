@@ -27,7 +27,7 @@ public class SeqThreadEndLabelStatement implements SeqLabelStatement {
 
   @Override
   public String getLabelName() {
-    return threadPrefix + SeqSyntax.UNDERSCORE + SeqToken.END;
+    return threadPrefix + SeqToken.END;
   }
 
   @Override
