@@ -120,7 +120,11 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
               BinaryOperator.LESS_THAN);
       SeqConflictAssumptionStatement assumptionStatement =
           new SeqConflictAssumptionStatement(
-              pcLeftHandSide, entry.getValue(), assumptionExpression, pBinaryExpressionBuilder);
+              pOptions,
+              pcLeftHandSide,
+              entry.getValue(),
+              assumptionExpression,
+              pBinaryExpressionBuilder);
       rStatements.put(lastThreadExpression, assumptionStatement);
     }
     return rStatements.buildOrThrow();
