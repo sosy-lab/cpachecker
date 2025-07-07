@@ -69,7 +69,7 @@ public class GhostVariableUtil {
       ImmutableList<MPORThread> pThreads,
       ImmutableMap<ThreadEdge, SubstituteEdge> pSubstituteEdges) {
 
-    if (!pOptions.bitVectorReduction && !pOptions.conflictReduction) {
+    if (!pOptions.areBitVectorsEnabled()) {
       // no bit vector reduction -> no bit vector variables
       return Optional.empty();
     }

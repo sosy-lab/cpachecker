@@ -84,12 +84,13 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.BINARY,
+            BitVectorEncoding.NONE,
             false,
             false,
             false,
-            true,
-            MultiControlStatementEncoding.IF_ELSE_CHAIN,
+            // the program contains pointers -> disable conflictReduction
+            false,
+            MultiControlStatementEncoding.NONE,
             MultiControlStatementEncoding.IF_ELSE_CHAIN,
             MultiControlStatementEncoding.BINARY_IF_TREE,
             true,

@@ -37,7 +37,7 @@ public class SeqBitVectorDeclarationBuilder {
       Optional<BitVectorVariables> pBitVectorVariables,
       ImmutableList<MPORThread> pThreads) {
 
-    if (!pOptions.bitVectorReduction && !pOptions.bitVectorEncoding.isEnabled()) {
+    if (!pOptions.areBitVectorsEnabled()) {
       return ImmutableList.of();
     }
     return switch (pOptions.bitVectorEncoding) {

@@ -32,12 +32,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -160,12 +162,12 @@ public class MPORSubstitution {
         !pIsWrite || pWrittenGlobalVariables.isPresent(),
         "if pIsWrite is true, pWrittenGlobalVariables must be present");
 
-    // never substitute pure int or strings
-    /*if (pExpression instanceof CIntegerLiteralExpression) {
+    // shortcut for optimization: never substitute pure int or strings
+    if (pExpression instanceof CIntegerLiteralExpression) {
       return pExpression;
     } else if (pExpression instanceof CStringLiteralExpression) {
       return pExpression;
-    }*/
+    }
 
     FileLocation fileLocation = pExpression.getFileLocation();
     CType type = pExpression.getExpressionType();

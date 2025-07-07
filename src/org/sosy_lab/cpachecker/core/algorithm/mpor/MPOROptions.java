@@ -264,7 +264,7 @@ public class MPOROptions {
           MultiControlStatementEncoding.NONE);
       throw new AssertionError();
     }
-    if (conflictReduction || bitVectorReduction) {
+    if (areBitVectorsEnabled()) {
       if (!reductionMode.isEnabled()) {
         pLogger.log(
             Level.SEVERE,
@@ -306,7 +306,7 @@ public class MPOROptions {
           "WARNING: bitVectorEncoding is only considered with linkReduction"
               + " enabled. Either enable linkReduction or set bitVectorEncoding to NONE.");
     }
-    if (bitVectorEvaluationPrune && !(bitVectorReduction || conflictReduction)) {
+    if (bitVectorEvaluationPrune && !areBitVectorsEnabled()) {
       pLogger.log(
           Level.WARNING,
           "WARNING: pruneBitVectorEvaluation is only considered when bitVectorReduction /"
@@ -329,7 +329,7 @@ public class MPOROptions {
       }
     }
     if (reductionMode.isEnabled()) {
-      if (!(conflictReduction || bitVectorReduction)) {
+      if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
             "WARNING: reductionMode is set, but both conflictReduction and "
@@ -337,12 +337,16 @@ public class MPOROptions {
       }
     }
     if (bitVectorEncoding.isEnabled()) {
-      if (!(conflictReduction || bitVectorReduction)) {
+      if (!areBitVectorsEnabled()) {
         pLogger.log(
             Level.WARNING,
             "WARNING: bitVectorEncoding is set, but both conflictReduction and "
                 + " bitVectorReduction are disabled.");
       }
     }
+  }
+
+  public boolean areBitVectorsEnabled() {
+    return bitVectorReduction || conflictReduction;
   }
 }

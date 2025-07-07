@@ -282,7 +282,7 @@ public class LineOfCodeUtil {
     }
 
     // if enabled: bit vectors (for partial order reductions)
-    if (pOptions.bitVectorReduction || pOptions.conflictReduction) {
+    if (pOptions.areBitVectorsEnabled()) {
       for (SeqBitVectorDeclaration bitVectorDeclaration : pBitVectorDeclarations) {
         rDeclarations.add(LineOfCode.of(bitVectorDeclaration.toASTString()));
       }

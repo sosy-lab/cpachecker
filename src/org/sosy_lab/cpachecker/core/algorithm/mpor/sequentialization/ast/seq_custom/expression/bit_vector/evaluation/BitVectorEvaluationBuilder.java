@@ -34,7 +34,7 @@ public class BitVectorEvaluationBuilder {
       throws UnrecognizedCodeException {
 
     checkArgument(
-        pOptions.conflictReduction || pOptions.bitVectorReduction,
+        pOptions.areBitVectorsEnabled(),
         "either conflictReduction or bitVectorReduction must be enabled");
 
     return switch (pOptions.reductionMode) {
