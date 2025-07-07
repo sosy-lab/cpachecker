@@ -262,7 +262,7 @@ analysis.algorithm.MPOR.atomicBlockMerge = true
 
 # the encoding of the partial order reduction bit vectors.
 analysis.algorithm.MPOR.bitVectorEncoding = NONE
-  enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SCALAR]
+  enum:     [NONE, BINARY, DECIMAL, HEXADECIMAL, SPARSE]
 
 # prune and simplify bit vector evaluation expressions based on the previous
 # bit vector  assignments? true -> (should) improve verification performance
@@ -288,7 +288,7 @@ analysis.algorithm.MPOR.consecutiveLabels = true
 
 # defines the syntax in which the last_thread is chosen to check for
 # conflicts. may slow down or improve performance, depending on the verifier.
-analysis.algorithm.MPOR.controlEncodingConflict = IF_ELSE_CHAIN
+analysis.algorithm.MPOR.controlEncodingConflict = NONE
   enum:     [NONE, BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
 
 # defines the syntax in which the next statement of a thread simulation is

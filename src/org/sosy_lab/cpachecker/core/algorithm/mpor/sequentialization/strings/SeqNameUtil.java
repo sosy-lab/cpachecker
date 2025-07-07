@@ -198,9 +198,9 @@ public class SeqNameUtil {
             + SeqToken.BIT_VECTOR_WRITE;
   }
 
-  // Scalar Bit Vector =============================================================================
+  // Sparse Bit Vector =============================================================================
 
-  public static String buildBitVectorScalarAccessVariableName(
+  public static String buildSparseBitVectorAccessVariableName(
       MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
@@ -213,7 +213,7 @@ public class SeqNameUtil {
             + variableName;
   }
 
-  public static String buildBitVectorScalarReadVariableName(
+  public static String buildSparseBitVectorReadVariableName(
       MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
@@ -226,7 +226,7 @@ public class SeqNameUtil {
             + variableName;
   }
 
-  public static String buildBitVectorScalarWriteVariableName(
+  public static String buildSparseBitVectorWriteVariableName(
       MPOROptions pOptions, int pThreadId, CVariableDeclaration pVariableDeclaration) {
 
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");

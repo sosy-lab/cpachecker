@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorEncoding;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
 
-public class ScalarBitVectorValueExpression implements BitVectorValueExpression {
+public class SparseBitVectorValueExpression implements BitVectorValueExpression {
 
   public final boolean value;
 
-  public ScalarBitVectorValueExpression(boolean pValue) {
+  public SparseBitVectorValueExpression(boolean pValue) {
     value = pValue;
   }
 
@@ -26,7 +26,7 @@ public class ScalarBitVectorValueExpression implements BitVectorValueExpression 
 
   @Override
   public BitVectorEncoding getEncoding() {
-    return BitVectorEncoding.SCALAR;
+    return BitVectorEncoding.SPARSE;
   }
 
   @Override

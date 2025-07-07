@@ -206,7 +206,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               + "  may not be faster due to evaluation overhead.")
   private ReductionMode reductionMode = ReductionMode.NONE;
 
-  // TODO also add option for scalarBitVectors / arrayBitVectors
+  // TODO also add option for scalar / array bit vectors
   @Option(
       secure = true,
       description =

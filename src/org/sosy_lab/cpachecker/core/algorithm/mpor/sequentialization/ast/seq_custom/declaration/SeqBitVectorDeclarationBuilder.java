@@ -16,13 +16,13 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.ScalarBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorDataType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
 public class SeqBitVectorDeclarationBuilder {
@@ -44,8 +44,8 @@ public class SeqBitVectorDeclarationBuilder {
       case NONE -> ImmutableList.of();
       case BINARY, DECIMAL, HEXADECIMAL ->
           buildDenseBitVectorDeclarationsByReduction(pOptions, pBitVectorVariables.orElseThrow());
-      case SCALAR ->
-          buildScalarBitVectorDeclarationsByReduction(
+      case SPARSE ->
+          buildSparseBitVectorDeclarationsByReduction(
               pOptions, pBitVectorVariables.orElseThrow(), pThreads);
     };
   }
@@ -92,7 +92,7 @@ public class SeqBitVectorDeclarationBuilder {
     return rDeclarations.build();
   }
 
-  private static ImmutableList<SeqBitVectorDeclaration> buildScalarBitVectorDeclarationsByReduction(
+  private static ImmutableList<SeqBitVectorDeclaration> buildSparseBitVectorDeclarationsByReduction(
       MPOROptions pOptions,
       BitVectorVariables pBitVectorVariables,
       ImmutableList<MPORThread> pThreads) {
@@ -100,30 +100,30 @@ public class SeqBitVectorDeclarationBuilder {
     return switch (pOptions.reductionMode) {
       case NONE -> ImmutableList.of();
       case ACCESS_ONLY ->
-          createScalarBitVectorDeclarations(
-              pBitVectorVariables.scalarAccessBitVectors.orElseThrow().values(), pThreads);
+          createSparseBitVectorDeclarations(
+              pBitVectorVariables.sparseAccessBitVectors.orElseThrow().values(), pThreads);
       case READ_AND_WRITE ->
           ImmutableList.<SeqBitVectorDeclaration>builder()
               .addAll(
-                  createScalarBitVectorDeclarations(
-                      pBitVectorVariables.scalarReadBitVectors.orElseThrow().values(), pThreads))
+                  createSparseBitVectorDeclarations(
+                      pBitVectorVariables.sparseReadBitVectors.orElseThrow().values(), pThreads))
               .addAll(
-                  createScalarBitVectorDeclarations(
-                      pBitVectorVariables.scalarWriteBitVectors.orElseThrow().values(), pThreads))
+                  createSparseBitVectorDeclarations(
+                      pBitVectorVariables.sparseWriteBitVectors.orElseThrow().values(), pThreads))
               .build();
     };
   }
 
-  private static ImmutableList<SeqBitVectorDeclaration> createScalarBitVectorDeclarations(
-      ImmutableCollection<ScalarBitVector> pScalarBitVectors, ImmutableList<MPORThread> pThreads) {
+  private static ImmutableList<SeqBitVectorDeclaration> createSparseBitVectorDeclarations(
+      ImmutableCollection<SparseBitVector> pSparseBitVectors, ImmutableList<MPORThread> pThreads) {
 
     ImmutableList.Builder<SeqBitVectorDeclaration> rDeclarations = ImmutableList.builder();
-    for (ScalarBitVector scalarBitVector : pScalarBitVectors) {
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = scalarBitVector.variables;
+    for (SparseBitVector sparseBitVector : pSparseBitVectors) {
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = sparseBitVector.variables;
       for (MPORThread thread : pThreads) {
         assert accessVariables.containsKey(thread) : "thread must have access variable";
         CIdExpression variable = accessVariables.get(thread);
-        ScalarBitVectorValueExpression initializer = new ScalarBitVectorValueExpression(false);
+        SparseBitVectorValueExpression initializer = new SparseBitVectorValueExpression(false);
         SeqBitVectorDeclaration declaration =
             new SeqBitVectorDeclaration(BitVectorDataType.__UINT8_T, variable, initializer);
         rDeclarations.add(declaration);

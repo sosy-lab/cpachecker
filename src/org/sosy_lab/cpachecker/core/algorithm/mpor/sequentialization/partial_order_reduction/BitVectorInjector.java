@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentiali
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.evaluation.BitVectorEvaluationExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.BitVectorValueExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.ScalarBitVectorValueExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.bit_vector.value.SparseBitVectorValueExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -327,15 +327,15 @@ public class BitVectorInjector {
       ImmutableSet<CVariableDeclaration> pReachableVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
-    if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry : pBitVectorVariables.scalarAccessBitVectors.orElseThrow().entrySet()) {
+    if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
+      for (var entry : pBitVectorVariables.sparseAccessBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
         boolean value = pReachableVariables.contains(entry.getKey());
-        ScalarBitVectorValueExpression scalarBitVectorExpression =
-            new ScalarBitVectorValueExpression(value);
+        SparseBitVectorValueExpression sparseBitVectorExpression =
+            new SparseBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                accessVariables.get(pThread), scalarBitVectorExpression));
+                accessVariables.get(pThread), sparseBitVectorExpression));
       }
     } else if (!pReachableVariables.isEmpty()) {
       CExpression reachableBitVector =
@@ -357,24 +357,24 @@ public class BitVectorInjector {
       ImmutableSet<CVariableDeclaration> pReachableWriteVariables) {
 
     ImmutableList.Builder<SeqBitVectorAssignmentStatement> rStatements = ImmutableList.builder();
-    if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SCALAR)) {
-      for (var entry : pBitVectorVariables.scalarReadBitVectors.orElseThrow().entrySet()) {
+    if (pOptions.bitVectorEncoding.equals(BitVectorEncoding.SPARSE)) {
+      for (var entry : pBitVectorVariables.sparseReadBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> readVariables = entry.getValue().variables;
         boolean value = pReachableReadVariables.contains(entry.getKey());
-        ScalarBitVectorValueExpression scalarBitVectorExpression =
-            new ScalarBitVectorValueExpression(value);
+        SparseBitVectorValueExpression sparseBitVectorExpression =
+            new SparseBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                readVariables.get(pThread), scalarBitVectorExpression));
+                readVariables.get(pThread), sparseBitVectorExpression));
       }
-      for (var entry : pBitVectorVariables.scalarWriteBitVectors.orElseThrow().entrySet()) {
+      for (var entry : pBitVectorVariables.sparseWriteBitVectors.orElseThrow().entrySet()) {
         ImmutableMap<MPORThread, CIdExpression> writeVariables = entry.getValue().variables;
         boolean value = pReachableWriteVariables.contains(entry.getKey());
-        ScalarBitVectorValueExpression scalarBitVectorExpression =
-            new ScalarBitVectorValueExpression(value);
+        SparseBitVectorValueExpression sparseBitVectorExpression =
+            new SparseBitVectorValueExpression(value);
         rStatements.add(
             new SeqBitVectorAssignmentStatement(
-                writeVariables.get(pThread), scalarBitVectorExpression));
+                writeVariables.get(pThread), sparseBitVectorExpression));
       }
     } else {
       rStatements.add(

@@ -87,8 +87,8 @@ public class BitVectorUtil {
       case DECIMAL -> new DecimalBitVectorValueExpression(pSetBits);
       case HEXADECIMAL -> new HexadecimalBitVectorValueExpression(length, pSetBits);
       // TODO this is not so nice ...
-      case SCALAR ->
-          throw new IllegalArgumentException("use constructor directly for scalar bit vectors");
+      case SPARSE ->
+          throw new IllegalArgumentException("use constructor directly for sparse bit vectors");
     };
   }
 
@@ -155,7 +155,7 @@ public class BitVectorUtil {
       case NONE -> throw new IllegalArgumentException("no bit vector encoding specified");
       case BINARY -> getBinaryLength(pNumGlobalVariables);
       // the length does not matter for these, but we use the number of global variables
-      case DECIMAL, SCALAR -> pNumGlobalVariables;
+      case DECIMAL, SPARSE -> pNumGlobalVariables;
       case HEXADECIMAL -> convertBinaryLengthToHex(getBinaryLength(pNumGlobalVariables));
     };
   }
@@ -178,9 +178,9 @@ public class BitVectorUtil {
     return false;
   }
 
-  // Scalar ========================================================================================
+  // Sparse ========================================================================================
 
-  public static CIdExpression createScalarAccessVariable(
+  public static CIdExpression createSparseAccessVariable(
       MPOROptions pOptions,
       MPORThread pThread,
       CVariableDeclaration pVariableDeclaration,
@@ -189,7 +189,7 @@ public class BitVectorUtil {
     checkArgument(pVariableDeclaration.isGlobal(), "pVariableDeclaration must be global");
     // we use the original variable name here, not the substitute -> less code
     String name =
-        getBitVectorScalarVariableNameByAccessType(
+        getSparseBitVectorVariableNameByAccessType(
             pOptions, pThread.id, pVariableDeclaration, pAccessType);
     // always initialize with 0, the actual bit vectors are set when creating a thread
     CSimpleDeclaration declaration =
@@ -198,7 +198,7 @@ public class BitVectorUtil {
     return SeqExpressionBuilder.buildIdExpression(declaration);
   }
 
-  private static String getBitVectorScalarVariableNameByAccessType(
+  private static String getSparseBitVectorVariableNameByAccessType(
       MPOROptions pOptions,
       int pThreadId,
       CVariableDeclaration pDeclaration,
@@ -209,11 +209,11 @@ public class BitVectorUtil {
           throw new IllegalArgumentException(
               "cannot create bit vector variable name for access type none");
       case ACCESS ->
-          SeqNameUtil.buildBitVectorScalarAccessVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorAccessVariableName(pOptions, pThreadId, pDeclaration);
       case READ ->
-          SeqNameUtil.buildBitVectorScalarReadVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorReadVariableName(pOptions, pThreadId, pDeclaration);
       case WRITE ->
-          SeqNameUtil.buildBitVectorScalarWriteVariableName(pOptions, pThreadId, pDeclaration);
+          SeqNameUtil.buildSparseBitVectorWriteVariableName(pOptions, pThreadId, pDeclaration);
     };
   }
 

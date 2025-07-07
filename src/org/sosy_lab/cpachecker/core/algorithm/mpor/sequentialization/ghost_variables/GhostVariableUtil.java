@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_varia
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.DenseBitVector;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionReturnValueAssignment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionStatements;
@@ -101,9 +101,9 @@ public class GhostVariableUtil {
     // create bit vector access variables for all threads, e.g. __uint8_t ba0
     Optional<ImmutableSet<DenseBitVector>> denseAccessBitVectors =
         buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.ACCESS);
-    // create access variables for all global variables for all threads (for scalar bit vectors)
-    Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarAccessBitVectors =
-        buildScalarBitVectorsByAccessType(
+    // create access variables for all global variables for all threads (for sparse bit vectors)
+    Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors =
+        buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.ACCESS);
     return Optional.of(
         new BitVectorVariables(
@@ -111,7 +111,7 @@ public class GhostVariableUtil {
             denseAccessBitVectors,
             Optional.empty(),
             Optional.empty(),
-            scalarAccessBitVectors,
+            sparseAccessBitVectors,
             Optional.empty(),
             Optional.empty()));
   }
@@ -127,12 +127,12 @@ public class GhostVariableUtil {
         buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.READ);
     Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors =
         buildDenseBitVectorsByAccessType(pOptions, pThreads, BitVectorAccessType.WRITE);
-    // create read + write variables (for scalar bit vectors)
-    Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarReadBitVectors =
-        buildScalarBitVectorsByAccessType(
+    // create read + write variables (for sparse bit vectors)
+    Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseReadBitVectors =
+        buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.READ);
-    Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarWriteBitVectors =
-        buildScalarBitVectorsByAccessType(
+    Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors =
+        buildSparseBitVectorsByAccessType(
             pOptions, pThreads, pAllGlobalVariables, BitVectorAccessType.WRITE);
     return Optional.of(
         new BitVectorVariables(
@@ -141,8 +141,8 @@ public class GhostVariableUtil {
             denseReadBitVectors,
             denseWriteBitVectors,
             Optional.empty(),
-            scalarReadBitVectors,
-            scalarWriteBitVectors));
+            sparseReadBitVectors,
+            sparseWriteBitVectors));
   }
 
   private static ImmutableMap<CVariableDeclaration, Integer> assignGlobalVariableIds(
@@ -157,7 +157,7 @@ public class GhostVariableUtil {
     return rVariables.buildOrThrow();
   }
 
-  // Dense / Scalar Bit Vectors ====================================================================
+  // Dense / Sparse Bit Vectors ====================================================================
 
   private static Optional<ImmutableSet<DenseBitVector>> buildDenseBitVectorsByAccessType(
       MPOROptions pOptions, ImmutableList<MPORThread> pThreads, BitVectorAccessType pAccessType) {
@@ -189,8 +189,8 @@ public class GhostVariableUtil {
     return Optional.of(rBitVectors.build());
   }
 
-  private static Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>>
-      buildScalarBitVectorsByAccessType(
+  private static Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>>
+      buildSparseBitVectorsByAccessType(
           MPOROptions pOptions,
           ImmutableList<MPORThread> pThreads,
           ImmutableList<CVariableDeclaration> pAllGlobalVariables,
@@ -199,19 +199,19 @@ public class GhostVariableUtil {
     if (pOptions.bitVectorEncoding.isDense) {
       return Optional.empty();
     }
-    ImmutableMap.Builder<CVariableDeclaration, ScalarBitVector> rAccessVariables =
+    ImmutableMap.Builder<CVariableDeclaration, SparseBitVector> rAccessVariables =
         ImmutableMap.builder();
     for (CVariableDeclaration variableDeclaration : pAllGlobalVariables) {
       assert variableDeclaration.isGlobal() : "variable declaration for bit vector must be global";
       ImmutableMap<MPORThread, CIdExpression> variables =
-          buildScalarBitVectorVariablesByAccessType(
+          buildSparseBitVectorVariablesByAccessType(
               pOptions, pThreads, variableDeclaration, pAccessType);
-      rAccessVariables.put(variableDeclaration, new ScalarBitVector(variables, pAccessType));
+      rAccessVariables.put(variableDeclaration, new SparseBitVector(variables, pAccessType));
     }
     return Optional.of(rAccessVariables.buildOrThrow());
   }
 
-  private static ImmutableMap<MPORThread, CIdExpression> buildScalarBitVectorVariablesByAccessType(
+  private static ImmutableMap<MPORThread, CIdExpression> buildSparseBitVectorVariablesByAccessType(
       MPOROptions pOptions,
       ImmutableList<MPORThread> pThreads,
       CVariableDeclaration pVariableDeclaration,
@@ -221,7 +221,7 @@ public class GhostVariableUtil {
     for (MPORThread thread : pThreads) {
       rAccessVariables.put(
           thread,
-          BitVectorUtil.createScalarAccessVariable(
+          BitVectorUtil.createSparseAccessVariable(
               pOptions, thread, pVariableDeclaration, pAccessType));
     }
     return rAccessVariables.buildOrThrow();

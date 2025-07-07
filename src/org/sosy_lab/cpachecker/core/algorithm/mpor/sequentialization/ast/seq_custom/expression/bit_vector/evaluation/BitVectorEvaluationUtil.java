@@ -49,7 +49,7 @@ public class BitVectorEvaluationUtil {
         .collect(ImmutableList.toImmutableList());
   }
 
-  static SeqExpression buildScalarDirectBitVector(
+  static SeqExpression buildSparseDirectBitVector(
       CVariableDeclaration pGlobalVariable,
       ImmutableSet<CVariableDeclaration> pDirectAccessVariables) {
 
@@ -63,11 +63,11 @@ public class BitVectorEvaluationUtil {
   // Conjunction and Disjunction ===================================================================
 
   /** Creates a logical conjunction of the given terms: {@code A && B && C ...}. */
-  static BitVectorEvaluationExpression buildScalarLogicalConjunction(
-      ImmutableList<SeqExpression> pScalarExpressions) {
+  static BitVectorEvaluationExpression buildSparseLogicalConjunction(
+      ImmutableList<SeqExpression> pSparseExpressions) {
 
     SeqExpression logicalConjunction =
-        BitVectorEvaluationUtil.logicalConjunction(pScalarExpressions);
+        BitVectorEvaluationUtil.logicalConjunction(pSparseExpressions);
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalConjunction));
   }
 

@@ -14,14 +14,14 @@ import com.google.common.collect.ImmutableMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 
-public class ScalarBitVector {
+public class SparseBitVector {
 
   public final ImmutableMap<MPORThread, CIdExpression> variables;
 
   public final BitVectorAccessType accessType;
 
   // TODO need direct and reachable variable maps
-  public ScalarBitVector(
+  public SparseBitVector(
       ImmutableMap<MPORThread, CIdExpression> pAccessVariables, BitVectorAccessType pAccessType) {
 
     checkArgument(!pAccessType.equals(BitVectorAccessType.NONE));

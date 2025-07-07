@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorAccessType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.BitVectorVariables;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.ScalarBitVector;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.bit_vector.SparseBitVector;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -57,11 +57,11 @@ public class BitVectorAccessEvaluationBuilder {
               pOtherThreads, pDirectVariables, pBitVectorVariables, pBinaryExpressionBuilder);
         }
       }
-      case SCALAR -> {
+      case SPARSE -> {
         if (pOptions.bitVectorEvaluationPrune) {
-          yield buildPrunedScalarEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
+          yield buildPrunedSparseEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
         } else {
-          yield buildFullScalarEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
+          yield buildFullSparseEvaluation(pOtherThreads, pDirectVariables, pBitVectorVariables);
         }
       }
     };
@@ -106,24 +106,24 @@ public class BitVectorAccessEvaluationBuilder {
     return new BitVectorEvaluationExpression(Optional.empty(), Optional.of(logicalNot));
   }
 
-  // Scalar Access Bit Vectors =====================================================================
+  // Sparse Access Bit Vectors =====================================================================
 
-  private static BitVectorEvaluationExpression buildPrunedScalarEvaluation(
+  private static BitVectorEvaluationExpression buildPrunedSparseEvaluation(
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
-      // no scalar variables (i.e. no global variables) -> no evaluation
+    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()) {
+      // no sparse variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
-    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
-        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : scalarBitVectors.entrySet()) {
+    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseBitVectors =
+        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : sparseBitVectors.entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
-      ScalarBitVector scalarBitVector = entry.getValue();
-      ImmutableMap<MPORThread, CIdExpression> accessVariables = scalarBitVector.variables;
+      SparseBitVector sparseBitVector = entry.getValue();
+      ImmutableMap<MPORThread, CIdExpression> accessVariables = sparseBitVector.variables;
       // if the LHS (current variable) is not accessed, then the entire && expression is 0 -> prune
       if (pDirectVariables.contains(globalVariable)) {
         // if the LHS is 1, then we can simplify A && (B || C || ...) to just (B || C || ...)
@@ -133,28 +133,28 @@ public class BitVectorAccessEvaluationBuilder {
         // create logical not -> !(B || C || ...)
         SeqLogicalNotExpression logicalNot =
             new SeqLogicalNotExpression(BitVectorEvaluationUtil.logicalDisjunction(otherVariables));
-        scalarExpressions.add(logicalNot);
+        sparseExpressions.add(logicalNot);
       }
     }
-    ImmutableList<SeqExpression> expressions = scalarExpressions.build();
+    ImmutableList<SeqExpression> expressions = sparseExpressions.build();
     return expressions.isEmpty()
         ? BitVectorEvaluationExpression.empty()
-        : BitVectorEvaluationUtil.buildScalarLogicalConjunction(expressions);
+        : BitVectorEvaluationUtil.buildSparseLogicalConjunction(expressions);
   }
 
-  private static BitVectorEvaluationExpression buildFullScalarEvaluation(
+  private static BitVectorEvaluationExpression buildFullSparseEvaluation(
       ImmutableSet<MPORThread> pOtherThreads,
       ImmutableSet<CVariableDeclaration> pDirectVariables,
       BitVectorVariables pBitVectorVariables) {
 
-    if (pBitVectorVariables.scalarAccessBitVectors.isEmpty()) {
-      // no scalar variables (i.e. no global variables) -> no evaluation
+    if (pBitVectorVariables.sparseAccessBitVectors.isEmpty()) {
+      // no sparse variables (i.e. no global variables) -> no evaluation
       return BitVectorEvaluationExpression.empty();
     }
-    ImmutableList.Builder<SeqExpression> scalarExpressions = ImmutableList.builder();
-    ImmutableMap<CVariableDeclaration, ScalarBitVector> scalarBitVectors =
-        pBitVectorVariables.getScalarBitVectorsByAccessType(BitVectorAccessType.ACCESS);
-    for (var entry : scalarBitVectors.entrySet()) {
+    ImmutableList.Builder<SeqExpression> sparseExpressions = ImmutableList.builder();
+    ImmutableMap<CVariableDeclaration, SparseBitVector> sparseBitVectors =
+        pBitVectorVariables.getSparseBitVectorsByAccessType(BitVectorAccessType.ACCESS);
+    for (var entry : sparseBitVectors.entrySet()) {
       CVariableDeclaration globalVariable = entry.getKey();
       ImmutableMap<MPORThread, CIdExpression> accessVariables = entry.getValue().variables;
       ImmutableList<SeqExpression> otherVariables =
@@ -164,12 +164,12 @@ public class BitVectorAccessEvaluationBuilder {
       SeqExpression disjunction = BitVectorEvaluationUtil.logicalDisjunction(otherVariables);
       // create logical and -> (A && (B || C || ...))
       SeqExpression directBitVector =
-          BitVectorEvaluationUtil.buildScalarDirectBitVector(globalVariable, pDirectVariables);
+          BitVectorEvaluationUtil.buildSparseDirectBitVector(globalVariable, pDirectVariables);
       SeqLogicalAndExpression logicalAnd =
           new SeqLogicalAndExpression(directBitVector, disjunction);
       // create logical not -> !(A && (B || C || ...))
-      scalarExpressions.add(new SeqLogicalNotExpression(logicalAnd));
+      sparseExpressions.add(new SeqLogicalNotExpression(logicalAnd));
     }
-    return BitVectorEvaluationUtil.buildScalarLogicalConjunction(scalarExpressions.build());
+    return BitVectorEvaluationUtil.buildSparseLogicalConjunction(sparseExpressions.build());
   }
 }

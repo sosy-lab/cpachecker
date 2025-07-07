@@ -29,29 +29,29 @@ public class BitVectorVariables {
 
   private final Optional<ImmutableSet<DenseBitVector>> denseWriteBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarAccessBitVectors;
+  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseAccessBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarReadBitVectors;
+  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseReadBitVectors;
 
-  public final Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> scalarWriteBitVectors;
+  public final Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> sparseWriteBitVectors;
 
   public BitVectorVariables(
       ImmutableMap<CVariableDeclaration, Integer> pGlobalVariableIds,
       Optional<ImmutableSet<DenseBitVector>> pDenseAccessBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseReadBitVectors,
       Optional<ImmutableSet<DenseBitVector>> pDenseWriteBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarAccessBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarReadBitVectors,
-      Optional<ImmutableMap<CVariableDeclaration, ScalarBitVector>> pScalarWriteBitVectors) {
+      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseAccessBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseReadBitVectors,
+      Optional<ImmutableMap<CVariableDeclaration, SparseBitVector>> pSparseWriteBitVectors) {
 
     numGlobalVariables = pGlobalVariableIds.size();
     globalVariableIds = pGlobalVariableIds;
     denseReadBitVectors = pDenseReadBitVectors;
     denseWriteBitVectors = pDenseWriteBitVectors;
     denseAccessBitVectors = pDenseAccessBitVectors;
-    scalarAccessBitVectors = pScalarAccessBitVectors;
-    scalarReadBitVectors = pScalarReadBitVectors;
-    scalarWriteBitVectors = pScalarWriteBitVectors;
+    sparseAccessBitVectors = pSparseAccessBitVectors;
+    sparseReadBitVectors = pSparseReadBitVectors;
+    sparseWriteBitVectors = pSparseWriteBitVectors;
   }
 
   public CExpression getDenseBitVectorByAccessType(
@@ -89,14 +89,14 @@ public class BitVectorVariables {
     };
   }
 
-  public ImmutableMap<CVariableDeclaration, ScalarBitVector> getScalarBitVectorsByAccessType(
+  public ImmutableMap<CVariableDeclaration, SparseBitVector> getSparseBitVectorsByAccessType(
       BitVectorAccessType pAccessType) {
 
     return switch (pAccessType) {
       case NONE -> ImmutableMap.of();
-      case ACCESS -> scalarAccessBitVectors.orElseThrow();
-      case READ -> scalarReadBitVectors.orElseThrow();
-      case WRITE -> scalarWriteBitVectors.orElseThrow();
+      case ACCESS -> sparseAccessBitVectors.orElseThrow();
+      case READ -> sparseReadBitVectors.orElseThrow();
+      case WRITE -> sparseWriteBitVectors.orElseThrow();
     };
   }
 
@@ -105,7 +105,7 @@ public class BitVectorVariables {
         && getDenseBitVectorsByAccessType(BitVectorAccessType.WRITE).isEmpty();
   }
 
-  public boolean areScalarBitVectorsEmpty() {
-    return scalarReadBitVectors.isEmpty() && scalarWriteBitVectors.isEmpty();
+  public boolean areSparseBitVectorsEmpty() {
+    return sparseReadBitVectors.isEmpty() && sparseWriteBitVectors.isEmpty();
   }
 }

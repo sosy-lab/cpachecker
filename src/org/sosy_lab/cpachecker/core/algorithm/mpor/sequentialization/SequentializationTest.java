@@ -56,7 +56,7 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.SCALAR,
+            BitVectorEncoding.SPARSE,
             true,
             true,
             true,
@@ -341,7 +341,7 @@ public class SequentializationTest {
     assertThat(Files.exists(path)).isTrue();
     MPOROptions options =
         MPOROptions.testInstance(
-            BitVectorEncoding.SCALAR,
+            BitVectorEncoding.SPARSE,
             false,
             true,
             true,
