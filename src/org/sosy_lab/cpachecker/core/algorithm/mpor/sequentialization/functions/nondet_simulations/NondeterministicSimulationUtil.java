@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constan
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.nondet_num_statements.SeqRoundGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.SeqMultiControlStatement;
@@ -79,9 +79,10 @@ public class NondeterministicSimulationUtil {
         SeqIdExpression.NEXT_THREAD,
         // the outer multi control statement never has an assumption
         Optional.empty(),
+        pInnerMultiControlStatements,
         // the outer multi control statement never updates last_thread
         Optional.empty(),
-        pInnerMultiControlStatements,
+        Optional.empty(),
         pBinaryExpressionBuilder);
   }
 
@@ -183,12 +184,12 @@ public class NondeterministicSimulationUtil {
     SeqThreadStatementClause target = Objects.requireNonNull(pLabelClauseMap.get(pTargetPc));
     SeqRoundGotoStatement roundGoto =
         new SeqRoundGotoStatement(
-            pRSmallerK, pRIncrement, Objects.requireNonNull(target).block.getGotoLabel());
+            pRSmallerK, pRIncrement, Objects.requireNonNull(target).block.getLabel());
     return pStatement.cloneAppendingInjectedStatements(ImmutableList.of(roundGoto));
   }
 
   private static SeqThreadStatement injectRoundGotoIntoStatementByTargetGoto(
-      SeqBlockGotoLabelStatement pTargetGoto,
+      SeqBlockLabelStatement pTargetGoto,
       CBinaryExpression pRSmallerK,
       CExpressionAssignmentStatement pRIncrement,
       SeqThreadStatement pStatement) {

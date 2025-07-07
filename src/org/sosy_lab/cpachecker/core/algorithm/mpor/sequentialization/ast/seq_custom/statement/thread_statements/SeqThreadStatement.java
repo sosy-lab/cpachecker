@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.substitution.SubstituteEdge;
 
@@ -33,7 +33,7 @@ public interface SeqThreadStatement extends SeqStatement {
   /** After linking, a statement may not have a target {@code pc}, hence optional. */
   Optional<Integer> getTargetPc();
 
-  Optional<SeqBlockGotoLabelStatement> getTargetGoto();
+  Optional<SeqBlockLabelStatement> getTargetGoto();
 
   /** The list of statements injected to the {@code pc} write. */
   ImmutableList<SeqInjectedStatement> getInjectedStatements();
@@ -44,7 +44,7 @@ public interface SeqThreadStatement extends SeqStatement {
    */
   SeqThreadStatement cloneWithTargetPc(int pTargetPc);
 
-  SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel);
+  SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel);
 
   /**
    * Clones this statement and replaces all existing statements with {@code

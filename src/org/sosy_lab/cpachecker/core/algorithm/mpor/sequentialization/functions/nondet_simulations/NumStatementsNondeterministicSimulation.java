@@ -127,8 +127,9 @@ public class NumStatementsNondeterministicSimulation {
             pOptions.controlEncodingStatement,
             expression,
             assumption,
-            tryBuildLastThreadUpdate(pOptions, pThread),
             expressionClauseMap,
+            pThread.endLabel,
+            tryBuildLastThreadUpdate(pOptions, pThread),
             pBinaryExpressionBuilder);
 
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));

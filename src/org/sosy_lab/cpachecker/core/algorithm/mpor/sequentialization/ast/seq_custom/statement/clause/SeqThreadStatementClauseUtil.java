@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAccessEvaluationStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorEvaluationStatement;
@@ -103,7 +103,7 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, SeqThreadStatementBlock> rMap = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
       for (SeqThreadStatementBlock block : clause.getAllBlocks()) {
-        rMap.put(block.getGotoLabel().labelNumber, block);
+        rMap.put(block.getLabel().labelNumber, block);
       }
     }
     return rMap.buildOrThrow();
@@ -148,14 +148,14 @@ public class SeqThreadStatementClauseUtil {
           newMergedStatements.add(replaceTargetPc(mergedStatement, labelBlockMap, labelClauseMap));
         }
         int mergeBlockIndex =
-            Objects.requireNonNull(labelBlockMap.get(mergedBlock.getGotoLabel().labelNumber));
+            Objects.requireNonNull(labelBlockMap.get(mergedBlock.getLabel().labelNumber));
         newMergedBlocks.add(
             mergedBlock
                 .cloneWithLabelNumber(mergeBlockIndex)
                 .cloneWithStatements(newMergedStatements.build()));
       }
       int blockIndex =
-          Objects.requireNonNull(labelBlockMap.get(clause.block.getGotoLabel().labelNumber));
+          Objects.requireNonNull(labelBlockMap.get(clause.block.getLabel().labelNumber));
       SeqThreadStatementBlock newBlock =
           clause.block.cloneWithLabelNumber(blockIndex).cloneWithStatements(newStatements.build());
       int clauseIndex = Objects.requireNonNull(labelClauseMap.get(clause.labelNumber));
@@ -174,9 +174,9 @@ public class SeqThreadStatementClauseUtil {
     ImmutableMap.Builder<Integer, Integer> rLabelToIndex = ImmutableMap.builder();
     int index = Sequentialization.INIT_PC;
     for (SeqThreadStatementClause clause : pClauses) {
-      rLabelToIndex.put(clause.block.getGotoLabel().labelNumber, index++);
+      rLabelToIndex.put(clause.block.getLabel().labelNumber, index++);
       for (SeqThreadStatementBlock mergedBlock : clause.mergedBlocks) {
-        rLabelToIndex.put(mergedBlock.getGotoLabel().labelNumber, index++);
+        rLabelToIndex.put(mergedBlock.getLabel().labelNumber, index++);
       }
     }
     return rLabelToIndex.buildOrThrow();
@@ -212,7 +212,7 @@ public class SeqThreadStatementClauseUtil {
           .cloneReplacingInjectedStatements(replacingInjectedStatements);
 
     } else if (pCurrentStatement.getTargetGoto().isPresent()) {
-      SeqBlockGotoLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
+      SeqBlockLabelStatement label = pCurrentStatement.getTargetGoto().orElseThrow();
       // for gotos, use block labels
       int index = Objects.requireNonNull(pLabelBlockMap.get(label.labelNumber));
       return pCurrentStatement.cloneWithTargetGoto(label.cloneWithLabelNumber(index));

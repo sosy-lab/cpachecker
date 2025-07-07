@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicBeginStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqAtomicEndStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_cod
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqThreadStatementBlock implements SeqStatement {
@@ -31,34 +32,40 @@ public class SeqThreadStatementBlock implements SeqStatement {
    * The goto label for the block, e.g. {@code T0_42;}. It is mandatory for all blocks, but may not
    * actually be targeted with a {@code goto}.
    */
-  private final SeqBlockGotoLabelStatement gotoLabel;
+  private final SeqBlockLabelStatement label;
 
   public final ImmutableList<SeqThreadStatement> statements;
 
+  /** The thread executing this block. */
+  private final MPORThread thread;
+
   public SeqThreadStatementBlock(
       MPOROptions pOptions,
-      SeqBlockGotoLabelStatement pGotoLabel,
-      ImmutableList<SeqThreadStatement> pStatements) {
+      SeqBlockLabelStatement pLabel,
+      ImmutableList<SeqThreadStatement> pStatements,
+      MPORThread pThread) {
 
     options = pOptions;
-    gotoLabel = pGotoLabel;
+    label = pLabel;
     statements = pStatements;
+    thread = pThread;
   }
 
   @Override
   public String toASTString() throws UnrecognizedCodeException {
     ImmutableList.Builder<LineOfCode> lines = ImmutableList.builder();
-    lines.add(LineOfCode.of(gotoLabel.toASTString() + SeqSyntax.SPACE));
+    lines.add(LineOfCode.of(label.toASTString() + SeqSyntax.SPACE));
     for (SeqThreadStatement statement : statements) {
       lines.add(LineOfCode.of(statement.toASTString() + SeqSyntax.SPACE));
     }
-    Optional<String> suffix = tryBuildSuffixByMultiControlStatementEncoding(options, statements);
+    Optional<String> suffix =
+        tryBuildSuffixByMultiControlStatementEncoding(options, statements, thread);
     lines.add(suffix.isPresent() ? LineOfCode.of(suffix.orElseThrow()) : LineOfCode.empty());
     return LineOfCodeUtil.buildString(lines.build());
   }
 
-  public SeqBlockGotoLabelStatement getGotoLabel() {
-    return gotoLabel;
+  public SeqBlockLabelStatement getLabel() {
+    return label;
   }
 
   public SeqThreadStatement getFirstStatement() {
@@ -71,13 +78,13 @@ public class SeqThreadStatementBlock implements SeqStatement {
 
   public SeqThreadStatementBlock cloneWithLabelNumber(int pLabelNumber) {
     return new SeqThreadStatementBlock(
-        options, gotoLabel.cloneWithLabelNumber(pLabelNumber), statements);
+        options, label.cloneWithLabelNumber(pLabelNumber), statements, thread);
   }
 
   public SeqThreadStatementBlock cloneWithStatements(
       ImmutableList<SeqThreadStatement> pStatements) {
 
-    return new SeqThreadStatementBlock(options, gotoLabel, pStatements);
+    return new SeqThreadStatementBlock(options, label, pStatements, thread);
   }
 
   public boolean startsAtomicBlock() {
@@ -93,19 +100,15 @@ public class SeqThreadStatementBlock implements SeqStatement {
   }
 
   private static Optional<String> tryBuildSuffixByMultiControlStatementEncoding(
-      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements) {
+      MPOROptions pOptions, ImmutableList<SeqThreadStatement> pStatements, MPORThread pThread)
+      throws UnrecognizedCodeException {
 
-    // TODO this can probably be removed entirely now
-    // e.g. mutex lock always requires break/continue if mutex is locked
-    if (SeqThreadStatementUtil.anySynchronizesThreads(pStatements)) {
-      return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions));
-    }
     if (SeqThreadStatementUtil.allHaveTargetGoto(pStatements)) {
       return Optional.empty();
     }
     if (SeqThreadStatementUtil.anyContainsEmptyBitVectorEvaluationExpression(pStatements)) {
       return Optional.empty();
     }
-    return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions));
+    return Optional.of(SeqStringUtil.buildSuffixByMultiControlStatementEncoding(pOptions, pThread));
   }
 }

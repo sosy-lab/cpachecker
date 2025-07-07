@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
@@ -31,7 +31,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
+  private final Optional<SeqBlockLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
@@ -54,7 +54,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     controlStatement = pControlStatement;
@@ -86,7 +86,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
     return targetGoto;
   }
 
@@ -107,7 +107,7 @@ public class SeqAssumeStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqAssumeStatement(
         controlStatement,
         pcLeftHandSide,

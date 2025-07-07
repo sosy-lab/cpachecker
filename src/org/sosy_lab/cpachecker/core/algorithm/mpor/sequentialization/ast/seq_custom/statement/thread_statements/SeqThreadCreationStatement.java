@@ -14,7 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.function_statements.FunctionParameterAssignment;
@@ -50,7 +50,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
+  private final Optional<SeqBlockLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
@@ -81,7 +81,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
       PcVariables pPcVariables,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     parameterAssignment = pParameterAssignment;
@@ -147,7 +147,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
     return targetGoto;
   }
 
@@ -171,7 +171,7 @@ public class SeqThreadCreationStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqThreadCreationStatement(
         parameterAssignment,
         createdThread,

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqGotoStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.bit_vector.SeqBitVectorAssignmentStatement;
@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqComment;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqToken;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.thread.MPORThread;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class SeqStringUtil {
@@ -41,15 +42,23 @@ public class SeqStringUtil {
   /** Matches both Windows (\r\n) and Unix-like (\n) newline conventions. */
   private static final Splitter newlineSplitter = Splitter.onPattern("\\r?\\n");
 
-  public static String buildSuffixByMultiControlStatementEncoding(MPOROptions pOptions) {
+  public static String buildSuffixByMultiControlStatementEncoding(
+      MPOROptions pOptions, MPORThread pThread) throws UnrecognizedCodeException {
+
     // use control encoding of the statement since we append the suffix to the statement
     return switch (pOptions.controlEncodingStatement) {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
-      // TODO for NUM_STATEMENTS nondeterminism, we need to add a goto next_thread.
-      //  it may be more efficient and is also equivalent to the continue;
-      case BINARY_IF_TREE, IF_ELSE_CHAIN -> SeqToken._continue + SeqSyntax.SEMICOLON;
+      case BINARY_IF_TREE, IF_ELSE_CHAIN -> {
+        if (pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
+          yield SeqToken._continue + SeqSyntax.SEMICOLON;
+        } else {
+          // for only NUM_STATEMENTS nondeterminism, goto thread end to continue in next thread
+          SeqGotoStatement gotoThreadEnd = new SeqGotoStatement(pThread.endLabel.orElseThrow());
+          yield gotoThreadEnd.toASTString();
+        }
+      }
       case SWITCH_CASE ->
           // tests showed: using break in switch is more efficient than continue, despite the loop
           SeqToken._break + SeqSyntax.SEMICOLON;
@@ -159,7 +168,7 @@ public class SeqStringUtil {
   public static String buildTargetStatements(
       CLeftHandSide pPcLeftHandSide,
       Optional<Integer> pTargetPc,
-      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements)
       throws UnrecognizedCodeException {
 

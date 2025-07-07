@@ -147,8 +147,9 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
         pOptions.controlEncodingStatement,
         expression,
         assumption,
-        lastThreadUpdate,
         expressionClauseMap,
+        pThread.endLabel,
+        lastThreadUpdate,
         pBinaryExpressionBuilder);
   }
 

@@ -83,6 +83,8 @@ public class SeqToken {
 
   public static final String E = "E";
 
+  public static final String END = "END";
+
   public static final String EXIT = "EXIT";
 
   public static final String __file = "__file";

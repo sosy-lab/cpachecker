@@ -80,8 +80,9 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
             options.controlEncodingThread,
             SeqIdExpression.LAST_THREAD,
             Optional.empty(),
-            Optional.empty(),
             assumptionStatements,
+            Optional.empty(),
+            Optional.empty(),
             binaryExpressionBuilder);
 
     lines.add(

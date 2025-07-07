@@ -82,8 +82,9 @@ public class NextThreadNondeterministicSimulation {
               pOptions.controlEncodingStatement,
               expression,
               assumption,
-              Optional.empty(),
               expressionClauseMap,
+              Optional.empty(),
+              Optional.empty(),
               pBinaryExpressionBuilder);
 
       rStatements.put(clauseExpression, multiControlStatement);

@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 
 public class MultiControlStatementBuilder {
 
@@ -26,9 +27,10 @@ public class MultiControlStatementBuilder {
       MultiControlStatementEncoding pMultiControlStatementEncoding,
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       // ImmutableMap retains insertion order when using ImmutableMap.Builder
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
+      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
+      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     // TODO add default error statement for binary tree and if-else chain
@@ -38,9 +40,14 @@ public class MultiControlStatementBuilder {
               "cannot build statements for control encoding " + pMultiControlStatementEncoding);
       case BINARY_IF_TREE ->
           new SeqBinaryIfTreeStatement(
-              pExpression, pAssumption, pLastThreadUpdate, pStatements, pBinaryExpressionBuilder);
+              pExpression,
+              pAssumption,
+              pStatements,
+              pThreadEndLabel,
+              pLastThreadUpdate,
+              pBinaryExpressionBuilder);
       case IF_ELSE_CHAIN ->
-          new SeqIfElseChainStatement(pAssumption, pLastThreadUpdate, pStatements);
+          new SeqIfElseChainStatement(pAssumption, pStatements, pThreadEndLabel, pLastThreadUpdate);
       case SWITCH_CASE ->
           new SeqSwitchStatement(
               pOptions, pExpression, pAssumption, pLastThreadUpdate, pStatements);

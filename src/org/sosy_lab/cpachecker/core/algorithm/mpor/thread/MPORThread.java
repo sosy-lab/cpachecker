@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 
 /**
  * An object for a thread containing an identifier (threadObject) and entry / exit Nodes of the
@@ -46,6 +47,12 @@ public class MPORThread {
   /** The subset of the original CFA executed by the thread. */
   public final ThreadCFA cfa;
 
+  /**
+   * The label marking the threads end, e.g. {@code T0_END:}. Note that the end is not equivalent to
+   * the thread's termination.
+   */
+  public final Optional<SeqThreadEndLabelStatement> endLabel;
+
   protected MPORThread(
       int pId,
       Optional<CIdExpression> pThreadObject,
@@ -53,7 +60,8 @@ public class MPORThread {
       Optional<ThreadEdge> pStartRoutineCall,
       Optional<CIdExpression> pStartRoutineExitVariable,
       ImmutableMultimap<CVariableDeclaration, Optional<ThreadEdge>> pLocalVariables,
-      ThreadCFA pCfa) {
+      ThreadCFA pCfa,
+      Optional<SeqThreadEndLabelStatement> pEndLabel) {
 
     id = pId;
     threadObject = pThreadObject;
@@ -62,6 +70,7 @@ public class MPORThread {
     startRoutineExitVariable = pStartRoutineExitVariable;
     localVariables = pLocalVariables;
     cfa = pCfa;
+    endLabel = pEndLabel;
   }
 
   public boolean isMain() {

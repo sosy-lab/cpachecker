@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions.SeqAssumptionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.injected.SeqInjectedStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.thread_simulation.MutexLocked;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -40,7 +40,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
 
   private final Optional<Integer> targetPc;
 
-  private final Optional<SeqBlockGotoLabelStatement> targetGoto;
+  private final Optional<SeqBlockLabelStatement> targetGoto;
 
   private final ImmutableList<SeqInjectedStatement> injectedStatements;
 
@@ -63,7 +63,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
       CLeftHandSide pPcLeftHandSide,
       ImmutableSet<SubstituteEdge> pSubstituteEdges,
       Optional<Integer> pTargetPc,
-      Optional<SeqBlockGotoLabelStatement> pTargetGoto,
+      Optional<SeqBlockLabelStatement> pTargetGoto,
       ImmutableList<SeqInjectedStatement> pInjectedStatements) {
 
     mutexLockedVariable = pMutexLockedVariable;
@@ -104,7 +104,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public Optional<SeqBlockGotoLabelStatement> getTargetGoto() {
+  public Optional<SeqBlockLabelStatement> getTargetGoto() {
     return targetGoto;
   }
 
@@ -125,7 +125,7 @@ public class SeqMutexLockStatement implements SeqThreadStatement {
   }
 
   @Override
-  public SeqThreadStatement cloneWithTargetGoto(SeqBlockGotoLabelStatement pLabel) {
+  public SeqThreadStatement cloneWithTargetGoto(SeqBlockLabelStatement pLabel) {
     return new SeqMutexLockStatement(
         mutexLockedVariable,
         pcLeftHandSide,

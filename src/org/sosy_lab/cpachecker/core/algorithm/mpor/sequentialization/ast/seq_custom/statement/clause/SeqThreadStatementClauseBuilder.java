@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
-import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockGotoLabelStatement;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqBlockLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.thread_statements.SeqThreadStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ghost_variables.GhostVariableUtil;
@@ -231,19 +231,21 @@ public class SeqThreadStatementClauseBuilder {
               pSubstituteEdges,
               pGhostVariables));
     }
-    SeqBlockGotoLabelStatement gotoLabel = buildBlockLabel(pOptions, pThread.id, labelPc);
-    return Optional.of(
-        new SeqThreadStatementClause(
-            pThreadNode.cfaNode.isLoopStart(),
-            new SeqThreadStatementBlock(pOptions, gotoLabel, statements.build())));
+    SeqBlockLabelStatement blockLabelStatement =
+        buildBlockLabelStatement(pOptions, pThread.id, labelPc);
+    SeqThreadStatementBlock block =
+        new SeqThreadStatementBlock(pOptions, blockLabelStatement, statements.build(), pThread);
+    SeqThreadStatementClause clause =
+        new SeqThreadStatementClause(pThreadNode.cfaNode.isLoopStart(), block);
+    return Optional.of(clause);
   }
 
   // Helpers =====================================================================================
 
-  public static SeqBlockGotoLabelStatement buildBlockLabel(
+  public static SeqBlockLabelStatement buildBlockLabelStatement(
       MPOROptions pOptions, int pThreadId, int pLabelNumber) {
 
-    return new SeqBlockGotoLabelStatement(
-        SeqNameUtil.buildSwitchCaseGotoLabelPrefix(pOptions, pThreadId), pLabelNumber);
+    String threadPrefix = SeqNameUtil.buildThreadPrefix(pOptions, pThreadId);
+    return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
   }
 }

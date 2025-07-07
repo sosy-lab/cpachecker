@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqSingleControlExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.goto_labels.SeqThreadEndLabelStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCode;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.line_of_code.LineOfCodeUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.SeqStringUtil;
@@ -38,23 +39,27 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
 
   private final Optional<CFunctionCallStatement> assumption;
 
-  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
-
   private final ImmutableMap<CExpression, ? extends SeqStatement> statements;
+
+  private final Optional<SeqThreadEndLabelStatement> threadEndLabel;
+
+  private final Optional<CExpressionAssignmentStatement> lastThreadUpdate;
 
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   SeqBinaryIfTreeStatement(
       CLeftHandSide pExpression,
       Optional<CFunctionCallStatement> pAssumption,
-      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       ImmutableMap<CExpression, ? extends SeqStatement> pStatements,
+      Optional<SeqThreadEndLabelStatement> pThreadEndLabel,
+      Optional<CExpressionAssignmentStatement> pLastThreadUpdate,
       CBinaryExpressionBuilder pBinaryExpressionBuilder) {
 
     expression = pExpression;
     assumption = pAssumption;
-    lastThreadUpdate = pLastThreadUpdate;
     statements = pStatements;
+    threadEndLabel = pThreadEndLabel;
+    lastThreadUpdate = pLastThreadUpdate;
     binaryExpressionBuilder = pBinaryExpressionBuilder;
   }
 
@@ -67,7 +72,9 @@ public class SeqBinaryIfTreeStatement implements SeqMultiControlStatement {
     ImmutableList<Map.Entry<CExpression, ? extends SeqStatement>> statementList =
         ImmutableList.copyOf(statements.entrySet());
     recursivelyBuildTree(statementList, statementList, expression, tree);
-    // TODO the problem here is that with continue; this becomes unreachable -> fix
+    if (threadEndLabel.isPresent()) {
+      tree.add(LineOfCode.of(threadEndLabel.orElseThrow().toASTString()));
+    }
     if (lastThreadUpdate.isPresent()) {
       tree.add(LineOfCode.of(lastThreadUpdate.orElseThrow().toASTString()));
     }

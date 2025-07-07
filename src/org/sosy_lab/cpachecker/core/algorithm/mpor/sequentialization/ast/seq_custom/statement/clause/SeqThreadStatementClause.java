@@ -50,7 +50,7 @@ public class SeqThreadStatementClause implements SeqStatement {
 
     id = getNewId();
     isLoopStart = pIsLoopStart;
-    labelNumber = pBlock.getGotoLabel().labelNumber;
+    labelNumber = pBlock.getLabel().labelNumber;
     block = pBlock;
     mergedBlocks = ImmutableList.of();
   }

@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cu
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 
 public interface SeqLabelStatement extends SeqStatement {
+  // TODO this should have default implementation,
+  //  its always toASTStringWithoutColon() + SeqSyntax.COLON
   String getLabelName();
 
   String toASTStringWithoutColon();

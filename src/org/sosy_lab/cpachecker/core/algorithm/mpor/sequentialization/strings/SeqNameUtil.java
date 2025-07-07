@@ -28,7 +28,7 @@ public class SeqNameUtil {
     return SeqSyntax.UNDERSCORE + variableId++ + SeqSyntax.UNDERSCORE;
   }
 
-  private static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
+  public static String buildThreadPrefix(MPOROptions pOptions, int pThreadId) {
     return (pOptions.shortVariableNames ? SeqToken.T : SeqToken.__MPOR_SEQ__ + SeqToken.THREAD)
         + pThreadId
         + SeqSyntax.UNDERSCORE;
@@ -37,11 +37,6 @@ public class SeqNameUtil {
   /** Returns {@code "__MPOR_SEQ__{pFunctionName}"}. */
   public static String buildFunctionName(String pFunctionName) {
     return SeqToken.__MPOR_SEQ__ + pFunctionName;
-  }
-
-  public static String buildSwitchCaseGotoLabelPrefix(MPOROptions pOptions, int pThreadId) {
-
-    return buildThreadPrefix(pOptions, pThreadId);
   }
 
   public static String buildGlobalVariableName(

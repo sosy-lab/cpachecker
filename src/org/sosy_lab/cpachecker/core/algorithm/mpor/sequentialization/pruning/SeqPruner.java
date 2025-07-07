@@ -294,7 +294,7 @@ public class SeqPruner {
     if (singleStatement instanceof SeqAtomicBeginStatement) {
       int targetPc = singleStatement.getTargetPc().orElseThrow();
       if (targetPc != Sequentialization.EXIT_PC) {
-        assert Math.abs(pClause.block.getGotoLabel().labelNumber - targetPc) == 1
+        assert Math.abs(pClause.block.getLabel().labelNumber - targetPc) == 1
             : "absolute difference of empty atomic block labels must be 1";
         SeqThreadStatementClause target = requireNonNull(pLabelClauseMap.get(targetPc));
         return target.block.getFirstStatement() instanceof SeqAtomicEndStatement;

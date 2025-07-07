@@ -12,13 +12,13 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_cus
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.strings.hard_coded.SeqSyntax;
 
 /** The label of a block of {@link SeqThreadStatement}s. */
-public class SeqBlockGotoLabelStatement implements SeqLabelStatement {
+public class SeqBlockLabelStatement implements SeqLabelStatement {
 
   public final String threadPrefix;
 
   public final int labelNumber;
 
-  public SeqBlockGotoLabelStatement(String pThreadPrefix, int pLabelNumber) {
+  public SeqBlockLabelStatement(String pThreadPrefix, int pLabelNumber) {
     // we store the thread prefix so that cloning does not require the options (shortVariables)
     threadPrefix = pThreadPrefix;
     labelNumber = pLabelNumber;
@@ -39,7 +39,7 @@ public class SeqBlockGotoLabelStatement implements SeqLabelStatement {
     return getLabelName();
   }
 
-  public SeqBlockGotoLabelStatement cloneWithLabelNumber(int pLabelNumber) {
-    return new SeqBlockGotoLabelStatement(threadPrefix, pLabelNumber);
+  public SeqBlockLabelStatement cloneWithLabelNumber(int pLabelNumber) {
+    return new SeqBlockLabelStatement(threadPrefix, pLabelNumber);
   }
 }
