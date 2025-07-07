@@ -279,6 +279,11 @@ public class MPOROptions {
         throw new AssertionError();
       }
     }
+    if (conflictReduction && !controlEncodingConflict.isEnabled()) {
+      pLogger.log(
+          Level.SEVERE, "conflictReduction is enabled, but controlEncodingConflict is not set.");
+      throw new AssertionError();
+    }
   }
 
   /** Logs all warnings regarding unused, overwritten, conflicting, ... options. */

@@ -109,7 +109,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
           "defines the syntax in which the last_thread is chosen to check for conflicts."
               + " may slow down or improve performance, depending on the verifier.")
   private MultiControlStatementEncoding controlEncodingConflict =
-      MultiControlStatementEncoding.IF_ELSE_CHAIN;
+      MultiControlStatementEncoding.NONE;
 
   @Option(
       secure = true,

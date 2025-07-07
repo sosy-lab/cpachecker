@@ -13,7 +13,12 @@ public enum MultiControlStatementEncoding {
   NONE,
   BINARY_IF_TREE,
   IF_ELSE_CHAIN,
-  SWITCH_CASE,
+  SWITCH_CASE;
+
   // TODO
   // CONDITIONAL_GOTO (cf. Lazy-CSeq)
+
+  public boolean isEnabled() {
+    return !this.equals(NONE);
+  }
 }
