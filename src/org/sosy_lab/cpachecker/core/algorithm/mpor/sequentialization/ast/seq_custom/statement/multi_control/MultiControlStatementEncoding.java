@@ -15,6 +15,5 @@ public enum MultiControlStatementEncoding {
   IF_ELSE_CHAIN,
   SWITCH_CASE,
   // TODO
-  // CONDITIONAL_GOTO
-  // IF_ELSE_IF ...
+  // CONDITIONAL_GOTO (cf. Lazy-CSeq)
 }

@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
@@ -63,8 +62,6 @@ public class NextThreadNondeterministicSimulation {
       Optional<CFunctionCallStatement> assumption =
           NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
               pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
-      Optional<CExpressionAssignmentStatement> lastThreadUpdate =
-          NondeterministicSimulationUtil.tryBuildLastThreadIdUpdate(pOptions, thread);
       rStatements.put(
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
@@ -76,7 +73,7 @@ public class NextThreadNondeterministicSimulation {
               pOptions.controlEncodingStatement,
               expression,
               assumption,
-              lastThreadUpdate,
+              Optional.empty(),
               SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue()),
               pBinaryExpressionBuilder));
     }

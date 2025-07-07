@@ -47,10 +47,12 @@ public class SeqStringUtil {
       case NONE ->
           throw new IllegalArgumentException(
               "cannot build suffix for control encoding " + pOptions.controlEncodingStatement);
-      // TODO fix, the continue makes the last_thread update unreachable
+      // TODO for NUM_STATEMENTS nondeterminism, we need to add a goto next_thread.
+      //  it may be more efficient and is also equivalent to the continue;
       case BINARY_IF_TREE, IF_ELSE_CHAIN -> SeqToken._continue + SeqSyntax.SEMICOLON;
-      // tests showed that using break in switch is more efficient than continue, despite the loop
-      case SWITCH_CASE -> SeqToken._break + SeqSyntax.SEMICOLON;
+      case SWITCH_CASE ->
+          // tests showed: using break in switch is more efficient than continue, despite the loop
+          SeqToken._break + SeqSyntax.SEMICOLON;
     };
   }
 

@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -111,15 +112,13 @@ public class NumStatementsNondeterministicSimulation {
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
-    Optional<CExpressionAssignmentStatement> lastThreadUpdate =
-        NondeterministicSimulationUtil.tryBuildLastThreadIdUpdate(pOptions, pThread);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,
             pOptions.controlEncodingStatement,
             expression,
             assumption,
-            lastThreadUpdate,
+            tryBuildLastThreadUpdate(pOptions, pThread),
             SeqThreadStatementClauseUtil.mapLabelExpressionToClause(clauses),
             pBinaryExpressionBuilder);
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
@@ -215,5 +214,19 @@ public class NumStatementsNondeterministicSimulation {
       }
     }
     return pStatement;
+  }
+
+  // last_thread update ============================================================================
+
+  private static Optional<CExpressionAssignmentStatement> tryBuildLastThreadUpdate(
+      MPOROptions pOptions, MPORThread pThread) {
+
+    if (!pOptions.conflictReduction) {
+      // without conflict reductions, there is no need for storing last_thread
+      return Optional.empty();
+    }
+    CIntegerLiteralExpression integerLiteralExpression =
+        SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id);
+    return Optional.of(SeqStatementBuilder.buildLastThreadAssignment(integerLiteralExpression));
   }
 }

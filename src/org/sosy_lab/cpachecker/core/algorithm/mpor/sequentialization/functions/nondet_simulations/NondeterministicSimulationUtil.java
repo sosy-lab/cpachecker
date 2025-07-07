@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.nondeterminism.VerifierNondetFunctionType;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
@@ -106,18 +105,6 @@ public class NondeterministicSimulationUtil {
       return Optional.of(assumeCall);
     }
     return Optional.empty();
-  }
-
-  static Optional<CExpressionAssignmentStatement> tryBuildLastThreadIdUpdate(
-      MPOROptions pOptions, MPORThread pThread) {
-
-    if (!pOptions.conflictReduction
-        || pOptions.nondeterminismSource.isNextThreadNondeterministic()) {
-      return Optional.empty();
-    }
-    CIntegerLiteralExpression integerLiteralExpression =
-        SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id);
-    return Optional.of(SeqStatementBuilder.buildLastThreadAssignment(integerLiteralExpression));
   }
 
   // r and K statements/expressions ================================================================
