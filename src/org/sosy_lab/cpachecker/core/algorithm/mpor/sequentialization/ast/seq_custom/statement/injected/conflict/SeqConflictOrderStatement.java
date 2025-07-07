@@ -77,7 +77,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             options,
-            options.controlEncodingThread,
+            options.controlEncodingConflict,
             SeqIdExpression.LAST_THREAD,
             Optional.empty(),
             assumptionStatements,
@@ -109,7 +109,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
       CLeftHandSide pcLeftHandSide = pPcVariables.getPcLeftHandSide(otherThread.id);
       CExpression lastThreadExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingStatement,
+              pOptions.controlEncodingConflict,
               SeqIdExpression.LAST_THREAD,
               otherThread.id,
               pBinaryExpressionBuilder);

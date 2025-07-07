@@ -44,6 +44,8 @@ public class MPOROptions {
 
   public final boolean consecutiveLabels;
 
+  public final MultiControlStatementEncoding controlEncodingConflict;
+
   public final MultiControlStatementEncoding controlEncodingStatement;
 
   public final MultiControlStatementEncoding controlEncodingThread;
@@ -94,6 +96,7 @@ public class MPOROptions {
       boolean pComments,
       boolean pConflictReduction,
       boolean pConsecutiveLabels,
+      MultiControlStatementEncoding pControlEncodingConflict,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pFormatCode,
@@ -131,6 +134,7 @@ public class MPOROptions {
     comments = pComments;
     conflictReduction = pConflictReduction;
     consecutiveLabels = pConsecutiveLabels;
+    controlEncodingConflict = pControlEncodingConflict;
     controlEncodingStatement = pControlEncodingStatement;
     controlEncodingThread = pControlEncodingThread;
     formatCode = pFormatCode;
@@ -161,6 +165,7 @@ public class MPOROptions {
       boolean pBitVectorReduction,
       boolean pComments,
       boolean pConflictReduction,
+      MultiControlStatementEncoding pControlEncodingConflict,
       MultiControlStatementEncoding pControlEncodingStatement,
       MultiControlStatementEncoding pControlEncodingThread,
       boolean pInputFunctionDeclarations,
@@ -184,6 +189,7 @@ public class MPOROptions {
         pConflictReduction,
         // always use consecutive labels, disabling is only for debugging, not for release
         true,
+        pControlEncodingConflict,
         pControlEncodingStatement,
         pControlEncodingThread,
         // never format output code so that unit test is independent of clang-format

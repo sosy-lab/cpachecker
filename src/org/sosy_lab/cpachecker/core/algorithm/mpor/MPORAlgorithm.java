@@ -106,6 +106,14 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
   @Option(
       secure = true,
       description =
+          "defines the syntax in which the last_thread is chosen to check for conflicts."
+              + " may slow down or improve performance, depending on the verifier.")
+  private MultiControlStatementEncoding controlEncodingConflict =
+      MultiControlStatementEncoding.IF_ELSE_CHAIN;
+
+  @Option(
+      secure = true,
+      description =
           "defines the syntax in which the next statement of a thread simulation is chosen."
               + " may slow down or improve performance, depending on the verifier.")
   private MultiControlStatementEncoding controlEncodingStatement =
@@ -166,7 +174,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
       description =
           "the source(s) of nondeterminism in the sequentialization. may slow down or improve"
               + " performance, depending on the verifier.")
-  private NondeterminismSource nondeterminismSource = NondeterminismSource.NEXT_THREAD;
+  private NondeterminismSource nondeterminismSource = NondeterminismSource.NUM_STATEMENTS;
 
   @Option(
       secure = true,
@@ -315,6 +323,7 @@ public class MPORAlgorithm implements Algorithm /* TODO statistics? */ {
               comments,
               conflictReduction,
               consecutiveLabels,
+              controlEncodingConflict,
               controlEncodingStatement,
               controlEncodingThread,
               formatCode,

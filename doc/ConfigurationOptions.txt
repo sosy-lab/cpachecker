@@ -286,6 +286,11 @@ analysis.algorithm.MPOR.conflictReduction = false
 # unreachable.
 analysis.algorithm.MPOR.consecutiveLabels = true
 
+# defines the syntax in which the last_thread is chosen to check for
+# conflicts. may slow down or improve performance, depending on the verifier.
+analysis.algorithm.MPOR.controlEncodingConflict = IF_ELSE_CHAIN
+  enum:     [NONE, BINARY_IF_TREE, IF_ELSE_CHAIN, SWITCH_CASE]
+
 # defines the syntax in which the next statement of a thread simulation is
 # chosen. may slow down or improve performance, depending on the verifier.
 analysis.algorithm.MPOR.controlEncodingStatement = SWITCH_CASE
@@ -326,7 +331,7 @@ analysis.algorithm.MPOR.loopIterations = 0
 
 # the source(s) of nondeterminism in the sequentialization. may slow down or
 # improve performance, depending on the verifier.
-analysis.algorithm.MPOR.nondeterminismSource = NEXT_THREAD
+analysis.algorithm.MPOR.nondeterminismSource = NUM_STATEMENTS
   enum:     [NEXT_THREAD, NUM_STATEMENTS, NEXT_THREAD_AND_NUM_STATEMENTS]
 
 # add an additional .yml file with metadata such as input file(s) and
