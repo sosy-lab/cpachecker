@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.logical.SeqLogicalAndExpression;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.expression.single_control.SeqIfExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -112,6 +114,13 @@ public class NumStatementsNondeterministicSimulation {
     Optional<CFunctionCallStatement> assumption =
         NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
             pOptions, pPcVariables, pThread, pBinaryExpressionBuilder);
+
+    ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
+        SeqThreadStatementClauseUtil.mapExpressionToClause(
+            pOptions,
+            pPcVariables.getPcLeftHandSide(pThread.id),
+            clauses,
+            pBinaryExpressionBuilder);
     SeqMultiControlStatement multiControlStatement =
         MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
             pOptions,
@@ -119,8 +128,9 @@ public class NumStatementsNondeterministicSimulation {
             expression,
             assumption,
             tryBuildLastThreadUpdate(pOptions, pThread),
-            SeqThreadStatementClauseUtil.mapLabelExpressionToClause(clauses),
+            expressionClauseMap,
             pBinaryExpressionBuilder);
+
     rLines.addAll(LineOfCodeUtil.buildLinesOfCode(multiControlStatement.toASTString()));
     return rLines.build();
   }

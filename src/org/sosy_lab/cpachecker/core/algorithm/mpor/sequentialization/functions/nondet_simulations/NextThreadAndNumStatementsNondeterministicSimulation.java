@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.assumptions
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqStatementBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
@@ -134,13 +135,20 @@ public class NextThreadAndNumStatementsNondeterministicSimulation {
                 SeqStatementBuilder.buildLastThreadAssignment(
                     SeqExpressionBuilder.buildIntegerLiteralExpression(pThread.id)))
             : Optional.empty();
+    ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
+        SeqThreadStatementClauseUtil.mapExpressionToClause(
+            pOptions,
+            pPcVariables.getPcLeftHandSide(pThread.id),
+            clauses,
+            pBinaryExpressionBuilder);
+
     return MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
         pOptions,
         pOptions.controlEncodingStatement,
         expression,
         assumption,
         lastThreadUpdate,
-        SeqThreadStatementClauseUtil.mapLabelExpressionToClause(clauses),
+        expressionClauseMap,
         pBinaryExpressionBuilder);
   }
 

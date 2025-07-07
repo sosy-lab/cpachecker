@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.constants.SeqExpressions.SeqIdExpression;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.SeqStatement;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClause;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.clause.SeqThreadStatementClauseUtil;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.multi_control.MultiControlStatementBuilder;
@@ -62,20 +63,30 @@ public class NextThreadNondeterministicSimulation {
       Optional<CFunctionCallStatement> assumption =
           NondeterministicSimulationUtil.tryBuildNextThreadActiveAssumption(
               pOptions, pPcVariables, thread, pBinaryExpressionBuilder);
-      rStatements.put(
+      ImmutableMap<CExpression, ? extends SeqStatement> expressionClauseMap =
+          SeqThreadStatementClauseUtil.mapExpressionToClause(
+              pOptions,
+              pPcVariables.getPcLeftHandSide(thread.id),
+              entry.getValue(),
+              pBinaryExpressionBuilder);
+
+      CExpression clauseExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
               pOptions.controlEncodingThread,
               SeqIdExpression.NEXT_THREAD,
               thread.id,
-              pBinaryExpressionBuilder),
+              pBinaryExpressionBuilder);
+      SeqMultiControlStatement multiControlStatement =
           MultiControlStatementBuilder.buildMultiControlStatementByEncoding(
               pOptions,
               pOptions.controlEncodingStatement,
               expression,
               assumption,
               Optional.empty(),
-              SeqThreadStatementClauseUtil.mapLabelExpressionToClause(entry.getValue()),
-              pBinaryExpressionBuilder));
+              expressionClauseMap,
+              pBinaryExpressionBuilder);
+
+      rStatements.put(clauseExpression, multiControlStatement);
     }
     return rStatements.buildOrThrow();
   }

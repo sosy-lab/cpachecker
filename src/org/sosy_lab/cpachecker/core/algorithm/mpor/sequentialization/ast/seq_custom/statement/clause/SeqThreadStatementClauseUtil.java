@@ -16,7 +16,8 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.core.algorithm.mpor.MPOROptions;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.Sequentialization;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.builder.SeqExpressionBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.mpor.sequentialization.ast.seq_custom.statement.block.SeqThreadStatementBlock;
@@ -61,13 +62,21 @@ public class SeqThreadStatementClauseUtil {
     };
   }
 
-  public static ImmutableMap<CExpression, SeqThreadStatementClause> mapLabelExpressionToClause(
-      ImmutableList<SeqThreadStatementClause> pClauses) {
+  public static ImmutableMap<CExpression, SeqThreadStatementClause> mapExpressionToClause(
+      MPOROptions pOptions,
+      CLeftHandSide pPcLeftHandSide,
+      ImmutableList<SeqThreadStatementClause> pClauses,
+      CBinaryExpressionBuilder pBinaryExpressionBuilder)
+      throws UnrecognizedCodeException {
 
     ImmutableMap.Builder<CExpression, SeqThreadStatementClause> rOriginPcs = ImmutableMap.builder();
     for (SeqThreadStatementClause clause : pClauses) {
-      CIntegerLiteralExpression labelExpression =
-          SeqExpressionBuilder.buildIntegerLiteralExpression(clause.labelNumber);
+      CExpression labelExpression =
+          SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
+              pOptions.controlEncodingStatement,
+              pPcLeftHandSide,
+              clause.labelNumber,
+              pBinaryExpressionBuilder);
       rOriginPcs.put(labelExpression, clause);
     }
     return rOriginPcs.buildOrThrow();
