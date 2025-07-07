@@ -109,7 +109,7 @@ public class SeqConflictOrderStatement implements SeqInjectedStatement {
       CLeftHandSide pcLeftHandSide = pPcVariables.getPcLeftHandSide(otherThread.id);
       CExpression lastThreadExpression =
           SeqThreadStatementClauseUtil.getStatementExpressionByEncoding(
-              pOptions.controlEncodingThread,
+              pOptions.controlEncodingStatement,
               SeqIdExpression.LAST_THREAD,
               otherThread.id,
               pBinaryExpressionBuilder);
