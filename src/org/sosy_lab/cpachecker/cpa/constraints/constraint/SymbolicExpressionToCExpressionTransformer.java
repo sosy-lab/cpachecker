@@ -271,24 +271,22 @@ public class SymbolicExpressionToCExpressionTransformer
         assert operand instanceof BinarySymbolicExpression;
         BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
 
+        CExpression expr;
         if (operand instanceof EqualsExpression) {
-          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
-              .negateExpressionAndSimplify(
-                  createBinaryExpression(innerExpression, BinaryOperator.EQUALS));
+          expr = createBinaryExpression(innerExpression, BinaryOperator.EQUALS);
 
         } else if (operand instanceof LessThanExpression) {
-          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
-              .negateExpressionAndSimplify(
-                  createBinaryExpression(innerExpression, BinaryOperator.LESS_THAN));
+          expr = createBinaryExpression(innerExpression, BinaryOperator.LESS_THAN);
 
         } else if (operand instanceof LessThanOrEqualExpression) {
-          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
-              .negateExpressionAndSimplify(
-                  createBinaryExpression(innerExpression, BinaryOperator.LESS_EQUAL));
+          expr = createBinaryExpression(innerExpression, BinaryOperator.LESS_EQUAL);
 
         } else {
           throw new AssertionError("Unhandled operation " + operand);
         }
+
+        return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+            .negateExpressionAndSimplify(expr);
 
       } catch (UnrecognizedCodeException urce) {
         // This may only happen for unhandled cases in negateExpressionAndSimplify() or invalid
