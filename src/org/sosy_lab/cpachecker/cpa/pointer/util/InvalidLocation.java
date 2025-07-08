@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
+import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
+
 import com.google.common.collect.ComparisonChain;
 
 public final class InvalidLocation implements PointerTarget {
@@ -38,22 +40,9 @@ public final class InvalidLocation implements PointerTarget {
   }
 
   @Override
-  public int compareTo(PointerTarget o) {
-    return ComparisonChain.start()
-        .compare(this.getClass().getName(), o.getClass().getName())
-        .compare(
-            this.reason.name(), (o instanceof InvalidLocation other) ? other.reason.name() : "")
-        .result();
+  public int compareTo(PointerTarget pOther) {
+    return (pOther instanceof InvalidLocation other)
+        ? ComparisonChain.start().compare(this.reason.name(), other.reason.name()).result()
+        : compareByType(this, pOther);
   }
-
-  //  @Override
-  //  public int compareTo(PointerTarget pOther) {
-  //    if (pOther instanceof InvalidLocation other) {
-  //      return reason.compareTo(other.reason);
-  //    } else if (pOther instanceof HeapLocation || pOther instanceof MemoryLocationPointer) {
-  //      return 1;
-  //    } else {
-  //      return 0;
-  //    }
-  //  }
 }

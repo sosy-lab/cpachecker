@@ -2,29 +2,28 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
 package org.sosy_lab.cpachecker.cpa.pointer.util;
 
-import com.google.common.collect.ComparisonChain;
+import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.collect.ComparisonChain;
+import java.util.Objects;
 
 public class HeapLocation implements PointerTarget {
   private final String functionName;
   private final String identifier;
 
   private HeapLocation(String pFunctionName, String pIdentifier) {
-    checkNotNull(pIdentifier);
     functionName = pFunctionName;
     identifier = pIdentifier;
   }
 
   public static HeapLocation forAllocation(String pFunctionName, int pIndex) {
     String finalIdentifier = (pIndex == -1) ? "heap_obj" : "heap_obj" + pIndex;
-    // String finalIdentifier = "heap_obj" + pIndex;
     return new HeapLocation(pFunctionName, finalIdentifier);
   }
 
@@ -34,21 +33,27 @@ public class HeapLocation implements PointerTarget {
 
   @Override
   public int compareTo(PointerTarget pOther) {
+    if (!(pOther instanceof HeapLocation other)) {
+      return compareByType(this, pOther);
+    }
+
     return ComparisonChain.start()
-        .compare(this.getClass().getName(), pOther.getClass().getName())
-        .compare(this.identifier, (pOther instanceof HeapLocation other) ? other.identifier : "")
+        .compare(this.identifier, other.identifier)
+        .compare(this.functionName, other.functionName)
         .result();
   }
 
   @Override
   public boolean equals(Object pOther) {
     return this == pOther
-        || (pOther instanceof HeapLocation other && identifier.equals(other.identifier));
+        || (pOther instanceof HeapLocation other
+            && identifier.equals(other.identifier)
+            && functionName.equals(other.functionName));
   }
 
   @Override
   public int hashCode() {
-    return identifier.hashCode();
+    return Objects.hash(identifier, functionName);
   }
 
   @Override

@@ -2,7 +2,7 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2025 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
@@ -12,6 +12,7 @@ import com.google.common.collect.ComparisonChain;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cpa.pointer.util.PointerUtils.compareByType;
 
 public class MemoryLocationPointer implements PointerTarget {
   private final MemoryLocation memoryLocation;
@@ -33,7 +34,7 @@ public class MemoryLocationPointer implements PointerTarget {
   public int compareTo(PointerTarget pOther) {
     return (pOther instanceof MemoryLocationPointer other)
         ? ComparisonChain.start().compare(this.memoryLocation, other.memoryLocation).result()
-        : this.getClass().getName().compareTo(pOther.getClass().getName());
+        : compareByType(this, pOther);
   }
 
   @Override
