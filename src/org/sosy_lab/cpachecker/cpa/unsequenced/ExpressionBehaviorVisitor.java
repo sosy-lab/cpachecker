@@ -214,7 +214,40 @@ public class ExpressionBehaviorVisitor
   @Override
   public ExpressionAnalysisSummary visit(CFieldReference fieldRef)
       throws UnrecognizedCodeException {
-    return fieldRef.getFieldOwner().accept(this);
+    ExpressionAnalysisSummary result = ExpressionAnalysisSummary.empty();
+
+    CExpression fieldOwner = fieldRef.getFieldOwner();
+
+    if (!(fieldOwner instanceof CIdExpression)) {
+      result = fieldOwner.accept(this);
+    }
+
+    if (fieldRef.isPointerDereference()) {
+      // g->cache, (*p).field
+      if (fieldOwner instanceof CIdExpression idExpr) {
+        MemoryLocation pointerLoc =
+            MemoryLocation.fromQualifiedName(idExpr.getDeclaration().getQualifiedName());
+        SideEffectInfo sideEffect =
+            new SideEffectInfo(
+                pointerLoc, accessType, cfaEdge, SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED);
+        result.addSideEffect(sideEffect);
+      }
+    } else {
+      // g.cache
+      if (fieldOwner instanceof CIdExpression idExpr
+          && idExpr.getDeclaration() instanceof CVariableDeclaration decl
+          && decl.isGlobal()) {
+
+        MemoryLocation fieldLoc =
+            MemoryLocation.fromQualifiedName(
+                decl.getQualifiedName() + "." + fieldRef.getFieldName());
+        SideEffectInfo sideEffect =
+            new SideEffectInfo(fieldLoc, accessType, cfaEdge, SideEffectKind.GLOBAL_VARIABLE);
+        result.addSideEffect(sideEffect);
+      }
+    }
+
+    return result;
   }
 
   @Override

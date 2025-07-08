@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -89,6 +90,7 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       // if functioncall true, then record side effects inside it
       if (lhsExpr instanceof CIdExpression
+          || lhsExpr instanceof CFieldReference
           || (lhsExpr instanceof CPointerExpression pointerExpr
               && pointerExpr.getOperand() instanceof CIdExpression)) {
         mergeSideEffects(
