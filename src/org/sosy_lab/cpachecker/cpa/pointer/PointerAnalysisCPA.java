@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.pointer.PointerAnalysisTransferRelation.PointerTransferOptions;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 
 @Options(prefix = "cpa.pointer")
 public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysis {

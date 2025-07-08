@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 public class PointerAnalysisTest {
   private static final String CONFIGURATION_FILE = "config/pointer.properties";
   private static final String SPECIFICATION = "config/specification/default.spc";
-  private static final String PROGRAM_C_SIMPLE = "doc/examples/example-simple.c";
-  private static final String JAVA_CLASSPATH = "test/programs/java/Statements/";
+  private static final String PROGRAM_C_SIMPLE = "test/programs/pointer/pointer.c";
+  // private static final String JAVA_CLASSPATH = "test/programs/java/Statements/";
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
@@ -45,7 +45,7 @@ public class PointerAnalysisTest {
     TestResults result = CPATestRunner.run(config, PROGRAM_C_SIMPLE);
     result.getCheckerResult().printStatistics(statisticsStream);
     result.getCheckerResult().writeOutputFiles();
-    // System.out.println(result.getLog());
+    System.out.println(result.getLog());
     result.assertIsSafe();
   }
 
@@ -64,7 +64,7 @@ public class PointerAnalysisTest {
         .loadFromFile(configurationFile)
         .setOption("language", inputLanguage.name())
         .setOption("specification", specificationFile)
-        .setOption("java.classpath", JAVA_CLASSPATH)
+        // .setOption("java.classpath", JAVA_CLASSPATH)
         .setOption("parser.usePreprocessor", "true")
         .addConverter(FileOption.class, fileTypeConverter);
     return configBuilder.build();

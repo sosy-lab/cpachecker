@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -1393,9 +1394,10 @@ public class ValueAnalysisTransferRelation
                   leftHandType,
                   leftHandSide,
                   leftHandVariable,
-                  UnknownValue.getInstance());
+                  UnknownValue.getInstance(),
+                  pCfaEdge);
 
-          newState = handleModf(rightHandSide, pointerState, newState);
+          newState = handleModf(rightHandSide, pointerState, newState, pCfaEdge);
           result.add(newState);
         }
         toStrengthen.clear();
@@ -1431,7 +1433,10 @@ public class ValueAnalysisTransferRelation
    * @throws UnrecognizedCodeException if the C code involved is not recognized.
    */
   private ValueAnalysisState handleModf(
-      ARightHandSide pRightHandSide, PointerAnalysisState pPointerState, ValueAnalysisState pState)
+      ARightHandSide pRightHandSide,
+      PointerAnalysisState pPointerState,
+      ValueAnalysisState pState,
+      CFAEdge pCfaEdge)
       throws UnrecognizedCodeException, AssertionError {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
@@ -1479,7 +1484,8 @@ public class ValueAnalysisTransferRelation
                         target.getExpressionType(),
                         target,
                         null,
-                        new NumericValue(integralPartValue));
+                        new NumericValue(integralPartValue),
+                        pCfaEdge);
               }
             }
           }
@@ -1496,7 +1502,8 @@ public class ValueAnalysisTransferRelation
       Type pTargetType,
       ALeftHandSide pLeftHandSide,
       String pLeftHandVariable,
-      Value pValue)
+      Value pValue,
+      CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
     ValueAnalysisState newState = pValueState;
@@ -1512,23 +1519,23 @@ public class ValueAnalysisTransferRelation
     if (target == null && pLeftHandSide instanceof CPointerExpression pointerExpression) {
       int derefCounter =
           PointerAnalysisTransferRelation.determineDerefCounter(pointerExpression, true);
+
       LocationSet directLocation =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              pointerExpression, pPointerInfo, derefCounter);
+              pointerExpression, pPointerInfo, derefCounter, pCfaEdge);
 
       if (!(directLocation instanceof ExplicitLocationSet)) {
         CExpression addressExpression = pointerExpression.getOperand();
         LocationSet indirectLocation =
             PointerAnalysisTransferRelation.getReferencedLocations(
-                addressExpression, pPointerInfo, derefCounter - 1);
+                addressExpression, pPointerInfo, derefCounter - 1, pCfaEdge);
         if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
             && (explicitSet.getSize() == 1)) {
           PointerTarget variablePointerTarget =
               explicitSet.getExplicitLocations().iterator().next();
           if (variablePointerTarget
               instanceof MemoryLocationPointer variableMemoryLocationPointer) {
-            MemoryLocation variable = variableMemoryLocationPointer.getMemoryLocation();
-            directLocation = pPointerInfo.getPointsToSet(variable);
+            directLocation = pPointerInfo.getPointsToSet(variableMemoryLocationPointer);
           }
         }
       }
@@ -1559,14 +1566,13 @@ public class ValueAnalysisTransferRelation
 
       LocationSet fullSet =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              addressExpression, pPointerInfo, deferenceCounter);
+              addressExpression, pPointerInfo, deferenceCounter, pCfaEdge);
 
       if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
         PointerTarget variablePointerTarget = explicitSet.getExplicitLocations().iterator().next();
         if (variablePointerTarget instanceof MemoryLocationPointer variableMemoryLocationPointer) {
-          MemoryLocation variable = variableMemoryLocationPointer.getMemoryLocation();
           CType variableType = rhs.getExpressionType().getCanonicalType();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
+          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variableMemoryLocationPointer);
 
           if (pointsToSet instanceof ExplicitLocationSet explicitPointsToSet) {
             Iterator<PointerTarget> pointsToIterator =

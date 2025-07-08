@@ -16,14 +16,14 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.pointer.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer.util.LocationSetTop;
+import org.sosy_lab.cpachecker.cpa.pointer.util.PointerTarget;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysisState> {
 
   private final boolean isBottom;
   public static final PointerAnalysisState BOTTOM_STATE = new PointerAnalysisState(true);
-  private final PersistentMap<MemoryLocation, LocationSet> pointsToMap;
+  private final PersistentMap<PointerTarget, LocationSet> pointsToMap;
 
   public PointerAnalysisState(boolean pBottom) {
     isBottom = pBottom;
@@ -35,16 +35,16 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
     pointsToMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public PointerAnalysisState(PersistentMap<MemoryLocation, LocationSet> pPointsToMap) {
+  public PointerAnalysisState(PersistentMap<PointerTarget, LocationSet> pPointsToMap) {
     isBottom = false;
     pointsToMap = pPointsToMap;
   }
 
-  public PersistentMap<MemoryLocation, LocationSet> getPointsToMap() {
+  public PersistentMap<PointerTarget, LocationSet> getPointsToMap() {
     return pointsToMap;
   }
 
-  public LocationSet getPointsToSet(MemoryLocation pSource) {
+  public LocationSet getPointsToSet(PointerTarget pSource) {
     LocationSet pointsToSet = pointsToMap.get(pSource);
     if (pointsToSet == null) {
       return LocationSetTop.INSTANCE;
@@ -104,7 +104,7 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       return false;
     }
 
-    for (MemoryLocation source : pointsToMap.keySet()) {
+    for (PointerTarget source : pointsToMap.keySet()) {
       LocationSet thisTargets = getPointsToSet(source);
       LocationSet otherTargets = pOtherState.getPointsToSet(source);
 
@@ -131,9 +131,9 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       return this;
     }
 
-    PersistentMap<MemoryLocation, LocationSet> joinedMap = pointsToMap;
+    PersistentMap<PointerTarget, LocationSet> joinedMap = pointsToMap;
 
-    for (MemoryLocation source : pointsToMap.keySet()) {
+    for (PointerTarget source : pointsToMap.keySet()) {
       LocationSet thisTargets = getPointsToSet(source);
       LocationSet otherTargets = pOtherState.getPointsToSet(source);
 
@@ -146,7 +146,7 @@ public class PointerAnalysisState implements LatticeAbstractState<PointerAnalysi
       }
     }
 
-    for (MemoryLocation source : pOtherState.pointsToMap.keySet()) {
+    for (PointerTarget source : pOtherState.pointsToMap.keySet()) {
       if (!pointsToMap.containsKey(source)) {
         LocationSet otherTargets = pOtherState.getPointsToSet(source);
         joinedMap = joinedMap.putAndCopy(source, otherTargets);
