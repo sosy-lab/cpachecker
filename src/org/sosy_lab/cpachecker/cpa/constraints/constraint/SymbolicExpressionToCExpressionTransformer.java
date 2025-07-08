@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -52,6 +55,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.ValueToCExpressionTransformer;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
@@ -263,22 +267,33 @@ public class SymbolicExpressionToCExpressionTransformer
       return ((LogicalNotExpression) operand).getOperand().accept(this);
 
     } else {
-      assert operand instanceof BinarySymbolicExpression;
-      BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
+      try {
+        assert operand instanceof BinarySymbolicExpression;
+        BinarySymbolicExpression innerExpression = (BinarySymbolicExpression) operand;
 
-      if (operand instanceof EqualsExpression) {
-        return createBinaryExpression(innerExpression, CBinaryExpression.BinaryOperator.NOT_EQUALS);
+        if (operand instanceof EqualsExpression) {
+          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+              .negateExpressionAndSimplify(
+                  createBinaryExpression(innerExpression, BinaryOperator.EQUALS));
 
-      } else if (operand instanceof LessThanExpression) {
-        return createBinaryExpression(
-            innerExpression, CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+        } else if (operand instanceof LessThanExpression) {
+          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+              .negateExpressionAndSimplify(
+                  createBinaryExpression(innerExpression, BinaryOperator.LESS_THAN));
 
-      } else if (operand instanceof LessThanOrEqualExpression) {
-        return createBinaryExpression(
-            innerExpression, CBinaryExpression.BinaryOperator.GREATER_THAN);
+        } else if (operand instanceof LessThanOrEqualExpression) {
+          return new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager())
+              .negateExpressionAndSimplify(
+                  createBinaryExpression(innerExpression, BinaryOperator.LESS_EQUAL));
 
-      } else {
-        throw new AssertionError("Unhandled operation " + operand);
+        } else {
+          throw new AssertionError("Unhandled operation " + operand);
+        }
+
+      } catch (UnrecognizedCodeException urce) {
+        // This may only happen for unhandled cases in negateExpressionAndSimplify() or invalid
+        // transformation of original code to the handled expression
+        throw new AssertionError(urce);
       }
     }
   }
