@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +29,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -35,7 +37,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -172,6 +176,11 @@ public class UnseqBehaviorAnalysisTransferRelation
               mergedConflicts,
               detectConflictsInUnsequencedBinaryExprs(binaryExpr, declarationEdge, newState));
         }
+      } else if (varDecl.getInitializer()
+          instanceof
+          CInitializerList initList) { // to detect unseq behavior like int arr[2] = {f1(), f2()};
+        handleInitializerListWithConflictDetection(
+            initList, declarationEdge, newState, mergedConflicts);
       }
     }
 
@@ -613,6 +622,134 @@ public class UnseqBehaviorAnalysisTransferRelation
       return;
     }
     base.addAll(addition);
+  }
+
+  /**
+   * Analyze a C initializer list to detect unsequenced side-effect conflicts.
+   *
+   * <p>This method collects side effects from all expressions used in the initializer list
+   * (including nested lists and designated initializers), and checks all top-level initializer
+   * expressions for pairwise conflicts.
+   *
+   * @param initList the top-level initializer list to analyze
+   * @param edge the CFA edge where the initializer appears
+   * @param pState the current unsequenced behavior analysis state
+   * @param conflicts a set to collect all detected conflict pairs
+   * @throws UnrecognizedCodeException if expression parsing fails
+   */
+  private void handleInitializerListWithConflictDetection(
+      CInitializerList initList,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState,
+      Set<ConflictPair> conflicts)
+      throws UnrecognizedCodeException {
+
+    ExpressionBehaviorVisitor expressionBehaviorVisitor =
+        new ExpressionBehaviorVisitor(pState, edge, AccessType.READ, logger);
+
+    Map<CExpression, Set<SideEffectInfo>> collectedEffects = new LinkedHashMap<>();
+
+    collectEffectsFromInitializerList(
+        initList, edge, pState, expressionBehaviorVisitor, collectedEffects, conflicts);
+
+    detectInitializerConflicts(collectedEffects, edge, pState, conflicts);
+  }
+
+  private void detectInitializerConflicts(
+      Map<CExpression, Set<SideEffectInfo>> collectedEffects,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState,
+      Set<ConflictPair> conflicts) {
+
+    List<CExpression> exprs = new ArrayList<>(collectedEffects.keySet());
+
+    for (int i = 0; i < exprs.size(); i++) {
+      for (int j = i + 1; j < exprs.size(); j++) {
+        CExpression expr1 = exprs.get(i);
+        CExpression expr2 = exprs.get(j);
+        Set<SideEffectInfo> effects1 = collectedEffects.get(expr1);
+        Set<SideEffectInfo> effects2 = collectedEffects.get(expr2);
+
+        Set<ConflictPair> detected =
+            getUnsequencedConflicts(effects1, effects2, edge, expr1, expr2, pState);
+        mergeConflicts(conflicts, detected);
+
+        if (!detected.isEmpty()) {
+          logger.logf(
+              Level.INFO,
+              "[InitializerConflict] Detected: (%s) ⊕ (%s) → Effects A: %s → Effects B: %s",
+              UnseqUtils.replaceTmpInExpression(expr1, pState),
+              UnseqUtils.replaceTmpInExpression(expr2, pState),
+              effects1,
+              effects2);
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively collects side effects from all expressions in a (possibly nested) initializer
+   * structure, including expressions, nested lists, and designated initializers.
+   *
+   * @param init the initializer (could be a list, expression, or designated form)
+   * @param edge the CFA edge where the initializer appears
+   * @param pState the current analysis state
+   * @param visitor the visitor used to analyze expression side effects
+   * @param collectedEffects map to record each CExpression and its side effects
+   * @param conflicts set to accumulate conflict pairs detected in binary expressions
+   * @throws UnrecognizedCodeException if analysis of an expression fails
+   */
+  private void collectEffectsFromInitializerList(
+      CInitializer init,
+      CFAEdge edge,
+      UnseqBehaviorAnalysisState pState,
+      ExpressionBehaviorVisitor visitor,
+      Map<CExpression, Set<SideEffectInfo>> collectedEffects,
+      Set<ConflictPair> conflicts)
+      throws UnrecognizedCodeException {
+
+    if (init
+        instanceof
+        CInitializerExpression
+            exprInit) { // Base case: this is a simple expression like 'f()', 'g(x)+1', etc.
+      CExpression expr = exprInit.getExpression();
+      ExpressionAnalysisSummary summary = expr.accept(visitor);
+
+      collectedEffects.put(expr, summary.getSideEffects());
+
+      // Detect binary conflicts inside this expression, e.g., f() + g()
+      for (CBinaryExpression binExpr : summary.getUnsequencedBinaryExprs()) {
+        mergeConflicts(conflicts, detectConflictsInUnsequencedBinaryExprs(binExpr, edge, pState));
+      }
+
+    } else if (init instanceof CInitializerList initList) {
+      // Recursive case: initializer is a nested list (e.g., array or struct initializer)
+      //
+      // Example in C:
+      //   int arr[2][2] = {
+      //     { f1(), f2() },
+      //     { f3(), f4() }
+      //   };
+      //
+      // Here, the outermost initializer is a CInitializerList for arr[2][2],
+      // each row { f1(), f2() } and { f3(), f4() } is itself a nested CInitializerList,
+      // and the innermost expressions f1(), f2(), etc., are CInitializerExpression.
+      for (CInitializer child : initList.getInitializers()) {
+        if (child != null) {
+          collectEffectsFromInitializerList(
+              child, edge, pState, visitor, collectedEffects, conflicts);
+        }
+      }
+
+    } else if (init
+        instanceof
+        CDesignatedInitializer designatedInit) { // e.g., .x = f(), recursively handle the RHS
+      collectEffectsFromInitializerList(
+          designatedInit.getRightHandSide(), edge, pState, visitor, collectedEffects, conflicts);
+
+    } else {
+      logger.log(Level.WARNING, "Unknown initializer type: " + init.getClass().getSimpleName());
+    }
   }
 
   @Override
