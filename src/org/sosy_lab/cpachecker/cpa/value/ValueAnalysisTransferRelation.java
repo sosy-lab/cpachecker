@@ -1437,7 +1437,7 @@ public class ValueAnalysisTransferRelation
       PointerAnalysisState pPointerState,
       ValueAnalysisState pState,
       CFAEdge pCfaEdge)
-      throws UnrecognizedCodeException, AssertionError {
+      throws CPATransferException, AssertionError {
     ValueAnalysisState newState = pState;
     if (pRightHandSide instanceof AFunctionCallExpression functionCallExpression) {
       AExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
@@ -1504,7 +1504,7 @@ public class ValueAnalysisTransferRelation
       String pLeftHandVariable,
       Value pValue,
       CFAEdge pCfaEdge)
-      throws UnrecognizedCodeException {
+      throws CPATransferException {
 
     ValueAnalysisState newState = pValueState;
 
@@ -1522,13 +1522,13 @@ public class ValueAnalysisTransferRelation
 
       LocationSet directLocation =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              pointerExpression, pPointerInfo, derefCounter, pCfaEdge);
+              pointerExpression, pPointerInfo, true, pCfaEdge);
 
       if (!(directLocation instanceof ExplicitLocationSet)) {
         CExpression addressExpression = pointerExpression.getOperand();
         LocationSet indirectLocation =
             PointerAnalysisTransferRelation.getReferencedLocations(
-                addressExpression, pPointerInfo, derefCounter - 1, pCfaEdge);
+                addressExpression, pPointerInfo, true, pCfaEdge);
         if ((indirectLocation instanceof ExplicitLocationSet explicitSet)
             && (explicitSet.getSize() == 1)) {
           PointerTarget variablePointerTarget =
@@ -1566,7 +1566,7 @@ public class ValueAnalysisTransferRelation
 
       LocationSet fullSet =
           PointerAnalysisTransferRelation.getReferencedLocations(
-              addressExpression, pPointerInfo, deferenceCounter, pCfaEdge);
+              addressExpression, pPointerInfo, false, pCfaEdge);
 
       if ((fullSet instanceof ExplicitLocationSet explicitSet) && (explicitSet.getSize() == 1)) {
         PointerTarget variablePointerTarget = explicitSet.getExplicitLocations().iterator().next();

@@ -44,7 +44,6 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
       description = "which stop operator to use for PointerAnalysisCPA")
   private String stopType = "SEP";
 
-  private final Configuration config;
   private final LogManager logger;
   private final PointerTransferOptions transferOptions;
 
@@ -57,7 +56,6 @@ public class PointerAnalysisCPA extends AbstractCPA implements ConfigurableProgr
   public PointerAnalysisCPA(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.getInstance(), null);
-    config = pConfig;
     logger = pLogger;
     pConfig.inject(this, PointerAnalysisCPA.class);
     transferOptions = new PointerTransferOptions(pConfig);
