@@ -61,16 +61,30 @@ public class SeqConflictAssumptionStatement implements SeqInjectedStatement {
     SeqIfExpression ifPcActiveExpression = new SeqIfExpression(pcActiveExpression);
     lines.add(
         LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifPcActiveExpression.toASTString())));
-    SeqIfExpression ifBitVectorExpression = new SeqIfExpression(bitVectorEvaluation);
-    lines.add(
-        LineOfCode.of(SeqStringUtil.appendCurlyBracketRight(ifBitVectorExpression.toASTString())));
-    CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(assumptionExpression);
-    lines.add(LineOfCode.of(assumeCall.toASTString()));
-    lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+    lines.addAll(buildAssumption(bitVectorEvaluation, assumptionExpression));
     lines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
     if (options.controlEncodingConflict.equals(MultiControlStatementEncoding.SWITCH_CASE)) {
       lines.add(LineOfCode.of(SeqToken._break + SeqSyntax.SEMICOLON));
     }
     return LineOfCodeUtil.buildString(lines.build());
+  }
+
+  private static ImmutableList<LineOfCode> buildAssumption(
+      BitVectorEvaluationExpression pBitVectorEvaluation, CBinaryExpression pAssumptionExpression)
+      throws UnrecognizedCodeException {
+
+    ImmutableList.Builder<LineOfCode> rLines = ImmutableList.builder();
+    if (!pBitVectorEvaluation.isEmpty()) {
+      SeqIfExpression ifBitVectorExpression = new SeqIfExpression(pBitVectorEvaluation);
+      String ifBitVectorString =
+          SeqStringUtil.appendCurlyBracketRight(ifBitVectorExpression.toASTString());
+      rLines.add(LineOfCode.of(ifBitVectorString));
+    }
+    CFunctionCallStatement assumeCall = SeqAssumptionBuilder.buildAssumption(pAssumptionExpression);
+    rLines.add(LineOfCode.of(assumeCall.toASTString()));
+    if (!pBitVectorEvaluation.isEmpty()) {
+      rLines.add(LineOfCode.of(SeqSyntax.CURLY_BRACKET_RIGHT));
+    }
+    return rLines.build();
   }
 }
