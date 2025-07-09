@@ -97,7 +97,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
 
   @Test
   public void testSignedWrapAround() throws Exception {
-    final Integer[] values = new Integer[] {1, 7, 8, 15};
+    final int[] values = new int[] {1, 7, 8, 15};
     for (Integer value : values) {
       BigInteger expectedNumber =
           value >= 8 ? BigInteger.valueOf(value - 16) : BigInteger.valueOf(value);
