@@ -991,11 +991,20 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+  /**
+   * Create a formula for the constraint that a term is in a given inclusive range [start, end],
+   * where the bounds are provided as BigInteger constants.
+   *
+   * @param term The term that should be in the range.
+   * @param start The inclusive start value of the range.
+   * @param end The inclusive end value of the range.
+   * @param signed Whether the arithmetic should be signed or unsigned.
+   * @return A BooleanFormula representing a constraint about term.
+   */
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
     if (wrappingHandler.useIntForBitvectors()) {
-      final BitvectorFormulaManagerView bvManager = bitvectorFormulaManager;
-      return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+      return bitvectorFormulaManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
       return makeRangeConstraint(
           term,
@@ -1005,21 +1014,31 @@ public class FormulaManagerView {
     }
   }
 
+  /**
+   * Create a formula for the constraint that a term is within the full range of its type. For
+   * bitvectors encoded as integers, this checks that the term fits within its signed or unsigned
+   * bounds. For other theories and encodings, this returns {@code true} (no constraint).
+   *
+   * @param term The term that should be checked against its full type range.
+   * @param signed Whether the arithmetic should be signed or unsigned (relevant for bitvectors).
+   * @return A BooleanFormula representing a constraint about term, or {@code true} if not
+   *     applicable.
+   */
   public <T extends Formula> BooleanFormula makeRangeConstraint(T term, boolean signed) {
     if (getFormulaType(term).isBitvectorType()
         && encodeBitvectorAs == Theory.INTEGER
         && useNonlinearArithmeticForIntAsBv) {
-      final BitvectorFormulaManagerView bvManager = bitvectorFormulaManager;
       final int size = ((BitvectorType) getFormulaType(term)).getSize();
+      final BigInteger start;
+      final BigInteger end;
       if (signed) {
-        final BigInteger start = BigInteger.ONE.shiftLeft(size - 1).negate();
-        final BigInteger end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
-        return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+        start = BigInteger.ONE.shiftLeft(size - 1).negate();
+        end = BigInteger.ONE.shiftLeft(size - 1).subtract(BigInteger.ONE);
       } else {
-        final BigInteger start = BigInteger.ZERO;
-        final BigInteger end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
-        return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
+        start = BigInteger.ZERO;
+        end = BigInteger.ONE.shiftLeft(size).subtract(BigInteger.ONE);
       }
+      return bitvectorFormulaManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
       return booleanFormulaManager.makeTrue();
     }
