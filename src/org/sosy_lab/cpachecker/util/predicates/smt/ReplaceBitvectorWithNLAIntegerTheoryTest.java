@@ -77,7 +77,7 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
   public void testUnsignedWrapAround() throws Exception {
     final int[] values = new int[] {1, -1, 15, -15, 16, -16, 25, -25};
     for (Integer value : values) {
-      IntegerFormula formula = imgr.makeNumber(BigInteger.valueOf(value));
+      IntegerFormula formula = imgr.makeNumber(value);
       IntegerFormula expected =
           imgr.makeNumber(BigInteger.valueOf(value).mod(BigInteger.valueOf(16)));
       BooleanFormula constraint = imgr.equal(replacer.wrapAround(formula, 4), expected);
@@ -88,10 +88,9 @@ public class ReplaceBitvectorWithNLAIntegerTheoryTest extends SolverViewBasedTes
   @Test
   public void testSignedWrapAround() throws Exception {
     final int[] values = new int[] {1, 7, 8, 15};
-    for (Integer value : values) {
-      BigInteger expectedNumber =
-          value >= 8 ? BigInteger.valueOf(value - 16) : BigInteger.valueOf(value);
-      IntegerFormula formula = imgr.makeNumber(BigInteger.valueOf(value));
+    for (int value : values) {
+      int expectedNumber = value >= 8 ? value - 16 : value;
+      IntegerFormula formula = imgr.makeNumber(value);
       IntegerFormula expected = imgr.makeNumber(expectedNumber);
       BooleanFormula constraint = imgr.equal(replacer.wrapAroundSigned(formula, 4), expected);
       assertThatFormula(constraint).isSatisfiable();
