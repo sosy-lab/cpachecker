@@ -386,7 +386,7 @@ public class FormulaManagerView {
               + "but CPAchecker will crash if floats are used during the analysis.",
           e);
     }
-    if (wrappingHandler.useIntAsBitvector()) {
+    if (wrappingHandler.useIntForBitvectors()) {
       try {
         return new FloatingPointFormulaManagerView(
             wrappingHandler,
@@ -993,7 +993,7 @@ public class FormulaManagerView {
 
   public <T extends Formula> BooleanFormula makeRangeConstraint(
       T term, BigInteger start, BigInteger end, boolean signed) {
-    if (wrappingHandler.useIntAsBitvector()) {
+    if (wrappingHandler.useIntForBitvectors()) {
       final BitvectorFormulaManagerView bvManager = bitvectorFormulaManager;
       return bvManager.addRangeConstraint((BitvectorFormula) term, start, end);
     } else {
@@ -1067,7 +1067,7 @@ public class FormulaManagerView {
     T ret =
         getFloatingPointFormulaManager()
             .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);
-    if (wrappingHandler.useIntAsBitvector() && formulaType.isBitvectorType()) {
+    if (wrappingHandler.useIntForBitvectors() && formulaType.isBitvectorType()) {
       return (T)
           manager
               .getBitvectorFormulaManager()

@@ -59,7 +59,7 @@ final class FormulaWrappingHandler {
     return encodeBitvectorAs == Theory.BITVECTOR;
   }
 
-  boolean useIntAsBitvector() {
+  boolean useIntForBitvectors() {
     return encodeBitvectorAs == Theory.INTEGER;
   }
 
