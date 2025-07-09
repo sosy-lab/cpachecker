@@ -192,14 +192,6 @@ public class FormulaManagerView {
               + " are required by the analysis.")
   private Theory encodeIntegerAs = Theory.INTEGER;
 
-  @Option(
-      secure = true,
-      description =
-          "Rounding mode to use for float -> int conversion. The C standard defines this as"
-              + " TOWARD_ZERO (in C99: 6.3.1.4 Real floating and integer, p1), therefore this"
-              + " setting should not be modified for verifying C programs.")
-  private FloatingPointRoundingMode floatToIntRoundingMode = FloatingPointRoundingMode.TOWARD_ZERO;
-
   @VisibleForTesting
   public FormulaManagerView(
       FormulaManager pFormulaManager, Configuration config, LogManager pLogger)
@@ -1059,9 +1051,19 @@ public class FormulaManagerView {
     return getFloatingPointFormulaManager().castFrom(formula, isSigned, formulaType);
   }
 
+  /**
+   * Casts a formula from float to a specified type.
+   *
+   * @param floatToIntRoundingMode Rounding mode to use for float -> int conversion. The C standard
+   *     defines this as TOWARD_ZERO (in C99: 6.3.1.4 Real floating and integer, p1), therefore this
+   *     value should be given for verifying C programs.
+   */
   @SuppressWarnings("unchecked")
   public <T extends Formula> T castFromFloat(
-      FloatingPointFormula pFormula, boolean isSigned, FormulaType<T> formulaType) {
+      FloatingPointFormula pFormula,
+      boolean isSigned,
+      FormulaType<T> formulaType,
+      FloatingPointRoundingMode floatToIntRoundingMode) {
     T ret =
         getFloatingPointFormulaManager()
             .castTo(pFormula, isSigned, formulaType, floatToIntRoundingMode);

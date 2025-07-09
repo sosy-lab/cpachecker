@@ -108,6 +108,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
@@ -948,7 +949,11 @@ public class CtoFormulaConverter {
       } else {
         // Cf. C-Standard 6.3.1.4 (1).
         ret =
-            fmgr.castFromFloat((FloatingPointFormula) pFormula, isSigned.test(pFromCType), toType);
+            fmgr.castFromFloat(
+                (FloatingPointFormula) pFormula,
+                isSigned.test(pFromCType),
+                toType,
+                FloatingPointRoundingMode.TOWARD_ZERO);
       }
 
     } else if (toType.isFloatingPointType()) {
