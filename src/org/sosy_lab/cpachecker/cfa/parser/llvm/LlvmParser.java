@@ -39,9 +39,15 @@ class LlvmParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel) {
+  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     logger = pLogger;
     cfaBuilder = new CFABuilder(logger, pMachineModel);
+    throw new InvalidConfigurationException(
+        "The LLVM frontend of CPAchecker is currently disabled because it is unmaintained"
+            + " and works only with an old LLVM version. Cf."
+            + " https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356 for more"
+            + " information.");
   }
 
   @Override
