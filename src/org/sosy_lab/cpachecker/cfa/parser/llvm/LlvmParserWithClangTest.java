@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Unit tests for {@link LlvmParserWithClang}. */
 @RunWith(Parameterized.class)
+@Ignore // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
 public class LlvmParserWithClangTest {
 
   @Parameters(name = "{0} with file name {1}")
