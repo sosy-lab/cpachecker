@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParserWithClang;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.AtExitTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
@@ -448,7 +447,7 @@ public class CFACreator {
             logger.log(
                 Level.WARNING, "Option --preprocess is ignored when used with option -clang");
           }
-          parser = new LlvmParserWithClang(config, logger, machineModel);
+          parser = Parsers.getLlvmClangParser(config, logger, machineModel);
         } else {
           parser = outerParser;
         }
