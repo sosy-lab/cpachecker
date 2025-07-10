@@ -13,23 +13,23 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class LLVMParserException extends ParserException {
+class LLVMParserException extends ParserException {
 
   @Serial public static final long serialVersionUID = 0;
 
-  public LLVMParserException(final String pMsg) {
+  LLVMParserException(final String pMsg) {
     super(pMsg, Language.LLVM);
   }
 
-  public LLVMParserException(final Throwable pCause) {
+  LLVMParserException(final Throwable pCause) {
     super(pCause, Language.LLVM);
   }
 
-  public LLVMParserException(final String pMsg, Throwable pCause) {
+  LLVMParserException(final String pMsg, Throwable pCause) {
     super(pMsg, pCause, Language.LLVM);
   }
 
-  public LLVMParserException(final String pMsg, CFAEdge pEdge) {
+  LLVMParserException(final String pMsg, CFAEdge pEdge) {
     super(pMsg, pEdge, Language.LLVM);
   }
 }

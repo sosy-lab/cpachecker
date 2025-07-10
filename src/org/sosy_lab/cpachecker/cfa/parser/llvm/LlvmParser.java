@@ -31,7 +31,7 @@ import org.sosy_lab.llvm_j.Module;
  * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
  * scoping and expression trees are always flat.
  */
-public class LlvmParser implements Parser {
+class LlvmParser implements Parser {
 
   private final LogManager logger;
   private final CFABuilder cfaBuilder;

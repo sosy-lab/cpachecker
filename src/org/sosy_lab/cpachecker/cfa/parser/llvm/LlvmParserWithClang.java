@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
  * scoping and expression trees are always flat.
  */
-public class LlvmParserWithClang extends LlvmParser {
+class LlvmParserWithClang extends LlvmParser {
 
   private final ClangPreprocessor preprocessor;
 
