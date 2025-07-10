@@ -62,10 +62,8 @@ public class LlvmParserWithClangTest {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
     ClangPreprocessor clangPreprocessor = new ClangPreprocessor(config, logger);
-    stringParser =
-        LlvmParserWithClang.Factory.getParser(clangPreprocessor, logger, MachineModel.LINUX32);
-    fileParser =
-        LlvmParserWithClang.Factory.getParser(clangPreprocessor, logger, MachineModel.LINUX32);
+    stringParser = new LlvmParserWithClang(clangPreprocessor, logger, MachineModel.LINUX32);
+    fileParser = new LlvmParserWithClang(clangPreprocessor, logger, MachineModel.LINUX32);
   }
 
   @Test

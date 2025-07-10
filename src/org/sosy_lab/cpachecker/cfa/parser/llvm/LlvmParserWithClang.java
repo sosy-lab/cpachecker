@@ -87,11 +87,4 @@ public class LlvmParserWithClang extends LlvmParser {
     Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename, pDumpDirectory);
     return super.parseFile(dumpedFile);
   }
-
-  public static class Factory {
-    public static LlvmParserWithClang getParser(
-        ClangPreprocessor processor, LogManager logger, MachineModel machine) {
-      return new LlvmParserWithClang(processor, logger, machine);
-    }
-  }
 }
