@@ -200,7 +200,6 @@ class JFloat extends CFloat {
       case SINGLE -> this;
       case DOUBLE -> new JDouble(value);
       case LONG_DOUBLE -> throw new UnsupportedOperationException();
-      default -> throw new IllegalArgumentException();
     };
   }
 
