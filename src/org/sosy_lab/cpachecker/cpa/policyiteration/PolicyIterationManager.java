@@ -844,7 +844,6 @@ public class PolicyIterationManager {
             case ABSTRACTION_REQUIRED -> {
               // Continue with abstraction.
             }
-            default -> throw new UnsupportedOperationException("Unexpected case");
           }
         }
 

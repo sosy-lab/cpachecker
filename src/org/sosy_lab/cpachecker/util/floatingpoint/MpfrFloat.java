@@ -275,7 +275,6 @@ class MpfrFloat extends CFloat {
       case DOUBLE ->
           new MpfrFloat(value.round(BinaryMathContext.BINARY64), BinaryMathContext.BINARY64);
       case LONG_DOUBLE -> new MpfrFloat(value.round(ldouble), ldouble);
-      default -> throw new IllegalArgumentException();
     };
   }
 
