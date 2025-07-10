@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -33,6 +34,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -99,6 +101,12 @@ import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue.Format;
 @SuppressFBWarnings(value = "DMI_RANDOM_USED_ONLY_ONCE")
 @RunWith(Parameterized.class)
 public class FloatValueTest {
+
+  @BeforeClass
+  public static void configureLocale() {
+    Locale.setDefault(Locale.US);
+  }
+
   /** Supported reference implementations */
   public enum ReferenceImpl {
     MPFR,
