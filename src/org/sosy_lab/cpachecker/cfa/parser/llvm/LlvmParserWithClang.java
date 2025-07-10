@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -18,9 +18,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -89,7 +88,7 @@ public class LlvmParserWithClang extends LlvmParser {
     return super.parseFile(dumpedFile);
   }
 
-  static class Factory {
+  public static class Factory {
     public static LlvmParserWithClang getParser(
         ClangPreprocessor processor, LogManager logger, MachineModel machine) {
       return new LlvmParserWithClang(processor, logger, machine);

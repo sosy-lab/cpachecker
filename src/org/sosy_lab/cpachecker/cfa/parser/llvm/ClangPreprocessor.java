@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -20,8 +20,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
-import org.sosy_lab.cpachecker.exceptions.ClangParserException;
+import org.sosy_lab.cpachecker.cfa.Preprocessor;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 @Options(prefix = "parser")

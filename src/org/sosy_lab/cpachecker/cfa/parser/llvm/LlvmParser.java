@@ -21,7 +21,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.llvm_j.Context;
 import org.sosy_lab.llvm_j.LLVMException;

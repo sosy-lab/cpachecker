@@ -6,11 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.exceptions;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class LLVMParserException extends ParserException {
 
