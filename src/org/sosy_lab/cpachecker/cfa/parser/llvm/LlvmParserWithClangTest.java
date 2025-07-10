@@ -61,9 +61,8 @@ public class LlvmParserWithClangTest {
   public void createParsers() throws InvalidConfigurationException {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
-    ClangPreprocessor clangPreprocessor = new ClangPreprocessor(config, logger);
-    stringParser = new LlvmParserWithClang(clangPreprocessor, logger, MachineModel.LINUX32);
-    fileParser = new LlvmParserWithClang(clangPreprocessor, logger, MachineModel.LINUX32);
+    stringParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);
+    fileParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);
   }
 
   @Test

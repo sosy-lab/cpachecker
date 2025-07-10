@@ -13,6 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
@@ -32,11 +33,10 @@ public class LlvmParserWithClang extends LlvmParser {
   private final ClangPreprocessor preprocessor;
 
   public LlvmParserWithClang(
-      final ClangPreprocessor pPreprocessor,
-      final LogManager pLogger,
-      final MachineModel pMachineModel) {
+      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     super(pLogger, pMachineModel);
-    preprocessor = pPreprocessor;
+    preprocessor = new ClangPreprocessor(pConfig, pLogger);
   }
 
   @Override
