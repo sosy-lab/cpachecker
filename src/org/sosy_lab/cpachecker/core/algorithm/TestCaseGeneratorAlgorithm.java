@@ -22,10 +22,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Collectors;
-import javax.swing.ViewportLayout;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,15 +36,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -55,7 +48,6 @@ import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -71,7 +63,6 @@ import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -265,7 +256,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  if (useExtractor == true) {
+                  if (useExtractor) {
                     runExtractorAlgo(pReached, reachedState, cexInfo);
                   }
                   if (shouldReportCoveredErrorCallAsError()) {
@@ -323,8 +314,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private ARGState getParentArgState(ARGState argState)
-  {
+  private ARGState getParentArgState(ARGState argState) {
     Collection<ARGState> parentArgStates = argState.getParents();
 
     assert (parentArgStates.size() == 1);
@@ -404,7 +394,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private AbstractState processElements(AbstractState abstractState) {
     if (abstractState instanceof ValueAnalysisState) {
     //todo add assert?
-      return (AbstractState) ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
+      return ValueAnalysisState.copyOf((ValueAnalysisState) abstractState);
     } else {
       return abstractState;
     }
@@ -430,7 +420,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   private void writeExpressionToState(
       ImmutableList<AExpressionStatement> expStmt,
       ValueAnalysisState valueAnalysisState) {
-    if (expStmt.isEmpty()) return;
+    if (expStmt.isEmpty()) {
+      return;
+    }
     //todo can expStmt contain more than 1 element? replace with precondition?
     assert expStmt.size() == 1;
 
@@ -439,7 +431,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CIdExpression op1 = (CIdExpression) cBinaryExpression.getOperand1();
     CIntegerLiteralExpression op2 = (CIntegerLiteralExpression) cBinaryExpression.getOperand2();
     Value variableValue = new NumericValue(op2.getValue());
-    if (variableValue.isUnknown() == false) {
+    if (!variableValue.isUnknown()) {
       valueAnalysisState.assignConstantSafe(op1.getDeclaration(), variableValue);
     }
   }
@@ -474,7 +466,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       // may be thrown only be counterexample check, if not will be thrown again in finally
       // block due to respective shutdown notifier call
       status = status.withPrecise(false);
-    } finally {
     }
   }
 
