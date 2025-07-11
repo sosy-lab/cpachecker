@@ -812,7 +812,7 @@ public class UnseqBehaviorAnalysisTransferRelation
                   se.cfaEdge(),
                   SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
         }
-        result = result.replaceSideEffectBatch(se, resolvedEffects);
+        result = UnseqUtils.replaceSideEffectBatch(se, resolvedEffects,result);
       } else {
         logger.logf(
             Level.WARNING, "Could not resolve alias for: %s ", pointer.getExtendedQualifiedName());

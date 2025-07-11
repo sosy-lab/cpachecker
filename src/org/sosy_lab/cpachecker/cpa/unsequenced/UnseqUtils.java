@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -36,6 +38,27 @@ public class UnseqUtils {
 
     return replacedExpr;
   }
+
+  public static UnseqBehaviorAnalysisState replaceSideEffectBatch(
+      SideEffectInfo unresolvedPointer,
+      Set<SideEffectInfo> replacements,
+      UnseqBehaviorAnalysisState oldState) {
+    Map<String, Set<SideEffectInfo>> updated = new HashMap<>();
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : oldState.getSideEffectsInFun().entrySet()) {
+      Set<SideEffectInfo> set = new HashSet<>(entry.getValue());
+      if (set.remove(unresolvedPointer)) {
+        set.addAll(replacements);
+      }
+      updated.put(entry.getKey(), set);
+    }
+    return new UnseqBehaviorAnalysisState(
+        UnseqUtils.toImmutableSideEffectsMap(updated),
+        oldState.getCalledFunctionStack(),
+        oldState.getDetectedConflicts(),
+        oldState.getTmpToOriginalExprMap(),
+        oldState.getLogger());
+  }
+
 
   public static ImmutableMap<String, ImmutableSet<SideEffectInfo>> toImmutableSideEffectsMap(
       Map<String, Set<SideEffectInfo>> mutableMap) {

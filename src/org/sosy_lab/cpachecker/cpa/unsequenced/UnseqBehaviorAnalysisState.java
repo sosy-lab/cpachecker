@@ -70,24 +70,6 @@ public class UnseqBehaviorAnalysisState
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  public UnseqBehaviorAnalysisState replaceSideEffectBatch(
-      SideEffectInfo original, Set<SideEffectInfo> replacements) {
-    Map<String, Set<SideEffectInfo>> updated = new HashMap<>();
-    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : sideEffectsInFun.entrySet()) {
-      Set<SideEffectInfo> set = new HashSet<>(entry.getValue());
-      if (set.remove(original)) {
-        set.addAll(replacements);
-      }
-      updated.put(entry.getKey(), set);
-    }
-    return new UnseqBehaviorAnalysisState(
-        UnseqUtils.toImmutableSideEffectsMap(updated),
-        calledFunctionStack,
-        detectedConflicts,
-        tmpToOriginalExprMap,
-        logger);
-  }
-
   // === Conflict tracking ===
   public ImmutableSet<ConflictPair> getDetectedConflicts() {
     return detectedConflicts;
@@ -124,6 +106,10 @@ public class UnseqBehaviorAnalysisState
         && Objects.equals(sideEffectsInFun, other.sideEffectsInFun)
         && Objects.equals(detectedConflicts, other.detectedConflicts)
         && Objects.equals(tmpToOriginalExprMap, other.tmpToOriginalExprMap);
+  }
+
+  public LogManager getLogger() {
+    return logger;
   }
 
   @Override
