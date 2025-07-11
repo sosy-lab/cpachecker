@@ -267,7 +267,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
                   TestTargetProvider.processTargetPath(cexInfo);
-                  // no extractor analysis if no config file exists
                   if (useExtractor == true) {
                     runExtractorAlgo(pReached, reachedState, cexInfo);
                   }
@@ -430,7 +429,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   // reads the value assigned to a variable, and adds that value to the abstract state,
   // but only if there is no disctinct value tracked already for that variable
-  //todo maybe do not give eStartState as argument, but only ValueAnalysisState
   private void writeExpressionToState(
       ImmutableList<AExpressionStatement> expStmt,
       ValueAnalysisState valueAnalysisState) {
@@ -499,7 +497,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     CFAEdge targetEdge = parentArgState.getEdgeToChild(nextGoalState);
     if (targetEdge != null) {
       if (testTargets.contains(targetEdge)) {
-        logger.log(Level.FINE, "Removing test target: " + targetEdge);
+        logger.log(Level.FINE, "Extractor: Removing test target: " + targetEdge);
         testTargets.remove(targetEdge);
       } else {
         logger.log(
