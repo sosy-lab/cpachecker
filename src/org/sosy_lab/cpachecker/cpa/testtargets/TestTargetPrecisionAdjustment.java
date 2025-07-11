@@ -24,7 +24,9 @@ public class TestTargetPrecisionAdjustment extends SimplePrecisionAdjustment {
 
   @Override
   public Action prec(final AbstractState pState, final Precision pPrecision) throws CPAException {
-    if (extractionMode) return Action.CONTINUE;
+    if (extractionMode) {
+      return Action.CONTINUE;
+    }
     TestTargetState tState = AbstractStates.extractStateByType(pState, TestTargetState.class);
     return tState.isTarget() ? Action.BREAK : Action.CONTINUE;
   }
