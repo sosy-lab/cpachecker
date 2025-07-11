@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.hb;
+package org.sosy_lab.cpachecker.cpa.oc;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -40,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
@@ -62,82 +60,54 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-final class HappensBeforeEdgeTools {
+final class EdgeCloner {
   private static final String ONLY_C_SUPPORTED = "only C supported";
-  private static final Map<Pair<Integer, Map<String, Integer>>, HappensBeforeEdgeTools> cache =
+  private static final Map<Pair<Integer, Integer>, EdgeCloner> cache =
       new LinkedHashMap<>();
 
   static CFAEdge clone(
-      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
+      final CFAEdge pCFAEdge, final int pid, final int uniqueCounter) {
     return cache
         .computeIfAbsent(
-            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters))
+            Pair.of(pid, uniqueCounter), pair -> new EdgeCloner(pid, uniqueCounter))
         .cloneEdge(pCFAEdge);
   }
 
-  static Map<String, Integer> nextCssaCounters(
-      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
-    final var astIdQualifier =
+  static int nextCounter(
+      final CFAEdge pCFAEdge, final int idx, final int uniqueCounter) {
+    final var edgeCloner =
         cache.computeIfAbsent(
-            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters));
-    astIdQualifier.cloneEdge(pCFAEdge);
-    return astIdQualifier.mutableCssaCounters;
+            Pair.of(idx, uniqueCounter), pair -> new EdgeCloner(idx, uniqueCounter));
+    //noinspection ResultOfMethodCallIgnored
+    edgeCloner.cloneEdge(pCFAEdge);
+    return edgeCloner.mutableUniqueCounter;
   }
 
   static Pair<List<CVariableDeclaration>, List<CVariableDeclaration>> getAccesses(
-      final CFAEdge pCFAEdge, final int idx, final Map<String, Integer> cssaCounters) {
+      final CFAEdge pCFAEdge, final int idx, final int uniqueCounter) {
     final var astIdQualifier =
         cache.computeIfAbsent(
-            Pair.of(idx, cssaCounters), pair -> new HappensBeforeEdgeTools(idx, cssaCounters));
+            Pair.of(idx, uniqueCounter), pair -> new EdgeCloner(idx, uniqueCounter));
     astIdQualifier.cloneEdge(pCFAEdge);
     return Pair.of(astIdQualifier.writeAccesses, astIdQualifier.readAccesses);
   }
 
-  static CFAEdge createAssume(CFANode node, ExecutionGraph pG) {
-    final var exprs = new ArrayList<CExpression>();
-    pG.pendingRf()
-        .forEach(
-            (r, w) ->
-                exprs.add(
-                    new CBinaryExpression(
-                        node.getFunction().getFileLocation(),
-                        CNumericTypes.UNSIGNED_INT,
-                        CNumericTypes.UNSIGNED_INT,
-                        new CIdExpression(w.var().getFileLocation(), w.var()),
-                        new CIdExpression(r.var().getFileLocation(), r.var()),
-                        BinaryOperator.EQUALS)));
-    final var expr =
-        exprs.stream()
-            .reduce(
-                CIntegerLiteralExpression.ONE,
-                (expr1, expr2) ->
-                    new CBinaryExpression(
-                        node.getFunction().getFileLocation(),
-                        CNumericTypes.UNSIGNED_INT,
-                        CNumericTypes.UNSIGNED_INT,
-                        expr1,
-                        expr2,
-                        BinaryOperator.BITWISE_AND));
-    return new CAssumeEdge(
-        expr.toASTString(), node.getFunction().getFileLocation(), node, node, expr, false);
-  }
 
   private final SequencedMap<CFAEdge, CFAEdge> edgeCache = new LinkedHashMap<>();
   private final CExpressionCloner expCloner;
-  private final int thredId;
-  private final Map<String, Integer> mutableCssaCounters;
+  private final int threadId;
+  private int mutableUniqueCounter;
   private final List<CVariableDeclaration> writeAccesses = new ArrayList<>();
   private final List<CVariableDeclaration> readAccesses = new ArrayList<>();
   private boolean isLhs = false;
 
-  private HappensBeforeEdgeTools(final int idx, final Map<String, Integer> cssaCounters) {
-    thredId = idx;
-    mutableCssaCounters = new LinkedHashMap<>(cssaCounters);
-    expCloner = new CExpressionCloner();
+  private EdgeCloner(final int idx, final int uniqueCounter) {
+    this.threadId = idx;
+    this.mutableUniqueCounter = uniqueCounter;
+    this.expCloner = new CExpressionCloner();
   }
 
   private CFAEdge cloneEdge(final CFAEdge pCFAEdge) {
@@ -418,11 +388,10 @@ final class HappensBeforeEdgeTools {
 
   private String changeQualifiedName(CSimpleDeclaration decl, boolean isGlobal) {
     if (isGlobal) {
-      final var nextId = mutableCssaCounters.computeIfAbsent(decl.getQualifiedName(), s -> 0) + 1;
-      mutableCssaCounters.put(decl.getQualifiedName(), nextId);
+      final var nextId = ++mutableUniqueCounter;
       return "%s_%d".formatted(decl.getQualifiedName(), nextId);
     }
-    return "T%d_%s".formatted(thredId, decl.getQualifiedName());
+    return "T%d_%s".formatted(threadId, decl.getQualifiedName());
   }
 
   private class CExpressionCloner extends DefaultCExpressionVisitor<CExpression, NoException> {

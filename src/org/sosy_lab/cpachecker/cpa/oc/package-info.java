@@ -10,4 +10,4 @@
  * This CPA allows analysis of weakly ordered concurrent programs using happens-before temporal
  * orderings.
  */
-package org.sosy_lab.cpachecker.cpa.hb;
+package org.sosy_lab.cpachecker.cpa.oc;
