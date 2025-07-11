@@ -132,7 +132,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-  private final Configuration config;
   private final CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
@@ -157,7 +156,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     pConfig.inject(this);
     CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, TestCaseGeneratorAlgorithm.class);
     algorithm = pAlgorithm;
-    config = pConfig;
     cfa = pCfa;
     cpa = pCpa;
     logger = pLogger;
@@ -455,8 +453,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
       }
     }//end while
     logger.log(Level.FINE, "Found no ValueAnalysisState in wrappedState.");
-    //todo error handling
-    assert(false);
+    //todo error handling (needed if there is assert?)
     return null;
   }
 
