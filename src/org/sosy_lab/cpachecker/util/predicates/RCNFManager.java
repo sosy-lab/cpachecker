@@ -87,6 +87,24 @@ public class RCNFManager implements StatisticsProvider {
     DROP
   }
 
+  private static final class BodyAndBoundVariables {
+    private final BooleanFormula body;
+    private final List<Formula> boundVariables;
+
+    public BodyAndBoundVariables(BooleanFormula pBody, List<Formula> pBoundVariables) {
+      body = pBody;
+      boundVariables = pBoundVariables;
+    }
+
+    public BooleanFormula getBody() {
+      return body;
+    }
+
+    public List<Formula> getBoundVariables() {
+      return boundVariables;
+    }
+  }
+
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
   private final RCNFConversionStatistics statistics;
@@ -172,9 +190,11 @@ public class RCNFManager implements StatisticsProvider {
    */
   private BooleanFormula dropBoundVariables(BooleanFormula input) throws InterruptedException {
 
-    Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
-    if (body.isPresent()) {
-      return fmgr.filterLiterals(body.orElseThrow(), input1 -> !hasBoundVariables(input1));
+    Optional<BodyAndBoundVariables> bodyAndBoundVars = fmgr.visit(input, quantifiedBodyExtractor);
+    if (bodyAndBoundVars.isPresent()) {
+      BooleanFormula body = bodyAndBoundVars.get().getBody();
+      Set<Formula> boundVariables = ImmutableSet.copyOf(bodyAndBoundVars.get().getBoundVariables());
+      return fmgr.filterLiterals(body, input1 -> !hasBoundVariables(input1, boundVariables));
     } else {
 
       // Does not have quantified variables.
@@ -292,9 +312,10 @@ public class RCNFManager implements StatisticsProvider {
           @Override
           public BooleanFormula visitFunction(
               Formula f, List<Formula> newArgs, FunctionDeclaration<?> functionDeclaration) {
+            // EQ could have more than 2 arguments, lets only handle 2 arguments here
             if (functionDeclaration.getKind() == FunctionDeclarationKind.EQ
+                && newArgs.size() == 2
                 && fmgr.getFormulaType(newArgs.get(0)).isNumeralType()) {
-              Preconditions.checkState(newArgs.size() == 2);
               Formula a = newArgs.get(0);
               Formula b = newArgs.get(1);
               return bfmgr.and(
@@ -306,39 +327,42 @@ public class RCNFManager implements StatisticsProvider {
         });
   }
 
-  private boolean hasBoundVariables(BooleanFormula input) {
+  private boolean hasBoundVariables(BooleanFormula input, Set<Formula> boundVariables) {
     final AtomicBoolean hasBound = new AtomicBoolean(false);
     fmgr.visitRecursively(
         input,
-        new DefaultFormulaVisitor<TraversalProcess>() {
+        new DefaultFormulaVisitor<>() {
           @Override
           protected TraversalProcess visitDefault(Formula f) {
             return TraversalProcess.CONTINUE;
           }
 
           @Override
-          public TraversalProcess visitBoundVariable(Formula f, int deBruijnIdx) {
-            hasBound.set(true);
-            return TraversalProcess.ABORT;
+          public TraversalProcess visitFreeVariable(Formula f, String name) {
+            if (boundVariables.contains(f)) {
+              hasBound.set(true);
+              return TraversalProcess.ABORT;
+            }
+            return TraversalProcess.CONTINUE;
           }
         });
     return hasBound.get();
   }
 
-  private final DefaultFormulaVisitor<Optional<BooleanFormula>> quantifiedBodyExtractor =
+  private final DefaultFormulaVisitor<Optional<BodyAndBoundVariables>> quantifiedBodyExtractor =
       new DefaultFormulaVisitor<>() {
         @Override
-        protected Optional<BooleanFormula> visitDefault(Formula f) {
+        protected Optional<BodyAndBoundVariables> visitDefault(Formula f) {
           return Optional.empty();
         }
 
         @Override
-        public Optional<BooleanFormula> visitQuantifier(
+        public Optional<BodyAndBoundVariables> visitQuantifier(
             BooleanFormula f,
             Quantifier quantifier,
             List<Formula> boundVariables,
             BooleanFormula body) {
-          return Optional.of(body);
+          return Optional.of(new BodyAndBoundVariables(body, boundVariables));
         }
       };
 
