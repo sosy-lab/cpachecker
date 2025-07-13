@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * through a pointer or global variable.
  *
  * @param memoryLocation the location that was read from or written to; If sideEffectKind is
- *     POINTER_DEREFERENCE, then memoryLocation refers to the pointer variable, not the actual
+ *     POINTER_DEREFERENCE_UNRESOLVED, then memoryLocation refers to the pointer variable, not the actual
  *     target address (which may be unknown at this point).
  * @param accessType the type of access performed: either READ or WRITE.
  * @param cfaEdge the CFA edge on which the side effect occurs, useful for diagnostics.

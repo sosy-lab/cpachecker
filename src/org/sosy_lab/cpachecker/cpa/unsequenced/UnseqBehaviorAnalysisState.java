@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.unsequenced;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.unsequenced.SideEffectInfo.SideEffectKind;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class UnseqBehaviorAnalysisState
     implements LatticeAbstractState<UnseqBehaviorAnalysisState>, Graphable, AbstractQueryableState {
@@ -67,6 +69,13 @@ public class UnseqBehaviorAnalysisState
     return sideEffectsInFun.values().stream()
         .flatMap(Set::stream)
         .filter(se -> se.sideEffectKind() == SideEffectKind.POINTER_DEREFERENCE_UNRESOLVED)
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  public ImmutableSet<MemoryLocation> getAllMemoryLocations() {
+    return sideEffectsInFun.values().stream()
+        .flatMap(Collection::stream)
+        .map(SideEffectInfo::memoryLocation)
         .collect(ImmutableSet.toImmutableSet());
   }
 

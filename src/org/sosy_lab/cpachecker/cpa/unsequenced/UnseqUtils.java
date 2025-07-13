@@ -59,7 +59,6 @@ public class UnseqUtils {
         oldState.getLogger());
   }
 
-
   public static ImmutableMap<String, ImmutableSet<SideEffectInfo>> toImmutableSideEffectsMap(
       Map<String, Set<SideEffectInfo>> mutableMap) {
 
@@ -69,4 +68,6 @@ public class UnseqUtils {
     }
     return builder.buildOrThrow();
   }
+
+
 }
