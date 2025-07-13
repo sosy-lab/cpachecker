@@ -251,15 +251,11 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
     ImmutableSet<CFANode> abstractionDeadEnds = modification.metadata().unableToAbstract();
     dssStats.getNumberWorkersWithoutAbstraction().setNextValue(abstractionDeadEnds.size());
     if (!abstractionDeadEnds.isEmpty() && !allowMissingAbstractionNodes) {
-      for (String successorId : blockGraph.getRoot().getSuccessorIds()) {
-        for (BlockNode node : blockGraph.getNodes()) {
-          if (node.getId().equals(successorId)) {
-            if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
-              throw new AssertionError(
-                  "Direct successors of the root node are required to have an abstraction"
-                      + " location.");
-            }
-          }
+      for (BlockNode node : blockGraph.getRoots()) {
+        if (node.getViolationConditionLocation().equals(node.getFinalLocation())) {
+          throw new AssertionError(
+              "Direct successors of the root node are required to have an abstraction"
+                  + " location.");
         }
       }
     }
@@ -460,8 +456,7 @@ public class DistributedSummarySynthesis implements Algorithm, StatisticsProvide
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     ImmutableSet<BlockNode> blocks = blockGraph.getNodes();
     DssWorkerBuilder builder =
-        new DssWorkerBuilder(cfa, specification, getQueueSupplier(), messageFactory)
-            .addRootWorker(blockGraph.getRoot(), options);
+        new DssWorkerBuilder(cfa, specification, getQueueSupplier(), messageFactory);
     for (BlockNode distinctNode : blocks) {
       builder = builder.addAnalysisWorker(distinctNode, options);
     }

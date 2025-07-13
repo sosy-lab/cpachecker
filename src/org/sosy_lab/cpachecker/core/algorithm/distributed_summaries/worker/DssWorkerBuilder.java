@@ -117,16 +117,6 @@ public class DssWorkerBuilder {
   }
 
   @CanIgnoreReturnValue
-  public DssWorkerBuilder addRootWorker(BlockNode pNode, DssAnalysisOptions pOptions) {
-    String workerId = pNode.getId();
-    final LogManager logger = getLogger(pOptions, workerId);
-    workerGenerators.put(
-        new CommunicationId(workerId, DssCommunicationEntity.BLOCK),
-        connection -> new DssRootWorker(workerId, connection, pNode, messageFactory, logger));
-    return this;
-  }
-
-  @CanIgnoreReturnValue
   public DssWorkerBuilder addObserverWorker(
       String pId, int pNumberOfBlocks, DssAnalysisOptions pOptions) {
     final LogManager logger = getLogger(pOptions, pId);

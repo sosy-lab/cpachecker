@@ -47,7 +47,6 @@ public class SingleBlockDecomposition implements DssBlockDecomposition {
     assert seen.containsAll(cfa.nodes());
     assert lastNode != null;
     return BlockGraph.fromBlockNodesWithoutGraphInformation(
-        cfa,
         ImmutableSet.of(
             new BlockNodeWithoutGraphInformation(
                 "SB1",

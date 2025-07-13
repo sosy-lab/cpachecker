@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DssBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communication.infrastructure.DssMessageBroadcaster;
@@ -175,7 +176,12 @@ public class DssAnalysisWorker extends DssWorker {
         }
         case VIOLATION_CONDITION -> {
           broadcaster.broadcastToObserver(message);
-          broadcaster.broadcastToIds(message, block.getPredecessorIds());
+          if (block.getPredecessorIds().isEmpty()) {
+            broadcaster.broadcastToAll(
+                messageFactory.createDssResultMessage(getId(), Result.FALSE));
+          } else {
+            broadcaster.broadcastToIds(message, block.getPredecessorIds());
+          }
         }
         case EXCEPTION, RESULT, STATISTIC -> broadcaster.broadcastToAll(message);
       }
