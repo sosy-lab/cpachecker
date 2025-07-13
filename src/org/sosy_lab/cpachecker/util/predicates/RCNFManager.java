@@ -192,8 +192,9 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BodyAndBoundVariables> bodyAndBoundVars = fmgr.visit(input, quantifiedBodyExtractor);
     if (bodyAndBoundVars.isPresent()) {
-      BooleanFormula body = bodyAndBoundVars.get().getBody();
-      Set<Formula> boundVariables = ImmutableSet.copyOf(bodyAndBoundVars.get().getBoundVariables());
+      BooleanFormula body = bodyAndBoundVars.orElseThrow().getBody();
+      Set<Formula> boundVariables =
+          ImmutableSet.copyOf(bodyAndBoundVars.orElseThrow().getBoundVariables());
       return fmgr.filterLiterals(body, input1 -> !hasBoundVariables(input1, boundVariables));
     } else {
 
