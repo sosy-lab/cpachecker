@@ -84,7 +84,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
         }
 
       } else {
-        // unexpected case, not sure if it this possible
+        // unexpected case, not sure if it is possible
         logger.log(
             Level.FINEST,
             "Element was merged into an element that's not in the reached set, merged-with element"

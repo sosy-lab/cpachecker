@@ -90,7 +90,7 @@ class AstLocationClassifier extends ASTVisitor {
   }
 
   public ImmutableSortedMap<Integer, FileLocation> getStatementOffsetsToLocations() {
-    // Using an ImmutableMap and then copying it into a ImmutableSortedMap is necessary,
+    // Using an ImmutableMap and then copying it into an ImmutableSortedMap is necessary,
     // since ImmutableSortedMap does not implement buildKeepingLast, which is necessary
     // when multiple statements are at the same initial offset. Currently, this is
     // necessary for: test/programs/simple/builtin_types_compatible_void.c

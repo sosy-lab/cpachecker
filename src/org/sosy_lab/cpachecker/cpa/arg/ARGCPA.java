@@ -186,7 +186,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       // we do not want to add ARGStatistics twice, if a wrapping CPA also uses it.
       // This would result in overriding the output-files due to equal file names.
       // Info: this case is one of the reasons to first collect our own statistics
-      // and afterwards call super.collectStatistics().
+      // and afterward call super.collectStatistics().
       pStatsCollection.add(stats);
     }
     super.collectStatistics(pStatsCollection);

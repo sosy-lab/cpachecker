@@ -343,7 +343,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
 
     // There are five possibilities when assigning this and the new object Scope.
 
-    // A Object calls its super Constructor
+    // An Object calls its super Constructor
     if (functionCall instanceof JSuperConstructorInvocation) {
 
       newState.assignThisAndNewObjectScope(state.getUniqueObjectFor(RTTState.KEYWORD_THIS));
@@ -379,7 +379,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState, RT
         // When the object of the variable can't be found
         newState.assignThisAndNewObjectScope(NOT_IN_OBJECT_SCOPE);
       }
-      //  a unreferenced Method Invocation
+      //  an unreferenced Method Invocation
     } else {
 
       JMethodDeclaration decl = functionCall.getDeclaration();

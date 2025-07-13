@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import static java.util.Collections.singletonList;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +184,7 @@ class ExpressionValueVisitor
   public List<? extends SMGValueAndState> visit(CFloatLiteralExpression exp)
       throws CPATransferException {
 
-    boolean isZero = exp.getValue().compareTo(BigDecimal.ZERO) == 0;
+    boolean isZero = exp.getValue().isZero();
 
     SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
     return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
@@ -377,7 +376,7 @@ class ExpressionValueVisitor
               type = ((CPointerType) lVarType).getType();
             } else if (lVarType instanceof CSimpleType) {
               // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
-              // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+              // Let's assume, that invalid combinations like "int" for 64bit do not appear.
               type = lVarType;
             } else {
               throw new AssertionError(

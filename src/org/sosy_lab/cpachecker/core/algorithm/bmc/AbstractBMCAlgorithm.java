@@ -974,7 +974,7 @@ abstract class AbstractBMCAlgorithm
    * a satisfiablity check on the formulas encoding the reachability of the states where the bounded
    * model check stopped due to reaching the bound.
    *
-   * <p>If this is is the case, then the bounded model check is guaranteed to be sound.
+   * <p>If this is the case, then the bounded model check is guaranteed to be sound.
    *
    * @param pReachedSet the reached set containing the frontier of the bounded model check, i.e.
    *     where the bounded model check stopped.

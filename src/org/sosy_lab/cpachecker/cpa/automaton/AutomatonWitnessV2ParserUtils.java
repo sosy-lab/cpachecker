@@ -96,7 +96,7 @@ public class AutomatonWitnessV2ParserUtils {
    * entries.
    *
    * @param pPath The file to check.
-   * @return True if the file is a YAML witness, false otherwise.
+   * @return whether the file is a YAML witness.
    * @throws InvalidConfigurationException If the file is not a valid YAML witness.
    * @throws InterruptedException If the parsing is interrupted.
    */

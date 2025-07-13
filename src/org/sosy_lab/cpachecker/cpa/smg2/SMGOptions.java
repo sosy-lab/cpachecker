@@ -92,7 +92,7 @@ public class SMGOptions {
       secure = true,
       description =
           "Which unknown function are always considered as safe functions, "
-              + "i.e., free of memory-related side-effects?")
+              + "i.e., free of memory-related side effects?")
   private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
 
   @Option(

@@ -50,10 +50,10 @@ public final class SMGIntersectStates {
   private final Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
   private final Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
 
-  /** the destination SMG will be build up when calling {@link #intersect}. */
+  /** the destination SMG will be built up when calling {@link #intersect}. */
   private final CLangSMG destSMG;
 
-  /** the destination values will be build up when calling {@link #intersect}. */
+  /** the destination values will be built up when calling {@link #intersect}. */
   private PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> destExplicitValues =
       PersistentBiMap.of();
 
@@ -486,7 +486,7 @@ public final class SMGIntersectStates {
   private static SMGObject getConcretestObject(SMGObject pObj1, SMGObject pObj2) {
 
     /*Determine which object results in the least amount of concrete states
-     * if included in a smg state.*/
+     * if included in an SMG state.*/
 
     if (!pObj1.isAbstract()) {
       return pObj1;

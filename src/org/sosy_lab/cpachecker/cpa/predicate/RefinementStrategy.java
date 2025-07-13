@@ -223,7 +223,7 @@ public abstract class RefinementStrategy {
    *
    * @param interpolant The interpolant.
    * @param state The state.
-   * @return True if no refinement was necessary (this implies that refinement on all of the state's
+   * @return True if no refinement was necessary (this implies that refinement on all the state's
    *     parents is also not necessary)
    */
   @ForOverride

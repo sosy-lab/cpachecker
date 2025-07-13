@@ -96,7 +96,7 @@ public class SMGPathInterpolator {
    * This method propagates the interpolant "false" to all states that are in the original error
    * path, but are not anymore in the (shorter) prefix.
    *
-   * <p>The property that every state on the path beneath the first state with an false interpolant
+   * <p>The property that every state on the path beneath the first state with a false interpolant
    * is needed by some code in ValueAnalysisInterpolationTree a subclass of {@link
    * InterpolationTree}, i.e., for global refinement. This property could also be enforced there,
    * but interpolant creation should only happen during interpolation, and not in the data structure

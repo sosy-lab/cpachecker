@@ -68,8 +68,8 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
 interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
-  ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
-  ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
+  ResultValue<Boolean> CONST_TRUE = new ResultValue<>(true);
+  ResultValue<Boolean> CONST_FALSE = new ResultValue<>(false);
 
   @Override
   ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
@@ -530,7 +530,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       FileLocation edgeLocation = edge.getFileLocation();
 
       // When there are multiple empty lines between two edges, the line numbers and offsets would
-      // not match. Therefore we need the range comparison instead of a equality comparison.
+      // not match. Therefore, we need the range comparison instead of an equality comparison.
       if (lineNumber >= edgeLocation.getEndingLineInOrigin()
           && CFAUtils.leavingEdges(edge.getSuccessor())
               .transform(CFAEdge::getFileLocation)
@@ -1130,7 +1130,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   }
 
   /**
-   * This is a efficient implementation of the ASTComparison (it caches the generated ASTs for the
+   * This is an efficient implementation of the ASTComparison (it caches the generated ASTs for the
    * pattern). It also displays error messages if the AST contains problems/errors. The AST
    * Comparison evaluates the pattern (coming from the Automaton Definition) and the C-Statement on
    * the CFA Edge to ASTs and compares these with a Tree comparison algorithm.

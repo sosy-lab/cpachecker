@@ -169,7 +169,7 @@ public final class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     } catch (NoClassDefFoundError e) {
       // Google App Engine does not allow to use classes from the package java.lang.management.
-      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // Therefore, it throws a NoClassDefFoundError if this is attempted regardless. To prevent
       // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
@@ -203,7 +203,7 @@ public final class MainCPAStatistics implements Statistics {
       analysisCpuTime = -1;
     } catch (NoClassDefFoundError e) {
       // Google App Engine does not allow to use classes from the package java.lang.management.
-      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // Therefore, it throws a NoClassDefFoundError if this is attempted regardless. To prevent
       // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
@@ -230,7 +230,7 @@ public final class MainCPAStatistics implements Statistics {
       // user was already warned
     } catch (NoClassDefFoundError e) {
       // Google App Engine does not allow to use classes from the package java.lang.management.
-      // Therefore it throws a NoClassDefFoundError if this is attempted regardless. To prevent
+      // Therefore, it throws a NoClassDefFoundError if this is attempted regardless. To prevent
       // CPAchecker from crashing in this case we catch the error and log the event.
       logger.logDebugException(e, "Querying cpu time failed");
       logger.log(Level.WARNING, "Google App Engine does not support measuring the cpu time.");
@@ -447,7 +447,7 @@ public final class MainCPAStatistics implements Statistics {
           mostFrequentLocation = location.getElement();
 
         } else if (size == mostFrequentLocationCount) {
-          // use node with smallest number to have deterministic output
+          // use node with the smallest number to have deterministic output
           mostFrequentLocation =
               Ordering.natural().min(mostFrequentLocation, location.getElement());
         }

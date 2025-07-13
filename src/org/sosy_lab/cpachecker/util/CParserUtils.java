@@ -167,7 +167,7 @@ public class CParserUtils {
   }
 
   /**
-   * Parse the assumption of a automaton, which are C assignments, return statements or function
+   * Parse the assumption of an automaton, which are C assignments, return statements or function
    * calls, into a list of CStatements with the Eclipse CDT parser. If an error occurs, an empty
    * list will be returned, and the error will be logged.
    *

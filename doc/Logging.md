@@ -19,7 +19,7 @@ LogManager instead of System.out
 In CPAchecker, it is not possible to use `System.out`/`System.err`,
 because CPAchecker needs to run in environments where these are
 not available or where their output is lost.
-Thus it is required to always use our `LogManager` for logging.
+Thus, it is required to always use our `LogManager` for logging.
 We now have a commit hook that checks for calls to `System.out`/`err`
 and rejects such commits.
 The only exception is the package `cmdline`,

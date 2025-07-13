@@ -305,7 +305,7 @@ class ASTConverter {
   private final ASTLiteralConverter literalConverter;
   private final ASTOperatorConverter operatorConverter;
   private final ASTTypeConverter typeConverter;
-  private final MachineModel machinemodel;
+  private final MachineModel machineModel;
 
   private final ParseContext parseContext;
 
@@ -337,7 +337,7 @@ class ASTConverter {
     literalConverter = new ASTLiteralConverter(pMachineModel, pParseContext);
     operatorConverter = new ASTOperatorConverter(pParseContext);
     parseContext = pParseContext;
-    machinemodel = pMachineModel;
+    machineModel = pMachineModel;
     staticVariablePrefix = pStaticVariablePrefix;
     sideAssignmentStack = pSideAssignmentStack;
 
@@ -506,7 +506,7 @@ class ASTConverter {
   /**
    * If the given AST node <code>foo</code> originally occurs inside the unary operator parentheses,
    * return the parent AST node with all the parentheses, e.g., <code>(foo)</code> or <code>((foo))
-   * </code>. Otherwise return <code>foo</code> unchanged.
+   * </code>. Otherwise, return <code>foo</code> unchanged.
    */
   private IASTNode reAddParentheses(IASTNode currentNode) {
     while (currentNode.getParent() instanceof IASTUnaryExpression unaryOpParent
@@ -800,7 +800,7 @@ class ASTConverter {
     name += i;
 
     // If there is no initializer, the variable cannot be const.
-    // For others we add it as our temporary variables are single-use.
+    // For others, we add it as our temporary variables are single-use.
     CType type = CTypes.withConstSetTo(pType, initializer != null);
 
     if (type instanceof CArrayType && !(initializer instanceof CInitializerList)) {
@@ -890,7 +890,7 @@ class ASTConverter {
           return new CExpressionAssignmentStatement(
               fileLoc, lhs, ((CAssignment) rightHandSide).getLeftHandSide());
         } else {
-          throw parseContext.parseError("Expression is not free of side-effects", e);
+          throw parseContext.parseError("Expression is not free of side effects", e);
         }
 
       } else {
@@ -987,7 +987,7 @@ class ASTConverter {
 
     @Override
     public Boolean visitDefault(CType pT) {
-      return Boolean.FALSE;
+      return false;
     }
 
     @Override
@@ -1153,7 +1153,7 @@ class ASTConverter {
             }
             isFirstVisit = false;
 
-            // only first field access may be an pointer dereference so we do not have to check
+            // only first field access may be a pointer dereference so we do not have to check
             // anything
             // in this clause, just put a field reference to the next field on the actual owner
           } else {
@@ -1394,7 +1394,7 @@ class ASTConverter {
     Collections.reverse(fields);
 
     for (CFieldReference field : fields) {
-      BigInteger offset = machinemodel.getFieldOffsetInBits(structType, field.getFieldName());
+      BigInteger offset = machineModel.getFieldOffsetInBits(structType, field.getFieldName());
       sumOffset = sumOffset.add(offset);
       CFieldReference lastField = fields.get(fields.size() - 1);
       if (!field.equals(lastField)) {
@@ -1637,7 +1637,7 @@ class ASTConverter {
           // now do not forget: operand should get promoted to int if its type is smaller than int:
           type =
               CTypes.isIntegerType(innerType)
-                  ? machinemodel.applyIntegerPromotion(innerType)
+                  ? machineModel.applyIntegerPromotion(innerType)
                   : innerType;
         } else {
           type = typeConverter.convert(e.getExpressionType());
@@ -1786,7 +1786,7 @@ class ASTConverter {
         logger.log(
             Level.WARNING, loc + ":", "Return statement without expression in non-void function.");
         CInitializer defaultValue =
-            CDefaults.forType(returnVariableDeclaration.orElseThrow().getType(), loc);
+            CDefaults.forType(machineModel, returnVariableDeclaration.orElseThrow().getType(), loc);
         if (defaultValue instanceof CInitializerExpression) {
           rhs = ((CInitializerExpression) defaultValue).getExpression();
         }
@@ -2162,9 +2162,9 @@ class ASTConverter {
       // For example, array modifiers and pointer operators are declared in the
       // "wrong" way:
       // "int (*drives[4])[6]" is "array 4 of pointer to array 6 of int"
-      // (The inner most modifiers are the highest-level ones.)
+      // (The innermost modifiers are the highest-level ones.)
       // So we don't do this recursively, but instead collect all modifiers
-      // and apply them after we have reached the inner-most declarator.
+      // and apply them after we have reached the innermost declarator.
 
       // Collection of all modifiers (outermost modifier is first).
       List<IASTNode> modifiers = new ArrayList<>(1);
@@ -2324,7 +2324,7 @@ class ASTConverter {
         && (arrayType.getType().equals(CNumericTypes.CHAR)
             || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
             || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
-      // Arrays with unknown length but an string initializer
+      // Arrays with unknown length but a string initializer
       // have their length calculated from the initializer.
       // Example: char a[] = "abc";
       // will be converted as char a[4] = "abc";
@@ -2424,25 +2424,25 @@ class ASTConverter {
     switch (mode) {
       case "word" ->
           // assume that pointers have word size, which is the case on our platforms
-          newType = machinemodel.getPointerSizedIntType();
+          newType = machineModel.getPointerSizedIntType();
       case "byte", "QI" ->
           // quarter integer
           newType = CNumericTypes.CHAR;
       case "HI" -> {
         // half integer
-        assert machinemodel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
+        assert machineModel.getSizeofShortInt() == 2; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.SHORT_INT;
       }
       case "SI" -> {
         // single integer
-        assert machinemodel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
+        assert machineModel.getSizeofInt() == 4; // not guaranteed by C, but on our platforms
         newType = CNumericTypes.INT;
       }
       case "DI" -> {
         // double integer
-        if (machinemodel.getSizeofLongInt() == 8) {
+        if (machineModel.getSizeofLongInt() == 8) {
           newType = CNumericTypes.LONG_INT;
-        } else if (machinemodel.getSizeofLongLongInt() == 8) {
+        } else if (machineModel.getSizeofLongLongInt() == 8) {
           newType = CNumericTypes.LONG_LONG_INT;
         } else {
           // could occur, but not on our platforms
@@ -2694,8 +2694,8 @@ class ASTConverter {
     final BigInteger minValue = Collections.min(enumeratorValues);
     final BigInteger maxValue = Collections.max(enumeratorValues);
     for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
-      if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
-          && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
+      if (minValue.compareTo(machineModel.getMinimalIntegerValue(integerType)) >= 0
+          && maxValue.compareTo(machineModel.getMaximalIntegerValue(integerType)) <= 0) {
         // if all enumeration values are matching into the range, we use it
         return integerType;
       }
@@ -2703,7 +2703,7 @@ class ASTConverter {
     throw new CFAGenerationRuntimeException(
         "The range of enum values does not fit into any of the available integer types of the"
             + " selected machine model. Machine model: '"
-            + machinemodel.name()
+            + machineModel.name()
             + "', available integer types: '"
             + ENUM_REPRESENTATION_CANDIDATE_TYPES.stream().map(CType::toString).toList()
             + "', enum values: "
@@ -2891,7 +2891,7 @@ class ASTConverter {
 
       } else {
         throw parseContext.parseError(
-            "Initializer is not free of side-effects, it is a "
+            "Initializer is not free of side effects, it is a "
                 + initializer.getClass().getSimpleName(),
             e);
       }

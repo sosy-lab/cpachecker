@@ -161,7 +161,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       futures.add(exec.submit(call));
     }
 
-    // shutdown the executor service,
+    // shut down the executor service,
     exec.shutdown();
 
     try {

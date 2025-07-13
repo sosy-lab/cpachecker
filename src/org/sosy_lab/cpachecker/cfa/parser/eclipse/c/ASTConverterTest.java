@@ -9,11 +9,12 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.collect.ImmutableList;
-import org.junit.Ignore;
+import java.util.Locale;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
@@ -24,6 +25,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class ASTConverterTest {
+
+  @BeforeClass
+  public static void configureLocale() {
+    Locale.setDefault(Locale.US);
+  }
 
   private final ASTLiteralConverter converter32 =
       new ASTLiteralConverter(MachineModel.LINUX32, ParseContext.dummy());
@@ -189,6 +195,7 @@ public class ASTConverterTest {
     }
   }
 
+  /** Test that the parser can handle valid floating point inputs */
   @Test
   public final void testValidFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
@@ -197,49 +204,131 @@ public class ASTConverterTest {
     record TestCase(String input, String expected, CType type) {}
     ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            new TestCase("0", "0.0", CNumericTypes.DOUBLE),
-            new TestCase("-0", "0.0", CNumericTypes.DOUBLE),
-            new TestCase("0xf", "15.0", CNumericTypes.DOUBLE),
-            new TestCase("5e2f", "500.0", CNumericTypes.FLOAT),
-            new TestCase("5e+2f", "500.0", CNumericTypes.FLOAT),
-            new TestCase("0x5e2f", "24111.0", CNumericTypes.FLOAT),
-            new TestCase("0x5e-2f", "94.0", CNumericTypes.FLOAT),
-            new TestCase(
-                "3.41E+38", "341000000000000000445911848520865808384.0", CNumericTypes.DOUBLE));
+            // Decimal floating point literal
+            // The exponent may have a sign and floating point numbers may be followed by an "f" or
+            // "l" suffix to mark them as "float" or "long double" precision
+            new TestCase("5e2", "5.00000000e+02", CNumericTypes.FLOAT),
+            new TestCase("5e2f", "5.00000000e+02", CNumericTypes.FLOAT),
+            new TestCase("5e+2", "5.00000000e+02", CNumericTypes.FLOAT),
+            new TestCase("5e+2f", "5.00000000e+02", CNumericTypes.FLOAT),
+
+            // Hexadecimal floating point literals
+            // For hexadecimal floating point literals the exponent starts with a "p" and must
+            // always be included. The literal is prefixed by "0x" to mark it as hexadecimal, and
+            // may be followed by an "f" or "l" suffix, just as for decimal floating point literals
+            new TestCase("0xfp00", "1.5000000000000000e+01", CNumericTypes.DOUBLE),
+            new TestCase("0x5e2p0", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5e2p0f", "1.50600000e+03", CNumericTypes.FLOAT),
+            new TestCase("0x5e2fp0", "2.41110000e+04", CNumericTypes.FLOAT),
+            new TestCase("0x5ep2", "3.76000000e+02", CNumericTypes.FLOAT),
+            new TestCase("0x5ep-2", "2.35000000e+01", CNumericTypes.FLOAT),
+            new TestCase("0x308p-2F", "1.94000000e+02", CNumericTypes.FLOAT),
+            new TestCase("0x30ap0l", "7.78000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+
+            // 3.41E+38 is too large for a float, but can be represented as a double
+            new TestCase("3.41E+38", "inf", CNumericTypes.FLOAT),
+            new TestCase("3.41E+38", "3.4100000000000000e+38", CNumericTypes.DOUBLE),
+
+            // Some decimal fractions like "3.08" don't have a precise representation as (binary)
+            // floating point values. In this case the parser will return the floating point value
+            // that lies closes to the real decimal fraction.
+            new TestCase("308e-2f", "3.07999992e+00", CNumericTypes.FLOAT),
+            new TestCase("308.0L", "3.08000000000000000000e+02", CNumericTypes.LONG_DOUBLE),
+
+            // When printing a floating point number, leading zeroes are dropped, and the number of
+            // decimals that are printed after the comma depends on the precision of the type
+            new TestCase("0000.000e+0", "0.00000000e+00", CNumericTypes.FLOAT),
+
+            // Try some "partial" inputs where we don't use the exponent or skip the zeroes before
+            // or after the decimal point. Note that for hexadecimal floating point literals the
+            // exponent must always be included.
+            new TestCase("1.0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase(".0", "0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase(".0e0", "0.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1.", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1.e0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("1e0", "1.00000000e+00", CNumericTypes.FLOAT),
+            new TestCase("0x.0p0", "0.00000000e+00", CNumericTypes.FLOAT));
 
     for (ASTLiteralConverter converter : converters) {
       for (TestCase test : input_output) {
         CFloatLiteralExpression literal =
-            (CFloatLiteralExpression)
-                converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
+            converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
 
         assertThat(literal.getValue().toString()).isEqualTo(test.expected());
-        assertThat(test.type()).isSameInstanceAs(literal.getExpressionType());
+        assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());
       }
     }
   }
 
-  // Enable this test once BigDecimals are replaced by CFloats in CFloatLiteralExpression-class
-  // (and subsequently, when the ASTLiteralConverter#adjustPrecision() got removed)
-  @Ignore
-  public final void testInvalidFloatExpressions() {
+  /**
+   * Test for floating point literals that will overflow to <code>Infinity</code> because their
+   * exponent is too large for the format
+   */
+  @Test
+  public final void testOverflowingFloatExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
 
-    ImmutableList<String> values =
+    // TestCase consists of: input value, expected output, input type for CLiteralExpression
+    record TestCase(String input, String expected, CType type) {}
+    ImmutableList<TestCase> input_output =
         ImmutableList.of(
-            "3.41e+38f", "-4.2e+38f", "1.8e+308", "-2.3e+308", "1.2e+4932l", "-1.2e+4932l");
+            new TestCase("3.41e+38f", "inf", CNumericTypes.FLOAT),
+            new TestCase("1.8e+308", "inf", CNumericTypes.DOUBLE),
+            new TestCase("1.2e+4932l", "inf", CNumericTypes.LONG_DOUBLE));
 
     for (ASTLiteralConverter converter : converters) {
-      for (String value : values) {
-        try {
-          converter.parseFloatLiteral(FileLocation.DUMMY, null, value, null);
-          assertWithMessage("Failed because of value: " + value).fail();
-        } catch (CFAGenerationRuntimeException e) {
-          assertThat(e.getMessage())
-              .isAnyOf(
-                  "unable to parse floating point literal (inf)",
-                  "unable to parse floating point literal (-inf)");
-        }
+      for (TestCase test : input_output) {
+        CFloatLiteralExpression literal =
+            converter.parseFloatLiteral(FileLocation.DUMMY, test.type(), test.input(), null);
+
+        assertThat(literal.getValue().toString()).isEqualTo(test.expected());
+        assertThat(literal.getExpressionType()).isSameInstanceAs(test.type());
+      }
+    }
+  }
+
+  /** Test that the parser rejects invalid floating point literals as input */
+  @Test
+  public final void testInvalidFloatExpressions() {
+    ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
+    ImmutableList<String> inputs =
+        ImmutableList.of(
+            "",
+            "+",
+            "e",
+            "-+0.0",
+            "++0.0",
+            "0.0+",
+            "0",
+            "+0",
+            "-0",
+            "0,0",
+            "0.0.",
+            "0..",
+            ".",
+            ".e0",
+            "0.0e",
+            "0.0e-",
+            "0e+-0",
+            "0e++0",
+            "0e+0+",
+            "f",
+            "ff",
+            "0.ff",
+            "0ee",
+            "0y0.0p0",
+            "0x0.0p0ff",
+            "0xf",
+            "0x0.0",
+            "0x0.0e0");
+
+    for (ASTLiteralConverter converter : converters) {
+      for (String value : inputs) {
+        assertThrows(
+            CFAGenerationRuntimeException.class,
+            () ->
+                converter.parseFloatLiteral(FileLocation.DUMMY, CNumericTypes.DOUBLE, value, null));
       }
     }
   }

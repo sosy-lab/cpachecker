@@ -44,12 +44,12 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
 
   /**
    * Create an invariant in the format for witnesses version 3.0 for the abstractions encoded by the
-   * arg states
+   * ARG states
    *
-   * @param argStates the arg states encoding abstractions of the state
+   * @param argStates the ARG states encoding abstractions of the state
    * @param node the node at whose location the state should be over approximated
-   * @param type the type of the invariant. Currently only `loop_invariant` and `location_invariant`
-   *     are supported
+   * @param type the type of the invariant. Currently, only `loop_invariant` and
+   *     `location_invariant` are supported
    * @return an invariant over approximating the abstraction at the state
    * @throws InterruptedException if the execution is interrupted
    */
@@ -88,9 +88,9 @@ class ARGToWitnessV2d1 extends ARGToYAMLWitness {
   /**
    * Create function contracts for each of the functions whose entry nodes have been given
    *
-   * @param functionContractRequires a mapping from function entry nodes to arg states encoding the
+   * @param functionContractRequires a mapping from function entry nodes to ARG states encoding the
    *     abstractions at that location
-   * @param functionContractEnsures a mapping from function exit nodes to arg states encoding the *
+   * @param functionContractEnsures a mapping from function exit nodes to ARG states encoding the *
    *     abstractions at that location
    * @return a list of function contracts, one for each of the functions whose entry nodes have been
    *     given

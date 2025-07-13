@@ -253,7 +253,7 @@ public class CustomInstruction {
    * @return the resulting AppliedCustomInstruction
    * @throws InterruptedException due to the shutdownNotifier
    * @throws AppliedCustomInstructionParsingFailedException if the matching of the variables of ci
-   *     and aci is not clear, or their structure dosen't fit.
+   *     and aci is not clear, or their structure doesn't fit.
    */
   public AppliedCustomInstruction inspectAppliedCustomInstruction(final CFANode aciStartNode)
       throws InterruptedException, AppliedCustomInstructionParsingFailedException {
@@ -1172,9 +1172,9 @@ public class CustomInstruction {
                 + aciFloatExp.getExpressionType()
                 + ").");
       }
-      if (ciExp.getValue().compareTo(aciFloatExp.getValue()) != 0) {
+      if (!ciExp.getValue().equals(aciFloatExp.getValue())) {
         throw new AppliedCustomInstructionParsingFailedException(
-            "The value of the CCharLiteralExpression of ci "
+            "The value of the FloatLiteralExpression of ci "
                 + ciExp
                 + " and aci "
                 + aciFloatExp

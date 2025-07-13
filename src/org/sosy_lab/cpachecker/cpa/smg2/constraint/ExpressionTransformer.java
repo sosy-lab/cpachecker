@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.constraint;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
@@ -51,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 /**
  * Class for transforming {@link CExpression} objects into their {@link SymbolicExpression}
@@ -115,8 +115,8 @@ public class ExpressionTransformer
           // TODO: for pointer comparisons etc. we need to unpack the correct value. We can
           // currently handle this only for concrete values, and that is done by the valueVisitor.
           // So we can't handle it here better.
-          // Dirty fix: if we end up here, it means we had a unknown before.
-          // We return a unknown again by creating one
+          // Dirty fix: if we end up here, it means we had an unknown before.
+          // We return an unknown again by creating one
           operand1Expression = factory.asConstant(addrExpr.getMemoryAddress(), addrExpr.getType());
         }
       }
@@ -227,7 +227,7 @@ public class ExpressionTransformer
   @Override
   public Collection<SymbolicExpressionAndSMGState> visit(
       final CFloatLiteralExpression pIastFloatLiteralExpression) throws CPATransferException {
-    final BigDecimal value = pIastFloatLiteralExpression.getValue();
+    final FloatValue value = pIastFloatLiteralExpression.getValue();
     final Type floatType = pIastFloatLiteralExpression.getExpressionType();
 
     return ImmutableList.of(
@@ -251,7 +251,7 @@ public class ExpressionTransformer
   @Override
   public Collection<SymbolicExpressionAndSMGState> visit(
       final CStringLiteralExpression pIastStringLiteralExpression) throws CPATransferException {
-    // This should be a array of chars instead!
+    // This should be an array of chars instead!
     throw new AssertionError("This should never be called.");
   }
 
@@ -512,7 +512,7 @@ public class ExpressionTransformer
     return new NumericValue(pValue);
   }
 
-  private Value createNumericValue(BigDecimal pValue) {
+  private Value createNumericValue(FloatValue pValue) {
     return new NumericValue(pValue);
   }
 

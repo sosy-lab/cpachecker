@@ -927,7 +927,7 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
 
     @Override
     Boolean visit(Texpr0CstNode pNode) {
-      return Boolean.TRUE;
+      return true;
     }
 
     @Override

@@ -546,9 +546,9 @@ final class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider {
   }
 
   /**
-   * This method determines whether or not to perform refinement selection.
+   * This method determines whether to perform refinement selection.
    *
-   * @return true, if refinement selection has to be performed, else false
+   * @return whether refinement selection has to be performed
    */
   private boolean isRefinementSelectionEnabled() {
     return !prefixPreference.equals(PrefixSelector.NO_SELECTION);

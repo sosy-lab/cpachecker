@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -143,6 +142,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 class ASTConverter {
 
@@ -184,7 +184,7 @@ class ASTConverter {
    * Create a new AST Converter, which can be used to convert JDT AST Statements to CFA AST
    * Statements.
    *
-   * @param pScope The symbolic table to solve e. g. names of variable to Declarations .
+   * @param pScope The symbolic table to solve e.g. names of variable to Declarations .
    * @param pLogger Logmanager to log Statusmessages or Errors
    */
   public ASTConverter(Scope pScope, LogManager pLogger) {
@@ -365,8 +365,8 @@ class ASTConverter {
   }
 
   /**
-   * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
-   * doesnt't find such information, returns an empty FileLocation Object.
+   * Takes an ASTNode, and tries to get Information of its Placement in the Source Code. If it
+   * doesn't find such information, returns an empty FileLocation Object.
    *
    * @param l A Code piece wrapped in an ASTNode
    * @return FileLocation with Placement Information of the Code Piece, or null if such Information
@@ -578,12 +578,12 @@ class ASTConverter {
   }
 
   /**
-   * Converts a JDT Expression into the AST. This method always gives side effect free Expressions
-   * back. Every Side Effect will be put into a side assignment and can subsequently be fetched with
+   * Converts a JDT Expression into the AST. This method always gives side-effect free Expressions
+   * back. Every side effect will be put into a side assignment and can subsequently be fetched with
    * getNextSideAssignment().
    *
    * @param e expression to be transformed.
-   * @return a side effect free AST representing the given parameter.
+   * @return a side-effect free AST representing the given parameter.
    */
   public JExpression convertExpressionWithoutSideEffects(Expression e) {
 
@@ -1091,7 +1091,7 @@ class ASTConverter {
    * @param pLeftOperand the left operand of the <code>instanceof</code> statement
    * @param pRightOperand the right operand of the <code>instanceof</code> statement. The resulting
    *     expression will be evaluated to <code>true
-   *     </code> if the the left operand's type is equal to this type or a subtype of this type
+   *     </code> if the left operand's type is equal to this type or a subtype of this type
    * @param pLocation the file location of the expression
    * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
    *     parameters
@@ -1122,11 +1122,11 @@ class ASTConverter {
   }
 
   /**
-   * Returns all sub classes/implementing classes of the given class or interface. This includes the
+   * Returns all subclasses/implementing classes of the given class or interface. This includes the
    * given type itself, if it is a {@link JClassType}.
    *
    * @param pType the type to get all subclasses of
-   * @return all sub classes/implementing classes of the given class or interface.
+   * @return all subclasses/implementing classes of the given class or interface.
    */
   private List<JType> getSubClasses(JType pType) {
 
@@ -2369,14 +2369,14 @@ class ASTConverter {
       } else if (rightHandSide instanceof JAssignment) {
 
         // TODO We need the assignments to be evaluated from left to right
-        // e. g x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
+        // e.g. x = 1;  x = ++x + x; x is 4; x = x + ++x; x is 3
         preSideAssignments.add(rightHandSide);
 
         return new JExpressionAssignmentStatement(
             fileLoc, leftHandSide, ((JAssignment) rightHandSide).getLeftHandSide());
 
       } else {
-        throw new CFAGenerationRuntimeException("Expression is not free of side-effects");
+        throw new CFAGenerationRuntimeException("Expression is not free of side effects");
       }
 
     } else {
@@ -2755,22 +2755,18 @@ class ASTConverter {
     }
   }
 
-  private BigDecimal parseFloatLiteral(String valueStr) {
-
-    BigDecimal value;
-    try {
-      value = new BigDecimal(valueStr);
-    } catch (NumberFormatException nfe1) {
-      try {
-        // this might be a hex floating point literal
-        // BigDecimal doesn't support this, but Double does
-        // TODO handle hex floating point literals that are too large for Double
-        value = BigDecimal.valueOf(Double.parseDouble(valueStr));
-      } catch (NumberFormatException nfe2) {
-        throw new CFAGenerationRuntimeException("Illegal floating point literal", nfe2);
-      }
+  private FloatValue parseFloatLiteral(String pValueStr) {
+    String input = Ascii.toLowerCase(pValueStr);
+    FloatValue.Format format;
+    if (input.endsWith("f")) {
+      // Parse as a 32bit float if the input string ends in "f"
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float32;
+    } else {
+      // Use double-precision otherwise
+      format = FloatValue.Format.Float64;
     }
-    return value;
+    return FloatValue.fromString(format, input);
   }
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {
@@ -2920,7 +2916,7 @@ class ASTConverter {
   }
 
   /**
-   * Converts a Expression into the intern AST which is required to give a boolean Type back.
+   * Converts an Expression into the intern AST which is required to give a boolean Type back.
    *
    * @param e an expression with a boolean type
    * @return intern AST representing JDT expression
@@ -2956,7 +2952,7 @@ class ASTConverter {
    * Checks if the given Expression returns a Value of boolean Type.
    *
    * @param e Expression to be checked
-   * @return True, iff Type of Expression is boolean, else False.
+   * @return whether the type of expression is boolean.
    */
   public boolean isBooleanExpression(JExpression e) {
     if (e instanceof JBinaryExpression) {

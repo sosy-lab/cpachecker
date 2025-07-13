@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
-/** This utility class computes MemoryPaths for a SMG. */
+/** This utility class computes MemoryPaths for an SMG. */
 public class SMGMemoryPathCollector {
 
   private enum SMGObjectPosition {

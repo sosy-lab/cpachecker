@@ -269,7 +269,7 @@ class CFABuilder extends ASTVisitor {
         globalDecls.add(Pair.of((ADeclaration) astNode, rawSignature));
       } else if (astNode instanceof CVariableDeclaration) {
         // If the initializer of a global struct contains a type-id expression,
-        // a temporary variable is created and we need to support this.
+        // a temporary variable is created, and we need to support this.
         // We detect this case if the initializer of the temp variable is an initializer list.
         CInitializer initializer = ((CVariableDeclaration) astNode).getInitializer();
         if (initializer instanceof CInitializerList) {
