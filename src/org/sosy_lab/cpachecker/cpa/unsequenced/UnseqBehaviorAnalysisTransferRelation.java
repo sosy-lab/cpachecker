@@ -786,117 +786,109 @@ public class UnseqBehaviorAnalysisTransferRelation
     List<SideEffectInfo> toFallback = new ArrayList<>();
     AtomicBoolean anyResolved = new AtomicBoolean(false);
     // PHASE 1: try one pass of concrete resolutions
-    UnseqBehaviorAnalysisState result = resolveConcretePointers(unseqState, pointerState, toFallback, anyResolved);
+    UnseqBehaviorAnalysisState result =
+        resolveConcretePointers(unseqState, pointerState, toFallback, anyResolved);
 
     // PHASE 2: build the fallback effects for everything we couldn’t resolve
-    Set<SideEffectInfo> fallbackEffects = computeFallbackEffects(unseqState, toFallback, anyResolved.get());
+    Set<SideEffectInfo> fallbackEffects =
+        computeFallbackEffects(unseqState, toFallback, anyResolved.get());
 
     // PHASE 3: Apply those fallback resolutions
     for (SideEffectInfo oldSe : toFallback) {
       result = UnseqUtils.replaceSideEffectBatch(oldSe, fallbackEffects, result);
     }
 
-
     return Collections.singleton(result);
   }
 
+  /**
+   * Phase 1: Walk all unresolved-pointer side-effects once. - If the points-to set is concrete,
+   * resolve immediately. - Otherwise, defer that SideEffectInfo into toFallback.
+   *
+   * @param unseqState the incoming unseq state
+   * @param ptrState the pointer CPA state
+   * @param toFallback collects all SideEffectInfo we couldn’t resolve here
+   * @param anyResolved set to true if we resolved at least one pointer
+   * @return the updated UnseqBehaviorAnalysisState
+   */
+  private UnseqBehaviorAnalysisState resolveConcretePointers(
+      UnseqBehaviorAnalysisState unseqState,
+      PointerState ptrState,
+      List<SideEffectInfo> toFallback,
+      AtomicBoolean anyResolved) {
 
-/**
- * Phase 1: Walk all unresolved-pointer side-effects once.
- *  - If the points-to set is concrete, resolve immediately.
- *  - Otherwise, defer that SideEffectInfo into toFallback.
- *
- * @param unseqState        the incoming unseq state
- * @param ptrState     the pointer CPA state
- * @param toFallback   collects all SideEffectInfo we couldn’t resolve here
- * @param anyResolved  set to true if we resolved at least one pointer
- * @return the updated UnseqBehaviorAnalysisState
- */
-private UnseqBehaviorAnalysisState resolveConcretePointers(
-    UnseqBehaviorAnalysisState unseqState,
-    PointerState ptrState,
-    List<SideEffectInfo> toFallback,
-    AtomicBoolean anyResolved) {
+    UnseqBehaviorAnalysisState result = unseqState;
 
-  UnseqBehaviorAnalysisState result = unseqState;
-
-  for (SideEffectInfo se : unseqState.getAllPointerSideEffects()) {
-    if (!se.isUnresolvedPointer()) {
-      continue;
-    }
-    MemoryLocation ptr = se.memoryLocation();
-    LocationSet pts = ptrState.getPointsToSet(ptr);
-
-    if (!pts.isTop() && !pts.isBot()) {
-      // Concrete targets → resolve now
-      Iterable<MemoryLocation> targets =
-          PointerTransferRelation.toNormalSet(ptrState, pts);
-
-      Set<SideEffectInfo> resolvedBatch = new HashSet<>();
-      for (MemoryLocation tgt : targets) {
-        resolvedBatch.add(new SideEffectInfo(
-            tgt,
-            se.accessType(),
-            se.cfaEdge(),
-            SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+    for (SideEffectInfo se : unseqState.getAllPointerSideEffects()) {
+      if (!se.isUnresolvedPointer()) {
+        continue;
       }
-      result = UnseqUtils.replaceSideEffectBatch(se, resolvedBatch, result);
-      anyResolved.set(true);
+      MemoryLocation ptr = se.memoryLocation();
+      LocationSet pts = ptrState.getPointsToSet(ptr);
 
-    } else {
-      // Top or Bot → handle in fallback phase
-      toFallback.add(se);
+      if (!pts.isTop() && !pts.isBot()) {
+        // Concrete targets → resolve now
+        Iterable<MemoryLocation> targets = PointerTransferRelation.toNormalSet(ptrState, pts);
+
+        Set<SideEffectInfo> resolvedBatch = new HashSet<>();
+        for (MemoryLocation tgt : targets) {
+          resolvedBatch.add(
+              new SideEffectInfo(
+                  tgt, se.accessType(), se.cfaEdge(), SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+        }
+        result = UnseqUtils.replaceSideEffectBatch(se, resolvedBatch, result);
+        anyResolved.set(true);
+
+      } else {
+        // Top or Bot → handle in fallback phase
+        toFallback.add(se);
+      }
     }
+
+    return result;
   }
 
-  return result;
-}
+  /**
+   * Phase 2: Build a conservative “fallback” resolution for every deferred pointer. - If
+   * anyResolved==true, map each pointer to *all* known memory locations. - Otherwise, map them all
+   * to one single arbitrary location.
+   *
+   * @param unseqState the original unseq state (for getAllMemoryLocations())
+   * @param deferred the SideEffectInfo we deferred
+   * @param anyResolved whether Phase 1 succeeded at least once
+   * @return a set of resolved SideEffectInfo to use for every deferred pointer
+   */
+  private Set<SideEffectInfo> computeFallbackEffects(
+      UnseqBehaviorAnalysisState unseqState, List<SideEffectInfo> deferred, boolean anyResolved) {
 
-/**
- * Phase 2: Build a conservative “fallback” resolution for every deferred pointer.
- *  - If anyResolved==true, map each pointer to *all* known memory locations.
- *  - Otherwise, map them all to one single arbitrary location.
- *
- * @param unseqState       the original unseq state (for getAllMemoryLocations())
- * @param deferred    the SideEffectInfo we deferred
- * @param anyResolved whether Phase 1 succeeded at least once
- * @return a set of resolved SideEffectInfo to use for every deferred pointer
- */
-private Set<SideEffectInfo> computeFallbackEffects(
-    UnseqBehaviorAnalysisState unseqState,
-    List<SideEffectInfo> deferred,
-    boolean anyResolved) {
+    Set<SideEffectInfo> fallback = new HashSet<>();
+    ImmutableSet<MemoryLocation> allLocs = unseqState.getAllMemoryLocations();
 
-  Set<SideEffectInfo> fallback = new HashSet<>();
-  ImmutableSet<MemoryLocation> allLocs = unseqState.getAllMemoryLocations();
-
-  if (anyResolved) {
-    // Conservative: assume each pointer may alias *any* seen location
-    for (SideEffectInfo se : deferred) {
-      for (MemoryLocation loc : allLocs) {
-        fallback.add(new SideEffectInfo(
-            loc,
-            se.accessType(),
-            se.cfaEdge(),
-            SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
-      }
-    }
-  } else {
-    // No pointers ever resolved → pick one location as a single fallback
-    Iterator<MemoryLocation> it = allLocs.iterator();
-    if (it.hasNext()) {
-      MemoryLocation single = it.next();
+    if (anyResolved) {
+      // Conservative: assume each pointer may alias *any* seen location
       for (SideEffectInfo se : deferred) {
-        fallback.add(new SideEffectInfo(
-            single,
-            se.accessType(),
-            se.cfaEdge(),
-            SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+        for (MemoryLocation loc : allLocs) {
+          fallback.add(
+              new SideEffectInfo(
+                  loc, se.accessType(), se.cfaEdge(), SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+        }
+      }
+    } else {
+      // No pointers ever resolved → pick one location as a single fallback
+      Iterator<MemoryLocation> it = allLocs.iterator();
+      if (it.hasNext()) {
+        MemoryLocation single = it.next();
+        for (SideEffectInfo se : deferred) {
+          fallback.add(
+              new SideEffectInfo(
+                  single,
+                  se.accessType(),
+                  se.cfaEdge(),
+                  SideEffectKind.POINTER_DEREFERENCE_RESOLVED));
+        }
       }
     }
-  }
 
-  return fallback;
+    return fallback;
   }
 }
-

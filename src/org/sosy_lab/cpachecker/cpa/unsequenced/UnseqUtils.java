@@ -44,7 +44,8 @@ public class UnseqUtils {
       Set<SideEffectInfo> replacements,
       UnseqBehaviorAnalysisState oldState) {
     Map<String, Set<SideEffectInfo>> updated = new HashMap<>();
-    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry : oldState.getSideEffectsInFun().entrySet()) {
+    for (Map.Entry<String, ImmutableSet<SideEffectInfo>> entry :
+        oldState.getSideEffectsInFun().entrySet()) {
       Set<SideEffectInfo> set = new HashSet<>(entry.getValue());
       if (set.remove(unresolvedPointer)) {
         set.addAll(replacements);
@@ -68,6 +69,4 @@ public class UnseqUtils {
     }
     return builder.buildOrThrow();
   }
-
-
 }
