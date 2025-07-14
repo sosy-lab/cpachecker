@@ -841,6 +841,18 @@ public class UnseqBehaviorAnalysisTransferRelation
 
       } else {
         // Top or Bot → handle in fallback phase
+        if (pts.isTop()) {
+          logger.logf(
+              Level.INFO,
+              "PointerState is TOP for side-effect at %s, deferring to fallback",
+              se.cfaEdge().getRawStatement());
+        }
+        if (pts.isBot()) {
+          logger.logf(
+              Level.INFO,
+              "PointerState is BOT for side-effect at %s, deferring to fallback",
+              se.cfaEdge().getRawStatement());
+        }
         toFallback.add(se);
       }
     }
