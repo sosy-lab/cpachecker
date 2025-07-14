@@ -22,8 +22,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -51,10 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.instrumentation.InstrumentationAut
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.Writer;
-import scala.Int;
 
 /**
  * This algorithm instruments a CFA of program using intrumentation operator and instrumentation
@@ -91,15 +89,14 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   @Override
   @SuppressWarnings("DefaultCharset")
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    printToFile("", "/run/media/lenrow/Data/Code-Projects/Bachelor-Arbeit/transver/test_output/log_new_edge.txt", false);
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
+    Map<String, String> notAccessedLoopNumbers =  new HashMap<>();
 
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
     Map<Integer, InstrumentationAutomaton> mapAutomataToLocations = new HashMap<>();
     Map<CFANode, Integer> mapNodesToLineNumbers;
-    System.out.println(instrumentationProperty + " -prop");
 
     if (instrumentationProperty == InstrumentationProperty.TERMINATION
         || instrumentationProperty == InstrumentationProperty.TERMINATIONWITHCOUNTERS
@@ -108,12 +105,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // We have to track what variables have already been defined
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
-      // NormalLoopInfo counts as a Loop of the program -LE
-      // each loop has its own instrumentation automata -LE
+      
+      
       ImmutableSet<NormalLoopInfo> loopInfos = LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
               LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
           .stream()
-          // sorted according to position of loop in script -LE
+          
           .sorted(Comparator.comparingInt(NormalLoopInfo::loopLocation))
           .collect(ImmutableSet.toImmutableSet());
       for (NormalLoopInfo info : loopInfos) {
@@ -139,11 +136,12 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
                       accessedArrays.put(variableName, arraySize + 1);
                     }
                     String saveIndexLine = constructSaveIndexLine(cfaEdge, variableName, assignmentTarget, index);
-                    System.out.println(saveIndexLine);
                     newEdges.add(saveIndexLine);
                   }
+                  else {
+                    notAccessedLoopNumbers.put(variableName, String.valueOf(index));
+                  }
                 }
-                System.out.println(aAstNode + " -LoopArrayAssignment");
               }
             }
           }
@@ -155,10 +153,9 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             newVariableLine = "int " + variableEntry.getKey() + "_MEMORY_COUNT_" + index + " = 0;";
             initilizationLine += " " + newVariableLine + " ";
           }
-          if (!initilizationLine.isEmpty())
+          if (!initilizationLine.isEmpty()) {
             newEdges.add("1|||" + initilizationLine);
-
-          // create automaton and map it to location, since 2 loops can't be created in the same line -LE
+          }
           mapAutomataToLocations.put(
               info.loopLocation(),
               new InstrumentationAutomaton(
@@ -188,9 +185,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     Map<CFANode, String> mapDecomposedOperationsCondition = new HashMap<>();
     waitlist.add(Pair.of(cfa.getMetadata().getMainFunctionEntry(), new InstrumentationState()));
 
-
-
-    // the functions canBeDecomposed decomposeFunction and isThePairNew add items to the waitlist. Those functions are called within the while loop -LE
     while (!waitlist.isEmpty()) {
       Pair<CFANode, InstrumentationState> currentPair = waitlist.remove(waitlist.size() - 1);
       reachlist.add(currentPair);
@@ -217,14 +211,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         assert currentNode != null;
         boolean matched = false;
-        // repeat for all leaving edges of the currentNode -LE
+        
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
           CFAEdge edge = currentNode.getLeavingEdge(i);
           for (InstrumentationTransition transition :
               currentState.getAutomatonOfTheState().getTransitions(currentState)) {
-            System.out.println("Source state name: " + transition.getSource().toString() + " target state name: " + transition.getDestination().toString() + "\noperation: \n" + transition.getOperation().getOperation());
             ImmutableList<String> matchedVariables =
-                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition); // checks if edge matches the pattern -LE
+                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition); 
             if (matchedVariables != null) {
               if (canBeDecomposed(
                       edge,
@@ -254,7 +247,26 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         }
       }
     }
-    //System.out.println(newEdges.toString());
+    newEdges = newEdges.stream().map(edge -> {
+      final String edgeValue = edge;
+      if (edge.indexOf("COMPARE_ARRAYS_AT_INDEX") != -1) {
+        List<Entry<String, String>> entries = notAccessedLoopNumbers.entrySet().stream()
+            .filter(e -> edgeValue.contains(e.getKey()) && edgeValue.contains(e.getKey() + "_INSTR_" + e.getValue()))
+            .collect(Collectors.toList());
+        if (!entries.isEmpty()) {
+          String numberString = entries.stream()
+              .map(e -> e.getValue())
+              .collect(Collectors.joining(""));
+          String variableName = entries.get(0).getKey();
+          String regexVarNames = variableName + "\\w+[" + numberString + "]";
+          String regex = "COMPARE_ARRAYS_AT_INDEX\\(" + variableName + ", " + regexVarNames + ", " + regexVarNames + ", \\&" + regexVarNames + "\\) == 1(?: \\|\\|)?";
+          edge = edge.replaceAll(regex, "");
+        }
+      }
+      return edge;
+    })
+        .collect(Collectors.toSet());
+
     writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
@@ -277,7 +289,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * the edge one line before the real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(
-      // I have to look at this one -LE
+      
       InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return "1";
@@ -309,10 +321,8 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
 
   private void writeAllInformationIntoOutputFile(Set<String> newEdges) {
     // Output the collected CFA information into newEdgesInfo
-    Path tempFile = Path.of("/run/media/lenrow/Data/Code-Projects/Bachelor-Arbeit/transver/test_output/log_new_edge.txt");
     try {
       IO.writeFile(newEdgesFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
-      IO.writeFile(tempFile, StandardCharsets.UTF_8, String.join("\n", newEdges));
     } catch (IOException e) {
       logger.logException(Level.SEVERE, e, "The creation of file newEdgesInfo.txt failed!");
     }
@@ -478,17 +488,5 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       }
     }
     return ImmutableMap.copyOf(difference);
-  }
-
-  @SuppressWarnings("DefaultCharset")
-  private void printToFile(String line, String fileName, boolean append) {
-    Writer output;
-    try {
-      output = new BufferedWriter(new FileWriter(fileName, append));
-      output.append(line);
-      output.close();
-    } catch (IOException pE) {
-      throw new RuntimeException(pE);
-    }
   }
 }

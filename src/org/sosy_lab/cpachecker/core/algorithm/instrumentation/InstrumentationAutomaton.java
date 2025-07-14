@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.instrumentation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -281,7 +282,6 @@ public class InstrumentationAutomaton {
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
-    ImmutableMap<String, String> modifiedLiveVariables = modifyVariablesForArrays(ImmutableMap.copyOf(liveVariablesAndTypes));
 
     InstrumentationTransition t1 =
         new InstrumentationTransition(
@@ -310,24 +310,7 @@ public class InstrumentationAutomaton {
         new InstrumentationTransition(
             q2,
             new InstrumentationPattern("[cond]"),
-            new InstrumentationOperation(
-                "if(__VERIFIER_nondet_int() && saved_"
-                    + pIndex
-                    + " == 0) { saved_"
-                    + pIndex
-                    + " =1; "
-                    + modifiedLiveVariables.entrySet().stream()
-                        .map(
-                            (entry) ->
-                                getDereferencesForPointer(entry.getValue())
-                                    + insertInstrumentationSuffix(entry.getKey(), "_INSTR_" + pIndex)
-                                    + " = "
-                                    + getDereferencesForPointer(entry.getValue())
-                                    + entry.getKey())
-                        .collect(Collectors.joining("; "))
-                    + (!modifiedLiveVariables.isEmpty() ? "; " : "")
-                    + createIndexMemoryAssertion(liveVariablesAndTypes, pIndex)
-                    + ");}"),
+            new InstrumentationOperation(createAssignmentStatements(liveVariablesAndTypes, pIndex)),
             InstrumentationOrder.AFTER,
             q3);
     InstrumentationTransition t3 =
@@ -485,45 +468,62 @@ public class InstrumentationAutomaton {
     else {
       insertedKey = pVarKey + pSuffix;
     }
-    System.out.println(insertedKey);
     return insertedKey;
   }
 
-  private String createIndexMemoryAssertion(ImmutableMap<String, String> liveVariablesAndTypes, int pIndex) {
-    String assertionLine = "} else { __VERIFIER_assert((saved_"
+  private String createAssignmentStatements(ImmutableMap<String, String> pLiveVariablesAndTypes, int pIndex) {
+    String value = "if(__VERIFIER_nondet_int() && saved_"
         + pIndex
-        + " == 0)"
-        //+ (!liveVariablesAndTypes.isEmpty() ? " || " : "")
-      ;
-    for (Entry<String, String> variableEntry : liveVariablesAndTypes.entrySet()) {
-      assertionLine += " || ";
+        + " == 0) { saved_"
+        + pIndex
+        + " =1; ";
+    ArrayList<String> assertStatements = new ArrayList<>();
+    for (Entry<String, String> variableEntry : pLiveVariablesAndTypes.entrySet()) {
       if (variableEntry.getKey().contains("[")) {
         String instrumentationVariableName = insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex);
         instrumentationVariableName = instrumentationVariableName.substring(0, instrumentationVariableName.indexOf("["));
         String variableName = variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
+        String arraySize = variableEntry.getKey().substring(variableEntry.getKey().indexOf("[") + 1, variableEntry.getKey().indexOf("]"));
+        String newAssignment = "ASSIGN_ARRAY(" + instrumentationVariableName + ", " + variableName + ", " + arraySize + "); ";
+        String newAssertStatement = "";
         String indexMemoryName = variableName + "_INDEX_MEMORY_" + pIndex;
         String memoryCountName = variableName + "_MEMORY_COUNT_" + pIndex;
-        assertionLine += "COMPARE_ARRAYS_AT_INDEX(" + variableName + ", "
+        newAssertStatement += "COMPARE_ARRAYS_AT_INDEX(" + variableName + ", "
             + instrumentationVariableName + ", "
             + indexMemoryName + ", "
             + "&" + memoryCountName
-            + ")";
+            + ") == 1";
+        assertStatements.add(newAssertStatement);
+        value += newAssignment;
       }
       else {
-        assertionLine += "("
+        value += getDereferencesForPointer(variableEntry.getValue())
+            + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
+            + " = "
+            + getDereferencesForPointer(variableEntry.getValue())
+            + variableEntry.getKey()
+            + "; ";
+        String newAssertStatement = "("
             + getDereferencesForPointer(variableEntry.getValue())
             + variableEntry.getKey()
             + " != "
             + getDereferencesForPointer(variableEntry.getValue())
             + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
             + ")";
+        assertStatements.add(newAssertStatement);
       }
     }
+    value += "} else { __VERIFIER_assert((saved_"
+        + pIndex
+        + " == 0) || ";
 
-    return assertionLine;
+    value += assertStatements.stream().collect(Collectors.joining(" || "))
+    ;
+    value += ");}";
+    return value;
   }
 
-  private ImmutableMap<String, String> modifyVariablesForArrays(ImmutableMap<String, String> pLiveVariables) {
+    private ImmutableMap<String, String> modifyVariablesForArrays(ImmutableMap<String, String> pLiveVariables) {
     ImmutableMap<String, String> newVars = ImmutableMap.copyOf(LoopInfoUtils.expandArrays(pLiveVariables));
     return newVars;
   }
