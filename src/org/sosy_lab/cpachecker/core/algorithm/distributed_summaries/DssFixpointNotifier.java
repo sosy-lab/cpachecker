@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.communicatio
 
 public class DssFixpointNotifier {
 
+  public static final String FIXPOINT_NOTIFIER_ID = "fix-point-notifier";
+
   private final DssConnection connection;
   private final int connections;
   private final Set<String> waiting;
@@ -48,7 +50,7 @@ public class DssFixpointNotifier {
     if (waiting.size() == connections) {
       connection
           .getBroadcaster()
-          .broadcastToAll(messageFactory.createDssResultMessage("root", Result.TRUE));
+          .broadcastToAll(messageFactory.createDssResultMessage(FIXPOINT_NOTIFIER_ID, Result.TRUE));
     }
   }
 

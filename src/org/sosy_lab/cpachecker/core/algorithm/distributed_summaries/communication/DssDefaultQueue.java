@@ -59,6 +59,7 @@ public class DssDefaultQueue extends ForwardingBlockingQueue<DssMessage> {
   @Override
   public DssMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
+    DssFixpointNotifier.getInstance().active(Thread.currentThread().getName());
     while (!queue.isEmpty()) {
       DssMessage message = queue.take();
       Deque<DssMessage> queueForMessage =
