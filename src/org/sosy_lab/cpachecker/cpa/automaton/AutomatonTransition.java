@@ -95,8 +95,9 @@ class AutomatonTransition {
 
   static class Builder {
     private AutomatonBoolExpr trigger;
-    private List<AutomatonBoolExpr> assertions;
+    private List<AutomatonBoolExpr> automatonAssertions;
     private List<AExpression> assumptions;
+    private List<AExpression> analysisAssertions;
     private List<AutomatonAction> actions;
     private String followStateName;
     private @Nullable AutomatonInternalState followState;
@@ -105,13 +106,14 @@ class AutomatonTransition {
     private @Nullable StringExpression targetInformation;
 
     Builder(AutomatonBoolExpr pTrigger, String pFollowStateName) {
-      trigger = pTrigger;
-      assertions = ImmutableList.of();
-      assumptions = ImmutableList.of();
-      actions = ImmutableList.of();
-      followStateName = pFollowStateName;
-      candidateInvariants = ExpressionTrees.getTrue();
-      areDefaultCandidateInvariants = true;
+      this.trigger = pTrigger;
+      this.automatonAssertions = ImmutableList.of();
+      this.assumptions = ImmutableList.of();
+      this.analysisAssertions = ImmutableList.of();
+      this.actions = ImmutableList.of();
+      this.followStateName = pFollowStateName;
+      this.candidateInvariants = ExpressionTrees.getTrue();
+      this.areDefaultCandidateInvariants = true;
     }
 
     Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {
@@ -119,53 +121,57 @@ class AutomatonTransition {
       followState = pFollowState;
     }
 
+    /** Automaton‐level boolean assertions (for the internal `assertion` field). */
     @CanIgnoreReturnValue
-    Builder withAssertion(AutomatonBoolExpr pAssertion) {
-      assertions = ImmutableList.of(pAssertion);
+    Builder withAutomatonAssertions(List<AutomatonBoolExpr> pAssertions) {
+      this.automatonAssertions = ImmutableList.copyOf(pAssertions);
       return this;
     }
 
+    /** Raw AExpressions for predicate‐state strengthening. */
     @CanIgnoreReturnValue
-    Builder withAssertions(List<AutomatonBoolExpr> pAssertions) {
-      assertions = pAssertions;
+    Builder withAnalysisAssertions(List<AExpression> pAssertions) {
+      this.analysisAssertions = pAssertions;
       return this;
     }
 
+    /** Existing: attach language‐level assumptions. */
     @CanIgnoreReturnValue
     Builder withAssumptions(List<AExpression> pAssumptions) {
-      assumptions = pAssumptions;
+      this.assumptions = pAssumptions;
       return this;
     }
 
     @CanIgnoreReturnValue
     Builder withActions(List<AutomatonAction> pActions) {
-      actions = pActions;
+      this.actions = pActions;
       return this;
     }
 
     @CanIgnoreReturnValue
     Builder withCandidateInvariants(ExpressionTree<AExpression> pCandidateInvariants) {
-      candidateInvariants = pCandidateInvariants;
+      this.candidateInvariants = pCandidateInvariants;
       return this;
     }
 
     @CanIgnoreReturnValue
     Builder withNonDefaultCandidateInvariants() {
-      areDefaultCandidateInvariants = false;
+      this.areDefaultCandidateInvariants = false;
       return this;
     }
 
     @CanIgnoreReturnValue
     Builder withTargetInformation(StringExpression pTargetInformation) {
-      targetInformation = pTargetInformation;
+      this.targetInformation = pTargetInformation;
       return this;
     }
 
     AutomatonTransition build() {
       return new AutomatonTransition(
           trigger,
-          assertions,
+          automatonAssertions,
           assumptions,
+          analysisAssertions,
           candidateInvariants,
           areDefaultCandidateInvariants,
           actions,
@@ -178,7 +184,7 @@ class AutomatonTransition {
   AutomatonTransition(Builder b) {
     this(
         b.trigger,
-        b.assertions,
+        b.automatonAssertions,
         b.assumptions,
         b.candidateInvariants,
         b.areDefaultCandidateInvariants,
@@ -190,8 +196,9 @@ class AutomatonTransition {
 
   private AutomatonTransition(
       AutomatonBoolExpr pTrigger,
-      List<AutomatonBoolExpr> pAssertions,
+      List<AutomatonBoolExpr> pAutomatonAssertions,
       List<AExpression> pAssumptions,
+      List<AExpression> pAnalysisAssertions,
       ExpressionTree<AExpression> pCandidateInvariants,
       boolean pAreDefaultCandidateInvariants,
       List<AutomatonAction> pActions,
@@ -215,21 +222,18 @@ class AutomatonTransition {
     followState = pFollowState;
     targetInformation = pTargetInformation;
 
-    if (pAssertions.isEmpty()) {
+    // Build the boolean assertion from automatonAssertions:
+    if (pAutomatonAssertions.isEmpty()) {
       assertion = AutomatonBoolExpr.TRUE;
     } else {
-      AutomatonBoolExpr lAssertion = null;
-      for (AutomatonBoolExpr nextAssertion : pAssertions) {
-        if (lAssertion == null) {
-          // first iteration
-          lAssertion = nextAssertion;
-        } else {
-          // other iterations
-          lAssertion = new AutomatonBoolExpr.And(lAssertion, nextAssertion);
-        }
+      AutomatonBoolExpr acc = pAutomatonAssertions.get(0);
+      for (int i = 1; i < pAutomatonAssertions.size(); i++) {
+        acc = new AutomatonBoolExpr.And(acc, pAutomatonAssertions.get(i));
       }
-      assertion = lAssertion;
+      assertion = acc;
     }
+    // Store the raw AExpressions for later predicate‐state strengthening:
+    this.analysisAssertions = checkNotNull(pAnalysisAssertions);
   }
 
   @Override
@@ -391,6 +395,25 @@ class AutomatonTransition {
       Optional<AExpression> resolved = tryResolve(assumption, pEdge, pLogger, pMachineModel);
       if (resolved.isPresent()) {
         builder.add(resolved.orElseThrow());
+      }
+    }
+    return builder.build();
+  }
+  
+  public List<AExpression> getAssertions() {
+    if (assertion instanceof AutomatonBoolExpr.AExpressionAdapter) {
+      return ImmutableList.of(((AutomatonBoolExpr.AExpressionAdapter) assertion).getExpression());
+    } else if (assertion instanceof AutomatonBoolExpr.And) {
+      return getAssertionsFromAnd((AutomatonBoolExpr.And) assertion);
+    }
+    return ImmutableList.of();
+  }
+  
+  private List<AExpression> getAssertionsFromAnd(AutomatonBoolExpr.And and) {
+    ImmutableList.Builder<AExpression> builder = ImmutableList.builder();
+    for (AutomatonBoolExpr expr : and.getOperands()) {
+      if (expr instanceof AutomatonBoolExpr.AExpressionAdapter) {
+        builder.add(((AutomatonBoolExpr.AExpressionAdapter) expr).getExpression());
       }
     }
     return builder.build();

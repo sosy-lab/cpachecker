@@ -110,13 +110,15 @@ class AutomatonWitnessV2ParserCorrectness extends AutomatonWitnessV2ParserCommon
                   new AutomatonTransition.Builder(
                           new CheckEndsAtNodes(ImmutableSet.of(optionalLoopHead.orElseThrow())),
                           entryStateId)
-                      .withCandidateInvariants(invariant)
+                      .withAnalysisAssertions(ImmutableList.of(invariant))
+                      .withAutomatonAssertions(ImmutableList.of(AutomatonBoolExpr.fromExpressionTree(invariant)))
                       .build());
             } else if (invariantType.equals(InvariantRecordType.LOCATION_INVARIANT.getKeyword())) {
               transitions.add(
                   new AutomatonTransition.Builder(
                           new CheckCoversColumnAndLine(column, line), entryStateId)
-                      .withCandidateInvariants(invariant)
+                      .withAnalysisAssertions(ImmutableList.of(invariant))
+                      .withAutomatonAssertions(ImmutableList.of(AutomatonBoolExpr.fromExpressionTree(invariant)))
                       .build());
             } else {
               throw new WitnessParseException(
