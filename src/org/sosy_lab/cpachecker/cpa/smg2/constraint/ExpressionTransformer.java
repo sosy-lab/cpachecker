@@ -541,6 +541,24 @@ public class ExpressionTransformer
         constSymbolicValueEqualTo, constValueEqualTo, comparisonType, comparisonType);
   }
 
+  public Constraint getLogicalOrConstraint(
+      Value leftConstraint,
+      Value rightConstraint,
+      Type comparisonType,
+      SMGState currentState) {
+    SymbolicExpression leftSymbolicValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(leftConstraint, comparisonType)
+            .copyForState(currentState);
+    SymbolicExpression rightSymbolicValue =
+        SymbolicValueFactory.getInstance()
+            .asConstant(rightConstraint, comparisonType)
+            .copyForState(currentState);
+
+    return (Constraint) factory.logicalOr(
+        leftSymbolicValue, rightSymbolicValue, comparisonType, comparisonType);
+  }
+
   public List<Constraint> getValidMemoryAccessConstraints(
       Value offsetInBits,
       Value readSizeInBits,
