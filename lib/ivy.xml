@@ -54,7 +54,11 @@ SPDX-License-Identifier: Apache-2.0
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.10"
-                    conf="runtime->runtime; contrib->sources"/>
+                    conf="runtime->runtime; contrib->sources">
+          <!-- Exclude large binary library because LLVM frontend is disabled.
+               We keep llvm-j such that our code still compiles. -->
+          <exclude org="org.sosy_lab" module="llvm-lib-9"/>
+        </dependency>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
         <dependency org="org.sosy_lab" name="pjbdd" rev="v.1.0.10-10"

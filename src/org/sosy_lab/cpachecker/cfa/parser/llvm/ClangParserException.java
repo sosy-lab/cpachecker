@@ -6,29 +6,30 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.exceptions;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.Serial;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-public class ClangParserException extends ParserException {
+class ClangParserException extends ParserException {
 
   @Serial private static final long serialVersionUID = 623683591746357905L;
 
-  public ClangParserException(final String pMsg) {
+  ClangParserException(final String pMsg) {
     super(pMsg, Language.LLVM);
   }
 
-  public ClangParserException(final Throwable pCause) {
+  ClangParserException(final Throwable pCause) {
     super(pCause, Language.LLVM);
   }
 
-  public ClangParserException(final String pMsg, Throwable pCause) {
+  ClangParserException(final String pMsg, Throwable pCause) {
     super(pMsg, pCause, Language.LLVM);
   }
 
-  public ClangParserException(final String pMsg, CFAEdge pEdge) {
+  ClangParserException(final String pMsg, CFAEdge pEdge) {
     super(pMsg, pEdge, Language.LLVM);
   }
 }

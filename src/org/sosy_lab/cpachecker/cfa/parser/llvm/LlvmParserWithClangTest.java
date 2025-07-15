@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -27,14 +28,14 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 /** Unit tests for {@link LlvmParserWithClang}. */
 @RunWith(Parameterized.class)
+@Ignore // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/1356
 public class LlvmParserWithClangTest {
 
   @Parameters(name = "{0} with file name {1}")
@@ -62,11 +63,8 @@ public class LlvmParserWithClangTest {
   public void createParsers() throws InvalidConfigurationException {
     Configuration config = TestDataTools.configurationForTest().build();
     LogManager logger = LogManager.createTestLogManager();
-    ClangPreprocessor clangPreprocessor = new ClangPreprocessor(config, logger);
-    stringParser =
-        LlvmParserWithClang.Factory.getParser(clangPreprocessor, logger, MachineModel.LINUX32);
-    fileParser =
-        LlvmParserWithClang.Factory.getParser(clangPreprocessor, logger, MachineModel.LINUX32);
+    stringParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);
+    fileParser = new LlvmParserWithClang(config, logger, MachineModel.LINUX32);
   }
 
   @Test

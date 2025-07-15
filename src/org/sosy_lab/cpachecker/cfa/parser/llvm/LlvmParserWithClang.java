@@ -6,21 +6,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.io.TempFile.DeleteOnCloseDir;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -28,16 +28,15 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
  * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
  * scoping and expression trees are always flat.
  */
-public class LlvmParserWithClang extends LlvmParser {
+class LlvmParserWithClang extends LlvmParser {
 
   private final ClangPreprocessor preprocessor;
 
   public LlvmParserWithClang(
-      final ClangPreprocessor pPreprocessor,
-      final LogManager pLogger,
-      final MachineModel pMachineModel) {
+      final Configuration pConfig, final LogManager pLogger, final MachineModel pMachineModel)
+      throws InvalidConfigurationException {
     super(pLogger, pMachineModel);
-    preprocessor = pPreprocessor;
+    preprocessor = new ClangPreprocessor(pConfig, pLogger);
   }
 
   @Override
@@ -87,12 +86,5 @@ public class LlvmParserWithClang extends LlvmParser {
       throws ParserException, InterruptedException {
     Path dumpedFile = preprocessor.preprocessAndGetDumpedFile(pFilename, pDumpDirectory);
     return super.parseFile(dumpedFile);
-  }
-
-  static class Factory {
-    public static LlvmParserWithClang getParser(
-        ClangPreprocessor processor, LogManager logger, MachineModel machine) {
-      return new LlvmParserWithClang(processor, logger, machine);
-    }
   }
 }
