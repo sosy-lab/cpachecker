@@ -197,7 +197,7 @@ public class ConstraintFactory {
     return expressionFactory.asConstant(new NumericValue(1L), pType);
   }
 
-  private Constraint createNot(Constraint pConstraint) {
+  public Constraint createNot(Constraint pConstraint) {
     // We use ConstraintExpression as Constraints, so this should be possible
     return createNot((SymbolicExpression) pConstraint);
   }

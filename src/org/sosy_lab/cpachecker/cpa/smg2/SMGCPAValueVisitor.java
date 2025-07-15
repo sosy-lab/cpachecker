@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslTernaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslType;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryPredicate.AcslUnaryExpressionOperator;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslUnaryTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslValidPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -3243,7 +3244,50 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(AcslUnaryPredicate pAcslUnaryPredicate)
       throws CPATransferException {
-    return List.of();
+
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+
+    if (pAcslUnaryPredicate.getOperand() instanceof AcslPredicate pPredicate) {
+      List<ValueAndSMGState> valueAndSMGStates = pPredicate.accept(this);
+
+      //Until now only NEGATION exists as AcslUnaryPredicate
+      switch ((AcslUnaryExpressionOperator) pAcslUnaryPredicate.getOperator()) {
+        case NEGATION -> {
+          final ConstraintFactory constraintFactory = ConstraintFactory
+              .getInstance(state, state.getMachineModel(), logger, options, evaluator, cfaEdge);
+          final Function<ValueAndSMGState, ValueAndSMGState> negateConstraint = x -> ValueAndSMGState.of(constraintFactory.createNot((Constraint) x.getValue()), x.getState());
+
+          //Returns empty list or wraps single constraint into LogicalNotExpression
+          if (valueAndSMGStates.size() <= 1) {
+            result.addAll(valueAndSMGStates
+                .stream()
+                .map(negateConstraint)
+                .toList()
+            );
+            return result.build();
+          }
+
+          //If we want to negate multiple Constraints we need to use De Morgan's Law
+          ValueAndSMGState first = negateConstraint.apply(valueAndSMGStates.get(0));
+          result.add(
+              valueAndSMGStates
+                  .subList(1, valueAndSMGStates.size())
+                  .stream()
+                  .map(negateConstraint)
+                  .reduce(first, (a, b) -> ValueAndSMGState.of(
+                      constraintFactory.getLogicalOrConstraint(
+                          ((ValueAndSMGState)a).getValue(),
+                          b.getValue(),
+                          pPredicate.getExpressionType(),
+                          state),
+                      state
+                      )
+                  )
+          );
+        }
+      }
+    }
+    return result.build();
   }
 
   @Override
