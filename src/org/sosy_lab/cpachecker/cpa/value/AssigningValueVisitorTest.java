@@ -11,9 +11,14 @@ package org.sosy_lab.cpachecker.cpa.value;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.AtomicDouble;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
+import org.kframework.mpfr.BigFloat;
+import org.kframework.mpfr.BinaryMathContext;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -67,20 +72,57 @@ public class AssigningValueVisitorTest {
     assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Integer.valueOf(255))))
         .isTrue();
 
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Double.valueOf(255.1))))
+        .isFalse();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Float.valueOf(-1.0f))))
+        .isFalse();
+    assertThat(
+            visitor.isValueInRangeOfType(
+                unsignedChar, new NumericValue(FloatValue.nan(FloatValue.Format.Float32))))
+        .isFalse();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Double.valueOf(1.0))))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(new AtomicDouble(1.0))))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Rational.ONE))).isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Rational.NEG_ONE)))
+        .isFalse();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Rational.of(256))))
+        .isFalse();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(BigDecimal.ONE)))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(BigDecimal.valueOf(-1))))
+        .isFalse();
+    assertThat(
+            visitor.isValueInRangeOfType(unsignedChar, new NumericValue(BigDecimal.valueOf(256))))
+        .isFalse();
+
     CSimpleType signedLong = CNumericTypes.SIGNED_LONG_INT;
     assertThat(visitor.isValueInRangeOfType(signedLong, new NumericValue(Integer.MIN_VALUE)))
         .isTrue();
     assertThat(visitor.isValueInRangeOfType(signedLong, new NumericValue(Integer.valueOf(1))))
         .isTrue();
+    assertThat(visitor.isValueInRangeOfType(signedLong, new NumericValue(Float.valueOf(-1.0f))))
+        .isTrue();
 
     assertThat(visitor.isValueInRangeOfType(unsignedChar, BooleanValue.FALSE_VALUE)).isTrue();
+    assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Rational.ONE))).isTrue();
     assertThat(visitor.isValueInRangeOfType(unsignedChar, new NumericValue(Rational.NEG_ONE)))
-        .isTrue();
+        .isFalse();
     assertThat(
             visitor.isValueInRangeOfType(CNumericTypes.FLOAT, new NumericValue(Integer.valueOf(2))))
         .isTrue();
     assertThat(
             visitor.isValueInRangeOfType(new CProblemType(""), new NumericValue(Integer.MAX_VALUE)))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+        .isTrue();
+
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
+        .isTrue();
+    assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
         .isTrue();
     assertThat(visitor.isValueInRangeOfType(new CProblemType(""), NullValue.getInstance()))
         .isTrue();
@@ -108,6 +150,17 @@ public class AssigningValueVisitorTest {
                 unsignedChar, unsignedInt, new NumericValue(BigDecimal.ONE), false))
         .isEqualTo(UnknownValue.getInstance());
 
+    NumericValue aiVal = new NumericValue(new AtomicInteger(0));
+    assertThat(visitor.invertCastFromInteger(unsignedChar, unsignedInt, aiVal, false))
+        .isEqualTo(aiVal);
+    NumericValue alVal = new NumericValue(new AtomicLong(1));
+    assertThat(visitor.invertCastFromInteger(unsignedChar, unsignedInt, alVal, false))
+        .isEqualTo(alVal);
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar, unsignedInt, new NumericValue(new AtomicDouble(0.0)), false))
+        .isEqualTo(UnknownValue.getInstance());
+
     assertThat(
             visitor.invertCastFromInteger(
                 unsignedChar, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(3.0f)), false))
@@ -119,6 +172,19 @@ public class AssigningValueVisitorTest {
     assertThat(visitor.invertCastFromInteger(unsignedChar, signedInt, val1, false)).isEqualTo(val1);
     assertThat(visitor.invertCastFromInteger(unsignedChar, CNumericTypes.FLOAT, val1, false))
         .isEqualTo(val1);
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar, CNumericTypes.FLOAT, new NumericValue(BigDecimal.ONE), false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                CNumericTypes.FLOAT,
+                new NumericValue(BigDecimal.valueOf(256)),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
 
     assertThat(
             visitor.invertCastFromInteger(
@@ -165,6 +231,22 @@ public class AssigningValueVisitorTest {
                 unsignedChar,
                 unsignedInt,
                 new NumericValue(FloatValue.nan(FloatValue.Format.Float256).negate()),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                CNumericTypes.FLOAT,
+                new NumericValue(FloatValue.fromFloat(3.0f)),
+                false))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCastFromInteger(
+                unsignedChar,
+                CNumericTypes.FLOAT,
+                new NumericValue(new BigFloat(2.0, BinaryMathContext.BINARY64)),
                 false))
         .isEqualTo(UnknownValue.getInstance());
 
@@ -304,6 +386,27 @@ public class AssigningValueVisitorTest {
         .isEqualTo(UnknownValue.getInstance());
     assertThat(
             visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.nan(FloatValue.Format.Float256))))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.infinity(FloatValue.Format.Float64))))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(FloatValue.infinity(FloatValue.Format.Float128).negate())))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(visitor.invertCast(signedInt, CNumericTypes.DOUBLE, val1))
+        .isEqualTo(new NumericValue(BigInteger.valueOf(257)));
+
+    assertThat(
+            visitor.invertCast(
                 signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.POSITIVE_INFINITY)))
         .isEqualTo(UnknownValue.getInstance());
     assertThat(
@@ -328,6 +431,16 @@ public class AssigningValueVisitorTest {
             visitor.invertCast(
                 signedInt, CNumericTypes.DOUBLE, new NumericValue(Double.valueOf(3.0))))
         .isEqualTo(new NumericValue(BigInteger.valueOf(3)));
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.DOUBLE, new NumericValue(BigDecimal.valueOf(3.0))))
+        .isEqualTo(new NumericValue(BigInteger.valueOf(3)));
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(new BigFloat(BigInteger.valueOf(3), BinaryMathContext.BINARY128))))
+        .isEqualTo(new NumericValue(BigInteger.valueOf(3)));
 
     // float not representable as integer value
     assertThat(
@@ -337,6 +450,23 @@ public class AssigningValueVisitorTest {
     assertThat(
             visitor.invertCast(
                 signedInt, CNumericTypes.FLOAT, new NumericValue(Float.valueOf(2.3f))))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt, CNumericTypes.FLOAT, new NumericValue(BigDecimal.valueOf(2.3f))))
+        .isEqualTo(UnknownValue.getInstance());
+    assertThat(
+            visitor.invertCast(
+                signedInt,
+                CNumericTypes.DOUBLE,
+                new NumericValue(new BigFloat(2.3, BinaryMathContext.BINARY64))))
+        .isEqualTo(UnknownValue.getInstance());
+
+    assertThat(
+            visitor.invertCast(
+                unsignedChar,
+                CNumericTypes.DOUBLE,
+                new NumericValue(new BigFloat(2.3, BinaryMathContext.BINARY64))))
         .isEqualTo(UnknownValue.getInstance());
 
     // both integer types

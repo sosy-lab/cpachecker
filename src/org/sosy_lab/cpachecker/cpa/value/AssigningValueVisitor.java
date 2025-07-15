@@ -18,6 +18,10 @@ import com.google.common.util.concurrent.AtomicDouble;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import org.kframework.mpfr.BigFloat;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -44,10 +48,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTran
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Visitor that derives further information from an assume edge */
@@ -231,27 +235,26 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
         if (getMachineModel().getSizeof(origType) < getMachineModel().getSizeof(castType)) {
           Value downCastVal = castCValue(pValue, origType, getMachineModel(), getLogger());
-          if (downCastVal.isExplicitlyKnown()
-              && !(downCastVal.asNumericValue().getNumber() instanceof Rational)
-              && downCastVal
-                      .asNumericValue()
-                      .bigDecimalValue()
-                      .compareTo(pValue.asNumericValue().bigDecimalValue())
-                  == 0) {
-            return pValue;
+          if (downCastVal.isExplicitlyKnown() && downCastVal.asNumericValue() != null) {
+            FloatValue downCastFloatVal = downCastVal.asNumericValue().getFloatValue();
+            FloatValue origFloatVal = pValue.asNumericValue().getFloatValue();
+            Preconditions.checkState(
+                origFloatVal.getFormat().isGreaterOrEqual(downCastFloatVal.getFormat()));
+            if (downCastFloatVal.withPrecision(origFloatVal.getFormat()).equals(origFloatVal)) {
+              return pValue;
+            }
           }
         }
-
         // potential precision loss, be conservative
         return UnknownValue.getInstance();
       } else if (castType.getType().isFloatingPointType()) { // cast type floating point,
         Preconditions.checkArgument(pValue instanceof NumericValue); // but orig type not
-        NumericValue numVal = (NumericValue) pValue;
+        NumericValue numVal = convertAtomicNumber((NumericValue) pValue);
 
         Number number = numVal.getNumber();
         if (number.equals(Float.NaN)
             || number.equals(Double.NaN)
-            || NegativeNaN.VALUE.equals(number)
+            || (number instanceof FloatValue fVal && (fVal.isNan() || fVal.isInfinite()))
             || number.equals(Double.POSITIVE_INFINITY)
             || number.equals(Double.NEGATIVE_INFINITY)
             || number.equals(Float.POSITIVE_INFINITY)
@@ -259,19 +262,38 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           return UnknownValue.getInstance(); // no integer value exists
         } else {
           NumericValue resVal;
-          if (numVal.getNumber() instanceof Rational) {
-            if (((Rational) numVal.getNumber()).isIntegral()) {
-              resVal = new NumericValue(((Rational) numVal.getNumber()).getNum());
+          if (number instanceof Rational ratVal) {
+            if (ratVal.isIntegral()) {
+              resVal = new NumericValue((ratVal).getNum());
             } else { // Rational always normalized,
               // thus, denominator cannot be a divisor of nominator
               return UnknownValue.getInstance(); // no integer value exists
             }
-          } else {
+          } else if (numVal.hasIntegerType()) {
+            resVal = new NumericValue(numVal.getIntegerValue());
+          } else if (numVal.hasFloatType()) {
+            // Double, Float, FloatValue
+            BigInteger intValue = numVal.getFloatValue().toInteger().orElseThrow();
+            if (FloatValue.fromInteger(numVal.getFloatValue().getFormat(), intValue)
+                .equals(numVal.getFloatValue())) {
+              resVal = new NumericValue(intValue);
+            } else {
+              return UnknownValue.getInstance(); // no integer value exists
+            }
+          } else if (number instanceof BigDecimal bdVal) {
             try {
-              resVal = new NumericValue(numVal.bigDecimalValue().toBigIntegerExact());
+              resVal = new NumericValue(bdVal.toBigIntegerExact());
             } catch (ArithmeticException e) {
               return UnknownValue.getInstance(); // no integer value exists
             }
+          } else if (number instanceof BigFloat bfVal) {
+            try {
+              resVal = new NumericValue(bfVal.toBigIntegerExact());
+            } catch (ArithmeticException e) {
+              return UnknownValue.getInstance(); // no integer value exists
+            }
+          } else {
+            return UnknownValue.getInstance(); // no integer value exists
           }
 
           return invertCastFromInteger(origType, castType, resVal, false);
@@ -313,7 +335,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         || num instanceof Float
         || num instanceof AtomicDouble
         || num instanceof BigDecimal
-        || num instanceof NegativeNaN) {
+        || num instanceof FloatValue
+        || num instanceof BigFloat) {
       return UnknownValue.getInstance();
     }
 
@@ -326,7 +349,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (isValueInRangeOfType(pTargetTypeOfValue, pValue)) {
       return pValue;
     } else if (!getMachineModel().isSigned(pTargetTypeOfValue)
-        && pValue.bigDecimalValue().compareTo(BigDecimal.valueOf(0)) < 0) {
+        && hasKnownNegativeValue(convertAtomicNumber(pValue))) {
       // invert conversion to signed type
       if (pCastType.getType().isFloatingPointType()
           || getMachineModel().getSizeof(pTargetTypeOfValue)
@@ -386,6 +409,23 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     } else {
       return UnknownValue.getInstance();
     }
+  }
+
+  private boolean hasKnownNegativeValue(final NumericValue pValue) {
+    if (pValue.hasIntegerType()) {
+      return pValue.getIntegerValue().compareTo(BigInteger.ZERO) < 0;
+    }
+    if (pValue.hasFloatType()) {
+      return pValue.getFloatValue().isNegative();
+    }
+    if (pValue.getNumber() instanceof BigDecimal bdValue) {
+      return bdValue.compareTo(BigDecimal.ZERO) < 0;
+    }
+    if (pValue.getNumber() instanceof Rational ratVal) {
+      return ratVal.compareTo(Rational.ZERO) < 0;
+    }
+
+    return false;
   }
 
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
@@ -538,16 +578,65 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (pValue instanceof NumericValue) {
       if (pExpectedTypeOfValue instanceof CSimpleType) {
         CSimpleType type = (CSimpleType) pExpectedTypeOfValue;
-        if (type.getType().isIntegerType()
-            && !(((NumericValue) pValue).getNumber() instanceof Rational)) {
-          BigDecimal val = ((NumericValue) pValue).bigDecimalValue();
+        NumericValue numVal = convertAtomicNumber((NumericValue) pValue);
+        if (type.getType().isIntegerType() && !(numVal.getNumber() instanceof BigFloat)) {
 
-          return val.compareTo(new BigDecimal(getMachineModel().getMaximalIntegerValue(type))) <= 0
-              && val.compareTo(new BigDecimal(getMachineModel().getMinimalIntegerValue(type))) >= 0;
+          if (numVal.hasIntegerType()) {
+            return numVal
+                        .getIntegerValue()
+                        .compareTo(getMachineModel().getMaximalIntegerValue(type))
+                    <= 0
+                && numVal
+                        .getIntegerValue()
+                        .compareTo(getMachineModel().getMinimalIntegerValue(type))
+                    >= 0;
+          } else if (numVal.hasFloatType()) {
+            FloatValue floatVal = numVal.getFloatValue();
+            if (floatVal.isNegative()) {
+              floatVal = floatVal.round(FloatValue.RoundingMode.FLOOR);
+            } else {
+              floatVal = floatVal.round(FloatValue.RoundingMode.CEILING);
+            }
+
+            Optional<BigInteger> res = floatVal.toInteger();
+            if (res.isEmpty()) {
+              return false;
+            }
+            return res.orElseThrow().compareTo(getMachineModel().getMaximalIntegerValue(type)) <= 0
+                && res.orElseThrow().compareTo(getMachineModel().getMinimalIntegerValue(type)) >= 0;
+          } else if (numVal.getNumber() instanceof Rational ratVal) {
+            return ratVal.compareTo(
+                        Rational.ofBigInteger(getMachineModel().getMaximalIntegerValue(type)))
+                    <= 0
+                && ratVal.compareTo(
+                        Rational.ofBigInteger(getMachineModel().getMinimalIntegerValue(type)))
+                    >= 0;
+          } else if (numVal.getNumber() instanceof BigDecimal bdVal) {
+            return bdVal.compareTo(new BigDecimal(getMachineModel().getMaximalIntegerValue(type)))
+                    <= 0
+                && bdVal.compareTo(new BigDecimal(getMachineModel().getMinimalIntegerValue(type)))
+                    >= 0;
+          }
         }
       }
     }
     return true;
+  }
+
+  private NumericValue convertAtomicNumber(final NumericValue pNumVal) {
+    if (pNumVal.getNumber() instanceof AtomicLong al) {
+      return new NumericValue(Long.valueOf(al.get()));
+    }
+
+    if (pNumVal.getNumber() instanceof AtomicInteger ai) {
+      return new NumericValue(Integer.valueOf(ai.get()));
+    }
+
+    if (pNumVal.getNumber() instanceof AtomicDouble ad) {
+      return new NumericValue(Double.valueOf(ad.get()));
+    }
+
+    return pNumVal;
   }
 
   /** returns an initialized, empty visitor */
