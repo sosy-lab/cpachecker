@@ -17,8 +17,12 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -37,6 +41,9 @@ import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslFunctionCallTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIdTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslIntegerLiteralTerm;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSet;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetEmpty;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslMemoryLocationSetTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldPredicate;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslOldTerm;
 import org.sosy_lab.cpachecker.cfa.ast.acsl.AcslPredicate;
@@ -93,8 +100,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
+import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.smg2.constraint.ConstraintFactory;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGException;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -3269,7 +3279,64 @@ public class SMGCPAValueVisitor
   @Override
   public List<ValueAndSMGState> visit(AcslValidPredicate pAcslValidPredicate)
       throws CPATransferException {
-    return List.of();
+
+    AcslMemoryLocationSet locationSet = pAcslValidPredicate.getMemoryLocationSet();
+
+    //Empty Constraint set for empty MemoryLocationSet
+    if (locationSet instanceof AcslMemoryLocationSetEmpty) {
+      return ImmutableList.of();
+    }
+
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    for (ValueAndSMGState valueAndSMGState : ((AcslMemoryLocationSetTerm)locationSet).getTerm().accept(this)) {
+      Value value = valueAndSMGState.getValue();
+      SMGState newState = valueAndSMGState.getState();
+
+      //The parameter of the \\valid() function should always be a memory address
+      if (value instanceof AddressExpression pAddressExpression) {
+        final ConstraintFactory constraintFactory =
+            ConstraintFactory.getInstance(newState, newState.getMachineModel(), logger, options, evaluator, cfaEdge);
+
+        //Generates a list that connects SymbolicIdentifiers with their MemoryLocations excluding __CPAchecker_TMP for irrelevancy
+        Set<Entry<MemoryLocation, ValueAndValueSize>> memLocations = newState
+            .getMemoryModel()
+            .getMemoryLocationsAndValuesForSPCWithoutHeap()
+            .entrySet()
+            .stream()
+            .filter(x -> x.getValue().getValue().equals(pAddressExpression.getMemoryAddress()))
+            .filter(x -> !x.getKey().getIdentifier().contains("__CPAchecker_TMP"))
+            .collect(Collectors.toSet());
+
+        //Generates constraints for all the MemoryLocation-SymbolicIdentifier-Pairs and adds them to the output
+        for (Entry<MemoryLocation, ValueAndValueSize> entry : memLocations) {
+          MemoryLocation memLocation = entry.getKey();
+
+          Optional<SMGObject> maybeObject =
+              state.getMemoryModel().getObjectForVisibleVariable(memLocation.getQualifiedName());
+
+          CPointerType expressionType = (CPointerType) pAddressExpression.getType();
+          List<Constraint> constraints =
+              constraintFactory.checkForConcreteMemoryAccessAssignmentWithSolver(
+                  new NumericValue(memLocation.getOffset()),
+                  new NumericValue(evaluator.getBitSizeof(newState, expressionType)),
+                  maybeObject.orElseThrow().getSize(),
+                  expressionType,
+                  newState);
+
+          result.addAll(
+              constraints
+                  .stream()
+                  .map(x -> ValueAndSMGState.of(x, newState))
+                  .collect(Collectors.toSet())
+          );
+        }
+      }
+      else {
+        throw new SMGException("Content of \\valid function not memory address");
+      }
+    }
+
+    return result.build();
   }
 
   @Override

@@ -70,6 +70,10 @@ public final class AcslValidPredicate implements AcslPredicate {
     return fileLocation;
   }
 
+  public AcslMemoryLocationSet getMemoryLocationSet() {
+    return memoryLocationSet;
+  }
+
   @Override
   public String toASTString(AAstNodeRepresentation pAAstNodeRepresentation) {
     return "\\valid(" + memoryLocationSet.toASTString(pAAstNodeRepresentation) + ")";
