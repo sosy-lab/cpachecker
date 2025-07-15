@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -296,9 +295,6 @@ public final class LoopStructure {
   private @Nullable ImmutableSet<String> loopExitConditionVariables;
   private @Nullable ImmutableSet<String> loopIncDecVariables;
 
-  // computed lazily on demand per edge
-  private Map<CFAEdge, List<Loop>> loopsContainingEdge = new HashMap<>();
-
   private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
   }
@@ -331,19 +327,6 @@ public final class LoopStructure {
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
     return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
-  }
-
-  /** Get all loops containing this edge */
-  public List<Loop> getLoopsForEdge(CFAEdge pEdge) {
-    if (!loopsContainingEdge.containsKey(pEdge)) {
-      loopsContainingEdge.put(
-          pEdge,
-          FluentIterable.from(getAllLoops())
-              .filter(loop -> loop.getInnerLoopEdges().contains(pEdge))
-              .toList());
-    }
-
-    return loopsContainingEdge.get(pEdge);
   }
 
   /**

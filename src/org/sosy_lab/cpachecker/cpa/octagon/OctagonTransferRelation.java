@@ -212,10 +212,10 @@ public class OctagonTransferRelation
         return handleLiteralBooleanExpression(
             ((CCharLiteralExpression) expression).getCharacter(), truthAssumption, state);
 
-      } else if (expression instanceof CFloatLiteralExpression) {
+      } else if (expression instanceof CFloatLiteralExpression floatLiteral) {
         // only when the float is exactly zero the condition is wrong, for all other float values it
         // is true
-        int val = Math.abs(((CFloatLiteralExpression) expression).getValue().signum());
+        int val = floatLiteral.getValue().isZero() ? 0 : 1;
         return handleLiteralBooleanExpression(val, truthAssumption, state);
       } else {
         return Collections.singleton(state);

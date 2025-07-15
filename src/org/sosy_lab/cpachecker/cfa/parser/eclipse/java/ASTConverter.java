@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -143,6 +142,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JReferenceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.floatingpoint.FloatValue;
 
 class ASTConverter {
 
@@ -2755,22 +2755,18 @@ class ASTConverter {
     }
   }
 
-  private BigDecimal parseFloatLiteral(String valueStr) {
-
-    BigDecimal value;
-    try {
-      value = new BigDecimal(valueStr);
-    } catch (NumberFormatException nfe1) {
-      try {
-        // this might be a hex floating point literal
-        // BigDecimal doesn't support this, but Double does
-        // TODO handle hex floating point literals that are too large for Double
-        value = BigDecimal.valueOf(Double.parseDouble(valueStr));
-      } catch (NumberFormatException nfe2) {
-        throw new CFAGenerationRuntimeException("Illegal floating point literal", nfe2);
-      }
+  private FloatValue parseFloatLiteral(String pValueStr) {
+    String input = Ascii.toLowerCase(pValueStr);
+    FloatValue.Format format;
+    if (input.endsWith("f")) {
+      // Parse as a 32bit float if the input string ends in "f"
+      input = input.substring(0, input.length() - 1);
+      format = FloatValue.Format.Float32;
+    } else {
+      // Use double-precision otherwise
+      format = FloatValue.Format.Float64;
     }
-    return value;
+    return FloatValue.fromString(format, input);
   }
 
   private BigInteger parseIntegerLiteral(String s, ASTNode e) {
