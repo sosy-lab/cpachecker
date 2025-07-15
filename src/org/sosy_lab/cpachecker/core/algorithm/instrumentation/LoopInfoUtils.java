@@ -55,13 +55,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-
 public class LoopInfoUtils {
 
-  
   @SuppressWarnings("DefaultCharset")
-  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(CFA pCfa, CProgramScope pCProgramScope) {
-    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>(); 
+  public static ImmutableSet<NormalLoopInfo> getAllNormalLoopInfos(
+      CFA pCfa, CProgramScope pCProgramScope) {
+    Set<NormalLoopInfo> allNormalLoopInfos = new HashSet<>();
     ImmutableSet<String> allGlobalVariables = getAllGlobalVariables(pCfa);
     ImmutableMap<String, ImmutableMap<String, String>> allStructInfos = getAllStructInfos(pCfa);
     Map<String, ImmutableMap<String, String>> decomposedStructs = new HashMap<>();
@@ -71,7 +70,7 @@ public class LoopInfoUtils {
       // loop heads, e.g., goto loop.
       List<Integer> loopLocations = new ArrayList<>();
       for (CFANode cfaNode : loop.getLoopHeads()) {
-        
+
         loopLocations.add(
             CFAUtils.allEnteringEdges(cfaNode)
                 .first()
@@ -87,11 +86,11 @@ public class LoopInfoUtils {
       for (CFAEdge cfaEdge : loop.getInnerLoopEdges()) {
         if (cfaEdge.getRawAST().isPresent()) {
           AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
-          
+
           if (aAstNode instanceof CSimpleDeclaration) {
             variablesDeclaredInsideLoop.add(((CSimpleDeclaration) aAstNode).getQualifiedName());
           } else {
-            
+
             liveVariables.addAll(getVariablesFromAAstNode(cfaEdge.getRawAST().orElseThrow()));
           }
         }
@@ -123,10 +122,9 @@ public class LoopInfoUtils {
         }
       }
 
-
       // Decompose each variable into primitive expressions
       for (String variable : liveVariables) {
-        
+
         Entry<String, String> preprocessedVariableAndType =
             preprocess(variable, pCProgramScope.lookupVariable(variable).getType().toString());
         String preprocessedVariable = preprocessedVariableAndType.getKey();
@@ -255,7 +253,7 @@ public class LoopInfoUtils {
     }
     return ImmutableSet.copyOf(updatedLoopInfo);
   }
-  
+
   private static ImmutableSet<String> getVariablesFromAAstNode(AAstNode pAAstNode) {
     Set<String> variables = new HashSet<>();
 
@@ -303,16 +301,16 @@ public class LoopInfoUtils {
     if (!pType.contains("*") && !pType.contains("]")) {
       return new SimpleEntry<>(
           pVariable.contains("::")
-          ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-          : pVariable,
+              ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+              : pVariable,
           pType);
     }
 
     StringBuilder reversedVariableSb =
         new StringBuilder(
-            pVariable.contains("::")
-            ? Iterables.get(Splitter.on("::").split(pVariable), 1)
-            : pVariable)
+                pVariable.contains("::")
+                    ? Iterables.get(Splitter.on("::").split(pVariable), 1)
+                    : pVariable)
             .reverse();
     StringBuilder reversedTypeSb = new StringBuilder(pType).reverse();
 
@@ -343,7 +341,6 @@ public class LoopInfoUtils {
         reversedVariableSb.reverse().toString(), reversedTypeSb.reverse().toString());
   }
 
-  
   private static ImmutableMap<String, String> decompose(
       String pPreprocessedVariable,
       String pPreprocessedType,

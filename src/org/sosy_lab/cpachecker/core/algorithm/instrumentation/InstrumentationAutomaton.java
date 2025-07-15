@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -80,9 +81,7 @@ public class InstrumentationAutomaton {
     return initialState;
   }
 
-  /**
-   * returns all transitions whose source is pState
-   */
+  /** returns all transitions whose source is pState */
   public Set<InstrumentationTransition> getTransitions(InstrumentationState pState) {
     Set<InstrumentationTransition> transitions = new HashSet<>();
     for (InstrumentationTransition transition : instrumentationTransitions) {
@@ -282,7 +281,6 @@ public class InstrumentationAutomaton {
     InstrumentationState q3 = new InstrumentationState("q3", StateAnnotation.FALSE, this);
     this.initialState = q1;
 
-
     InstrumentationTransition t1 =
         new InstrumentationTransition(
             q1,
@@ -296,7 +294,8 @@ public class InstrumentationAutomaton {
                             (entry) ->
                                 entry.getValue()
                                     + " "
-                                    + insertInstrumentationSuffix(entry.getKey(), "_INSTR_" + pIndex)
+                                    + insertInstrumentationSuffix(
+                                        entry.getKey(), "_INSTR_" + pIndex)
                                     + (entry.getKey().charAt(0) == '*'
                                         ? " = alloca(sizeof("
                                             + getAllocationForPointer(entry.getValue())
@@ -455,8 +454,8 @@ public class InstrumentationAutomaton {
   }
 
   /**
-   * inserts a Suffix needed for Instrumentation into a liveVariables String.
-   * In case of arrays it inserts it before the array access
+   * inserts a Suffix needed for Instrumentation into a liveVariables String. In case of arrays it
+   * inserts it before the array access
    */
   private String insertInstrumentationSuffix(String pVarKey, String pSuffix) {
     String insertedKey;
@@ -464,61 +463,76 @@ public class InstrumentationAutomaton {
       int arrayAccessIndex = pVarKey.indexOf("[");
       String arrayAccess = pVarKey.substring(arrayAccessIndex);
       insertedKey = pVarKey.substring(0, arrayAccessIndex) + pSuffix + arrayAccess;
-    }
-    else {
+    } else {
       insertedKey = pVarKey + pSuffix;
     }
     return insertedKey;
   }
 
-  private String createAssignmentStatements(ImmutableMap<String, String> pLiveVariablesAndTypes, int pIndex) {
-    String value = "if(__VERIFIER_nondet_int() && saved_"
-        + pIndex
-        + " == 0) { saved_"
-        + pIndex
-        + " =1; ";
-    ArrayList<String> assertStatements = new ArrayList<>();
+  private String createAssignmentStatements(
+      ImmutableMap<String, String> pLiveVariablesAndTypes, int pIndex) {
+    String value =
+        "if(__VERIFIER_nondet_int() && saved_" + pIndex + " == 0) { saved_" + pIndex + " =1; ";
+    List<String> assertStatements = new ArrayList<>();
     for (Entry<String, String> variableEntry : pLiveVariablesAndTypes.entrySet()) {
       if (variableEntry.getKey().contains("[")) {
-        String instrumentationVariableName = insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex);
-        instrumentationVariableName = instrumentationVariableName.substring(0, instrumentationVariableName.indexOf("["));
-        String variableName = variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
-        String arraySize = variableEntry.getKey().substring(variableEntry.getKey().indexOf("[") + 1, variableEntry.getKey().indexOf("]"));
-        String newAssignment = "ASSIGN_ARRAY(" + instrumentationVariableName + ", " + variableName + ", " + arraySize + "); ";
+        String instrumentationVariableName =
+            insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex);
+        instrumentationVariableName =
+            instrumentationVariableName.substring(0, instrumentationVariableName.indexOf("["));
+        String variableName =
+            variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
+        String arraySize =
+            variableEntry
+                .getKey()
+                .substring(
+                    variableEntry.getKey().indexOf("[") + 1, variableEntry.getKey().indexOf("]"));
+        String newAssignment =
+            "ASSIGN_ARRAY("
+                + instrumentationVariableName
+                + ", "
+                + variableName
+                + ", "
+                + arraySize
+                + "); ";
         String newAssertStatement = "";
         String indexMemoryName = variableName + "_INDEX_MEMORY_" + pIndex;
         String memoryCountName = variableName + "_MEMORY_COUNT_" + pIndex;
-        newAssertStatement += "COMPARE_ARRAYS_AT_INDEX(" + variableName + ", "
-            + instrumentationVariableName + ", "
-            + indexMemoryName + ", "
-            + "&" + memoryCountName
-            + ") == 1";
+        newAssertStatement +=
+            "COMPARE_ARRAYS_AT_INDEX("
+                + variableName
+                + ", "
+                + instrumentationVariableName
+                + ", "
+                + indexMemoryName
+                + ", "
+                + "&"
+                + memoryCountName
+                + ") == 1";
         assertStatements.add(newAssertStatement);
         value += newAssignment;
-      }
-      else {
-        value += getDereferencesForPointer(variableEntry.getValue())
-            + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
-            + " = "
-            + getDereferencesForPointer(variableEntry.getValue())
-            + variableEntry.getKey()
-            + "; ";
-        String newAssertStatement = "("
-            + getDereferencesForPointer(variableEntry.getValue())
-            + variableEntry.getKey()
-            + " != "
-            + getDereferencesForPointer(variableEntry.getValue())
-            + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
-            + ")";
+      } else {
+        value +=
+            getDereferencesForPointer(variableEntry.getValue())
+                + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
+                + " = "
+                + getDereferencesForPointer(variableEntry.getValue())
+                + variableEntry.getKey()
+                + "; ";
+        String newAssertStatement =
+            "("
+                + getDereferencesForPointer(variableEntry.getValue())
+                + variableEntry.getKey()
+                + " != "
+                + getDereferencesForPointer(variableEntry.getValue())
+                + insertInstrumentationSuffix(variableEntry.getKey(), "_INSTR_" + pIndex)
+                + ")";
         assertStatements.add(newAssertStatement);
       }
     }
-    value += "} else { __VERIFIER_assert((saved_"
-        + pIndex
-        + " == 0) || ";
+    value += "} else { __VERIFIER_assert((saved_" + pIndex + " == 0) || ";
 
-    value += assertStatements.stream().collect(Collectors.joining(" || "))
-    ;
+    value += assertStatements.stream().collect(Collectors.joining(" || "));
     value += ");}";
     return value;
   }

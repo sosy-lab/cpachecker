@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -90,7 +89,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // Collect all the information about the new edges for the instrumented CFA
     Set<String> newEdges = new HashSet<>();
-    Map<String, String> notAccessedLoopNumbers =  new HashMap<>();
+    Map<String, String> notAccessedLoopNumbers = new HashMap<>();
 
     // For some properties we construct more automata to more effectively track variables within
     // the scope. This map is used to map the automata to concrete line numbers in the code.
@@ -104,14 +103,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       mapNodesToLineNumbers = LoopInfoUtils.getMapOfLoopHeadsToLineNumbers(cfa);
       // We have to track what variables have already been defined
       Map<String, String> alreadyDefinedVariables = new HashMap<>();
-      
-      
-      ImmutableSet<NormalLoopInfo> loopInfos = LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
-              LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
-          .stream()
-          
-          .sorted(Comparator.comparingInt(NormalLoopInfo::loopLocation))
-          .collect(ImmutableSet.toImmutableSet());
+
+      ImmutableSet<NormalLoopInfo> loopInfos =
+          LoopInfoUtils.includeAllTheOuterLiveVariablesInNestedLoop(
+                  LoopInfoUtils.getAllNormalLoopInfos(cfa, cProgramScope))
+              .stream()
+              .sorted(Comparator.comparingInt(NormalLoopInfo::loopLocation))
+              .collect(ImmutableSet.toImmutableSet());
       for (NormalLoopInfo info : loopInfos) {
         try {
           Map<String, Integer> accessedArrays = new HashMap<>();
@@ -119,25 +117,32 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             if (cfaEdge.getRawAST().isPresent()) {
               AAstNode aAstNode = cfaEdge.getRawAST().orElseThrow();
               if (aAstNode instanceof CAssignment && aAstNode.toASTString().contains("[")) {
-                for (Map.Entry<String, String> variableEntry : info.liveVariablesAndTypes().entrySet()) {
+                for (Map.Entry<String, String> variableEntry :
+                    info.liveVariablesAndTypes().entrySet()) {
                   if (!variableEntry.getKey().contains("[")) {
                     continue;
                   }
-                  String variableName = variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
-                  String assignmentTarget = ((CAssignment) aAstNode).getLeftHandSide().toASTString();
+                  String variableName =
+                      variableEntry.getKey().substring(0, variableEntry.getKey().indexOf("["));
+                  String assignmentTarget =
+                      ((CAssignment) aAstNode).getLeftHandSide().toASTString();
                   if (assignmentTarget.contains(variableName)) {
                     if (accessedArrays.containsKey(variableName)) {
                       accessedArrays.replace(variableName, accessedArrays.get(variableName) + 1);
-                    }
-                    else {
-                      int arraySize = Integer.parseInt(
-                          variableEntry.getKey().substring(variableEntry.getKey().indexOf("[") + 1, variableEntry.getKey().indexOf("]")));
+                    } else {
+                      int arraySize =
+                          Integer.parseInt(
+                              variableEntry
+                                  .getKey()
+                                  .substring(
+                                      variableEntry.getKey().indexOf("[") + 1,
+                                      variableEntry.getKey().indexOf("]")));
                       accessedArrays.put(variableName, arraySize + 1);
                     }
-                    String saveIndexLine = constructSaveIndexLine(cfaEdge, variableName, assignmentTarget, index);
+                    String saveIndexLine =
+                        constructSaveIndexLine(cfaEdge, variableName, assignmentTarget, index);
                     newEdges.add(saveIndexLine);
-                  }
-                  else {
+                  } else {
                     notAccessedLoopNumbers.put(variableName, String.valueOf(index));
                   }
                 }
@@ -145,9 +150,15 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
             }
           }
           String initilizationLine = "";
-          //String numberLoopModifier = (loopInfos.size() > 1) ? info.
-          for (Map.Entry<String, Integer> variableEntry: accessedArrays.entrySet()) {
-            String newVariableLine = "int " + variableEntry.getKey() + "_INDEX_MEMORY_" + index + "[" + variableEntry.getValue() + "];";
+          for (Map.Entry<String, Integer> variableEntry : accessedArrays.entrySet()) {
+            String newVariableLine =
+                "int "
+                    + variableEntry.getKey()
+                    + "_INDEX_MEMORY_"
+                    + index
+                    + "["
+                    + variableEntry.getValue()
+                    + "];";
             initilizationLine += newVariableLine;
             newVariableLine = "int " + variableEntry.getKey() + "_MEMORY_COUNT_" + index + " = 0;";
             initilizationLine += " " + newVariableLine + " ";
@@ -210,13 +221,13 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
       } else {
         assert currentNode != null;
         boolean matched = false;
-        
+
         for (int i = 0; i < currentNode.getNumLeavingEdges(); i++) {
           CFAEdge edge = currentNode.getLeavingEdge(i);
           for (InstrumentationTransition transition :
               currentState.getAutomatonOfTheState().getTransitions(currentState)) {
             ImmutableList<String> matchedVariables =
-                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition); 
+                transition.getPattern().matchThePattern(edge, mapDecomposedOperationsCondition);
             if (matchedVariables != null) {
               if (canBeDecomposed(
                       edge,
@@ -246,36 +257,63 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
         }
       }
     }
-    newEdges = newEdges.stream().map(edge -> {
-      final String edgeValue = edge;
-      if (edge.indexOf("COMPARE_ARRAYS_AT_INDEX") != -1) {
-        List<Entry<String, String>> entries = notAccessedLoopNumbers.entrySet().stream()
-            .filter(e -> edgeValue.contains(e.getKey()) && edgeValue.contains(e.getKey() + "_INSTR_" + e.getValue()))
-            .collect(ImmutableList.toImmutableList());
-        if (!entries.isEmpty()) {
-          String numberString = entries.stream()
-              .map(e -> e.getValue())
-              .collect(Collectors.joining(""));
-          String variableName = entries.get(0).getKey();
-          String regexVarNames = variableName + "\\w+[" + numberString + "]";
-          String regex = "COMPARE_ARRAYS_AT_INDEX\\(" + variableName + ", " + regexVarNames + ", " + regexVarNames + ", \\&" + regexVarNames + "\\) == 1(?: \\|\\|)?";
-          edge = edge.replaceAll(regex, "");
-        }
-      }
-      return edge;
-    }).collect(ImmutableSet.toImmutableSet());
+    newEdges =
+        newEdges.stream()
+            .map(
+                edge -> {
+                  final String edgeValue = edge;
+                  if (edge.indexOf("COMPARE_ARRAYS_AT_INDEX") != -1) {
+                    List<Entry<String, String>> entries =
+                        notAccessedLoopNumbers.entrySet().stream()
+                            .filter(
+                                e ->
+                                    edgeValue.contains(e.getKey())
+                                        && edgeValue.contains(
+                                            e.getKey() + "_INSTR_" + e.getValue()))
+                            .collect(ImmutableList.toImmutableList());
+                    if (!entries.isEmpty()) {
+                      String numberString =
+                          entries.stream().map(e -> e.getValue()).collect(Collectors.joining(""));
+                      String variableName = entries.get(0).getKey();
+                      String regexVarNames = variableName + "\\w+[" + numberString + "]";
+                      String regex =
+                          "COMPARE_ARRAYS_AT_INDEX\\("
+                              + variableName
+                              + ", "
+                              + regexVarNames
+                              + ", "
+                              + regexVarNames
+                              + ", \\&"
+                              + regexVarNames
+                              + "\\) == 1(?: \\|\\|)?";
+                      edge = edge.replaceAll(regex, "");
+                    }
+                  }
+                  return edge;
+                })
+            .collect(ImmutableSet.toImmutableSet());
 
     writeAllInformationIntoOutputFile(newEdges);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  @Nonnull
-  private static String constructSaveIndexLine(CFAEdge cfaEdge, String variableName, String assignmentTarget, int loopIndex) {
+  private static String constructSaveIndexLine(
+      CFAEdge cfaEdge, String variableName, String assignmentTarget, int loopIndex) {
     String variableMemoryName = variableName + "_INDEX_MEMORY_" + loopIndex;
     String variableCountName = variableName + "_MEMORY_COUNT_" + loopIndex;
-    String insertIndex = assignmentTarget.substring(assignmentTarget.indexOf("[") + 1, assignmentTarget.indexOf("]"));
+    String insertIndex =
+        assignmentTarget.substring(
+            assignmentTarget.indexOf("[") + 1, assignmentTarget.indexOf("]"));
     int lineNumber = cfaEdge.getFileLocation().getStartingLineInOrigin();
-    String saveIndexLine = lineNumber + "|||SAVE_ACCESS_INDEX(" + insertIndex + ", " + variableMemoryName + ", &" + variableCountName +");";
+    String saveIndexLine =
+        lineNumber
+            + "|||SAVE_ACCESS_INDEX("
+            + insertIndex
+            + ", "
+            + variableMemoryName
+            + ", &"
+            + variableCountName
+            + ");";
     return saveIndexLine;
   }
 
@@ -287,7 +325,6 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
    * the edge one line before the real operation and similarly for AFTER.
    */
   private String computeLineNumberBasedOnTransition(
-      
       InstrumentationTransition pTransition, CFAEdge pEdge) {
     if (pTransition.getSource().isInitialAnnotation()) {
       return "1";
@@ -466,9 +503,7 @@ public class SequentializationOperatorAlgorithm implements Algorithm {
     return false;
   }
 
-  /**
-   * returns a set of CFANodes that holds all destination nodes from pCFANode
-   */
+  /** returns a set of CFANodes that holds all destination nodes from pCFANode */
   private Set<CFANode> getSuccessorsOfANode(CFANode pCFANode) {
     Set<CFANode> successors = new HashSet<>();
     for (int i = 0; i < pCFANode.getNumLeavingEdges(); i++) {
